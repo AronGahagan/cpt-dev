@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<AppData>
-	<Version>0.1</Version>
-</AppData>
+<Modules>
+	<Module>
+		<Name>cptCommon</Name>
+		<Version>1.1</Version>
+	</Module>
+	<Module>
+		<Name>cptTextTools</Name>
+		<Version>1.1</Name>
+	</Module>
+</Modules>
