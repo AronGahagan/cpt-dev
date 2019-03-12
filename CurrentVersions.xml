@@ -50,9 +50,4 @@
 		<Version>0.1</Version>
 		<Type>3</Type>
 	</Module>
-	<Module>
-		<Name>cptAdmin</Name>
-		<Version>.*</Version>
-		<Type>1</Type>
-	</Module>
 </Modules>
