@@ -3,9 +3,11 @@
 	<Module>
 		<Name>cptCommon</Name>
 		<Version>1.1</Version>
+		<FileName>cptCommon.bas</FileName>
 	</Module>
 	<Module>
 		<Name>cptTextTools</Name>
 		<Version>1.1</Version>
+		<FileName>cptTextTools.bas</FileName>
 	</Module>
 </Modules>
