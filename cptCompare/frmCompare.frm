@@ -1,0 +1,35 @@
+VERSION 5.00
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmCompare 
+   Caption         =   "Compare Tool"
+   ClientHeight    =   6600
+   ClientLeft      =   120
+   ClientTop       =   465
+   ClientWidth     =   7485
+   OleObjectBlob   =   "frmCompare.frx":0000
+   StartUpPosition =   1  'CenterOwner
+End
+Attribute VB_Name = "frmCompare"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = False
+'<cpt_version>1.0</cpt_version>
+Option Explicit
+Private Const BLN_TRAP_ERRORS As Boolean = True
+'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+Private Sub Label3_Click()
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  Application.OpenBrowser ("http://" & Me.Label3.Caption)
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call HandleErr("frmCompare", "lblURL_Click", err)
+  Resume exit_here
+  
+End Sub
