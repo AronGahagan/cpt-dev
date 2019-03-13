@@ -16,7 +16,7 @@
 		<Type>1</Type>
 	</Module>
 	<Module>
-		<Name>basCommon</Name>
+		<Name>basCPTCommon</Name>
 		<Version>v1.0</Version>
 		<Type>1</Type>
 	</Module>
