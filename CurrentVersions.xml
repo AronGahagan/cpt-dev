@@ -110,7 +110,7 @@
 	</Module>
 	<Module>
 		<Name>cptSmartDur_frm</Name>
-		<Version></Version>
+		<Version>v0</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
