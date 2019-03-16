@@ -1,53 +1,129 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Modules>
 	<Module>
-		<Name>basDynamicFilter</Name>
+		<Name>ThisProject</Name>
+		<Version>v0.1</Version>
+		<Type>100</Type>
+		<Directory>Core</Directory>
+	</Module>
+	<Module>
+		<Name>cptDynamicFilter_bas</Name>
 		<Version>v1.0</Version>
 		<Type>1</Type>
+		<Directory>TextTools</Directory>
 	</Module>
 	<Module>
 		<Name>basCriticalPathTools</Name>
 		<Version>v1.0</Version>
 		<Type>1</Type>
+		<Directory>basCriticalPathTools</Directory>
 	</Module>
 	<Module>
-		<Name>basCountTasks</Name>
+		<Name>cptDynamicFilter_frm</Name>
+		<Version>v0.1</Version>
+		<Type>3</Type>
+		<Directory>TextTools</Directory>
+	</Module>
+	<Module>
+		<Name>cptCountTasks_bas</Name>
 		<Version>v1.0</Version>
 		<Type>1</Type>
+		<Directory>CountTasks</Directory>
 	</Module>
 	<Module>
-		<Name>basCPTCommon</Name>
+		<Name>cptCore_bas</Name>
 		<Version>v1.0</Version>
 		<Type>1</Type>
+		<Directory>Core</Directory>
 	</Module>
 	<Module>
-		<Name>basTextTools</Name>
+		<Name>cptTextTools_bas</Name>
 		<Version>v1.0</Version>
 		<Type>1</Type>
+		<Directory>TextTools</Directory>
 	</Module>
 	<Module>
-		<Name>basResourceDemand</Name>
+		<Name>cptResourceDemand_bas</Name>
 		<Version>v1.0</Version>
 		<Type>1</Type>
+		<Directory>ResourceDemand</Directory>
 	</Module>
 	<Module>
-		<Name>IMSCobraExportModule</Name>
+		<Name>cptResourceDemand_frm</Name>
+		<Version>v0.1</Version>
+		<Type>3</Type>
+		<Directory>ResourceDemand</Directory>
+	</Module>
+	<Module>
+		<Name>cptIMSCobraExport_bas</Name>
 		<Version>v3.0.1</Version>
 		<Type>1</Type>
+		<Directory>IMSCobraExport</Directory>
 	</Module>
 	<Module>
-		<Name>ClearPlan_CritPathModule</Name>
+		<Name>cptIMSCobraExport_frm</Name>
+		<Version>v3.0.1</Version>
+		<Type>3</Type>
+		<Directory>IMSCobraExport</Directory>
+	</Module>
+	<Module>
+		<Name>cptLogo_frm</Name>
+		<Version>v0.1</Version>
+		<Type>3</Type>
+		<Directory>Logo</Directory>
+	</Module>
+	<Module>
+		<Name>cptCriticalPath_bas</Name>
 		<Version>v2.6</Version>
 		<Type>1</Type>
+		<Directory>CriticalPath</Directory>
 	</Module>
 	<Module>
-		<Name>basStatusSheet</Name>
+		<Name>cptStatusSheet_bas</Name>
 		<Version>v0.1</Version>
 		<Type>1</Type>
+		<Directory>StatusSheet</Directory>
 	</Module>
 	<Module>
-		<Name>frmCompare</Name>
-		<Version>0.1</Version>
+		<Name>cptTextTools_frm</Name>
+		<Version>v0.1</Version>
 		<Type>3</Type>
+		<Directory>TextTools</Directory>
+	</Module>
+	<Module>
+		<Name>cptEvents_cls</Name>
+		<Version>v0.1</Version>
+		<Type>2</Type>
+		<Directory>TextTools</Directory>
+	</Module>
+	<Module>
+		<Name>cptBrowseFolder_bas</Name>
+		<Version>v0.1</Version>
+		<Type>1</Type>
+		<Directory>Core</Directory>
+	</Module>
+	<Module>
+		<Name>cptUpgrades_frm</Name>
+		<Version>v0.1</Version>
+		<Type>3</Type>
+		<Directory>Upgrades</Directory>
+	</Module>
+	<Module>
+		<Name>cptSmartDur_frm</Name>
+		<Version></Version>
+		<Type>3</Type>
+		<Directory>Status</Directory>
+	</Module>
+	<Module>
+		<Name>cptSmartDur_bas</Name>
+		<Version>v0</Version>
+		<Type>1</Type>
+		<Directory>Status</Directory>
+	</Module>
+	<Module>
+		<Name>cptCompare_frm</Name>
+		<Version>1.0</Version>
+		<Type>3</Type>
+		<Directory>Compare</Directory>
 	</Module>
 </Modules>
