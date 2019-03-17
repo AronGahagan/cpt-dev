@@ -1,5 +1,5 @@
 Attribute VB_Name = "basAdHoc"
-<cpt_version>1.0</cpt_version>
+'<cpt_version>1.0</cpt_version>
 Sub Template86()
 Dim Project As Project, Task As Task
 Dim vTaskName As Variant
