@@ -1,6 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Modules>
 	<Module>
+		<Name>basAdHoc</Name>
+		<Version>v1.0</version>
+		<Type>1</Type>
+		<Directory></Directory>
+	</Module>
+	<Module>
 		<Name>ThisProject</Name>
 		<Version>v0.1</Version>
 		<Type>100</Type>
