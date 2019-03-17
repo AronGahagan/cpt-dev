@@ -2,7 +2,7 @@
 <Modules>
 	<Module>
 		<Name>basAdHoc</Name>
-		<Version>v1.0</version>
+		<Version>v1.0</Version>
 		<Type>1</Type>
 		<Directory></Directory>
 	</Module>
