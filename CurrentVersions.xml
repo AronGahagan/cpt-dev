@@ -2,147 +2,154 @@
 <Modules>
 	<Module>
 		<Name>ThisProject</Name>
-		<FileName>.cls</FileName>
+		<FileName>ThisProject.cls</FileName>
 		<Version>v0.1</Version>
 		<Type>100</Type>
 		<Directory>Core\</Directory>
 	</Module>
 	<Module>
+		<Name>cptCompare_frm</Name>
+		<FileName>cptCompare_frm.frm</FileName>
+		<Version>v1.0</Version>
+		<Type>3</Type>
+		<Directory>Compare\</Directory>
+	</Module>
+	<Module>
 		<Name>cptDynamicFilter_bas</Name>
-		<FileName>.bas</FileName>
+		<FileName>cptDynamicFilter_bas.bas</FileName>
 		<Version>v1.0</Version>
 		<Type>1</Type>
 		<Directory>TextTools\</Directory>
 	</Module>
 	<Module>
 		<Name>basCriticalPathTools</Name>
-		<FileName>.bas</FileName>
+		<FileName>basCriticalPathTools.bas</FileName>
 		<Version>v1.0</Version>
 		<Type>1</Type>
 		<Directory>basCriticalPathTools\</Directory>
 	</Module>
 	<Module>
 		<Name>cptDynamicFilter_frm</Name>
-		<FileName>.frm</FileName>
+		<FileName>cptDynamicFilter_frm.frm</FileName>
 		<Version>v0.1</Version>
 		<Type>3</Type>
 		<Directory>TextTools\</Directory>
 	</Module>
 	<Module>
 		<Name>cptCountTasks_bas</Name>
-		<FileName>.bas</FileName>
+		<FileName>cptCountTasks_bas.bas</FileName>
 		<Version>v1.0</Version>
 		<Type>1</Type>
 		<Directory>Count\</Directory>
 	</Module>
 	<Module>
 		<Name>cptCore_bas</Name>
-		<FileName>.bas</FileName>
+		<FileName>cptCore_bas.bas</FileName>
 		<Version>v1.0</Version>
 		<Type>1</Type>
 		<Directory>Core\</Directory>
 	</Module>
 	<Module>
 		<Name>cptTextTools_bas</Name>
-		<FileName>.bas</FileName>
+		<FileName>cptTextTools_bas.bas</FileName>
 		<Version>v1.0</Version>
 		<Type>1</Type>
 		<Directory>TextTools\</Directory>
 	</Module>
 	<Module>
 		<Name>cptResourceDemand_bas</Name>
-		<FileName>.bas</FileName>
+		<FileName>cptResourceDemand_bas.bas</FileName>
 		<Version>v1.0</Version>
 		<Type>1</Type>
 		<Directory>ResourceDemand\</Directory>
 	</Module>
 	<Module>
 		<Name>cptResourceDemand_frm</Name>
-		<FileName>.frm</FileName>
+		<FileName>cptResourceDemand_frm.frm</FileName>
 		<Version>v0.1</Version>
 		<Type>3</Type>
 		<Directory>ResourceDemand\</Directory>
 	</Module>
 	<Module>
 		<Name>cptIMSCobraExport_bas</Name>
-		<FileName>.bas</FileName>
+		<FileName>cptIMSCobraExport_bas.bas</FileName>
 		<Version>v3.0.1</Version>
 		<Type>1</Type>
 		<Directory>Integration\</Directory>
 	</Module>
 	<Module>
 		<Name>cptIMSCobraExport_frm</Name>
-		<FileName>.frm</FileName>
+		<FileName>cptIMSCobraExport_frm.frm</FileName>
 		<Version>v3.0.1</Version>
 		<Type>3</Type>
 		<Directory>Integration\</Directory>
 	</Module>
 	<Module>
 		<Name>cptLogo_frm</Name>
-		<FileName>.frm</FileName>
+		<FileName>cptLogo_frm.frm</FileName>
 		<Version>v0.1</Version>
 		<Type>3</Type>
 		<Directory>Core\</Directory>
 	</Module>
 	<Module>
 		<Name>cptCriticalPath_bas</Name>
-		<FileName>.bas</FileName>
+		<FileName>cptCriticalPath_bas.bas</FileName>
 		<Version>v2.6</Version>
 		<Type>1</Type>
 		<Directory>Trace\</Directory>
 	</Module>
 	<Module>
 		<Name>cptStatusSheet_bas</Name>
-		<FileName>.bas</FileName>
+		<FileName>cptStatusSheet_bas.bas</FileName>
 		<Version>v0.1</Version>
 		<Type>1</Type>
 		<Directory>Status\</Directory>
 	</Module>
 	<Module>
 		<Name>cptTextTools_frm</Name>
-		<FileName>.frm</FileName>
+		<FileName>cptTextTools_frm.frm</FileName>
 		<Version>v0.1</Version>
 		<Type>3</Type>
 		<Directory>TextTools\</Directory>
 	</Module>
 	<Module>
 		<Name>cptEvents_cls</Name>
-		<FileName>.cls</FileName>
+		<FileName>cptEvents_cls.cls</FileName>
 		<Version>v0.1</Version>
 		<Type>2</Type>
 		<Directory>TextTools\</Directory>
 	</Module>
 	<Module>
 		<Name>cptBrowseFolder_bas</Name>
-		<FileName>.bas</FileName>
+		<FileName>cptBrowseFolder_bas.bas</FileName>
 		<Version>v0.1</Version>
 		<Type>1</Type>
 		<Directory>Core\</Directory>
 	</Module>
 	<Module>
 		<Name>cptUpgrades_frm</Name>
-		<FileName>.frm</FileName>
+		<FileName>cptUpgrades_frm.frm</FileName>
 		<Version>v0.1</Version>
 		<Type>3</Type>
 		<Directory>Core\</Directory>
 	</Module>
 	<Module>
 		<Name>cptSmartDur_frm</Name>
-		<FileName>.frm</FileName>
+		<FileName>cptSmartDur_frm.frm</FileName>
 		<Version>v0</Version>
 		<Type>3</Type>
 		<Directory>Status\</Directory>
 	</Module>
 	<Module>
 		<Name>cptSmartDur_bas</Name>
-		<FileName>.bas</FileName>
+		<FileName>cptSmartDur_bas.bas</FileName>
 		<Version>v0</Version>
 		<Type>1</Type>
 		<Directory>Status\</Directory>
 	</Module>
 	<Module>
 		<Name>basAdHoc</Name>
-		<FileName>.bas</FileName>
+		<FileName>basAdHoc.bas</FileName>
 		<Version>0.1</Version>
 		<Type>1</Type>
 		<Directory>basAdHoc\</Directory>
