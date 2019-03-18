@@ -66,7 +66,6 @@ Dim vLine As Variant
   Else
     arrCore.Clear
     For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
-    '----------------------------->todo:remvoe the backslash before release
       If xmlNode.SelectSingleNode("Directory").Text = "Core" Then
         arrCore.Add xmlNode.SelectSingleNode("FileName").Text, xmlNode.SelectSingleNode("Type").Text
         If xmlNode.SelectSingleNode("FileName").Text = "ThisProject.cls" Then
@@ -149,6 +148,8 @@ next_file:
             'import them if they *as a group* don't exist
             If .Find(arrCode(CStr(vEvent)), .ProcStartLine(CStr(vEvent), 0), 1, .ProcCountLines(CStr(vEvent), 0), 1000) = False Then 'vbext_pk_Proc
               .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
+            Else
+              Debug.Print CStr(vEvent) & " code exists."
             End If
           Else 'create it
             'create it, returning its line number

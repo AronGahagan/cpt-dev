@@ -5,7 +5,7 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptLogo_frm
    ClientLeft      =   120
    ClientTop       =   465
    ClientWidth     =   4635
-   OleObjectBlob   =   "cptLogo.frx":0000
+   OleObjectBlob   =   "cptLogo_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
 Attribute VB_Name = "cptLogo_frm"
