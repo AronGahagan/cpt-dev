@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Modules>
 	<Module>
-		<Name>cptThisProject</Name>
+		<Name>ThisProject</Name>
 		<FileName>ThisProject.cls</FileName>
 		<Version>v0.1</Version>
 		<Type>100</Type>
@@ -139,6 +139,13 @@
 		<Version>v0</Version>
 		<Type>1</Type>
 		<Directory>Status</Directory>
+	</Module>
+	<Module>
+		<Name>cptSetup_bas</Name>
+		<FileName>cptSetup_bas.bas</FileName>
+		<Version>" & strVersion & "</Version>
+		<Type>1</Type>
+		<Directory>Core</Directory>
 	</Module>
 	<Module>
 		<Name>cptCompare_frm</Name>
