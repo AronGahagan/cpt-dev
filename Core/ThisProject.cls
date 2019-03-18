@@ -24,7 +24,7 @@ Dim blnOnLoad As Boolean, strMethod As String
   ribbonXML = ribbonXML + vbCrLf & "<mso:ribbon startFromScratch=""false"" >"
   ribbonXML = ribbonXML + vbCrLf & "<mso:tabs>"
   
-  ribbonXML = ribbonXML + BuildRibbonTabCPT()
+  ribbonXML = ribbonXML + cptBuildRibbonTab()
   
   ribbonXML = ribbonXML + vbCrLf & "</mso:tabs>"
   ribbonXML = ribbonXML + vbCrLf & "</mso:ribbon>"
