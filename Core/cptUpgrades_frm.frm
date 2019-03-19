@@ -86,12 +86,12 @@ get_frx:
         oStream.Open
         oStream.Type = 1 'adTypeBinary
         oStream.Write xmlHttpDoc.responseBody
-        'strFileName = Environ("tmp") & strFileName
-        If Dir(Environ("tmp") & "\" & strFileName) <> vbNullString Then Kill Environ("tmp") & "\" & strFileName
-        oStream.SaveToFile Environ("tmp") & "\" & strFileName
+        'strFileName = cptDir & strFileName
+        If Dir(cptDir & "\" & strFileName) <> vbNullString Then Kill cptDir & "\" & strFileName
+        oStream.SaveToFile cptDir & "\" & strFileName
         oStream.Close
       Else
-        MsgBox "Download failed. Please contact our Help Desk at...", vbCritical + vbOKOnly, "XML Error"
+        MsgBox "Download failed. Please contact cpt@ClearPlanConsulting.com for help.", vbCritical + vbOKOnly, "XML Error"
         Me.lboModules.List(lngItem, 3) = "<failed>"
         GoTo exit_here
       End If
@@ -105,7 +105,7 @@ get_frx:
       If ModuleExists(strModule) Then
         ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(strModule)
       End If
-      ThisProject.VBProject.VBComponents.import Environ("tmp") & "\" & strFileName
+      ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
       
       Me.lboModules.List(lngItem, 3) = Me.lboModules.List(lngItem, 2)
       Me.lboModules.List(lngItem, 4) = "<updated>"
@@ -114,6 +114,7 @@ get_frx:
 
 exit_here:
   On Error Resume Next
+  Application.StatusBar = ""
   Set arrTypes = Nothing
   Set xmlHttpDoc = Nothing
   Set arrCurrent = Nothing

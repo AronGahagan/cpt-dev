@@ -5,19 +5,16 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private oMSPEvents As cptEvents_cls
-Private Declare Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As Long, _
-                                                                        ByVal lpszConnectionName As String, _
-                                                                        ByVal dwNameLen As Integer, _
-                                                                        ByVal dwReserved As Long) As Long
 
 Sub StartEvents()
   Set oMSPEvents = New cptEvents_cls
 End Sub
 
-Public Function InternetIsConnected() As Boolean
- 
-    InternetIsConnected = InternetGetConnectedStateEx(0, "", 254, 0)
- 
+Function cptSpeed(blnON As Boolean)
+
+  Application.ScreenUpdating = Not blnON
+  Application.Calculation = pjAutomatic = Not blnON
+  
 End Function
 
 Function GetUserFullName()
@@ -41,7 +38,7 @@ exit_here:
   Set objIndName = Nothing
   Exit Function
 err_here:
-  Call HandleErr("basCommon", "GetUserFullName", err)
+  Call HandleErr("cptCore_bas", "GetUserFullName", err)
   Resume exit_here
 
 End Function
@@ -78,7 +75,7 @@ exit_here:
   
   Exit Function
 err_here:
-  Call HandleErr("basCommon", "GetVersions", err)
+  Call HandleErr("cptCore_bas", "GetVersions", err)
   Resume exit_here
 
 End Function
@@ -96,32 +93,6 @@ Sub ApplyUpdates()
     'do the things
   End If
 End Sub
-
-Function ModuleExists(strModule)
-Dim vbComponent As Object
-Dim blnExists As Boolean
-
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  blnExists = False
-  For Each vbComponent In ThisProject.VBProject.VBComponents
-    If UCase(vbComponent.Name) = UCase(strModule) Then
-      blnExists = True
-      Exit For
-    End If
-  Next vbComponent
-  
-  ModuleExists = blnExists
-
-exit_here:
-  On Error Resume Next
-
-  Exit Function
-err_here:
-  Call HandleErr("basCommon", "ModuleExists", err)
-  Resume exit_here
-  
-End Function
 
 Function ReferenceExists(strReference) As Boolean
 'used to ensure a reference exists, returns boolean
@@ -145,7 +116,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call HandleErr("basCommon", "ReferenceExists", err)
+  Call HandleErr("cptCore_bas", "ReferenceExists", err)
   Resume exit_here
 End Function
 
@@ -159,6 +130,50 @@ Dim Ref As Object
   Next Ref
 
 End Sub
+
+Function cptGetDirectory(strModule As String) As String
+'this function retrieves the directory of the module from CurrentVersions.xml on gitHub
+'objects
+Dim xmlDoc As Object
+Dim xmlNode As Object
+'strings
+Dim strDirectory As String
+Dim strURL As String
+'longs
+'integers
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  'the calling subroutine should catch the Not InternetIsConnected function before calling this
+
+  Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
+  xmlDoc.async = False
+  xmlDoc.validateOnParse = False
+  xmlDoc.SetProperty "SelectionLanguage", "XPath"
+  xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
+  strURL = strGitHub & "CurrentVersions.xml"
+  If Not xmlDoc.Load(strURL) Then
+    MsgBox xmlDoc.parseError.ErrorCode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
+  Else
+    Set xmlNode = xmlDoc.SelectSingleNode("//Name[text()='" + strModule + "']").ParentNode.SelectSingleNode("Directory")
+    strDirectory = xmlNode.Text
+  End If
+
+  cptGetDirectory = strDirectory
+  
+exit_here:
+  On Error Resume Next
+  Set xmlDoc = Nothing
+  Set xmlNode = Nothing
+
+  Exit Function
+err_here:
+  Call HandleErr("cptCore_bas", "cptGetDirectory()", err)
+  Resume exit_here
+End Function
 
 Sub GetEnviron()
 'list the environment variables and their associated values
@@ -174,7 +189,7 @@ Sub CheckLogo()
 Dim strFileName As String
 
   If ModuleExists("cptLogo_frm") Then
-    strFileName = Environ("tmp") & "\ClearPlanLogo.jpg"
+    strFileName = cptDir & "\ClearPlanLogo.jpg"
     If Dir(strFileName) = vbNullString Then
       SavePicture cptLogo_frm.Image1.Picture, strFileName
     End If
@@ -285,7 +300,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("basCommon", "ResetAll", err)
+  Call HandleErr("cptCore_bas", "ResetAll", err)
   Resume exit_here
   
 End Sub
@@ -363,6 +378,7 @@ next_component:
   'populate the listbox
   cptUpgrades_frm.lboModules.Clear
   For lngItem = 0 To arrCurrent.count - 1
+    If arrCurrent.getKey(lngItem) = "ThisProject" Then GoTo next_lngItem
     cptUpgrades_frm.lboModules.AddItem
     cptUpgrades_frm.lboModules.List(lngItem, 0) = arrCurrent.getKey(lngItem) 'module name
     cptUpgrades_frm.lboModules.List(lngItem, 1) = arrDirectories.getValueList()(lngItem) 'directory
@@ -383,7 +399,7 @@ next_component:
     End Select
     Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + cptUpgrades_frm.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
     cptUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
-      
+next_lngItem:
   Next lngItem
     
   cptUpgrades_frm.Show False
@@ -401,7 +417,7 @@ exit_here:
   Set oStream = Nothing
   Exit Sub
 err_here:
-  Call HandleErr("basCommon", "UpdatesAreAvailable", err)
+  Call HandleErr("cptCore_bas", "UpdatesAreAvailable", err)
   Resume exit_here
 
 End Sub
@@ -531,11 +547,9 @@ no_tasks:
   GoTo exit_here
 
 err_here:
-  Call HandleErr("basCommon", "WrapItUp", err)
+  Call HandleErr("cptCore_bas", "WrapItUp", err)
   Resume exit_here
 End Sub
-
-
 
 Public Function cptBuildRibbonTab()
 Dim ribbonXML As String
@@ -634,7 +648,7 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + "label=""About"" imageMso=""Info"" "
   ribbonXML = ribbonXML & "/>"
   If InternetIsConnected Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUpdate"" label=""Check Status"" imageMso=""AcceptTask"" onAction=""ShowcptUpgrades_frm"" size = ""large"" visible=""true"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUpdate"" label=""Check for Upgrades"" imageMso=""PreviousUnread"" onAction=""ShowCptUpgrades_frm"" size = ""large"" visible=""true"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
   End If
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   

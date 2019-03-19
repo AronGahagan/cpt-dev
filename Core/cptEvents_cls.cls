@@ -24,32 +24,43 @@ End Sub
 
 Private Sub MyMSPApplication_WindowSelectionChange(ByVal Window As Window, ByVal sel As Selection, ByVal selType As Variant)
 Dim Tasks As Tasks, Task As Task, lgItem As Long, lgTasks As Long
+Dim frmText As Object
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  If cptTextTools_frm.Visible Then
+  
+  If ModuleExists("cptTextTools_frm") Then
     If Not IsError(ActiveSelection.Tasks) Then
-      cptTextTools_frm.lboOutput.Clear
-      For Each Task In ActiveSelection.Tasks
-        cptTextTools_frm.lboOutput.AddItem
-        cptTextTools_frm.lboOutput.List(lgItem, 0) = Task.UniqueID
-        cptTextTools_frm.lboOutput.List(lgItem, 1) = Task.Name
-        lgItem = lgItem + 1
-      Next Task
-      Call cptTextTools_bas.UpdatePreview
+      Set frmText = ThisProject.VBProject.VBComponents("cptTextTools_frm")
+      If Not frmText Is Nothing And frmText.Visible Then
+        frmText.lboOutput.Clear
+        For Each Task In ActiveSelection.Tasks
+          frmText.lboOutput.AddItem
+          frmText.lboOutput.List(lgItem, 0) = Task.UniqueID
+          frmText.lboOutput.List(lgItem, 1) = Task.Name
+          lgItem = lgItem + 1
+        Next Task
+        Call ThisProject.VBProject.VBComponents("cptTextTools_bas").UpdatePreview
+      End If
     End If
   End If
   
-'  On Error Resume Next
-'  Set Tasks = ActiveSelection.Tasks
-'  If Not Tasks Is Nothing Then
-' ' If Not IsError(ActiveSelection.Tasks) Then
-'    lgTasks = ActiveSelection.Tasks.count
-'    Application.StatusBar = Format(lgTasks, "#,##0") & " task" & IIf(lgTasks = 1, "", "s") & " selected"
-'  End If
+  On Error Resume Next
+  Debug.Print ActiveWindow.ActivePane.View.Type
+  Select Case ActiveWindow.ActivePane.View.Type
+    Case 0 'Task Table
+    Case 1
+  End Select
+  Set Tasks = ActiveSelection.Tasks
+  If Not Tasks Is Nothing Then
+    lgTasks = ActiveSelection.Tasks.count
+    Application.StatusBar = Format(lgTasks, "#,##0") & " task" & IIf(lgTasks = 1, "", "s") & " selected"
+  Else
+    Application.StatusBar = "0 tasks selected"
+  End If
   
 exit_here:
   On Error Resume Next
+  Set frmText = Nothing
   Set Tasks = Nothing
   Exit Sub
 err_here:

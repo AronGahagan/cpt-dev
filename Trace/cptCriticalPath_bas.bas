@@ -42,7 +42,7 @@ Sub DrivingPaths()
 'workflow through Primary, Secondary and Tertiary
 'driving paths.
 
-    Dim curproj As Project 'Stores active user project - not compatible with Master/Sub Architecture
+    Dim curProj As Project 'Stores active user project - not compatible with Master/Sub Architecture
     Dim t As Task 'Stores initial user selected task
     Dim tdp As TaskDependency
     Dim tdps As TaskDependencies
@@ -54,72 +54,72 @@ Sub DrivingPaths()
     GroupField = "Number19"
     
     'Store users active project
-    Set curproj = ActiveProject
+    Set curProj = ActiveProject
     
     'used to avoid code break during intial error checks
     On Error Resume Next
     
     'Validate users selected view type
-    If curproj.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
+    If curProj.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
         MsgBox "Please select a View with a Task Table."
-        curproj = Nothing
+        curProj = Nothing
         Exit Sub
     End If
     
     'Validate users selected window pane - select the task table if not active
-    If curproj.Application.ActiveWindow.ActivePane.Index <> 1 Then
-        curproj.Application.ActiveWindow.TopPane.Activate
+    If curProj.Application.ActiveWindow.ActivePane.Index <> 1 Then
+        curProj.Application.ActiveWindow.TopPane.Activate
     End If
     
     'Exit if multiple tasks are selected
-    If curproj.Application.ActiveSelection.Tasks.count > 1 Then
+    If curProj.Application.ActiveSelection.Tasks.count > 1 Then
         MsgBox "Select a single activity only."
-        curproj = Nothing
+        curProj = Nothing
         Exit Sub
     End If
     
     'store task of activeselection
-    Set t = curproj.Application.ActiveCell.Task
+    Set t = curProj.Application.ActiveCell.Task
     
     'Check for null task rows
     If t Is Nothing Then
         MsgBox "Select a task"
-        curproj = Nothing
+        curProj = Nothing
         Exit Sub
     End If
     
     'Avoid analyzing completed tasks
     If t.PercentComplete = 100 Then
         MsgBox "Select an incomplete task"
-        curproj = Nothing
+        curProj = Nothing
         Exit Sub
     End If
     
     'Avoid analysis on summary rows
     If t.Summary = True Then
         MsgBox "Select a non-summary task"
-        curproj = Nothing
+        curProj = Nothing
         Exit Sub
     End If
     
     'Suspend calculations and screen updating
-    curproj.Application.Calculation = pjManual
-    curproj.Application.ScreenUpdating = False
+    curProj.Application.Calculation = pjManual
+    curProj.Application.ScreenUpdating = False
     
-    On Error GoTo Cleanup
+    On Error GoTo CleanUp
     
     '**********************************************
     'On Error GoTo 0 '*****used for debug only*****
     '**********************************************
     
     'Assign Custom Field names and create lookup table
-    SetGroupCPFieldLookupTable GroupField, curproj
+    SetGroupCPFieldLookupTable GroupField, curProj
     
     'Erase previous Crit and Group field values
-    CleanCritFlag curproj
+    CleanCritFlag curProj
     
     'Erase any previously created/modified view elements
-    CleanViews curproj
+    CleanViews curProj
     
     'Initialize Analyzed Tasks Collection
     Set AnalyzedTasks = New Collection
@@ -158,7 +158,7 @@ Sub DrivingPaths()
     For Each tdp In tdps
     
         'evaluate task dependencies, add to analyzed tasks collection as needed, and review for criticality
-        evaluateTaskDependencies tdp, t, curproj, AnalyzedTasks
+        evaluateTaskDependencies tdp, t, curProj, AnalyzedTasks
         
     Next tdp 'Next user selected analysis task dependency
     
@@ -188,7 +188,7 @@ Sub DrivingPaths()
             If i > SecondaryDriverCount Then Exit For
             
             'store the current driving task
-            Set t = curproj.Tasks.UniqueID(SecondaryDrivers(i))
+            Set t = curProj.Tasks.UniqueID(SecondaryDrivers(i))
             
             'add the driving task to the analyzed tasks collection
             AnalyzedTasks.Add t.UniqueID & "-" & t.UniqueID
@@ -217,7 +217,7 @@ Sub DrivingPaths()
             For Each tdp In tdps
             
                 'evaluate task dependencies, add to analyzed tasks collection as needed, and review for criticality
-                evaluateTaskDependencies tdp, t, curproj, AnalyzedTasks
+                evaluateTaskDependencies tdp, t, curProj, AnalyzedTasks
                 
             Next tdp 'Next secondary driver dependency
             
@@ -251,7 +251,7 @@ Sub DrivingPaths()
             If i > TertiaryDriverCount Then Exit For
             
             'store the current driving task
-            Set t = curproj.Tasks.UniqueID(TertiaryDrivers(i))
+            Set t = curProj.Tasks.UniqueID(TertiaryDrivers(i))
             
             'add the driving task to the analyzed tasks collection
             AnalyzedTasks.Add t.UniqueID & "-" & t.UniqueID
@@ -280,7 +280,7 @@ Sub DrivingPaths()
             For Each tdp In tdps
             
                 'evaluate task dependencies, add to analyzed tasks collection as needed, and review for criticality
-                evaluateTaskDependencies tdp, t, curproj, AnalyzedTasks
+                evaluateTaskDependencies tdp, t, curProj, AnalyzedTasks
                 
             Next tdp 'Next tertiary driver dependency
             
@@ -289,9 +289,9 @@ Sub DrivingPaths()
     End If
     
     'Create and Apply the "ClearPlan Driving Path" Table, View, Group, and Filter
-    SetupCPView GroupField, curproj, analysisTaskUID
+    SetupCPView GroupField, curProj, analysisTaskUID
     
-Cleanup:
+CleanUp:
 
     'If error encountered, alert the user, otherwise notify of completion
     If err Then
@@ -312,89 +312,89 @@ Cleanup:
     Set AnalyzedTasks = Nothing
     
     'Enable calculations and screenupdating
-    curproj.Application.Calculation = pjAutomatic
-    curproj.Application.ScreenUpdating = True
+    curProj.Application.Calculation = pjAutomatic
+    curProj.Application.ScreenUpdating = True
     
     'release project variable
-    Set curproj = Nothing
+    Set curProj = Nothing
 
 End Sub
 
-Private Sub evaluateTaskDependencies(ByVal tdp As TaskDependency, ByVal t As Task, ByVal curproj As Project, ByRef curAnalyzedTasks As Collection)
+Private Sub evaluateTaskDependencies(ByVal tdp As TaskDependency, ByVal t As Task, ByVal curProj As Project, ByRef curAnalyzedTasks As Collection)
 'Evaluate each task dependency, ignoring complete preds, then store as an analyzed relationship and evaluate criticality
 
     'Only evaluate incomplete predecessors
     If tdp.To.UniqueID = t.UniqueID And tdp.From.PercentComplete <> 100 Then
         'Check dependency for existance in analyzed tasks collection
-        If ExistsInCollection(curAnalyzedTasks, curproj.Tasks.UniqueID(tdp.From).UniqueID & "-" & curproj.Tasks.UniqueID(tdp.To).UniqueID) = False Then
+        If ExistsInCollection(curAnalyzedTasks, curProj.Tasks.UniqueID(tdp.From).UniqueID & "-" & curProj.Tasks.UniqueID(tdp.To).UniqueID) = False Then
             'If dependency has not been analyzed, add to analyzed tasks collection
-            curAnalyzedTasks.Add curproj.Tasks.UniqueID(tdp.From).UniqueID, curproj.Tasks.UniqueID(tdp.From).UniqueID & "-" & curproj.Tasks.UniqueID(tdp.To).UniqueID
+            curAnalyzedTasks.Add curProj.Tasks.UniqueID(tdp.From).UniqueID, curProj.Tasks.UniqueID(tdp.From).UniqueID & "-" & curProj.Tasks.UniqueID(tdp.To).UniqueID
             'Calculate True Float value and evaluate against list of driving tasks
-            CheckCritTask curproj, tdp
+            CheckCritTask curProj, tdp
         End If
     End If
     
 End Sub
 
-Private Sub SetGroupCPFieldLookupTable(ByVal GroupField As String, ByVal curproj As Project)
+Private Sub SetGroupCPFieldLookupTable(ByVal GroupField As String, ByVal curProj As Project)
 'Set Crit and Group field names, assign lookup table to Group Field
 
     'Store Field Names
-    curproj.Application.CustomFieldRename FieldID:=FieldNameToFieldConstant(CritField), newname:="CP Driving Paths"
-    curproj.Application.CustomFieldRename FieldID:=FieldNameToFieldConstant(GroupField), newname:="CP Driving Path Group ID"
+    curProj.Application.CustomFieldRename FieldID:=FieldNameToFieldConstant(CritField), newname:="CP Driving Paths"
+    curProj.Application.CustomFieldRename FieldID:=FieldNameToFieldConstant(GroupField), newname:="CP Driving Path Group ID"
     
     'Setup Lookup Table Properties
-    curproj.Application.CustomFieldPropertiesEx FieldID:=FieldNameToFieldConstant(GroupField), Attribute:=pjFieldAttributeNone
-    curproj.Application.CustomOutlineCodeEditEx FieldID:=FieldNameToFieldConstant(GroupField), OnlyLookUpTableCodes:=True, OnlyLeaves:=False, LookupDefault:=False, SortOrder:=0
-    curproj.Application.CustomFieldPropertiesEx FieldID:=FieldNameToFieldConstant(GroupField), Attribute:=pjFieldAttributeValueList, SummaryCalc:=pjCalcNone, GraphicalIndicators:=False, AutomaticallyRolldownToAssn:=False
+    curProj.Application.CustomFieldPropertiesEx FieldID:=FieldNameToFieldConstant(GroupField), Attribute:=pjFieldAttributeNone
+    curProj.Application.CustomOutlineCodeEditEx FieldID:=FieldNameToFieldConstant(GroupField), OnlyLookUpTableCodes:=True, OnlyLeaves:=False, LookupDefault:=False, SortOrder:=0
+    curProj.Application.CustomFieldPropertiesEx FieldID:=FieldNameToFieldConstant(GroupField), Attribute:=pjFieldAttributeValueList, SummaryCalc:=pjCalcNone, GraphicalIndicators:=False, AutomaticallyRolldownToAssn:=False
     
     'Assign Lookup Table Values
-    curproj.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "1", "Primary"
-    curproj.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "2", "Secondary"
-    curproj.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "3", "Tertiary"
-    curproj.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "0", "Noncritical"
+    curProj.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "1", "Primary"
+    curProj.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "2", "Secondary"
+    curProj.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "3", "Tertiary"
+    curProj.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "0", "Noncritical"
 
 
 End Sub
-Private Sub SetupCPView(ByVal GroupField As String, ByVal curproj As Project, ByVal tUID As String)
+Private Sub SetupCPView(ByVal GroupField As String, ByVal curProj As Project, ByVal tUID As String)
 'Setup CP View with Table & Grouping by Path Value
 
     Dim t As Task 'used to store user selected anlaysis task
     
     'Create CP Driving Path Table
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, Create:=True, ShowAddNewColumn:=True, OverwriteExisting:=True, FieldName:="ID", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, LockFirstColumn:=True, ColumnPosition:=0
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, Create:=True, ShowAddNewColumn:=True, OverwriteExisting:=True, FieldName:="ID", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, LockFirstColumn:=True, ColumnPosition:=0
     
     'Add fields to CP Driving Path Table
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Unique ID", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1, LockFirstColumn:=True
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:=GroupField, Title:="Driving Path", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Name", Width:=45, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=2
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Duration", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=3
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Start", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=4
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Finish", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=5
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Total Slack", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=6
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Unique ID", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1, LockFirstColumn:=True
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:=GroupField, Title:="Driving Path", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Name", Width:=45, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=2
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Duration", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=3
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Start", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=4
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Finish", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=5
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Total Slack", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=6
 
     'Create CP Driving Path Filter
-    curproj.Application.FilterEdit Name:="*ClearPlan Driving Path Filter", taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=GroupField, test:="is greater than", Value:="0", ShowInMenu:=False, showsummarytasks:=False
+    curProj.Application.FilterEdit Name:="*ClearPlan Driving Path Filter", taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=GroupField, test:="is greater than", Value:="0", ShowInMenu:=False, showsummarytasks:=False
     
     'On Error Resume Next
     
     'Create CP Driving Path Group
-    curproj.TaskGroups.Add Name:="*ClearPlan Driving Path Group", FieldName:=GroupField
+    curProj.TaskGroups.Add Name:="*ClearPlan Driving Path Group", FieldName:=GroupField
     
     'Create CP Driving Path view if necessary
-    curproj.Application.ViewEditSingle Name:="*ClearPlan Driving Path View", Create:=True, ShowInMenu:=True, Table:="*ClearPlan Driving Path Table", Filter:="*ClearPlan Driving Path Filter", Group:="*ClearPlan Driving Path Group"
+    curProj.Application.ViewEditSingle Name:="*ClearPlan Driving Path View", Create:=True, ShowInMenu:=True, Table:="*ClearPlan Driving Path Table", Filter:="*ClearPlan Driving Path Filter", Group:="*ClearPlan Driving Path Group"
     
     'Apply the CP Driving Path view
-    curproj.Application.ViewApply Name:="*ClearPlan Driving Path View"
+    curProj.Application.ViewApply Name:="*ClearPlan Driving Path View"
     
     'Sort the View by Finish, then by Duration to produce Waterfall Gantt
-    curproj.Application.Sort Key1:="Finish", Ascending1:=True, Key2:="Duration", Ascending2:=False, outline:=False
+    curProj.Application.Sort Key1:="Finish", Ascending1:=True, Key2:="Duration", Ascending2:=False, outline:=False
     
     'Select all tasks and zoom the Gantt to display all tasks in view
-    curproj.Application.SelectAll
-    curproj.Application.ZoomTimescale Selection:=True
+    curProj.Application.SelectAll
+    curProj.Application.ZoomTimescale Selection:=True
     
-    curproj.Application.SelectRow 1
+    curProj.Application.SelectRow 1
     
     'Iterate through each task in view and color the Gantt bars based on CP Group Code
     For Each t In ActiveProject.Tasks
@@ -417,16 +417,16 @@ Private Sub SetupCPView(ByVal GroupField As String, ByVal curproj As Project, By
     Next t
     
     'select the users original analysis task
-    curproj.Application.FindEx "UniqueID", "equals", tUID
+    curProj.Application.FindEx "UniqueID", "equals", tUID
 
 End Sub
-Private Sub CleanCritFlag(ByVal curproj As Project)
+Private Sub CleanCritFlag(ByVal curProj As Project)
 'Remove previous analysis values from the Crit and Group fields
 
     Dim t As Task 'store task var
     
     'iterate through every task in the project
-    For Each t In curproj.Tasks
+    For Each t In curProj.Tasks
         
         'Reset values
         t.SetField FieldNameToFieldConstant(CritField), vbNullString
@@ -436,7 +436,7 @@ Private Sub CleanCritFlag(ByVal curproj As Project)
 
 End Sub
 
-Private Sub CleanViews(ByVal curproj As Project)
+Private Sub CleanViews(ByVal curProj As Project)
 'Iterate through all Views, Tables, Filters, and Groups
 'Delete previously created CP View Elements to avoid user modification errors
 
@@ -450,13 +450,13 @@ Private Sub CleanViews(ByVal curproj As Project)
     Dim allGroups As Groups
     
     'Set vars
-    Set allViews = curproj.Views
-    Set allTables = curproj.TaskTables
-    Set allFilters = curproj.TaskFilters
-    Set allGroups = curproj.TaskGroups
+    Set allViews = curProj.Views
+    Set allTables = curProj.TaskTables
+    Set allFilters = curProj.TaskFilters
+    Set allGroups = curProj.TaskGroups
     
     'If the CPCritPathView is active, choose a different view
-    curproj.Application.ViewApply Name:="Gantt Chart"
+    curProj.Application.ViewApply Name:="Gantt Chart"
 
     'Clean up Views
     For Each cpView In allViews
@@ -613,7 +613,7 @@ Private Function FindInArray(UID As String) As Variant
 
 End Function
 
-Private Sub CheckCritTask(ByVal curproj As Project, ByVal tdp As TaskDependency)
+Private Sub CheckCritTask(ByVal curProj As Project, ByVal tdp As TaskDependency)
 'Compare current task dependency against full list of Driving Tasks and
 'add-to/create/replace list of Path Drivers if critical
 
@@ -626,13 +626,13 @@ Private Sub CheckCritTask(ByVal curproj As Project, ByVal tdp As TaskDependency)
     Dim predCritCoding As String 'var to store/modify existing Crit field values
     
     'Assign the dependency predecessor task to predT var
-    Set predT = curproj.Tasks.UniqueID(tdp.From.UniqueID)
+    Set predT = curProj.Tasks.UniqueID(tdp.From.UniqueID)
     
     'store predecessor task Crit path coding
     predCritCoding = predT.GetField(FieldNameToFieldConstant(CritField))
     
     'Assign the dependency successor task to the succT var
-    Set succT = curproj.Tasks.UniqueID(tdp.To.UniqueID)
+    Set succT = curProj.Tasks.UniqueID(tdp.To.UniqueID)
     
     'get the TrueFloat of Dependency relationship
     tempFloat = TrueFloat(predT, succT, tdp.Type, tdp.Lag, tdp.LagType)
@@ -776,7 +776,7 @@ Private Sub CheckCritTask(ByVal curproj As Project, ByVal tdp As TaskDependency)
         For Each tdpI In tdps
         
             'evaluate task dependencies, add to analyzed tasks collection as needed, and review for criticality
-            evaluateTaskDependencies tdpI, predT, curproj, AnalyzedTasks
+            evaluateTaskDependencies tdpI, predT, curProj, AnalyzedTasks
 
         Next tdpI 'Next dependency of the currently evaluated dependency
     End If

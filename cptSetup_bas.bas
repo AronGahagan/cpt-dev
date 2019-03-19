@@ -7,6 +7,11 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/test/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt/master/"
 
+Private Declare Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As Long, _
+                                                                        ByVal lpszConnectionName As String, _
+                                                                        ByVal dwNameLen As Integer, _
+                                                                        ByVal dwReserved As Long) As Long
+
 Sub cptSetup()
 'objects
 Dim vbComponent As Object
@@ -94,8 +99,8 @@ frx:
           oStream.Open
           oStream.Type = 1 'adTypeBinary
           oStream.Write xmlHttpDoc.responseBody
-          If Dir(Environ("tmp") & "\" & strFileName) <> vbNullString Then Kill Environ("tmp") & "\" & strFileName
-          oStream.SaveToFile Environ("tmp") & "\" & strFileName
+          If Dir(cptDir & "\" & strFileName) <> vbNullString Then Kill cptDir & "\" & strFileName
+          oStream.SaveToFile cptDir & "\" & strFileName
           oStream.Close
           'need to fetch the .frx first
           If Right(strURL, 4) = ".frm" Then
@@ -127,63 +132,18 @@ frx:
         If strModule <> "ThisProject" Then
           Application.StatusBar = "Importing " & strFileName & "..."
           Debug.Print Application.StatusBar
-          ThisProject.VBProject.VBComponents.import Environ("tmp") & "\" & strFileName
+          ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
         End If
         
       End If
 next_xmlNode:
     Next xmlNode
   End If
-    
-'  For lngFile = 0 To arrCore.count - 1
-'frx:
-'    strURL = strGitHub & "Core/" & arrCore.getKey(lngFile)
-'    Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
-'    xmlHttpDoc.Open "GET", strURL, False
-'    xmlHttpDoc.Send
-
-'    If xmlHttpDoc.Status = 200 Then
-'      Set oStream = CreateObject("ADODB.Stream")
-'      oStream.Open
-'      oStream.Type = 1 'adTypeBinary
-'      oStream.Write xmlHttpDoc.responseBody
-'      strFileName = arrCore.getKey(lngFile)
-'      If Dir(Environ("tmp") & "\" & strFileName) <> vbNullString Then Kill Environ("tmp") & "\" & strFileName
-'      oStream.SaveToFile Environ("tmp") & "\" & strFileName
-'      oStream.Close
-'    Else
-'      strError = strError & "- " & arrCore.getKey(lngFile) & vbCrLf
-'      GoTo next_file
-'    End If
-'    strModule = Left(strFileName, InStr(strFileName, ".") - 1)
-'    blnExists = False
-'    For Each vbComponent In ThisProject.VBProject.VBComponents
-'      If vbComponent.Name = strModule Then
-'        Application.StatusBar = "Removing obsolete version of " & vbComponent.Name
-'        Debug.Print Application.StatusBar
-'        ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
-'      End If
-'    Next vbComponent
-    'skip ThisProject which needs special handling
-'    If strModule <> "ThisProject" Then
-'      Application.StatusBar = "Importing " & strFileName & "..."
-'      Debug.Print Application.StatusBar
-'      ThisProject.VBProject.VBComponents.Import Environ("tmp") & "\" & strFileName
-'    End If
-'    'need to fetch the .frx first
-'    If Right(strFileName, 4) = ".frm" Then
-'      strFileName = Replace(strFileName, ".frm", ".frx")
-'      GoTo frx
-'    ElseIf Right(strFileName, 4) = ".frx" Then
-'      strFileName = Replace(strFileName, ".frx", ".frm")
-'    End If
-'next_file:
-'  Next lngFile
   
   Application.StatusBar = "CPT Modules imported."
   
   'update user's ThisProject - if it downloaded correctly
-  strFileName = Environ("tmp") & "\ThisProject.cls"
+  strFileName = cptDir & "\ThisProject.cls"
   
   If Dir(strFileName) <> vbNullString Then
     
@@ -251,13 +211,6 @@ next_xmlNode:
     Debug.Print strError
   End If
 
-'  If ModuleExists("cptUpgrades_frm") And ModuleExists("cptUpgrades_bas") Then
-'    Call ShowCptUpgrades_frm
-'  End If
-
-  'trigger a refresh of the ribbon
-  Application.Projects.Add
-
 exit_here:
   On Error Resume Next
   Set vbComponent = Nothing
@@ -278,3 +231,52 @@ err_here:
   MsgBox strError, vbExclamation + vbOKOnly, "CPT Setup Error"
   Resume exit_here
 End Sub
+
+Public Function InternetIsConnected() As Boolean
+ 
+    InternetIsConnected = InternetGetConnectedStateEx(0, "", 254, 0)
+ 
+End Function
+
+Function cptDir() As String
+Dim strPath As String
+  'confirm existence of cpt settings and backup modules file
+  strPath = Environ("USERPROFILE") & "\cpt"
+  If Dir(strPath, vbDirectory) = vbNullString Then
+    MkDir strPath
+  End If
+  If Dir(strPath & "\settings", vbDirectory) = vbNullString Then
+    MkDir strPath & "\settings"
+  End If
+  If Dir(strPath & "\modules", vbDirectory) = vbNullString Then
+    MkDir strPath & "\modules"
+  End If
+  cptDir = strPath
+End Function
+
+Function ModuleExists(strModule)
+Dim vbComponent As Object
+Dim blnExists As Boolean
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  blnExists = False
+  For Each vbComponent In ThisProject.VBProject.VBComponents
+    If UCase(vbComponent.Name) = UCase(strModule) Then
+      blnExists = True
+      Exit For
+    End If
+  Next vbComponent
+  
+  ModuleExists = blnExists
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  Call HandleErr("cptSetup_bas", "ModuleExists", err)
+  Resume exit_here
+  
+End Function
+

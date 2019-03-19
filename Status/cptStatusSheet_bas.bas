@@ -7,7 +7,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 
-Sub ShowcptStatusSheet_frm()
+Sub ShowCptStatusSheet_frm()
 'populate all outline codes, text, and number fields
 'populate UID,[user selections],Task Name,Duration,Forecast Start,Forecast Finish,Total Slack,[EVT],EV%,New EV%,BLW,Remaining Work,Revised ETC,BLS,BLF,Reason/Impact/Action
 'add pick list for EV% or default to Physical % Complete
@@ -93,7 +93,7 @@ next_field:
   Next
   
   'add saved settings if they exist
-  strFileName = Environ("tmp") & "\cpt-status-sheet-settings.adtg"
+  strFileName = cptDir & "\settings\cpt-status-sheet.adtg"
   If Dir(strFileName) <> vbNullString Then
     With CreateObject("ADODB.Recordset")
       .Open strFileName
@@ -116,7 +116,7 @@ next_field:
   End If
   
   'add saved export fields if they exist
-  strFileName = Environ("tmp") & "\cpt-status-sheet-userfields.adtg"
+  strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
   If Dir(strFileName) <> vbNullString Then
     With CreateObject("ADODB.Recordset")
       .Open strFileName
@@ -142,7 +142,7 @@ next_field:
   End If
   
   'delete pre-existing search file
-  strFileName = Environ("tmp") & "\cpt-status-sheet-search.adtg"
+  strFileName = cptDir & "\settings\cpt-status-sheet-search.adtg"
   If Dir(strFileName) <> vbNullString Then Kill strFileName
   
   dtStatus = CDate(cptStatusSheet_frm.txtStatusDate.Value)
@@ -210,7 +210,6 @@ Dim blnFast As Boolean
     MsgBox "Please install the ClearPlan 'cptCore_bas' module.", vbExclamation + vbOKOnly, "Missing Module"
     GoTo exit_here
   End If
-  SpeedON
   
   blnFast = True
   
@@ -325,7 +324,7 @@ Dim blnFast As Boolean
   Next vCol
   
   'save fields to adtg file
-  strFileName = Environ("tmp") & "\cpt-status-sheet-userfields.adtg"
+  strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
   aUserFields = cptStatusSheet_frm.lboExport.List()
   With CreateObject("ADODB.Recordset")
     .Fields.Append "Field Constant", adVarChar, 255
@@ -936,7 +935,7 @@ next_task:
 exit_here:
   On Error Resume Next
   Application.StatusBar = ""
-  SpeedOFF
+  
   xlApp.Calculation = xlCalculationAutomatic
   xlApp.ScreenUpdating = True
   Set Tasks = Nothing
@@ -974,19 +973,4 @@ err_here:
   End If
   Resume exit_here
 
-End Sub
-
-Sub TestSortedList()
-'added items are automatically sorted by the key
-Dim it As Variant, i As Integer
-
-  With CreateObject("System.Collections.SortedList")
-    For Each it In Array(2, 3, 1)
-      .Add it, it
-    Next it
-    For i = 0 To .count - 1
-      Debug.Print .getKey(i); .getValueList()(i)
-    Next i
-  End With
-  
 End Sub

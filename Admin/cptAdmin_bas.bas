@@ -199,6 +199,8 @@ Dim strDirectory As String
       strDirectory = "Core"
     Case "ThisProject"
       strDirectory = "Core"
+    Case "Events"
+      strDirectory = "Core"
     'count
     Case "CountTasks"
       strDirectory = "Count"
@@ -208,8 +210,6 @@ Dim strDirectory As String
     'TextTools
     Case "DynamicFilter"
       strDirectory = "TextTools"
-    Case "Events"
-      strDirectory = "Core"
     'Status
     Case "SmartDur"
       strDirectory = "Status"

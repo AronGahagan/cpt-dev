@@ -13,6 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+'<cpt_version>v1.0</cpt_version>
+
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -143,7 +145,7 @@ Dim strFileName As String
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  strFileName = Environ("tmp") & "\cpt-status-sheet-search.adtg"
+  strFileName = cptDir & "\settings\cpt-status-sheet-search.adtg"
   If Dir(strFileName) <> vbNullString Then Kill strFileName
   Unload Me
 
@@ -304,7 +306,7 @@ Dim strFileName As String
     Me.lblStatus.Caption = " Please complete all required fields."
   Else
     'save settings
-    strFileName = Environ("tmp") & "\cpt-status-sheet-settings.adtg"
+    strFileName = cptDir & "\settings\cpt-status-sheet.adtg"
     With CreateObject("ADODB.Recordset")
       .Fields.Append "cboEVT", adVarChar, 100
       .Fields.Append "cboEVP", adVarChar, 100
@@ -467,7 +469,7 @@ Dim lgItem As Long
   Me.lboFields.Clear
   
   With CreateObject("ADODB.REcordset")
-    .Open Environ("tmp") & "\cpt-status-sheet-search.adtg"
+    .Open cptDir & "\settings\cpt-status-sheet-search.adtg"
     If Len(Me.stxtSearch.Text) > 0 Then
       .Filter = "[Custom Field Name] LIKE *" & RemoveIllegalCharacters(Me.stxtSearch.Text) & "*"
     Else
@@ -500,7 +502,7 @@ Dim lgField As Long, strFileName As String
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  strFileName = Environ("tmp") & "\cpt-status-sheet-search.adtg"
+  strFileName = cptDir & "\settings\cpt-status-sheet-search.adtg"
   If Dir(strFileName) <> vbNullString Then Exit Sub
   With CreateObject("ADODB.Recordset")
     .Fields.Append "Field Constant", adVarChar, 100
