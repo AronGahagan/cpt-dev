@@ -117,12 +117,33 @@
 		<FileName>cptSetup_bas.bas</FileName>
 		<Version>v0.1</Version>
 		<Type>1</Type>
-		<Directory>Setup</Directory>
+		<Directory></Directory>
 	</Module>
 	<Module>
 		<Name>cptCore_bas</Name>
 		<FileName>cptCore_bas.bas</FileName>
 		<Version>v1.0</Version>
+		<Type>1</Type>
+		<Directory>Core</Directory>
+	</Module>
+	<Module>
+		<Name>cptLogo_frm</Name>
+		<FileName>cptLogo_frm.frm</FileName>
+		<Version>v0.1</Version>
+		<Type>3</Type>
+		<Directory>Core</Directory>
+	</Module>
+	<Module>
+		<Name>cptUpgrades_frm</Name>
+		<FileName>cptUpgrades_frm.frm</FileName>
+		<Version>v0.1</Version>
+		<Type>3</Type>
+		<Directory>Core</Directory>
+	</Module>
+	<Module>
+		<Name>cptBrowseFolder_bas</Name>
+		<FileName>cptBrowseFolder_bas.bas</FileName>
+		<Version>v0.1</Version>
 		<Type>1</Type>
 		<Directory>Core</Directory>
 	</Module>
