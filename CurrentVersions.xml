@@ -96,7 +96,7 @@
 		<FileName>cptEvents_cls.cls</FileName>
 		<Version>v0.1</Version>
 		<Type>2</Type>
-		<Directory>TextTools</Directory>
+		<Directory>Core</Directory>
 	</Module>
 	<Module>
 		<Name>cptSmartDur_frm</Name>
