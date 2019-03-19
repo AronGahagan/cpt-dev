@@ -15,13 +15,6 @@
 		<Directory>TextTools</Directory>
 	</Module>
 	<Module>
-		<Name>basCriticalPathTools</Name>
-		<FileName>basCriticalPathTools.bas</FileName>
-		<Version>v1.0</Version>
-		<Type>1</Type>
-		<Directory>basCriticalPathTools</Directory>
-	</Module>
-	<Module>
 		<Name>cptDynamicFilter_frm</Name>
 		<FileName>cptDynamicFilter_frm.frm</FileName>
 		<Version>v0.1</Version>
