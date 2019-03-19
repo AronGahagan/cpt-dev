@@ -1,6 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Modules>
 	<Module>
+		<Name>ThisProject</Name>
+		<FileName>ThisProject.cls</FileName>
+		<Version>v0.1</Version>
+		<Type>100</Type>
+		<Directory>Core</Directory>
+	</Module>
+	<Module>
 		<Name>cptDynamicFilter_bas</Name>
 		<FileName>cptDynamicFilter_bas.bas</FileName>
 		<Version>v1.0</Version>
