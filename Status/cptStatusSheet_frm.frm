@@ -5,7 +5,7 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptStatusSheet_frm
    ClientLeft      =   120
    ClientTop       =   465
    ClientWidth     =   8310
-   OleObjectBlob   =   "cptStatusSheet.frx":0000
+   OleObjectBlob   =   "cptStatusSheet_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
 Attribute VB_Name = "cptStatusSheet_frm"
