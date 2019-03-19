@@ -292,12 +292,13 @@ End Sub
 
 Sub ShowCptUpgrades_frm()
 'objects
+Dim arrDirectories As Object
 Dim vbComponent As Object
 Dim arrCurrent As Object, arrInstalled As Object
 Dim xmlDoc As Object, xmlNode As Object, xmlHttpDoc As Object, FindRecord As Object
 Dim oStream As Object
 'long
-Dim lgItem As Long, lgCol As Long
+Dim lngItem As Long, lgCol As Long
 'strings
 Dim strURL As String, strMsg As String, strVersion As String, strFileName As String
 'booleans
@@ -319,20 +320,21 @@ Dim vCol As Variant
   
   'get current versions
   Set arrCurrent = CreateObject("System.Collections.SortedList")
+  Set arrDirectories = CreateObject("System.Collections.SortedList")
   Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
   xmlDoc.async = False
   xmlDoc.validateOnParse = False
   xmlDoc.SetProperty "SelectionLanguage", "XPath"
   xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
-  '/=======CHANGE THIS TO PUBLIC SITE BEFORE RELEASE=======\
-  strURL = "https://raw.githubusercontent.com/AronGahagan/test/master/CurrentVersions.xml"
-  '\=======CHANGE THIS TO PUBLIC SITE BEFORE RELEASE=======/
+  strURL = strGitHub & "CurrentVersions.xml"
   If Not xmlDoc.Load(strURL) Then
     MsgBox xmlDoc.parseError.ErrorCode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
     GoTo exit_here
   Else
     For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
       arrCurrent.Add xmlNode.SelectSingleNode("Name").Text, xmlNode.SelectSingleNode("Version").Text
+      Debug.Print xmlNode.SelectSingleNode("Name").Text & " - " & xmlNode.SelectSingleNode("Directory").Text
+      arrDirectories.Add xmlNode.SelectSingleNode("Name").Text, xmlNode.SelectSingleNode("Directory").Text
     Next
   End If
 
@@ -350,43 +352,45 @@ next_component:
   Next vbComponent
   
   'populate the listbox header
-  lgItem = 0
+  lngItem = 0
   cptUpgrades_frm.lboHeader.AddItem
-  For Each vCol In Array("Module", "Current", "Installed", "Status", "Type")
-    cptUpgrades_frm.lboHeader.List(0, lgItem) = vCol
-    lgItem = lgItem + 1
+  For Each vCol In Array("Module", "Directory", "Current", "Installed", "Status", "Type")
+    cptUpgrades_frm.lboHeader.List(0, lngItem) = vCol
+    lngItem = lngItem + 1
   Next vCol
   cptUpgrades_frm.lboHeader.Height = 16
   
   'populate the listbox
   cptUpgrades_frm.lboModules.Clear
-  For lgItem = 0 To arrCurrent.count - 1
+  For lngItem = 0 To arrCurrent.count - 1
     cptUpgrades_frm.lboModules.AddItem
-    cptUpgrades_frm.lboModules.List(lgItem, 0) = arrCurrent.getKey(lgItem) 'module name
-    cptUpgrades_frm.lboModules.List(lgItem, 1) = arrCurrent.getValueList()(lgItem) 'current version
-    If arrInstalled.contains(arrCurrent.getKey(lgItem)) Then 'installed version
-      cptUpgrades_frm.lboModules.List(lgItem, 2) = arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.getKey(lgItem)))
+    cptUpgrades_frm.lboModules.List(lngItem, 0) = arrCurrent.getKey(lngItem) 'module name
+    cptUpgrades_frm.lboModules.List(lngItem, 1) = arrDirectories.getValueList()(lngItem) 'directory
+    cptUpgrades_frm.lboModules.List(lngItem, 2) = arrCurrent.getValueList()(lngItem) 'current version
+    If arrInstalled.contains(arrCurrent.getKey(lngItem)) Then 'installed version
+      cptUpgrades_frm.lboModules.List(lngItem, 3) = arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.getKey(lngItem)))
     Else
-      cptUpgrades_frm.lboModules.List(lgItem, 2) = "<not installed>"
+      cptUpgrades_frm.lboModules.List(lngItem, 3) = "<not installed>"
     End If
     
-    Select Case cptUpgrades_frm.lboModules.List(lgItem, 2)
-      Case Is = cptUpgrades_frm.lboModules.List(lgItem, 1)
-        cptUpgrades_frm.lboModules.List(lgItem, 3) = "<installed>"
+    Select Case cptUpgrades_frm.lboModules.List(lngItem, 3)
+      Case Is = cptUpgrades_frm.lboModules.List(lngItem, 2)
+        cptUpgrades_frm.lboModules.List(lngItem, 4) = "<installed>"
       Case Is = "<not installed>"
-        cptUpgrades_frm.lboModules.List(lgItem, 3) = "<install>"
-      Case Is <> cptUpgrades_frm.lboModules.List(lgItem, 1)
-        cptUpgrades_frm.lboModules.List(lgItem, 3) = "<install update>"
+        cptUpgrades_frm.lboModules.List(lngItem, 4) = "<install>"
+      Case Is <> cptUpgrades_frm.lboModules.List(lngItem, 2)
+        cptUpgrades_frm.lboModules.List(lngItem, 4) = "<install update>"
     End Select
-    Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + cptUpgrades_frm.lboModules.List(lgItem, 0) + "']").ParentNode.SelectSingleNode("Type")
-    cptUpgrades_frm.lboModules.List(lgItem, 4) = FindRecord.Text
+    Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + cptUpgrades_frm.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
+    cptUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
       
-  Next lgItem
+  Next lngItem
     
   cptUpgrades_frm.Show False
   
 exit_here:
   On Error Resume Next
+  Set arrDirectories = Nothing
   Set vbComponent = Nothing
   Set arrCurrent = Nothing
   Set arrInstalled = Nothing
@@ -634,7 +638,7 @@ Dim lngCleanUp As Long
   End If
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   
-  If Environ("UserName") = "arong" Then
+  If Environ("UserName") = "arong" And ModuleExists("frmBackupVBA") And ModuleExists("basBackupVBA") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gAdmin"" label=""Admin"" visible=""true"" >"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdmin"" label=""Backup VBA Modules"" imageMso=""SaveProject"" onAction=""ShowFrmBackupVBA"" visible=""true"" size=""large"" />"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"

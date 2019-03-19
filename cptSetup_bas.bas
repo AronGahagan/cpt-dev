@@ -1,10 +1,15 @@
 Attribute VB_Name = "cptSetup_bas"
+'<cpt_version>v0.1</cpt_version>
+
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/test/master/"
+'Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt/master/"
 
 Sub cptSetup()
 'objects
+Dim vbComponent As Object
 Dim arrCode As Object
 Dim cmThisProject As CodeModule
 Dim cmCptThisProject As CodeModule
@@ -14,12 +19,12 @@ Dim xmlNode As Object
 Dim xmlDoc As Object
 Dim arrCore As Object
 'strings
+Dim strError As String
 Dim strCptFileName As String
 Dim strVersion As String
 Dim strCode As String
 Dim strFileName As String
 Dim strModule As String
-Dim strError As String
 Dim strURL As String
 'longs
 Dim lngEvent As Long
@@ -27,6 +32,7 @@ Dim lngActivate As Long
 Dim lngFile As Long
 'integers
 'booleans
+Dim blnExists As Boolean
 Dim blnSuccess As Boolean
 'variants
 Dim vEvent As Variant
@@ -36,83 +42,145 @@ Dim vLine As Variant
   'before running:
   '1. enable macros
   '2. trust access to the vbproject object model
-  '3. save global.mpt, completely exist msproject and restart (to make the settings 'stick')
+  '3. save global.mpt, completely exit msproject and restart (to make the settings 'stick')
   '4. come back and run cptSetup
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  If Not InternetIsConnected Then
-    MsgBox "If you cannot access the internet, then please pull the Core.mpp file from Teams and follow instructions there.", vbExclamation + vbOKOnly, "No Internet"
-    GoTo exit_here
-  End If
+'  If Not InternetIsConnected Then
+'    MsgBox "If you cannot access the internet, then please pull the Core.mpp file from Teams and follow instructions there.", vbExclamation + vbOKOnly, "No Internet"
+'    GoTo exit_here
+'  End If
     
   'capture list of files to download
   Set arrCore = CreateObject("System.Collections.SortedList")
-  
+  Application.StatusBar = "Identifying latest core CPT modules..."
   'get CurrentVersions.xml
   'get file list in cpt\Core
-  strURL = "https://raw.githubusercontent.com/AronGahagan/test/master/CurrentVersions.xml"
   Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
   xmlDoc.async = False
   xmlDoc.validateOnParse = False
   xmlDoc.SetProperty "SelectionLanguage", "XPath"
   xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
-  '/=======CHANGE THIS TO PUBLIC SITE BEFORE RELEASE=======\
-  strURL = "https://raw.githubusercontent.com/AronGahagan/test/master/CurrentVersions.xml"
-  '\=======CHANGE THIS TO PUBLIC SITE BEFORE RELEASE=======/
+  strURL = strGitHub & "CurrentVersions.xml"
   If Not xmlDoc.Load(strURL) Then
     MsgBox xmlDoc.parseError.ErrorCode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
     GoTo exit_here
   Else
+    'download cpt/core/*.* to user's tmp directory
     arrCore.Clear
     For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
       If xmlNode.SelectSingleNode("Directory").Text = "Core" Then
+        Application.StatusBar = "Fetching " & xmlNode.SelectSingleNode("Name").Text & "..."
+        Debug.Print Application.StatusBar
         arrCore.Add xmlNode.SelectSingleNode("FileName").Text, xmlNode.SelectSingleNode("Type").Text
+        'get ThisProject status for later
         If xmlNode.SelectSingleNode("FileName").Text = "ThisProject.cls" Then
           strVersion = xmlNode.SelectSingleNode("Version").Text
         End If
-        Debug.Print "found " & xmlNode.SelectSingleNode("FileName").Text
-      End If
-    Next
-  End If
-  
-  'download cpt/core/*.* to user's tmp directory
-  For lngFile = 0 To arrCore.count - 1
+        'build the url of the download
+        strURL = strGitHub
+        If Len(xmlNode.SelectSingleNode("Directory").Text) > 0 Then
+          strURL = strURL & xmlNode.SelectSingleNode("Directory").Text & "/"
+        End If
+        strFileName = xmlNode.SelectSingleNode("FileName").Text
+        strURL = strURL & strFileName
 frx:
-    strURL = "https://raw.githubusercontent.com/AronGahagan/test/master/Core/" & arrCore.getKey(lngFile)
-    Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
-    xmlHttpDoc.Open "GET", strURL, False
-    xmlHttpDoc.Send
+        Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
+        xmlHttpDoc.Open "GET", strURL, False
+        xmlHttpDoc.Send
+        If xmlHttpDoc.Status = 200 Then
+          Set oStream = CreateObject("ADODB.Stream")
+          oStream.Open
+          oStream.Type = 1 'adTypeBinary
+          oStream.Write xmlHttpDoc.responseBody
+          If Dir(Environ("tmp") & "\" & strFileName) <> vbNullString Then Kill Environ("tmp") & "\" & strFileName
+          oStream.SaveToFile Environ("tmp") & "\" & strFileName
+          oStream.Close
+          'need to fetch the .frx first
+          If Right(strURL, 4) = ".frm" Then
+            strURL = Replace(strURL, ".frm", ".frx")
+            strFileName = Replace(strFileName, ".frm", ".frx")
+            GoTo frx
+          ElseIf Right(strURL, 4) = ".frx" Then
+            strURL = Replace(strURL, ".frx", ".frm")
+            strFileName = Replace(strFileName, ".frx", ".frm")
+          End If
+        Else
+          strError = strError & "- " & arrCore.getKey(lngFile) & vbCrLf
+          GoTo next_xmlNode
+        End If
+        
+        'remove if exists
+        strModule = Left(strFileName, InStr(strFileName, ".") - 1)
+        If strModule = "ThisProject" Then GoTo next_xmlNode
+        blnExists = False
+        For Each vbComponent In ThisProject.VBProject.VBComponents
+          If vbComponent.Name = strModule Then
+            Application.StatusBar = "Removing obsolete version of " & vbComponent.Name
+            Debug.Print Application.StatusBar
+            ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
+          End If
+        Next vbComponent
+        
+        'import the module - skip ThisProject which needs special handling
+        If strModule <> "ThisProject" Then
+          Application.StatusBar = "Importing " & strFileName & "..."
+          Debug.Print Application.StatusBar
+          ThisProject.VBProject.VBComponents.import Environ("tmp") & "\" & strFileName
+        End If
+        
+      End If
+next_xmlNode:
+    Next xmlNode
+  End If
+    
+'  For lngFile = 0 To arrCore.count - 1
+'frx:
+'    strURL = strGitHub & "Core/" & arrCore.getKey(lngFile)
+'    Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
+'    xmlHttpDoc.Open "GET", strURL, False
+'    xmlHttpDoc.Send
 
-    If xmlHttpDoc.Status = 200 Then
-      Set oStream = CreateObject("ADODB.Stream")
-      oStream.Open
-      oStream.Type = 1 'adTypeBinary
-      oStream.Write xmlHttpDoc.responseBody
-      strFileName = arrCore.getKey(lngFile)
-      If Dir(Environ("tmp") & "\" & strFileName) <> vbNullString Then Kill Environ("tmp") & "\" & strFileName
-      oStream.SaveToFile Environ("tmp") & "\" & strFileName
-      oStream.Close
-    Else
-      strError = strError & "- " & arrCore.getKey(lngFile) & vbCrLf
-      GoTo next_file
-    End If
-    If Right(strFileName, 4) = ".frm" Then
-      strFileName = Replace(strFileName, ".frm", ".frx")
-      GoTo frx
-    ElseIf Right(strFileName, 4) = ".frx" Then
-      strFileName = Replace(strFileName, ".frx", ".frm")
-    End If
-    strModule = Left(strFileName, InStr(strFileName, ".") - 1)
-    If ModuleExists(strModule) Then
-      'ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(strModule)
-    End If
+'    If xmlHttpDoc.Status = 200 Then
+'      Set oStream = CreateObject("ADODB.Stream")
+'      oStream.Open
+'      oStream.Type = 1 'adTypeBinary
+'      oStream.Write xmlHttpDoc.responseBody
+'      strFileName = arrCore.getKey(lngFile)
+'      If Dir(Environ("tmp") & "\" & strFileName) <> vbNullString Then Kill Environ("tmp") & "\" & strFileName
+'      oStream.SaveToFile Environ("tmp") & "\" & strFileName
+'      oStream.Close
+'    Else
+'      strError = strError & "- " & arrCore.getKey(lngFile) & vbCrLf
+'      GoTo next_file
+'    End If
+'    strModule = Left(strFileName, InStr(strFileName, ".") - 1)
+'    blnExists = False
+'    For Each vbComponent In ThisProject.VBProject.VBComponents
+'      If vbComponent.Name = strModule Then
+'        Application.StatusBar = "Removing obsolete version of " & vbComponent.Name
+'        Debug.Print Application.StatusBar
+'        ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
+'      End If
+'    Next vbComponent
     'skip ThisProject which needs special handling
-    If strModule <> "ThisProject" Then
-      'ThisProject.VBProject.VBComponents.Import Environ("tmp") & "\" & strFileName
-    End If
-next_file:
-  Next lngFile
+'    If strModule <> "ThisProject" Then
+'      Application.StatusBar = "Importing " & strFileName & "..."
+'      Debug.Print Application.StatusBar
+'      ThisProject.VBProject.VBComponents.Import Environ("tmp") & "\" & strFileName
+'    End If
+'    'need to fetch the .frx first
+'    If Right(strFileName, 4) = ".frm" Then
+'      strFileName = Replace(strFileName, ".frm", ".frx")
+'      GoTo frx
+'    ElseIf Right(strFileName, 4) = ".frx" Then
+'      strFileName = Replace(strFileName, ".frx", ".frm")
+'    End If
+'next_file:
+'  Next lngFile
+  
+  Application.StatusBar = "CPT Modules imported."
   
   'update user's ThisProject - if it downloaded correctly
   strFileName = Environ("tmp") & "\ThisProject.cls"
@@ -124,7 +192,7 @@ next_file:
     If Dir(strCptFileName) <> vbNullString Then Kill strCptFileName
     Name strFileName As strCptFileName
     Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
-    Set cmCptThisProject = ThisProject.VBProject.VBComponents.Import(strCptFileName).CodeModule
+    Set cmCptThisProject = ThisProject.VBProject.VBComponents.import(strCptFileName).CodeModule
     
     'grab the imported code
     Set arrCode = CreateObject("System.Collections.SortedList")
@@ -183,15 +251,17 @@ next_file:
     Debug.Print strError
   End If
 
-  If ModuleExists("cptUpgrades_frm") And ModuleExists("cptUpgrades_bas") Then
-    Call ShowCptUpgrades_frm
-  End If
-  
+'  If ModuleExists("cptUpgrades_frm") And ModuleExists("cptUpgrades_bas") Then
+'    Call ShowCptUpgrades_frm
+'  End If
+
+  'trigger a refresh of the ribbon
+  Application.Projects.Add
 
 exit_here:
   On Error Resume Next
+  Set vbComponent = Nothing
   Set arrCode = Nothing
-  SpeedOFF
   Set cmThisProject = Nothing
   Set cmCptThisProject = Nothing
   Set oStream = Nothing
@@ -199,9 +269,12 @@ exit_here:
   Set xmlNode = Nothing
   Set xmlDoc = Nothing
   Set arrCore = Nothing
-
   Exit Sub
 err_here:
-  Call HandleErr("cptCore_bas", "cptSetup", err)
+  'Call HandleErr("cptCore_bas", "cptSetup", err)
+  strError = err.Number & ": " & err.Description & vbCrLf
+  strError = strError & "Module: cptSetup_bas" & vbCrLf
+  strError = strError & "Procedure: cptSetup"
+  MsgBox strError, vbExclamation + vbOKOnly, "CPT Setup Error"
   Resume exit_here
 End Sub

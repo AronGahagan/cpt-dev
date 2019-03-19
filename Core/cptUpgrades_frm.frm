@@ -13,6 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v0.1</cpt_version>
 
 Option Explicit
@@ -24,13 +25,13 @@ Private Sub cmdCancel_Click()
 End Sub
 
 Private Sub cmdUpgradeAll_Click()
-Dim lgItem As Long
+Dim lngItem As Long
 
-  For lgItem = 0 To Me.lboModules.ListCount - 1
-    If Me.lboModules.List(lgItem, 2) <> Me.lboModules.List(lgItem, 2) Then
-      Me.lboModules.Selected(lgItem) = True
+  For lngItem = 0 To Me.lboModules.ListCount - 1
+    If Me.lboModules.List(lngItem, 2) <> Me.lboModules.List(lngItem, 3) Then
+      Me.lboModules.Selected(lngItem) = True
     End If
-  Next lgItem
+  Next lngItem
   
   Call cmdUpgradeSelected_Click
   
@@ -45,7 +46,7 @@ Dim arrTypes As Object
 Dim strDirectory As String
 Dim strModule As String, strFileName As String, strURL As String
 'longs
-Dim lgItem As Long
+Dim lngItem As Long
 'integers
 'booleans
 'variants
@@ -59,23 +60,23 @@ Dim lgItem As Long
   arrTypes.Add 3, ".frm"
   arrTypes.Add 100, ".cls"
 
-  For lgItem = 0 To Me.lboModules.ListCount - 1
+  For lngItem = 0 To Me.lboModules.ListCount - 1
   
-    If Me.lboModules.Selected(lgItem) Then
+    If Me.lboModules.Selected(lngItem) Then
   
-      Me.lboModules.List(lgItem, 3) = "<installing...>"
-      strModule = Me.lboModules.List(lgItem, 0)
+      Me.lboModules.List(lngItem, 3) = "<installing...>"
+      strModule = Me.lboModules.List(lngItem, 0)
             
       'get the module name
       'get the repo directory
       'get the filename
       'strFileName = replace(".bas","_bas.bas")
       Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
-      strFileName = strModule & arrTypes.Item(CInt(cptUpgrades_frm.lboModules.List(lgItem, 4)))
+      strFileName = strModule & arrTypes.Item(CInt(cptUpgrades_frm.lboModules.List(lngItem, 5)))
       'strFileName = Replace(strFileName, RegEx(strFileName, "_frm|_bas|_cls"), "")
-      strDirectory = Left(strFileName, InStr(strFileName, ".") - 1)
+      strDirectory = cptUpgrades_frm.lboModules.List(lngItem, 1)
 get_frx:
-      strURL = "https://raw.githubusercontent.com/AronGahagan/test/master/" & Replace(GetDirectory(strFileName), "\", "") & "/" & strFileName
+      strURL = strGitHub & strDirectory & "/" & strFileName
       xmlHttpDoc.Open "GET", strURL, False
       xmlHttpDoc.Send
     
@@ -91,7 +92,7 @@ get_frx:
         oStream.Close
       Else
         MsgBox "Download failed. Please contact our Help Desk at...", vbCritical + vbOKOnly, "XML Error"
-        Me.lboModules.List(lgItem, 3) = "<failed>"
+        Me.lboModules.List(lngItem, 3) = "<failed>"
         GoTo exit_here
       End If
       If Right(strFileName, 4) = ".frm" Then
@@ -104,12 +105,12 @@ get_frx:
       If ModuleExists(strModule) Then
         ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(strModule)
       End If
-      ThisProject.VBProject.VBComponents.Import Environ("tmp") & "\" & strFileName
+      ThisProject.VBProject.VBComponents.import Environ("tmp") & "\" & strFileName
       
-      Me.lboModules.List(lgItem, 2) = Me.lboModules.List(lgItem, 1)
-      Me.lboModules.List(lgItem, 3) = "<updated>"
+      Me.lboModules.List(lngItem, 3) = Me.lboModules.List(lngItem, 2)
+      Me.lboModules.List(lngItem, 4) = "<updated>"
     End If
-  Next lgItem
+  Next lngItem
 
 exit_here:
   On Error Resume Next
@@ -121,7 +122,7 @@ exit_here:
   Exit Sub
 err_here:
   Call HandleErr("frmUpdates", "cmdUpdate_Click", err)
-  Me.lboModules.List(lgItem, 3) = "<error>"
+  Me.lboModules.List(lngItem, 3) = "<error>"
   Resume exit_here
 
 End Sub
