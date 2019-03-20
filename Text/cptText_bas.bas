@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v0.1</cpt_version>
+'<cpt_version>v1.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -305,8 +305,19 @@ err_here:
 End Sub
 
 Sub ShowCptText_frm()
+'objects
 Dim Tasks As Tasks, Task As Task
-Dim lgItem As Long
+'strings
+'longs
+Dim lngItem As Long
+'integers
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If Not ModuleExists("cptText_frm") Then GoTo exit_here
 
   On Error Resume Next
   Set Tasks = ActiveSelection.Tasks
@@ -315,9 +326,9 @@ Dim lgItem As Long
     cptText_frm.lboOutput.Clear
     For Each Task In Tasks
       cptText_frm.lboOutput.AddItem
-      cptText_frm.lboOutput.List(lgItem, 0) = Task.UniqueID
-      cptText_frm.lboOutput.List(lgItem, 1) = Task.Name
-      lgItem = lgItem + 1
+      cptText_frm.lboOutput.List(lngItem, 0) = Task.UniqueID
+      cptText_frm.lboOutput.List(lngItem, 1) = Task.Name
+      lngItem = lngItem + 1
     Next Task
   End If
 
@@ -336,12 +347,20 @@ End Sub
 
 Sub UpdatePreview(Optional strPrepend As String, Optional strAppend As String, Optional strPrefix As String, Optional lgCharacters As Long, Optional lgStartAt As Long, _
                   Optional lgCountBy As Long, Optional strSuffix As String, Optional strReplaceWhat As String, Optional strReplaceWith As String)
-Dim lgItem As Long, strTaskName As String, strEnumerate As String, lgEnumerate As Long
+'objects
+'strings
+Dim strTaskName As String, strEnumerate As String
+'longs
+Dim lngItem As Long, lgEnumerate As Long
+'integers
+'booleans
+'variants
+'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  For lgItem = 0 To cptText_frm.lboOutput.ListCount - 1
-    strTaskName = ActiveProject.Tasks.UniqueID(cptText_frm.lboOutput.List(lgItem, 0)).Name
+  For lngItem = 0 To cptText_frm.lboOutput.ListCount - 1
+    strTaskName = ActiveProject.Tasks.UniqueID(cptText_frm.lboOutput.List(lngItem, 0)).Name
     If Len(strPrepend) > 0 Then
       strTaskName = Trim(strPrepend) & " " & strTaskName
     ElseIf Len(cptText_frm.txtPrepend.Value) > 0 Then
@@ -374,7 +393,7 @@ Dim lgItem As Long, strTaskName As String, strEnumerate As String, lgEnumerate A
         End If
       End If
       
-      lgEnumerate = lgStartAt + (lgItem * lgCountBy)
+      lgEnumerate = lgStartAt + (lngItem * lgCountBy)
       
       If lgCharacters = 0 Then
         If cptText_frm.txtCharacters.Value = "" Then
@@ -387,13 +406,14 @@ Dim lgItem As Long, strTaskName As String, strEnumerate As String, lgEnumerate A
           
       strEnumerate = strEnumerate & Format(lgEnumerate, String(lgCharacters, "0"))
       strEnumerate = strEnumerate & IIf(Len(strSuffix) > 0, strSuffix, cptText_frm.txtSuffix.Value)
-      cptText_frm.lboOutput.List(lgItem, 1) = strTaskName & " " & strEnumerate
+      cptText_frm.lboOutput.List(lngItem, 1) = strTaskName & " " & strEnumerate
     Else
-      cptText_frm.lboOutput.List(lgItem, 1) = strTaskName
+      cptText_frm.lboOutput.List(lngItem, 1) = strTaskName
     End If
     
-    'replace
-  Next lgItem
+    'todo: replace
+    
+  Next lngItem
 
 exit_here:
   On Error Resume Next

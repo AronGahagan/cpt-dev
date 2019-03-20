@@ -11,14 +11,17 @@ Dim strMsg As String
 
   On Error GoTo err_here
 
-  'ensure task view is active - cancel, trust the user
-'  If ActiveWindow.ActivePane.View.Screen <> pjGantt Then
-'    If ActiveWindow.ActivePane = ActiveWindow.TopPane Then
-'      ActiveWindow.TopPane.Activate
-'    ElseIf ActiveWindow.ActivePane = ActiveWindow.BottomPane Then
-'      ActiveWindow.TopPane.Activate
-'    End If
-'  End If
+  '===
+  'Validate users selected view type
+  If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
+    MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "Dynamic Filter"
+    GoTo exit_here
+  End If
+  'Validate users selected window pane - select the task table if not active
+  If ActiveProject.Application.ActiveWindow.ActivePane.Index <> 1 Then
+    ActiveProject.Application.ActiveWindow.TopPane.Activate
+  End If
+  '===
   
   Select Case strScope
     Case "All"

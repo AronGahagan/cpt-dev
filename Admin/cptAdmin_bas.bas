@@ -1,4 +1,5 @@
 Attribute VB_Name = "cptAdmin_bas"
+'>no cpt version - not for release<
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -63,6 +64,8 @@ next_vbComponent:
   
   'stage the updated xml for next git commit/push
   git "add", strFileName
+
+  MsgBox "CurrentVersions.xml created and staged." & vbCrLf & vbCrLf & "(Don't forget to push!)", vbInformation + vbOKOnly, "Complete"
 
 exit_here:
   On Error Resume Next
