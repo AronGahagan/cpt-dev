@@ -240,8 +240,13 @@ End Function
 
 Function cptDir() As String
 Dim strPath As String
+  
   'confirm existence of cpt settings and backup modules file
-  strPath = Environ("USERPROFILE") & "\cpt"
+  
+  'strPath = ThisProject.FullName
+  'strPath = Left(strPath, InStrRev(strPath, "MS Project\") - 1 + Len("MS Project\"))
+  
+  strPath = strPath & "\cpt-backup"
   If Dir(strPath, vbDirectory) = vbNullString Then
     MkDir strPath
   End If
@@ -252,6 +257,7 @@ Dim strPath As String
     MkDir strPath & "\modules"
   End If
   cptDir = strPath
+  
 End Function
 
 Function ModuleExists(strModule)
