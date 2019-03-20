@@ -1,4 +1,4 @@
-# cpt: The ClearPlan Toolbar
+# cpt: The CP Toolbar
 ## Table of Contents
 1. Vision
 1. [Prerequisites](#prerequisites)
@@ -84,6 +84,6 @@ Just what it sounds like - optionally count all tasks, visible (filtered) tasks,
 1. _Feature Requests_ - submit your feature requests.
 1. _Bug Reports_ - submit your feature requests.
 
-_Credits: Ryan Beard ([ClearPlan Consulting, LLC](http://ClearPlanConsulting.com)); Aron Gahagan ([ClearPlan Consulting, LLC](http://ClearPlanConsulting.com))_
+_Credits: TBA_
 
 [[up]](#use) | [[toc]](#table-of-contents)
