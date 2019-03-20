@@ -1,10 +1,9 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v0.1</cpt_version>
-
+'<cpt_version>v1.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/test/master/"
+Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt/master/"
 
 Private Declare Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As Long, _
@@ -77,7 +76,7 @@ Dim vLine As Variant
     For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
       If xmlNode.SelectSingleNode("Directory").Text = "Core" Then
         Application.StatusBar = "Fetching " & xmlNode.SelectSingleNode("Name").Text & "..."
-        Debug.Print Application.StatusBar
+        'Debug.Print Application.StatusBar
         arrCore.Add xmlNode.SelectSingleNode("FileName").Text, xmlNode.SelectSingleNode("Type").Text
         'get ThisProject status for later
         If xmlNode.SelectSingleNode("FileName").Text = "ThisProject.cls" Then
@@ -123,7 +122,7 @@ frx:
         For Each vbComponent In ThisProject.VBProject.VBComponents
           If vbComponent.Name = strModule Then
             Application.StatusBar = "Removing obsolete version of " & vbComponent.Name
-            Debug.Print Application.StatusBar
+            'Debug.Print Application.StatusBar
             ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
           End If
         Next vbComponent
@@ -131,7 +130,7 @@ frx:
         'import the module - skip ThisProject which needs special handling
         If strModule <> "ThisProject" Then
           Application.StatusBar = "Importing " & strFileName & "..."
-          Debug.Print Application.StatusBar
+          'Debug.Print Application.StatusBar
           ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
         End If
         
@@ -177,7 +176,7 @@ next_xmlNode:
             If .Find(arrCode(CStr(vEvent)), .ProcStartLine(CStr(vEvent), 0), 1, .ProcCountLines(CStr(vEvent), 0), 1000) = False Then 'vbext_pk_Proc
               .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
             Else
-              Debug.Print CStr(vEvent) & " code exists."
+              'Debug.Print CStr(vEvent) & " code exists."
             End If
           Else 'create it
             'create it, returning its line number
@@ -208,7 +207,7 @@ next_xmlNode:
   If Len(strError) > 0 Then
     strError = "The following modules did not download correctly:" & vbCrLf & strError & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for assistance."
     MsgBox strError, vbCritical + vbOKOnly, "Unknown Error"
-    Debug.Print strError
+    'Debug.Print strError
   End If
 
 exit_here:
@@ -246,6 +245,7 @@ Dim strPath As String
   'strPath = ThisProject.FullName
   'strPath = Left(strPath, InStrRev(strPath, "MS Project\") - 1 + Len("MS Project\"))
   
+  strPath = Environ("USERPROFILE")
   strPath = strPath & "\cpt-backup"
   If Dir(strPath, vbDirectory) = vbNullString Then
     MkDir strPath

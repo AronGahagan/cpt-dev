@@ -8,11 +8,9 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 '<cpt_version>v0.1</cpt_version>
-
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
 Private WithEvents MyMSPApplication As Application
 Attribute MyMSPApplication.VB_VarHelpID = -1
 
@@ -23,48 +21,65 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub MyMSPApplication_WindowSelectionChange(ByVal Window As Window, ByVal sel As Selection, ByVal selType As Variant)
-Dim Tasks As Tasks, Task As Task, lgItem As Long, lgTasks As Long
-Dim frmText As Object
+'objects
+Dim Tasks As Tasks, Task As Task, Resources As Resources, Resource As Resource
+'strings
+'longs
+Dim lngItem As Long, lngItems As Long
+'integers
+'booleans
+'variants
+'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
-  If ModuleExists("cptTextTools_frm") Then
-    If Not IsError(ActiveSelection.Tasks) Then
-      Set frmText = ThisProject.VBProject.VBComponents("cptTextTools_frm")
-      If Not frmText Is Nothing And frmText.Visible Then
-        frmText.lboOutput.Clear
-        For Each Task In ActiveSelection.Tasks
-          frmText.lboOutput.AddItem
-          frmText.lboOutput.List(lgItem, 0) = Task.UniqueID
-          frmText.lboOutput.List(lgItem, 1) = Task.Name
-          lgItem = lgItem + 1
-        Next Task
-        Call ThisProject.VBProject.VBComponents("cptTextTools_bas").UpdatePreview
+
+  On Error Resume Next
+  'Validate users selected view type
+  If ActiveProject.Application.ActiveWindow.ActivePane.View.Type = pjTaskItem Then
+    If ModuleExists("cptText_frm") Then
+      If Not IsError(ActiveSelection.Tasks) Then
+        If cptText_frm.Visible Then
+          cptText_frm.lboOutput.Clear
+          For Each Task In ActiveSelection.Tasks
+            cptText_frm.lboOutput.AddItem
+            cptText_frm.lboOutput.List(lngItem, 0) = Task.UniqueID
+            cptText_frm.lboOutput.List(lngItem, 1) = Task.Name
+            lngItem = lngItem + 1
+          Next Task
+          Call ThisProject.VBProject.VBComponents("cptText_bas").UpdatePreview
+        End If
       End If
     End If
   End If
   
   On Error Resume Next
-  Debug.Print ActiveWindow.ActivePane.View.Type
-  Select Case ActiveWindow.ActivePane.View.Type
-    Case 0 'Task Table
-    Case 1
-  End Select
-  Set Tasks = ActiveSelection.Tasks
-  If Not Tasks Is Nothing Then
-    lgTasks = ActiveSelection.Tasks.count
-    Application.StatusBar = Format(lgTasks, "#,##0") & " task" & IIf(lgTasks = 1, "", "s") & " selected"
-  Else
-    Application.StatusBar = "0 tasks selected"
+  
+  'Validate users selected view type
+  If ActiveProject.Application.ActiveWindow.ActivePane.View.Type = pjTaskItem Then
+    Set Tasks = ActiveSelection.Tasks
+    If Not Tasks Is Nothing Then
+      lngItems = ActiveSelection.Tasks.count
+      Application.StatusBar = Format(lngItems, "#,##0") & " task" & IIf(lngItems = 1, "", "s") & " selected"
+    Else
+      Application.StatusBar = "0 tasks selected"
+    End If
+  ElseIf ActiveProject.Application.ActiveWindow.ActivePane.View.Type = pjResourceItem Then
+    Set Resources = ActiveSelection.Resources
+    If Not Resources Is Nothing Then
+      lngItems = ActiveSelection.Tasks.count
+      Application.StatusBar = Format(lngItems, "#,##0") & " resources" & IIf(lngItems = 1, "", "s") & " selected"
+    Else
+      Application.StatusBar = "0 resources selected"
+    End If
   End If
   
 exit_here:
   On Error Resume Next
-  Set frmText = Nothing
   Set Tasks = Nothing
+  Set Resources = Nothing
   Exit Sub
 err_here:
-  Call HandleErr("clsChange", "MyMSApplication_WindowSelectionChange", err)
+  Call HandleErr("clsChange_cls", "MyMSApplication_WindowSelectionChange", err)
   Resume exit_here
   
 End Sub

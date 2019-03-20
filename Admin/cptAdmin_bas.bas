@@ -165,7 +165,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub checkallversions()
+Sub CheckAllVersions()
 Dim vbComponent As vbComponent
 
   For Each vbComponent In ThisProject.VBProject.VBComponents
@@ -174,6 +174,7 @@ Dim vbComponent As vbComponent
     End If
   Next vbComponent
   Set vbComponent = Nothing
+  
 End Sub
 
 Function SetDirectory(strComponentName As String) As String
@@ -218,6 +219,8 @@ Dim strDirectory As String
     'Trace
     Case "CriticalPath"
       strDirectory = "Trace"
+    Case "CriticalPathTools"
+      strDirectory = "Trace"
     Case Else
       
         
@@ -230,8 +233,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call HandleErr("cptAdmin_bas", "GetDirectory()", err)
+  Call HandleErr("cptAdmin_bas", "SetDirectory()", err)
   Resume exit_here
-
 
 End Function

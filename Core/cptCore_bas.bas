@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.0</cpt_version>
+'<cpt_version>v1.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -10,10 +10,10 @@ Sub StartEvents()
   Set oMSPEvents = New cptEvents_cls
 End Sub
 
-Function cptSpeed(blnON As Boolean)
+Function cptSpeed(blnOn As Boolean)
 
-  Application.ScreenUpdating = Not blnON
-  Application.Calculation = pjAutomatic = Not blnON
+  Application.ScreenUpdating = Not blnOn
+  Application.Calculation = pjAutomatic = Not blnOn
   
 End Function
 
@@ -54,18 +54,7 @@ Dim vbComponent As Object, strVersion As String
     If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
       strVersion = RegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
       strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
-      'check for updates - future capability
-      If InternetIsConnected Then
-        'go get it
-        'extract the version
-        'clear obsolete version
-        'insert current version
-        GetVersions = GetVersions & vbComponent.Name & ": " & strVersion & vbCrLf
-        'if updates available then
-        'If MsgBox(GetVersions, vbYesNo + vbInformation, "Updates Available") = vbYes Then Call ApplyUpdates
-      Else
-        'if updates available, prompt to apply
-      End If
+      GetVersions = GetVersions & vbComponent.Name & ": " & strVersion & vbCrLf
     End If
 next_component:
   Next vbComponent
@@ -80,18 +69,13 @@ err_here:
 
 End Function
 
-Sub CheckVersions()
-Dim strMsg As String
-
+Sub ShowCptLogo_frm()
+  'standard info
+  'contact info
+  'GitHub site?
   cptLogo_frm.lblVersions.Caption = "Currently Installed:" & vbCrLf & vbCrLf & GetVersions
   cptLogo_frm.Show
-
-End Sub
-
-Sub ApplyUpdates()
-  If MsgBox("Updates are available. Apply now?", vbQuestion + vbYesNo, "Please Confirm") = vbYes Then
-    'do the things
-  End If
+  
 End Sub
 
 Function ReferenceExists(strReference) As Boolean
@@ -123,6 +107,7 @@ End Function
 Sub GetReferences()
 'prints the current uesr's selected references
 'this would be used to troubleshoot with users real-time
+'although simply runing setreferences would fix it
 Dim Ref As Object
 
   For Each Ref In ThisProject.VBProject.References
@@ -283,10 +268,12 @@ err_here:
   
 End Function
 
-Sub ResetAll()
+Sub cptResetAll()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+  Application.OpenUndoTransaction "Reset All"
+  
   FilterClear
   GroupClear
   OptionsViewEx displaynameindent:=True, displaysummarytasks:=True, displayoutlinesymbols:=True
@@ -294,13 +281,15 @@ Sub ResetAll()
   OutlineShowAllTasks
   Sort "ID"
   SelectBeginning
+  
+  Application.CloseUndoTransaction
 
 exit_here:
   On Error Resume Next
 
   Exit Sub
 err_here:
-  Call HandleErr("cptCore_bas", "ResetAll", err)
+  Call HandleErr("cptCore_bas", "cptResetAll", err)
   Resume exit_here
   
 End Sub
@@ -315,6 +304,8 @@ Dim oStream As Object
 'long
 Dim lngItem As Long, lgCol As Long
 'strings
+Dim strInstVer As String
+Dim strCurVer As String
 Dim strURL As String, strMsg As String, strVersion As String, strFileName As String
 'booleans
 Dim blnUpdatesAreAvailable As Boolean, blnLoaded As Boolean
@@ -348,7 +339,7 @@ Dim vCol As Variant
   Else
     For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
       arrCurrent.Add xmlNode.SelectSingleNode("Name").Text, xmlNode.SelectSingleNode("Version").Text
-      Debug.Print xmlNode.SelectSingleNode("Name").Text & " - " & xmlNode.SelectSingleNode("Directory").Text
+      'Debug.Print xmlNode.SelectSingleNode("Name").Text & " - " & xmlNode.SelectSingleNode("Directory").Text
       arrDirectories.Add xmlNode.SelectSingleNode("Name").Text, xmlNode.SelectSingleNode("Directory").Text
     Next
   End If
@@ -379,24 +370,27 @@ next_component:
   cptUpgrades_frm.lboModules.Clear
   For lngItem = 0 To arrCurrent.count - 1
     If arrCurrent.getKey(lngItem) = "ThisProject" Then GoTo next_lngItem
+    strCurVer = arrCurrent.getValueList()(lngItem)
+    strInstVer = arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.getKey(lngItem)))
     cptUpgrades_frm.lboModules.AddItem
     cptUpgrades_frm.lboModules.List(lngItem, 0) = arrCurrent.getKey(lngItem) 'module name
     cptUpgrades_frm.lboModules.List(lngItem, 1) = arrDirectories.getValueList()(lngItem) 'directory
-    cptUpgrades_frm.lboModules.List(lngItem, 2) = arrCurrent.getValueList()(lngItem) 'current version
+    cptUpgrades_frm.lboModules.List(lngItem, 2) = strCurVer 'arrCurrent.getValueList()(lngItem) 'current version
     If arrInstalled.contains(arrCurrent.getKey(lngItem)) Then 'installed version
-      cptUpgrades_frm.lboModules.List(lngItem, 3) = arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.getKey(lngItem)))
+      cptUpgrades_frm.lboModules.List(lngItem, 3) = strInstVer 'arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.getKey(lngItem)))
     Else
       cptUpgrades_frm.lboModules.List(lngItem, 3) = "<not installed>"
     End If
     
-    Select Case cptUpgrades_frm.lboModules.List(lngItem, 3)
-      Case Is = cptUpgrades_frm.lboModules.List(lngItem, 2)
-        cptUpgrades_frm.lboModules.List(lngItem, 4) = "<installed>"
+    Select Case strInstVer 'cptUpgrades_frm.lboModules.List(lngItem, 3)
+      Case Is = strCurVer 'cptUpgrades_frm.lboModules.List(lngItem, 2)
+        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< ok >"
       Case Is = "<not installed>"
-        cptUpgrades_frm.lboModules.List(lngItem, 4) = "<install>"
-      Case Is <> cptUpgrades_frm.lboModules.List(lngItem, 2)
-        cptUpgrades_frm.lboModules.List(lngItem, 4) = "<install update>"
+        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< install >"
+      Case Is <> strCurVer 'cptUpgrades_frm.lboModules.List(lngItem, 2)
+        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< " & VersionStatus(strInstVer, strCurVer) & " >"
     End Select
+    'capture the type while we're at it - could have just pulled the FileName
     Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + cptUpgrades_frm.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
     cptUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
 next_lngItem:
@@ -508,7 +502,7 @@ Function RemoveIllegalCharacters(ByVal strText As String) As String
 
 End Function
 
-Sub WrapItUp()
+Sub cptWrapItUp()
 'objects
 Dim Tasks As Object
 'strings
@@ -518,28 +512,38 @@ Dim lgLevel As Long
 'variants
 'dates
 
-  On Error Resume Next
-  Set Tasks = ActiveProject.Tasks
-  If Tasks Is Nothing Then GoTo no_tasks
-  If Tasks.count = 0 Then GoTo no_tasks
-
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  '===
+  'Validate users selected view type
+  If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
+    MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "Dynamic Filter"
+    GoTo exit_here
+  End If
+  'Validate users selected window pane - select the task table if not active
+  If ActiveProject.Application.ActiveWindow.ActivePane.Index <> 1 Then
+    ActiveProject.Application.ActiveWindow.TopPane.Activate
+  End If
+  '===
 
-  Application.ScreenUpdating = False
-  FilterClear
-  'GroupClear
+  cptSpeed True 'speed up
+  Application.OpenUndoTransaction "WrapItUp"
+  'FilterClear 'do not reset, keep autofilters
+  'GroupClear 'do not reset, applies to groups to
   OptionsViewEx displaysummarytasks:=True
   SelectAll
   OutlineShowAllTasks
   OutlineShowTasks pjTaskOutlineShowLevelMax
-  For lgLevel = pjTaskOutlineShowLevelMax To pjTaskOutlineShowLevel1 Step -1
+  'pjTaskOutlineShowLevelMax = 65,535 = do not use
+  For lgLevel = 20 To pjTaskOutlineShowLevel2 Step -1
     OutlineShowTasks lgLevel
   Next lgLevel
-  Application.ScreenUpdating = True
+  SelectBeginning
+  Application.CloseUndoTransaction
 
 exit_here:
   On Error Resume Next
-  Set Tasks = Nothing
+  cptSpeed False
   Exit Sub
   
 no_tasks:
@@ -547,7 +551,7 @@ no_tasks:
   GoTo exit_here
 
 err_here:
-  Call HandleErr("cptCore_bas", "WrapItUp", err)
+  Call HandleErr("cptCore_bas", "cptWrapItUp", err)
   Resume exit_here
 End Sub
 
@@ -568,8 +572,8 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:FilterClear"" visible=""true""/>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:SplitViewCreate"" visible=""true""/>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & Increment(lngCleanUp) & """ />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetAll"" label=""Reset All"" imageMso=""FilterClear"" onAction=""ResetAll"" visible=""true"" size=""large"" />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bWrapItUp"" label=""WrapItUp"" imageMso=""CollapseAll"" onAction=""WrapItUp"" visible=""true"" size=""large"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetAll"" label=""Reset All"" imageMso=""FilterClear"" onAction=""cptResetAll"" visible=""true"" size=""large"" />"  'in basCore_bas
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bWrapItUp"" label=""WrapItUp"" imageMso=""CollapseAll"" onAction=""cptWrapItUp"" visible=""true"" size=""large"" />"   'in basCore_bas
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   
   'task counters
@@ -582,7 +586,7 @@ Dim lngCleanUp As Long
   End If
   
   'text tools
-  If ModuleExists("cptTextTools_bas") Then
+  If ModuleExists("cptText_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gTextTools"" label=""Text"" visible=""true"" >"
     If ModuleExists("cptDynamicFilter_bas") And ModuleExists("cptDynamicFilter_frm") Then
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDynamicFilter"" label=""Dynamic Filter"" imageMso=""FilterBySelection"" onAction=""ShowcptDynamicFilter_frm"" visible=""true"" size=""large"" />"
@@ -596,20 +600,24 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process"" imageMso=""DuplicateSelectedSlides"" onAction=""ReplicateProcess"" visible=""true"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""FindDuplicateTaskNames"" visible=""true""/>"
     ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdvancedTextTools"" label=""Advanced (WIP)"" imageMso=""AdvancedFilterDialog"" onAction=""ShowcptTextTools_frm"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdvancedTextTools"" label=""Advanced (WIP)"" imageMso=""AdvancedFilterDialog"" onAction=""ShowcptText_frm"" visible=""true""/>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
   
-  'critical path tools
-  If ModuleExists("basCriticalPathTools") Then
+  'trace tools
+  If ModuleExists("cptCriticalPathTools_bas") Or ModuleExists("cptCriticalPath_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCPA"" label=""Trace"" visible=""true"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTrace"" label=""Tools"" imageMso=""TaskEntryView"" visible=""true"" size=""large"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrace"" label=""Driving Path"" imageMso=""TaskDrivers"" onAction=""DrivingPaths"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExport"" label=""Export to PowerPoint"" imageMso=""SlideNew"" onAction=""ExportCriticalPathSelected"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ />"
+    'ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTrace"" label=""Tools"" imageMso=""TaskEntryView"" visible=""true"" size=""large"" >"
+    If ModuleExists("cptCriticalPath_bas") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrace"" label=""Driving Path"" imageMso=""TaskDrivers"" onAction=""DrivingPaths"" visible=""true"" size=""large"" />"
+    End If
+    If ModuleExists("cptCriticalPathTools_bas") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExport"" label=""Export to PowerPoint"" imageMso=""SlideNew"" onAction=""ExportCriticalPathSelected"" visible=""true""/>"
+    End If
+    'ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReset"" label=""Reset View"" imageMso=""FilterClear"" onAction=""ResetView"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+    'ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
   
@@ -623,6 +631,8 @@ Dim lngCleanUp As Long
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   
+  'snapshots
+  
   'resource allocation
   If ModuleExists("cptResourceDemand_bas") And ModuleExists("cptResourceDemand_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gResourceDemand"" label=""Resource Demand"" visible=""true"" >"
@@ -630,33 +640,32 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
   
-  'cobra export
+  'scenarios
+  
+  'compare
+  
+  'integration
+  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gIntegration"" label=""Integration"" visible=""true"" >"
   If ModuleExists("cptIMSCobraExport_bas") And ModuleExists("cptIMSCobraExport_frm") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gIntegration"" label=""Integration"" visible=""true"" >"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCOBRA"" label=""COBRA Export Tool"" imageMso=""Export"" onAction=""Export_IMS"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
+  'mpm
+  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   
   'bcr tool
-  If ModuleExists("basBaselineChange") Then
+  If ModuleExists("cptBaselineChange_frm") And ModuleExists("cptBaselineChange_bas") Then
   
   End If
   
   'about
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gHelp"" label=""About"" visible=""true"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAbout"" onAction=""CheckVersions""  size=""large"" visible=""true"" "
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAbout"" onAction=""ShowCptLogo_frm""  size=""large"" visible=""true"" "
   ribbonXML = ribbonXML + "label=""About"" imageMso=""Info"" "
   ribbonXML = ribbonXML & "/>"
   If InternetIsConnected Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUpdate"" label=""Check for Upgrades"" imageMso=""PreviousUnread"" onAction=""ShowCptUpgrades_frm"" size = ""large"" visible=""true"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
   End If
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
-  
-  If Environ("UserName") = "arong" And ModuleExists("frmBackupVBA") And ModuleExists("basBackupVBA") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gAdmin"" label=""Admin"" visible=""true"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdmin"" label=""Backup VBA Modules"" imageMso=""SaveProject"" onAction=""ShowFrmBackupVBA"" visible=""true"" size=""large"" />"
-    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
-  End If
   
   ribbonXML = ribbonXML + vbCrLf & "</mso:tab>"
 
@@ -678,11 +687,13 @@ Dim lngVersion As Long
 Dim lngInstalled As Long
 Dim lngCurrent As Long
 'integers
+Dim intLevel As Long
 'booleans
 'variants
 Dim aCurrent As Variant
 Dim aInstalled As Variant
 Dim vVersion As Variant
+Dim vLevel As Variant
 'dates
 
   'for now, assumes semantic version control - see https://semver.org/
@@ -711,31 +722,23 @@ Dim vVersion As Variant
     lngVersion = lngVersion + 1
   Next
   
-  If aCurrent(0) > aInstalled(0) Then
-    VersionStatus = "major upgrade"
-    GoTo exit_here
-  ElseIf aCurrent(1) > aInstalled(1) Then
-    VersionStatus = "minor upgrade"
-    GoTo exit_here
-  ElseIf aCurrent(2) > aInstalled(2) Then
-    VersionStatus = "upgrade patch"
-    GoTo exit_here
-  ElseIf aCurrent(0) = aInstalled(0) And aCurrent(1) = aInstalled(1) And aCurrent(2) = aInstalled(2) Then
-    VersionStatus = "up to date"
-    GoTo exit_here
-  End If
+  'figure out the things
+  For Each vLevel In Array(0, 1, 2)
+    If aCurrent(vLevel) <> aInstalled(vLevel) Then
+      VersionStatus = Choose(vLevel + 1, "major", "minor", "patch")
+      If aCurrent(vLevel) > aInstalled(vLevel) Then
+        VersionStatus = VersionStatus & " upgrade"
+      Else
+        VersionStatus = VersionStatus & " downgrade"
+      End If
+      Exit For
+    End If
+  Next vLevel
   
-  If aCurrent(0) < aInstalled(0) Then
-    VersionStatus = "major downgrade"
-    GoTo exit_here
-  ElseIf aCurrent(1) < aInstalled(1) Then
-    VersionStatus = "minor downgrade"
-    GoTo exit_here
-  ElseIf aCurrent(2) < aInstalled(2) Then
-    VersionStatus = "downgrade patch"
-    GoTo exit_here
+  If VersionStatus = "" Then
+    VersionStatus = "ok"
   Else
-    VersionStatus = "error"
+    VersionStatus = "install " & VersionStatus
   End If
     
 exit_here:
@@ -743,7 +746,7 @@ exit_here:
   
   Exit Function
 err_here:
-  Call HandleErr("cptCore_bas", "VersionCompare", err)
+  Call HandleErr("cptCore_bas", "VersionStatus", err)
   Resume exit_here
   
 End Function
