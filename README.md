@@ -1,6 +1,7 @@
+_License: This software is free to use and distribute, not to sell. Modifications require the removal of all references to **company -name**. All other rights reserved. Copyright 2019, **company-name**._
+
 # cpt: The CP Toolbar
 ## Table of Contents
-1. LICENSE - Free to use and distribute, not to sell. Modifications require the removal of all references to <<company name>> and Trademark cpt. All other rights reserved. Copyright 2019, <<companyname>>.
 1. [Prerequisites](#prerequisites)
 1. [Installation](#installation)
 1. [Use](#use)
