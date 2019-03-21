@@ -29,8 +29,8 @@
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
-		<Name>cptLogo_frm</Name>
-		<FileName>cptLogo_frm.frm</FileName>
+		<Name>cptAbout_frm</Name>
+		<FileName>cptAbout_frm.frm</FileName>
 		<Version>v1.0</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
@@ -40,13 +40,6 @@
 		<FileName>cptUpgrades_frm.frm</FileName>
 		<Version>v1.0</Version>
 		<Type>3</Type>
-		<Directory>Core</Directory>
-	</Module>
-	<Module>
-		<Name>cptBrowseFolder_bas</Name>
-		<FileName>cptBrowseFolder_bas.bas</FileName>
-		<Version>v1.0</Version>
-		<Type>1</Type>
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
@@ -146,5 +139,12 @@
 		<Version>v1.0</Version>
 		<Type>1</Type>
 		<Directory>Trace</Directory>
+	</Module>
+	<Module>
+		<Name>cptBrowseFolder_bas</Name>
+		<FileName>cptBrowseFolder_bas.bas</FileName>
+		<Version>v1.0</Version>
+		<Type>1</Type>
+		<Directory>Core</Directory>
 	</Module>
 </Modules>
