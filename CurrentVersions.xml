@@ -31,14 +31,14 @@
 	<Module>
 		<Name>cptAbout_frm</Name>
 		<FileName>cptAbout_frm.frm</FileName>
-		<Version>v1.0</Version>
+		<Version>v1.1</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
 		<Name>cptUpgrades_frm</Name>
 		<FileName>cptUpgrades_frm.frm</FileName>
-		<Version>v1.0</Version>
+		<Version>v1.2</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>
@@ -66,7 +66,7 @@
 	<Module>
 		<Name>cptStatusSheet_frm</Name>
 		<FileName>cptStatusSheet_frm.frm</FileName>
-		<Version>v1.0</Version>
+		<Version>v1.1</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
@@ -94,7 +94,7 @@
 	<Module>
 		<Name>cptResourceDemand_bas</Name>
 		<FileName>cptResourceDemand_bas.bas</FileName>
-		<Version>v1.0</Version>
+		<Version>v1.1</Version>
 		<Type>1</Type>
 		<Directory>ResourceDemand</Directory>
 	</Module>
@@ -104,20 +104,6 @@
 		<Version>v1.0</Version>
 		<Type>3</Type>
 		<Directory>ResourceDemand</Directory>
-	</Module>
-	<Module>
-		<Name>cptSmartDur_bas</Name>
-		<FileName>cptSmartDur_bas.bas</FileName>
-		<Version>v0</Version>
-		<Type>1</Type>
-		<Directory>Status</Directory>
-	</Module>
-	<Module>
-		<Name>cptSmartDur_frm</Name>
-		<FileName>cptSmartDur_frm.frm</FileName>
-		<Version>v0</Version>
-		<Type>3</Type>
-		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptCriticalPathTools_bas</Name>
@@ -139,5 +125,19 @@
 		<Version>v3.1.1</Version>
 		<Type>1</Type>
 		<Directory>Integration</Directory>
+	</Module>
+	<Module>
+		<Name>cptSmartDuration_frm</Name>
+		<FileName>cptSmartDuration_frm.frm</FileName>
+		<Version>v1.0</Version>
+		<Type>3</Type>
+		<Directory>Status</Directory>
+	</Module>
+	<Module>
+		<Name>cptSmartDuration_bas</Name>
+		<FileName>cptSmartDuration_bas.bas</FileName>
+		<Version>v1.0</Version>
+		<Type>1</Type>
+		<Directory>Status</Directory>
 	</Module>
 </Modules>
