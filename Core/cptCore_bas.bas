@@ -69,12 +69,31 @@ err_here:
 
 End Function
 
-Sub ShowCptLogo_frm()
-  'standard info
-  'contact info
-  'GitHub site?
-  cptLogo_frm.lblVersions.Caption = "Currently Installed:" & vbCrLf & vbCrLf & GetVersions
-  cptLogo_frm.Show
+Sub ShowCptAbout_frm()
+'objects
+'strings
+Dim strAbout As String
+'longs
+'integers
+'booleans
+'variants
+'dates
+  
+  'contact and license
+  strAbout = vbCrLf & "The ClearPlan Toolbar" & vbCrLf
+  strAbout = strAbout & "by ClearPlan Consulting, LLC" & vbCrLf & vbCrLf
+  'strAbout = strAbout & "http://ClearPlanConsulting.com" & vbCrLf & vbCrLf
+  strAbout = strAbout & "This software is provided free of charge," & vbCrLf
+  strAbout = strAbout & "AS IS and without warranty." & vbCrLf
+  strAbout = strAbout & "It is free to use, free to distribut with prior written consent from the developers/copyright holder and without modification." & vbCrLf & vbCrLf
+  strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright 2019, ClearPlanConsulting, LLC"
+  cptAbout_frm.txtAbout.Value = strAbout
+  
+  'follow the project
+  strAbout = vbCrLf & vbCrLf & "Follow the Project:" & vbCrLf & vbCrLf
+  strAbout = strAbout & "http://GitHub.com/ClearPlan/cpt" & vbCrLf & vbCrLf
+  cptAbout_frm.txtGitHub.Value = strAbout
+  cptAbout_frm.Show
   
 End Sub
 
@@ -173,10 +192,10 @@ End Sub
 Sub CheckLogo()
 Dim strFileName As String
 
-  If ModuleExists("cptLogo_frm") Then
+  If ModuleExists("cptAbout_frm") Then
     strFileName = cptDir & "\ClearPlanLogo.jpg"
     If Dir(strFileName) = vbNullString Then
-      SavePicture cptLogo_frm.Image1.Picture, strFileName
+      SavePicture cptAbout_frm.Image1.Picture, strFileName
     End If
   End If
 
@@ -659,7 +678,7 @@ Dim lngCleanUp As Long
   
   'about
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gHelp"" label=""About"" visible=""true"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAbout"" onAction=""ShowCptLogo_frm""  size=""large"" visible=""true"" "
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAbout"" onAction=""ShowcptAbout_frm""  size=""large"" visible=""true"" "
   ribbonXML = ribbonXML + "label=""About"" imageMso=""Info"" "
   ribbonXML = ribbonXML & "/>"
   If InternetIsConnected Then

@@ -1,14 +1,14 @@
 VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptLogo_frm 
-   Caption         =   "ClearPlan Toolbar"
-   ClientHeight    =   5055
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptAbout_frm 
+   Caption         =   "The ClearPlan Toolbar"
+   ClientHeight    =   4410
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   4635
-   OleObjectBlob   =   "cptLogo_frm.frx":0000
+   ClientWidth     =   7860
+   OleObjectBlob   =   "cptAbout_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
-Attribute VB_Name = "cptLogo_frm"
+Attribute VB_Name = "cptAbout_frm"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
@@ -35,6 +35,6 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptLogo_frm", "lblURL", err)
+  Call HandleErr("cptAbout_frm", "lblURL", err)
   Resume exit_here
 End Sub

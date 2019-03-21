@@ -200,7 +200,7 @@ Dim strDirectory As String
     'Core
     Case "BrowseFolder"
       strDirectory = "Core"
-    Case "Logo"
+    Case "About"
       strDirectory = "Core"
     Case "Upgrades"
       strDirectory = "Core"
