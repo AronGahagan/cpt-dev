@@ -4,11 +4,12 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Sub CreateCurrentVersionsXML(strRepo As String)
+Sub CreateCurrentVersionsXML(Optional strRepo As String)
 'objects
 Dim arrTypes As Object
 Dim oStream As Object, vbComponent As Object 'adodb.stream
 'strings
+Dim strMsg As String
 Dim strModule As String
 Dim strDirectory As String
 Dim strFile As String
@@ -21,6 +22,8 @@ Dim lngFile As Long
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If Len(strRepo) = "" Then strRepo = Environ("USERPROFILE") & "\"
 
   'use arrTypes
   Set arrTypes = CreateObject("System.Collections.SortedList")
@@ -62,10 +65,10 @@ next_vbComponent:
   oStream.Close
   Set oStream = Nothing
   
-  'stage the updated xml for next git commit/push
-  git "add", strFileName
+  git "add", strFileName ''stage the updated xml for next git commit/push         '</remove>
+  strMsg = "CurrentVersions.xml created."
 
-  MsgBox "CurrentVersions.xml created and staged." & vbCrLf & vbCrLf & "(Don't forget to push!)", vbInformation + vbOKOnly, "Complete"
+  MsgBox strMsg, vbInformation + vbOKOnly, "Complete"
 
 exit_here:
   On Error Resume Next
