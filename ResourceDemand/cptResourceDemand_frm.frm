@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptResourceDemand_frm 
    Caption         =   "Export Resource Demand"
-   ClientHeight    =   5445
+   ClientHeight    =   5415
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   7470
+   ClientWidth     =   9465
    OleObjectBlob   =   "cptResourceDemand_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -15,7 +15,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 

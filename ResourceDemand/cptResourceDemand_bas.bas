@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.0</cpt_version>
+'<cpt_version>v1.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Const adVarChar As Long = 200
@@ -9,7 +9,7 @@ Private Const adVarChar As Long = 200
 Sub ExportResourceDemand(Optional lngTaskCount As Long)
 'objects
 Dim Task As Task, Resource As Resource, Assignment As Assignment
-Dim TSVS As TimeScaleValues, TSV As TimeScaleValue
+Dim tsvs As TimeScaleValues, tsv As TimeScaleValue
 Dim TSVS_WORK As TimeScaleValues, TSVS_ACTUAL As TimeScaleValues
 Dim xlApp As Excel.Application, Worksheet As Worksheet, Workbook As Workbook
 Dim rng As Excel.Range
@@ -29,8 +29,6 @@ Dim lgFile As Long, lgTasks As Long, lgTask As Long
 Dim lgCol As Long, lgExport As Long, lgField As Long
 'variants
 Dim aUserFields() As Variant
-
-  SpeedON
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -74,6 +72,7 @@ Dim aUserFields() As Variant
   If ActiveProject.Subprojects.count = 0 Then
     lgTasks = ActiveProject.Tasks.count
   Else
+    cptSpeed True
     strView = ActiveWindow.TopPane.View.Name
     ViewApply "Gantt Chart"
     FilterClear
@@ -84,12 +83,13 @@ Dim aUserFields() As Variant
     SelectAll
     lgTasks = ActiveSelection.Tasks.count
     ViewApply strView
+    cptSpeed False
   End If
   
   'iterate over tasks
   For Each Task In ActiveProject.Tasks
     If Not Task Is Nothing Then 'skip blank lines
-    If Task.ExternalTask Then GoTo next_task 'skip external tasks
+    If Task.ExternalTask Then GoTo Next_Task 'skip external tasks
     If Not Task.Summary And Task.RemainingDuration > 0 And Task.Active Then 'skip summary, complete tasks/milestones, and inactive
     If Task.Start > ActiveProject.StatusDate Then dtStart = Task.Start Else dtStart = ActiveProject.StatusDate
       'examine every assignment on the task
@@ -98,24 +98,24 @@ Dim aUserFields() As Variant
         If Assignment.ResourceType = pjResourceTypeWork Then
           'capture timephased work (ETC)
           Set TSVS_WORK = Assignment.TimeScaleData(DateAdd("d", -7, dtStart), Task.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks, 1)
-          For Each TSV In TSVS_WORK
+          For Each tsv In TSVS_WORK
             'capture (and subtract) actual work, leaving ETC/Remaining Work
-            Set TSVS_ACTUAL = Assignment.TimeScaleData(TSV.startDate, TSV.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleWeeks, 1)
-            dblWork = Val(TSV.Value) - Val(TSVS_ACTUAL(1))
+            Set TSVS_ACTUAL = Assignment.TimeScaleData(tsv.startDate, tsv.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleWeeks, 1)
+            dblWork = Val(tsv.Value) - Val(TSVS_ACTUAL(1))
             'write a record to the CSV
-            strRecord = Task.Project & ",[" & Task.UniqueID & "] " & Replace(Task.Name, ",", "") & "," & Assignment.ResourceName & "," & dblWork / 60 & "," & DateAdd("d", 1, TSV.startDate)
+            strRecord = Task.Project & ",[" & Task.UniqueID & "] " & Replace(Task.Name, ",", "") & "," & Assignment.ResourceName & "," & dblWork / 60 & "," & DateAdd("d", 1, tsv.startDate)
             For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
               lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
               strRecord = strRecord & "," & Task.GetField(lgField)
             Next lgExport
             Print #lgFile, strRecord
-          Next TSV
+          Next tsv
         End If
 next_assignment:
         Next Assignment
       End If
     End If
-next_task:
+Next_Task:
     lgTask = lgTask + 1
     Application.StatusBar = "Exporting " & Format(lgTask, "#,##0") & " of " & Format(lgTasks, "#,##0") & "...(" & Format(lgTask / lgTasks, "0%") & ")"
     cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
@@ -340,19 +340,21 @@ err_here:
 End Sub
 
 Sub ShowFrmExportResourceDemand()
-'longs
-Dim lngResourceCount As Long
-Dim lgFieldType As Variant, lgField As Long, lngItem As Long
-'integers
-Dim intField As Long
+'objects
+Dim arrResources As Object
+Dim objProject As Object
+Dim arrFields As Object
 'strings
 Dim strActiveView As String
 Dim strFieldName As String, strFileName As String
-'objects
-Dim objProject As Project
-Dim arrFields As Object
+'longs
+Dim lngResourceCount As Long, lngResource As Long
+Dim lngFieldType As Variant, lngField As Long, lngItem As Long
+'integers
+'booleans
 'variants
-Dim strFieldType As Variant, st As Variant
+Dim vFieldType As Variant
+'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -365,7 +367,9 @@ Dim strFieldType As Variant, st As Variant
     MsgBox "This project has no resources to export.", vbExclamation + vbOKOnly, "No Resources"
     GoTo exit_here
   Else
-    SpeedON
+    cptSpeed True
+    GoTo option_2 'delay is better than a flicker
+option_1:
     strActiveView = ActiveWindow.TopPane.View.Name
     ViewApply "Resource Sheet"
     SelectAll
@@ -376,45 +380,66 @@ Dim strFieldType As Variant, st As Variant
       MsgBox "This project has no resources to export.", vbExclamation + vbOKOnly, "No Resources"
       GoTo exit_here
     End If
+option_2:
+    'option 2
+    lngResourceCount = ActiveProject.ResourceCount
+    Set arrResources = CreateObject("System.Collections.SortedList")
+    For lngItem = 1 To ActiveProject.Subprojects.count
+      Set objProject = ActiveProject.Subprojects(lngItem).SourceProject
+      Application.StatusBar = "Loading " & objProject.Name & "..."
+      For lngResource = 1 To objProject.Resources.count
+        With arrResources
+          If Not .contains(objProject.Resources(lngResource).Name) Then
+            .Add objProject.Resources(lngResource).Name, objProject.Resources(lngResource).Name
+            lngResourceCount = lngResourceCount + 1
+          End If
+        End With
+      Next lngResource
+      Set objProject = Nothing
+    Next lngItem
+    arrResources.Clear
+    Application.StatusBar = ""
+    cptSpeed False
   End If
   
   cptResourceDemand_frm.lboFields.Clear
   cptResourceDemand_frm.lboExport.Clear
 
-  Set arrFields = CreateObject("System.Collections.ArrayList")
-
-  'For Each lgFieldType In Array(0) '0 = pjTask; 1 = pjResource; 2 = pjProject
-    'For Each strFieldType In Array("Cost", "Date", "Duration", "Flag", "Finish", "Number", "Start", "Text", "Outline Code")
-    For Each strFieldType In Array("Text", "Outline Code")
-      On Error GoTo err_here
-      For intField = 1 To 30
-        lgField = FieldNameToFieldConstant(strFieldType & intField) ',lgFieldType)
-        strFieldName = CustomFieldGetName(lgField)
-        If Len(strFieldName) > 0 Then arrFields.Add strFieldName
+  Set arrFields = CreateObject("System.Collections.SortedList")
+  'col0 = custom field name (sortfield)
+  'col1 = field constant
+  
+  For Each vFieldType In Array("Text", "Outline Code")
+    On Error GoTo err_here
+    For lngItem = 1 To 30
+      lngField = FieldNameToFieldConstant(vFieldType & lngItem) ',lngFieldType)
+      strFieldName = CustomFieldGetName(lngField)
+      If Len(strFieldName) > 0 Then
+        If Not arrFields.contains(strFieldName) Then arrFields.Add strFieldName, lngField
+      End If
 next_field:
-      Next intField
-    Next strFieldType
+    Next lngItem
+  Next vFieldType
 
   'get enterprise custom fields
-  For lgField = 188776000 To 188778000
-    If Application.FieldConstantToFieldName(lgField) <> "<Unavailable>" Then
-      arrFields.Add Application.FieldConstantToFieldName(lgField)
+  For lngField = 188776000 To 188778000
+    If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
+      arrFields.Add Application.FieldConstantToFieldName(lngField), lngField
     End If
-  Next lgField
+  Next lngField
   
   'add fields to listbox
-  arrFields.Sort
-  st = arrFields.GetRange(0, arrFields.count).ToArray
-  For intField = 0 To UBound(st)
+  For lngItem = 0 To arrFields.count - 1
     cptResourceDemand_frm.lboFields.AddItem
-    cptResourceDemand_frm.lboFields.List(lngItem, 0) = FieldNameToFieldConstant(st(intField))
-    If FieldNameToFieldConstant(st(intField)) >= 188776000 Then
-      cptResourceDemand_frm.lboFields.List(lngItem, 1) = st(intField) & " (Enterprise)"
+    'column 0 = field constant = arrFields col1
+    'column 1 = custom field name = arrFields col0
+    cptResourceDemand_frm.lboFields.List(lngItem, 0) = arrFields.getValueList()(lngItem) 'FieldNameToFieldConstant(arrFields.getKey(lngItem))
+    If FieldNameToFieldConstant(arrFields.getKey(lngItem)) >= 188776000 Then
+      cptResourceDemand_frm.lboFields.List(lngItem, 1) = arrFields.getKey(lngItem) & " (Enterprise)"
     Else
-      cptResourceDemand_frm.lboFields.List(lngItem, 1) = st(intField) & " (" & FieldConstantToFieldName(FieldNameToFieldConstant(st(intField))) & ")"
+      cptResourceDemand_frm.lboFields.List(lngItem, 1) = arrFields.getKey(lngItem) & " (" & FieldConstantToFieldName(arrFields.getValueList()(lngItem)) & ")"
     End If
-    lngItem = lngItem + 1
-  Next intField
+  Next lngItem
   
   'save the fields to a file
   strFileName = Environ("tmp") & "\cpt-resource-demand-search.adtg"
@@ -423,8 +448,10 @@ next_field:
     .Fields.Append "Field Constant", adVarChar, 100
     .Fields.Append "Custom Field Name", adVarChar, 100
     .Open
-    For lngItem = 0 To cptResourceDemand_frm.lboFields.ListCount - 1
-      .AddNew Array(0, 1), Array(cptResourceDemand_frm.lboFields.List(lngItem, 0), cptResourceDemand_frm.lboFields.List(lngItem, 1))
+    For lngItem = 0 To arrFields.count - 1 'cptResourceDemand_frm.lboFields.ListCount - 1
+      'col0 = constant = arrFields col1
+      'col1 = field name = arrFields col0
+      .AddNew Array(0, 1), Array(arrFields.getValueList()(lngItem), arrFields.getKey(lngItem)) 'Array(cptResourceDemand_frm.lboFields.List(lngItem, 0), cptResourceDemand_frm.lboFields.List(lngItem, 1))
     Next lngItem
     .Save strFileName
     .Close
@@ -452,11 +479,9 @@ next_field:
 
 exit_here:
   On Error Resume Next
+  Set arrResources = Nothing
   Set objProject = Nothing
-  arrFields.Clear
   Set arrFields = Nothing
-  Erase st
-  Set st = Nothing
   Exit Sub
 
 err_here:
@@ -464,7 +489,7 @@ err_here:
     err.Clear
     Resume next_field
   Else
-    Call HandleErr("cptResourceDemand_bas", "ShowcptResourceDemand_frm", err)
+    Call HandleErr("cptResourceDemand_bas", "ShowCptResourceDemand_frm", err)
     Resume exit_here
   End If
   
