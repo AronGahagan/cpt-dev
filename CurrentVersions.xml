@@ -92,20 +92,6 @@
 		<Directory>Count</Directory>
 	</Module>
 	<Module>
-		<Name>cptIMSCobraExport_bas</Name>
-		<FileName>cptIMSCobraExport_bas.bas</FileName>
-		<Version>v3.0.1</Version>
-		<Type>1</Type>
-		<Directory>Integration</Directory>
-	</Module>
-	<Module>
-		<Name>cptIMSCobraExport_frm</Name>
-		<FileName>cptIMSCobraExport_frm.frm</FileName>
-		<Version>v3.0.1</Version>
-		<Type>3</Type>
-		<Directory>Integration</Directory>
-	</Module>
-	<Module>
 		<Name>cptResourceDemand_bas</Name>
 		<FileName>cptResourceDemand_bas.bas</FileName>
 		<Version>v1.0</Version>
@@ -146,5 +132,12 @@
 		<Version>v1.0</Version>
 		<Type>1</Type>
 		<Directory>Core</Directory>
+	</Module>
+	<Module>
+		<Name>cptIMSCobraExport_bas</Name>
+		<FileName>cptIMSCobraExport_bas.bas</FileName>
+		<Version>v3.1.1</Version>
+		<Type>1</Type>
+		<Directory>Integration</Directory>
 	</Module>
 </Modules>

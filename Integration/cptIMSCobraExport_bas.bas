@@ -1,33 +1,45 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.0.1</cpt_version>
+'<cpt_version>v3.1.1</cpt_version>
+Private destFolder As String
+Private BCWSxport As Boolean
+Private BCWPxport As Boolean
+Private ETCxport As Boolean
+Private ResourceLoaded As Boolean
+Private MasterProject As Boolean
+Private ACTfilename As String
+Private RESfilename As String
+Private BCR_WP() As String
+Private BCR_ID As String
+Private BCRxport As Boolean
+Private BCR_Error As Boolean
+Private fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fPCNT, fEVT, fCAID2, fCAID2t, fMilestone, fMilestoneWeight, fBCR, fResID As String
+Private CustTextFields() As String
+Private EntFields() As String
+Private CustNumFields() As String
+Private CustOLCodeFields() As String
+Private ActFound As Boolean
+Private CAID3_Used As Boolean
+Private CAID2_Used As Boolean
+Private Milestones_Used As Boolean
+Private TimeScaleExport As Boolean
+Private DescExport As Boolean
+Private ErrMsg As String
+Private WPDescArray() As WP_Descriptions
+Private WPDescCount As Integer
 
-Global destFolder As String
-Global BCWSxport As Boolean
-Global BCWPxport As Boolean
-Global ETCxport As Boolean
-Global ResourceLoaded As Boolean
-Global MasterProject As Boolean
-Global ACTfilename As String
-Global RESfilename As String
-Global BCR_WP() As String
-Global BCR_ID As String
-Global BCRxport As Boolean
-Global BCR_Error As Boolean
-Global fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fPCNT, fEVT, fCAID2, fCAID2t, fMilestone, fMilestoneWeight, fBCR, fResID As String
-Global CustTextFields() As String
-Global EntFields() As String
-Global CustNumFields() As String
-Global CustOLCodeFields() As String
-Global ActFound As Boolean
-Global CAID3_Used As Boolean
-Global CAID2_Used As Boolean
-Global TimeScaleExport As Boolean
+Private Type WP_Descriptions
+
+    WP_ID As String
+    Desc As String
+
+End Type
 
 Private Type ACTrowWP
 
     CAID1 As String
     CAID3 As String
     CAID2 As String
+    Desc As String
     CAM As String
     WP As String
     ID As String
@@ -87,33 +99,33 @@ End Type
 
 Sub Export_IMS()
 
-    Dim xportFrm As cptIMSCobraExport_frm
+    Dim xportFrm As cptIMSCobraExportFrm_frm
     Dim xportFormat As String
-    Dim curProj As Project
+    Dim curproj As Project
     
-    On Error GoTo CleanUp
+    On Error GoTo Cleanup
     
-    Set curProj = ActiveProject
+    Set curproj = ActiveProject
     
-    curProj.Application.Calculation = pjManual
-    curProj.Application.DisplayAlerts = False
+    curproj.Application.Calculation = pjManual
+    curproj.Application.DisplayAlerts = False
     
-    If curProj.Subprojects.count > 0 And InStr(curProj.FullName, "<>") > 0 And curProj.ReadOnly <> True Then
+    If curproj.Subprojects.count > 0 And InStr(curproj.FullName, "<>") > 0 And curproj.ReadOnly <> True Then
         MsgBox "Master Project Files with Subprojects must be opened Read Only"
         GoTo Quick_Exit
     End If
     
-    If curProj.Subprojects.count > 0 Then
+    If curproj.Subprojects.count > 0 Then
         MasterProject = True
     Else
         MasterProject = False
     End If
     
-    ReadCustomFields curProj
+    ReadCustomFields curproj
     
-    Set xportFrm = New cptIMSCobraExport_frm
+    Set xportFrm = New cptIMSCobraExportFrm_frm
     
-    With cptIMSCobraExport_frm
+    With xportFrm
     
         On Error Resume Next
         
@@ -127,6 +139,8 @@ Sub Export_IMS()
         .caID2Box.AddItem "<None>"
         .caID3Box.AddItem "<None>"
         .bcrBox.AddItem "<None>"
+        .msidBox.AddItem "<None>"
+        .mswBox.AddItem "<None>"
         .PercentBox.AddItem "Physical % Complete"
         .PercentBox.AddItem "% Complete"
         
@@ -173,31 +187,34 @@ Sub Export_IMS()
             .bcrBox.AddItem CustOLCodeFields(i)
         Next i
         
-        On Error GoTo CleanUp
+        On Error GoTo Cleanup
+        ErrMsg = "Please try again, or contact the developer if this message repeats."
+        '********************************************
         'On Error GoTo 0 '**Used for Debugging ONLY**
+        '********************************************
         
         .Show
         
         If .Tag = "Cancel" Then
-            Set cptIMSCobraExport_frm = Nothing
-            Set curProj = Nothing
+            Set IMSCobraExportFrm = Nothing
+            Set curproj = Nothing
             Exit Sub
         End If
         
         If .Tag = "DataCheck" Then
             CAID3_Used = .CAID3TxtBox.Enabled
             CAID2_Used = .CAID2TxtBox.Enabled
-            DataChecks curProj
-            Set curProj = Nothing
-            Set cptIMSCobraExport_frm = Nothing
+            DataChecks curproj
+            Set curproj = Nothing
+            Set IMSCobraExportFrm = Nothing
             Exit Sub
         End If
         
         If .MPPBtn.Value = True Then
-            Set cptIMSCobraExport_frm = Nothing
+            Set IMSCobraExportFrm = Nothing
             xportFormat = "MPP"
         ElseIf .XMLBtn.Value = True Then
-            Set cptIMSCobraExport_frm = Nothing
+            Set IMSCobraExportFrm = Nothing
             xportFormat = "XML"
         ElseIf .CSVBtn.Value = True Then
             BCWSxport = .BCWS_Checkbox.Value
@@ -207,10 +224,16 @@ Sub Export_IMS()
             BCR_ID = .BCR_ID_TextBox
             ResourceLoaded = .ResExportCheckbox
             TimeScaleExport = .exportTPhaseCheckBox
-            Set cptIMSCobraExport_frm = Nothing
+            Set IMSCobraExportFrm = Nothing
             xportFormat = "CSV"
             CAID3_Used = .CAID3TxtBox.Enabled
             CAID2_Used = .CAID2TxtBox.Enabled
+            If .msidBox.Value = "<None>" Or .mswBox.Value = "<None>" Or .msidBox.Value = "" Or .mswBox.Value = "" Then
+                Milestones_Used = False
+            Else
+                Milestones_Used = True
+            End If
+            DescExport = .exportDescCheckBox.Value
         End If
         
     End With
@@ -219,15 +242,15 @@ Sub Export_IMS()
     
         Case "MPP"
         
-            MPP_Export curProj
+            MPP_Export curproj
         
         Case "XML"
         
-            XML_Export curProj
+            XML_Export curproj
         
         Case "CSV"
         
-            CSV_Export curProj
+            CSV_Export curproj
         
         Case Else
         
@@ -238,33 +261,33 @@ Sub Export_IMS()
         Shell "explorer.exe" & " " & destFolder, vbNormalFocus
     End If
     
-    curProj.Application.Calculation = pjAutomatic
-    curProj.Application.DisplayAlerts = True
-    Set curProj = Nothing
+    curproj.Application.Calculation = pjAutomatic
+    curproj.Application.DisplayAlerts = True
+    Set curproj = Nothing
     
     Exit Sub
     
-CleanUp:
+Cleanup:
 
     If ACTfilename <> "" Then Reset
 
-    curProj.Application.Calculation = pjAutomatic
-    curProj.Application.DisplayAlerts = True
-    Set curProj = Nothing
-    MsgBox "An error was encountered." & vbCr & vbCr & "Please try again, or contact the developer if this message repeats."
+    curproj.Application.Calculation = pjAutomatic
+    curproj.Application.DisplayAlerts = True
+    Set curproj = Nothing
+    MsgBox "An error was encountered." & vbCr & vbCr & ErrMsg
     Exit Sub
     
 Quick_Exit:
     
-    curProj.Application.Calculation = pjAutomatic
-    curProj.Application.DisplayAlerts = True
-    Set curProj = Nothing
+    curproj.Application.Calculation = pjAutomatic
+    curproj.Application.DisplayAlerts = True
+    Set curproj = Nothing
     
     Exit Sub
     
 End Sub
 
-Private Sub DataChecks(ByVal curProj As Project)
+Private Sub DataChecks(ByVal curproj As Project)
 
     Dim WPChecks() As WPDataCheck
     Dim wpFound As Boolean
@@ -284,7 +307,7 @@ Private Sub DataChecks(ByVal curProj As Project)
     Dim curSProj As Project
     Dim wpCount As Integer
     Dim camCount As Integer
-    Dim TaskCount As Integer
+    Dim taskCount As Integer
     Dim x As Integer
     Dim i As Integer
     Dim errorStr As String
@@ -294,7 +317,7 @@ Private Sub DataChecks(ByVal curProj As Project)
     
     Dim docProps As DocumentProperties
     
-    Set docProps = curProj.CustomDocumentProperties
+    Set docProps = curproj.CustomDocumentProperties
     
     fCAID1 = docProps("fCAID1").Value
     fCAID1t = docProps("fCAID1t").Value
@@ -308,24 +331,26 @@ Private Sub DataChecks(ByVal curProj As Project)
     fWP = docProps("fWP").Value
     fCAM = docProps("fCAM").Value
     fEVT = docProps("fEVT").Value
-    fMilestone = docProps("fMSID").Value
     If CAID2_Used = True Then
         fCAID2 = docProps("fCAID2").Value
         fCAID2t = docProps("fCAID2t").Value
     End If
-    fMilestoneWeight = docProps("fMSW").Value
+    If Milestones_Used = True Then
+        fMilestone = docProps("fMSID").Value
+        fMilestoneWeight = docProps("fMSW").Value
+    End If
     fPCNT = docProps("fPCNT").Value
     
-    destFolder = SetDirectory(curProj.ProjectSummaryTask.Name)
+    destFolder = SetDirectory(curproj.ProjectSummaryTask.Name)
     
-    TaskCount = 0
+    taskCount = 0
     taskFound = False
     
     '**Scan Task Data**
     
-    If curProj.Subprojects.count > 0 Then
+    If curproj.Subprojects.count > 0 Then
     
-        Set subProjs = curProj.Subprojects
+        Set subProjs = curproj.Subprojects
         
         For Each subProj In subProjs
         
@@ -339,11 +364,11 @@ Private Sub DataChecks(ByVal curProj As Project)
                 
                     If t.Summary = False And t.Active = True And t.ExternalTask = False Then
                     
-                        TaskCount = TaskCount + 1
+                        taskCount = taskCount + 1
                         taskFound = True
-                        ReDim Preserve TaskChecks(1 To TaskCount)
+                        ReDim Preserve TaskChecks(1 To taskCount)
                         
-                        With TaskChecks(TaskCount)
+                        With TaskChecks(taskCount)
                         
                             .UID = t.UniqueID
                             .WP = t.GetField(FieldNameToFieldConstant(fWP))
@@ -355,8 +380,10 @@ Private Sub DataChecks(ByVal curProj As Project)
                                 .CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                             End If
                             .EVT = t.GetField(FieldNameToFieldConstant(fEVT))
-                            .MSID = t.GetField(FieldNameToFieldConstant(fMilestone))
-                            .MSWeight = t.GetField(FieldNameToFieldConstant(fMilestoneWeight))
+                            If Milestones_Used = True Then
+                                .MSID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                .MSWeight = t.GetField(FieldNameToFieldConstant(fMilestoneWeight))
+                            End If
                             .BWork = t.BaselineWork / 60 / curSProj.HoursPerDay
                             .BCost = t.BaselineCost
                             .CAM = t.GetField(FieldNameToFieldConstant(fCAM))
@@ -416,17 +443,17 @@ Private Sub DataChecks(ByVal curProj As Project)
     
     Else
     
-        For Each t In curProj.Tasks
+        For Each t In curproj.Tasks
         
             If Not t Is Nothing Then
             
                 If t.Active = True And t.Summary = False And t.ExternalTask = False Then
                 
-                    TaskCount = TaskCount + 1
+                    taskCount = taskCount + 1
                     taskFound = True
-                    ReDim Preserve TaskChecks(1 To TaskCount)
+                    ReDim Preserve TaskChecks(1 To taskCount)
                     
-                    With TaskChecks(TaskCount)
+                    With TaskChecks(taskCount)
                     
                         .UID = t.UniqueID
                         .WP = t.GetField(FieldNameToFieldConstant(fWP))
@@ -438,9 +465,11 @@ Private Sub DataChecks(ByVal curProj As Project)
                             .CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                         End If
                         .EVT = t.GetField(FieldNameToFieldConstant(fEVT))
-                        .MSID = t.GetField(FieldNameToFieldConstant(fMilestone))
-                        .MSWeight = t.GetField(FieldNameToFieldConstant(fMilestoneWeight))
-                        .BWork = t.BaselineWork / 60 / curProj.HoursPerDay
+                        If Milestones_Used = True Then
+                            .MSID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                            .MSWeight = t.GetField(FieldNameToFieldConstant(fMilestoneWeight))
+                        End If
+                        .BWork = t.BaselineWork / 60 / curproj.HoursPerDay
                         .BCost = t.BaselineCost
                         .CAM = t.GetField(FieldNameToFieldConstant(fCAM))
                         .AssignmentBStart = "NA"
@@ -481,7 +510,7 @@ Private Sub DataChecks(ByVal curProj As Project)
                             Else
                                 tempBWork = tAss.BaselineWork
                             End If
-                            .AssignmentBWork = .AssignmentBWork + tempBWork / 60 / curProj.HoursPerDay
+                            .AssignmentBWork = .AssignmentBWork + tempBWork / 60 / curproj.HoursPerDay
                         
                         Next tAss
                         
@@ -495,7 +524,7 @@ Private Sub DataChecks(ByVal curProj As Project)
     
     End If
     
-    ACTfilename = destFolder & "\DataChecks_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+    ACTfilename = destFolder & "\DataChecks_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
     Open ACTfilename For Output As #1
     
@@ -517,7 +546,7 @@ Private Sub DataChecks(ByVal curProj As Project)
     
     ErrorCounter = 0
     
-    For x = 1 To TaskCount
+    For x = 1 To taskCount
     
         If CAID3_Used = True And CAID2_Used = True Then
             tempID = TaskChecks(x).CAID1 & "/" & TaskChecks(x).CAID2 & "/" & TaskChecks(x).CAID3
@@ -559,7 +588,7 @@ Private Sub DataChecks(ByVal curProj As Project)
                             CAMChecks(i).CAM_Error = True
                         End If
                         
-                        GoTo next_task
+                        GoTo Next_Task
                     
                     End If
                 
@@ -625,7 +654,7 @@ Private Sub DataChecks(ByVal curProj As Project)
                             
                         End If
                         
-                        GoTo next_task
+                        GoTo Next_Task
 
                     End If
                 
@@ -653,7 +682,7 @@ Private Sub DataChecks(ByVal curProj As Project)
         
         End If
         
-next_task:
+Next_Task:
 
         '**Report Tasks Missing Metadata**
         
@@ -940,7 +969,7 @@ next_task:
     
     ErrorCounter = 0
     
-    For x = 1 To TaskCount
+    For x = 1 To taskCount
     
         With TaskChecks(x)
     
@@ -981,43 +1010,43 @@ next_task:
 
 End Sub
 
-Private Sub MPP_Export(ByVal curProj As Project)
+Private Sub MPP_Export(ByVal curproj As Project)
 
     Dim subProj As Subproject
     Dim subProjs As Subprojects
     
-    destFolder = SetDirectory(curProj.ProjectSummaryTask.Name)
+    destFolder = SetDirectory(curproj.ProjectSummaryTask.Name)
     
-    If curProj.Subprojects.count > 0 Then
+    If curproj.Subprojects.count > 0 Then
         
-        Set subProjs = curProj.Subprojects
+        Set subProjs = curproj.Subprojects
         
         For Each subProj In subProjs
         
             subProj.SourceProject.SaveAs Name:=destFolder & "\" & subProj.SourceProject.Name
-            curProj.Subprojects(subProj.Index).SourceProject = destFolder & "\" & subProj.SourceProject.Name
+            curproj.Subprojects(subProj.Index).SourceProject = destFolder & "\" & subProj.SourceProject.Name
         
         Next subProj
         
-        curProj.SaveAs Name:=destFolder & "\" & curProj.ProjectSummaryTask.Name
+        curproj.SaveAs Name:=destFolder & "\" & curproj.ProjectSummaryTask.Name
     
     Else
     
-        curProj.SaveAs Name:=destFolder & "\" & curProj.ProjectSummaryTask.Name
+        curproj.SaveAs Name:=destFolder & "\" & curproj.ProjectSummaryTask.Name
     
     End If
 
 End Sub
-Private Sub XML_Export(ByVal curProj As Project)
+Private Sub XML_Export(ByVal curproj As Project)
 
     Dim subProj As Subproject
     Dim subProjs As Subprojects
     
-    destFolder = SetDirectory(curProj.ProjectSummaryTask.Name)
+    destFolder = SetDirectory(curproj.ProjectSummaryTask.Name)
     
-    If curProj.Subprojects.count > 0 Then
+    If curproj.Subprojects.count > 0 Then
         
-        Set subProjs = curProj.Subprojects
+        Set subProjs = curproj.Subprojects
         
         For Each subProj In subProjs
         
@@ -1028,17 +1057,17 @@ Private Sub XML_Export(ByVal curProj As Project)
     
     Else
     
-        curProj.SaveAs Name:=destFolder & "\" & curProj.ProjectSummaryTask.Name, FormatID:="MSProject.XML"
+        curproj.SaveAs Name:=destFolder & "\" & curproj.ProjectSummaryTask.Name, FormatID:="MSProject.XML"
         
     End If
 
 End Sub
 
-Private Sub CSV_Export(ByVal curProj As Project)
+Private Sub CSV_Export(ByVal curproj As Project)
 
     Dim docProps As DocumentProperties
     
-    Set docProps = curProj.CustomDocumentProperties
+    Set docProps = curproj.CustomDocumentProperties
     
     fCAID1 = docProps("fCAID1").Value
     fCAID1t = docProps("fCAID1t").Value
@@ -1063,14 +1092,14 @@ Private Sub CSV_Export(ByVal curProj As Project)
     
     BCR_Error = False
     
-    destFolder = SetDirectory(curProj.ProjectSummaryTask.Name)
+    destFolder = SetDirectory(curproj.ProjectSummaryTask.Name)
     
     '*******************
     '****BCR Review*****
     '*******************
     
     If BCRxport = True Then
-        If Find_BCRs(curProj, fWP, fBCR, BCR_ID) = 0 Then
+        If Find_BCRs(curproj, fWP, fBCR, BCR_ID) = 0 Then
             MsgBox "BCR ID " & Chr(34) & BCR_ID & Chr(34) & " was not found in the IMS." & vbCr & vbCr & "Please try again."
             BCR_Error = True
             GoTo BCR_Error
@@ -1083,7 +1112,7 @@ Private Sub CSV_Export(ByVal curProj As Project)
     
     If BCWSxport = True Then
     
-        BCWS_Export curProj
+        BCWS_Export curproj
     
     End If
     
@@ -1093,7 +1122,7 @@ Private Sub CSV_Export(ByVal curProj As Project)
     
     If ETCxport = True Then
     
-        ETC_Export curProj
+        ETC_Export curproj
         
     End If
     
@@ -1103,7 +1132,7 @@ Private Sub CSV_Export(ByVal curProj As Project)
     
     If BCWPxport = True Then
     
-        BCWP_Export curProj
+        BCWP_Export curproj
         
     End If
     
@@ -1117,7 +1146,7 @@ BCR_Error:
 
 End Sub
 
-Private Sub BCWP_Export(ByVal curProj As Project)
+Private Sub BCWP_Export(ByVal curproj As Project)
 
     '*******************
     '****BCWP Export****
@@ -1139,7 +1168,7 @@ Private Sub BCWP_Export(ByVal curProj As Project)
 
     If ResourceLoaded = False Then
     
-        ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
     
         Open ACTfilename For Output As #1
         
@@ -1156,9 +1185,9 @@ Private Sub BCWP_Export(ByVal curProj As Project)
         x = 1
         ActFound = False
         
-        If curProj.Subprojects.count > 0 Then
+        If curproj.Subprojects.count > 0 Then
             
-            Set subProjs = curProj.Subprojects
+            Set subProjs = curproj.Subprojects
             
             For Each subProj In subProjs
             
@@ -1178,7 +1207,9 @@ Private Sub BCWP_Export(ByVal curProj As Project)
                                     CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                                 End If
                                 WP = t.GetField(FieldNameToFieldConstant(fWP))
-                                UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                If Milestones_Used = True Then
+                                    UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                End If
                                 If CAID2_Used = True Then
                                     CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
                                 End If
@@ -1193,6 +1224,11 @@ Private Sub BCWP_Export(ByVal curProj As Project)
                                 End If
                                 CAM = CleanCamName(t.GetField(FieldNameToFieldConstant(fCAM)))
                                 EVT = t.GetField(FieldNameToFieldConstant(fEVT))
+                                
+                                If EVT = "B" And Milestones_Used = False Then
+                                    ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
+                                    err.Raise 1
+                                End If
                                 
                                 If EVT = "B" Or EVT = "N" Or EVT = "B Milestone" Or EVT = "N Earning Rules" Then
                                     
@@ -1497,7 +1533,7 @@ nrBCWP_WP_Match_A:
         
         Else
         
-            For Each t In curProj.Tasks
+            For Each t In curproj.Tasks
             
                 If Not t Is Nothing Then
                     
@@ -1510,7 +1546,9 @@ nrBCWP_WP_Match_A:
                                 CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                             End If
                             WP = t.GetField(FieldNameToFieldConstant(fWP))
-                            UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                            If Milestones_Used = True Then
+                                UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                            End If
                             If CAID2_Used = True Then
                                 CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
                             End If
@@ -1525,6 +1563,11 @@ nrBCWP_WP_Match_A:
                                 ID = CAID1 & "/" & WP
                             End If
                             EVT = t.GetField(FieldNameToFieldConstant(fEVT))
+                            
+                            If EVT = "B" And Milestones_Used = False Then
+                                ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
+                                err.Raise 1
+                            End If
                             
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earning Rules" Then
                             
@@ -1847,7 +1890,7 @@ nrBCWP_WP_Match_B:
     
     Else '**Resource Loaded**
 
-        ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
     
         Open ACTfilename For Output As #1
         
@@ -1864,9 +1907,9 @@ nrBCWP_WP_Match_B:
         x = 1
         ActFound = False
         
-        If curProj.Subprojects.count > 0 Then
+        If curproj.Subprojects.count > 0 Then
             
-            Set subProjs = curProj.Subprojects
+            Set subProjs = curproj.Subprojects
             
             For Each subProj In subProjs
             
@@ -1886,7 +1929,9 @@ nrBCWP_WP_Match_B:
                                     CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                                 End If
                                 WP = t.GetField(FieldNameToFieldConstant(fWP))
-                                UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                If Milestones_Used = True Then
+                                    UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                End If
                                 If CAID2_Used = True Then
                                     CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
                                 End If
@@ -1901,6 +1946,11 @@ nrBCWP_WP_Match_B:
                                 End If
                                 CAM = CleanCamName(t.GetField(FieldNameToFieldConstant(fCAM)))
                                 EVT = t.GetField(FieldNameToFieldConstant(fEVT))
+                                
+                                If EVT = "B" And Milestones_Used = False Then
+                                    ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
+                                    err.Raise 1
+                                End If
                                 
                                 If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
                                     
@@ -2205,7 +2255,7 @@ BCWP_WP_Match_A:
         
         Else
         
-            For Each t In curProj.Tasks
+            For Each t In curproj.Tasks
             
                 If Not t Is Nothing Then
                     
@@ -2218,7 +2268,9 @@ BCWP_WP_Match_A:
                                 CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                             End If
                             WP = t.GetField(FieldNameToFieldConstant(fWP))
-                            UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                            If Milestones_Used = True Then
+                                UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                            End If
                             If CAID2_Used = True Then
                                 CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
                             End If
@@ -2233,6 +2285,11 @@ BCWP_WP_Match_A:
                                 ID = CAID1 & "/" & WP
                             End If
                             EVT = t.GetField(FieldNameToFieldConstant(fEVT))
+                            
+                            If EVT = "B" And Milestones_Used = False Then
+                                ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
+                                err.Raise 1
+                            End If
                             
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
                             
@@ -2557,7 +2614,7 @@ BCWP_WP_Match_B:
 
 End Sub
 
-Private Sub ETC_Export(ByVal curProj As Project)
+Private Sub ETC_Export(ByVal curproj As Project)
 
     Dim t As Task
     Dim tAss As Assignments
@@ -2579,7 +2636,7 @@ Private Sub ETC_Export(ByVal curProj As Project)
     
     If ResourceLoaded = False Then
     
-        ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
     
         Open ACTfilename For Output As #1
         
@@ -2596,9 +2653,9 @@ Private Sub ETC_Export(ByVal curProj As Project)
         x = 1
         ActFound = False
     
-        If curProj.Subprojects.count > 0 Then
+        If curproj.Subprojects.count > 0 Then
             
-            Set subProjs = curProj.Subprojects
+            Set subProjs = curproj.Subprojects
             
             For Each subProj In subProjs
             
@@ -2771,7 +2828,7 @@ nrETC_WP_Match:
         
         Else
         
-            For Each t In curProj.Tasks
+            For Each t In curproj.Tasks
             
                 If Not t Is Nothing Then
                 
@@ -2956,8 +3013,8 @@ nrETC_WP_Match_B:
     
     Else '**Resource Loaded**
 
-        ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
-        RESfilename = destFolder & "\ETC RES_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        RESfilename = destFolder & "\ETC RES_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
     
         Open ACTfilename For Output As #1
         Open RESfilename For Output As #2
@@ -2976,9 +3033,9 @@ nrETC_WP_Match_B:
         x = 1
         ActFound = False
     
-        If curProj.Subprojects.count > 0 Then
+        If curproj.Subprojects.count > 0 Then
             
-            Set subProjs = curProj.Subprojects
+            Set subProjs = curproj.Subprojects
             
             For Each subProj In subProjs
             
@@ -3204,7 +3261,7 @@ ETC_WP_Match:
         
         Else
         
-            For Each t In curProj.Tasks
+            For Each t In curproj.Tasks
             
                 If Not t Is Nothing Then
                 
@@ -3448,7 +3505,7 @@ ETC_WP_Match_B:
     End If
 
 End Sub
-Private Sub BCWS_Export(ByVal curProj As Project)
+Private Sub BCWS_Export(ByVal curproj As Project)
 
     Dim t As Task
     Dim tAss As Assignments
@@ -3459,6 +3516,7 @@ Private Sub BCWS_Export(ByVal curProj As Project)
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
+    Dim WPDescArray() As WP_Descriptions
     Dim x As Integer
     Dim i As Integer
     Dim aStartString As String
@@ -3468,9 +3526,13 @@ Private Sub BCWS_Export(ByVal curProj As Project)
     '****BCWS Export****
     '*******************
     
+    If DescExport = True Then
+        Get_WP_Descriptions curproj
+    End If
+    
     If ResourceLoaded = False Then
     
-        ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
     
         Open ACTfilename For Output As #1
         
@@ -3487,9 +3549,9 @@ Private Sub BCWS_Export(ByVal curProj As Project)
         x = 1
         ActFound = False
     
-        If curProj.Subprojects.count > 0 Then
+        If curproj.Subprojects.count > 0 Then
             
-            Set subProjs = curProj.Subprojects
+            Set subProjs = curproj.Subprojects
             
             For Each subProj In subProjs
             
@@ -3513,8 +3575,6 @@ Private Sub BCWS_Export(ByVal curProj As Project)
                                 End If
                                 WP = t.GetField(FieldNameToFieldConstant(fWP))
                                 EVT = t.GetField(FieldNameToFieldConstant(fEVT))
-                                UID = t.GetField(FieldNameToFieldConstant(fMilestone))
-                                CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
                                 CAM = CleanCamName(t.GetField(FieldNameToFieldConstant(fCAM)))
                                 
                                 If CAID3_Used = True And CAID2_Used = True Then
@@ -3526,13 +3586,21 @@ Private Sub BCWS_Export(ByVal curProj As Project)
                                 If CAID3_Used = False And CAID2_Used = False Then
                                     ID = CAID1 & "/" & WP
                                 End If
-                                    
-                                MSWeight = CleanNumber(t.GetField(FieldNameToFieldConstant(fMilestoneWeight)))
+                                
+                                If Milestones_Used = False Then
+                                    UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                    MSWeight = CleanNumber(t.GetField(FieldNameToFieldConstant(fMilestoneWeight)))
+                                End If
                                 
                                 If BCRxport = True Then
-                                    If IsInArray(BCR_WP, WP) = False Then
+                                    If IsInArray(WP, BCR_WP) = False Then
                                         GoTo Next_nrSProj_Task
                                     End If
+                                End If
+                                
+                                If EVT = "B" And Milestones_Used = False Then
+                                    ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
+                                    err.Raise 1
                                 End If
                                 
                                 'store ACT info
@@ -3639,7 +3707,7 @@ Next_nrSProj_Task:
         
         Else
         
-            For Each t In curProj.Tasks
+            For Each t In curproj.Tasks
             
                 If Not t Is Nothing Then
                 
@@ -3653,7 +3721,7 @@ Next_nrSProj_Task:
                             End If
                             WP = t.GetField(FieldNameToFieldConstant(fWP))
                             EVT = t.GetField(FieldNameToFieldConstant(fEVT))
-                            UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                            
                             If CAID2_Used = True Then
                                 CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
                             End If
@@ -3667,10 +3735,19 @@ Next_nrSProj_Task:
                             If CAID3_Used = False And CAID2_Used = False Then
                                 ID = CAID1 & "/" & WP
                             End If
-                            MSWeight = CleanNumber(t.GetField(FieldNameToFieldConstant(fMilestoneWeight)))
+                            
+                            If Milestones_Used = True Then
+                                UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                MSWeight = CleanNumber(t.GetField(FieldNameToFieldConstant(fMilestoneWeight)))
+                            End If
+                            
+                            If EVT = "B" And Milestones_Used = False Then
+                                ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
+                                err.Raise 1
+                            End If
                             
                             If BCRxport = True Then
-                                If IsInArray(BCR_WP, WP) = False Then
+                                If IsInArray(WP, BCR_WP) = False Then
                                     GoTo Next_nrTask
                                 End If
                             End If
@@ -3774,15 +3851,19 @@ Next_nrTask:
         
         If ActFound = True Then
             For i = 1 To UBound(ACTarray)
+            
+                If DescExport = True Then
+                    ACTarray(i).Desc = WP_Desc(ACTarray(i).ID)
+                End If
                 
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
                 End If
                 
             Next i
@@ -3792,8 +3873,8 @@ Next_nrTask:
     
     Else
 
-        ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
-        RESfilename = destFolder & "\BCWS RES_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        RESfilename = destFolder & "\BCWS RES_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
     
         Open ACTfilename For Output As #1
         Open RESfilename For Output As #2
@@ -3812,9 +3893,9 @@ Next_nrTask:
         x = 1
         ActFound = False
     
-        If curProj.Subprojects.count > 0 Then
+        If curproj.Subprojects.count > 0 Then
             
-            Set subProjs = curProj.Subprojects
+            Set subProjs = curproj.Subprojects
             
             For Each subProj In subProjs
             
@@ -3835,7 +3916,7 @@ Next_nrTask:
                                 End If
                                 WP = t.GetField(FieldNameToFieldConstant(fWP))
                                 EVT = t.GetField(FieldNameToFieldConstant(fEVT))
-                                UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                
                                 If CAID2_Used = True Then
                                     CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
                                 End If
@@ -3849,10 +3930,19 @@ Next_nrTask:
                                 If CAID3_Used = False And CAID2_Used = False Then
                                     ID = CAID1 & "/" & WP
                                 End If
-                                MSWeight = CleanNumber(t.GetField(FieldNameToFieldConstant(fMilestoneWeight)))
+                                
+                                If Milestones_Used = True Then
+                                    UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                    MSWeight = CleanNumber(t.GetField(FieldNameToFieldConstant(fMilestoneWeight)))
+                                End If
+                                
+                                If EVT = "B" And Milestones_Used = False Then
+                                    ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
+                                    err.Raise 1
+                                End If
                                 
                                 If BCRxport = True Then
-                                    If IsInArray(BCR_WP, WP) = False Then
+                                    If IsInArray(WP, BCR_WP) = False Then
                                         GoTo Next_SProj_Task
                                     End If
                                 End If
@@ -3993,7 +4083,7 @@ Next_SProj_Task:
         
         Else
         
-            For Each t In curProj.Tasks
+            For Each t In curproj.Tasks
             
                 If Not t Is Nothing Then
                 
@@ -4007,7 +4097,7 @@ Next_SProj_Task:
                             End If
                             WP = t.GetField(FieldNameToFieldConstant(fWP))
                             EVT = t.GetField(FieldNameToFieldConstant(fEVT))
-                            UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                            
                             If CAID2_Used = True Then
                                 CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
                             End If
@@ -4021,11 +4111,20 @@ Next_SProj_Task:
                             If CAID3_Used = False And CAID2_Used = False Then
                                 ID = CAID1 & "/" & WP
                             End If
-                            MSWeight = CleanNumber(t.GetField(FieldNameToFieldConstant(fMilestoneWeight)))
+                            
+                            If Milestones_Used = True Then
+                                UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                MSWeight = CleanNumber(t.GetField(FieldNameToFieldConstant(fMilestoneWeight)))
+                            End If
+                            
+                            If EVT = "B" And Milestones_Used = False Then
+                                ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
+                                err.Raise 1
+                            End If
                             
                             If BCRxport = True Then
-                                If IsInArray(BCR_WP, WP) = False Then
-                                    GoTo next_task
+                                If IsInArray(WP, BCR_WP) = False Then
+                                    GoTo Next_Task
                                 End If
                             End If
                             
@@ -4152,7 +4251,7 @@ WP_Match_B:
                     End If
                     
                 End If
-next_task:
+Next_Task:
 
             Next t
     
@@ -4160,15 +4259,19 @@ next_task:
         
         If ActFound = True Then
             For i = 1 To UBound(ACTarray)
+            
+                If DescExport = True Then
+                    ACTarray(i).Desc = WP_Desc(ACTarray(i).ID)
+                End If
                 
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
                 End If
                 
             Next i
@@ -4180,6 +4283,7 @@ next_task:
     End If
         
 End Sub
+
 Private Function SetDirectory(ByVal ProjName As String) As String
     Dim newDir As String
     Dim pathDesktop As String
@@ -4192,6 +4296,7 @@ Private Function SetDirectory(ByVal ProjName As String) As String
     Exit Function
     
 End Function
+
 Private Sub DeleteDirectory(ByVal DirName As String)
 
     RmDir DirName & "\"
@@ -4199,18 +4304,211 @@ Private Sub DeleteDirectory(ByVal DirName As String)
     
 End Sub
 
+Private Function WP_Desc(ByVal WP_ID As String) As String
+
+    Dim tempDesc As String
+    Dim x As Integer
+    
+    tempDesc = ""
+    
+    If WPDescCount = 0 Then
+        WP_Desc = tempDesc
+        Exit Function
+    End If
+    
+    On Error GoTo NoWPMatchFound
+    
+    For x = 1 To UBound(WPDescArray)
+        If WPDescArray(x).WP_ID = WP_ID Then
+            tempDesc = WPDescArray(x).Desc
+            WP_Desc = tempDesc
+            Exit Function
+        End If
+    Next x
+    
+NoWPMatchFound:
+
+    WP_Desc = ""
+
+End Function
+
+Private Sub Get_WP_Descriptions(ByVal curproj As Project)
+
+    Dim CAID1 As String
+    Dim CAID2 As String
+    Dim CAID3 As String
+    Dim WP As String
+    Dim ID As String
+    Dim Desc As String
+    Dim i As Integer
+    Dim x As Integer
+    
+    WPDescCount = 0
+    
+    i = 0
+    
+    If curproj.Subprojects.count > 0 Then
+    
+        Set subProjs = curproj.Subprojects
+        
+        For Each subProj In subProjs
+        
+            FileOpen Name:=subProj.Path, ReadOnly:=True
+            
+            Set curSProj = ActiveProject
+    
+            For Each t In curSProj.Tasks
+            
+                If Not t Is Nothing Then
+                
+                    WP = t.GetField(FieldNameToFieldConstant(fWP))
+                    
+                    If WP = "" Then GoTo Next_SubProj_WPtask
+                
+                    CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                    If CAID3_Used = True Then
+                        CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
+                    End If
+                    If CAID2_Used = True Then
+                        CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
+                    End If
+                    If CAID3_Used = True And CAID2_Used = True Then
+                        ID = CAID1 & "/" & CAID2 & "/" & CAID3 & "/" & WP
+                    End If
+                    If CAID3_Used = False And CAID2_Used = True Then
+                        ID = CAID1 & "/" & CAID2 & "/" & WP
+                    End If
+                    If CAID3_Used = False And CAID2_Used = False Then
+                        ID = CAID1 & "/" & WP
+                    End If
+                    Desc = Replace(t.Name, ",", "")
+                    
+                    If i = 0 Then
+                        i = 1
+                    End If
+                    
+                    If i = 1 Then
+                    
+                        ReDim WPDescArray(1 To i)
+                        WPDescArray(i).WP_ID = ID
+                        WPDescArray(i).Desc = Desc
+                        WPDescCount = i
+                        i = i + 1
+                        
+                    Else
+                    
+                        For x = 1 To UBound(WPDescArray)
+                        
+                            If WPDescArray(x).WP_ID = ID Then
+                                GoTo Next_SubProj_WPtask
+                            End If
+                        Next x
+                                
+                        ReDim Preserve WPDescArray(1 To i)
+                        WPDescArray(i).WP_ID = ID
+                        WPDescArray(i).Desc = Desc
+                        WPDescCount = i
+                        i = i + 1
+                                
+                    End If
+                        
+                End If
+Next_SubProj_WPtask:
+        
+            Next t
+            
+        Next subProj
+        
+    Else
+    
+        For Each t In curproj.Tasks
+            
+            If Not t Is Nothing Then
+                WP = t.GetField(FieldNameToFieldConstant(fWP))
+                    
+                If WP = "" Then GoTo Next_WPtask
+            
+                CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                If CAID3_Used = True Then
+                    CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
+                End If
+                If CAID2_Used = True Then
+                    CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
+                End If
+                If CAID3_Used = True And CAID2_Used = True Then
+                    ID = CAID1 & "/" & CAID2 & "/" & CAID3 & "/" & WP
+                End If
+                If CAID3_Used = False And CAID2_Used = True Then
+                    ID = CAID1 & "/" & CAID2 & "/" & WP
+                End If
+                If CAID3_Used = False And CAID2_Used = False Then
+                    ID = CAID1 & "/" & WP
+                End If
+                Desc = Replace(t.Name, ",", "")
+                
+                If i = 0 Then
+                    i = 1
+                End If
+                
+                If i = 1 Then
+                    
+                    ReDim WPDescArray(1 To i)
+                    WPDescArray(i).WP_ID = ID
+                    WPDescArray(i).Desc = Desc
+                    WPDescCount = i
+                    i = i + 1
+                    
+                Else
+                
+                    For x = 1 To UBound(WPDescArray)
+                    
+                        If WPDescArray(x).WP_ID = ID Then
+                            GoTo Next_WPtask
+                        End If
+                    Next x
+                            
+                    ReDim Preserve WPDescArray(1 To i)
+                    WPDescArray(i).WP_ID = ID
+                    WPDescArray(i).Desc = Desc
+                    WPDescCount = i
+                    i = i + 1
+                            
+                End If
+                
+            End If
+            
+Next_WPtask:
+    
+        Next t
+        
+    End If
+
+End Sub
+
+Private Function IsInArray(ByVal stringToBeFound As String, ByVal arr As Variant) As Boolean
+    On Error GoTo NullArray
+    IsInArray = (UBound(Filter(arr, stringToBeFound)) > -1)
+NullArray:
+    IsInArray = False
+End Function
+
 Private Function CleanCamName(ByVal CAM As String) As String
 
-    If InStr(CAM, ".") > 0 Then
-        CleanCamName = Right(CAM, Len(CAM) - InStr(CAM, "."))
-    Else
-        CleanCamName = CAM
-        Exit Function
+    Dim tempCAM As String
+    
+    tempCAM = CAM
+    
+    If InStr(tempCAM, ".") > 0 Then
+        tempCAM = Right(tempCAM, Len(tempCAM) - InStr(tempCAM, "."))
+    End If
+    
+    If InStr(tempCAM, ",") > 0 Then
+        tempCAM = Replace(tempCAM, ",", " ")
     End If
 
 End Function
 
-Private Function Find_BCRs(ByVal curProj As Project, ByVal fWP As String, ByVal fBCR As String, ByVal BCRnum As String) As Integer
+Private Function Find_BCRs(ByVal curproj As Project, ByVal fWP As String, ByVal fBCR As String, ByVal BCRnum As String) As Integer
 
     Dim t As Task
     Dim i As Integer
@@ -4222,9 +4520,9 @@ Private Function Find_BCRs(ByVal curProj As Project, ByVal fWP As String, ByVal 
     
     i = 0
     
-    If curProj.Subprojects.count > 0 Then
+    If curproj.Subprojects.count > 0 Then
     
-        Set subProjs = curProj.Subprojects
+        Set subProjs = curproj.Subprojects
         
         For Each subProj In subProjs
         
@@ -4274,7 +4572,7 @@ Next_SubProj_WPtask:
         
     Else
     
-        For Each t In curProj.Tasks
+        For Each t In curproj.Tasks
             
             If Not t Is Nothing Then
                 tempBCRstr = t.GetField(FieldNameToFieldConstant(fBCR))
@@ -4319,7 +4617,7 @@ Next_WPtask:
 
 End Function
 
-Private Function IsInArray(ByVal arr As Variant, ByVal WP_ID As String) As Boolean
+Private Function IsInArray_Old(ByVal arr As Variant, ByVal WP_ID As String) As Boolean
 
     Dim i As Integer
     
@@ -4353,7 +4651,7 @@ Private Function RemoveIllegalCharacters(ByVal strText As String) As String
 
 End Function
 
-Private Sub ReadCustomFields(ByVal curProj As Project)
+Private Sub ReadCustomFields(ByVal curproj As Project)
     
     Dim i As Integer
     Dim fID As Long
@@ -4361,9 +4659,9 @@ Private Sub ReadCustomFields(ByVal curProj As Project)
     'Read local Custom Text Fields
     For i = 1 To 30
         
-        If Len(curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("Text" & i))) > 0 Then
+        If Len(curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Text" & i))) > 0 Then
             ReDim Preserve CustTextFields(1 To i)
-            CustTextFields(i) = curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("Text" & i))
+            CustTextFields(i) = curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Text" & i))
         Else
             ReDim Preserve CustTextFields(1 To i)
             CustTextFields(i) = "Text" & i
@@ -4374,9 +4672,9 @@ Private Sub ReadCustomFields(ByVal curProj As Project)
     'Read local Custom Number Fields
     For i = 1 To 20
     
-        If Len(curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("Number" & i))) > 0 Then
+        If Len(curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Number" & i))) > 0 Then
             ReDim Preserve CustNumFields(1 To i)
-            CustNumFields(i) = curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("Number" & i))
+            CustNumFields(i) = curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Number" & i))
         Else
             ReDim Preserve CustNumFields(1 To i)
             CustNumFields(i) = "Number" & i
@@ -4387,9 +4685,9 @@ Private Sub ReadCustomFields(ByVal curProj As Project)
     'Read local Custom Outline Code Fields
     For i = 1 To 10
     
-        If Len(curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("OutlineCode" & i))) > 0 Then
+        If Len(curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("OutlineCode" & i))) > 0 Then
             ReDim Preserve CustOLCodeFields(1 To i)
-            CustOLCodeFields(i) = curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("OutlineCode" & i))
+            CustOLCodeFields(i) = curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("OutlineCode" & i))
         Else
             ReDim Preserve CustOLCodeFields(1 To i)
             CustOLCodeFields(i) = "OutlineCode" & i
@@ -4460,8 +4758,8 @@ Private Function PercentfromString(ByVal inputStr As String) As Double
 End Function
 Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal tAssign As Assignment, ResFile As Integer, exportType As String)
 
-    Dim TSV As TimeScaleValue
-    Dim TSVS As TimeScaleValues
+    Dim tsv As TimeScaleValue
+    Dim tsvs As TimeScaleValues
     Dim tsvsa As TimeScaleValues
     Dim tsva As TimeScaleValue
     Dim tempWork As Double
@@ -4476,42 +4774,42 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                                     
                     If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
                     
-                        Set TSVS = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
+                        Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
                         Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks)
                         
-                        For Each TSV In TSVS
+                        For Each tsv In tsvs
                         
-                            Set tsva = tsvsa(TSV.Index)
+                            Set tsva = tsvsa(tsv.Index)
                             
                             tempWork = 0
                             
                             If tsva <> "" Then
-                                tempWork = CDbl(TSV.Value) - CLng(tsva.Value)
-                            ElseIf TSV.Value <> "" Then
-                                tempWork = CDbl(TSV.Value)
+                                tempWork = CDbl(tsv.Value) - CLng(tsva.Value)
+                            ElseIf tsv.Value <> "" Then
+                                tempWork = CDbl(tsv.Value)
                             End If
                         
                             If tempWork <> 0 Then
                             
-                                If TSVS.count = 1 Then
+                                If tsvs.count = 1 Then
                                 
                                     Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                 
                                 Else
                                 
-                                    Select Case TSV.Index
+                                    Select Case tsv.Index
                                     
                                         Case 1
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                                     
-                                        Case TSVS.count
+                                        Case tsvs.count
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                             
                                         Case Else
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                                     
                                     End Select
                                     
@@ -4519,36 +4817,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
     
                             End If
                         
-                        Next TSV
+                        Next tsv
                         
                         Exit Sub
                                     
                     ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
                     
-                        Set TSVS = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
-                        For Each TSV In TSVS
+                        Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
+                        For Each tsv In tsvs
                         
-                            If TSV.Value <> "" Then
+                            If tsv.Value <> "" Then
                             
-                                If TSVS.count = 1 Then
+                                If tsvs.count = 1 Then
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
                                 Else
                                 
-                                    Select Case TSV.Index
+                                    Select Case tsv.Index
                                     
                                         Case 1
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                                     
-                                        Case TSVS.count
+                                        Case tsvs.count
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                             
                                         Case Else
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                                     
                                     End Select
                                     
@@ -4556,7 +4854,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                                 
                             End If
                             
-                        Next TSV
+                        Next tsv
                         
                         Exit Sub
                     
@@ -4566,42 +4864,42 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                     
                 If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
                 
-                    Set TSVS = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
+                    Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
                     Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleWeeks)
                     
-                    For Each TSV In TSVS
+                    For Each tsv In tsvs
                     
-                        Set tsva = tsvsa(TSV.Index)
+                        Set tsva = tsvsa(tsv.Index)
                         
                         tempWork = 0
                         
                         If tsva <> "" Then
-                            tempWork = CDbl(TSV.Value) - CLng(tsva.Value)
-                        ElseIf TSV.Value <> "" Then
-                            tempWork = CDbl(TSV.Value)
+                            tempWork = CDbl(tsv.Value) - CLng(tsva.Value)
+                        ElseIf tsv.Value <> "" Then
+                            tempWork = CDbl(tsv.Value)
                         End If
                     
                         If tempWork <> 0 Then
                         
-                            If TSVS.count = 1 Then
+                            If tsvs.count = 1 Then
                             
                                 Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                             
                             Else
                             
-                                Select Case TSV.Index
+                                Select Case tsv.Index
                                 
                                     Case 1
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                                 
-                                    Case TSVS.count
+                                    Case tsvs.count
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                         
                                     Case Else
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                                 
                                 End Select
                                 
@@ -4609,36 +4907,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                         End If
                     
-                    Next TSV
+                    Next tsv
                     
                     Exit Sub
                                
                 ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
                 
-                    Set TSVS = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
-                    For Each TSV In TSVS
+                    Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
+                    For Each tsv In tsvs
                     
-                        If TSV.Value <> "" Then
+                        If tsv.Value <> "" Then
                         
-                            If TSVS.count = 1 Then
+                            If tsvs.count = 1 Then
                             
-                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                             
                             Else
                             
-                                Select Case TSV.Index
+                                Select Case tsv.Index
                                 
                                     Case 1
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                                 
-                                    Case TSVS.count
+                                    Case tsvs.count
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                         
                                     Case Else
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                                 
                                 End Select
                                 
@@ -4646,7 +4944,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                             
                         End If
                         
-                    Next TSV
+                    Next tsv
                     
                     Exit Sub
                 
@@ -4656,42 +4954,42 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
             
                 If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
                     
-                        Set TSVS = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
+                        Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
                         Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks)
                         
-                        For Each TSV In TSVS
+                        For Each tsv In tsvs
                         
-                            Set tsva = tsvsa(TSV.Index)
+                            Set tsva = tsvsa(tsv.Index)
                             
                             tempWork = 0
                             
                             If tsva <> "" Then
-                                tempWork = CDbl(TSV.Value) - CLng(tsva.Value)
-                            ElseIf TSV.Value <> "" Then
-                                tempWork = CDbl(TSV.Value)
+                                tempWork = CDbl(tsv.Value) - CLng(tsva.Value)
+                            ElseIf tsv.Value <> "" Then
+                                tempWork = CDbl(tsv.Value)
                             End If
                         
                             If tempWork <> 0 Then
                             
-                                If TSVS.count = 1 Then
+                                If tsvs.count = 1 Then
                                     
                                     Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                 
                                 Else
                                 
-                                    Select Case TSV.Index
+                                    Select Case tsv.Index
                                     
                                         Case 1
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                                     
-                                        Case TSVS.count
+                                        Case tsvs.count
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                             
                                         Case Else
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                                     
                                     End Select
                                     
@@ -4699,36 +4997,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
     
                             End If
                         
-                        Next TSV
+                        Next tsv
                         
                         Exit Sub
                                     
                     ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
                     
-                        Set TSVS = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
-                        For Each TSV In TSVS
+                        Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
+                        For Each tsv In tsvs
                         
-                            If TSV.Value <> "" Then
+                            If tsv.Value <> "" Then
                             
-                                If TSVS.count = 1 Then
+                                If tsvs.count = 1 Then
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                 
                                 Else
                                 
-                                    Select Case TSV.Index
+                                    Select Case tsv.Index
                                     
                                         Case 1
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                                     
-                                        Case TSVS.count
+                                        Case tsvs.count
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                             
                                         Case Else
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                                     
                                     End Select
                                     
@@ -4736,7 +5034,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                                 
                             End If
                             
-                        Next TSV
+                        Next tsv
                         
                         Exit Sub
                     
@@ -4750,30 +5048,30 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                 
                 Case pjResourceTypeWork
                                              
-                    Set TSVS = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
-                    For Each TSV In TSVS
+                    Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
+                    For Each tsv In tsvs
                     
-                        If TSV.Value <> "" Then
+                        If tsv.Value <> "" Then
                         
-                            If TSVS.count = 1 Then
+                            If tsvs.count = 1 Then
                             
-                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
                             
                             Else
                             
-                                Select Case TSV.Index
+                                Select Case tsv.Index
                                 
                                     Case 1
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                                 
-                                    Case TSVS.count
+                                    Case tsvs.count
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
                                         
                                     Case Else
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                                 
                                 End Select
                                 
@@ -4781,36 +5079,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                             
                         End If
                         
-                    Next TSV
+                    Next tsv
                     
                     Exit Sub
                 
             Case pjResourceTypeCost
                 
-                Set TSVS = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineCost, pjTimescaleWeeks)
-                For Each TSV In TSVS
+                Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineCost, pjTimescaleWeeks)
+                For Each tsv In tsvs
                 
-                    If TSV.Value <> "" Then
+                    If tsv.Value <> "" Then
                     
-                        If TSVS.count = 1 Then
+                        If tsvs.count = 1 Then
                         
-                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
                         
                         Else
                         
-                            Select Case TSV.Index
+                            Select Case tsv.Index
                             
                                 Case 1
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                             
-                                Case TSVS.count
+                                Case tsvs.count
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
                                     
                                 Case Else
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                             
                             End Select
                             
@@ -4818,36 +5116,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                         
                     End If
                     
-                Next TSV
+                Next tsv
                 
                 Exit Sub
             
             Case pjResourceTypeMaterial
             
-                Set TSVS = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
-                For Each TSV In TSVS
+                Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
+                For Each tsv In tsvs
                 
-                    If TSV.Value <> "" Then
+                    If tsv.Value <> "" Then
                     
-                        If TSVS.count = 1 Then
+                        If tsvs.count = 1 Then
                         
-                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
                         
                         Else
                         
-                            Select Case TSV.Index
+                            Select Case tsv.Index
                             
                                 Case 1
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                             
-                                Case TSVS.count
+                                Case tsvs.count
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
                                     
                                 Case Else
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
                             
                             End Select
                         
@@ -4855,7 +5153,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                         
                     End If
                     
-                Next TSV
+                Next tsv
                 
                 Exit Sub
             
