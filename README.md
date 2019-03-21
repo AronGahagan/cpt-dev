@@ -1,4 +1,4 @@
-_License: This software is free to use and distribute, not to sell. Modifications require the removal of all references to **company -name**. All other rights reserved. Copyright 2019, **company-name**._
+_License: This software is provided gratis (free of charge), it is free to use and distribute, but not to sell. Modifications require the removal of all references to **company -name**. Contributors retain their patents. All other rights reserved. Copyright 2019, **company-name**._
 
 # cpt: The CP Toolbar
 ## Table of Contents
