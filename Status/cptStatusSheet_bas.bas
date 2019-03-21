@@ -75,21 +75,21 @@ next_field:
   For intField = 0 To arrFields.count - 1
     cptStatusSheet_frm.lboFields.AddItem
     cptStatusSheet_frm.lboFields.List(intField, 0) = arrFields.getByIndex(intField)
-    cptStatusSheet_frm.lboFields.List(intField, 1) = arrFields.getKey(intField)
-    If FieldNameToFieldConstant(arrFields.getKey(intField)) >= 188776000 Then
+    cptStatusSheet_frm.lboFields.List(intField, 1) = arrFields.GetKey(intField)
+    If FieldNameToFieldConstant(arrFields.GetKey(intField)) >= 188776000 Then
       cptStatusSheet_frm.lboFields.List(intField, 2) = "Enterprise"
     Else
       cptStatusSheet_frm.lboFields.List(intField, 2) = FieldConstantToFieldName(arrFields.getByIndex(intField))
     End If
-    cptStatusSheet_frm.cboEach.AddItem arrFields.getKey(intField)
+    cptStatusSheet_frm.cboEach.AddItem arrFields.GetKey(intField)
   Next
   'add EVT values
   For intField = 0 To arrEVT.count - 1
-    cptStatusSheet_frm.cboEVT.AddItem arrEVT.getKey(intField)
+    cptStatusSheet_frm.cboEVT.AddItem arrEVT.GetKey(intField)
   Next
   'add EVP values
   For intField = 0 To arrEVP.count - 1 'UBound(st)
-    cptStatusSheet_frm.cboEVP.AddItem arrEVP.getKey(intField) 'st(intField)(1)
+    cptStatusSheet_frm.cboEVP.AddItem arrEVP.GetKey(intField) 'st(intField)(1)
   Next
   
   'add saved settings if they exist

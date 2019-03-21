@@ -1,4 +1,4 @@
-Attribute VB_Name = "cptTextTools_bas"
+Attribute VB_Name = "cptText_bas"
 '<cpt_version>v1.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -25,6 +25,8 @@ Dim Tasks As Tasks, Task As Task, strAppend As String
   
   If Len(strAppend) = 0 Then Exit Sub
   
+  Application.OpenUndoTransaction "Bulk Append"
+  
   For Each Task In Tasks
     If Task.ExternalTask Then GoTo next_task
     If Not Task Is Nothing Then
@@ -33,6 +35,8 @@ Dim Tasks As Tasks, Task As Task, strAppend As String
 next_task:
   Next Task
   
+  Application.CloseUndoTransaction
+  
 exit_here:
   On Error Resume Next
   Set Task = Nothing
@@ -40,7 +44,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptTextTools_bas", "BulkAppend", err)
+  Call HandleErr("cptText_bas", "BulkAppend", err)
   Resume exit_here
   
 End Sub
@@ -57,6 +61,8 @@ Dim Tasks As Tasks, Task As Task, strPrepend As String
   
   If Len(strPrepend) = 0 Then Exit Sub
   
+  Application.OpenUndoTransaction "Bulk Prepend"
+  
   For Each Task In ActiveSelection.Tasks
     If Task.ExternalTask Then GoTo next_task
     If Not Task Is Nothing Then
@@ -64,6 +70,8 @@ Dim Tasks As Tasks, Task As Task, strPrepend As String
     End If
 next_task:
   Next Task
+  
+  Application.CloseUndoTransaction
   
 exit_here:
   On Error Resume Next
@@ -107,6 +115,9 @@ Dim vbResponse As Variant, lgEnumerate As Long, lgStart As Long
   lgEnumerate = CLng(vbResponse)
   
   SpeedON
+  
+  Application.OpenUndoTransaction "Enumeration"
+  
   If Tasks.count > 2 Then
     For Each Task In Tasks
       If Task.ExternalTask Then GoTo next_task
@@ -119,6 +130,8 @@ next_task:
   End If
   SpeedOFF
 
+  Application.CloseUndoTransaction
+
 exit_here:
   On Error Resume Next
   Set Task = Nothing
@@ -126,7 +139,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptTextTools_bas", "AppendSequential", err)
+  Call HandleErr("cptText_bas", "AppendSequential", err)
   Resume exit_here
 
 End Sub
@@ -144,6 +157,8 @@ Dim lgField As Variant, lgFound As Long
   strFind = Trim(InputBox("Find what text:", "Replace"))
   strReplace = InputBox("Replace '" & strFind & "' with what text:", "Replace")
 
+  Application.OpenUndoTransaction "MyReplace"
+
   For Each Task In Tasks
     If Task.ExternalTask Then GoTo next_task
     For Each lgField In ActiveSelection.FieldIDList
@@ -158,6 +173,8 @@ Dim lgField As Variant, lgFound As Long
 next_task:
   Next Task
 
+  Application.CloseUndoTransaction
+
   If lgFound = 0 Then
     MsgBox "No instances of '" & strFind & "' found in selected cells.", vbExclamation + vbOKOnly, "Replace"
   Else
@@ -171,7 +188,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptTextTools_bas", "MyReplace", err)
+  Call HandleErr("cptText_bas", "MyReplace", err)
   Resume exit_here
 
 End Sub
@@ -252,7 +269,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptTextTools_bas", "FindDuplicateTaskNames", err)
+  Call HandleErr("cptText_bas", "FindDuplicateTaskNames", err)
   Resume exit_here
 
 End Sub
@@ -261,6 +278,8 @@ Sub TrimTaskNames()
 Dim Task As Task, lgBefore As Long, lgAfter As Long, lgCount As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  Application.OpenUndoTransaction "Trim Task Names"
 
   For Each Task In ActiveProject.Tasks
     If Not Task Is Nothing Then
@@ -271,6 +290,8 @@ Dim Task As Task, lgBefore As Long, lgAfter As Long, lgCount As Long
     End If
   Next Task
 
+  Application.CloseUndoTransaction
+
   MsgBox Format(lgCount, "#,##0") & " task names trimmed.", vbInformation + vbOKOnly, "Trim Task Names"
 
 exit_here:
@@ -278,29 +299,40 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptTextTools_bas", "TrimTaskNames", err)
+  Call HandleErr("cptText_bas", "TrimTaskNames", err)
   Resume exit_here
 
 End Sub
 
-Sub ShowcptTextTools_frm()
+Sub ShowCptText_frm()
+'objects
 Dim Tasks As Tasks, Task As Task
-Dim lgItem As Long
+'strings
+'longs
+Dim lngItem As Long
+'integers
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If Not ModuleExists("cptText_frm") Then GoTo exit_here
 
   On Error Resume Next
   Set Tasks = ActiveSelection.Tasks
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If Not Tasks Is Nothing Then
-    cptTextTools_frm.lboOutput.Clear
+    cptText_frm.lboOutput.Clear
     For Each Task In Tasks
-      cptTextTools_frm.lboOutput.AddItem
-      cptTextTools_frm.lboOutput.List(lgItem, 0) = Task.UniqueID
-      cptTextTools_frm.lboOutput.List(lgItem, 1) = Task.Name
-      lgItem = lgItem + 1
+      cptText_frm.lboOutput.AddItem
+      cptText_frm.lboOutput.List(lngItem, 0) = Task.UniqueID
+      cptText_frm.lboOutput.List(lngItem, 1) = Task.Name
+      lngItem = lngItem + 1
     Next Task
   End If
 
-  cptTextTools_frm.Show
+  cptText_frm.Show
   
 exit_here:
   On Error Resume Next
@@ -308,78 +340,87 @@ exit_here:
   Set Tasks = Nothing
   Exit Sub
 err_here:
-  Call HandleErr("cptTextTools_bas", "ShowcptTextTools_frm", err)
+  Call HandleErr("cptText_bas", "ShowcptText_frm", err)
   Resume exit_here
   
 End Sub
 
 Sub UpdatePreview(Optional strPrepend As String, Optional strAppend As String, Optional strPrefix As String, Optional lgCharacters As Long, Optional lgStartAt As Long, _
                   Optional lgCountBy As Long, Optional strSuffix As String, Optional strReplaceWhat As String, Optional strReplaceWith As String)
-Dim lgItem As Long, strTaskName As String, strEnumerate As String, lgEnumerate As Long
+'objects
+'strings
+Dim strTaskName As String, strEnumerate As String
+'longs
+Dim lngItem As Long, lgEnumerate As Long
+'integers
+'booleans
+'variants
+'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  For lgItem = 0 To cptTextTools_frm.lboOutput.ListCount - 1
-    strTaskName = ActiveProject.Tasks.UniqueID(cptTextTools_frm.lboOutput.List(lgItem, 0)).Name
+  For lngItem = 0 To cptText_frm.lboOutput.ListCount - 1
+    strTaskName = ActiveProject.Tasks.UniqueID(cptText_frm.lboOutput.List(lngItem, 0)).Name
     If Len(strPrepend) > 0 Then
       strTaskName = Trim(strPrepend) & " " & strTaskName
-    ElseIf Len(cptTextTools_frm.txtPrepend.Value) > 0 Then
-      strTaskName = Trim(cptTextTools_frm.txtPrepend.Value) & " " & strTaskName
+    ElseIf Len(cptText_frm.txtPrepend.Value) > 0 Then
+      strTaskName = Trim(cptText_frm.txtPrepend.Value) & " " & strTaskName
     End If
     If Len(strAppend) > 0 Then
       strTaskName = Trim(strTaskName) & " " & Trim(strAppend)
-    ElseIf Len(cptTextTools_frm.txtAppend.Value) > 0 Then
-      strTaskName = Trim(strTaskName) & " " & Trim(cptTextTools_frm.txtAppend.Value)
+    ElseIf Len(cptText_frm.txtAppend.Value) > 0 Then
+      strTaskName = Trim(strTaskName) & " " & Trim(cptText_frm.txtAppend.Value)
     End If
-    cptTextTools_frm.chkIsDirty = cptTextTools_frm.CheckDirty
-    If cptTextTools_frm.chkIsDirty Then
-      strEnumerate = IIf(Len(strPrefix) > 0, strPrefix, cptTextTools_frm.txtPrefix.Value)
+    cptText_frm.chkIsDirty = cptText_frm.CheckDirty
+    If cptText_frm.chkIsDirty Then
+      strEnumerate = IIf(Len(strPrefix) > 0, strPrefix, cptText_frm.txtPrefix.Value)
       
       If lgStartAt = 0 Then
-        If cptTextTools_frm.txtStartAt.Value = "" Then
+        If cptText_frm.txtStartAt.Value = "" Then
           lgStartAt = 1
-          'cptTextTools_frm.txtStartAt.Value = 1
+          'cptText_frm.txtStartAt.Value = 1
         Else
-          lgStartAt = CLng(cptTextTools_frm.txtStartAt.Value)
+          lgStartAt = CLng(cptText_frm.txtStartAt.Value)
         End If
       End If
       
       If lgCountBy = 0 Then
-        If cptTextTools_frm.txtCountBy.Value = "" Then
+        If cptText_frm.txtCountBy.Value = "" Then
           lgCountBy = 1
-          'cptTextTools_frm.txtCountBy.Value = 1
+          'cptText_frm.txtCountBy.Value = 1
         Else
-          lgCountBy = CLng(cptTextTools_frm.txtCountBy.Value)
+          lgCountBy = CLng(cptText_frm.txtCountBy.Value)
         End If
       End If
       
-      lgEnumerate = lgStartAt + (lgItem * lgCountBy)
+      lgEnumerate = lgStartAt + (lngItem * lgCountBy)
       
       If lgCharacters = 0 Then
-        If cptTextTools_frm.txtCharacters.Value = "" Then
+        If cptText_frm.txtCharacters.Value = "" Then
           lgCharacters = 1
-          'cptTextTools_frm.txtCharacters.Value = 1
+          'cptText_frm.txtCharacters.Value = 1
         Else
-          lgCharacters = CLng(cptTextTools_frm.txtCharacters.Value)
+          lgCharacters = CLng(cptText_frm.txtCharacters.Value)
         End If
       End If
           
       strEnumerate = strEnumerate & Format(lgEnumerate, String(lgCharacters, "0"))
-      strEnumerate = strEnumerate & IIf(Len(strSuffix) > 0, strSuffix, cptTextTools_frm.txtSuffix.Value)
-      cptTextTools_frm.lboOutput.List(lgItem, 1) = strTaskName & " " & strEnumerate
+      strEnumerate = strEnumerate & IIf(Len(strSuffix) > 0, strSuffix, cptText_frm.txtSuffix.Value)
+      cptText_frm.lboOutput.List(lngItem, 1) = strTaskName & " " & strEnumerate
     Else
-      cptTextTools_frm.lboOutput.List(lgItem, 1) = strTaskName
+      cptText_frm.lboOutput.List(lngItem, 1) = strTaskName
     End If
     
-    'replace
-  Next lgItem
+    'todo: replace
+    
+  Next lngItem
 
 exit_here:
   On Error Resume Next
 
   Exit Sub
 err_here:
-  Call HandleErr("cptTextTools_bas", "UpdatePreview", err)
+  Call HandleErr("cptText_bas", "UpdatePreview", err)
   Resume exit_here
   
 End Sub
