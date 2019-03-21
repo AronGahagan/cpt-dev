@@ -1,9 +1,8 @@
-Attribute VB_Name = "cptSmartDur_bas"
-'<cpt_version>v0</cpt_version>
-
+Attribute VB_Name = "cptSmartDuration_bas"
+'<cpt_version>v1.0</cpt_version>
 Sub SmartDuration()
 
-    Dim smrtForm As cptSmartDur_frm
+    Dim smrtForm As cptSmartDuration_frm
     Dim t As Task
     Dim curProj As Project
     Dim response As Variant
@@ -42,7 +41,7 @@ Sub SmartDuration()
         Exit Sub
     End If
     
-    Set smrtForm = New cptSmartDur_frm
+    Set smrtForm = New cptSmartDuration_frm
     
     With smrtForm
     
@@ -59,16 +58,27 @@ Sub SmartDuration()
         End If
     
         If .Tag = "OK" Then
-            If t.Calendar = "None" Or t.Calendar = curProj.Calendar Then
+            
+            If InStr(t.GetField(pjTaskDuration), "e") > 0 Then
+            
                 OpenUndoTransaction "Smart Duration"
-                t.Duration = Application.DateDifference(t.Start, .finDate)
+                t.Duration = VBA.DateDiff("n", t.Start, .finDate)
                 CloseUndoTransaction
                 GoTo CleanUp
+            
             Else
-                OpenUndoTransaction "Smart Duration"
-                t.Duration = Application.DateDifference(t.Start, .finDate, t.Calendar)
-                CloseUndoTransaction
-                GoTo CleanUp
+                
+                If t.Calendar = "None" Or t.Calendar = curProj.Calendar Then
+                    OpenUndoTransaction "Smart Duration"
+                    t.Duration = Application.DateDifference(t.Start, .finDate)
+                    CloseUndoTransaction
+                    GoTo CleanUp
+                Else
+                    OpenUndoTransaction "Smart Duration"
+                    t.Duration = Application.DateDifference(t.Start, .finDate, t.Calendar)
+                    CloseUndoTransaction
+                    GoTo CleanUp
+                End If
             End If
             
         End If

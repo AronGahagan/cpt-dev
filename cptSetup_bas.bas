@@ -111,7 +111,7 @@ frx:
             strFileName = Replace(strFileName, ".frx", ".frm")
           End If
         Else
-          strError = strError & "- " & arrCore.GetKey(lngFile) & vbCrLf
+          strError = strError & "- " & arrCore.getKey(lngFile) & vbCrLf
           GoTo next_xmlNode
         End If
         

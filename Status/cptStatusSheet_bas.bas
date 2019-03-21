@@ -14,7 +14,7 @@ Sub ShowCptStatusSheet_frm()
 'objects
 Dim arrFields As Object, arrEVT As Object, arrEVP As Object
 'longs
-Dim lgField As Long, lgItem As Long
+Dim lngField As Long, lgItem As Long
 'integers
 Dim intField As Integer
 'strings
@@ -22,7 +22,7 @@ Dim strFieldName As String, strFileName As String
 'dates
 Dim dtStatus As Date
 'variants
-Dim st As Variant, strFieldType As Variant, lgFieldType As Variant
+Dim st As Variant, vFieldType As Variant, lngFieldType As Variant
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -45,51 +45,53 @@ Dim st As Variant, strFieldType As Variant, lgFieldType As Variant
   Set arrEVT = CreateObject("System.Collections.SortedList")
   Set arrEVP = CreateObject("System.Collections.SortedList")
   
-  For Each strFieldType In Array("Text", "Outline Code", "Number")
+  For Each vFieldType In Array("Text", "Outline Code", "Number")
     On Error GoTo err_here
     For intField = 1 To 30
-      lgField = FieldNameToFieldConstant(strFieldType & intField, lgFieldType)
-      strFieldName = CustomFieldGetName(lgField)
+      lngField = FieldNameToFieldConstant(vFieldType & intField, lngFieldType)
+      strFieldName = CustomFieldGetName(lngField)
       If Len(strFieldName) > 0 Then
-        arrFields.Add strFieldName, lgField
-        If strFieldType = "Text" Then
-          arrEVT.Add strFieldName, lgField
+        arrFields.Add strFieldName, lngField
+        If vFieldType = "Text" Then
+          arrEVT.Add strFieldName, lngField
           'todo: what if this is an enterprise field?
-        ElseIf strFieldType = "Number" Then
-          arrEVP.Add strFieldName, lgField
+        ElseIf vFieldType = "Number" Then
+          arrEVP.Add strFieldName, lngField
           'todo: what if this is an enterprise field?
         End If
       End If
 next_field:
     Next intField
-  Next strFieldType
+  Next vFieldType
   
   'get enterprise custom fields
-  For lgField = 188776000 To 188778000 '2000 should do it for now
-    If Application.FieldConstantToFieldName(lgField) <> "<Unavailable>" Then
-      arrFields.Add Application.FieldConstantToFieldName(lgField), lgField
+  For lngField = 188776000 To 188778000 '2000 should do it for now
+    If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
+      arrFields.Add Application.FieldConstantToFieldName(lngField), lngField
     End If
-  Next lgField
+  Next lngField
   
   'add custom fields
+  'col0 = constant
+  'col1 = name
   For intField = 0 To arrFields.count - 1
     cptStatusSheet_frm.lboFields.AddItem
     cptStatusSheet_frm.lboFields.List(intField, 0) = arrFields.getByIndex(intField)
-    cptStatusSheet_frm.lboFields.List(intField, 1) = arrFields.GetKey(intField)
-    If FieldNameToFieldConstant(arrFields.GetKey(intField)) >= 188776000 Then
+    cptStatusSheet_frm.lboFields.List(intField, 1) = arrFields.getKey(intField)
+    If FieldNameToFieldConstant(arrFields.getKey(intField)) >= 188776000 Then
       cptStatusSheet_frm.lboFields.List(intField, 2) = "Enterprise"
     Else
       cptStatusSheet_frm.lboFields.List(intField, 2) = FieldConstantToFieldName(arrFields.getByIndex(intField))
     End If
-    cptStatusSheet_frm.cboEach.AddItem arrFields.GetKey(intField)
+    cptStatusSheet_frm.cboEach.AddItem arrFields.getKey(intField)
   Next
   'add EVT values
   For intField = 0 To arrEVT.count - 1
-    cptStatusSheet_frm.cboEVT.AddItem arrEVT.GetKey(intField)
+    cptStatusSheet_frm.cboEVT.AddItem arrEVT.getKey(intField)
   Next
   'add EVP values
   For intField = 0 To arrEVP.count - 1 'UBound(st)
-    cptStatusSheet_frm.cboEVP.AddItem arrEVP.GetKey(intField) 'st(intField)(1)
+    cptStatusSheet_frm.cboEVP.AddItem arrEVP.getKey(intField) 'st(intField)(1)
   Next
   
   'add saved settings if they exist
@@ -400,12 +402,12 @@ next_field:
   t = GetTickCount
   lgRow = lgHeaderRow
   For Each Task In Tasks
-    If Task Is Nothing Then GoTo next_task
-    If Task.OutlineLevel = 0 Then GoTo next_task
-    If Task.ExternalTask Then GoTo next_task
-    If Not Task.Active Then GoTo next_task
+    If Task Is Nothing Then GoTo Next_Task
+    If Task.OutlineLevel = 0 Then GoTo Next_Task
+    If Task.ExternalTask Then GoTo Next_Task
+    If Not Task.Active Then GoTo Next_Task
     If cptStatusSheet_frm.chkHide = True Then
-      If Task.ActualFinish <= CDate(cptStatusSheet_frm.txtHideCompleteBefore) Then GoTo next_task
+      If Task.ActualFinish <= CDate(cptStatusSheet_frm.txtHideCompleteBefore) Then GoTo Next_Task
     End If
     
     lgRow = lgRow + 1
@@ -479,7 +481,7 @@ next_assignment:
       
     End If 'Task Summary
     
-next_task:
+Next_Task:
     lgTask = lgTask + 1
     '/===debug===\
     'output execution time for the task

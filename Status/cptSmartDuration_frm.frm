@@ -1,20 +1,19 @@
 VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptSmartDur_frm 
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptSmartDuration_frm 
    Caption         =   "Smart Duration"
-   ClientHeight    =   1170
+   ClientHeight    =   1185
    ClientLeft      =   105
    ClientTop       =   450
    ClientWidth     =   3345
-   OleObjectBlob   =   "cptSmartDur_frm.frx":0000
+   OleObjectBlob   =   "cptSmartDuration_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
-Attribute VB_Name = "cptSmartDur_frm"
+Attribute VB_Name = "cptSmartDuration_frm"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-'<cpt_version>v0</cpt_version>
+'<cpt_version>v1.0</cpt_version>
 
 Public dateError As Boolean
 Public finDate As Date

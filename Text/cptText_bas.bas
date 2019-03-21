@@ -28,11 +28,11 @@ Dim Tasks As Tasks, Task As Task, strAppend As String
   Application.OpenUndoTransaction "Bulk Append"
   
   For Each Task In Tasks
-    If Task.ExternalTask Then GoTo next_task
+    If Task.ExternalTask Then GoTo Next_Task
     If Not Task Is Nothing Then
       Task.Name = Trim(Task.Name) & " " & Trim(strAppend)
     End If
-next_task:
+Next_Task:
   Next Task
   
   Application.CloseUndoTransaction
@@ -64,11 +64,11 @@ Dim Tasks As Tasks, Task As Task, strPrepend As String
   Application.OpenUndoTransaction "Bulk Prepend"
   
   For Each Task In ActiveSelection.Tasks
-    If Task.ExternalTask Then GoTo next_task
+    If Task.ExternalTask Then GoTo Next_Task
     If Not Task Is Nothing Then
        Task.Name = Trim(strPrepend) & " " & Trim(Task.Name)
     End If
-next_task:
+Next_Task:
   Next Task
   
   Application.CloseUndoTransaction
@@ -120,12 +120,12 @@ Dim vbResponse As Variant, lgEnumerate As Long, lgStart As Long
   
   If Tasks.count > 2 Then
     For Each Task In Tasks
-      If Task.ExternalTask Then GoTo next_task
+      If Task.ExternalTask Then GoTo Next_Task
       If Not Task Is Nothing Then
         Task.Name = Task.Name & " (" & Format(lgEnumerate, String(lgDigits, "0")) & ")"
         lgEnumerate = lgEnumerate + 1
       End If
-next_task:
+Next_Task:
     Next
   End If
   SpeedOFF
@@ -160,7 +160,7 @@ Dim lgField As Variant, lgFound As Long
   Application.OpenUndoTransaction "MyReplace"
 
   For Each Task In Tasks
-    If Task.ExternalTask Then GoTo next_task
+    If Task.ExternalTask Then GoTo Next_Task
     For Each lgField In ActiveSelection.FieldIDList
       'limit to text fields
       If Len(RegEx(FieldConstantToFieldName(lgField), "Text|Name")) > 0 Then
@@ -170,7 +170,7 @@ Dim lgField As Variant, lgFound As Long
         End If
       End If
     Next lgField
-next_task:
+Next_Task:
   Next Task
 
   Application.CloseUndoTransaction

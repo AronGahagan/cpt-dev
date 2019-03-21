@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptAdmin_bas"
 '>no cpt version - not for release<
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub CreateCurrentVersionsXML(Optional strRepo As String)
@@ -23,7 +23,11 @@ Dim lngFile As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If Len(strRepo) = "" Then strRepo = Environ("USERPROFILE") & "\"
+  If Len(strRepo) = 0 Then
+    strRepo = Environ("USERPROFILE") & "\"
+  Else
+    If MsgBox("Writing to repo: " & vbCrLf & strRepo & ". Proceed?", vbQuestion + vbYesNo, "Please Confirm") = vbNo Then GoTo exit_here
+  End If
 
   'use arrTypes
   Set arrTypes = CreateObject("System.Collections.SortedList")
@@ -218,7 +222,7 @@ Dim strDirectory As String
     Case "DynamicFilter"
       strDirectory = "TextTools"
     'Status
-    Case "SmartDur"
+    Case "SmartDuration"
       strDirectory = "Status"
     Case "StatusSheet"
       strDirectory = "Status"

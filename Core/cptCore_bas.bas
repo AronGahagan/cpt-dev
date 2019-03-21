@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptCore_bas"
 '<cpt_version>v1.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private oMSPEvents As cptEvents_cls
@@ -187,18 +187,6 @@ Dim lgIndex As Long
     Debug.Print lgIndex & ": " & Environ(lgIndex)
   Next
   
-End Sub
-
-Sub CheckLogo()
-Dim strFileName As String
-
-  If ModuleExists("cptAbout_frm") Then
-    strFileName = cptDir & "\ClearPlanLogo.jpg"
-    If Dir(strFileName) = vbNullString Then
-      SavePicture cptAbout_frm.Image1.Picture, strFileName
-    End If
-  End If
-
 End Sub
 
 Function CheckReference(strReference As String) As Boolean
@@ -388,14 +376,18 @@ next_component:
   'populate the listbox
   cptUpgrades_frm.lboModules.Clear
   For lngItem = 0 To arrCurrent.count - 1
-    If arrCurrent.GetKey(lngItem) = "ThisProject" Then GoTo next_lngItem
+    If arrCurrent.getKey(lngItem) = "ThisProject" Then GoTo next_lngItem
     strCurVer = arrCurrent.getValueList()(lngItem)
-    strInstVer = arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.GetKey(lngItem)))
+    If arrInstalled.contains(arrCurrent.getKey(lngItem)) Then
+      strInstVer = arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.getKey(lngItem)))
+    Else
+      strInstVer = "<not installed>"
+    End If
     cptUpgrades_frm.lboModules.AddItem
-    cptUpgrades_frm.lboModules.List(lngItem, 0) = arrCurrent.GetKey(lngItem) 'module name
+    cptUpgrades_frm.lboModules.List(lngItem, 0) = arrCurrent.getKey(lngItem) 'module name
     cptUpgrades_frm.lboModules.List(lngItem, 1) = arrDirectories.getValueList()(lngItem) 'directory
     cptUpgrades_frm.lboModules.List(lngItem, 2) = strCurVer 'arrCurrent.getValueList()(lngItem) 'current version
-    If arrInstalled.contains(arrCurrent.GetKey(lngItem)) Then 'installed version
+    If arrInstalled.contains(arrCurrent.getKey(lngItem)) Then 'installed version
       cptUpgrades_frm.lboModules.List(lngItem, 3) = strInstVer 'arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.getKey(lngItem)))
     Else
       cptUpgrades_frm.lboModules.List(lngItem, 3) = "<not installed>"
