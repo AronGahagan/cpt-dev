@@ -65,7 +65,7 @@ next_vbComponent:
   oStream.Close
   Set oStream = Nothing
   
-  git "add", strFileName ''stage the updated xml for next git commit/push         '</remove>
+
   strMsg = "CurrentVersions.xml created."
 
   MsgBox strMsg, vbInformation + vbOKOnly, "Complete"
