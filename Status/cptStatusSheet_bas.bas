@@ -402,12 +402,12 @@ next_field:
   t = GetTickCount
   lgRow = lgHeaderRow
   For Each Task In Tasks
-    If Task Is Nothing Then GoTo Next_Task
-    If Task.OutlineLevel = 0 Then GoTo Next_Task
-    If Task.ExternalTask Then GoTo Next_Task
-    If Not Task.Active Then GoTo Next_Task
+    If Task Is Nothing Then GoTo next_task
+    If Task.OutlineLevel = 0 Then GoTo next_task
+    If Task.ExternalTask Then GoTo next_task
+    If Not Task.Active Then GoTo next_task
     If cptStatusSheet_frm.chkHide = True Then
-      If Task.ActualFinish <= CDate(cptStatusSheet_frm.txtHideCompleteBefore) Then GoTo Next_Task
+      If Task.ActualFinish <= CDate(cptStatusSheet_frm.txtHideCompleteBefore) Then GoTo next_task
     End If
     
     lgRow = lgRow + 1
@@ -481,7 +481,7 @@ next_assignment:
       
     End If 'Task Summary
     
-Next_Task:
+next_task:
     lgTask = lgTask + 1
     '/===debug===\
     'output execution time for the task

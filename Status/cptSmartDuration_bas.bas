@@ -62,7 +62,7 @@ Sub SmartDuration()
             If InStr(t.GetField(pjTaskDuration), "e") > 0 Then
             
                 OpenUndoTransaction "Smart Duration"
-                t.Duration = VBA.DateDiff("n", t.Start, .finDate)
+                t.duration = VBA.DateDiff("n", t.Start, .finDate)
                 CloseUndoTransaction
                 GoTo CleanUp
             
@@ -70,12 +70,12 @@ Sub SmartDuration()
                 
                 If t.Calendar = "None" Or t.Calendar = curProj.Calendar Then
                     OpenUndoTransaction "Smart Duration"
-                    t.Duration = Application.DateDifference(t.Start, .finDate)
+                    t.duration = Application.DateDifference(t.Start, .finDate)
                     CloseUndoTransaction
                     GoTo CleanUp
                 Else
                     OpenUndoTransaction "Smart Duration"
-                    t.Duration = Application.DateDifference(t.Start, .finDate, t.Calendar)
+                    t.duration = Application.DateDifference(t.Start, .finDate, t.Calendar)
                     CloseUndoTransaction
                     GoTo CleanUp
                 End If

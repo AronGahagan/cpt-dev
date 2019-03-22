@@ -116,7 +116,7 @@ Dim lgOriginalUID As Long
   'build custom filter on the fly and apply it
   If Len(strFilterText) > 0 And Len(strOperator) > 0 Then
     If strField = "Task Name" Then strField = "Name"
-    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=strField, test:=strOperator, Value:=strFilterText, Operation:=IIf(blnKeepSelected Or blnHideSummaries, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
+    FilterEdit Name:=strFilter, TaskFilter:=True, create:=True, OverwriteExisting:=True, FieldName:=strField, test:=strOperator, Value:=strFilterText, Operation:=IIf(blnKeepSelected Or blnHideSummaries, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
   End If
   If blnKeepSelected Then
     FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Unique ID", test:="equals", Value:=lgOriginalUID, Operation:="Or"
@@ -129,7 +129,7 @@ Dim lgOriginalUID As Long
     FilterEdit Name:=strFilter, ShowSummaryTasks:=blnShowRelatedSummaries
   Else
     'build a sterile filter to retain existing autofilters
-    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Summary", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True
+    FilterEdit Name:=strFilter, TaskFilter:=True, create:=True, OverwriteExisting:=True, FieldName:="Summary", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True
     FilterEdit Name:=strFilter, TaskFilter:=True, FieldName:="", NewFieldName:="Summary", test:="equals", Value:="No", Operation:="Or", ShowSummaryTasks:=True
   End If
   FilterApply strFilter, blnHighlight

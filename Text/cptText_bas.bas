@@ -28,17 +28,17 @@ Dim Tasks As Tasks, Task As Task, strAppend As String
   Application.OpenUndoTransaction "Bulk Append"
   
   For Each Task In Tasks
-    If Task.ExternalTask Then GoTo Next_Task
+    If Task.ExternalTask Then GoTo next_task
     If Not Task Is Nothing Then
       Task.Name = Trim(Task.Name) & " " & Trim(strAppend)
     End If
-Next_Task:
+next_task:
   Next Task
   
-  Application.CloseUndoTransaction
   
 exit_here:
   On Error Resume Next
+  Application.CloseUndoTransaction
   Set Task = Nothing
   Set Tasks = Nothing
   Exit Sub
@@ -64,17 +64,17 @@ Dim Tasks As Tasks, Task As Task, strPrepend As String
   Application.OpenUndoTransaction "Bulk Prepend"
   
   For Each Task In ActiveSelection.Tasks
-    If Task.ExternalTask Then GoTo Next_Task
+    If Task.ExternalTask Then GoTo next_task
     If Not Task Is Nothing Then
        Task.Name = Trim(strPrepend) & " " & Trim(Task.Name)
     End If
-Next_Task:
+next_task:
   Next Task
   
-  Application.CloseUndoTransaction
   
 exit_here:
   On Error Resume Next
+  Application.CloseUndoTransaction
   Set Task = Nothing
   Set Tasks = Nothing
   Exit Sub
@@ -120,20 +120,20 @@ Dim vbResponse As Variant, lgEnumerate As Long, lgStart As Long
   
   If Tasks.count > 2 Then
     For Each Task In Tasks
-      If Task.ExternalTask Then GoTo Next_Task
+      If Task.ExternalTask Then GoTo next_task
       If Not Task Is Nothing Then
         Task.Name = Task.Name & " (" & Format(lgEnumerate, String(lgDigits, "0")) & ")"
         lgEnumerate = lgEnumerate + 1
       End If
-Next_Task:
+next_task:
     Next
   End If
   SpeedOFF
 
-  Application.CloseUndoTransaction
 
 exit_here:
   On Error Resume Next
+  Application.CloseUndoTransaction
   Set Task = Nothing
   Set Tasks = Nothing
   Exit Sub
@@ -160,7 +160,7 @@ Dim lgField As Variant, lgFound As Long
   Application.OpenUndoTransaction "MyReplace"
 
   For Each Task In Tasks
-    If Task.ExternalTask Then GoTo Next_Task
+    If Task.ExternalTask Then GoTo next_task
     For Each lgField In ActiveSelection.FieldIDList
       'limit to text fields
       If Len(RegEx(FieldConstantToFieldName(lgField), "Text|Name")) > 0 Then
@@ -170,10 +170,9 @@ Dim lgField As Variant, lgFound As Long
         End If
       End If
     Next lgField
-Next_Task:
+next_task:
   Next Task
 
-  Application.CloseUndoTransaction
 
   If lgFound = 0 Then
     MsgBox "No instances of '" & strFind & "' found in selected cells.", vbExclamation + vbOKOnly, "Replace"
@@ -183,6 +182,7 @@ Next_Task:
 
 exit_here:
   On Error Resume Next
+  Application.CloseUndoTransaction
   Set Tasks = Nothing
   Set Task = Nothing
   Exit Sub
@@ -211,7 +211,7 @@ Dim lgNameCol As Long
   If Not CheckReference("Excel") Then GoTo exit_here
 
   On Error GoTo err_here
-  MapEdit Name:="ExportTaskNames", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="All Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
+  MapEdit Name:="ExportTaskNames", create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="All Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
   If blnMaster Then
     MapEdit Name:="ExportTaskNames", DataCategory:=0, FieldName:="Project", ExternalFieldName:="Project"
   End If
@@ -290,12 +290,12 @@ Dim Task As Task, lgBefore As Long, lgAfter As Long, lgCount As Long
     End If
   Next Task
 
-  Application.CloseUndoTransaction
 
   MsgBox Format(lgCount, "#,##0") & " task names trimmed.", vbInformation + vbOKOnly, "Trim Task Names"
 
 exit_here:
   On Error Resume Next
+  Application.CloseUndoTransaction
 
   Exit Sub
 err_here:
@@ -332,6 +332,7 @@ Dim lngItem As Long
     Next Task
   End If
 
+  Call StartEvents
   cptText_frm.Show
   
 exit_here:
@@ -348,6 +349,7 @@ End Sub
 Sub UpdatePreview(Optional strPrepend As String, Optional strAppend As String, Optional strPrefix As String, Optional lgCharacters As Long, Optional lgStartAt As Long, _
                   Optional lgCountBy As Long, Optional strSuffix As String, Optional strReplaceWhat As String, Optional strReplaceWith As String)
 'objects
+Dim Task As Object
 'strings
 Dim strTaskName As String, strEnumerate As String
 'longs
@@ -360,7 +362,18 @@ Dim lngItem As Long, lgEnumerate As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   For lngItem = 0 To cptText_frm.lboOutput.ListCount - 1
-    strTaskName = ActiveProject.Tasks.UniqueID(cptText_frm.lboOutput.List(lngItem, 0)).Name
+    On Error Resume Next
+    Set Task = ActiveProject.Tasks.UniqueID(cptText_frm.lboOutput.List(lngItem, 0))
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If Task Is Nothing Then
+      If MsgBox("UID " & cptText_frm.lboOutput.List(lngItem, 0) & " not found in " & UCase(ActiveProject.Name) & "! Proceed?", vbCritical + vbYesNo, "Task Not Found") = vbNo Then
+        err.Clear
+        GoTo exit_here
+      Else
+        GoTo next_item
+      End If
+    End If
+    strTaskName = Task.Name
     If Len(strPrepend) > 0 Then
       strTaskName = Trim(strPrepend) & " " & strTaskName
     ElseIf Len(cptText_frm.txtPrepend.Value) > 0 Then
@@ -412,11 +425,16 @@ Dim lngItem As Long, lgEnumerate As Long
     End If
     
     'todo: replace
-    
+    If Len(strReplaceWhat) > 0 And Len(strReplaceWith) > 0 Then
+      strTaskName = Replace(strTaskName, strReplaceWhat, strReplaceWith)
+      cptText_frm.lboOutput.List(lngItem, 1) = strTaskName
+    End If
+next_item:
   Next lngItem
 
 exit_here:
   On Error Resume Next
+  Set Task = Nothing
 
   Exit Sub
 err_here:

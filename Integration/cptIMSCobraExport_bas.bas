@@ -588,7 +588,7 @@ Private Sub DataChecks(ByVal curProj As Project)
                             CAMChecks(i).CAM_Error = True
                         End If
                         
-                        GoTo Next_Task
+                        GoTo next_task
                     
                     End If
                 
@@ -654,7 +654,7 @@ Private Sub DataChecks(ByVal curProj As Project)
                             
                         End If
                         
-                        GoTo Next_Task
+                        GoTo next_task
 
                     End If
                 
@@ -682,7 +682,7 @@ Private Sub DataChecks(ByVal curProj As Project)
         
         End If
         
-Next_Task:
+next_task:
 
         '**Report Tasks Missing Metadata**
         
@@ -4124,7 +4124,7 @@ Next_SProj_Task:
                             
                             If BCRxport = True Then
                                 If IsInArray(WP, BCR_WP) = False Then
-                                    GoTo Next_Task
+                                    GoTo next_task
                                 End If
                             End If
                             
@@ -4251,7 +4251,7 @@ WP_Match_B:
                     End If
                     
                 End If
-Next_Task:
+next_task:
 
             Next t
     

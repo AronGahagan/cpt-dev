@@ -85,7 +85,7 @@ Dim strAbout As String
   'strAbout = strAbout & "http://ClearPlanConsulting.com" & vbCrLf & vbCrLf
   strAbout = strAbout & "This software is provided free of charge," & vbCrLf
   strAbout = strAbout & "AS IS and without warranty." & vbCrLf
-  strAbout = strAbout & "It is free to use, free to distribut with prior written consent from the developers/copyright holder and without modification." & vbCrLf & vbCrLf
+  strAbout = strAbout & "It is free to use, free to distribute with prior written consent from the developers/copyright holders and without modification." & vbCrLf & vbCrLf
   strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright 2019, ClearPlanConsulting, LLC"
   cptAbout_frm.txtAbout.Value = strAbout
   
@@ -289,10 +289,10 @@ Sub cptResetAll()
   Sort "ID"
   SelectBeginning
   
-  Application.CloseUndoTransaction
 
 exit_here:
   On Error Resume Next
+  Application.CloseUndoTransaction
 
   Exit Sub
 err_here:
@@ -486,10 +486,12 @@ Sub HandleErr(strModule As String, strProcedure As String, err As ErrObject)
 'common error handling prompt
 Dim strMsg As String
 
-    strMsg = "Module: " & strModule & vbCrLf
+    strMsg = "Uh oh! Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
+    strMsg = strMsg & "Error Information:"
+    strMsg = strMsg & "Module: " & strModule & vbCrLf
     strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf
     strMsg = strMsg & err.Number & ": " & err.Description
-    MsgBox strMsg, vbExclamation + vbOKOnly, "Error"
+    MsgBox strMsg, vbExclamation + vbOKOnly, "Unknown Error"
     
 End Sub
 
@@ -550,10 +552,10 @@ Dim lgLevel As Long
     OutlineShowTasks lgLevel
   Next lgLevel
   SelectBeginning
-  Application.CloseUndoTransaction
 
 exit_here:
   On Error Resume Next
+  Application.CloseUndoTransaction
   cptSpeed False
   Exit Sub
   
@@ -608,10 +610,10 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMyReplace"" label=""MyReplace"" imageMso=""ReplaceDialog"" onAction=""MyReplace"" visible=""true""/>"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bEnumerate"" label=""Enumerate"" imageMso=""NumberingRestart"" onAction=""Enumerate"" visible=""true""/>"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrimText"" label=""Trim Task Names"" imageMso=""TextEffectsClear"" onAction=""TrimTaskNames"" visible=""true""/>"
-    'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process"" imageMso=""DuplicateSelectedSlides"" onAction=""ReplicateProcess"" visible=""true"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process"" imageMso=""DuplicateSelectedSlides"" onAction=""ReplicateProcess"" visible=""true"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""FindDuplicateTaskNames"" visible=""true""/>"
-    'ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ />"
-    'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdvancedTextTools"" label=""Advanced (WIP)"" imageMso=""AdvancedFilterDialog"" onAction=""ShowcptText_frm"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdvancedTextTools"" label=""Advanced (beta)"" imageMso=""AdvancedFilterDialog"" onAction=""ShowcptText_frm"" visible=""true""/>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If

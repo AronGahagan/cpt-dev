@@ -46,7 +46,7 @@ Dim lngItem As Long, lngItems As Long
             cptText_frm.lboOutput.List(lngItem, 1) = Task.Name
             lngItem = lngItem + 1
           Next Task
-          Call ThisProject.VBProject.VBComponents("cptText_bas").UpdatePreview
+          Call cptText_bas.UpdatePreview
         End If
       End If
     End If
@@ -66,8 +66,8 @@ Dim lngItem As Long, lngItems As Long
   ElseIf ActiveProject.Application.ActiveWindow.ActivePane.View.Type = pjResourceItem Then
     Set Resources = ActiveSelection.Resources
     If Not Resources Is Nothing Then
-      lngItems = ActiveSelection.Tasks.count
-      Application.StatusBar = Format(lngItems, "#,##0") & " resources" & IIf(lngItems = 1, "", "s") & " selected"
+      lngItems = ActiveSelection.Resources.count
+      Application.StatusBar = Format(lngItems, "#,##0") & " resource" & IIf(lngItems = 1, "", "s") & " selected"
     Else
       Application.StatusBar = "0 resources selected"
     End If

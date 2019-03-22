@@ -89,7 +89,7 @@ Dim aUserFields() As Variant
   'iterate over tasks
   For Each Task In ActiveProject.Tasks
     If Not Task Is Nothing Then 'skip blank lines
-    If Task.ExternalTask Then GoTo Next_Task 'skip external tasks
+    If Task.ExternalTask Then GoTo next_task 'skip external tasks
     If Not Task.Summary And Task.RemainingDuration > 0 And Task.Active Then 'skip summary, complete tasks/milestones, and inactive
     If Task.Start > ActiveProject.StatusDate Then dtStart = Task.Start Else dtStart = ActiveProject.StatusDate
       'examine every assignment on the task
@@ -115,7 +115,7 @@ next_assignment:
         Next Assignment
       End If
     End If
-Next_Task:
+next_task:
     lgTask = lgTask + 1
     Application.StatusBar = "Exporting " & Format(lgTask, "#,##0") & " of " & Format(lgTasks, "#,##0") & "...(" & Format(lgTask / lgTasks, "0%") & ")"
     cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
@@ -193,7 +193,7 @@ Next_Task:
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
   
   'create the PivotTable
-  Workbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:= _
+  Workbook.PivotCaches.create(SourceType:=xlDatabase, SourceData:= _
         strRange, Version:= _
         xlPivotTableVersion12).CreatePivotTable TableDestination:="ResourceDemand!R3C1", _
         TableName:="RESOURCE_DEMAND", DefaultVersion:=xlPivotTableVersion12

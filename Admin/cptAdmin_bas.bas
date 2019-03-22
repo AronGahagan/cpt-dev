@@ -201,6 +201,8 @@ Dim strDirectory As String
     'Setup
     Case "Setup"
       strDirectory = ""
+    Case "Patch"
+      strDirectory = ""
     'Core
     Case "BrowseFolder"
       strDirectory = "Core"
