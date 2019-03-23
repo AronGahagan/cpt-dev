@@ -4617,22 +4617,22 @@ Next_WPtask:
 
 End Function
 
-Private Function IsInArray_Old(ByVal arr As Variant, ByVal WP_ID As String) As Boolean
-
-    Dim i As Integer
-    
-    i = 1
-    
-    For i = 1 To UBound(arr)
-        If arr(i) = WP_ID Then
-            IsInArray = True
-            Exit Function
-        End If
-    Next i
-    
-    IsInArray = False
-
-End Function
+'Private Function IsInArray_Old(ByVal arr As Variant, ByVal WP_ID As String) As Boolean
+'
+'    Dim i As Integer
+'
+'    i = 1
+'
+'    For i = 1 To UBound(arr)
+'        If arr(i) = WP_ID Then
+'            IsInArray = True
+'            Exit Function
+'        End If
+'    Next i
+'
+'    IsInArray = False
+'
+'End Function
 
 Private Function RemoveIllegalCharacters(ByVal strText As String) As String
 
@@ -4758,8 +4758,8 @@ Private Function PercentfromString(ByVal inputStr As String) As Double
 End Function
 Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal tAssign As Assignment, ResFile As Integer, exportType As String)
 
-    Dim tsv As TimeScaleValue
-    Dim tsvs As TimeScaleValues
+    Dim TSV As TimeScaleValue
+    Dim TSVS As TimeScaleValues
     Dim tsvsa As TimeScaleValues
     Dim tsva As TimeScaleValue
     Dim tempWork As Double
@@ -4774,42 +4774,42 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                                     
                     If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
                     
-                        Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
+                        Set TSVS = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
                         Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks)
                         
-                        For Each tsv In tsvs
+                        For Each TSV In TSVS
                         
-                            Set tsva = tsvsa(tsv.Index)
+                            Set tsva = tsvsa(TSV.Index)
                             
                             tempWork = 0
                             
                             If tsva <> "" Then
-                                tempWork = CDbl(tsv.Value) - CLng(tsva.Value)
-                            ElseIf tsv.Value <> "" Then
-                                tempWork = CDbl(tsv.Value)
+                                tempWork = CDbl(TSV.Value) - CLng(tsva.Value)
+                            ElseIf TSV.Value <> "" Then
+                                tempWork = CDbl(TSV.Value)
                             End If
                         
                             If tempWork <> 0 Then
                             
-                                If tsvs.count = 1 Then
+                                If TSVS.count = 1 Then
                                 
                                     Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                 
                                 Else
                                 
-                                    Select Case tsv.Index
+                                    Select Case TSV.Index
                                     
                                         Case 1
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                                     
-                                        Case tsvs.count
+                                        Case TSVS.count
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                             
                                         Case Else
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                                     
                                     End Select
                                     
@@ -4817,36 +4817,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
     
                             End If
                         
-                        Next tsv
+                        Next TSV
                         
                         Exit Sub
                                     
                     ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
                     
-                        Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
-                        For Each tsv In tsvs
+                        Set TSVS = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
+                        For Each TSV In TSVS
                         
-                            If tsv.Value <> "" Then
+                            If TSV.Value <> "" Then
                             
-                                If tsvs.count = 1 Then
+                                If TSVS.count = 1 Then
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
                                 Else
                                 
-                                    Select Case tsv.Index
+                                    Select Case TSV.Index
                                     
                                         Case 1
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                                     
-                                        Case tsvs.count
+                                        Case TSVS.count
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                             
                                         Case Else
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                                     
                                     End Select
                                     
@@ -4854,7 +4854,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                                 
                             End If
                             
-                        Next tsv
+                        Next TSV
                         
                         Exit Sub
                     
@@ -4864,42 +4864,42 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                     
                 If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
                 
-                    Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
+                    Set TSVS = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
                     Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleWeeks)
                     
-                    For Each tsv In tsvs
+                    For Each TSV In TSVS
                     
-                        Set tsva = tsvsa(tsv.Index)
+                        Set tsva = tsvsa(TSV.Index)
                         
                         tempWork = 0
                         
                         If tsva <> "" Then
-                            tempWork = CDbl(tsv.Value) - CLng(tsva.Value)
-                        ElseIf tsv.Value <> "" Then
-                            tempWork = CDbl(tsv.Value)
+                            tempWork = CDbl(TSV.Value) - CLng(tsva.Value)
+                        ElseIf TSV.Value <> "" Then
+                            tempWork = CDbl(TSV.Value)
                         End If
                     
                         If tempWork <> 0 Then
                         
-                            If tsvs.count = 1 Then
+                            If TSVS.count = 1 Then
                             
                                 Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                             
                             Else
                             
-                                Select Case tsv.Index
+                                Select Case TSV.Index
                                 
                                     Case 1
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                                 
-                                    Case tsvs.count
+                                    Case TSVS.count
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                         
                                     Case Else
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                                 
                                 End Select
                                 
@@ -4907,36 +4907,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                         End If
                     
-                    Next tsv
+                    Next TSV
                     
                     Exit Sub
                                
                 ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
                 
-                    Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
-                    For Each tsv In tsvs
+                    Set TSVS = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
+                    For Each TSV In TSVS
                     
-                        If tsv.Value <> "" Then
+                        If TSV.Value <> "" Then
                         
-                            If tsvs.count = 1 Then
+                            If TSVS.count = 1 Then
                             
-                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                             
                             Else
                             
-                                Select Case tsv.Index
+                                Select Case TSV.Index
                                 
                                     Case 1
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                                 
-                                    Case tsvs.count
+                                    Case TSVS.count
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                         
                                     Case Else
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                                 
                                 End Select
                                 
@@ -4944,7 +4944,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                             
                         End If
                         
-                    Next tsv
+                    Next TSV
                     
                     Exit Sub
                 
@@ -4954,42 +4954,42 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
             
                 If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
                     
-                        Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
+                        Set TSVS = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
                         Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks)
                         
-                        For Each tsv In tsvs
+                        For Each TSV In TSVS
                         
-                            Set tsva = tsvsa(tsv.Index)
+                            Set tsva = tsvsa(TSV.Index)
                             
                             tempWork = 0
                             
                             If tsva <> "" Then
-                                tempWork = CDbl(tsv.Value) - CLng(tsva.Value)
-                            ElseIf tsv.Value <> "" Then
-                                tempWork = CDbl(tsv.Value)
+                                tempWork = CDbl(TSV.Value) - CLng(tsva.Value)
+                            ElseIf TSV.Value <> "" Then
+                                tempWork = CDbl(TSV.Value)
                             End If
                         
                             If tempWork <> 0 Then
                             
-                                If tsvs.count = 1 Then
+                                If TSVS.count = 1 Then
                                     
                                     Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                 
                                 Else
                                 
-                                    Select Case tsv.Index
+                                    Select Case TSV.Index
                                     
                                         Case 1
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                                     
-                                        Case tsvs.count
+                                        Case TSVS.count
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                             
                                         Case Else
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                                     
                                     End Select
                                     
@@ -4997,36 +4997,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
     
                             End If
                         
-                        Next tsv
+                        Next TSV
                         
                         Exit Sub
                                     
                     ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
                     
-                        Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
-                        For Each tsv In tsvs
+                        Set TSVS = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
+                        For Each TSV In TSVS
                         
-                            If tsv.Value <> "" Then
+                            If TSV.Value <> "" Then
                             
-                                If tsvs.count = 1 Then
+                                If TSVS.count = 1 Then
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                 
                                 Else
                                 
-                                    Select Case tsv.Index
+                                    Select Case TSV.Index
                                     
                                         Case 1
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                                     
-                                        Case tsvs.count
+                                        Case TSVS.count
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
                                             
                                         Case Else
                                         
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                                     
                                     End Select
                                     
@@ -5034,7 +5034,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                                 
                             End If
                             
-                        Next tsv
+                        Next TSV
                         
                         Exit Sub
                     
@@ -5048,30 +5048,30 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                 
                 Case pjResourceTypeWork
                                              
-                    Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
-                    For Each tsv In tsvs
+                    Set TSVS = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
+                    For Each TSV In TSVS
                     
-                        If tsv.Value <> "" Then
+                        If TSV.Value <> "" Then
                         
-                            If tsvs.count = 1 Then
+                            If TSVS.count = 1 Then
                             
-                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
                             
                             Else
                             
-                                Select Case tsv.Index
+                                Select Case TSV.Index
                                 
                                     Case 1
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                                 
-                                    Case tsvs.count
+                                    Case TSVS.count
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
                                         
                                     Case Else
                                     
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                                 
                                 End Select
                                 
@@ -5079,36 +5079,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                             
                         End If
                         
-                    Next tsv
+                    Next TSV
                     
                     Exit Sub
                 
             Case pjResourceTypeCost
                 
-                Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineCost, pjTimescaleWeeks)
-                For Each tsv In tsvs
+                Set TSVS = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineCost, pjTimescaleWeeks)
+                For Each TSV In TSVS
                 
-                    If tsv.Value <> "" Then
+                    If TSV.Value <> "" Then
                     
-                        If tsvs.count = 1 Then
+                        If TSVS.count = 1 Then
                         
-                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
                         
                         Else
                         
-                            Select Case tsv.Index
+                            Select Case TSV.Index
                             
                                 Case 1
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                             
-                                Case tsvs.count
+                                Case TSVS.count
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
                                     
                                 Case Else
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                             
                             End Select
                             
@@ -5116,36 +5116,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                         
                     End If
                     
-                Next tsv
+                Next TSV
                 
                 Exit Sub
             
             Case pjResourceTypeMaterial
             
-                Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
-                For Each tsv In tsvs
+                Set TSVS = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
+                For Each TSV In TSVS
                 
-                    If tsv.Value <> "" Then
+                    If TSV.Value <> "" Then
                     
-                        If tsvs.count = 1 Then
+                        If TSVS.count = 1 Then
                         
-                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
                         
                         Else
                         
-                            Select Case tsv.Index
+                            Select Case TSV.Index
                             
                                 Case 1
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                             
-                                Case tsvs.count
+                                Case TSVS.count
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
                                     
                                 Case Else
                                 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.startDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.startDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
                             
                             End Select
                         
@@ -5153,7 +5153,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                         
                     End If
                     
-                Next tsv
+                Next TSV
                 
                 Exit Sub
             

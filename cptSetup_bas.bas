@@ -123,7 +123,7 @@ frx:
           If vbComponent.Name = strModule Then
             Application.StatusBar = "Removing obsolete version of " & vbComponent.Name
             'Debug.Print Application.StatusBar
-            ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
+            ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
           End If
         Next vbComponent
         
@@ -160,7 +160,7 @@ next_xmlNode:
         arrCode.Add CStr(vEvent), .Lines(.ProcStartLine(CStr(vEvent), 0) + 2, .ProcCountLines(CStr(vEvent), 0) - 3) '0 = vbext_pk_Proc
       Next
     End With
-    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
+    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
     
     'add the events, or insert new text
     'three cases: empty or not empty (code exists or not)

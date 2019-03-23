@@ -35,7 +35,8 @@ End Type
 
 Private DrivingTasks() As DrivingTask 'var to store DrivingTask type
 Private drivingTasksCount As Integer 'coung of DrivingTasks
-Private export_to_PPT As Boolean 'cpt ToolBar controlled var for controlling user notification of completed analysis
+'/ag edit private > public\
+Public export_to_PPT As Boolean 'cpt ToolBar controlled var for controlling user notification of completed analysis
 
 Sub DrivingPaths()
 'Primary analysis module that controls analysis
@@ -340,8 +341,8 @@ Private Sub SetGroupCPFieldLookupTable(ByVal GroupField As String, ByVal curProj
 'Set Crit and Group field names, assign lookup table to Group Field
 
     'Store Field Names
-    curProj.Application.CustomFieldRename FieldID:=FieldNameToFieldConstant(CritField), newname:="CP Driving Paths"
-    curProj.Application.CustomFieldRename FieldID:=FieldNameToFieldConstant(GroupField), newname:="CP Driving Path Group ID"
+    curProj.Application.CustomFieldRename FieldID:=FieldNameToFieldConstant(CritField), NewName:="CP Driving Paths"
+    curProj.Application.CustomFieldRename FieldID:=FieldNameToFieldConstant(GroupField), NewName:="CP Driving Path Group ID"
     
     'Setup Lookup Table Properties
     curProj.Application.CustomFieldPropertiesEx FieldID:=FieldNameToFieldConstant(GroupField), Attribute:=pjFieldAttributeNone

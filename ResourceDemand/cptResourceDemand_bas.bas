@@ -9,7 +9,7 @@ Private Const adVarChar As Long = 200
 Sub ExportResourceDemand(Optional lngTaskCount As Long)
 'objects
 Dim Task As Task, Resource As Resource, Assignment As Assignment
-Dim tsvs As TimeScaleValues, tsv As TimeScaleValue
+Dim TSVS As TimeScaleValues, TSV As TimeScaleValue
 Dim TSVS_WORK As TimeScaleValues, TSVS_ACTUAL As TimeScaleValues
 Dim xlApp As Excel.Application, Worksheet As Worksheet, Workbook As Workbook
 Dim rng As Excel.Range
@@ -98,18 +98,18 @@ Dim aUserFields() As Variant
         If Assignment.ResourceType = pjResourceTypeWork Then
           'capture timephased work (ETC)
           Set TSVS_WORK = Assignment.TimeScaleData(DateAdd("d", -7, dtStart), Task.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks, 1)
-          For Each tsv In TSVS_WORK
+          For Each TSV In TSVS_WORK
             'capture (and subtract) actual work, leaving ETC/Remaining Work
-            Set TSVS_ACTUAL = Assignment.TimeScaleData(tsv.startDate, tsv.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleWeeks, 1)
-            dblWork = Val(tsv.Value) - Val(TSVS_ACTUAL(1))
+            Set TSVS_ACTUAL = Assignment.TimeScaleData(TSV.startDate, TSV.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleWeeks, 1)
+            dblWork = Val(TSV.Value) - Val(TSVS_ACTUAL(1))
             'write a record to the CSV
-            strRecord = Task.Project & ",[" & Task.UniqueID & "] " & Replace(Task.Name, ",", "") & "," & Assignment.ResourceName & "," & dblWork / 60 & "," & DateAdd("d", 1, tsv.startDate)
+            strRecord = Task.Project & ",[" & Task.UniqueID & "] " & Replace(Task.Name, ",", "") & "," & Assignment.ResourceName & "," & dblWork / 60 & "," & DateAdd("d", 1, TSV.startDate)
             For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
               lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
               strRecord = strRecord & "," & Task.GetField(lgField)
             Next lgExport
             Print #lgFile, strRecord
-          Next tsv
+          Next TSV
         End If
 next_assignment:
         Next Assignment

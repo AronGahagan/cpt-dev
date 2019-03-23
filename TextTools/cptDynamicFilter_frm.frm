@@ -47,8 +47,7 @@ Private Sub chkShowRelatedSummaries_Click()
 End Sub
 
 Private Sub cmdClear_Click()
-  Me.txtFilter.SetFocus
-  Me.txtFilter.Text = ""
+  FilterClear
 End Sub
 
 Private Sub cmdDone_Click()

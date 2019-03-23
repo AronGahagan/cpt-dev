@@ -101,7 +101,7 @@ get_frx:
       End If
       
       If ModuleExists(strModule) Then
-        ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(strModule)
+        ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(strModule)
       End If
       ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
       

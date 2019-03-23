@@ -278,7 +278,17 @@ End Function
 Sub cptResetAll()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  '===
+  'Validate users selected view type
+  If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
+    MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "Dynamic Filter"
+    GoTo exit_here
+  End If
+  'Validate users selected window pane - select the task table if not active
+  If ActiveProject.Application.ActiveWindow.ActivePane.Index <> 1 Then
+    ActiveProject.Application.ActiveWindow.TopPane.Activate
+  End If
+  '===
   Application.OpenUndoTransaction "Reset All"
   
   FilterClear
@@ -289,7 +299,6 @@ Sub cptResetAll()
   Sort "ID"
   SelectBeginning
   
-
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
@@ -626,10 +635,10 @@ Dim lngCleanUp As Long
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrace"" label=""Driving Path"" imageMso=""TaskDrivers"" onAction=""DrivingPaths"" visible=""true"" size=""large"" />"
     End If
     If ModuleExists("cptCriticalPathTools_bas") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExport"" label=""Export to PowerPoint"" imageMso=""SlideNew"" onAction=""ExportCriticalPathSelected"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExport"" label=""Export to PowerPoint"" imageMso=""SlideNew"" onAction=""ExportCriticalPathSelected"" visible=""true"" size=""large"" />"
     End If
     'ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReset"" label=""Reset View"" imageMso=""FilterClear"" onAction=""ResetView"" visible=""true""/>"
+    'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReset"" label=""Reset View"" imageMso=""FilterClear"" onAction=""cptResetAll"" visible=""true""/>" 'ResetView - basicallly a duplicate, remove it
     'ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
