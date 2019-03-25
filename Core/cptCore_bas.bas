@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptCore_bas"
 '<cpt_version>v1.2</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private oMSPEvents As cptEvents_cls

@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.0</cpt_version>
+'<cpt_version>v1.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -13,11 +13,11 @@ Private Declare Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lp
 
 Sub cptSetup()
 'objects
-Dim vbComponent As Object
+Dim vbComponent As Object 'vbComponent
 Dim arrCode As Object
-Dim cmThisProject As CodeModule
-Dim cmCptThisProject As CodeModule
-Dim oStream As Object
+Dim cmThisProject As Object 'CodeModule
+Dim cmCptThisProject As Object 'CodeModule
+Dim oStream As Object 'ADODB.Stream
 Dim xmlHttpDoc As Object
 Dim xmlNode As Object
 Dim xmlDoc As Object
