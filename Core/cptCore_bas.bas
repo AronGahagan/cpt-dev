@@ -17,6 +17,40 @@ Function cptSpeed(blnOn As Boolean)
   
 End Function
 
+Function GetUserForm(strModuleName As String) As UserForm
+'objects
+Dim UserForm As Object
+'strings
+'longs
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  For Each UserForm In VBA.UserForms
+    If UserForm.Name = strModuleName Then
+      Set GetUserForm = UserForm
+      Exit For
+    End If
+  Next
+
+exit_here:
+  On Error Resume Next
+  Set UserForm = Nothing
+
+  Exit Function
+err_here:
+  Call HandleErr("cptCore_bas", "GetModule()", err)
+  Resume exit_here
+End Function
+
+Function GetControl(ByRef cptForm_frm As UserForm, strControlName As String) As control
+  Set GetControl = cptForm_frm.Controls(strControlName)
+End Function
+
 Function GetUserFullName()
 'used to add user's name to PowerPoint title slide
 Dim objAllNames As Object, objIndName As Object
@@ -665,6 +699,18 @@ Dim lngCleanUp As Long
   'scenarios
   
   'compare
+  
+'  'metrics
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gMetrics"" label=""Schedule Metrics"" visible=""true"" >"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mMetrics"" label=""Metrics"" imageMso=""ApplyPercentageFormat"" visible=""true"" size=""large"" >"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSPI"" label=""SPI"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSPI"" visible=""true""/>"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""other"" id=""cleanup_" & Increment(lngCleanUp) & """ />"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBAC"" label=""BAC"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBAC"" visible=""true""/>"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bETC"" label=""ETC"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetETC"" visible=""true""/>"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWS"" label=""BCWS"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWS"" visible=""true""/>"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWP"" label=""BCWP"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWP"" visible=""true""/>"
+'  ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+'  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   
   'integration
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gIntegration"" label=""Integration"" visible=""true"" >"

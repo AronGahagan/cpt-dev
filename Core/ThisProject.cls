@@ -8,6 +8,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
 '<cpt_version>v1.1</cpt_version>
+'file: Global.MPT ThisProject
 
 Private Sub Project_Activate(ByVal pj As Project)
 Dim ribbonXML As String
