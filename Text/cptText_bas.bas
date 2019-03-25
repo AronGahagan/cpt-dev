@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.0</cpt_version>
+'<cpt_version>v1.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -114,7 +114,7 @@ Dim vbResponse As Variant, lgEnumerate As Long, lgStart As Long
   End If
   lgEnumerate = CLng(vbResponse)
   
-  SpeedON
+  cptSpeed True
   
   Application.OpenUndoTransaction "Enumeration"
   
@@ -128,7 +128,7 @@ Dim vbResponse As Variant, lgEnumerate As Long, lgStart As Long
 next_task:
     Next
   End If
-  SpeedOFF
+  cptSpeed False
 
 
 exit_here:
@@ -145,43 +145,82 @@ err_here:
 End Sub
 
 Sub MyReplace()
+'fields affected: Marked, Task Name, Text Fields, Outline Code Fields
+'objects
+Dim arrReplaced As Object
 Dim Tasks As Tasks, Task As Task
-Dim strFind As String, strReplace As String
-Dim lgField As Variant, lgFound As Long
+'strings
+Dim strMsg As String
+'longs
+Dim lngItem As Long
+Dim lngFound As Long
+'integers
+'doubles
+'booleans
+'variants
+Dim vField As Variant, vFind As Variant, vReplace As Variant
+'dates
 
   On Error Resume Next
+  cptSpeed True
   Set Tasks = ActiveSelection.Tasks
   If Tasks Is Nothing Then Exit Sub
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  strFind = Trim(InputBox("Find what text:", "Replace"))
-  strReplace = InputBox("Replace '" & strFind & "' with what text:", "Replace")
-
+  'get string to find
+  vFind = InputBox("Find what text:", "Replace")
+  If StrPtr(vFind) = 0 Then GoTo exit_here 'user hit cancel
+  vFind = Trim(vFind)
+  
+  'get string to replace it with
+  vReplace = InputBox("Replace '" & strFind & "' with what text:", "Replace")
+  If StrPtr(vReplace) = 0 Then GoTo exit_here 'user hit cancel
+  vReplace = Trim(vReplace)
+  
   Application.OpenUndoTransaction "MyReplace"
 
+  Set arrReplaced = CreateObject("System.Collections.SortedList")
+
   For Each Task In Tasks
+    If Task Is Nothing Then GoTo next_task
     If Task.ExternalTask Then GoTo next_task
-    For Each lgField In ActiveSelection.FieldIDList
+    For Each vField In ActiveSelection.FieldIDList
       'limit to text fields
-      If Len(RegEx(FieldConstantToFieldName(lgField), "Text|Name")) > 0 Then
-        If InStr(Task.GetField(lgField), strFind) > 0 Then
-          Task.SetField lgField, Replace(Task.GetField(lgField), strFind, strReplace)
-          lgFound = lgFound + 1
+      If Len(RegEx(FieldConstantToFieldName(vField), "Text|Name")) > 0 Then
+        If InStr(Task.GetField(vField), CStr(vFind)) > 0 Then
+          Task.SetField vField, Replace(Task.GetField(vField), CStr(vFind), CStr(vReplace))
+          arrReplaced.Add Task.UniqueID, Task.UniqueID
+          lngFound = lngFound + 1
         End If
       End If
-    Next lgField
+    Next vField
 next_task:
   Next Task
 
-
-  If lgFound = 0 Then
-    MsgBox "No instances of '" & strFind & "' found in selected cells.", vbExclamation + vbOKOnly, "Replace"
+  If lngFound = 0 Then
+    MsgBox "No instances of '" & CStr(vFind) & "' found in selected cells.", vbExclamation + vbOKOnly, "MyReplace"
   Else
-    MsgBox "Replaced " & Format(lgFound, "#,##0") & " instance" & IIf(lgFound = 1, "", "s") & " of '" & strFind & "' with '" & strReplace & "'", vbInformation + vbOKOnly, "Replace"
+    FilterEdit "MyReplace", True, True, True, False, , "Unique ID", , "equals", arrReplaced.getKey(0), "Or", True
+    For lngItem = 1 To arrReplaced.count - 1
+      FilterEdit "MyReplace", Taskfilter:=True, FieldName:="", NewFieldName:="Unique ID", test:="equals", Value:=arrReplaced.getKey(lngItem), operation:="Or", ShowInMenu:=True
+    Next lngItem
+    FilterApply "MyReplace", True
+    Application.Find "Unique ID", "equals", arrReplaced.getKey(0)
+    cptSpeed False
+    strMsg = "Replaced " & Format(lngFound, "#,##0") & " instance" & IIf(lngFound = 1, "", "s") & " of '" & CStr(vFind) & "' with '" & CStr(vReplace) & "'" & vbCrLf & vbCrLf
+    strMsg = strMsg & "Keep highlighted?"
+    If MsgBox(strMsg, vbQuestion + vbYesNo, "Replace") = vbNo Then
+      cptSpeed True
+      FilterApply "All Tasks", True
+      Application.Find "Unique ID", "equals", arrReplaced.getKey(0)
+      cptSpeed False
+    End If
   End If
-
+  
 exit_here:
   On Error Resume Next
+  cptSpeed False
+  Set arrReplaced = Nothing
   Application.CloseUndoTransaction
   Set Tasks = Nothing
   Set Task = Nothing
@@ -211,7 +250,7 @@ Dim lgNameCol As Long
   If Not CheckReference("Excel") Then GoTo exit_here
 
   On Error GoTo err_here
-  MapEdit Name:="ExportTaskNames", create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="All Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
+  MapEdit Name:="ExportTaskNames", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="All Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
   If blnMaster Then
     MapEdit Name:="ExportTaskNames", DataCategory:=0, FieldName:="Project", ExternalFieldName:="Project"
   End If
@@ -387,7 +426,7 @@ Dim lngItem As Long, lgEnumerate As Long
     cptText_frm.chkIsDirty = cptText_frm.CheckDirty
     If cptText_frm.chkIsDirty Then
       strEnumerate = IIf(Len(strPrefix) > 0, strPrefix, cptText_frm.txtPrefix.Value)
-      
+
       If lgStartAt = 0 Then
         If cptText_frm.txtStartAt.Value = "" Then
           lgStartAt = 1
@@ -396,7 +435,7 @@ Dim lngItem As Long, lgEnumerate As Long
           lgStartAt = CLng(cptText_frm.txtStartAt.Value)
         End If
       End If
-      
+
       If lgCountBy = 0 Then
         If cptText_frm.txtCountBy.Value = "" Then
           lgCountBy = 1
@@ -405,9 +444,9 @@ Dim lngItem As Long, lgEnumerate As Long
           lgCountBy = CLng(cptText_frm.txtCountBy.Value)
         End If
       End If
-      
+
       lgEnumerate = lgStartAt + (lngItem * lgCountBy)
-      
+
       If lgCharacters = 0 Then
         If cptText_frm.txtCharacters.Value = "" Then
           lgCharacters = 1
@@ -416,14 +455,14 @@ Dim lngItem As Long, lgEnumerate As Long
           lgCharacters = CLng(cptText_frm.txtCharacters.Value)
         End If
       End If
-          
+
       strEnumerate = strEnumerate & Format(lgEnumerate, String(lgCharacters, "0"))
       strEnumerate = strEnumerate & IIf(Len(strSuffix) > 0, strSuffix, cptText_frm.txtSuffix.Value)
       cptText_frm.lboOutput.List(lngItem, 1) = strTaskName & " " & strEnumerate
     Else
       cptText_frm.lboOutput.List(lngItem, 1) = strTaskName
     End If
-    
+
     'todo: replace
     If Len(strReplaceWhat) > 0 And Len(strReplaceWith) > 0 Then
       strTaskName = Replace(strTaskName, strReplaceWhat, strReplaceWith)
@@ -440,7 +479,7 @@ exit_here:
 err_here:
   Call HandleErr("cptText_bas", "UpdatePreview", err)
   Resume exit_here
-  
+
 End Sub
 
 
