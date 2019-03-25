@@ -7,9 +7,9 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
-'<cpt_version>v0.1</cpt_version>
+'<cpt_version>v1.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private WithEvents MyMSPApplication As Application
 Attribute MyMSPApplication.VB_VarHelpID = -1
@@ -22,6 +22,8 @@ End Sub
 
 Private Sub MyMSPApplication_WindowSelectionChange(ByVal Window As Window, ByVal sel As Selection, ByVal selType As Variant)
 'objects
+Dim ctl As Object
+Dim frmText As Object 'UserForm
 Dim Tasks As Tasks, Task As Task, Resources As Resources, Resource As Resource
 'strings
 'longs
@@ -36,18 +38,20 @@ Dim lngItem As Long, lngItems As Long
   On Error Resume Next
   'Validate users selected view type
   If ActiveProject.Application.ActiveWindow.ActivePane.View.Type = pjTaskItem Then
-    If ModuleExists("cptText_frm") Then
-      If Not IsError(ActiveSelection.Tasks) Then
-        If cptText_frm.Visible Then
-          cptText_frm.lboOutput.Clear
+    If Not IsError(ActiveSelection.Tasks) Then
+      Set frmText = GetUserForm("cptText_frm")
+      Set ctl = GetControl(frmText, "lboOutput")
+      If Not frmText Is Nothing Then
+        'If frmText.Visible Then
+          frmText.Controls("lboOutput").Clear
           For Each Task In ActiveSelection.Tasks
-            cptText_frm.lboOutput.AddItem
-            cptText_frm.lboOutput.List(lngItem, 0) = Task.UniqueID
-            cptText_frm.lboOutput.List(lngItem, 1) = Task.Name
+            frmText.Controls("lboOutput").AddItem
+            frmText.Controls("lboOutput").List(lngItem, 0) = Task.UniqueID
+            frmText.Controls("lboOutput").List(lngItem, 1) = Task.Name
             lngItem = lngItem + 1
           Next Task
-          Call cptText_bas.UpdatePreview
-        End If
+          Application.Run "UpdatePreview"
+        'End If
       End If
     End If
   End If
@@ -75,6 +79,8 @@ Dim lngItem As Long, lngItems As Long
   
 exit_here:
   On Error Resume Next
+  Set ctl = Nothing
+  Set frmText = Nothing
   Set Tasks = Nothing
   Set Resources = Nothing
   Exit Sub
