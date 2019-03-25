@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.1</cpt_version>
+'<cpt_version>v1.1.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Const adVarChar As Long = 200
@@ -320,7 +320,7 @@ exit_here:
   Application.StatusBar = ""
   cptResourceDemand_frm.lblStatus.Caption = "Ready..."
   If FreeFile > 0 Then Close #lgFile
-  SpeedOFF
+  cptSpeed False
   Set Task = Nothing
   Set Resource = Nothing
   Set Assignment = Nothing
@@ -375,7 +375,7 @@ option_1:
     SelectAll
     lngResourceCount = ActiveSelection.Resources.count
     ViewApply strActiveView
-    SpeedOFF
+    cptSpeed False
     If lngResourceCount = 0 Then
       MsgBox "This project has no resources to export.", vbExclamation + vbOKOnly, "No Resources"
       GoTo exit_here
