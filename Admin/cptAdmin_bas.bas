@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptAdmin_bas"
 '>no cpt version - not for release<
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub CreateCurrentVersionsXML(Optional strRepo As String)
@@ -14,6 +14,7 @@ Dim strModule As String
 Dim strDirectory As String
 Dim strFile As String
 Dim strXML As String, strVersion As String, strFileName As String
+Dim strBranch As String
 'longs
 Dim lngFile As Long
 'integers
@@ -23,11 +24,28 @@ Dim lngFile As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If Len(strRepo) = 0 Then
-    strRepo = Environ("USERPROFILE") & "\"
+  'confirm repo selected
+  If Len(frmBackupVBA.cboRepo.Value) = 0 Or Dir(frmBackupVBA.cboRepo.Value & "\.git\", vbDirectory) = vbNullString Then
+    MsgBox "Please select a valid git repo.", vbExclamation + vbOKOnly, "Nope"
+    frmBackupVBA.cboRepo.SetFocus
+    frmBackupVBA.cboRepo.DropDown
+    GoTo exit_here
   Else
-    If MsgBox("Writing to repo: " & vbCrLf & strRepo & ". Proceed?", vbQuestion + vbYesNo, "Please Confirm") = vbNo Then GoTo exit_here
+    strRepo = frmBackupVBA.cboRepo.Value
   End If
+
+  'confirm branch selected
+  If Len(frmBackupVBA.cboBranch.Value) = 0 Then
+    MsgBox "Please select a valid branch.", vbExclamation + vbOKOnly, "Nope"
+    frmBackupVBA.cboBranch.SetFocus
+    frmBackupVBA.cboBranch.DropDown
+    GoTo exit_here
+  Else
+    strBranch = Replace(Replace(frmBackupVBA.cboBranch.Value, Chr(32), ""), "*", "")
+  End If
+
+  'measure twice...
+  If MsgBox("Writing to repo (branch): " & vbCrLf & strRepo & " (" & strBranch & ")", vbQuestion + vbYesNo, "Please Confirm") = vbNo Then GoTo exit_here
 
   'use arrTypes
   Set arrTypes = CreateObject("System.Collections.SortedList")
@@ -58,6 +76,9 @@ next_vbComponent:
   Next vbComponent
   strXML = strXML & "</Modules>" & vbCrLf
   
+  'ensure correct branch is active
+  frmBackupVBA.txtNotes.Value = frmBackupVBA.txtNotes.Value & vbCrLf & String(53, "-") & vbCrLf & Redirect("git", "-C " & strRepo & " checkout " & Replace(Replace(frmBackupVBA.cboBranch.Value, Chr(32), ""), "*", ""))
+  
   'write to the file
   Set oStream = CreateObject("ADODB.Stream")
   oStream.Type = 2 'adTypeText
@@ -69,10 +90,7 @@ next_vbComponent:
   oStream.Close
   Set oStream = Nothing
   
-
-  strMsg = "CurrentVersions.xml created."
-
-  MsgBox strMsg, vbInformation + vbOKOnly, "Complete"
+  frmBackupVBA.txtNotes.Value = frmBackupVBA.txtNotes.Value & vbCrLf & String(53, "-") & vbCrLf & Redirect("git", "-C " & strRepo & " add CurrentVersions.xml")
 
 exit_here:
   On Error Resume Next
@@ -222,7 +240,7 @@ Dim strDirectory As String
       strDirectory = "Integration"
     'TextTools
     Case "DynamicFilter"
-      strDirectory = "TextTools"
+      strDirectory = "Text"
     'Status
     Case "SmartDuration"
       strDirectory = "Status"

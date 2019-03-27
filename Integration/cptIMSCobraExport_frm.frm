@@ -487,7 +487,7 @@ End Sub
 
 Private Sub cancelBtn_Click()
     Me.Tag = "Cancel"
-    Me.Hide
+    Me.hide
 End Sub
 
 Private Sub cptLinkLabel_Click()
@@ -609,7 +609,7 @@ Private Sub ExportBtn_Click()
     End If
 
     Me.Tag = "Export"
-    Me.Hide
+    Me.hide
     
 End Sub
 
@@ -772,7 +772,7 @@ End Sub
 Private Sub RunDataBtn_Click()
     
     Me.Tag = "DataCheck"
-    Me.Hide
+    Me.hide
     
 End Sub
 

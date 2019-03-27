@@ -173,7 +173,7 @@ Dim vField As Variant, vFind As Variant, vReplace As Variant
   vFind = Trim(vFind)
   
   'get string to replace it with
-  vReplace = InputBox("Replace '" & strFind & "' with what text:", "Replace")
+  vReplace = InputBox("Replace '" & CStr(vFind) & "' with what text:", "Replace")
   If StrPtr(vReplace) = 0 Then GoTo exit_here 'user hit cancel
   vReplace = Trim(vReplace)
   
@@ -219,9 +219,9 @@ next_task:
   
 exit_here:
   On Error Resume Next
+  Application.CloseUndoTransaction
   cptSpeed False
   Set arrReplaced = Nothing
-  Application.CloseUndoTransaction
   Set Tasks = Nothing
   Set Task = Nothing
   Exit Sub

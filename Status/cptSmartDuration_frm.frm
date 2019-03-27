@@ -22,7 +22,7 @@ Public startDate As Date
 Private Sub cancelBtn_Click()
 
     Me.Tag = "Cancel"
-    Me.Hide
+    Me.hide
     
 End Sub
 
@@ -30,7 +30,7 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     If CloseMode = vbFormControlMenu Then
         Cancel = True
         Me.Tag = "Cancel"
-        Me.Hide
+        Me.hide
     End If
 End Sub
 
@@ -44,7 +44,7 @@ Private Sub okBtn_Click()
     finDate = CDate(Month(finDate) & "/" & Day(finDate) & "/" & Year(finDate) & " 5:00 PM")
     
     Me.Tag = "OK"
-    Me.Hide
+    Me.hide
     
 End Sub
 

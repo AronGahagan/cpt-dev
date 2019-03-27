@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptDynamicFilter_frm 
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptDynamicFilter_frm
    Caption         =   "Dynamic Filter"
    ClientHeight    =   2190
    ClientLeft      =   45
@@ -14,6 +14,9 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.3</cpt_version>
+Option Explicit
+Private Const BLN_TRAP_ERRORS As Boolean = True
+'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboField_Change()
   If Me.Visible Then Me.txtFilter_Change
@@ -36,7 +39,7 @@ Dim Task As Task
   If Me.chkKeepSelected = True Then
     On Error Resume Next
     Set Task = ActiveSelection.Tasks(1)
-    On Error GoTo 0
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     If Task Is Nothing Then Me.chkKeepSelected = False
     Set Task = Nothing
   End If
@@ -51,7 +54,23 @@ Private Sub cmdClear_Click()
 End Sub
 
 Private Sub cmdDone_Click()
-  Me.Hide
+  Me.hide
+End Sub
+
+Private Sub lblURL_Click()
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If InternetIsConnected Then Application.OpenBrowser ("http://" & Me.lblURL.Caption)
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call HandleErr("cptAbout_frm", "lblURL", err)
+  Resume exit_here
+
 End Sub
 
 Private Sub lblURL_Click()
@@ -77,10 +96,9 @@ Dim strField As String, strOperator As String, strFilterText As String
 Dim blnHideSummaryTasks As Boolean, blnHighlight As Boolean, blnKeepSelected As Boolean
 'longs
 Dim lgOriginalUID As Long
-  
-  
+
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
+
   If Me.ActiveControl.Name = "cmdClear" Then Exit Sub
 
   'assign values to variables
@@ -99,7 +117,7 @@ Dim lgOriginalUID As Long
     strFilter = "Dynamic Filter"
   End If
   strFilterText = Me.txtFilter.Text
-  
+
   '===
   'Validate users selected view type
   If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
@@ -111,10 +129,10 @@ Dim lgOriginalUID As Long
     ActiveProject.Application.ActiveWindow.TopPane.Activate
   End If
   '===
-    
+
   'capture formatting that resembles a field name "[x]" and add a space "[x] "
   If Left(strFilterText, 1) = "[" And Right(strFilterText, 1) = "]" Then strFilterText = strFilterText & " "
-  
+
   'capture wildcard - not allowed
   If InStr(strFilterText, "*") > 0 Or InStr(strFilterText, "%") > 0 Then
     MsgBox "Wildcards ('*') not allowed.", vbExclamation + vbOKOnly, "Error"
@@ -125,9 +143,9 @@ Dim lgOriginalUID As Long
     Me.txtFilter.SetFocus
     GoTo exit_here
   End If
-  
+
   cptSpeed True 'speed up
-  
+
   'build custom filter on the fly and apply it
   If Len(strFilterText) > 0 And Len(strOperator) > 0 Then
     If strField = "Task Name" Then strField = "Name"
@@ -139,7 +157,7 @@ Dim lgOriginalUID As Long
   If blnHideSummaryTasks Then
     FilterEdit Name:=strFilter, Taskfilter:=True, NewFieldName:="Summary", test:="equals", Value:="No", operation:="And", parenthesis:=blnKeepSelected
   End If
-  
+
   If Len(strFilterText) > 0 Then
     FilterEdit Name:=strFilter, ShowSummaryTasks:=blnShowRelatedSummaries
   Else
@@ -148,10 +166,10 @@ Dim lgOriginalUID As Long
     FilterEdit Name:=strFilter, Taskfilter:=True, FieldName:="", NewFieldName:="Summary", test:="equals", Value:="No", operation:="Or", ShowSummaryTasks:=True
   End If
   FilterApply strFilter, blnHighlight
-  
+
   On Error Resume Next
   If lgOriginalUID > 0 And blnKeepSelected Then Application.Find "Unique ID", "equals", lgOriginalUID
-  
+
 exit_here:
   On Error Resume Next
   cptSpeed False 'slow down
@@ -159,5 +177,5 @@ exit_here:
 err_here:
   Call HandleErr("cptDynamicFilter_frm", "txtFilter_Change", err)
   Resume exit_here
-  
+
 End Sub
