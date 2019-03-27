@@ -3,7 +3,7 @@
 	<Module>
 		<Name>ThisProject</Name>
 		<FileName>ThisProject.cls</FileName>
-		<Version>v1.1</Version>
+		<Version>v1.2</Version>
 		<Type>100</Type>
 		<Directory>Core</Directory>
 	</Module>
