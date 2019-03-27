@@ -7,7 +7,11 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
+<<<<<<< HEAD
 '<cpt_version>v1.2</cpt_version> '</cpt>
+=======
+'<cpt_version>v1.1</cpt_version> '</cpt>
+>>>>>>> 8c07e6dd28473440a93fa924906352fbb542ff61
 
 Private Sub Project_Activate(ByVal pj As Project)
 Dim ribbonXML As String '</cpt>
@@ -18,6 +22,7 @@ Dim ribbonXML As String '</cpt>
   ribbonXML = ribbonXML + "xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui"" >" '</cpt>
   ribbonXML = ribbonXML + vbCrLf & "<mso:ribbon startFromScratch=""false"" >" '</cpt>
   ribbonXML = ribbonXML + vbCrLf & "<mso:tabs>" '</cpt>
+<<<<<<< HEAD
   '</cpt>
   'this line adds the ClearPlan tab '</cpt>
   ribbonXML = ribbonXML + cptBuildRibbonTab() '</cpt>
@@ -26,6 +31,16 @@ Dim ribbonXML As String '</cpt>
 
   '\===== enter other tab level customizatzions above =====/ '</cpt>
   '</cpt>
+=======
+   '</cpt>
+  'this line adds the ClearPlan tab '</cpt>
+  ribbonXML = ribbonXML + cptBuildRibbonTab() '</cpt>
+   '</cpt>
+  '/===== enter other tab level customizatzions below =====\ '</cpt>
+
+  '\===== enter other tab level customizatzions above =====/ '</cpt>
+   '</cpt>
+>>>>>>> 8c07e6dd28473440a93fa924906352fbb542ff61
   'standard xml closing wrapper '</cpt>
   ribbonXML = ribbonXML + vbCrLf & "</mso:tabs>" '</cpt>
   ribbonXML = ribbonXML + vbCrLf & "</mso:ribbon>" '</cpt>
@@ -42,9 +57,16 @@ End Sub
 
 Private Sub Project_Open(ByVal pj As Project)
 
+<<<<<<< HEAD
   'start monitoring for WindowSelectionChange events '</cpt>
   Call cptCore_bas.StartEvents '</cpt>
   'set references - in case something isn't late bound '</cpt>
   Call cptCore_bas.SetReferences '</cpt>
+=======
+  'start monitoring for WindowSelectionChange events  '</cpt>
+  Call cptCore_bas.StartEvents  '</cpt>
+  'cpt: set references - in case something isn't late bound '</cpt>
+  Call cptCore_bas.SetReferences  '</cpt>
+>>>>>>> 8c07e6dd28473440a93fa924906352fbb542ff61
 
 End Sub
