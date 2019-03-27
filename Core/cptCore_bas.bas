@@ -699,7 +699,7 @@ Dim lngCleanUp As Long
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrace"" imageMso=""TaskDrivers"" label=""Driving Path"" onAction=""DrivingPaths"" />"
       ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTrace"">"
       ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ title=""Export"" />"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPowerPoint"" label=""PowerPoint"" imageMso=""SlideNew"" onAction=""ExportCriticalPathSelected"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPowerPoint"" label="">> PowerPoint"" imageMso=""SlideNew"" onAction=""ExportCriticalPathSelected"" />"
       ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
       ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
     Else
@@ -707,7 +707,7 @@ Dim lngCleanUp As Long
         ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrace"" label=""Driving Path"" imageMso=""TaskDrivers"" onAction=""DrivingPaths"" visible=""true"" size=""large"" />"
       End If
       If ModuleExists("cptCriticalPathTools_bas") Then
-        ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExport"" label=""Export to PowerPoint"" imageMso=""SlideNew"" onAction=""ExportCriticalPathSelected"" visible=""true"" size=""large"" />"
+        ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExport"" label="">> PowerPoint"" imageMso=""SlideNew"" onAction=""ExportCriticalPathSelected"" visible=""true"" size=""large"" />"
       End If
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
@@ -738,14 +738,18 @@ Dim lngCleanUp As Long
   
   'metrics
   If ModuleExists("cptMetrics_bas") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gMetrics"" label=""Schedule Metrics"" visible=""true"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mMetrics"" label=""Metrics"" imageMso=""ApplyPercentageFormat"" visible=""true"" size=""large"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSPI"" label=""SPI"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSPI"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""other"" id=""cleanup_" & Increment(lngCleanUp) & """ />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBAC"" label=""BAC"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBAC"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bETC"" label=""ETC"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetETC"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWS"" label=""BCWS"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWS"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWP"" label=""BCWP"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWP"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gMetrics"" label=""Metrics"" visible=""true"" >"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mMetrics"" label=""Metrics"" imageMso=""UpdateAsScheduled"" visible=""true"" size=""large"" >"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Schedule Metrics (hrs)"" id=""cleanup_" & Increment(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSPI"" label=""Schedule Performance Index (SPI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSPI"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBEI"" label=""Baseline Execution Index (BEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBEI"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Earned Value (hrs)"" id=""cleanup_" & Increment(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBAC"" label=""Budget at Complete (BAC)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBAC"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bETC"" label=""Estimate to Complete (ETC)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetETC"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWS"" label=""Budgeted Cost of Work Scheduled (BCWS)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWS"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWP"" label=""Budgeted Cost of Work Performed (BCWP)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWP"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Export"" id=""cleanup_" & Increment(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExportMetrics"" label="">> Excel"" imageMso=""ExportExcel"" onAction=""cptExportMetricsExcel"" visible=""true""/>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If

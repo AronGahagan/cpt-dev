@@ -96,6 +96,10 @@ Private Sub cmdDone_Click()
   Unload Me
 End Sub
 
+Private Sub cmdWakeUp_Click()
+  Call StartEvents
+End Sub
+
 Private Sub lblURL_Click()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0

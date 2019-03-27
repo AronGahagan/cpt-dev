@@ -193,7 +193,7 @@ next_task:
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
   
   'create the PivotTable
-  Workbook.PivotCaches.create(SourceType:=xlDatabase, SourceData:= _
+  Workbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:= _
         strRange, Version:= _
         xlPivotTableVersion12).CreatePivotTable TableDestination:="ResourceDemand!R3C1", _
         TableName:="RESOURCE_DEMAND", DefaultVersion:=xlPivotTableVersion12

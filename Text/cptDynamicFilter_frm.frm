@@ -14,6 +14,9 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.3</cpt_version>
+Option Explicit
+Private Const BLN_TRAP_ERRORS As Boolean = True
+'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboField_Change()
   If Me.Visible Then Me.txtFilter_Change
@@ -36,7 +39,7 @@ Dim Task As Task
   If Me.chkKeepSelected = True Then
     On Error Resume Next
     Set Task = ActiveSelection.Tasks(1)
-    On Error GoTo 0
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     If Task Is Nothing Then Me.chkKeepSelected = False
     Set Task = Nothing
   End If
@@ -51,7 +54,7 @@ Private Sub cmdClear_Click()
 End Sub
 
 Private Sub cmdDone_Click()
-  Me.Hide
+  Me.hide
 End Sub
 
 Private Sub lblURL_Click()
@@ -77,7 +80,6 @@ Dim strField As String, strOperator As String, strFilterText As String
 Dim blnHideSummaryTasks As Boolean, blnHighlight As Boolean, blnKeepSelected As Boolean
 'longs
 Dim lgOriginalUID As Long
-  
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
