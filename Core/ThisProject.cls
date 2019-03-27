@@ -7,45 +7,44 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
-'<cpt_version>v1.1</cpt_version>
-'file: Global.MPT ThisProject
+'<cpt_version>v1.1</cpt_version> '</cpt>
 
 Private Sub Project_Activate(ByVal pj As Project)
-Dim ribbonXML As String
+Dim ribbonXML As String '</cpt>
 
-  'standard xml opening wrapper
-  ribbonXML = "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>" & vbCrLf
-  ribbonXML = ribbonXML + "<mso:customUI "
-  ribbonXML = ribbonXML + "xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:ribbon startFromScratch=""false"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:tabs>"
+  'standard xml opening wrapper '</cpt>
+  ribbonXML = "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>" & vbCrLf '</cpt>
+  ribbonXML = ribbonXML + "<mso:customUI " '</cpt>
+  ribbonXML = ribbonXML + "xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui"" >" '</cpt>
+  ribbonXML = ribbonXML + vbCrLf & "<mso:ribbon startFromScratch=""false"" >" '</cpt>
+  ribbonXML = ribbonXML + vbCrLf & "<mso:tabs>" '</cpt>
+   '</cpt>
+  'this line adds the ClearPlan tab '</cpt>
+  ribbonXML = ribbonXML + cptBuildRibbonTab() '</cpt>
+   '</cpt>
+  '/===== enter other tab level customizatzions below =====\ '</cpt>
 
-  'this line adds the ClearPlan tab
-  ribbonXML = ribbonXML + cptBuildRibbonTab()
-  
-  '/===== enter other tab level customizatzions below =====\
-
-  '\===== enter other tab level customizatzions above =====/
-  
-  'standard xml closing wrapper
-  ribbonXML = ribbonXML + vbCrLf & "</mso:tabs>"
-  ribbonXML = ribbonXML + vbCrLf & "</mso:ribbon>"
-  ribbonXML = ribbonXML + vbCrLf & "</mso:customUI>"
-
-  'this actually adds the toolbar
-  'method only available in the Project_Activate event
-  pj.SetCustomUI (ribbonXML)
-  
-  'start monitoring for WindowSelectionChange events
-  Call cptCore_bas.StartEvents
+  '\===== enter other tab level customizatzions above =====/ '</cpt>
+   '</cpt>
+  'standard xml closing wrapper '</cpt>
+  ribbonXML = ribbonXML + vbCrLf & "</mso:tabs>" '</cpt>
+  ribbonXML = ribbonXML + vbCrLf & "</mso:ribbon>" '</cpt>
+  ribbonXML = ribbonXML + vbCrLf & "</mso:customUI>" '</cpt>
+   '</cpt>
+  'this actually adds the toolbar '</cpt>
+  'method only available in the Project_Activate event '</cpt>
+  pj.SetCustomUI (ribbonXML)  '</cpt>
+   '</cpt>
+  'start monitoring for WindowSelectionChange events '</cpt>
+  Call cptCore_bas.StartEvents '</cpt>
 
 End Sub
 
 Private Sub Project_Open(ByVal pj As Project)
 
-  'cpt: start monitoring for WindowSelectionChange events
-  Call cptCore_bas.StartEvents
-  'cpt: set references - in case something isn't late bound
-  Call cptCore_bas.SetReferences
+  'start monitoring for WindowSelectionChange events  '</cpt>
+  Call cptCore_bas.StartEvents  '</cpt>
+  'cpt: set references - in case something isn't late bound '</cpt>
+  Call cptCore_bas.SetReferences  '</cpt>
 
 End Sub
