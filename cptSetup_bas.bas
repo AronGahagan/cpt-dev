@@ -16,7 +16,7 @@ Sub cptSetup()
 'objects
 Dim vbComponent As Object 'vbComponent
 Dim arrCode As Object
-Dim cmThisProject As CodeModule 'Object
+Dim cmThisProject As Object 'CodeModule
 Dim cmCptThisProject As Object 'CodeModule
 Dim oStream As Object 'ADODB.Stream
 Dim xmlHttpDoc As Object
