@@ -47,14 +47,14 @@
 		<FileName>cptDynamicFilter_bas.bas</FileName>
 		<Version>v1.2</Version>
 		<Type>1</Type>
-		<Directory>TextTools</Directory>
+		<Directory>Text</Directory>
 	</Module>
 	<Module>
 		<Name>cptDynamicFilter_frm</Name>
 		<FileName>cptDynamicFilter_frm.frm</FileName>
 		<Version>v1.3</Version>
 		<Type>3</Type>
-		<Directory>TextTools</Directory>
+		<Directory>Text</Directory>
 	</Module>
 	<Module>
 		<Name>cptStatusSheet_bas</Name>

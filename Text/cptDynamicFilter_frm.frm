@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptDynamicFilter_frm 
    Caption         =   "Dynamic Filter"
-   ClientHeight    =   1830
+   ClientHeight    =   2190
    ClientLeft      =   45
    ClientTop       =   330
-   ClientWidth     =   3375
+   ClientWidth     =   4245
    OleObjectBlob   =   "cptDynamicFilter_frm.frx":0000
    StartUpPosition =   2  'CenterScreen
 End
@@ -13,8 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-'<cpt_version>v0.1</cpt_version>
+'<cpt_version>v1.3</cpt_version>
 
 Private Sub cboField_Change()
   If Me.Visible Then Me.txtFilter_Change
@@ -48,16 +47,27 @@ Private Sub chkShowRelatedSummaries_Click()
 End Sub
 
 Private Sub cmdClear_Click()
-  Me.txtFilter.Text = ""
-  If ActiveWindow.ActivePane <> ActiveWindow.TopPane Then ActiveWindow.TopPane.Activate
-  On Error Resume Next
-  OutlineShowAllTasks
-  FilterApply "All Tasks"
-  Me.txtFilter.SetFocus
+  FilterClear
 End Sub
 
 Private Sub cmdDone_Click()
   Me.Hide
+End Sub
+
+Private Sub lblURL_Click()
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If InternetIsConnected Then Application.OpenBrowser ("http://" & Me.lblURL.Caption)
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call HandleErr("cptAbout_frm", "lblURL", err)
+  Resume exit_here
+
 End Sub
 
 Sub txtFilter_Change()
@@ -67,6 +77,9 @@ Dim strField As String, strOperator As String, strFilterText As String
 Dim blnHideSummaryTasks As Boolean, blnHighlight As Boolean, blnKeepSelected As Boolean
 'longs
 Dim lgOriginalUID As Long
+  
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   If Me.ActiveControl.Name = "cmdClear" Then Exit Sub
 
@@ -86,8 +99,19 @@ Dim lgOriginalUID As Long
     strFilter = "Dynamic Filter"
   End If
   strFilterText = Me.txtFilter.Text
-  ActiveWindow.TopPane.Activate
   
+  '===
+  'Validate users selected view type
+  If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
+    MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "Dynamic Filter"
+    GoTo exit_here
+  End If
+  'Validate users selected window pane - select the task table if not active
+  If ActiveProject.Application.ActiveWindow.ActivePane.Index <> 1 Then
+    ActiveProject.Application.ActiveWindow.TopPane.Activate
+  End If
+  '===
+    
   'capture formatting that resembles a field name "[x]" and add a space "[x] "
   If Left(strFilterText, 1) = "[" And Right(strFilterText, 1) = "]" Then strFilterText = strFilterText & " "
   
@@ -99,32 +123,41 @@ Dim lgOriginalUID As Long
     Me.txtFilter = strFilterText
     Me.Show False
     Me.txtFilter.SetFocus
-    Exit Sub
+    GoTo exit_here
   End If
   
-  Application.ScreenUpdating = False
+  cptSpeed True 'speed up
   
   'build custom filter on the fly and apply it
   If Len(strFilterText) > 0 And Len(strOperator) > 0 Then
     If strField = "Task Name" Then strField = "Name"
-    FilterEdit Name:=strFilter, taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=strField, test:=strOperator, Value:=strFilterText, operation:=IIf(blnKeepSelected Or blnHideSummaries, "Or", "None"), ShowInMenu:=False, showsummarytasks:=blnShowRelatedSummaries
+    FilterEdit Name:=strFilter, Taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=strField, test:=strOperator, Value:=strFilterText, operation:=IIf(blnKeepSelected Or blnHideSummaries, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
   End If
   If blnKeepSelected Then
-    FilterEdit Name:=strFilter, taskfilter:=True, NewFieldName:="Unique ID", test:="equals", Value:=lgOriginalUID, operation:="Or"
+    FilterEdit Name:=strFilter, Taskfilter:=True, NewFieldName:="Unique ID", test:="equals", Value:=lgOriginalUID, operation:="Or"
   End If
   If blnHideSummaryTasks Then
-    FilterEdit Name:=strFilter, taskfilter:=True, NewFieldName:="Summary", test:="equals", Value:="No", operation:="And", parenthesis:=blnKeepSelected
+    FilterEdit Name:=strFilter, Taskfilter:=True, NewFieldName:="Summary", test:="equals", Value:="No", operation:="And", parenthesis:=blnKeepSelected
   End If
-  FilterEdit Name:=strFilter, showsummarytasks:=blnShowRelatedSummaries
-  ActiveWindow.TopPane.Activate
+  
   If Len(strFilterText) > 0 Then
-    FilterApply strFilter, blnHighlight
+    FilterEdit Name:=strFilter, ShowSummaryTasks:=blnShowRelatedSummaries
   Else
-    FilterClear
+    'build a sterile filter to retain existing autofilters
+    FilterEdit Name:=strFilter, Taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Summary", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True
+    FilterEdit Name:=strFilter, Taskfilter:=True, FieldName:="", NewFieldName:="Summary", test:="equals", Value:="No", operation:="Or", ShowSummaryTasks:=True
   End If
+  FilterApply strFilter, blnHighlight
+  
   On Error Resume Next
-  'EditGoTo ActiveProject.Tasks.UniqueID(lgOriginalUID).ID
-  Application.ScreenUpdating = True
   If lgOriginalUID > 0 And blnKeepSelected Then Application.Find "Unique ID", "equals", lgOriginalUID
+  
+exit_here:
+  On Error Resume Next
+  cptSpeed False 'slow down
+  Exit Sub
+err_here:
+  Call HandleErr("cptDynamicFilter_frm", "txtFilter_Change", err)
+  Resume exit_here
   
 End Sub
