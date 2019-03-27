@@ -1,10 +1,33 @@
-Attribute VB_Name = "cptMetrics"
+Attribute VB_Name = "cptMetrics_bas"
 'cpt-pre-release
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 'add disclaimer: unburdened hours - not meant to be precise - generally within +/- 1%
+
+Sub cptExportMetricsExcel()
+'objects
+'strings
+'longs
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  MsgBox "Stay tuned...", vbInformation + vbOKOnly, "Under Construction..."
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call HandleErr("cptMetrics_bas", "cptExportMetricsExcel", err)
+  Resume exit_here
+End Sub
 
 Sub cptGetBAC()
   MsgBox cptGetMetric("bac")
@@ -26,11 +49,18 @@ Sub cptGetSPI()
   Call cptGET("SPI")
 End Sub
 
+Sub cptGetBEI()
+  Call cptGET("BEI")
+End Sub
+
 Sub cptGET(strWhat As String)
+'todo: need to store weekly bcwp, etc data somewhere
 'objects
 'strings
 Dim strMsg As String
 'longs
+Dim lngBEI_AF As Long
+Dim lngBEI_BF As Long
 'integers
 'doubles
 Dim dblBCWS As Double
@@ -40,9 +70,6 @@ Dim dblResult As Double
 'variants
 'dates
 
-  'todo: need to store weekly bcwp, etc data somewhere
-  'todo:
-
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   Select Case strWhat
@@ -50,13 +77,21 @@ Dim dblResult As Double
       dblBCWP = cptGetMetric("bcwp")
       dblBCWS = cptGetMetric("bcws")
       strMsg = "SPI = BCWP / BCWS" & vbCrLf
-      strMsg = strMsg & "SPI = " & Format(dblBCWP, "#,##0") & " / " & Format(dblBCWS, "#,##0") & vbCrLf
+      strMsg = strMsg & "SPI = " & Format(dblBCWP, "#,##0") & " / " & Format(dblBCWS, "#,##0") & vbCrLf & vbCrLf
       strMsg = strMsg & "SPI = " & Format(dblBCWP / dblBCWS, "0%")
       MsgBox strMsg, vbInformation + vbOKOnly, "SPI (Hours)"
       
-    Case "bei"
+    Case "BEI"
+      lngBEI_BF = CLng(cptGetMetric("bei_bf"))
+      If lngBEI_BF = 0 Then
+        MsgBox "No baseline finishes found.", vbExclamation + vbOKOnly, "No BEI"
+        GoTo exit_here
+      End If
+      lngBEI_AF = CLng(cptGetMetric("bei_af"))
+      strMsg = "BEI = # Actual Finishes / # Planned Finishes" & vbCrLf
+      strMsg = strMsg & "BEI = " & Format(lngBEI_AF, "#,##0") & " / " & Format(lngBEI_BF, "#,##0") & vbCrLf & vbCrLf
+      strMsg = strMsg & "BEI = " & Format((lngBEI_AF / lngBEI_BF), "#.#0")
       
-    
     Case "cei"
       'todo: need to track previous week's plan
     
@@ -64,7 +99,7 @@ Dim dblResult As Double
     
   End Select
   
-  MsgBox strMsg, vbOKOnly, "cpt:Metrics"
+  MsgBox strMsg, vbInformation + vbOKOnly, "cpt:Metrics"
   
 exit_here:
   On Error Resume Next
@@ -76,11 +111,12 @@ err_here:
 End Sub
 
 Function cptGetMetric(strGet As String) As Double
+'todo: no screen changes!
 'objects
-Dim TSV As TimeScaleValue
-Dim TSVS As TimeScaleValues
-Dim Tasks As Tasks 'object
-Dim Task As Task 'object
+Dim TSV As Object 'TimeScaleValue
+Dim TSVS As Object 'TimeScaleValues
+Dim Tasks As Object 'Tasks
+Dim Task As Object 'Task
 'strings
 'longs
 Dim lngYears As Long
@@ -129,6 +165,12 @@ Dim dtStatus As Date
             
           Case "bcwp"
             dblResult = dblResult + ((Task.BaselineWork / 60) * (Task.PhysicalPercentComplete / 100))
+            
+          Case "bei_bf"
+            dblResult = dblResult + IIf(Task.BaselineFinish <= dtStatus, 1, 0)
+            
+          Case "bei_af"
+            dblResult = dblResult + IIf(Task.ActualFinish <= dtStatus, 1, 0)
             
         End Select
       End If 'bac>0
