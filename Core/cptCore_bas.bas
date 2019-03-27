@@ -737,16 +737,18 @@ Dim lngCleanUp As Long
   'compare
   
   'metrics
-  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gMetrics"" label=""Schedule Metrics"" visible=""true"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mMetrics"" label=""Metrics"" imageMso=""ApplyPercentageFormat"" visible=""true"" size=""large"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSPI"" label=""SPI"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSPI"" visible=""true""/>"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""other"" id=""cleanup_" & Increment(lngCleanUp) & """ />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBAC"" label=""BAC"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBAC"" visible=""true""/>"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bETC"" label=""ETC"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetETC"" visible=""true""/>"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWS"" label=""BCWS"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWS"" visible=""true""/>"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWP"" label=""BCWP"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWP"" visible=""true""/>"
-  ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
-  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  If ModuleExists("cptMetrics_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gMetrics"" label=""Schedule Metrics"" visible=""true"" >"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mMetrics"" label=""Metrics"" imageMso=""ApplyPercentageFormat"" visible=""true"" size=""large"" >"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSPI"" label=""SPI"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSPI"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""other"" id=""cleanup_" & Increment(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBAC"" label=""BAC"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBAC"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bETC"" label=""ETC"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetETC"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWS"" label=""BCWS"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWS"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWP"" label=""BCWP"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWP"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  End If
   
   'integration
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gIntegration"" label=""Integration"" visible=""true"" >"
