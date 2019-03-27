@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.2</cpt_version>
+'<cpt_version>v1.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -127,6 +127,9 @@ Dim strAbout As String
   strAbout = vbCrLf & vbCrLf & "Follow the Project:" & vbCrLf & vbCrLf
   strAbout = strAbout & "http://GitHub.com/ClearPlan/cpt" & vbCrLf & vbCrLf
   cptAbout_frm.txtGitHub.Value = strAbout
+  
+  'show/hide
+  cptAbout_frm.lblScoreBoard.Visible = IIf(Now < #10/24/2019#, False, True)
   cptAbout_frm.Show
   
 End Sub
@@ -538,8 +541,17 @@ Dim strMsg As String
     
 End Sub
 
-Function UpdatesAreAvailable() As Boolean
-End Function
+Sub cptSubmitIssue()
+  Application.OpenBrowser "https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUQ0VSV1JBRU4xQ1E5VUkyQjE5RDcwQllWRSQlQCN0PWcu"
+End Sub
+
+Sub cptSubmitRequest()
+  Application.OpenBrowser "https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUNVBET1RGUzRWMzZHN0pYNFZBUjZCUzgzNSQlQCN0PWcu"
+End Sub
+
+Sub cptSubmitFeedback()
+  Application.OpenBrowser "https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUNERTVDRISUhVVVFSWjBBMlVLQThCRFlHQiQlQCN0PWcu"
+End Sub
 
 Function RemoveIllegalCharacters(ByVal strText As String) As String
 'written by Ryan Beard (RyanBeard@ClearPlanConsulting.com)
@@ -647,45 +659,69 @@ Dim lngCleanUp As Long
     If ModuleExists("cptDynamicFilter_bas") And ModuleExists("cptDynamicFilter_frm") Then
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDynamicFilter"" label=""Dynamic Filter"" imageMso=""FilterBySelection"" onAction=""ShowcptDynamicFilter_frm"" visible=""true"" size=""large"" />"
     End If
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTextTools"" label=""Tools"" imageMso=""TextBoxInsert"" visible=""true"" size=""large"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPrepend"" label=""Bulk Prepend"" imageMso=""RightArrow2"" onAction=""BulkPrepend"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAppend"" label=""Bulk Append"" imageMso=""LeftArrow2"" onAction=""BulkAppend"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMyReplace"" label=""MyReplace"" imageMso=""ReplaceDialog"" onAction=""MyReplace"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bEnumerate"" label=""Enumerate"" imageMso=""NumberingRestart"" onAction=""Enumerate"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrimText"" label=""Trim Task Names"" imageMso=""TextEffectsClear"" onAction=""TrimTaskNames"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process"" imageMso=""DuplicateSelectedSlides"" onAction=""ReplicateProcess"" visible=""true"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""FindDuplicateTaskNames"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdvancedTextTools"" label=""Advanced (beta)"" imageMso=""AdvancedFilterDialog"" onAction=""ShowcptText_frm"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+    If ModuleExists("cptText_frm") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & Increment(lngCleanUp) & """ />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbText"" size=""large"" >"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdvancedTextTools"" label=""Advanced"" imageMso=""AdvancedFilterDialog"" onAction=""ShowcptText_frm"" />" 'visible=""true""
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mText"">"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ title=""Utilities"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPrepend"" label=""Bulk Prepend"" imageMso=""RightArrow2"" onAction=""BulkPrepend"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAppend"" label=""Bulk Append"" imageMso=""LeftArrow2"" onAction=""BulkAppend"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMyReplace"" label=""MyReplace"" imageMso=""ReplaceDialog"" onAction=""MyReplace"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bEnumerate"" label=""Enumerate"" imageMso=""NumberingRestart"" onAction=""Enumerate"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrimText"" label=""Trim Task Names"" imageMso=""TextEffectsClear"" onAction=""TrimTaskNames"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process (WIP)"" imageMso=""DuplicateSelectedSlides"" onAction=""ReplicateProcess"" visible=""true"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""FindDuplicateTaskNames"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+      ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
+    Else
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTextTools"" label=""Tools"" imageMso=""TextBoxInsert"" visible=""true"" size=""large"" >"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPrepend"" label=""Bulk Prepend"" imageMso=""RightArrow2"" onAction=""BulkPrepend"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAppend"" label=""Bulk Append"" imageMso=""LeftArrow2"" onAction=""BulkAppend"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMyReplace"" label=""MyReplace"" imageMso=""ReplaceDialog"" onAction=""MyReplace"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bEnumerate"" label=""Enumerate"" imageMso=""NumberingRestart"" onAction=""Enumerate"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrimText"" label=""Trim Task Names"" imageMso=""TextEffectsClear"" onAction=""TrimTaskNames"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process"" imageMso=""DuplicateSelectedSlides"" onAction=""ReplicateProcess"" visible=""true"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""FindDuplicateTaskNames"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdvancedTextTools"" label=""Advanced (beta)"" imageMso=""AdvancedFilterDialog"" onAction=""ShowcptText_frm"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+    End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
   
   'trace tools
   If ModuleExists("cptCriticalPathTools_bas") Or ModuleExists("cptCriticalPath_bas") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCPA"" label=""Trace"" visible=""true"" >"
-    'ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTrace"" label=""Tools"" imageMso=""TaskEntryView"" visible=""true"" size=""large"" >"
-    If ModuleExists("cptCriticalPath_bas") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrace"" label=""Driving Path"" imageMso=""TaskDrivers"" onAction=""DrivingPaths"" visible=""true"" size=""large"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCPA"" label=""Trace"" visible=""true"">"
+    If ModuleExists("cptCriticalPathTools_bas") And ModuleExists("cptCriticalPath_bas") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbTrace"" size=""large"" >"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrace"" imageMso=""TaskDrivers"" label=""Driving Path"" onAction=""DrivingPaths"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTrace"">"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ title=""Export"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPowerPoint"" label=""PowerPoint"" imageMso=""SlideNew"" onAction=""ExportCriticalPathSelected"" />"
+      ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+      ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
+    Else
+      If ModuleExists("cptCriticalPath_bas") Then
+        ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrace"" label=""Driving Path"" imageMso=""TaskDrivers"" onAction=""DrivingPaths"" visible=""true"" size=""large"" />"
+      End If
+      If ModuleExists("cptCriticalPathTools_bas") Then
+        ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExport"" label=""Export to PowerPoint"" imageMso=""SlideNew"" onAction=""ExportCriticalPathSelected"" visible=""true"" size=""large"" />"
+      End If
     End If
-    If ModuleExists("cptCriticalPathTools_bas") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExport"" label=""Export to PowerPoint"" imageMso=""SlideNew"" onAction=""ExportCriticalPathSelected"" visible=""true"" size=""large"" />"
-    End If
-    'ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ />"
-    'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReset"" label=""Reset View"" imageMso=""FilterClear"" onAction=""cptResetAll"" visible=""true""/>" 'ResetView - basicallly a duplicate, remove it
-    'ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
   
   'status
-    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Status"" visible=""true"" >"
-    If ModuleExists("cptStatusSheet_bas") And ModuleExists("cptStatusSheet_frm") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheet"" label=""Create Status Sheet"" imageMso=""DateAndTimeInsertOneNote"" onAction=""ShowcptStatusSheet_frm"" visible=""true""/>"
-    End If
-    If ModuleExists("cptSmartDur_frm") And ModuleExists("cptSmartDur_bas") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSmartDuration"" label=""Smart Duration"" imageMso=""CalendarToolSelectDate"" onAction=""SmartDuration"" visible=""true""/>"
-    End If
-    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Status"" visible=""true"" >"
+  If ModuleExists("cptStatusSheet_bas") And ModuleExists("cptStatusSheet_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheet"" label=""Create Status Sheet"" imageMso=""DateAndTimeInsertOneNote"" onAction=""ShowcptStatusSheet_frm"" visible=""true""/>"
+  End If
+  If ModuleExists("cptSmartDuration_frm") And ModuleExists("cptSmartDuration_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSmartDuration"" label=""Smart Duration"" imageMso=""CalendarToolSelectDate"" onAction=""SmartDuration"" visible=""true""/>"
+  End If
+  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   
   'snapshots
   
@@ -700,17 +736,17 @@ Dim lngCleanUp As Long
   
   'compare
   
-'  'metrics
-'  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gMetrics"" label=""Schedule Metrics"" visible=""true"" >"
-'  ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mMetrics"" label=""Metrics"" imageMso=""ApplyPercentageFormat"" visible=""true"" size=""large"" >"
-'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSPI"" label=""SPI"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSPI"" visible=""true""/>"
-'  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""other"" id=""cleanup_" & Increment(lngCleanUp) & """ />"
-'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBAC"" label=""BAC"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBAC"" visible=""true""/>"
-'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bETC"" label=""ETC"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetETC"" visible=""true""/>"
-'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWS"" label=""BCWS"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWS"" visible=""true""/>"
-'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWP"" label=""BCWP"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWP"" visible=""true""/>"
-'  ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
-'  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  'metrics
+  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gMetrics"" label=""Schedule Metrics"" visible=""true"" >"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mMetrics"" label=""Metrics"" imageMso=""ApplyPercentageFormat"" visible=""true"" size=""large"" >"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSPI"" label=""SPI"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSPI"" visible=""true""/>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""other"" id=""cleanup_" & Increment(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBAC"" label=""BAC"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBAC"" visible=""true""/>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bETC"" label=""ETC"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetETC"" visible=""true""/>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWS"" label=""BCWS"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWS"" visible=""true""/>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWP"" label=""BCWP"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWP"" visible=""true""/>"
+  ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   
   'integration
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gIntegration"" label=""Integration"" visible=""true"" >"
@@ -726,17 +762,23 @@ Dim lngCleanUp As Long
   End If
   
   'about
-  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gHelp"" label=""About"" visible=""true"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAbout"" onAction=""ShowcptAbout_frm""  size=""large"" visible=""true"" "
-  ribbonXML = ribbonXML + "label=""About"" imageMso=""Info"" "
-  ribbonXML = ribbonXML & "/>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gHelp"" label=""Help"" visible=""true"" >"
   If InternetIsConnected Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUpdate"" label=""Check for Upgrades"" imageMso=""PreviousUnread"" onAction=""ShowCptUpgrades_frm"" size = ""large"" visible=""true"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mHelp"" label=""Help"" imageMso=""Help"" visible=""true"" size=""large"" >"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ title=""Upgrades"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUpdate"" label=""Check for Upgrades"" imageMso=""PreviousUnread"" onAction=""ShowCptUpgrades_frm"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ title=""Contribute"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIssue"" label=""Submit an Issue"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitIssue"" visible=""true"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bRequest"" label=""Submit a Feature Request"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitRequest"" visible=""true"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFeedback"" label=""Submit Other Feedback"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitFeedback"" visible=""true"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
+    ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   End If
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAbout"" onAction=""ShowcptAbout_frm""  size=""large"" visible=""true""  label=""About"" imageMso=""Info"" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   
   ribbonXML = ribbonXML + vbCrLf & "</mso:tab>"
-
+  
+  'Debug.Print "<mso:customUI ""xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui"" >" & ribbonXML
   cptBuildRibbonTab = ribbonXML
 
 End Function
