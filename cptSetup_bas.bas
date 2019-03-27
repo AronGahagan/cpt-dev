@@ -12,6 +12,7 @@ Private Declare Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lp
                                                                         ByVal dwReserved As Long) As Long
 
 Sub cptSetup()
+'setup only needs to be run once
 'objects
 Dim vbComponent As Object 'vbComponent
 Dim arrCode As Object
@@ -23,6 +24,7 @@ Dim xmlNode As Object
 Dim xmlDoc As Object
 Dim arrCore As Object
 'strings
+Dim strMsg As String
 Dim strError As String
 Dim strCptFileName As String
 Dim strVersion As String
@@ -31,6 +33,7 @@ Dim strFileName As String
 Dim strModule As String
 Dim strURL As String
 'longs
+Dim lngLine As Long
 Dim lngEvent As Long
 Dim lngActivate As Long
 Dim lngFile As Long
@@ -43,18 +46,18 @@ Dim vEvent As Variant
 Dim vLine As Variant
 'dates
 
-  'before running:
-  '1. enable macros
-  '2. trust access to the vbproject object model
-  '3. save global.mpt, completely exit msproject and restart (to make the settings 'stick')
-  '4. come back and run cptSetup
-  
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-'  If Not InternetIsConnected Then
-'    MsgBox "If you cannot access the internet, then please pull the Core.mpp file from Teams and follow instructions there.", vbExclamation + vbOKOnly, "No Internet"
-'    GoTo exit_here
-'  End If
+  'prompt user for setup instructions
+  strMsg = "NOTE: This procedure should only be run once." & vbCrLf & vbCrLf
+  strMsg = strMsg & "Before proceeding:" & vbCrLf
+  strMsg = strMsg & "1. Setup your Global.MPT: File > Options > Trust Center > Trust Center Settings..." & vbCrLf
+  strMsg = strMsg & vbTab & "a. Macro Settings > Enable all macros" & vbCrLf
+  strMsg = strMsg & vbTab & "b. Legacy Formats > Allow loading files with legacy or non-default file formats" & vbCrLf
+  strMsg = strMsg & "2. Completely exit, then re-open, MS Project (this makes the settings above 'stick')" & vbCrLf
+  strMsg = strMsg & "Have you completed the above steps?" & vbCrLf & vbCrLf
+  strMsg = strMsg & "(Yes = Proceed; No = Cancel and Close)"
+  If MsgBox(strMsg, vbQuestion + vbYesNo, "Before you proceed...") = vbNo Then GoTo exit_here
     
   'capture list of files to download
   Set arrCore = CreateObject("System.Collections.SortedList")
@@ -124,6 +127,7 @@ frx:
             Application.StatusBar = "Removing obsolete version of " & vbComponent.Name
             'Debug.Print Application.StatusBar
             ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
+            Exit For
           End If
         Next vbComponent
         
@@ -144,7 +148,22 @@ next_xmlNode:
   'update user's ThisProject - if it downloaded correctly
   strFileName = cptDir & "\ThisProject.cls"
   
-  If Dir(strFileName) <> vbNullString Then
+  If Dir(strFileName) <> vbNullString Then 'the file exists, proceed
+    
+    'avoid messy overwrites of ThisProject
+    Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
+    If cmThisProject.Find("<cpt_version>", 1, 1, cmThisProject.CountOfLines, 1000, True, True) = True Then
+      strMsg = "Your 'ThisProject' module has already been updated to work with the ClearPlan toolbar." & vbCrLf
+      strMsg = strMsg & "Would you like to reset it? This will only overwrite CodeModule lines appended with '</cpt>'"
+      If MsgBox(strMsg, vbExclamation + vbYesNo, "Danger, Will Robinson!") = vbYes Then
+        For lngLine = cmThisProject.CountOfLines To 1 Step -1
+          If InStr(cmThisProject.Lines(lngLine, 1), "'</cpt>") > 0 Then
+            cmThisProject.DeleteLines lngLine
+            Debug.Print "DELETED: " & lngLine & ": " & cmThisProject.Lines(lngLine)
+          End If
+        Next lngLine
+      End If
+    End If
     
     'rename the file and import it
     strCptFileName = Replace(strFileName, "ThisProject", "cptThisProject")
@@ -200,6 +219,7 @@ next_xmlNode:
       End With
     Next vEvent
     
+    'leave no trace
     If Dir(strCptFileName) <> vbNullString Then Kill strCptFileName
     
   End If 'ThisProject.cls exists in tmp folder
