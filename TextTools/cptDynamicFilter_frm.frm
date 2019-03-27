@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptDynamicFilter_frm 
    Caption         =   "Dynamic Filter"
-   ClientHeight    =   1830
+   ClientHeight    =   2190
    ClientLeft      =   45
    ClientTop       =   330
-   ClientWidth     =   3375
+   ClientWidth     =   4245
    OleObjectBlob   =   "cptDynamicFilter_frm.frx":0000
    StartUpPosition =   2  'CenterScreen
 End
@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.2</cpt_version>
+'<cpt_version>v1.3</cpt_version>
 
 Private Sub cboField_Change()
   If Me.Visible Then Me.txtFilter_Change
@@ -52,6 +52,22 @@ End Sub
 
 Private Sub cmdDone_Click()
   Me.Hide
+End Sub
+
+Private Sub lblURL_Click()
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If InternetIsConnected Then Application.OpenBrowser ("http://" & Me.lblURL.Caption)
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call HandleErr("cptAbout_frm", "lblURL", err)
+  Resume exit_here
+
 End Sub
 
 Sub txtFilter_Change()
@@ -115,21 +131,21 @@ Dim lgOriginalUID As Long
   'build custom filter on the fly and apply it
   If Len(strFilterText) > 0 And Len(strOperator) > 0 Then
     If strField = "Task Name" Then strField = "Name"
-    FilterEdit Name:=strFilter, TaskFilter:=True, create:=True, OverwriteExisting:=True, FieldName:=strField, test:=strOperator, Value:=strFilterText, Operation:=IIf(blnKeepSelected Or blnHideSummaries, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
+    FilterEdit Name:=strFilter, Taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=strField, test:=strOperator, Value:=strFilterText, operation:=IIf(blnKeepSelected Or blnHideSummaries, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
   End If
   If blnKeepSelected Then
-    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Unique ID", test:="equals", Value:=lgOriginalUID, Operation:="Or"
+    FilterEdit Name:=strFilter, Taskfilter:=True, NewFieldName:="Unique ID", test:="equals", Value:=lgOriginalUID, operation:="Or"
   End If
   If blnHideSummaryTasks Then
-    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Summary", test:="equals", Value:="No", Operation:="And", parenthesis:=blnKeepSelected
+    FilterEdit Name:=strFilter, Taskfilter:=True, NewFieldName:="Summary", test:="equals", Value:="No", operation:="And", parenthesis:=blnKeepSelected
   End If
   
   If Len(strFilterText) > 0 Then
     FilterEdit Name:=strFilter, ShowSummaryTasks:=blnShowRelatedSummaries
   Else
     'build a sterile filter to retain existing autofilters
-    FilterEdit Name:=strFilter, TaskFilter:=True, create:=True, OverwriteExisting:=True, FieldName:="Summary", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True
-    FilterEdit Name:=strFilter, TaskFilter:=True, FieldName:="", NewFieldName:="Summary", test:="equals", Value:="No", Operation:="Or", ShowSummaryTasks:=True
+    FilterEdit Name:=strFilter, Taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Summary", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True
+    FilterEdit Name:=strFilter, Taskfilter:=True, FieldName:="", NewFieldName:="Summary", test:="equals", Value:="No", operation:="Or", ShowSummaryTasks:=True
   End If
   FilterApply strFilter, blnHighlight
   
