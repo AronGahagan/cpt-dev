@@ -463,7 +463,7 @@ Dim lngItem As Long, lgEnumerate As Long
       cptText_frm.lboOutput.List(lngItem, 1) = strTaskName
     End If
 
-    'todo: replace
+    'replace
     If Len(strReplaceWhat) > 0 And Len(strReplaceWith) > 0 Then
       strTaskName = Replace(strTaskName, strReplaceWhat, strReplaceWith)
       cptText_frm.lboOutput.List(lngItem, 1) = strTaskName
