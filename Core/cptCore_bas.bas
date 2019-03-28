@@ -149,7 +149,11 @@ Dim Ref As Object, blnExists As Boolean
     End If
   Next Ref
 
+<<<<<<< HEAD
   cptReferenceExists = blnExists
+=======
+  ReferenceExists = blnExists
+>>>>>>> master
 
 exit_here:
   On Error Resume Next
@@ -294,11 +298,19 @@ Dim blnExists As Boolean
         ThisProject.VBProject.References.AddFromFile Environ("winddir") & "\Microsoft.NET\Framework\v4.0.30319\mscorlib.tlb"
       End If
     Case Else
+<<<<<<< HEAD
       cptCheckReference = False
 
   End Select
 
   If Not cptCheckReference Then
+=======
+      CheckReference = False
+
+  End Select
+
+  If Not CheckReference Then
+>>>>>>> master
     MsgBox "Missing Reference: " & strReference, vbExclamation + vbOKOnly, "CP Tool Bar"
   End If
 
@@ -566,7 +578,11 @@ Function cptRemoveIllegalCharacters(ByVal strText As String) As String
         strText = Replace(strText, astrChars(lngCounter), vbNullString)
     Next lngCounter
 
+<<<<<<< HEAD
     cptRemoveIllegalCharacters = strText
+=======
+    RemoveIllegalCharacters = strText
+>>>>>>> master
 
 End Function
 
@@ -763,7 +779,11 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
   'bcr tool
+<<<<<<< HEAD
   If cptModuleExists("cptBaselineChange_frm") And cptModuleExists("cptBaselineChange_bas") Then
+=======
+  If ModuleExists("cptBaselineChange_frm") And ModuleExists("cptBaselineChange_bas") Then
+>>>>>>> master
 
   End If
 
@@ -851,8 +871,13 @@ Dim vLevel As Variant
     End If
   Next vLevel
 
+<<<<<<< HEAD
   If cptVersionStatus = "" Then
     cptVersionStatus = "ok"
+=======
+  If VersionStatus = "" Then
+    VersionStatus = "ok"
+>>>>>>> master
   Else
     cptVersionStatus = "install " & cptVersionStatus
   End If
@@ -886,7 +911,11 @@ Dim strMatch As String
       strMatch = REMatch
       Exit For
     Next
+<<<<<<< HEAD
     cptRegEx = strMatch
+=======
+    RegEx = strMatch
+>>>>>>> master
 
 exit_here:
     On Error Resume Next
