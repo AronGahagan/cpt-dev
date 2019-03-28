@@ -1,4 +1,4 @@
-_License: This software is provided gratis (free of charge), it is free to use and distribute, but not to sell. Modifications require the removal of all references to **company -name**. Contributors retain their patents. All other rights reserved. Copyright 2019, **company-name**._
+_License: This software is provided gratis (free of charge), AS IS and without Warranty. It is free to use, and free to distribute with prior written consent from the contributors/copyright holders provided no modifications are made. Contributors retain their patents. All other rights reserved. Copyright 2019, **company-name**._
 
 # cpt: The CP Toolbar
 
@@ -39,18 +39,18 @@ _License: This software is provided gratis (free of charge), it is free to use a
 [[top]](#table-of-contents)
 
 ## Use
-### View Tools
+## View Tools
 1. _Reset All_ - removes all groups and filters, expands all tasks, and reorders by Task.ID
 1. _WrapItUp_ - collapses the native outline/summaries (or visible group) of your project startign from the bottom up.
 
 [[up]](#use) | [[toc]](#table-of-contents)
 
-### Count Tasks
+## Count Tasks
 Just what it sounds like - optionally count all tasks, visible (filtered) tasks, or selected tasks. Tally reports subtasks vs. summary tasks, and includes inactive tasks separately. External and 'Nothing' Tasks are skipped.
 
 [[up]](#use) | [[toc]](#table-of-contents)
 
-### Text Tools
+## Text Tools
 1. _Bulk Prepend_ - does just what it says. Select some tasks, click the button, enter a prefix, done.
 1. _Bulk Append_ - same as above but adds a suffix instead of a prefix.
 1. _Enumerate_ - select some tasks, click _enumerate_. Enter how many characters your sequence should be (i.e., '3' = 000), and what number you wish to start by.
@@ -83,7 +83,7 @@ Just what it sounds like - optionally count all tasks, visible (filtered) tasks,
 
 [[up]](#use) | [[toc]](#table-of-contents)
 
-### Updates and Credits
+## Updates and Credits
 1. _Upgrades_ - From time to time click _Check for Upgrades_ to get the latest version.
 1. _Feature Requests_ - submit your feature requests.
 1. _Bug Reports_ - submit your feature requests.
