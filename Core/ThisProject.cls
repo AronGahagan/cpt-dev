@@ -7,7 +7,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = True
-'<cpt_version>v1.2</cpt_version> '</cpt>
+'<cpt_version>v1.2</cpt_version>
 
 Private Sub Project_Activate(ByVal pj As Project)
 Dim ribbonXML As String '</cpt>
@@ -36,15 +36,17 @@ Dim ribbonXML As String '</cpt>
   pj.SetCustomUI (ribbonXML)  '</cpt>
   '</cpt>
   'start monitoring for WindowSelectionChange events '</cpt>
-  Call cptCore_bas.StartEvents '</cpt>
+  Call cptCore_bas.cptStartEvents '</cpt>
+
 
 End Sub
 
 Private Sub Project_Open(ByVal pj As Project)
 
   'start monitoring for WindowSelectionChange events '</cpt>
-  Call cptCore_bas.StartEvents '</cpt>
+  Call cptCore_bas.cptStartEvents '</cpt>
   'set references - in case something isn't late bound '</cpt>
-  Call cptCore_bas.SetReferences '</cpt>
+  Call cptCore_bas.cptSetReferences '</cpt>
+
 
 End Sub

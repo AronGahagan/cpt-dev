@@ -4,7 +4,7 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Sub CountTasks(strScope As String)
+Sub cptCountTasks(strScope As String)
 Dim Task As Task, Tasks As Tasks
 Dim lgTasks As Long, lgSummary As Long, lgInactive As Long
 Dim strMsg As String
@@ -82,18 +82,18 @@ exit_here:
   Set Task = Nothing
   Exit Sub
 err_here:
-  Call HandleErr("cptCountTasks_bas", "CountTasks", err)
+  Call HandleErr("cptCountTasks_bas", "cptCountTasks", err)
   Resume exit_here
 End Sub
 
-Sub CountTasksAll()
-  Call CountTasks("All")
+Sub cptCountTasksAll()
+  Call cptCountTasks("All")
 End Sub
 
-Sub CountTasksSelected()
-  Call CountTasks("Selected")
+Sub cptCountTasksSelected()
+  Call cptCountTasks("Selected")
 End Sub
 
-Sub CountTasksVisible()
-  Call CountTasks("Visible")
+Sub cptCountTasksVisible()
+  Call cptCountTasks("Visible")
 End Sub

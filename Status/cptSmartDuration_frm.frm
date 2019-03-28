@@ -13,13 +13,14 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v1.0</cpt_version>
 
 Public dateError As Boolean
 Public finDate As Date
 Public startDate As Date
 
-Private Sub cancelBtn_Click()
+Private Sub CancelBtn_Click()
 
     Me.Tag = "Cancel"
     Me.hide

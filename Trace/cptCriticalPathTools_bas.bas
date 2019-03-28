@@ -4,7 +4,7 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Sub ExportCriticalPath(ByRef Project As Project, Optional blnSendEmail = False, Optional blnKeepOpen = False, Optional ByRef TargetTask As Task)
+Sub cptExportCriticalPath(ByRef Project As Project, Optional blnSendEmail = False, Optional blnKeepOpen = False, Optional ByRef TargetTask As Task)
 'objects
 Dim pptExists As PowerPoint.Presentation
 Dim Task As Task, Tasks As Tasks
@@ -26,7 +26,7 @@ Dim vPath As Variant
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If Not ModuleExists("cptCriticalPath_bas") Then
+  If Not cptModuleExists("cptCriticalPath_bas") Then
     MsgBox "Please install the ClearPlan Critical Path Module.", vbCritical + vbOKOnly, "CP Toolbar"
     GoTo exit_here
   End If
@@ -78,7 +78,7 @@ Dim vPath As Variant
   Set Slide = Presentation.Slides.Add(1, ppLayoutCustom)
   Slide.Layout = ppLayoutTitle
   Slide.Shapes(1).TextFrame.TextRange.Text = strProjectName & vbCrLf & "Critical Path Analysis"
-  Slide.Shapes(2).TextFrame.TextRange.Text = GetUserFullName & vbCrLf & Format(Now, "mm/dd/yyyy") 'Project.ProjectSummaryTask.GetField(FieldNameToFieldConstant("E2E Scheduler"))
+  Slide.Shapes(2).TextFrame.TextRange.Text = cptGetUserFullName & vbCrLf & Format(Now, "mm/dd/yyyy") 'Project.ProjectSummaryTask.GetField(FieldNameToFieldConstant("E2E Scheduler"))
   
   'for each primary,secondary,tertiary > make a slide
   For Each vPath In Array("1", "2", "3")
@@ -142,18 +142,18 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptCriticalPathTools_bas", "ExportCriticalPath", err)
+  Call HandleErr("cptCriticalPathTools_bas", "cptExportCriticalPath", err)
   Resume exit_here
 End Sub
 
-Sub ExportCriticalPathSelected()
+Sub cptExportCriticalPathSelected()
 Dim TargetTask As Task
 
   On Error GoTo err_here
 
   Set TargetTask = ActiveCell.Task
 
-  Call ExportCriticalPath(ActiveProject, blnKeepOpen:=True, TargetTask:=ActiveSelection.Tasks(1))
+  Call cptExportCriticalPath(ActiveProject, blnKeepOpen:=True, TargetTask:=ActiveSelection.Tasks(1))
   
 exit_here:
   On Error Resume Next
@@ -163,7 +163,7 @@ err_here:
   If err.Number = 1101 Then
     MsgBox "Please a a single (non-summary, active, and incomplete) 'Target' task.", vbExclamation + vbOKOnly, "Trace Tools - Error"
   Else
-    Call HandleErr("basCriticalPathTools", "ExportCriticalPathSelected", err)
+    Call HandleErr("basCriticalPathTools", "cptExportCriticalPathSelected", err)
   End If
   Resume exit_here
 End Sub

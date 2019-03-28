@@ -13,6 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v1.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -26,13 +27,13 @@ Private Sub lblURL_Click()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If InternetIsConnected Then Application.OpenBrowser ("http://" & Me.lblURL.Caption)
+  If cptInternetIsConnected Then Application.OpenBrowser ("http://" & Me.lblURL.Caption)
 
 exit_here:
   On Error Resume Next
 
   Exit Sub
 err_here:
-  Call HandleErr("cptAbout_frm", "lblURL", err)
+  Call cptHandleErr("cptAbout_frm", "lblURL", err)
   Resume exit_here
 End Sub

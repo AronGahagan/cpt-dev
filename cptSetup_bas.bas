@@ -243,7 +243,7 @@ exit_here:
   Set arrCore = Nothing
   Exit Sub
 err_here:
-  'Call HandleErr("cptCore_bas", "cptSetup", err)
+  'Call cptHandleErr("cptCore_bas", "cptSetup", err)
   strError = err.Number & ": " & err.Description & vbCrLf
   strError = strError & "Module: cptSetup_bas" & vbCrLf
   strError = strError & "Procedure: cptSetup"
@@ -251,9 +251,9 @@ err_here:
   Resume exit_here
 End Sub
 
-Public Function InternetIsConnected() As Boolean
+Public Function cptInternetIsConnected() As Boolean
  
-    InternetIsConnected = InternetGetConnectedStateEx(0, "", 254, 0)
+    cptInternetIsConnected = InternetGetConnectedStateEx(0, "", 254, 0)
  
 End Function
 
@@ -280,7 +280,7 @@ Dim strPath As String
   
 End Function
 
-Function ModuleExists(strModule)
+Function cptModuleExists(strModule)
 Dim vbComponent As Object
 Dim blnExists As Boolean
 
@@ -294,14 +294,14 @@ Dim blnExists As Boolean
     End If
   Next vbComponent
   
-  ModuleExists = blnExists
+  cptModuleExists = blnExists
 
 exit_here:
   On Error Resume Next
 
   Exit Function
 err_here:
-  Call HandleErr("cptSetup_bas", "ModuleExists", err)
+  Call cptHandleErr("cptSetup_bas", "cptModuleExists", err)
   Resume exit_here
   
 End Function

@@ -27,9 +27,9 @@ Dim st As Variant, vFieldType As Variant, lngFieldType As Variant
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   'requires ms excel
-  If Not CheckReference("Excel") Then GoTo exit_here
-  'requires scripting (RegEx)
-  If Not CheckReference("Scripting") Then GoTo exit_here
+  If Not cptCheckReference("Excel") Then GoTo exit_here
+  'requires scripting (cptRegEx)
+  If Not cptCheckReference("Scripting") Then GoTo exit_here
   
   cptStatusSheet_frm.lboFields.Clear
   cptStatusSheet_frm.lboExport.Clear
@@ -169,7 +169,7 @@ err_here:
 
 End Sub
 
-Sub CreateStatusSheet()
+Sub cptCreateStatusSheet()
 'objects
 Dim Tasks As Tasks, Task As Task, Resource As Resource, Assignment As Assignment
 'early binding:
@@ -205,10 +205,10 @@ Dim blnFast As Boolean
   tTotal = GetTickCount
   
   'check reference
-  If Not CheckReference("Excel") Then GoTo exit_here
+  If Not cptCheckReference("Excel") Then GoTo exit_here
 
   'ensure required module exists
-  If Not ModuleExists("cptCore_bas") Then
+  If Not cptModuleExists("cptCore_bas") Then
     MsgBox "Please install the ClearPlan 'cptCore_bas' module.", vbExclamation + vbOKOnly, "Missing Module"
     GoTo exit_here
   End If
@@ -589,7 +589,7 @@ next_task:
   For lgCol = 0 To aHeaders.count - 1
     
     'format dates
-    If Len(RegEx(CStr(aHeaders(lgCol)(1)), "Start|Finish")) > 0 Then
+    If Len(cptRegEx(CStr(aHeaders(lgCol)(1)), "Start|Finish")) > 0 Then
       If rDates Is Nothing Then
         Set rDates = xlCells(lgHeaderRow + 1, lgCol + 1).Resize(rowsize:=lgRow - lgHeaderRow)
       Else
@@ -597,7 +597,7 @@ next_task:
       End If
     End If
     'format work
-    If Len(RegEx(CStr(aHeaders(lgCol)(1)), "Baseline Work|Remaining Work")) > 0 Then
+    If Len(cptRegEx(CStr(aHeaders(lgCol)(1)), "Baseline Work|Remaining Work")) > 0 Then
       If rWork Is Nothing Then
         Set rWork = xlCells(lgHeaderRow + 1, lgCol + 1).Resize(rowsize:=lgRow - lgHeaderRow)
       Else
@@ -897,7 +897,7 @@ next_task:
   If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
   strDir = strDir & Format(dtStatus, "yyyy-mm-dd")
   If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
-  strFileName = RemoveIllegalCharacters(ActiveProject.Name)
+  strFileName = cptRemoveIllegalCharacters(ActiveProject.Name)
   strFileName = Replace(strFileName, ".mpp", "")
   'create folder on desktop for project(?)
   'create folder on desktop for status date
@@ -968,7 +968,7 @@ exit_here:
   Exit Sub
 
 err_here:
-  Call HandleErr("cptStatusSheet_bas", "CreateStatusSheet", err)
+  Call HandleErr("cptStatusSheet_bas", "cptCreateStatusSheet", err)
   If Not xlApp Is Nothing Then
     If Not Workbook Is Nothing Then Workbook.Close False
     xlApp.Quit

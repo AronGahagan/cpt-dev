@@ -4,7 +4,7 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Sub ReplicateProcess()
+Sub cptReplicateProcess()
   MsgBox "feature not yet released", vbOKOnly + vbInformation, "todo"
   'select a process (group of tasks)
   'define the sequence
@@ -13,7 +13,7 @@ Sub ReplicateProcess()
   'define products; define steps; define count; replicate
 End Sub
 
-Sub BulkAppend()
+Sub cptBulkAppend()
 Dim Tasks As Tasks, Task As Task, strAppend As String
 
   On Error Resume Next
@@ -44,12 +44,12 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptText_bas", "BulkAppend", err)
+  Call HandleErr("cptText_bas", "cptBulkAppend", err)
   Resume exit_here
   
 End Sub
 
-Sub BulkPrepend()
+Sub cptBulkPrepend()
 Dim Tasks As Tasks, Task As Task, strPrepend As String
 
   On Error Resume Next
@@ -80,12 +80,12 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("basTextTool", "BulkPrepend", err)
+  Call HandleErr("basTextTool", "cptBulkPrepend", err)
   Resume exit_here
   
 End Sub
 
-Sub Enumerate()
+Sub cptEnumerate()
 Dim Tasks As Tasks, Task As Task, lgDigits As Long
 Dim vbResponse As Variant, lgEnumerate As Long, lgStart As Long
 
@@ -139,12 +139,12 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptText_bas", "AppendSequential", err)
+  Call HandleErr("cptText_bas", "cptEnumerate", err)
   Resume exit_here
 
 End Sub
 
-Sub MyReplace()
+Sub cptMyReplace()
 'fields affected: Marked, Task Name, Text Fields, Outline Code Fields
 'objects
 Dim arrReplaced As Object
@@ -186,7 +186,7 @@ Dim vField As Variant, vFind As Variant, vReplace As Variant
     If Task.ExternalTask Then GoTo next_task
     For Each vField In ActiveSelection.FieldIDList
       'limit to text fields
-      If Len(RegEx(FieldConstantToFieldName(vField), "Text|Name")) > 0 Then
+      If Len(cptRegEx(FieldConstantToFieldName(vField), "Text|Name")) > 0 Then
         If InStr(Task.GetField(vField), CStr(vFind)) > 0 Then
           Task.SetField vField, Replace(Task.GetField(vField), CStr(vFind), CStr(vReplace))
           arrReplaced.Add Task.UniqueID, Task.UniqueID
@@ -200,11 +200,11 @@ next_task:
   If lngFound = 0 Then
     MsgBox "No instances of '" & CStr(vFind) & "' found in selected cells.", vbExclamation + vbOKOnly, "MyReplace"
   Else
-    FilterEdit "MyReplace", True, True, True, False, , "Unique ID", , "equals", arrReplaced.getKey(0), "Or", True
+    FilterEdit "cptMyReplace", True, True, True, False, , "Unique ID", , "equals", arrReplaced.getKey(0), "Or", True
     For lngItem = 1 To arrReplaced.count - 1
-      FilterEdit "MyReplace", Taskfilter:=True, FieldName:="", NewFieldName:="Unique ID", test:="equals", Value:=arrReplaced.getKey(lngItem), operation:="Or", ShowInMenu:=True
+      FilterEdit "cptMyReplace", Taskfilter:=True, FieldName:="", NewFieldName:="Unique ID", test:="equals", Value:=arrReplaced.getKey(lngItem), operation:="Or", ShowInMenu:=True
     Next lngItem
-    FilterApply "MyReplace", True
+    FilterApply "cptMyReplace", True
     Application.Find "Unique ID", "equals", arrReplaced.getKey(0)
     cptSpeed False
     strMsg = "Replaced " & Format(lngFound, "#,##0") & " instance" & IIf(lngFound = 1, "", "s") & " of '" & CStr(vFind) & "' with '" & CStr(vReplace) & "'" & vbCrLf & vbCrLf
@@ -227,12 +227,12 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptText_bas", "MyReplace", err)
+  Call HandleErr("cptText_bas", "cptMyReplace", err)
   Resume exit_here
 
 End Sub
 
-Sub FindDuplicateTaskNames()
+Sub cptFindDuplicateTaskNames()
 'requires: msexcel
 'objects
 Dim xlApp As Excel.Application, Workbook As Workbook, Worksheet As Worksheet, rng As Excel.Range, ListObject As ListObject
@@ -247,7 +247,7 @@ Dim lgNameCol As Long
   If ActiveProject.Tasks.count = 0 Then GoTo exit_here
   If ActiveProject.Subprojects.count > 0 Then blnMaster = True
   
-  If Not CheckReference("Excel") Then GoTo exit_here
+  If Not cptCheckReference("Excel") Then GoTo exit_here
 
   On Error GoTo err_here
   MapEdit Name:="ExportTaskNames", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="All Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
@@ -308,12 +308,12 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptText_bas", "FindDuplicateTaskNames", err)
+  Call HandleErr("cptText_bas", "cptFindDuplicateTaskNames", err)
   Resume exit_here
 
 End Sub
 
-Sub TrimTaskNames()
+Sub cptTrimTaskNames()
 Dim Task As Task, lgBefore As Long, lgAfter As Long, lgCount As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -338,7 +338,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptText_bas", "TrimTaskNames", err)
+  Call HandleErr("cptText_bas", "cptTrimTaskNames", err)
   Resume exit_here
 
 End Sub
@@ -356,7 +356,7 @@ Dim lngItem As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If Not ModuleExists("cptText_frm") Then GoTo exit_here
+  If Not cptModuleExists("cptText_frm") Then GoTo exit_here
 
   On Error Resume Next
   Set Tasks = ActiveSelection.Tasks
@@ -371,7 +371,7 @@ Dim lngItem As Long
     Next Task
   End If
 
-  Call StartEvents
+  Call cptStartEvents
   cptText_frm.Show
   
 exit_here:
@@ -385,7 +385,7 @@ err_here:
   
 End Sub
 
-Sub UpdatePreview(Optional strPrepend As String, Optional strAppend As String, Optional strPrefix As String, Optional lgCharacters As Long, Optional lgStartAt As Long, _
+Sub cptUpdatePreview(Optional strPrepend As String, Optional strAppend As String, Optional strPrefix As String, Optional lgCharacters As Long, Optional lgStartAt As Long, _
                   Optional lgCountBy As Long, Optional strSuffix As String, Optional strReplaceWhat As String, Optional strReplaceWith As String)
 'objects
 Dim Task As Object
@@ -477,7 +477,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptText_bas", "UpdatePreview", err)
+  Call HandleErr("cptText_bas", "cptUpdatePreview", err)
   Resume exit_here
 
 End Sub

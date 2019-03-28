@@ -14,6 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v1.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -55,7 +56,7 @@ exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
   Set Task = Nothing
-  Call StartEvents
+  Call cptStartEvents
   Exit Sub
 err_here:
   Call HandleErr("cptText_frm", "cmdApply_Click()", err)
@@ -81,7 +82,7 @@ Dim lngItem As Long
   For lngItem = 0 To Me.lboOutput.ListCount - 1
     Me.lboOutput.List(lngItem, 1) = ActiveProject.Tasks.UniqueID(Me.lboOutput.List(lngItem, 0)).Name
   Next
-  Call UpdatePreview
+  Call cptUpdatePreview
 
 exit_here:
   On Error Resume Next
@@ -97,14 +98,14 @@ Private Sub cmdDone_Click()
 End Sub
 
 Private Sub cmdWakeUp_Click()
-  Call StartEvents
+  Call cptStartEvents
 End Sub
 
 Private Sub lblURL_Click()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If InternetIsConnected Then Application.OpenBrowser "http://www.ClearPlanConsulting.com"
+  If cptInternetIsConnected Then Application.OpenBrowser "http://www.ClearPlanConsulting.com"
 
 exit_here:
   On Error Resume Next
@@ -116,7 +117,7 @@ err_here:
 End Sub
 
 Private Sub lblWakeUp_Click()
-  Call StartEvents
+  Call cptStartEvents
 End Sub
 
 Private Sub txtAppend_Change()
@@ -125,9 +126,9 @@ Dim lngItem As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.txtAppend.Text) > 0 Then
-    Call UpdatePreview(strAppend:=Me.txtAppend.Text)
+    Call cptUpdatePreview(strAppend:=Me.txtAppend.Text)
   Else
-    Call UpdatePreview
+    Call cptUpdatePreview
   End If
   Exit Sub
   
@@ -157,16 +158,16 @@ Dim strCharacters As String
 
   'ensure clng
   If Len(Me.txtCharacters.Text) > 0 Then
-    strCharacters = RegEx(Me.txtCharacters.Text, "[0-9]*")
+    strCharacters = cptRegEx(Me.txtCharacters.Text, "[0-9]*")
     Me.txtCharacters.Text = strCharacters
     Me.chkIsDirty = True
     If Len(strCharacters) > 0 Then
-      Call UpdatePreview(lgCharacters:=CLng(strCharacters))
+      Call cptUpdatePreview(lgCharacters:=CLng(strCharacters))
     Else
-      Call UpdatePreview
+      Call cptUpdatePreview
     End If
   Else
-    Call UpdatePreview
+    Call cptUpdatePreview
   End If
   Me.chkIsDirty = CheckDirty
 
@@ -186,16 +187,16 @@ Dim strCountBy As String
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.txtCountBy.Text) > 0 Then
-    strCountBy = RegEx(Me.txtCountBy.Text, "[0-9]*")
+    strCountBy = cptRegEx(Me.txtCountBy.Text, "[0-9]*")
     Me.txtCountBy.Text = strCountBy
     Me.chkIsDirty = True
     If Len(strCountBy) > 0 Then
-      Call UpdatePreview(lgCountBy:=CLng(strCountBy))
+      Call cptUpdatePreview(lgCountBy:=CLng(strCountBy))
     Else
-      Call UpdatePreview
+      Call cptUpdatePreview
     End If
   Else
-    Call UpdatePreview
+    Call cptUpdatePreview
   End If
   Me.chkIsDirty = CheckDirty
 
@@ -213,10 +214,10 @@ Private Sub txtPrefix_Change()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.txtPrefix.Text) > 0 Then
-    Call UpdatePreview(strPrefix:=Me.txtPrefix.Text)
+    Call cptUpdatePreview(strPrefix:=Me.txtPrefix.Text)
     Me.chkIsDirty = True
   Else
-    Call UpdatePreview
+    Call cptUpdatePreview
   End If
   Me.chkIsDirty = CheckDirty
 
@@ -235,7 +236,7 @@ Dim lngItem As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  Call UpdatePreview(strPrepend:=Me.txtPrepend.Text)
+  Call cptUpdatePreview(strPrepend:=Me.txtPrepend.Text)
   Exit Sub
 
   If Len(Me.txtPrepend.Text) > 0 Then
@@ -263,9 +264,9 @@ Private Sub txtReplaceWhat_Change()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.txtReplaceWhat.Text) > 0 Then
-    Call UpdatePreview(strReplaceWhat:=Me.txtReplaceWhat.Text, strReplaceWith:=Me.txtReplaceWith)
+    Call cptUpdatePreview(strReplaceWhat:=Me.txtReplaceWhat.Text, strReplaceWith:=Me.txtReplaceWith)
   Else
-    Call UpdatePreview
+    Call cptUpdatePreview
   End If
   Me.chkIsDirty = CheckDirty
 
@@ -283,9 +284,9 @@ Private Sub txtReplaceWith_Change()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.txtReplaceWith.Text) > 0 Then
-    Call UpdatePreview(strReplaceWhat:=Me.txtReplaceWhat, strReplaceWith:=Me.txtReplaceWith.Text)
+    Call cptUpdatePreview(strReplaceWhat:=Me.txtReplaceWhat, strReplaceWith:=Me.txtReplaceWith.Text)
   Else
-    Call UpdatePreview
+    Call cptUpdatePreview
   End If
   Me.chkIsDirty = CheckDirty
   
@@ -305,15 +306,15 @@ Dim strStartAt As String
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.txtStartAt.Text) > 0 Then
-    strStartAt = RegEx(Me.txtStartAt.Text, "[0-9]*")
+    strStartAt = cptRegEx(Me.txtStartAt.Text, "[0-9]*")
     Me.txtStartAt.Text = strStartAt
     If Len(strStartAt) > 0 Then
-      Call UpdatePreview(lgStartAt:=CLng(strStartAt))
+      Call cptUpdatePreview(lgStartAt:=CLng(strStartAt))
     Else
-      Call UpdatePreview
+      Call cptUpdatePreview
     End If
   Else
-    Call UpdatePreview
+    Call cptUpdatePreview
   End If
   Me.chkIsDirty = CheckDirty
 
@@ -332,9 +333,9 @@ Private Sub txtSuffix_Change()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.txtSuffix.Text) > 0 Then
-    Call UpdatePreview(strSuffix:=Me.txtSuffix.Text)
+    Call cptUpdatePreview(strSuffix:=Me.txtSuffix.Text)
   Else
-    Call UpdatePreview
+    Call cptUpdatePreview
   End If
   Me.chkIsDirty = CheckDirty
 

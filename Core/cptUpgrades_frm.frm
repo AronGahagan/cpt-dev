@@ -13,6 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v1.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -71,7 +72,7 @@ Dim lngItem As Long
       'strFileName = replace(".bas","_bas.bas")
       Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
       strFileName = strModule & arrTypes.Item(CInt(cptUpgrades_frm.lboModules.List(lngItem, 5)))
-      'strFileName = Replace(strFileName, RegEx(strFileName, "_frm|_bas|_cls"), "")
+      'strFileName = Replace(strFileName, cptRegEx(strFileName, "_frm|_bas|_cls"), "")
       strDirectory = cptUpgrades_frm.lboModules.List(lngItem, 1)
 get_frx:
       strURL = strGitHub & strDirectory & "/" & strFileName
@@ -100,7 +101,7 @@ get_frx:
         strFileName = Replace(strFileName, ".frx", ".frm")
       End If
       
-      If ModuleExists(strModule) Then
+      If cptModuleExists(strModule) Then
         ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(strModule)
       End If
       ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
@@ -120,7 +121,7 @@ exit_here:
   Set oStream = Nothing
   Exit Sub
 err_here:
-  Call HandleErr("frmUpdates", "cmdUpdate_Click", err)
+  Call cptHandleErr("frmUpdates", "cmdUpdate_Click", err)
   Me.lboModules.List(lngItem, 3) = "<error>"
   Resume exit_here
 
@@ -130,13 +131,13 @@ Private Sub lblURL_Click()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If InternetIsConnected Then Application.OpenBrowser "http://www.ClearPlanConsulting.com"
+  If cptInternetIsConnected Then Application.OpenBrowser "http://www.ClearPlanConsulting.com"
 
 exit_here:
   On Error Resume Next
 
   Exit Sub
 err_here:
-  Call HandleErr("cptUpgrades_frm", "lblURL_Click", err)
+  Call cptHandleErr("cptUpgrades_frm", "lblURL_Click", err)
   Resume exit_here
 End Sub
