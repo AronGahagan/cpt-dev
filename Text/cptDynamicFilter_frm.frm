@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptDynamicFilter_frm
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptDynamicFilter_frm 
    Caption         =   "Dynamic Filter"
    ClientHeight    =   2190
    ClientLeft      =   45
@@ -75,22 +75,6 @@ Private Sub lblURL_Click()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then Application.OpenBrowser ("http://" & Me.lblURL.Caption)
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call HandleErr("cptAbout_frm", "lblURL", err)
-  Resume exit_here
-
-End Sub
-
-Private Sub lblURL_Click()
-
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  If InternetIsConnected Then Application.OpenBrowser ("http://" & Me.lblURL.Caption)
 
 exit_here:
   On Error Resume Next
