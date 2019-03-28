@@ -29,7 +29,6 @@ _License: This software is provided gratis (free of charge), AS IS and without W
 1. Enable Macros
     1. Open Microsoft Project, go to File > Options > Trust Center > Trust Center Settings... > Macros
     1. Click Enable all macros
-    1. ~~Click 'trust access to the vb project object model' (this enables a sort of 'push' update process)~~
     1. Completely exit Microsoft Project, then restart (this makes the settings above 'stick')
 1. Download [cpt.mpp](cpt.mpp) and copy all modules prefixed with "cpt" into your Global.MPT
 1. View > Visual Baic > Macros > run the macro **cptSetup**
