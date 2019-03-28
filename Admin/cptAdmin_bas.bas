@@ -4,7 +4,7 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Sub CreateCurrentVersionsXML(Optional strRepo As String)
+Sub cptCreateCurrentVersionsXML(Optional strRepo As String)
 'objects
 Dim arrTypes As Object
 Dim oStream As Object, vbComponent As Object 'adodb.stream
@@ -60,16 +60,16 @@ Dim lngFile As Long
   For Each vbComponent In ThisProject.VBProject.VBComponents
     If vbComponent.Name = "cptAdmin_bas" Then GoTo next_vbComponent
     If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
-      strVersion = RegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
+      strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
       strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
       strXML = strXML & String(1, vbTab) & "<Module>" & vbCrLf
-      strModule = Replace(vbComponent.Name, RegEx(vbComponent.Name, "_frm|_bas|_cls"), "")
+      strModule = Replace(vbComponent.Name, cptRegEx(vbComponent.Name, "_frm|_bas|_cls"), "")
       strXML = strXML & String(2, vbTab) & "<Name>" & vbComponent.Name & "</Name>" & vbCrLf
       strXML = strXML & String(2, vbTab) & "<FileName>" & vbComponent.Name & arrTypes(CInt(vbComponent.Type)) & "</FileName>" & vbCrLf
       strXML = strXML & String(2, vbTab) & "<Version>" & strVersion & "</Version>" & vbCrLf
       strXML = strXML & String(2, vbTab) & "<Type>" & vbComponent.Type & "</Type>" & vbCrLf
-      strDirectory = Replace(vbComponent.Name, RegEx(vbComponent.Name, "_frm|_bas|_cls"), "")
-      strXML = strXML & String(2, vbTab) & "<Directory>" & Replace(SetDirectory(CStr(vbComponent.Name)), "\", "") & "</Directory>" & vbCrLf
+      strDirectory = Replace(vbComponent.Name, cptRegEx(vbComponent.Name, "_frm|_bas|_cls"), "")
+      strXML = strXML & String(2, vbTab) & "<Directory>" & Replace(cptSetDirectory(CStr(vbComponent.Name)), "\", "") & "</Directory>" & vbCrLf
       strXML = strXML & String(1, vbTab) & "</Module>" & vbCrLf
     End If
 next_vbComponent:
@@ -106,7 +106,7 @@ err_here:
 
 End Sub
 
-Sub Document()
+Sub cptDocument()
 'objects
 Dim vbComponent As vbComponent
 Dim xlApp As Object, Workbook As Object, Worksheet As Object
@@ -193,7 +193,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub CheckAllVersions()
+Sub cptCheckAllVersions()
 Dim vbComponent As vbComponent
 
   For Each vbComponent In ThisProject.VBProject.VBComponents
@@ -205,7 +205,7 @@ Dim vbComponent As vbComponent
   
 End Sub
 
-Function SetDirectory(strComponentName As String) As String
+Function cptSetDirectory(strComponentName As String) As String
 'strings
 Dim strDirectory As String
       
@@ -256,14 +256,14 @@ Dim strDirectory As String
         
   End Select
   
-  SetDirectory = strDirectory & "\"
+  cptSetDirectory = strDirectory & "\"
   
 exit_here:
   On Error Resume Next
 
   Exit Function
 err_here:
-  Call HandleErr("cptAdmin_bas", "SetDirectory()", err)
+  Call HandleErr("cptAdmin_bas", "cptSetDirectory()", err)
   Resume exit_here
 
 End Function

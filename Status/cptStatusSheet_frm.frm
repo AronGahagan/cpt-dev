@@ -13,6 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v1.1</cpt_version>
 
 Option Explicit
@@ -331,7 +332,7 @@ Dim strFileName As String
       .Close
     End With
     'create the sheet
-    Call CreateStatusSheet
+    Call cptCreateStatusSheet
   End If
 
 exit_here:
@@ -384,7 +385,7 @@ Private Sub lblURL_Click()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If InternetIsConnected Then Application.OpenBrowser "http://www.ClearPlanConsulting.com"
+  If cptInternetIsConnected Then Application.OpenBrowser "http://www.ClearPlanConsulting.com"
 
 exit_here:
   On Error Resume Next
@@ -471,7 +472,7 @@ Dim lgItem As Long
   With CreateObject("ADODB.REcordset")
     .Open cptDir & "\settings\cpt-status-sheet-search.adtg"
     If Len(Me.stxtSearch.Text) > 0 Then
-      .Filter = "[Custom Field Name] LIKE *" & RemoveIllegalCharacters(Me.stxtSearch.Text) & "*"
+      .Filter = "[Custom Field Name] LIKE *" & cptRemoveIllegalCharacters(Me.stxtSearch.Text) & "*"
     Else
       .Filter = 0
     End If
@@ -531,7 +532,7 @@ Dim stxt As String
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  stxt = RegEx(Me.txtHideCompleteBefore.Text, "[0-9\/]*")
+  stxt = cptRegEx(Me.txtHideCompleteBefore.Text, "[0-9\/]*")
   Me.txtHideCompleteBefore.Text = stxt
   If Len(Me.txtHideCompleteBefore.Text) > 0 Then
     If IsDate(Me.txtHideCompleteBefore.Text) Then
@@ -559,7 +560,7 @@ Dim stxt As String
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  stxt = RegEx(Me.txtStatusDate.Text, "[0-9\/]*")
+  stxt = cptRegEx(Me.txtStatusDate.Text, "[0-9\/]*")
   Me.txtStatusDate.Text = stxt
   If Len(Me.txtStatusDate.Text) > 0 Then
     If IsDate(Me.txtStatusDate.Text) Then

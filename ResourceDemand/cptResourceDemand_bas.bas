@@ -6,7 +6,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
 
 Private Const adVarChar As Long = 200
 
-Sub ExportResourceDemand(Optional lngTaskCount As Long)
+Sub cptExportResourceDemand(Optional lngTaskCount As Long)
 'objects
 Dim Task As Task, Resource As Resource, Assignment As Assignment
 Dim TSVS As TimeScaleValues, TSV As TimeScaleValue
@@ -333,7 +333,7 @@ exit_here:
   If Not xlApp Is Nothing Then xlApp.Quit
   Exit Sub
 err_here:
-  Call HandleErr("basBrashear", "ExportResourceDemand", err)
+  Call HandleErr("basBrashear", "cptExportResourceDemand", err)
   On Error Resume Next
   Resume exit_here
       
@@ -359,7 +359,7 @@ Dim vFieldType As Variant
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   'requires ms excel
-  If Not CheckReference("Excel") Then
+  If Not cptCheckReference("Excel") Then
     MsgBox "This feature requires MS Excel.", vbCritical + vbOKOnly, "Resource Demand"
     GoTo exit_here
   End If

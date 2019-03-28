@@ -101,27 +101,27 @@ Sub Export_IMS()
 
     Dim xportFrm As cptIMSCobraExport_frm
     Dim xportFormat As String
-    Dim curProj As Project
+    Dim curproj As Project
     
     On Error GoTo CleanUp
     
-    Set curProj = ActiveProject
+    Set curproj = ActiveProject
     
-    curProj.Application.Calculation = pjManual
-    curProj.Application.DisplayAlerts = False
+    curproj.Application.Calculation = pjManual
+    curproj.Application.DisplayAlerts = False
     
-    If curProj.Subprojects.count > 0 And InStr(curProj.FullName, "<>") > 0 And curProj.ReadOnly <> True Then
+    If curproj.Subprojects.count > 0 And InStr(curproj.FullName, "<>") > 0 And curproj.ReadOnly <> True Then
         MsgBox "Master Project Files with Subprojects must be opened Read Only"
         GoTo Quick_Exit
     End If
     
-    If curProj.Subprojects.count > 0 Then
+    If curproj.Subprojects.count > 0 Then
         MasterProject = True
     Else
         MasterProject = False
     End If
     
-    ReadCustomFields curProj
+    ReadCustomFields curproj
     
     Set xportFrm = New cptIMSCobraExport_frm
     
@@ -197,15 +197,15 @@ Sub Export_IMS()
         
         If .Tag = "Cancel" Then
             Set IMSCobraExportFrm = Nothing
-            Set curProj = Nothing
+            Set curproj = Nothing
             Exit Sub
         End If
         
         If .Tag = "DataCheck" Then
             CAID3_Used = .CAID3TxtBox.Enabled
             CAID2_Used = .CAID2TxtBox.Enabled
-            DataChecks curProj
-            Set curProj = Nothing
+            DataChecks curproj
+            Set curproj = Nothing
             Set IMSCobraExportFrm = Nothing
             Exit Sub
         End If
@@ -242,15 +242,15 @@ Sub Export_IMS()
     
         Case "MPP"
         
-            MPP_Export curProj
+            MPP_Export curproj
         
         Case "XML"
         
-            XML_Export curProj
+            XML_Export curproj
         
         Case "CSV"
         
-            CSV_Export curProj
+            CSV_Export curproj
         
         Case Else
         
@@ -261,9 +261,9 @@ Sub Export_IMS()
         Shell "explorer.exe" & " " & destFolder, vbNormalFocus
     End If
     
-    curProj.Application.Calculation = pjAutomatic
-    curProj.Application.DisplayAlerts = True
-    Set curProj = Nothing
+    curproj.Application.Calculation = pjAutomatic
+    curproj.Application.DisplayAlerts = True
+    Set curproj = Nothing
     
     Exit Sub
     
@@ -271,23 +271,23 @@ CleanUp:
 
     If ACTfilename <> "" Then Reset
 
-    curProj.Application.Calculation = pjAutomatic
-    curProj.Application.DisplayAlerts = True
-    Set curProj = Nothing
+    curproj.Application.Calculation = pjAutomatic
+    curproj.Application.DisplayAlerts = True
+    Set curproj = Nothing
     MsgBox "An error was encountered." & vbCr & vbCr & ErrMsg
     Exit Sub
     
 Quick_Exit:
     
-    curProj.Application.Calculation = pjAutomatic
-    curProj.Application.DisplayAlerts = True
-    Set curProj = Nothing
+    curproj.Application.Calculation = pjAutomatic
+    curproj.Application.DisplayAlerts = True
+    Set curproj = Nothing
     
     Exit Sub
     
 End Sub
 
-Private Sub DataChecks(ByVal curProj As Project)
+Private Sub DataChecks(ByVal curproj As Project)
 
     Dim WPChecks() As WPDataCheck
     Dim wpFound As Boolean
@@ -317,7 +317,7 @@ Private Sub DataChecks(ByVal curProj As Project)
     
     Dim docProps As DocumentProperties
     
-    Set docProps = curProj.CustomDocumentProperties
+    Set docProps = curproj.CustomDocumentProperties
     
     fCAID1 = docProps("fCAID1").Value
     fCAID1t = docProps("fCAID1t").Value
@@ -341,16 +341,16 @@ Private Sub DataChecks(ByVal curProj As Project)
     End If
     fPCNT = docProps("fPCNT").Value
     
-    destFolder = SetDirectory(curProj.ProjectSummaryTask.Name)
+    destFolder = SetDirectory(curproj.ProjectSummaryTask.Name)
     
     taskCount = 0
     taskFound = False
     
     '**Scan Task Data**
     
-    If curProj.Subprojects.count > 0 Then
+    If curproj.Subprojects.count > 0 Then
     
-        Set subProjs = curProj.Subprojects
+        Set subProjs = curproj.Subprojects
         
         For Each subProj In subProjs
         
@@ -443,7 +443,7 @@ Private Sub DataChecks(ByVal curProj As Project)
     
     Else
     
-        For Each t In curProj.Tasks
+        For Each t In curproj.Tasks
         
             If Not t Is Nothing Then
             
@@ -469,7 +469,7 @@ Private Sub DataChecks(ByVal curProj As Project)
                             .MSID = t.GetField(FieldNameToFieldConstant(fMilestone))
                             .MSWeight = t.GetField(FieldNameToFieldConstant(fMilestoneWeight))
                         End If
-                        .BWork = t.BaselineWork / 60 / curProj.HoursPerDay
+                        .BWork = t.BaselineWork / 60 / curproj.HoursPerDay
                         .BCost = t.BaselineCost
                         .CAM = t.GetField(FieldNameToFieldConstant(fCAM))
                         .AssignmentBStart = "NA"
@@ -510,7 +510,7 @@ Private Sub DataChecks(ByVal curProj As Project)
                             Else
                                 tempBWork = tAss.BaselineWork
                             End If
-                            .AssignmentBWork = .AssignmentBWork + tempBWork / 60 / curProj.HoursPerDay
+                            .AssignmentBWork = .AssignmentBWork + tempBWork / 60 / curproj.HoursPerDay
                         
                         Next tAss
                         
@@ -524,7 +524,7 @@ Private Sub DataChecks(ByVal curProj As Project)
     
     End If
     
-    ACTfilename = destFolder & "\DataChecks_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+    ACTfilename = destFolder & "\DataChecks_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
     Open ACTfilename For Output As #1
     
@@ -1010,43 +1010,43 @@ next_task:
 
 End Sub
 
-Private Sub MPP_Export(ByVal curProj As Project)
+Private Sub MPP_Export(ByVal curproj As Project)
 
     Dim subProj As Subproject
     Dim subProjs As Subprojects
     
-    destFolder = SetDirectory(curProj.ProjectSummaryTask.Name)
+    destFolder = SetDirectory(curproj.ProjectSummaryTask.Name)
     
-    If curProj.Subprojects.count > 0 Then
+    If curproj.Subprojects.count > 0 Then
         
-        Set subProjs = curProj.Subprojects
+        Set subProjs = curproj.Subprojects
         
         For Each subProj In subProjs
         
             subProj.SourceProject.SaveAs Name:=destFolder & "\" & subProj.SourceProject.Name
-            curProj.Subprojects(subProj.Index).SourceProject = destFolder & "\" & subProj.SourceProject.Name
+            curproj.Subprojects(subProj.Index).SourceProject = destFolder & "\" & subProj.SourceProject.Name
         
         Next subProj
         
-        curProj.SaveAs Name:=destFolder & "\" & curProj.ProjectSummaryTask.Name
+        curproj.SaveAs Name:=destFolder & "\" & curproj.ProjectSummaryTask.Name
     
     Else
     
-        curProj.SaveAs Name:=destFolder & "\" & curProj.ProjectSummaryTask.Name
+        curproj.SaveAs Name:=destFolder & "\" & curproj.ProjectSummaryTask.Name
     
     End If
 
 End Sub
-Private Sub XML_Export(ByVal curProj As Project)
+Private Sub XML_Export(ByVal curproj As Project)
 
     Dim subProj As Subproject
     Dim subProjs As Subprojects
     
-    destFolder = SetDirectory(curProj.ProjectSummaryTask.Name)
+    destFolder = SetDirectory(curproj.ProjectSummaryTask.Name)
     
-    If curProj.Subprojects.count > 0 Then
+    If curproj.Subprojects.count > 0 Then
         
-        Set subProjs = curProj.Subprojects
+        Set subProjs = curproj.Subprojects
         
         For Each subProj In subProjs
         
@@ -1057,17 +1057,17 @@ Private Sub XML_Export(ByVal curProj As Project)
     
     Else
     
-        curProj.SaveAs Name:=destFolder & "\" & curProj.ProjectSummaryTask.Name, FormatID:="MSProject.XML"
+        curproj.SaveAs Name:=destFolder & "\" & curproj.ProjectSummaryTask.Name, FormatID:="MSProject.XML"
         
     End If
 
 End Sub
 
-Private Sub CSV_Export(ByVal curProj As Project)
+Private Sub CSV_Export(ByVal curproj As Project)
 
     Dim docProps As DocumentProperties
     
-    Set docProps = curProj.CustomDocumentProperties
+    Set docProps = curproj.CustomDocumentProperties
     
     fCAID1 = docProps("fCAID1").Value
     fCAID1t = docProps("fCAID1t").Value
@@ -1092,14 +1092,14 @@ Private Sub CSV_Export(ByVal curProj As Project)
     
     BCR_Error = False
     
-    destFolder = SetDirectory(curProj.ProjectSummaryTask.Name)
+    destFolder = SetDirectory(curproj.ProjectSummaryTask.Name)
     
     '*******************
     '****BCR Review*****
     '*******************
     
     If BCRxport = True Then
-        If Find_BCRs(curProj, fWP, fBCR, BCR_ID) = 0 Then
+        If Find_BCRs(curproj, fWP, fBCR, BCR_ID) = 0 Then
             MsgBox "BCR ID " & Chr(34) & BCR_ID & Chr(34) & " was not found in the IMS." & vbCr & vbCr & "Please try again."
             BCR_Error = True
             GoTo BCR_Error
@@ -1112,7 +1112,7 @@ Private Sub CSV_Export(ByVal curProj As Project)
     
     If BCWSxport = True Then
     
-        BCWS_Export curProj
+        BCWS_Export curproj
     
     End If
     
@@ -1122,7 +1122,7 @@ Private Sub CSV_Export(ByVal curProj As Project)
     
     If ETCxport = True Then
     
-        ETC_Export curProj
+        ETC_Export curproj
         
     End If
     
@@ -1132,7 +1132,7 @@ Private Sub CSV_Export(ByVal curProj As Project)
     
     If BCWPxport = True Then
     
-        BCWP_Export curProj
+        BCWP_Export curproj
         
     End If
     
@@ -1146,7 +1146,7 @@ BCR_Error:
 
 End Sub
 
-Private Sub BCWP_Export(ByVal curProj As Project)
+Private Sub BCWP_Export(ByVal curproj As Project)
 
     '*******************
     '****BCWP Export****
@@ -1168,7 +1168,7 @@ Private Sub BCWP_Export(ByVal curProj As Project)
 
     If ResourceLoaded = False Then
     
-        ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
     
         Open ACTfilename For Output As #1
         
@@ -1185,9 +1185,9 @@ Private Sub BCWP_Export(ByVal curProj As Project)
         x = 1
         ActFound = False
         
-        If curProj.Subprojects.count > 0 Then
+        If curproj.Subprojects.count > 0 Then
             
-            Set subProjs = curProj.Subprojects
+            Set subProjs = curproj.Subprojects
             
             For Each subProj In subProjs
             
@@ -1533,7 +1533,7 @@ nrBCWP_WP_Match_A:
         
         Else
         
-            For Each t In curProj.Tasks
+            For Each t In curproj.Tasks
             
                 If Not t Is Nothing Then
                     
@@ -1890,7 +1890,7 @@ nrBCWP_WP_Match_B:
     
     Else '**Resource Loaded**
 
-        ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
     
         Open ACTfilename For Output As #1
         
@@ -1907,9 +1907,9 @@ nrBCWP_WP_Match_B:
         x = 1
         ActFound = False
         
-        If curProj.Subprojects.count > 0 Then
+        If curproj.Subprojects.count > 0 Then
             
-            Set subProjs = curProj.Subprojects
+            Set subProjs = curproj.Subprojects
             
             For Each subProj In subProjs
             
@@ -2255,7 +2255,7 @@ BCWP_WP_Match_A:
         
         Else
         
-            For Each t In curProj.Tasks
+            For Each t In curproj.Tasks
             
                 If Not t Is Nothing Then
                     
@@ -2614,7 +2614,7 @@ BCWP_WP_Match_B:
 
 End Sub
 
-Private Sub ETC_Export(ByVal curProj As Project)
+Private Sub ETC_Export(ByVal curproj As Project)
 
     Dim t As Task
     Dim tAss As Assignments
@@ -2636,7 +2636,7 @@ Private Sub ETC_Export(ByVal curProj As Project)
     
     If ResourceLoaded = False Then
     
-        ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
     
         Open ACTfilename For Output As #1
         
@@ -2653,9 +2653,9 @@ Private Sub ETC_Export(ByVal curProj As Project)
         x = 1
         ActFound = False
     
-        If curProj.Subprojects.count > 0 Then
+        If curproj.Subprojects.count > 0 Then
             
-            Set subProjs = curProj.Subprojects
+            Set subProjs = curproj.Subprojects
             
             For Each subProj In subProjs
             
@@ -2828,7 +2828,7 @@ nrETC_WP_Match:
         
         Else
         
-            For Each t In curProj.Tasks
+            For Each t In curproj.Tasks
             
                 If Not t Is Nothing Then
                 
@@ -3013,8 +3013,8 @@ nrETC_WP_Match_B:
     
     Else '**Resource Loaded**
 
-        ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
-        RESfilename = destFolder & "\ETC RES_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        RESfilename = destFolder & "\ETC RES_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
     
         Open ACTfilename For Output As #1
         Open RESfilename For Output As #2
@@ -3033,9 +3033,9 @@ nrETC_WP_Match_B:
         x = 1
         ActFound = False
     
-        If curProj.Subprojects.count > 0 Then
+        If curproj.Subprojects.count > 0 Then
             
-            Set subProjs = curProj.Subprojects
+            Set subProjs = curproj.Subprojects
             
             For Each subProj In subProjs
             
@@ -3261,7 +3261,7 @@ ETC_WP_Match:
         
         Else
         
-            For Each t In curProj.Tasks
+            For Each t In curproj.Tasks
             
                 If Not t Is Nothing Then
                 
@@ -3505,7 +3505,7 @@ ETC_WP_Match_B:
     End If
 
 End Sub
-Private Sub BCWS_Export(ByVal curProj As Project)
+Private Sub BCWS_Export(ByVal curproj As Project)
 
     Dim t As Task
     Dim tAss As Assignments
@@ -3527,12 +3527,12 @@ Private Sub BCWS_Export(ByVal curProj As Project)
     '*******************
     
     If DescExport = True Then
-        Get_WP_Descriptions curProj
+        Get_WP_Descriptions curproj
     End If
     
     If ResourceLoaded = False Then
     
-        ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
     
         Open ACTfilename For Output As #1
         
@@ -3549,9 +3549,9 @@ Private Sub BCWS_Export(ByVal curProj As Project)
         x = 1
         ActFound = False
     
-        If curProj.Subprojects.count > 0 Then
+        If curproj.Subprojects.count > 0 Then
             
-            Set subProjs = curProj.Subprojects
+            Set subProjs = curproj.Subprojects
             
             For Each subProj In subProjs
             
@@ -3707,7 +3707,7 @@ Next_nrSProj_Task:
         
         Else
         
-            For Each t In curProj.Tasks
+            For Each t In curproj.Tasks
             
                 If Not t Is Nothing Then
                 
@@ -3873,8 +3873,8 @@ Next_nrTask:
     
     Else
 
-        ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
-        RESfilename = destFolder & "\BCWS RES_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        RESfilename = destFolder & "\BCWS RES_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
     
         Open ACTfilename For Output As #1
         Open RESfilename For Output As #2
@@ -3893,9 +3893,9 @@ Next_nrTask:
         x = 1
         ActFound = False
     
-        If curProj.Subprojects.count > 0 Then
+        If curproj.Subprojects.count > 0 Then
             
-            Set subProjs = curProj.Subprojects
+            Set subProjs = curproj.Subprojects
             
             For Each subProj In subProjs
             
@@ -4083,7 +4083,7 @@ Next_SProj_Task:
         
         Else
         
-            For Each t In curProj.Tasks
+            For Each t In curproj.Tasks
             
                 If Not t Is Nothing Then
                 
@@ -4332,7 +4332,7 @@ NoWPMatchFound:
 
 End Function
 
-Private Sub Get_WP_Descriptions(ByVal curProj As Project)
+Private Sub Get_WP_Descriptions(ByVal curproj As Project)
 
     Dim CAID1 As String
     Dim CAID2 As String
@@ -4347,9 +4347,9 @@ Private Sub Get_WP_Descriptions(ByVal curProj As Project)
     
     i = 0
     
-    If curProj.Subprojects.count > 0 Then
+    If curproj.Subprojects.count > 0 Then
     
-        Set subProjs = curProj.Subprojects
+        Set subProjs = curproj.Subprojects
         
         For Each subProj In subProjs
         
@@ -4421,7 +4421,7 @@ Next_SubProj_WPtask:
         
     Else
     
-        For Each t In curProj.Tasks
+        For Each t In curproj.Tasks
             
             If Not t Is Nothing Then
                 WP = t.GetField(FieldNameToFieldConstant(fWP))
@@ -4508,7 +4508,7 @@ Private Function CleanCamName(ByVal CAM As String) As String
 
 End Function
 
-Private Function Find_BCRs(ByVal curProj As Project, ByVal fWP As String, ByVal fBCR As String, ByVal BCRnum As String) As Integer
+Private Function Find_BCRs(ByVal curproj As Project, ByVal fWP As String, ByVal fBCR As String, ByVal BCRnum As String) As Integer
 
     Dim t As Task
     Dim i As Integer
@@ -4520,9 +4520,9 @@ Private Function Find_BCRs(ByVal curProj As Project, ByVal fWP As String, ByVal 
     
     i = 0
     
-    If curProj.Subprojects.count > 0 Then
+    If curproj.Subprojects.count > 0 Then
     
-        Set subProjs = curProj.Subprojects
+        Set subProjs = curproj.Subprojects
         
         For Each subProj In subProjs
         
@@ -4572,7 +4572,7 @@ Next_SubProj_WPtask:
         
     Else
     
-        For Each t In curProj.Tasks
+        For Each t In curproj.Tasks
             
             If Not t Is Nothing Then
                 tempBCRstr = t.GetField(FieldNameToFieldConstant(fBCR))
@@ -4651,7 +4651,7 @@ Private Function RemoveIllegalCharacters(ByVal strText As String) As String
 
 End Function
 
-Private Sub ReadCustomFields(ByVal curProj As Project)
+Private Sub ReadCustomFields(ByVal curproj As Project)
     
     Dim i As Integer
     Dim fID As Long
@@ -4659,9 +4659,9 @@ Private Sub ReadCustomFields(ByVal curProj As Project)
     'Read local Custom Text Fields
     For i = 1 To 30
         
-        If Len(curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("Text" & i))) > 0 Then
+        If Len(curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Text" & i))) > 0 Then
             ReDim Preserve CustTextFields(1 To i)
-            CustTextFields(i) = curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("Text" & i))
+            CustTextFields(i) = curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Text" & i))
         Else
             ReDim Preserve CustTextFields(1 To i)
             CustTextFields(i) = "Text" & i
@@ -4672,9 +4672,9 @@ Private Sub ReadCustomFields(ByVal curProj As Project)
     'Read local Custom Number Fields
     For i = 1 To 20
     
-        If Len(curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("Number" & i))) > 0 Then
+        If Len(curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Number" & i))) > 0 Then
             ReDim Preserve CustNumFields(1 To i)
-            CustNumFields(i) = curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("Number" & i))
+            CustNumFields(i) = curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Number" & i))
         Else
             ReDim Preserve CustNumFields(1 To i)
             CustNumFields(i) = "Number" & i
@@ -4685,9 +4685,9 @@ Private Sub ReadCustomFields(ByVal curProj As Project)
     'Read local Custom Outline Code Fields
     For i = 1 To 10
     
-        If Len(curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("OutlineCode" & i))) > 0 Then
+        If Len(curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("OutlineCode" & i))) > 0 Then
             ReDim Preserve CustOLCodeFields(1 To i)
-            CustOLCodeFields(i) = curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("OutlineCode" & i))
+            CustOLCodeFields(i) = curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("OutlineCode" & i))
         Else
             ReDim Preserve CustOLCodeFields(1 To i)
             CustOLCodeFields(i) = "OutlineCode" & i

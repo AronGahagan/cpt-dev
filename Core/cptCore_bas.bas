@@ -6,7 +6,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
 
 Private oMSPEvents As cptEvents_cls
 
-Sub StartEvents()
+Sub cptStartEvents()
   Set oMSPEvents = New cptEvents_cls
 End Sub
 
@@ -17,7 +17,7 @@ Function cptSpeed(blnOn As Boolean)
 
 End Function
 
-Function GetUserForm(strModuleName As String) As UserForm
+Function cptGetUserForm(strModuleName As String) As UserForm
 'objects
 Dim UserForm As Object
 'strings
@@ -32,7 +32,7 @@ Dim UserForm As Object
 
   For Each UserForm In VBA.UserForms
     If UserForm.Name = strModuleName Then
-      Set GetUserForm = UserForm
+      Set cptGetUserForm = UserForm
       Exit For
     End If
   Next
@@ -43,15 +43,15 @@ exit_here:
 
   Exit Function
 err_here:
-  Call HandleErr("cptCore_bas", "GetModule()", err)
+  Call cptHandleErr("cptCore_bas", "GetModule()", err)
   Resume exit_here
 End Function
 
-Function GetControl(ByRef cptForm_frm As UserForm, strControlName As String) As control
-  Set GetControl = cptForm_frm.Controls(strControlName)
+Function cptGetControl(ByRef cptForm_frm As UserForm, strControlName As String) As control
+  Set cptGetControl = cptForm_frm.Controls(strControlName)
 End Function
 
-Function GetUserFullName()
+Function cptGetUserFullName()
 'used to add user's name to PowerPoint title slide
 Dim objAllNames As Object, objIndName As Object
 
@@ -61,7 +61,7 @@ Dim objAllNames As Object, objIndName As Object
   Set objAllNames = GetObject("Winmgmts:").instancesof("win32_networkloginprofile")
   For Each objIndName In objAllNames
     If Len(objIndName.FullName) > 0 Then
-      GetUserFullName = objIndName.FullName
+      cptGetUserFullName = objIndName.FullName
       Exit For
     End If
   Next
@@ -72,12 +72,12 @@ exit_here:
   Set objIndName = Nothing
   Exit Function
 err_here:
-  Call HandleErr("cptCore_bas", "GetUserFullName", err)
+  Call cptHandleErr("cptCore_bas", "cptGetUserFullName", err)
   Resume exit_here
 
 End Function
 
-Function GetVersions() As String
+Function cptGetVersions() As String
 'requires reference: Microsoft Scripting Runtime
 Dim vbComponent As Object, strVersion As String
 
@@ -86,9 +86,9 @@ Dim vbComponent As Object, strVersion As String
   For Each vbComponent In ThisProject.VBProject.VBComponents
     'is the vbComponent one of ours?
     If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
-      strVersion = RegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
+      strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
       strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
-      GetVersions = GetVersions & vbComponent.Name & ": " & strVersion & vbCrLf
+      cptGetVersions = cptGetVersions & vbComponent.Name & ": " & strVersion & vbCrLf
     End If
 next_component:
   Next vbComponent
@@ -98,7 +98,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call HandleErr("cptCore_bas", "GetVersions", err)
+  Call cptHandleErr("cptCore_bas", "cptGetVersions", err)
   Resume exit_here
 
 End Function
@@ -134,7 +134,7 @@ Dim strAbout As String
 
 End Sub
 
-Function ReferenceExists(strReference) As Boolean
+Function cptReferenceExists(strReference) As Boolean
 'used to ensure a reference exists, returns boolean
 Dim Ref As Object, blnExists As Boolean
 
@@ -149,18 +149,18 @@ Dim Ref As Object, blnExists As Boolean
     End If
   Next Ref
 
-  ReferenceExists = blnExists
+  cptReferenceExists = blnExists
 
 exit_here:
   On Error Resume Next
 
   Exit Function
 err_here:
-  Call HandleErr("cptCore_bas", "ReferenceExists", err)
+  Call cptHandleErr("cptCore_bas", "cptReferenceExists", err)
   Resume exit_here
 End Function
 
-Sub GetReferences()
+Sub cptGetReferences()
 'prints the current uesr's selected references
 'this would be used to troubleshoot with users real-time
 'although simply runing setreferences would fix it
@@ -188,7 +188,7 @@ Dim strURL As String
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  'the calling subroutine should catch the Not InternetIsConnected function before calling this
+  'the calling subroutine should catch the Not cptInternetIsConnected function before calling this
 
   Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
   xmlDoc.async = False
@@ -212,11 +212,11 @@ exit_here:
 
   Exit Function
 err_here:
-  Call HandleErr("cptCore_bas", "cptGetDirectory()", err)
+  Call cptHandleErr("cptCore_bas", "cptGetDirectory()", err)
   Resume exit_here
 End Function
 
-Sub GetEnviron()
+Sub cptGetEnviron()
 'list the environment variables and their associated values
 Dim lgIndex As Long
 
@@ -226,79 +226,79 @@ Dim lgIndex As Long
 
 End Sub
 
-Function CheckReference(strReference As String) As Boolean
+Function cptCheckReference(strReference As String) As Boolean
 'this routine will be called ahead of any subroutine requiring a reference
 'returns boolean and subroutine only proceeds if true
 Dim blnExists As Boolean
 
   On Error GoTo err_here
 
-  CheckReference = True
+  cptCheckReference = True
 
   Select Case strReference
     'CommonProgramFiles
     Case "Office"
-      If Not ReferenceExists("Office") Then
+      If Not cptReferenceExists("Office") Then
         ThisProject.VBProject.References.AddFromFile Environ("CommonProgramFiles") & "\Microsoft Shared\OFFICE16\MSO.DLL"
       End If
     Case "VBIDE"
-      If Not ReferenceExists("VBIDE") Then
+      If Not cptReferenceExists("VBIDE") Then
         ThisProject.VBProject.References.AddFromFile Environ("CommonProgramFiles") & "\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB"
       End If
     Case "VBA"
-      If Not ReferenceExists("VBA") Then
+      If Not cptReferenceExists("VBA") Then
         ThisProject.VBProject.References.AddFromFile Environ("CommonProgramFiles") & "\Microsoft Shared\VBA\VBA7.1\VBE7.DLL"
       End If
     Case "ADODB"
-      If Not ReferenceExists("ADODB") Then
+      If Not cptReferenceExists("ADODB") Then
         ThisProject.VBProject.References.AddFromFile Environ("CommonProgramFiles") & "\System\ado\msado15.dll"
       End If
 
     'Office Applications
     Case "Excel"
-      If Not ReferenceExists("Excel") Then
+      If Not cptReferenceExists("Excel") Then
         ThisProject.VBProject.References.AddFromFile Application.Path & "\EXCEL.EXE"
       End If
     Case "Outlook"
-      If Not ReferenceExists("Outlook") Then
+      If Not cptReferenceExists("Outlook") Then
         ThisProject.VBProject.References.AddFromFile Application.Path & "\MSOUTL.OLB"
       End If
     Case "PowerPoint"
-      If Not ReferenceExists("PowerPoint") Then
+      If Not cptReferenceExists("PowerPoint") Then
         ThisProject.VBProject.References.AddFromFile Application.Path & "\MSPPT.OLB"
       End If
     Case "MSProject"
-      If Not ReferenceExists("MSProject") Then
+      If Not cptReferenceExists("MSProject") Then
         ThisProject.VBProject.References.AddFromFile Application.Path & "\MSPRJ.OLB"
       End If
     Case "Word"
-      If Not ReferenceExists("Word") Then
+      If Not cptReferenceExists("Word") Then
         ThisProject.VBProject.References.AddFromFile Application.Path & "\MSWORD.OLB (Word)"
       End If
 
     'Windows Common
     Case "MSForms"
-      If Not ReferenceExists("MSForms") Then
+      If Not cptReferenceExists("MSForms") Then
         ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\FM20.DLL"
       End If
     Case "Scripting"
-      If Not ReferenceExists("Scripting") Then
+      If Not cptReferenceExists("Scripting") Then
         ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\scrrun.dll"
       End If
     Case "stdole"
-      If Not ReferenceExists("stdole") Then
+      If Not cptReferenceExists("stdole") Then
         ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\stdole2.tlb"
       End If
     Case "mscorlib"
-      If Not ReferenceExists("") Then
+      If Not cptReferenceExists("") Then
         ThisProject.VBProject.References.AddFromFile Environ("winddir") & "\Microsoft.NET\Framework\v4.0.30319\mscorlib.tlb"
       End If
     Case Else
-      CheckReference = False
+      cptCheckReference = False
 
   End Select
 
-  If Not CheckReference Then
+  If Not cptCheckReference Then
     MsgBox "Missing Reference: " & strReference, vbExclamation + vbOKOnly, "CP Tool Bar"
   End If
 
@@ -307,7 +307,7 @@ exit_here:
 
   Exit Function
 err_here:
-  CheckReference = False
+  cptCheckReference = False
   Resume exit_here
 
 End Function
@@ -342,7 +342,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptCore_bas", "cptResetAll", err)
+  Call cptHandleErr("cptCore_bas", "cptResetAll", err)
   Resume exit_here
 
 End Sub
@@ -368,12 +368,12 @@ Dim vCol As Variant
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   'user should still be able to check currently installed versions
-  If Not InternetIsConnected Then
+  If Not cptInternetIsConnected Then
     MsgBox "You must be connected to the internet to perform updates.", vbInformation + vbOKOnly, "No Connection"
     GoTo exit_here
   End If
 
-  If Not CheckReference("VBA") Or Not CheckReference("VBIDE") Then
+  If Not cptCheckReference("VBA") Or Not cptCheckReference("VBIDE") Then
     GoTo exit_here
   End If
 
@@ -403,7 +403,7 @@ Dim vCol As Variant
   For Each vbComponent In ThisProject.VBProject.VBComponents
     'is the vbComponent one of ours?
     If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
-      strVersion = RegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
+      strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
       strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
       arrInstalled.Add vbComponent.Name, strVersion
     End If
@@ -445,7 +445,7 @@ next_component:
       Case Is = "<not installed>"
         cptUpgrades_frm.lboModules.List(lngItem, 4) = "< install >"
       Case Is <> strCurVer 'cptUpgrades_frm.lboModules.List(lngItem, 2)
-        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< " & VersionStatus(strInstVer, strCurVer) & " >"
+        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< " & cptVersionStatus(strInstVer, strCurVer) & " >"
     End Select
     'capture the type while we're at it - could have just pulled the FileName
     Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + cptUpgrades_frm.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
@@ -468,12 +468,12 @@ exit_here:
   Set oStream = Nothing
   Exit Sub
 err_here:
-  Call HandleErr("cptCore_bas", "UpdatesAreAvailable", err)
+  Call cptHandleErr("cptCore_bas", "UpdatesAreAvailable", err)
   Resume exit_here
 
 End Sub
 
-Sub SetReferences()
+Sub cptSetReferences()
 'this is a one-time shot to set all references currently required by the cp toolbar
 Dim strDir As String, Ref As Object
 
@@ -481,54 +481,54 @@ Dim strDir As String, Ref As Object
 
   'CommonProgramFiles
   strDir = Environ("CommonProgramFiles")
-  If Not ReferenceExists("Office") Then
+  If Not cptReferenceExists("Office") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\OFFICE16\MSO.DLL"
   End If
-  If Not ReferenceExists("VBIDE") Then
+  If Not cptReferenceExists("VBIDE") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB"
   End If
-  If Not ReferenceExists("VBA") Then
+  If Not cptReferenceExists("VBA") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA7.1\VBE7.DLL"
   End If
-  If Not ReferenceExists("ADODB") Then
+  If Not cptReferenceExists("ADODB") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\System\ado\msado15.dll"
   End If
 
   'office applications
-  strDir = Application.Path 'OR RegEx(environ("PATH"),"C\:.*Microsoft Office[A-z0-9\\]*;")
-  If Not ReferenceExists("Excel") Then
+  strDir = Application.Path 'OR cptRegEx(environ("PATH"),"C\:.*Microsoft Office[A-z0-9\\]*;")
+  If Not cptReferenceExists("Excel") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
   End If
-  If Not ReferenceExists("Outlook") Then
+  If Not cptReferenceExists("Outlook") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\MSOUTL.OLB"
   End If
-  If Not ReferenceExists("PowerPoint") Then
+  If Not cptReferenceExists("PowerPoint") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\MSPPT.OLB"
   End If
-  If Not ReferenceExists("MSProject") Then
+  If Not cptReferenceExists("MSProject") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\MSPRJ.OLB"
   End If
-  If Not ReferenceExists("Word") Then
+  If Not cptReferenceExists("Word") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\MSWORD.OLB"
   End If
 
   'Windows Common
-  If Not ReferenceExists("MSForms") Then
+  If Not cptReferenceExists("MSForms") Then
     ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\SysWOW64\FM20.DLL"
   End If
-  If Not ReferenceExists("Scripting") Then
+  If Not cptReferenceExists("Scripting") Then
     ThisProject.VBProject.References.AddFromFile "C:\Windows\SysWOW64\scrrun.dll"
   End If
-  If Not ReferenceExists("stdole") Then
+  If Not cptReferenceExists("stdole") Then
     ThisProject.VBProject.References.AddFromFile "C:\Windows\SysWOW64\stdole2.tlb"
   End If
-  If Not ReferenceExists("mscorlib") Then
+  If Not cptReferenceExists("mscorlib") Then
     ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\Microsoft.NET\Framework\v4.0.30319\mscorlib.tlb"
   End If
 
 End Sub
 
-Sub HandleErr(strModule As String, strProcedure As String, err As ErrObject)
+Sub cptHandleErr(strModule As String, strProcedure As String, err As ErrObject)
 'common error handling prompt
 Dim strMsg As String
 
@@ -553,7 +553,7 @@ Sub cptSubmitFeedback()
   Application.OpenBrowser "https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUNERTVDRISUhVVVFSWjBBMlVLQThCRFlHQiQlQCN0PWcu"
 End Sub
 
-Function RemoveIllegalCharacters(ByVal strText As String) As String
+Function cptRemoveIllegalCharacters(ByVal strText As String) As String
 'written by Ryan Beard (RyanBeard@ClearPlanConsulting.com)
     Const cstrIllegals As String = "\,/,:,*,?,"",<,>,|"
 
@@ -566,7 +566,7 @@ Function RemoveIllegalCharacters(ByVal strText As String) As String
         strText = Replace(strText, astrChars(lngCounter), vbNullString)
     Next lngCounter
 
-    RemoveIllegalCharacters = strText
+    cptRemoveIllegalCharacters = strText
 
 End Function
 
@@ -619,7 +619,7 @@ no_tasks:
   GoTo exit_here
 
 err_here:
-  Call HandleErr("cptCore_bas", "cptWrapItUp", err)
+  Call cptHandleErr("cptCore_bas", "cptWrapItUp", err)
   Resume exit_here
 End Sub
 
@@ -635,56 +635,56 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:SummaryTasks"" visible=""true""/>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:NameIndent"" visible=""true""/>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:OutlineSymbolsShow"" visible=""true""/>"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & Increment(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:AutoFilterProject"" visible=""true""/>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:FilterClear"" visible=""true""/>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:SplitViewCreate"" visible=""true""/>"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & Increment(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetAll"" label=""Reset All"" imageMso=""FilterClear"" onAction=""cptResetAll"" visible=""true"" size=""large"" />"  'in basCore_bas
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bWrapItUp"" label=""WrapItUp"" imageMso=""CollapseAll"" onAction=""cptWrapItUp"" visible=""true"" size=""large"" />"   'in basCore_bas
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
   'task counters
-  If ModuleExists("cptCountTasks_bas") Then
+  If cptModuleExists("cptCountTasks_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCount"" label=""Count"" visible=""true"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountAll"" label=""All Tasks"" imageMso=""NumberInsert"" onAction=""CountTasksAll"" visible=""true""/>" 'SelectWholeLayout
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountVisible"" label=""Visible Tasks"" imageMso=""NumberInsert"" onAction=""CountTasksVisible"" visible=""true""/>" 'SelectRows
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountSelected"" label=""Selected Tasks"" imageMso=""NumberInsert"" onAction=""CountTasksSelected"" visible=""true""/>" 'SelectTaskCell
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountAll"" label=""All Tasks"" imageMso=""NumberInsert"" onAction=""cptCountTasksAll"" visible=""true""/>" 'SelectWholeLayout
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountVisible"" label=""Visible Tasks"" imageMso=""NumberInsert"" onAction=""cptCountTasksVisible"" visible=""true""/>" 'SelectRows
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountSelected"" label=""Selected Tasks"" imageMso=""NumberInsert"" onAction=""cptCountTasksSelected"" visible=""true""/>" 'SelectTaskCell
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
 
   'text tools
-  If ModuleExists("cptText_bas") Then
+  If cptModuleExists("cptText_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gTextTools"" label=""Text"" visible=""true"" >"
-    If ModuleExists("cptDynamicFilter_bas") And ModuleExists("cptDynamicFilter_frm") Then
+    If cptModuleExists("cptDynamicFilter_bas") And cptModuleExists("cptDynamicFilter_frm") Then
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDynamicFilter"" label=""Dynamic Filter"" imageMso=""FilterBySelection"" onAction=""ShowcptDynamicFilter_frm"" visible=""true"" size=""large"" />"
     End If
-    If ModuleExists("cptText_frm") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & Increment(lngCleanUp) & """ />"
+    If cptModuleExists("cptText_frm") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
       ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbText"" size=""large"" >"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdvancedTextTools"" label=""Advanced"" imageMso=""AdvancedFilterDialog"" onAction=""ShowcptText_frm"" />" 'visible=""true""
       ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mText"">"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ title=""Utilities"" />"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPrepend"" label=""Bulk Prepend"" imageMso=""RightArrow2"" onAction=""BulkPrepend"" visible=""true""/>"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAppend"" label=""Bulk Append"" imageMso=""LeftArrow2"" onAction=""BulkAppend"" visible=""true""/>"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMyReplace"" label=""MyReplace"" imageMso=""ReplaceDialog"" onAction=""MyReplace"" visible=""true""/>"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bEnumerate"" label=""Enumerate"" imageMso=""NumberingRestart"" onAction=""Enumerate"" visible=""true""/>"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ />"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrimText"" label=""Trim Task Names"" imageMso=""TextEffectsClear"" onAction=""TrimTaskNames"" visible=""true""/>"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process (WIP)"" imageMso=""DuplicateSelectedSlides"" onAction=""ReplicateProcess"" visible=""true"" />"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""FindDuplicateTaskNames"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Utilities"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPrepend"" label=""Bulk Prepend"" imageMso=""RightArrow2"" onAction=""cptBulkPrepend"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAppend"" label=""Bulk Append"" imageMso=""LeftArrow2"" onAction=""cptBulkAppend"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMyReplace"" label=""MyReplace"" imageMso=""ReplaceDialog"" onAction=""cptMyReplace"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bEnumerate"" label=""Enumerate"" imageMso=""NumberingRestart"" onAction=""cptEnumerate"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrimText"" label=""Trim Task Names"" imageMso=""TextEffectsClear"" onAction=""cptTrimTaskNames"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process (WIP)"" imageMso=""DuplicateSelectedSlides"" onAction=""cptReplicateProcess"" visible=""true"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""cptFindDuplicateTaskNames"" visible=""true""/>"
       ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
       ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
     Else
       ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTextTools"" label=""Tools"" imageMso=""TextBoxInsert"" visible=""true"" size=""large"" >"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPrepend"" label=""Bulk Prepend"" imageMso=""RightArrow2"" onAction=""BulkPrepend"" visible=""true""/>"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAppend"" label=""Bulk Append"" imageMso=""LeftArrow2"" onAction=""BulkAppend"" visible=""true""/>"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMyReplace"" label=""MyReplace"" imageMso=""ReplaceDialog"" onAction=""MyReplace"" visible=""true""/>"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bEnumerate"" label=""Enumerate"" imageMso=""NumberingRestart"" onAction=""Enumerate"" visible=""true""/>"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrimText"" label=""Trim Task Names"" imageMso=""TextEffectsClear"" onAction=""TrimTaskNames"" visible=""true""/>"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process"" imageMso=""DuplicateSelectedSlides"" onAction=""ReplicateProcess"" visible=""true"" />"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""FindDuplicateTaskNames"" visible=""true""/>"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPrepend"" label=""Bulk Prepend"" imageMso=""RightArrow2"" onAction=""cptBulkPrepend"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAppend"" label=""Bulk Append"" imageMso=""LeftArrow2"" onAction=""cptBulkAppend"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMyReplace"" label=""MyReplace"" imageMso=""ReplaceDialog"" onAction=""cptMyReplace"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bEnumerate"" label=""Enumerate"" imageMso=""NumberingRestart"" onAction=""cptEnumerate"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrimText"" label=""Trim Task Names"" imageMso=""TextEffectsClear"" onAction=""cptTrimTaskNames"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process"" imageMso=""DuplicateSelectedSlides"" onAction=""cptReplicateProcess"" visible=""true"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""cptFindDuplicateTaskNames"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdvancedTextTools"" label=""Advanced (beta)"" imageMso=""AdvancedFilterDialog"" onAction=""ShowcptText_frm"" visible=""true""/>"
       ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
     End If
@@ -692,22 +692,22 @@ Dim lngCleanUp As Long
   End If
 
   'trace tools
-  If ModuleExists("cptCriticalPathTools_bas") Or ModuleExists("cptCriticalPath_bas") Then
+  If cptModuleExists("cptCriticalPathTools_bas") Or cptModuleExists("cptCriticalPath_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCPA"" label=""Trace"" visible=""true"">"
-    If ModuleExists("cptCriticalPathTools_bas") And ModuleExists("cptCriticalPath_bas") Then
+    If cptModuleExists("cptCriticalPathTools_bas") And cptModuleExists("cptCriticalPath_bas") Then
       ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbTrace"" size=""large"" >"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrace"" imageMso=""TaskDrivers"" label=""Driving Path"" onAction=""DrivingPaths"" />"
       ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTrace"">"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ title=""Export"" />"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPowerPoint"" label="">> PowerPoint"" imageMso=""SlideNew"" onAction=""ExportCriticalPathSelected"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Export"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPowerPoint"" label="">> PowerPoint"" imageMso=""SlideNew"" onAction=""cptExportCriticalPathSelected"" />"
       ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
       ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
     Else
-      If ModuleExists("cptCriticalPath_bas") Then
+      If cptModuleExists("cptCriticalPath_bas") Then
         ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrace"" label=""Driving Path"" imageMso=""TaskDrivers"" onAction=""DrivingPaths"" visible=""true"" size=""large"" />"
       End If
-      If ModuleExists("cptCriticalPathTools_bas") Then
-        ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExport"" label="">> PowerPoint"" imageMso=""SlideNew"" onAction=""ExportCriticalPathSelected"" visible=""true"" size=""large"" />"
+      If cptModuleExists("cptCriticalPathTools_bas") Then
+        ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExport"" label="">> PowerPoint"" imageMso=""SlideNew"" onAction=""cptExportCriticalPathSelected"" visible=""true"" size=""large"" />"
       End If
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
@@ -715,10 +715,10 @@ Dim lngCleanUp As Long
   
   'status
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Status"" visible=""true"" >"
-  If ModuleExists("cptStatusSheet_bas") And ModuleExists("cptStatusSheet_frm") Then
+  If cptModuleExists("cptStatusSheet_bas") And cptModuleExists("cptStatusSheet_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheet"" label=""Create Status Sheet"" imageMso=""DateAndTimeInsertOneNote"" onAction=""ShowcptStatusSheet_frm"" visible=""true""/>"
   End If
-  If ModuleExists("cptSmartDuration_frm") And ModuleExists("cptSmartDuration_bas") Then
+  If cptModuleExists("cptSmartDuration_frm") And cptModuleExists("cptSmartDuration_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSmartDuration"" label=""Smart Duration"" imageMso=""CalendarToolSelectDate"" onAction=""SmartDuration"" visible=""true""/>"
   End If
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
@@ -726,7 +726,7 @@ Dim lngCleanUp As Long
   'snapshots
 
   'resource allocation
-  If ModuleExists("cptResourceDemand_bas") And ModuleExists("cptResourceDemand_frm") Then
+  If cptModuleExists("cptResourceDemand_bas") And cptModuleExists("cptResourceDemand_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gResourceDemand"" label=""Resource Demand"" visible=""true"" >"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResourceDemandExcel"" label=""Export to Excel"" imageMso=""Chart3DColumnChart"" onAction=""ShowFrmExportResourceDemand"" visible=""true""/>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
@@ -737,18 +737,18 @@ Dim lngCleanUp As Long
   'compare
 
   'metrics
-  If ModuleExists("cptMetrics_bas") Then
+  If cptModuleExists("cptMetrics_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gMetrics"" label=""Metrics"" visible=""true"" >"
     ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mMetrics"" label=""Metrics"" imageMso=""UpdateAsScheduled"" visible=""true"" size=""large"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Schedule Metrics (hrs)"" id=""cleanup_" & Increment(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Schedule Metrics (hrs)"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSPI"" label=""Schedule Performance Index (SPI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSPI"" visible=""true""/>"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBEI"" label=""Baseline Execution Index (BEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBEI"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Earned Value (hrs)"" id=""cleanup_" & Increment(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Earned Value (hrs)"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBAC"" label=""Budget at Complete (BAC)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBAC"" visible=""true""/>"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bETC"" label=""Estimate to Complete (ETC)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetETC"" visible=""true""/>"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWS"" label=""Budgeted Cost of Work Scheduled (BCWS)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWS"" visible=""true""/>"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWP"" label=""Budgeted Cost of Work Performed (BCWP)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWP"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Export"" id=""cleanup_" & Increment(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Export"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExportMetrics"" label="">> Excel"" imageMso=""ExportExcel"" onAction=""cptExportMetricsExcel"" visible=""true""/>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
@@ -756,24 +756,24 @@ Dim lngCleanUp As Long
 
   'integration
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gIntegration"" label=""Integration"" visible=""true"" >"
-  If ModuleExists("cptIMSCobraExport_bas") And ModuleExists("cptIMSCobraExport_frm") Then
+  If cptModuleExists("cptIMSCobraExport_bas") And cptModuleExists("cptIMSCobraExport_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCOBRA"" label=""COBRA Export Tool"" imageMso=""Export"" onAction=""Export_IMS"" visible=""true""/>"
   End If
   'mpm
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
   'bcr tool
-  If ModuleExists("cptBaselineChange_frm") And ModuleExists("cptBaselineChange_bas") Then
+  If cptModuleExists("cptBaselineChange_frm") And cptModuleExists("cptBaselineChange_bas") Then
 
   End If
 
   'about
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gHelp"" label=""Help"" visible=""true"" >"
-  If InternetIsConnected Then
+  If cptInternetIsConnected Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mHelp"" label=""Help"" imageMso=""Help"" visible=""true"" size=""large"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ title=""Upgrades"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Upgrades"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUpdate"" label=""Check for Upgrades"" imageMso=""PreviousUnread"" onAction=""ShowCptUpgrades_frm"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & Increment(lngCleanUp) & """ title=""Contribute"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Contribute"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIssue"" label=""Submit an Issue"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitIssue"" visible=""true"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bRequest"" label=""Submit a Feature Request"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitRequest"" visible=""true"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFeedback"" label=""Submit Other Feedback"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitFeedback"" visible=""true"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
@@ -789,12 +789,12 @@ Dim lngCleanUp As Long
 
 End Function
 
-Function Increment(ByRef lgCleanUp As Long) As Long
+Function cptIncrement(ByRef lgCleanUp As Long) As Long
   lgCleanUp = lgCleanUp + 1
-  Increment = lgCleanUp
+  cptIncrement = lgCleanUp
 End Function
 
-Function VersionStatus(strInstalled As String, strCurrent As String) As String
+Function cptVersionStatus(strInstalled As String, strCurrent As String) As String
 'objects
 'strings
 Dim strAction As String
@@ -823,7 +823,7 @@ Dim vLevel As Variant
   'clean the versions - include all three levels
   For Each vVersion In Array(strInstalled, strCurrent)
     'following line doesn't remove non-numeric characters
-    vVersion = RegEx(CStr(vVersion), "([0-9].*.?){1,3}")
+    vVersion = cptRegEx(CStr(vVersion), "([0-9].*.?){1,3}")
     If Len(vVersion) - Len(Replace(vVersion, ".", "")) < 1 Then
       vVersion = vVersion & ".0"
     End If
@@ -841,20 +841,20 @@ Dim vLevel As Variant
   'figure out the things
   For Each vLevel In Array(0, 1, 2)
     If aCurrent(vLevel) <> aInstalled(vLevel) Then
-      VersionStatus = Choose(vLevel + 1, "major", "minor", "patch")
+      cptVersionStatus = Choose(vLevel + 1, "major", "minor", "patch")
       If aCurrent(vLevel) > aInstalled(vLevel) Then
-        VersionStatus = VersionStatus & " upgrade"
+        cptVersionStatus = cptVersionStatus & " upgrade"
       Else
-        VersionStatus = VersionStatus & " downgrade"
+        cptVersionStatus = cptVersionStatus & " downgrade"
       End If
       Exit For
     End If
   Next vLevel
 
-  If VersionStatus = "" Then
-    VersionStatus = "ok"
+  If cptVersionStatus = "" Then
+    cptVersionStatus = "ok"
   Else
-    VersionStatus = "install " & VersionStatus
+    cptVersionStatus = "install " & cptVersionStatus
   End If
 
 exit_here:
@@ -862,12 +862,12 @@ exit_here:
 
   Exit Function
 err_here:
-  Call HandleErr("cptCore_bas", "VersionStatus", err)
+  Call cptHandleErr("cptCore_bas", "cptVersionStatus", err)
   Resume exit_here
 
 End Function
 
-Function RegEx(strText As String, strRegEx As String) As String
+Function cptRegEx(strText As String, strRegEx As String) As String
 Dim RE As Object, REMatch As Variant, REMatches As Object
 Dim strMatch As String
 
@@ -886,7 +886,7 @@ Dim strMatch As String
       strMatch = REMatch
       Exit For
     Next
-    RegEx = strMatch
+    cptRegEx = strMatch
 
 exit_here:
     On Error Resume Next
@@ -895,7 +895,7 @@ exit_here:
     Exit Function
 err_here:
   If err.Number = 5 Then
-    RegEx = ""
+    cptRegEx = ""
     err.Clear
   End If
   Resume exit_here

@@ -39,8 +39,8 @@ Dim lngItem As Long, lngItems As Long
   'Validate users selected view type
   If ActiveProject.Application.ActiveWindow.ActivePane.View.Type = pjTaskItem Then
     If Not IsError(ActiveSelection.Tasks) Then
-      Set frmText = GetUserForm("cptText_frm")
-      Set ctl = GetControl(frmText, "lboOutput")
+      Set frmText = cptGetUserForm("cptText_frm")
+      Set ctl = cptGetControl(frmText, "lboOutput")
       If Not frmText Is Nothing Then
         'If frmText.Visible Then
           frmText.Controls("lboOutput").Clear
@@ -50,7 +50,7 @@ Dim lngItem As Long, lngItems As Long
             frmText.Controls("lboOutput").List(lngItem, 1) = Task.Name
             lngItem = lngItem + 1
           Next Task
-          Application.Run "UpdatePreview"
+          Application.Run "cptUpdatePreview"
         'End If
       End If
     End If
@@ -85,7 +85,7 @@ exit_here:
   Set Resources = Nothing
   Exit Sub
 err_here:
-  Call HandleErr("clsChange_cls", "MyMSApplication_WindowSelectionChange", err)
+  Call cptHandleErr("clsChange_cls", "MyMSApplication_WindowSelectionChange", err)
   Resume exit_here
   
 End Sub

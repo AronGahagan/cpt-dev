@@ -4,24 +4,24 @@ Sub SmartDuration()
 
     Dim smrtForm As cptSmartDuration_frm
     Dim t As Task
-    Dim curProj As Project
+    Dim curproj As Project
     Dim response As Variant
     
-    Set curProj = ActiveProject
+    Set curproj = ActiveProject
     
-    If curProj.Tasks.count < 0 Then
+    If curproj.Tasks.count < 0 Then
         MsgBox "No Tasks Found"
         Exit Sub
     End If
     
     On Error GoTo NotATask
     
-    Set t = curProj.Application.ActiveCell.Task
+    Set t = curproj.Application.ActiveCell.Task
     
     If t.Summary = True Then
         MsgBox "Please select a non-Summary Task"
         Set t = Nothing
-        Set curProj = Nothing
+        Set curproj = Nothing
         Exit Sub
     End If
     
@@ -29,7 +29,7 @@ Sub SmartDuration()
         response = MsgBox("Proceed with editing a Milestone?", vbYesNo)
         If response = vbNo Then
             Set t = Nothing
-            Set curProj = Nothing
+            Set curproj = Nothing
             Exit Sub
         End If
     End If
@@ -37,7 +37,7 @@ Sub SmartDuration()
     If t.ActualFinish <> "NA" Then
         MsgBox "Please select an incomplete Task"
         Set t = Nothing
-        Set curProj = Nothing
+        Set curproj = Nothing
         Exit Sub
     End If
     
@@ -68,7 +68,7 @@ Sub SmartDuration()
             
             Else
                 
-                If t.Calendar = "None" Or t.Calendar = curProj.Calendar Then
+                If t.Calendar = "None" Or t.Calendar = curproj.Calendar Then
                     OpenUndoTransaction "Smart Duration"
                     t.duration = Application.DateDifference(t.Start, .finDate)
                     CloseUndoTransaction
@@ -88,7 +88,7 @@ Sub SmartDuration()
 CleanUp:
 
     Set t = Nothing
-    Set curProj = Nothing
+    Set curproj = Nothing
     Set smrtForm = Nothing
     
     Exit Sub
@@ -96,7 +96,7 @@ CleanUp:
 NotATask:
 
     MsgBox "Please select a valid Task"
-    Set curProj = Nothing
+    Set curproj = Nothing
     Exit Sub
 
 End Sub

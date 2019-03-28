@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptDynamicFilter_frm
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptDynamicFilter_frm 
    Caption         =   "Dynamic Filter"
    ClientHeight    =   2190
    ClientLeft      =   45
@@ -13,6 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v1.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -36,6 +37,9 @@ End Sub
 
 Private Sub chkKeepSelected_Click()
 Dim Task As Task
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
   If Me.chkKeepSelected = True Then
     On Error Resume Next
     Set Task = ActiveSelection.Tasks(1)
@@ -43,6 +47,15 @@ Dim Task As Task
     If Task Is Nothing Then Me.chkKeepSelected = False
     Set Task = Nothing
   End If
+  
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call HandleErr("cptDynamicFilter_frm", "chkKeepSelected_Click", err)
+  Resume exit_here
+  
 End Sub
 
 Private Sub chkShowRelatedSummaries_Click()
@@ -61,23 +74,7 @@ Private Sub lblURL_Click()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If InternetIsConnected Then Application.OpenBrowser ("http://" & Me.lblURL.Caption)
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call HandleErr("cptAbout_frm", "lblURL", err)
-  Resume exit_here
-
-End Sub
-
-Private Sub lblURL_Click()
-
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  If InternetIsConnected Then Application.OpenBrowser ("http://" & Me.lblURL.Caption)
+  If cptInternetIsConnected Then Application.OpenBrowser ("http://" & Me.lblURL.Caption)
 
 exit_here:
   On Error Resume Next
@@ -91,9 +88,10 @@ End Sub
 
 Sub txtFilter_Change()
 'strings
-Dim strField As String, strOperator As String, strFilterText As String
+Dim strField As String, strOperator As String, strFilterText As String, strFilter As String
 'booleans
 Dim blnHideSummaryTasks As Boolean, blnHighlight As Boolean, blnKeepSelected As Boolean
+Dim blnShowRelatedSummaries As Boolean
 'longs
 Dim lgOriginalUID As Long
 
@@ -149,7 +147,7 @@ Dim lgOriginalUID As Long
   'build custom filter on the fly and apply it
   If Len(strFilterText) > 0 And Len(strOperator) > 0 Then
     If strField = "Task Name" Then strField = "Name"
-    FilterEdit Name:=strFilter, Taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=strField, test:=strOperator, Value:=strFilterText, operation:=IIf(blnKeepSelected Or blnHideSummaries, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
+    FilterEdit Name:=strFilter, Taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=strField, test:=strOperator, Value:=strFilterText, operation:=IIf(blnKeepSelected Or blnHideSummaryTasks, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
   End If
   If blnKeepSelected Then
     FilterEdit Name:=strFilter, Taskfilter:=True, NewFieldName:="Unique ID", test:="equals", Value:=lgOriginalUID, operation:="Or"

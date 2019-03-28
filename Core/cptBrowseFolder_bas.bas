@@ -21,7 +21,7 @@ Private Declare Function SHBrowseForFolder Lib "shell32.dll" Alias _
             
 Private Const BIF_RETURNONLYFSDIRS = &H1
 
-Public Function BrowseFolder(szDialogTitle As String) As String
+Public Function cptBrowseFolder(szDialogTitle As String) As String
   Dim x As Long, bi As BROWSEINFO, dwIList As Long
   Dim szPath As String, wPos As Integer
   
@@ -37,8 +37,8 @@ Public Function BrowseFolder(szDialogTitle As String) As String
     
     If x Then
         wPos = InStr(szPath, Chr(0))
-        BrowseFolder = Left$(szPath, wPos - 1)
+        cptBrowseFolder = Left$(szPath, wPos - 1)
     Else
-        BrowseFolder = vbNullString
+        cptBrowseFolder = vbNullString
     End If
 End Function
