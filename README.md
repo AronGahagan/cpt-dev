@@ -1,6 +1,9 @@
 _License: This software is provided gratis (free of charge), it is free to use and distribute, but not to sell. Modifications require the removal of all references to **company -name**. Contributors retain their patents. All other rights reserved. Copyright 2019, **company-name**._
 
 # cpt: The CP Toolbar
+
+![cpt](/images/cpt.png)
+
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
 1. [Installation](#installation)
@@ -18,7 +21,7 @@ _License: This software is provided gratis (free of charge), it is free to use a
 ## Prerequisites
 1. Microsoft Project Standard 2013+
 1. Microsoft Office (Outlook, Excel, Word, PowerPoint)
-1. Microsoft .NET 4.1 (installs with -software- and -operating system-
+1. Microsoft .NET 4.1 (installs with -software- and -operating system-)
 
 [[top]](#table-of-contents)
 
@@ -26,12 +29,12 @@ _License: This software is provided gratis (free of charge), it is free to use a
 1. Enable Macros
     1. Open Microsoft Project, go to File > Options > Trust Center > Trust Center Settings... > Macros
     1. CLick Enable all macros
-    1. Click 'trust access to the vb project object model' (this enables a sort of 'push' update process)
+    1. ~~Click 'trust access to the vb project object model' (this enables a sort of 'push' update process)~~
     1. Completely exit Microsoft Project, then restart (this makes the settings above 'stick')
 1. Download [cptCore.mpp](http://github.com/AronGahagn/cpt) and copy all modules prefixed with "cpt" into your Global.MPT
-1. View > Visual Baic > Macros > run the macro **cptSetup_bas**
+1. View > Visual Baic > Macros > run the macro **cptSetup**
     1. This macro installs necessary core modules if they are not already installed
-    1. Changes will be made to your ThisProject module, but if you have exising code it will not be overwritten. cpt-related code will be inserted at the very top of the procedures *Project_Activate* and *Project_Open*.
+    1. Changes will be made to your ThisProject module, but if you have exising code it will not be overwritten. cpt-related code will be inserted at the very top of the procedures *Project_Activate* and *Project_Open* and each line is appended with '</cpt> for reference.
     
 [[top]](#table-of-contents)
 
