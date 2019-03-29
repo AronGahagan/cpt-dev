@@ -87,7 +87,7 @@ End Sub
 
 Sub cptEnumerate()
 Dim Tasks As Tasks, Task As Task, lgDigits As Long
-Dim vbResponse As Variant, lgEnumerate As Long, lgStart As Long
+Dim vbResponse As Variant, lgEnumerate As Long
 
   On Error Resume Next
   Set Tasks = ActiveSelection.Tasks
@@ -236,7 +236,6 @@ Sub cptFindDuplicateTaskNames()
 'requires: msexcel
 'objects
 Dim xlApp As Excel.Application, Workbook As Workbook, Worksheet As Worksheet, rng As Excel.Range, ListObject As ListObject
-Dim lgRow As Long
 'string
 Dim strFileName As String
 'boolean

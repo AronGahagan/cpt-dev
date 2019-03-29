@@ -10,12 +10,12 @@ Sub cptStartEvents()
   Set oMSPEvents = New cptEvents_cls
 End Sub
 
-Function cptSpeed(blnOn As Boolean)
+Sub cptSpeed(blnOn As Boolean)
 
   Application.ScreenUpdating = Not blnOn
   Application.Calculation = pjAutomatic = Not blnOn
 
-End Function
+End Sub
 
 Function cptGetUserForm(strModuleName As String) As UserForm
 'objects
@@ -90,7 +90,6 @@ Dim vbComponent As Object, strVersion As String
       strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
       cptGetVersions = cptGetVersions & vbComponent.Name & ": " & strVersion & vbCrLf
     End If
-next_component:
   Next vbComponent
 
 exit_here:
@@ -134,7 +133,7 @@ Dim strAbout As String
 
 End Sub
 
-Function cptReferenceExists(strReference) As Boolean
+Function cptReferenceExists(strReference As String) As Boolean
 'used to ensure a reference exists, returns boolean
 Dim Ref As Object, blnExists As Boolean
 
@@ -229,7 +228,6 @@ End Sub
 Function cptCheckReference(strReference As String) As Boolean
 'this routine will be called ahead of any subroutine requiring a reference
 'returns boolean and subroutine only proceeds if true
-Dim blnExists As Boolean
 
   On Error GoTo err_here
 
@@ -355,13 +353,13 @@ Dim arrCurrent As Object, arrInstalled As Object
 Dim xmlDoc As Object, xmlNode As Object, xmlHttpDoc As Object, FindRecord As Object
 Dim oStream As Object
 'long
-Dim lngItem As Long, lgCol As Long
+Dim lngItem As Long
 'strings
 Dim strInstVer As String
 Dim strCurVer As String
-Dim strURL As String, strMsg As String, strVersion As String, strFileName As String
+Dim strURL As String, strVersion As String
 'booleans
-Dim blnUpdatesAreAvailable As Boolean, blnLoaded As Boolean
+Dim blnUpdatesAreAvailable As Boolean
 'variants
 Dim vCol As Variant
 
@@ -407,7 +405,6 @@ Dim vCol As Variant
       strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
       arrInstalled.Add vbComponent.Name, strVersion
     End If
-next_component:
   Next vbComponent
 
   'populate the listbox header
@@ -475,7 +472,7 @@ End Sub
 
 Sub cptSetReferences()
 'this is a one-time shot to set all references currently required by the cp toolbar
-Dim strDir As String, Ref As Object
+Dim strDir As String
 
   On Error Resume Next
 
@@ -528,7 +525,7 @@ Dim strDir As String, Ref As Object
 
 End Sub
 
-Sub cptHandleErr(strModule As String, strProcedure As String, err As ErrObject)
+Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObject)
 'common error handling prompt
 Dim strMsg As String
 
@@ -553,7 +550,7 @@ Sub cptSubmitFeedback()
   Application.OpenBrowser "https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUNERTVDRISUhVVVFSWjBBMlVLQThCRFlHQiQlQCN0PWcu"
 End Sub
 
-Function cptRemoveIllegalCharacters(ByVal strText As String) As String
+Function cptRemoveIllegalCharacters(strText As String) As String
 'written by Ryan Beard (RyanBeard@ClearPlanConsulting.com)
     Const cstrIllegals As String = "\,/,:,*,?,"",<,>,|"
 
@@ -572,7 +569,6 @@ End Function
 
 Sub cptWrapItUp()
 'objects
-Dim Tasks As Object
 'strings
 'longs
 Dim lgLevel As Long
@@ -614,9 +610,9 @@ exit_here:
   cptSpeed False
   Exit Sub
 
-no_tasks:
-  MsgBox "This project has no tasks to collapse.", vbExclamation + vbOKOnly, "WrapItUp"
-  GoTo exit_here
+'no_tasks:
+'  MsgBox "This project has no tasks to collapse.", vbExclamation + vbOKOnly, "WrapItUp"
+'  GoTo exit_here
 
 err_here:
   Call cptHandleErr("cptCore_bas", "cptWrapItUp", err)
@@ -797,13 +793,9 @@ End Function
 Function cptVersionStatus(strInstalled As String, strCurrent As String) As String
 'objects
 'strings
-Dim strAction As String
 'longs
 Dim lngVersion As Long
-Dim lngInstalled As Long
-Dim lngCurrent As Long
 'integers
-Dim intLevel As Long
 'booleans
 'variants
 Dim aCurrent As Variant

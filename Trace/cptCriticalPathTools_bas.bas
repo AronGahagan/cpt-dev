@@ -4,23 +4,20 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Sub cptExportCriticalPath(ByRef Project As Project, Optional blnSendEmail = False, Optional blnKeepOpen = False, Optional ByRef TargetTask As Task)
+Sub cptExportCriticalPath(ByRef Project As Project, Optional blnSendEmail As Boolean = False, Optional blnKeepOpen As Boolean = False, Optional ByRef TargetTask As Task)
 'objects
 Dim pptExists As PowerPoint.Presentation
 Dim Task As Task, Tasks As Tasks
 Dim pptApp As PowerPoint.Application, Presentation As PowerPoint.Presentation, Slide As PowerPoint.Slide
-Dim Shape As PowerPoint.Shape
-Dim ShapeRange As PowerPoint.ShapeRange
+'Dim Shape As PowerPoint.Shape
+'Dim ShapeRange As PowerPoint.ShapeRange
 'strings
-Dim remove As String
-Dim strFileName As String, strMsg As String, strProjectName As String, strDir As String
+Dim strFileName As String, strProjectName As String, strDir As String
 'longs
-Dim lgT1Milestone As Long, lgDrivingPath As Long, lgL2Milestone As Long
 Dim lgTask As Long, lgTasks As Long, lgSlide As Long
 'dates
-Dim dtOriginalDeadline As Date, dtFrom As Date, dtTo As Date
+Dim dtFrom As Date, dtTo As Date
 'boolean
-Dim blnFoundIt As Boolean
 'variants
 Dim vPath As Variant
 
@@ -77,6 +74,7 @@ Dim vPath As Variant
   'make a title slide
   Set Slide = Presentation.Slides.Add(1, ppLayoutCustom)
   Slide.Layout = ppLayoutTitle
+  strProjectName = Replace(ActiveProject.Name, ".mpp", "")
   Slide.Shapes(1).TextFrame.TextRange.Text = strProjectName & vbCrLf & "Critical Path Analysis"
   Slide.Shapes(2).TextFrame.TextRange.Text = cptGetUserFullName & vbCrLf & Format(Now, "mm/dd/yyyy") 'Project.ProjectSummaryTask.GetField(FieldNameToFieldConstant("E2E Scheduler"))
   

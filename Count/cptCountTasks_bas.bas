@@ -9,7 +9,7 @@ Dim Task As Task, Tasks As Tasks
 Dim lgTasks As Long, lgSummary As Long, lgInactive As Long
 Dim strMsg As String
 
-  On Error GoTo err_here
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   '===
   'Validate users selected view type

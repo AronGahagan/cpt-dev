@@ -14,7 +14,7 @@ Sub ShowCptStatusSheet_frm()
 'objects
 Dim arrFields As Object, arrEVT As Object, arrEVP As Object
 'longs
-Dim lngField As Long, lgItem As Long
+Dim lngField As Long, lngItem As Long
 'integers
 Dim intField As Integer
 'strings
@@ -22,7 +22,7 @@ Dim strFieldName As String, strFileName As String
 'dates
 Dim dtStatus As Date
 'variants
-Dim st As Variant, vFieldType As Variant, lngFieldType As Variant
+Dim vFieldType As Variant
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -48,7 +48,7 @@ Dim st As Variant, vFieldType As Variant, lngFieldType As Variant
   For Each vFieldType In Array("Text", "Outline Code", "Number")
     On Error GoTo err_here
     For intField = 1 To 30
-      lngField = FieldNameToFieldConstant(vFieldType & intField, lngFieldType)
+      lngField = FieldNameToFieldConstant(vFieldType & intField, pjTask)
       strFieldName = CustomFieldGetName(lngField)
       If Len(strFieldName) > 0 Then
         arrFields.Add strFieldName, lngField
@@ -123,13 +123,13 @@ next_field:
     With CreateObject("ADODB.Recordset")
       .Open strFileName
       .MoveFirst
-      lgItem = 0
+      lngItem = 0
       Do While Not .EOF
         cptStatusSheet_frm.lboExport.AddItem
-        cptStatusSheet_frm.lboExport.List(lgItem, 0) = .Fields(0) 'Field Constant
-        cptStatusSheet_frm.lboExport.List(lgItem, 1) = .Fields(1) 'Custom Field Name
-        cptStatusSheet_frm.lboExport.List(lgItem, 2) = .Fields(2) 'Local Field Name
-        lgItem = lgItem + 1
+        cptStatusSheet_frm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
+        cptStatusSheet_frm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
+        cptStatusSheet_frm.lboExport.List(lngItem, 2) = .Fields(2) 'Local Field Name
+        lngItem = lngItem + 1
         .MoveNext
       Loop
       .Close
@@ -186,14 +186,14 @@ Dim aSummaries As Object, aMilestones As Object, aNormal As Object, aAssignments
 Dim aEach As Object, aTaskRow As Object, aHeaders As Object
 Dim aOddBalls As Object, aCentered As Object, aEntryHeaders As Object
 'longs
-Dim lgTaskCount As Long, lgTask As Long, lgHeaderRow As Long, lgLastCol As Long
-Dim lgRow As Long, lgLastRow As Long, lgCol As Long, lgField As Long
+Dim lgTaskCount As Long, lgTask As Long, lgHeaderRow As Long
+Dim lgRow As Long, lgCol As Long, lgField As Long
 Dim lgNameCol As Long, lgBaselineWorkCol As Long, lgRemainingWorkCol As Long, lgEach As Long
 Dim lgNotesCol As Long, lgColumnWidth As Long
 Dim lgASCol As Long, lgAFCol As Long, lgETCCol As Long, lgEVPCol As Long
 Dim t As Long, tTotal As Long
 'string
-Dim strFieldName As String, strEVT As String, strEVP As String, strDir As String, strFileName As String
+Dim strEVT As String, strEVP As String, strDir As String, strFileName As String
 Dim strFirstCell As String
 'dates
 Dim dtStatus As Date
@@ -443,7 +443,8 @@ next_field:
       'identify for formatting
       If Task.Milestone Then aMilestones.Add lgRow Else aNormal.Add lgRow
       
-      xlCells(lgRow, lgLastCol + 1).Value = (GetTickCount - t) / 1000
+      'debug only
+      'xlCells(lgRow, lgLastCol + 1).Value = (GetTickCount - t) / 1000
       
       'write task data to sheet
       xlCells(lgRow, 1).Resize(, aTaskRow.count).Value = aTaskRow.ToArray()
@@ -472,7 +473,6 @@ next_field:
           xlCells(lgRow, 1).Resize(, aTaskRow.count).Value = aTaskRow.ToArray()
           aTaskRow.Clear
           
-next_assignment:
           '/===debug===\
           'xlCells(lgRow, aHeaders.count + 1).Value = (GetTickCount - t) / 1000
           '\===debug===/

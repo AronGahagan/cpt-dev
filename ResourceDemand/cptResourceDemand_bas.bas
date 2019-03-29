@@ -9,20 +9,19 @@ Private Const adVarChar As Long = 200
 Sub cptExportResourceDemand(Optional lngTaskCount As Long)
 'objects
 Dim Task As Task, Resource As Resource, Assignment As Assignment
-Dim TSVS As TimeScaleValues, TSV As TimeScaleValue
+Dim TSV As TimeScaleValue
 Dim TSVS_WORK As TimeScaleValues, TSVS_ACTUAL As TimeScaleValues
 Dim xlApp As Excel.Application, Worksheet As Worksheet, Workbook As Workbook
 Dim rng As Excel.Range
-Dim PivotTable As PivotTable, ListObject As ListObject, PivotChart As ChartObject
-Dim rst As Object 'ADODB.Recordset
+Dim PivotTable As PivotTable, ListObject As ListObject
 'dates
 Dim dtStart As Date, dtMin As Date, dtMax As Date
 'doubles
 Dim dblWork As Double
 'strings
 Dim strView As String
-Dim strFile As String, strGroup As String, strRange As String, strCLIN As String
-Dim strTitle As String, strMsg As String, strSQL As String, strHeaders As String
+Dim strFile As String, strRange As String
+Dim strTitle As String, strHeaders As String
 Dim strRecord As String, strFileName As String
 'longs
 Dim lgFile As Long, lgTasks As Long, lgTask As Long
@@ -349,7 +348,7 @@ Dim strActiveView As String
 Dim strFieldName As String, strFileName As String
 'longs
 Dim lngResourceCount As Long, lngResource As Long
-Dim lngFieldType As Variant, lngField As Long, lngItem As Long
+Dim lngField As Long, lngItem As Long
 'integers
 'booleans
 'variants

@@ -28,22 +28,18 @@ Dim strMsg As String
 Dim strError As String
 Dim strCptFileName As String
 Dim strVersion As String
-Dim strCode As String
 Dim strFileName As String
 Dim strModule As String
 Dim strURL As String
 'longs
 Dim lngLine As Long
 Dim lngEvent As Long
-Dim lngActivate As Long
-Dim lngFile As Long
+'Dim lngFile As Long
 'integers
 'booleans
 Dim blnExists As Boolean
-Dim blnSuccess As Boolean
 'variants
 Dim vEvent As Variant
-Dim vLine As Variant
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -114,7 +110,7 @@ frx:
             strFileName = Replace(strFileName, ".frx", ".frm")
           End If
         Else
-          strError = strError & "- " & arrCore.getKey(lngFile) & vbCrLf
+          strError = strError & "- " & strFileName & vbCrLf
           GoTo next_xmlNode
         End If
         
@@ -280,7 +276,7 @@ Dim strPath As String
   
 End Function
 
-Function cptModuleExists(strModule)
+Function cptModuleExists(strModule As String)
 Dim vbComponent As Object
 Dim blnExists As Boolean
 Dim strError As String
