@@ -25,7 +25,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptMetrics_bas", "cptExportMetricsExcel", err)
+  Call cptHandleErr("cptMetrics_bas", "cptExportMetricsExcel", err)
   Resume exit_here
 End Sub
 
@@ -106,7 +106,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptMerics_Bas", "cptGet", err)
+  Call cptHandleErr("cptMerics_Bas", "cptGet", err)
   Resume exit_here
 End Sub
 
@@ -191,7 +191,7 @@ exit_here:
   Exit Function
 err_here:
   Debug.Print Task.UniqueID & ": " & Task.Name
-  Call HandleErr("cptMetrics_bas", "cptGetMetric", err)
+  Call cptHandleErr("cptMetrics_bas", "cptGetMetric", err)
   Resume exit_here
 
 End Function
