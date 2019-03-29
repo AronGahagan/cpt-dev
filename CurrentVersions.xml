@@ -8,100 +8,72 @@
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
-		<Name>cptSetup_bas</Name>
-		<FileName>cptSetup_bas.bas</FileName>
-		<Version>v1.1</Version>
-		<Type>1</Type>
-		<Directory></Directory>
-	</Module>
-	<Module>
-		<Name>cptEvents_cls</Name>
-		<FileName>cptEvents_cls.cls</FileName>
-		<Version>v1.1</Version>
-		<Type>2</Type>
-		<Directory>Core</Directory>
-	</Module>
-	<Module>
-		<Name>cptCore_bas</Name>
-		<FileName>cptCore_bas.bas</FileName>
-		<Version>v1.3</Version>
-		<Type>1</Type>
-		<Directory>Core</Directory>
-	</Module>
-	<Module>
 		<Name>cptAbout_frm</Name>
 		<FileName>cptAbout_frm.frm</FileName>
-		<Version>v1.1</Version>
-		<Type>3</Type>
-		<Directory>Core</Directory>
-	</Module>
-	<Module>
-		<Name>cptUpgrades_frm</Name>
-		<FileName>cptUpgrades_frm.frm</FileName>
-		<Version>v1.2</Version>
+		<Version>v1.1.1</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
 		<Name>cptBrowseFolder_bas</Name>
 		<FileName>cptBrowseFolder_bas.bas</FileName>
-		<Version>v1.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>1</Type>
+		<Directory>Core</Directory>
+	</Module>
+	<Module>
+		<Name>cptCore_bas</Name>
+		<FileName>cptCore_bas.bas</FileName>
+		<Version>v1.3.1</Version>
+		<Type>1</Type>
+		<Directory>Core</Directory>
+	</Module>
+	<Module>
+		<Name>cptEvents_cls</Name>
+		<FileName>cptEvents_cls.cls</FileName>
+		<Version>v1.1.1</Version>
+		<Type>2</Type>
+		<Directory>Core</Directory>
+	</Module>
+	<Module>
+		<Name>cptUpgrades_frm</Name>
+		<FileName>cptUpgrades_frm.frm</FileName>
+		<Version>v1.2.1</Version>
+		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
 		<Name>cptCountTasks_bas</Name>
 		<FileName>cptCountTasks_bas.bas</FileName>
-		<Version>v1.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>1</Type>
 		<Directory>Count</Directory>
 	</Module>
 	<Module>
-		<Name>cptCriticalPath_bas</Name>
-		<FileName>cptCriticalPath_bas.bas</FileName>
-		<Version>v2.7</Version>
+		<Name>cptIMSCobraExport_bas</Name>
+		<FileName>cptIMSCobraExport_bas.bas</FileName>
+		<Version>v3.1.2</Version>
 		<Type>1</Type>
-		<Directory>Trace</Directory>
+		<Directory>Integration</Directory>
 	</Module>
 	<Module>
-		<Name>cptCriticalPathTools_bas</Name>
-		<FileName>cptCriticalPathTools_bas.bas</FileName>
-		<Version>v1.0</Version>
-		<Type>1</Type>
-		<Directory>Trace</Directory>
-	</Module>
-	<Module>
-		<Name>cptDynamicFilter_bas</Name>
-		<FileName>cptDynamicFilter_bas.bas</FileName>
-		<Version>v1.2</Version>
-		<Type>1</Type>
-		<Directory>Text</Directory>
-	</Module>
-	<Module>
-		<Name>cptDynamicFilter_frm</Name>
-		<FileName>cptDynamicFilter_frm.frm</FileName>
-		<Version>v1.3</Version>
+		<Name>cptIMSCobraExport_frm</Name>
+		<FileName>cptIMSCobraExport_frm.frm</FileName>
+		<Version>v3.1.2</Version>
 		<Type>3</Type>
-		<Directory>Text</Directory>
-	</Module>
-	<Module>
-		<Name>cptPatch_bas</Name>
-		<FileName>cptPatch_bas.bas</FileName>
-		<Version>19.03.22</Version>
-		<Type>1</Type>
-		<Directory></Directory>
+		<Directory>Integration</Directory>
 	</Module>
 	<Module>
 		<Name>cptResourceDemand_bas</Name>
 		<FileName>cptResourceDemand_bas.bas</FileName>
-		<Version>v1.1.1</Version>
+		<Version>v1.1.2</Version>
 		<Type>1</Type>
 		<Directory>ResourceDemand</Directory>
 	</Module>
 	<Module>
 		<Name>cptResourceDemand_frm</Name>
 		<FileName>cptResourceDemand_frm.frm</FileName>
-		<Version>v1.0.1</Version>
+		<Version>v1.0.2</Version>
 		<Type>3</Type>
 		<Directory>ResourceDemand</Directory>
 	</Module>
@@ -122,43 +94,71 @@
 	<Module>
 		<Name>cptStatusSheet_bas</Name>
 		<FileName>cptStatusSheet_bas.bas</FileName>
-		<Version>v1.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>1</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptStatusSheet_frm</Name>
 		<FileName>cptStatusSheet_frm.frm</FileName>
-		<Version>v1.1</Version>
+		<Version>v1.1.1</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
+		<Name>cptDynamicFilter_bas</Name>
+		<FileName>cptDynamicFilter_bas.bas</FileName>
+		<Version>v1.2.1</Version>
+		<Type>1</Type>
+		<Directory>Text</Directory>
+	</Module>
+	<Module>
+		<Name>cptDynamicFilter_frm</Name>
+		<FileName>cptDynamicFilter_frm.frm</FileName>
+		<Version>v1.3.1</Version>
+		<Type>3</Type>
+		<Directory>Text</Directory>
+	</Module>
+	<Module>
 		<Name>cptText_bas</Name>
 		<FileName>cptText_bas.bas</FileName>
-		<Version>v1.1</Version>
+		<Version>v1.1.1</Version>
 		<Type>1</Type>
 		<Directory>Text</Directory>
 	</Module>
 	<Module>
 		<Name>cptText_frm</Name>
 		<FileName>cptText_frm.frm</FileName>
-		<Version>v1.0</Version>
+		<Version>v1.0.01</Version>
 		<Type>3</Type>
 		<Directory>Text</Directory>
 	</Module>
 	<Module>
-		<Name>cptIMSCobraExport_frm</Name>
-		<FileName>cptIMSCobraExport_frm.frm</FileName>
-		<Version>v3.1.2</Version>
-		<Type>3</Type>
-		<Directory>Integration</Directory>
+		<Name>cptCriticalPathTools_bas</Name>
+		<FileName>cptCriticalPathTools_bas.bas</FileName>
+		<Version>v1.0.1</Version>
+		<Type>1</Type>
+		<Directory>Trace</Directory>
 	</Module>
 	<Module>
-		<Name>cptIMSCobraExport_bas</Name>
-		<FileName>cptIMSCobraExport_bas.bas</FileName>
-		<Version>v3.1.2</Version>
+		<Name>cptCriticalPath_bas</Name>
+		<FileName>cptCriticalPath_bas.bas</FileName>
+		<Version>v2.7</Version>
 		<Type>1</Type>
-		<Directory>Integration</Directory>
+		<Directory>Trace</Directory>
+	</Module>
+	<Module>
+		<Name>cptPatch_bas</Name>
+		<FileName>cptPatch_bas.bas</FileName>
+		<Version>19.03.29</Version>
+		<Type>1</Type>
+		<Directory></Directory>
+	</Module>
+	<Module>
+		<Name>cptSetup_bas</Name>
+		<FileName>cptSetup_bas.bas</FileName>
+		<Version>v1.2</Version>
+		<Type>1</Type>
+		<Directory></Directory>
 	</Module>
 </Modules>

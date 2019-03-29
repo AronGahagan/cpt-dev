@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCriticalPathTools_bas"
-'<cpt_version>v1.0</cpt_version>
+'<cpt_version>v1.0.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -167,25 +167,3 @@ err_here:
   End If
   Resume exit_here
 End Sub
-
-'Sub ResetView()
-'
-'  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-'
-'  Application.ScreenUpdating = False
-'  ViewApply "Gantt Chart"
-'  ActiveWindow.TopPane.Activate
-'  FilterClear
-'  GroupClear
-'  OptionsViewEx displayoutlinesymbols:=True, displaynameindent:=True, displaysummarytasks:=True
-'  OutlineShowAllTasks
-'  Application.ScreenUpdating = True
-'
-'exit_here:
-'  On Error Resume Next
-'
-'  Exit Sub
-'err_here:
-'  Call cptHandleErr("basCriticalPathTools", "ResetView", err)
-'  Resume exit_here
-'End Sub

@@ -23,7 +23,7 @@ Dim lngFile As Long
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
   'confirm repo selected
   If Len(frmGitVBA.cboRepo.Value) = 0 Or Dir(frmGitVBA.cboRepo.Value & "\.git\", vbDirectory) = vbNullString Then
     MsgBox "Please select a valid git repo.", vbExclamation + vbOKOnly, "Nope"
