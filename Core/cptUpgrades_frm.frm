@@ -16,6 +16,7 @@ Attribute VB_Exposed = False
 
 
 
+
 '<cpt_version>v1.2.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True

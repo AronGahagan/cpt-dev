@@ -17,6 +17,7 @@ Attribute VB_Exposed = False
 
 
 
+
 '<cpt_version>v1.0.01</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -116,10 +117,6 @@ exit_here:
 err_here:
   Call cptHandleErr("cptText_frm", "lblURL_Click", err)
   Resume exit_here
-End Sub
-
-Private Sub lblWakeUp_Click()
-  Call cptStartEvents
 End Sub
 
 Private Sub txtAppend_Change()

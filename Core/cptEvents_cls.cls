@@ -24,7 +24,7 @@ Private Sub MyMSPApplication_WindowSelectionChange(ByVal Window As Window, ByVal
 'objects
 Dim ctl As Object
 Dim frmText As Object 'UserForm
-Dim Tasks As Tasks, Task As Task, Resources As Resources, Resource As Resource
+Dim Tasks As Tasks, Task As Task, Resources As Resources
 'strings
 'longs
 Dim lngItem As Long, lngItems As Long

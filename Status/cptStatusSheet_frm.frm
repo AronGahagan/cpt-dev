@@ -13,11 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-
-
 '<cpt_version>v1.1.1</cpt_version>
-
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -163,7 +159,7 @@ err_here:
 End Sub
 
 Private Sub cmdDown_Click()
-Dim arrExport As Object, lgExport As Long
+Dim lgExport As Long
 Dim lgField As Long, strField As String, strField2 As String
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -348,7 +344,7 @@ err_here:
 End Sub
 
 Private Sub cmdUp_Click()
-Dim arrExport As Object, lgExport As Long
+Dim lgExport As Long
 Dim lgField As Long, strField As String, strField2 As String
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
