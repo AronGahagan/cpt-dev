@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.3.1</cpt_version>
+'<cpt_version>v1.3.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -289,7 +289,7 @@ Function cptCheckReference(strReference As String) As Boolean
       End If
     Case "mscorlib"
       If Not cptReferenceExists("") Then
-        ThisProject.VBProject.References.AddFromFile Environ("winddir") & "\Microsoft.NET\Framework\v4.0.30319\mscorlib.tlb"
+        ThisProject.VBProject.References.AddFromFile Environ("windir") & "\Microsoft.NET\Framework\v4.0.30319\mscorlib.tlb"
       End If
     Case Else
       cptCheckReference = False
