@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.1.1</cpt_version>
+'<cpt_version>v3.1.2</cpt_version>
 Private destFolder As String
 Private BCWSxport As Boolean
 Private BCWPxport As Boolean
