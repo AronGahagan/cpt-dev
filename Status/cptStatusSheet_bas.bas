@@ -968,7 +968,7 @@ exit_here:
   Exit Sub
 
 err_here:
-  Call HandleErr("cptStatusSheet_bas", "cptCreateStatusSheet", err)
+  Call cptHandleErr("cptStatusSheet_bas", "cptCreateStatusSheet", err)
   If Not xlApp Is Nothing Then
     If Not Workbook Is Nothing Then Workbook.Close False
     xlApp.Quit

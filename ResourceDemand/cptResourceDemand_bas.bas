@@ -333,7 +333,7 @@ exit_here:
   If Not xlApp Is Nothing Then xlApp.Quit
   Exit Sub
 err_here:
-  Call HandleErr("basBrashear", "cptExportResourceDemand", err)
+  Call cptHandleErr("cptResourceDemand_bas", "cptExportResourceDemand", err)
   On Error Resume Next
   Resume exit_here
       
@@ -489,7 +489,7 @@ err_here:
     err.Clear
     Resume next_field
   Else
-    Call HandleErr("cptResourceDemand_bas", "ShowCptResourceDemand_frm", err)
+    Call cptHandleErr("cptResourceDemand_bas", "ShowCptResourceDemand_frm", err)
     Resume exit_here
   End If
   

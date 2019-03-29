@@ -25,23 +25,23 @@ Dim lngFile As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   'confirm repo selected
-  If Len(frmBackupVBA.cboRepo.Value) = 0 Or Dir(frmBackupVBA.cboRepo.Value & "\.git\", vbDirectory) = vbNullString Then
+  If Len(frmGitVBA.cboRepo.Value) = 0 Or Dir(frmGitVBA.cboRepo.Value & "\.git\", vbDirectory) = vbNullString Then
     MsgBox "Please select a valid git repo.", vbExclamation + vbOKOnly, "Nope"
-    frmBackupVBA.cboRepo.SetFocus
-    frmBackupVBA.cboRepo.DropDown
+    frmGitVBA.cboRepo.SetFocus
+    frmGitVBA.cboRepo.DropDown
     GoTo exit_here
   Else
-    strRepo = frmBackupVBA.cboRepo.Value
+    strRepo = frmGitVBA.cboRepo.Value
   End If
 
   'confirm branch selected
-  If Len(frmBackupVBA.cboBranch.Value) = 0 Then
+  If Len(frmGitVBA.cboBranch.Value) = 0 Then
     MsgBox "Please select a valid branch.", vbExclamation + vbOKOnly, "Nope"
-    frmBackupVBA.cboBranch.SetFocus
-    frmBackupVBA.cboBranch.DropDown
+    frmGitVBA.cboBranch.SetFocus
+    frmGitVBA.cboBranch.DropDown
     GoTo exit_here
   Else
-    strBranch = Replace(Replace(frmBackupVBA.cboBranch.Value, Chr(32), ""), "*", "")
+    strBranch = Replace(Replace(frmGitVBA.cboBranch.Value, Chr(32), ""), "*", "")
   End If
 
   'measure twice...
@@ -77,7 +77,7 @@ next_vbComponent:
   strXML = strXML & "</Modules>" & vbCrLf
   
   'ensure correct branch is active
-  frmBackupVBA.txtNotes.Value = frmBackupVBA.txtNotes.Value & vbCrLf & String(53, "-") & vbCrLf & Redirect("git", "-C " & strRepo & " checkout " & Replace(Replace(frmBackupVBA.cboBranch.Value, Chr(32), ""), "*", ""))
+  frmGitVBA.txtNotes.Value = frmGitVBA.txtNotes.Value & vbCrLf & String(53, "-") & vbCrLf & Redirect("git", "-C " & strRepo & " checkout " & Replace(Replace(frmGitVBA.cboBranch.Value, Chr(32), ""), "*", ""))
   
   'write to the file
   Set oStream = CreateObject("ADODB.Stream")
@@ -90,7 +90,7 @@ next_vbComponent:
   oStream.Close
   Set oStream = Nothing
   
-  frmBackupVBA.txtNotes.Value = frmBackupVBA.txtNotes.Value & vbCrLf & String(53, "-") & vbCrLf & Redirect("git", "-C " & strRepo & " add CurrentVersions.xml")
+  frmGitVBA.txtNotes.Value = frmGitVBA.txtNotes.Value & vbCrLf & String(53, "-") & vbCrLf & Redirect("git", "-C " & strRepo & " add CurrentVersions.xml")
 
 exit_here:
   On Error Resume Next
@@ -101,7 +101,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptAdmin_bas", "CreateCurrentVersionXML", err)
+  Call cptHandleErr("cptAdmin_bas", "CreateCurrentVersionXML", err)
   Resume exit_here
 
 End Sub
@@ -189,7 +189,7 @@ exit_here:
   Set xlApp = Nothing
   Exit Sub
 err_here:
-  Call HandleErr("cptAdmin_bas", "Document", err)
+  Call cptHandleErr("cptAdmin_bas", "Document", err)
   Resume exit_here
 End Sub
 
@@ -263,7 +263,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call HandleErr("cptAdmin_bas", "cptSetDirectory()", err)
+  Call cptHandleErr("cptAdmin_bas", "cptSetDirectory()", err)
   Resume exit_here
 
 End Function

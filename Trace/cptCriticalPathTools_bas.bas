@@ -142,7 +142,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptCriticalPathTools_bas", "cptExportCriticalPath", err)
+  Call cptHandleErr("cptCriticalPathTools_bas", "cptExportCriticalPath", err)
   Resume exit_here
 End Sub
 
@@ -163,7 +163,7 @@ err_here:
   If err.Number = 1101 Then
     MsgBox "Please a a single (non-summary, active, and incomplete) 'Target' task.", vbExclamation + vbOKOnly, "Trace Tools - Error"
   Else
-    Call HandleErr("basCriticalPathTools", "cptExportCriticalPathSelected", err)
+    Call cptHandleErr("basCriticalPathTools", "cptExportCriticalPathSelected", err)
   End If
   Resume exit_here
 End Sub
@@ -186,6 +186,6 @@ End Sub
 '
 '  Exit Sub
 'err_here:
-'  Call HandleErr("basCriticalPathTools", "ResetView", err)
+'  Call cptHandleErr("basCriticalPathTools", "ResetView", err)
 '  Resume exit_here
 'End Sub

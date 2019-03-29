@@ -14,6 +14,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
+
 '<cpt_version>v1.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -53,7 +54,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptDynamicFilter_frm", "chkKeepSelected_Click", err)
+  Call cptHandleErr("cptDynamicFilter_frm", "chkKeepSelected_Click", err)
   Resume exit_here
   
 End Sub
@@ -81,7 +82,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptAbout_frm", "lblURL", err)
+  Call cptHandleErr("cptAbout_frm", "lblURL", err)
   Resume exit_here
 
 End Sub
@@ -173,7 +174,7 @@ exit_here:
   cptSpeed False 'slow down
   Exit Sub
 err_here:
-  Call HandleErr("cptDynamicFilter_frm", "txtFilter_Change", err)
+  Call cptHandleErr("cptDynamicFilter_frm", "txtFilter_Change", err)
   Resume exit_here
 
 End Sub

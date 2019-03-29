@@ -283,6 +283,7 @@ End Function
 Function cptModuleExists(strModule)
 Dim vbComponent As Object
 Dim blnExists As Boolean
+Dim strError As String
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -301,8 +302,14 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptModuleExists", err)
+  'Call cptHandleErr("cptSetup_bas", "cptModuleExists", err)
+  strError = err.Number & ": " & err.Description & vbCrLf
+  strError = strError & "Module: cptSetup_bas" & vbCrLf
+  strError = strError & "Procedure: cptModuleExists"
+  MsgBox strError, vbExclamation + vbOKOnly, "CPT Setup Error"
+  
   Resume exit_here
   
 End Function
+
 

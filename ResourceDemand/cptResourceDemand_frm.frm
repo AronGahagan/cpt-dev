@@ -14,6 +14,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
+
 '<cpt_version>v1.0.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -48,7 +49,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptResourceDemand_frm", "cmdAdd_Click", err)
+  Call cptHandleErr("cptResourceDemand_frm", "cmdAdd_Click", err)
   Resume exit_here
 
 End Sub
@@ -67,7 +68,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("module", "procedure", err)
+  Call cptHandleErr("module", "procedure", err)
   Resume exit_here
 
 End Sub
@@ -82,7 +83,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptResourceDemand_frm", "cmdExport_Click", err)
+  Call cptHandleErr("cptResourceDemand_frm", "cmdExport_Click", err)
   Resume exit_here
   
 End Sub
@@ -103,7 +104,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptResourceDemand_frm", "cmdRemove_Click", err)
+  Call cptHandleErr("cptResourceDemand_frm", "cmdRemove_Click", err)
   Resume exit_here
 End Sub
 
@@ -118,7 +119,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptResourceDemand_frm", "lblURL_Click", err)
+  Call cptHandleErr("cptResourceDemand_frm", "lblURL_Click", err)
   Resume exit_here
   
 End Sub
@@ -164,7 +165,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call HandleErr("cptResourceDemand_frm", "stxtSearch_Change", err)
+  Call cptHandleErr("cptResourceDemand_frm", "stxtSearch_Change", err)
   Resume exit_here
   
 End Sub

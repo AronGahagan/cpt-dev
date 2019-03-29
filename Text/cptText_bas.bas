@@ -44,7 +44,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptText_bas", "cptBulkAppend", err)
+  Call cptHandleErr("cptText_bas", "cptBulkAppend", err)
   Resume exit_here
   
 End Sub
@@ -80,7 +80,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("basTextTool", "cptBulkPrepend", err)
+  Call cptHandleErr("basTextTool", "cptBulkPrepend", err)
   Resume exit_here
   
 End Sub
@@ -139,7 +139,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptText_bas", "cptEnumerate", err)
+  Call cptHandleErr("cptText_bas", "cptEnumerate", err)
   Resume exit_here
 
 End Sub
@@ -227,7 +227,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptText_bas", "cptMyReplace", err)
+  Call cptHandleErr("cptText_bas", "cptMyReplace", err)
   Resume exit_here
 
 End Sub
@@ -308,7 +308,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call HandleErr("cptText_bas", "cptFindDuplicateTaskNames", err)
+  Call cptHandleErr("cptText_bas", "cptFindDuplicateTaskNames", err)
   Resume exit_here
 
 End Sub
@@ -338,7 +338,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptText_bas", "cptTrimTaskNames", err)
+  Call cptHandleErr("cptText_bas", "cptTrimTaskNames", err)
   Resume exit_here
 
 End Sub
@@ -380,7 +380,7 @@ exit_here:
   Set Tasks = Nothing
   Exit Sub
 err_here:
-  Call HandleErr("cptText_bas", "ShowcptText_frm", err)
+  Call cptHandleErr("cptText_bas", "ShowcptText_frm", err)
   Resume exit_here
   
 End Sub
@@ -477,7 +477,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptText_bas", "cptUpdatePreview", err)
+  Call cptHandleErr("cptText_bas", "cptUpdatePreview", err)
   Resume exit_here
 
 End Sub

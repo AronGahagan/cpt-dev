@@ -58,6 +58,6 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptDynamicFilter_bas", "ShowCptDynamicFilter", err)
+  Call cptHandleErr("cptDynamicFilter_bas", "ShowCptDynamicFilter", err)
   Resume exit_here
 End Sub

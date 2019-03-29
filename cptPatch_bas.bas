@@ -23,6 +23,6 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call HandleErr("cptPatch_bas", "cptApplyPatch()", err)
+  Call cptHandleErr("cptPatch_bas", "cptApplyPatch()", err)
   Resume exit_here
 End Sub

@@ -82,7 +82,7 @@ exit_here:
   Set Task = Nothing
   Exit Sub
 err_here:
-  Call HandleErr("cptCountTasks_bas", "cptCountTasks", err)
+  Call cptHandleErr("cptCountTasks_bas", "cptCountTasks", err)
   Resume exit_here
 End Sub
 
