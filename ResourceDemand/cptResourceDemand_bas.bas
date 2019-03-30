@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.1.2</cpt_version>
+'<cpt_version>v1.1.3</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Const adVarChar As Long = 200
@@ -19,6 +19,7 @@ Dim dtStart As Date, dtMin As Date, dtMax As Date
 'doubles
 Dim dblWork As Double
 'strings
+Dim strmsg As String
 Dim strView As String
 Dim strFile As String, strRange As String
 Dim strTitle As String, strHeaders As String
@@ -102,7 +103,10 @@ Dim aUserFields() As Variant
             Set TSVS_ACTUAL = Assignment.TimeScaleData(TSV.startDate, TSV.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleWeeks, 1)
             dblWork = Val(TSV.Value) - Val(TSVS_ACTUAL(1))
             'write a record to the CSV
-            strRecord = Task.Project & ",[" & Task.UniqueID & "] " & Replace(Task.Name, ",", "") & "," & Assignment.ResourceName & "," & dblWork / 60 & "," & DateAdd("d", 1, TSV.startDate)
+            '<issue14-15>strRecord = Task.Project & ",[" & Task.UniqueID & "] " & Replace(Task.Name, ",", "") & "," & Assignment.ResourceName & "," & dblWork / 60 & "," & DateAdd("d", 1, TSV.startDate) - removed </issue14-15>
+            '<issue14-15> added
+            strRecord = Task.Project & "," & Chr(34) & "[" & Task.UniqueID & "] " & Replace(Task.Name, Chr(34), Chr(39)) & Chr(34) & "," & Assignment.ResourceName & "," & dblWork / 60 & "," & DateAdd("d", 1, TSV.startDate)
+            '</issue14-15>
             For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
               lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
               strRecord = strRecord & "," & Task.GetField(lgField)
@@ -129,12 +133,43 @@ next_task:
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
   
   'set reference to Excel
-  Set xlApp = CreateObject("Excel.Application")
+  '<issue14-15> added
+  On Error Resume Next
+  Set xlApp = GetObject(, "Excel.Application")
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If xlApp Is Nothing Then
+    Set xlApp = CreateObject("Excel.Application")
+  End If
+  
+  'is previous run still open>
+  On Error Resume Next
+  Set Workbook = xlApp.Workbooks(strFile)
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If Not Workbook Is Nothing Then Workbook.Close False
+  On Error Resume Next
+  Set Workbook = xlApp.Workbooks(Environ("TEMP") & "\ExportResourceDemand.xlsx")
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If Not Workbook Is Nothing Then 'add timestamp to existing file
+    If Workbook.Application.Visible = False Then Workbook.Application.Visible = True
+    strmsg = "'" & strFile & "' already exists and is open."
+    strFile = Replace(strFile, ".xlsx", "_" & Format(Now, "yyyy-mm-dd-hh-nn-ss") & ".xlsx")
+    strmsg = strmsg & "Your new file will be saved as:" & vbCrLf & strFile
+    MsgBox strmsg, vbExclamation + vbOKOnly, "File Exists and is Open"
+  End If '</issue14-15>
+  
   'create a new workbook
   Set Workbook = xlApp.Workbooks.Open(strFile)
   
+  '<issue14-15> added
+  On Error Resume Next
   If Dir(Environ("TEMP") & "\ExportResourceDemand.xlsx") <> vbNullString Then Kill Environ("TEMP") & "\ExportResourceDemand.xlsx"
-  Workbook.SaveAs Environ("TEMP") & "\ExportResourceDemand.xlsx", 51
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If Dir(Environ("TEMP") & "\ExportResourceDemand.xlsx") <> vbNullString Then 'kill failed, rename it
+    Workbook.SaveAs Environ("TEMP") & "\ExportResourceDemand_" & Format(Now, "yyyy-mm-dd-hh-nn-ss") & ".xlsx", 51
+  Else
+    Workbook.SaveAs Environ("TEMP") & "\ExportResourceDemand.xlsx", 51
+  End If
+  If Dir(strFile) <> vbNullString Then Kill strFile '</issue14-15>
   
   'set reference to worksheet to manipulate it
   Set Worksheet = Workbook.Sheets(1)
@@ -301,24 +336,27 @@ next_task:
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
   
   'save the file
-  dtStart = ActiveProject.StatusDate
-  strFile = Replace(strFile, ".csv", ".xlsx")
-  strFile = Replace(strFile, ".xlsx", "_" & Format(dtStart, "yyyy-mm-dd") & ".xlsx")
+  '<issue14-15> dtStart = ActiveProject.StatusDate - removed
+  'strFile = Environ("USERPROFILE") & "\Deskop\" & Replace(strFile, ".csv", ".xlsx") - removed
+  'strFile = Replace(strFile, ".xlsx", "_" & Format(dtStart, "yyyy-mm-dd") & ".xlsx") - removed
 file_save:
-  If Dir(strFile) <> vbNullString Then Kill strFile
-  Workbook.SaveAs strFile, 51
+  'If Dir(strFile) <> vbNullString Then Kill strFile - removed </issue14-15>
+  Workbook.SaveAs Environ("USERPROFILE") & "\Desktop\" & Workbook.Name, 51
   
   Application.StatusBar = "Complete."
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
   
-  MsgBox "Saved to your Desktop:" & vbCrLf & vbCrLf & Dir(strFile), vbInformation + vbOKOnly, "Resource Demand Exported"
+  MsgBox "Saved to your Desktop:" & vbCrLf & vbCrLf & Workbook.Name, vbInformation + vbOKOnly, "Resource Demand Exported"
   xlApp.Visible = True
   
 exit_here:
   On Error Resume Next
+  If Not xlApp Is Nothing Then xlApp.Visible = True
   Application.StatusBar = ""
   cptResourceDemand_frm.lblStatus.Caption = "Ready..."
-  If FreeFile > 0 Then Close #lgFile
+  For lgFile = 1 To FreeFile
+    Close #lgFile
+  Next lgFile
   cptSpeed False
   Set Task = Nothing
   Set Resource = Nothing
