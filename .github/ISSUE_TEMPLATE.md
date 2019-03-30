@@ -14,7 +14,9 @@
 - [ ] assign this issue
 - [ ] label the issue for enhancement or bug
 - [ ] label the issue with codemodule
-- [ ] create branch using git flow
+- [ ] create topic branch
 - [ ] design, code and test
-- [ ] **rev the codemodule**
-- [ ] merge and push to master
+- [ ] **rev the codemodule** if necessary
+- [ ] update CurrentVersions.xml if necessary
+- [ ] merge and push to develop and/or master
+- [ ] delete topic branch
