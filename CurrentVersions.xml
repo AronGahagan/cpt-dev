@@ -1,18 +1,25 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Modules>
 	<Module>
-		<Name>ThisProject</Name>
-		<FileName>ThisProject.cls</FileName>
-		<Version>v1.2</Version>
-		<Type>100</Type>
+		<Name>cptAbout_frm</Name>
+		<FileName>cptAbout_frm.frm</FileName>
+		<Version>v1.1.1</Version>
+		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
-		<Name>cptSetup_bas</Name>
-		<FileName>cptSetup_bas.bas</FileName>
-		<Version>v1.2</Version>
+		<Name>cptBrowseFolder_bas</Name>
+		<FileName>cptBrowseFolder_bas.bas</FileName>
+		<Version>v1.0.1</Version>
 		<Type>1</Type>
-		<Directory></Directory>
+		<Directory>Core</Directory>
+	</Module>
+	<Module>
+		<Name>cptCore_bas</Name>
+		<FileName>cptCore_bas.bas</FileName>
+		<Version>v1.4.3</Version>
+		<Type>1</Type>
+		<Directory>Core</Directory>
 	</Module>
 	<Module>
 		<Name>cptCountTasks_bas</Name>
@@ -50,6 +57,13 @@
 		<Directory>Text</Directory>
 	</Module>
 	<Module>
+		<Name>cptEvents_cls</Name>
+		<FileName>cptEvents_cls.cls</FileName>
+		<Version>v1.1.1</Version>
+		<Type>2</Type>
+		<Directory>Core</Directory>
+	</Module>
+	<Module>
 		<Name>cptIMSCobraExport_bas</Name>
 		<FileName>cptIMSCobraExport_bas.bas</FileName>
 		<Version>v3.1.2</Version>
@@ -83,6 +97,13 @@
 		<Version>v1.0.2</Version>
 		<Type>3</Type>
 		<Directory>ResourceDemand</Directory>
+	</Module>
+	<Module>
+		<Name>cptSetup_bas</Name>
+		<FileName>cptSetup_bas.bas</FileName>
+		<Version>v1.2</Version>
+		<Type>1</Type>
+		<Directory></Directory>
 	</Module>
 	<Module>
 		<Name>cptSmartDuration_bas</Name>
@@ -127,38 +148,17 @@
 		<Directory>Text</Directory>
 	</Module>
 	<Module>
-		<Name>cptAbout_frm</Name>
-		<FileName>cptAbout_frm.frm</FileName>
-		<Version>v1.1.1</Version>
-		<Type>3</Type>
-		<Directory>Core</Directory>
-	</Module>
-	<Module>
-		<Name>cptBrowseFolder_bas</Name>
-		<FileName>cptBrowseFolder_bas.bas</FileName>
-		<Version>v1.0.1</Version>
-		<Type>1</Type>
-		<Directory>Core</Directory>
-	</Module>
-	<Module>
-		<Name>cptCore_bas</Name>
-		<FileName>cptCore_bas.bas</FileName>
-		<Version>v1.3.1</Version>
-		<Type>1</Type>
-		<Directory>Core</Directory>
-	</Module>
-	<Module>
-		<Name>cptEvents_cls</Name>
-		<FileName>cptEvents_cls.cls</FileName>
-		<Version>v1.1.1</Version>
-		<Type>2</Type>
-		<Directory>Core</Directory>
-	</Module>
-	<Module>
 		<Name>cptUpgrades_frm</Name>
 		<FileName>cptUpgrades_frm.frm</FileName>
 		<Version>v1.2.1</Version>
 		<Type>3</Type>
+		<Directory>Core</Directory>
+	</Module>
+	<Module>
+		<Name>ThisProject</Name>
+		<FileName>ThisProject.cls</FileName>
+		<Version>v1.2</Version>
+		<Type>100</Type>
 		<Directory>Core</Directory>
 	</Module>
 </Modules>
