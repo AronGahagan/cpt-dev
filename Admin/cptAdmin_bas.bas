@@ -6,6 +6,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
 
 Sub cptCreateCurrentVersionsXML(Optional strRepo As String)
 'objects
+Dim arrModules As Object
 Dim arrTypes As Object
 Dim oStream As Object, vbComponent As Object 'adodb.stream
 'strings
@@ -16,6 +17,7 @@ Dim strFile As String
 Dim strXML As String, strVersion As String, strFileName As String
 Dim strBranch As String
 'longs
+Dim lngItem As Long
 Dim lngFile As Long
 'integers
 'booleans
@@ -53,31 +55,50 @@ Dim lngFile As Long
   arrTypes.Add 2, ".cls"
   arrTypes.Add 3, ".frm"
   arrTypes.Add 100, ".cls"
-
-  'write xml
-  strXML = "<?xml version=""1.0"" encoding=""utf-8"" ?>" & vbCrLf
-  strXML = strXML & "<Modules>" & vbCrLf
+  
+  '<issue18> sort the list to limit merge conflicts - added
+  Set arrModules = CreateObject("System.Collections.SortedList")
   For Each vbComponent In ThisProject.VBProject.VBComponents
     If vbComponent.Name = "cptAdmin_bas" Then GoTo next_vbComponent
     If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
-      strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
-      strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
-      strXML = strXML & String(1, vbTab) & "<Module>" & vbCrLf
-      strModule = Replace(vbComponent.Name, cptRegEx(vbComponent.Name, "_frm|_bas|_cls"), "")
-      strXML = strXML & String(2, vbTab) & "<Name>" & vbComponent.Name & "</Name>" & vbCrLf
-      strXML = strXML & String(2, vbTab) & "<FileName>" & vbComponent.Name & arrTypes(CInt(vbComponent.Type)) & "</FileName>" & vbCrLf
-      strXML = strXML & String(2, vbTab) & "<Version>" & strVersion & "</Version>" & vbCrLf
-      strXML = strXML & String(2, vbTab) & "<Type>" & vbComponent.Type & "</Type>" & vbCrLf
-      strDirectory = Replace(vbComponent.Name, cptRegEx(vbComponent.Name, "_frm|_bas|_cls"), "")
-      strXML = strXML & String(2, vbTab) & "<Directory>" & Replace(cptSetDirectory(CStr(vbComponent.Name)), "\", "") & "</Directory>" & vbCrLf
-      strXML = strXML & String(1, vbTab) & "</Module>" & vbCrLf
+      arrModules.Add vbComponent.Name, vbComponent.Name
     End If
 next_vbComponent:
   Next vbComponent
+  '</issue18>
+  
+  'write xml
+  strXML = "<?xml version=""1.0"" encoding=""utf-8"" ?>" & vbCrLf
+  strXML = strXML & "<Modules>" & vbCrLf
+  '<issue18>removed
+  'For Each vbComponent In ThisProject.VBProject.VBComponents - removed
+  '  If vbComponent.Name = "cptAdmin_bas" Then GoTo next_vbComponent - removed
+  '  If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then - removed
+  '</issue18>
+  For lngItem = 0 To arrModules.count - 1
+    Set vbComponent = ThisProject.VBProject.VBComponents(arrModules.getKey(lngItem))
+    Debug.Print arrModules.getKey(lngItem)
+    strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
+    strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
+    strXML = strXML & String(1, vbTab) & "<Module>" & vbCrLf
+    strModule = Replace(vbComponent.Name, cptRegEx(vbComponent.Name, "_frm|_bas|_cls"), "")
+    strXML = strXML & String(2, vbTab) & "<Name>" & vbComponent.Name & "</Name>" & vbCrLf
+    strXML = strXML & String(2, vbTab) & "<FileName>" & vbComponent.Name & arrTypes(CInt(vbComponent.Type)) & "</FileName>" & vbCrLf
+    strXML = strXML & String(2, vbTab) & "<Version>" & strVersion & "</Version>" & vbCrLf
+    strXML = strXML & String(2, vbTab) & "<Type>" & vbComponent.Type & "</Type>" & vbCrLf
+    strDirectory = Replace(vbComponent.Name, cptRegEx(vbComponent.Name, "_frm|_bas|_cls"), "")
+    strXML = strXML & String(2, vbTab) & "<Directory>" & Replace(cptSetDirectory(CStr(vbComponent.Name)), "\", "") & "</Directory>" & vbCrLf
+    strXML = strXML & String(1, vbTab) & "</Module>" & vbCrLf
+  Next lngItem
+  '<issue18>  End If - removed
+'next_vbComponent: - removed
+  'Next vbComponent - removed
+  '</issue18>
   strXML = strXML & "</Modules>" & vbCrLf
   
   'ensure correct branch is active
   frmGitVBA.txtNotes.Value = frmGitVBA.txtNotes.Value & vbCrLf & String(53, "-") & vbCrLf & Redirect("git", "-C " & strRepo & " checkout " & Replace(Replace(frmGitVBA.cboBranch.Value, Chr(32), ""), "*", ""))
+  Call gitScrollDown
   
   'write to the file
   Set oStream = CreateObject("ADODB.Stream")
@@ -91,9 +112,11 @@ next_vbComponent:
   Set oStream = Nothing
   
   frmGitVBA.txtNotes.Value = frmGitVBA.txtNotes.Value & vbCrLf & String(53, "-") & vbCrLf & Redirect("git", "-C " & strRepo & " add CurrentVersions.xml")
-
+  Call gitScrollDown
+  
 exit_here:
   On Error Resume Next
+  Set arrModules = Nothing
   Set arrTypes = Nothing
   Set vbComponent = Nothing
   If oStream.State <> adStateClosed Then oStream.Close
