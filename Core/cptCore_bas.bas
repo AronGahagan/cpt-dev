@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.4.2</cpt_version>
+'<cpt_version>v1.4.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -530,9 +530,10 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
 Dim strMsg As String
 
     strMsg = "Uh oh! Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
-    strMsg = strMsg & "Error Information:"
+    strMsg = strMsg & "Error Source:" & vbCrLf
     strMsg = strMsg & "Module: " & strModule & vbCrLf
-    strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf
+    strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf & vbCrLf
+    strMsg = strMsg & "Error Code:" & vbCrLf
     strMsg = strMsg & err.Number & ": " & err.Description
     MsgBox strMsg, vbExclamation + vbOKOnly, "Unknown Error"
 
