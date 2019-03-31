@@ -1,10 +1,10 @@
 ## Problem
-    issue-title-hint:= cptStatusSheet - 'object not set'
+    title-hint:= cpt[ModuleName_(bas|frm)] - 'object not set'
     description-hint:= be detailed
     bonus-points: include screenshot(s)
 
 ```visual-basic
-'offending code snippet here
+'even-more-bonus-points: offending code snippet here
 ```
 
 ## Solution
@@ -13,10 +13,11 @@
 ## Todo:
 - [ ] assign this issue
 - [ ] label the issue for enhancement or bug
-- [ ] label the issue with codemodule
+- [ ] label the issue with codemodule (so fixes can be aggregated and hotfixed together)
 - [ ] create topic branch
 - [ ] design, code and test
-- [ ] **rev the codemodule** if necessary
-- [ ] update CurrentVersions.xml if necessary
+- [ ] **rev the codemodule**
+- [ ] **reset BLN\_TRAP\_ERRORS**
+- [ ] update CurrentVersions.xml
 - [ ] merge and push to develop and/or master
 - [ ] delete topic branch
