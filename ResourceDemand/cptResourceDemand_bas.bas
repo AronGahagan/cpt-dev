@@ -19,7 +19,7 @@ Dim dtStart As Date, dtMin As Date, dtMax As Date
 'doubles
 Dim dblWork As Double
 'strings
-Dim strmsg As String
+Dim strMsg As String
 Dim strView As String
 Dim strFile As String, strRange As String
 Dim strTitle As String, strHeaders As String
@@ -151,10 +151,10 @@ next_task:
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If Not Workbook Is Nothing Then 'add timestamp to existing file
     If Workbook.Application.Visible = False Then Workbook.Application.Visible = True
-    strmsg = "'" & strFile & "' already exists and is open."
+    strMsg = "'" & strFile & "' already exists and is open."
     strFile = Replace(strFile, ".xlsx", "_" & Format(Now, "yyyy-mm-dd-hh-nn-ss") & ".xlsx")
-    strmsg = strmsg & "Your new file will be saved as:" & vbCrLf & strFile
-    MsgBox strmsg, vbExclamation + vbOKOnly, "File Exists and is Open"
+    strMsg = strMsg & "Your new file will be saved as:" & vbCrLf & strFile
+    MsgBox strMsg, vbExclamation + vbOKOnly, "File Exists and is Open"
   End If '</issue14-15>
   
   'create a new workbook
