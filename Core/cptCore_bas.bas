@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.4.3</cpt_version>
+'<cpt_version>v1.4.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -530,10 +530,9 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
 Dim strMsg As String
 
     strMsg = "Uh oh! Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
-    strMsg = strMsg & "Error Source:" & vbCrLf
+    strMsg = strMsg & "Error Information:"
     strMsg = strMsg & "Module: " & strModule & vbCrLf
-    strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf & vbCrLf
-    strMsg = strMsg & "Error Code:" & vbCrLf
+    strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf
     strMsg = strMsg & err.Number & ": " & err.Description
     MsgBox strMsg, vbExclamation + vbOKOnly, "Unknown Error"
 
@@ -641,28 +640,6 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bWrapItUp"" label=""WrapItUp"" imageMso=""CollapseAll"" onAction=""cptWrapItUp"" visible=""true"" size=""large"" />"   'in basCore_bas
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
-  'wbs
-  If cptModuleExists("cptBackbone_bas") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gWBS"" label=""Architect"" visible=""true"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mCWBS"" label=""CWBS"" imageMso=""WbsMenu"" visible=""true"" size=""large"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Import"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportCWBSExcel"" imageMso=""ImportExcel"" label=""Import CWBS from Excel"" onAction=""cptImportAppendixB"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportCWBS"" imageMso=""WbsMenu"" label=""Import MIL-STD-881D (Appendix B)"" onAction=""cptImportAppendixB"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Create"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCreateCWBS"" imageMso=""WbsMenu"" label=""Create CWBS"" onAction=""cptCreateOutlineCode"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Export"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCreate81334D"" imageMso=""ExportExcel"" label=""Create DI-MGMT-81334D"" onAction=""cptCreate81334D"" />"
-    ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mIMP"" label=""IMP"" imageMso=""WbsMenu"" visible=""true"" size=""large"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Import"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportIMPExcel"" imageMso=""ImportExcel"" label=""Import IMP from Excel"" onAction=""cptImportAppendixB"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportIMP"" imageMso=""ImportExcel"" label=""Import Generic IMP"" onAction=""cptCreate81334D"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Export"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExportIMP"" imageMso=""ExportExcel"" label=""Export IMP to Excel"" onAction=""cptCreate81334D"" />"
-    ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
-    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
-  End If
-
   'task counters
   If cptModuleExists("cptCountTasks_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCount"" label=""Count"" visible=""true"" >"
@@ -709,7 +686,7 @@ Dim lngCleanUp As Long
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
-  
+
   'trace tools
   If cptModuleExists("cptCriticalPathTools_bas") Or cptModuleExists("cptCriticalPath_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCPA"" label=""Trace"" visible=""true"">"
