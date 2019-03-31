@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.0.1</cpt_version>
+'<cpt_version>v1.0.2</cpt_version>
 Option Explicit
 
 Declare Function GetTickCount Lib "kernel32" () As Long
@@ -186,13 +186,14 @@ Dim aSummaries As Object, aMilestones As Object, aNormal As Object, aAssignments
 Dim aEach As Object, aTaskRow As Object, aHeaders As Object
 Dim aOddBalls As Object, aCentered As Object, aEntryHeaders As Object
 'longs
-Dim lgTaskCount As Long, lgTask As Long, lgHeaderRow As Long
-Dim lgRow As Long, lgCol As Long, lgField As Long
-Dim lgNameCol As Long, lgBaselineWorkCol As Long, lgRemainingWorkCol As Long, lgEach As Long
-Dim lgNotesCol As Long, lgColumnWidth As Long
-Dim lgASCol As Long, lgAFCol As Long, lgETCCol As Long, lgEVPCol As Long
+Dim lngTaskCount As Long, lngTask As Long, lngHeaderRow As Long
+Dim lngRow As Long, lngCol As Long, lngField As Long
+Dim lngNameCol As Long, lngBaselineWorkCol As Long, lngRemainingWorkCol As Long, lngEach As Long
+Dim lngNotesCol As Long, lngColumnWidth As Long
+Dim lngASCol As Long, lngAFCol As Long, lngETCCol As Long, lngEVPCol As Long
 Dim t As Long, tTotal As Long
-'string
+'strings
+Dim strMsg As String
 Dim strEVT As String, strEVP As String, strDir As String, strFileName As String
 Dim strFirstCell As String
 'dates
@@ -228,7 +229,7 @@ Dim blnFast As Boolean
   'get task count
   t = GetTickCount
   For Each Task In Tasks
-    lgTaskCount = lgTaskCount + 1
+    lngTaskCount = lngTaskCount + 1
   Next Task
   Debug.Print "<=====PERFORMANCE TEST " & Now() & "=====>"
   Debug.Print "get task count: " & (GetTickCount - t) / 1000
@@ -279,7 +280,7 @@ Dim blnFast As Boolean
   xlCells(6, 2) = "MS Project Summary Task (Rollup).  No update required."
   Debug.Print "set up legend: " & (GetTickCount - t) / 1000
 
-  lgHeaderRow = 8
+  lngHeaderRow = 8
   
   'set up header
   t = GetTickCount
@@ -318,11 +319,11 @@ Dim blnFast As Boolean
                     "Baseline Finish", _
                     "Notes")
     If aOddBalls.contains(vCol) Then
-      lgColumnWidth = aOddBalls.Item(vCol)
+      lngColumnWidth = aOddBalls.Item(vCol)
     Else
-      lgColumnWidth = 10 'default
+      lngColumnWidth = 10 'default
     End If
-    aHeaders.Add Array(FieldNameToFieldConstant(vCol), vCol, lgColumnWidth)
+    aHeaders.Add Array(FieldNameToFieldConstant(vCol), vCol, lngColumnWidth)
   Next vCol
   
   'save fields to adtg file
@@ -333,47 +334,39 @@ Dim blnFast As Boolean
     .Fields.Append "Custom Field Name", adVarChar, 255
     .Fields.Append "Local Field Name", adVarChar, 255
     .Open
-    For lgField = 0 To UBound(aUserFields)
-      .AddNew Array(0, 1, 2), Array(aUserFields(lgField, 0), aUserFields(lgField, 1), aUserFields(lgField, 2))
-    Next lgField
+    For lngField = 0 To UBound(aUserFields)
+      .AddNew Array(0, 1, 2), Array(aUserFields(lngField, 0), aUserFields(lngField, 1), aUserFields(lngField, 2))
+    Next lngField
     .Update
     If Dir(strFileName) <> vbNullString Then Kill strFileName
     .Save strFileName
     .Close
   End With
   
-  '/===debug===\
-  If MsgBox("man, that's a lot of tasks. are you sure?", vbYesNo + vbQuestion, Format(lgTaskCount, "#,##0")) = vbNo Then
-    Workbook.Close False
-    xlApp.Quit
-    GoTo exit_here
-  End If
-  '\===debug===/
-  
   'get user fields
-  For lgField = UBound(aUserFields) To 0 Step -1
-    If aUserFields(lgField, 1) = strEVT Then GoTo next_field
-    If aUserFields(lgField, 1) = strEVP Then GoTo next_field
-    If lgField = 0 Then lgColumnWidth = 16 Else lgColumnWidth = 10
-    aHeaders.Insert 1, Array(aUserFields(lgField, 0), aUserFields(lgField, 1), lgColumnWidth)
+  For lngField = UBound(aUserFields) To 0 Step -1
+    If aUserFields(lngField, 1) = strEVT Then GoTo next_field
+    If aUserFields(lngField, 1) = strEVP Then GoTo next_field
+    If lngField = 0 Then lngColumnWidth = 16 Else lngColumnWidth = 10
+    aHeaders.Insert 1, Array(aUserFields(lngField, 0), aUserFields(lngField, 1), lngColumnWidth)
 next_field:
-  Next lgField
+  Next lngField
     
   'write the headers and size the columns
-  For lgField = 0 To aHeaders.count - 1
-    xlCells(lgHeaderRow, lgField + 1).Value = aHeaders(lgField)(1)
-    xlCells(lgHeaderRow, lgField + 1).EntireColumn.ColumnWidth = aHeaders(lgField)(2)
+  For lngField = 0 To aHeaders.count - 1
+    xlCells(lngHeaderRow, lngField + 1).Value = aHeaders(lngField)(1)
+    xlCells(lngHeaderRow, lngField + 1).EntireColumn.ColumnWidth = aHeaders(lngField)(2)
     'get columns needed later
-    If aHeaders(lgField)(1) = "Name" Then lgNameCol = lgField + 1
-    If aHeaders(lgField)(1) = "Actual Start" Then lgASCol = lgField + 1
-    If aHeaders(lgField)(1) = "Actual Finish" Then lgAFCol = lgField + 1
-    If aHeaders(lgField)(1) = "Baseline Work" Then lgBaselineWorkCol = lgField + 1
-    If aHeaders(lgField)(1) = "Remaining Work" Then lgRemainingWorkCol = lgField + 1
-    If aHeaders(lgField)(1) = "Notes" Then lgNotesCol = lgField + 1
+    If aHeaders(lngField)(1) = "Name" Then lngNameCol = lngField + 1
+    If aHeaders(lngField)(1) = "Actual Start" Then lngASCol = lngField + 1
+    If aHeaders(lngField)(1) = "Actual Finish" Then lngAFCol = lngField + 1
+    If aHeaders(lngField)(1) = "Baseline Work" Then lngBaselineWorkCol = lngField + 1
+    If aHeaders(lngField)(1) = "Remaining Work" Then lngRemainingWorkCol = lngField + 1
+    If aHeaders(lngField)(1) = "Notes" Then lngNotesCol = lngField + 1
   Next
 
   'format the header row
-  With xlCells(lgHeaderRow, 1).Resize(, aHeaders.count)
+  With xlCells(lngHeaderRow, 1).Resize(, aHeaders.count)
     .Interior.ThemeColor = xlThemeColorLight2
     .Interior.TintAndShade = 0
     .Font.ThemeColor = xlThemeColorDark1
@@ -388,7 +381,7 @@ next_field:
   'prepare to capture each
   If cptStatusSheet_frm.optWorkbook = False Then
     Set aEach = CreateObject("System.Collections.SortedList")
-    lgEach = FieldNameToFieldConstant(cptStatusSheet_frm.cboEach.Value)
+    lngEach = FieldNameToFieldConstant(cptStatusSheet_frm.cboEach.Value)
   End If
   
   'prepare to capture bulk ranges
@@ -400,7 +393,7 @@ next_field:
   
   'capture task data
   t = GetTickCount
-  lgRow = lgHeaderRow
+  lngRow = lngHeaderRow
   For Each Task In Tasks
     If Task Is Nothing Then GoTo next_task
     If Task.OutlineLevel = 0 Then GoTo next_task
@@ -410,71 +403,71 @@ next_field:
       If Task.ActualFinish <= CDate(cptStatusSheet_frm.txtHideCompleteBefore) Then GoTo next_task
     End If
     
-    lgRow = lgRow + 1
+    lngRow = lngRow + 1
     
     If cptStatusSheet_frm.optWorkbook = False Then
-      aEach.Add Task.GetField(lgEach), Task.GetField(lgEach)
+      aEach.Add Task.GetField(lngEach), Task.GetField(lngEach)
     End If
     
     'get common data
-    For lgCol = 1 To lgNameCol
-      aTaskRow.Add Task.GetField(aHeaders(lgCol - 1)(0))
-    Next lgCol
+    For lngCol = 1 To lngNameCol
+      aTaskRow.Add Task.GetField(aHeaders(lngCol - 1)(0))
+    Next lngCol
     
     'indent the task name
-    xlCells(lgRow, lgNameCol).IndentLevel = Task.OutlineLevel + 1
+    xlCells(lngRow, lngNameCol).IndentLevel = Task.OutlineLevel + 1
     
     'todo: error writing to worksheet
     If Task.Summary Then
-      xlCells(lgRow, 1).Resize(, aTaskRow.count).Value = aTaskRow.ToArray()
+      xlCells(lngRow, 1).Resize(, aTaskRow.count).Value = aTaskRow.ToArray()
       aTaskRow.Clear
-      aSummaries.Add lgRow
+      aSummaries.Add lngRow
     Else
-      For lgCol = lgNameCol + 1 To aHeaders.count
-        If aHeaders(lgCol - 1)(1) = "Baseline Work" Then
+      For lngCol = lngNameCol + 1 To aHeaders.count
+        If aHeaders(lngCol - 1)(1) = "Baseline Work" Then
           aTaskRow.Add Task.BaselineWork / 60
-        ElseIf aHeaders(lgCol - 1)(1) = "Remaining Work" Then
+        ElseIf aHeaders(lngCol - 1)(1) = "Remaining Work" Then
           aTaskRow.Add Task.RemainingWork / 60
         Else
-          aTaskRow.Add Task.GetField(aHeaders(lgCol - 1)(0))
+          aTaskRow.Add Task.GetField(aHeaders(lngCol - 1)(0))
         End If
-      Next lgCol
+      Next lngCol
       
       'identify for formatting
-      If Task.Milestone Then aMilestones.Add lgRow Else aNormal.Add lgRow
+      If Task.Milestone Then aMilestones.Add lngRow Else aNormal.Add lngRow
       
       'debug only
-      'xlCells(lgRow, lgLastCol + 1).Value = (GetTickCount - t) / 1000
+      'xlCells(lngRow, lgLastCol + 1).Value = (GetTickCount - t) / 1000
       
       'write task data to sheet
-      xlCells(lgRow, 1).Resize(, aTaskRow.count).Value = aTaskRow.ToArray()
+      xlCells(lngRow, 1).Resize(, aTaskRow.count).Value = aTaskRow.ToArray()
       aTaskRow.Clear
       
       'get assignment data for incomplete tasks
       If Task.ActualFinish = "NA" Then
         'add a rollup formlua for Revised ETC?
         For Each Assignment In Task.Assignments
-          lgRow = lgRow + 1
-          'xlCells(lgRow, 1).Value = Assignment.UniqueID
+          lngRow = lngRow + 1
+          'xlCells(lngRow, 1).Value = Assignment.UniqueID
           aTaskRow.Add Assignment.UniqueID
-          If lgNameCol > 2 Then
-            For lgCol = 2 To lgNameCol - 1
-              aTaskRow.Add Task.GetField(aHeaders(lgCol - 1)(0))
+          If lngNameCol > 2 Then
+            For lngCol = 2 To lngNameCol - 1
+              aTaskRow.Add Task.GetField(aHeaders(lngCol - 1)(0))
             Next
           End If
           'identify for formatting
-          aAssignments.Add lgRow
+          aAssignments.Add lngRow
 
-          'xlCells(lgRow, lgNameCol).Value = Assignment.ResourceName
+          'xlCells(lngRow, lngNameCol).Value = Assignment.ResourceName
           aTaskRow.Add Assignment.ResourceName
-          xlCells(lgRow, lgNameCol).IndentLevel = Task.OutlineLevel + 2
-          xlCells(lgRow, lgBaselineWorkCol).Value = Assignment.BaselineWork / 60
-          xlCells(lgRow, lgRemainingWorkCol).Value = Assignment.RemainingWork / 60
-          xlCells(lgRow, 1).Resize(, aTaskRow.count).Value = aTaskRow.ToArray()
+          xlCells(lngRow, lngNameCol).IndentLevel = Task.OutlineLevel + 2
+          xlCells(lngRow, lngBaselineWorkCol).Value = Assignment.BaselineWork / 60
+          xlCells(lngRow, lngRemainingWorkCol).Value = Assignment.RemainingWork / 60
+          xlCells(lngRow, 1).Resize(, aTaskRow.count).Value = aTaskRow.ToArray()
           aTaskRow.Clear
           
           '/===debug===\
-          'xlCells(lgRow, aHeaders.count + 1).Value = (GetTickCount - t) / 1000
+          'xlCells(lngRow, aHeaders.count + 1).Value = (GetTickCount - t) / 1000
           '\===debug===/
         Next Assignment
       End If 'Task.ActualFinish = "NA"
@@ -482,75 +475,78 @@ next_field:
     End If 'Task Summary
     
 next_task:
-    lgTask = lgTask + 1
-    '/===debug===\
-    'output execution time for the task
-    'xlCells(lgRow, aHeaders.count + 1).Value = (GetTickCount - t) / 1000
-    If Not BLN_TRAP_ERRORS And lgRow >= 100 Then Exit For
-    '\===debug===/
-    Application.StatusBar = "Exporting..." & Format(lgTask, "#,##0") & " / " & Format(lgTaskCount, "#,##0") & " (" & Format(lgTask / lgTaskCount, "0%") & ")"
-    cptStatusSheet_frm.lblStatus.Caption = " Exporting..." & Format(lgTask, "#,##0") & " / " & Format(lgTaskCount, "#,##0") & " (" & Format(lgTask / lgTaskCount, "0%") & ")"
-    cptStatusSheet_frm.lblProgress.Width = (lgTask / (lgTaskCount)) * cptStatusSheet_frm.lblStatus.Width
+    lngTask = lngTask + 1
+    Application.StatusBar = "Exporting..." & Format(lngTask, "#,##0") & " / " & Format(lngTaskCount, "#,##0") & " (" & Format(lngTask / lngTaskCount, "0%") & ")"
+    cptStatusSheet_frm.lblStatus.Caption = " Exporting..." & Format(lngTask, "#,##0") & " / " & Format(lngTaskCount, "#,##0") & " (" & Format(lngTask / lngTaskCount, "0%") & ")"
+    cptStatusSheet_frm.lblProgress.Width = (lngTask / (lngTaskCount)) * cptStatusSheet_frm.lblStatus.Width
   Next Task
   
-  Debug.Print "capture task data: " & (GetTickCount - t) / 1000 & " >> " & Format(((GetTickCount - t) / 1000) / (lgRow - lgHeaderRow), "#0.00000") & " per task"
+  Debug.Print "capture task data: " & (GetTickCount - t) / 1000 & " >> " & Format(((GetTickCount - t) / 1000) / (lngRow - lngHeaderRow), "#0.00000") & " per task"
   
   t = GetTickCount
   'add New EV% after EV% - update aHeaders
-  lgEVPCol = Worksheet.Rows(lgHeaderRow).Find(strEVP).Column + 1
-  Worksheet.Columns(lgEVPCol).Insert Shift:=xlToRight
-  xlCells(lgHeaderRow, lgEVPCol).Value = "New EV%"
-  aHeaders.Insert lgEVPCol - 1, Array(0, "New EV%", 10)
+  lngEVPCol = Worksheet.Rows(lngHeaderRow).Find(strEVP).Column + 1
+  Worksheet.Columns(lngEVPCol).Insert Shift:=xlToRight
+  xlCells(lngHeaderRow, lngEVPCol).Value = "New EV%"
+  aHeaders.Insert lngEVPCol - 1, Array(0, "New EV%", 10)
     
   'add Revised ETC after Remaining Work - update aHeaders
-  lgETCCol = Worksheet.Rows(lgHeaderRow).Find("Remaining Work").Column + 1
-  Worksheet.Columns(lgETCCol).Insert Shift:=xlToRight
-  xlCells(lgHeaderRow, lgETCCol).Value = "Revised ETC"
-  aHeaders.Insert lgETCCol - 1, Array(0, "Revised ETC", 10)
+  lngETCCol = Worksheet.Rows(lngHeaderRow).Find("Remaining Work").Column + 1
+  Worksheet.Columns(lngETCCol).Insert Shift:=xlToRight
+  xlCells(lngHeaderRow, lngETCCol).Value = "Revised ETC"
+  aHeaders.Insert lngETCCol - 1, Array(0, "Revised ETC", 10)
   Debug.Print "add columns: " & (GetTickCount - t) / 1000
 
   cptStatusSheet_frm.lblStatus = " Formatting rows..."
   t = GetTickCount
   'format rows
   'format summary tasks
-  Set rSummaryTasks = xlCells(aSummaries(0), 1).Resize(, aHeaders.count)
-  For vCol = 1 To aSummaries.count - 1
-    Set rSummaryTasks = xlApp.Union(rSummaryTasks, xlCells(aSummaries(vCol), 1).Resize(, aHeaders.count))
-  Next vCol
-  If Not rSummaryTasks Is Nothing Then
-    rSummaryTasks.Interior.ThemeColor = xlThemeColorDark1
-    rSummaryTasks.Interior.TintAndShade = -0.149998474074526
-    rSummaryTasks.Font.Bold = True
-  End If
+  If aSummaries.count > 0 Then '<issue16-17> added
+    Set rSummaryTasks = xlCells(aSummaries(0), 1).Resize(, aHeaders.count)
+    For vCol = 1 To aSummaries.count - 1
+      Set rSummaryTasks = xlApp.Union(rSummaryTasks, xlCells(aSummaries(vCol), 1).Resize(, aHeaders.count))
+    Next vCol
+    If Not rSummaryTasks Is Nothing Then
+      rSummaryTasks.Interior.ThemeColor = xlThemeColorDark1
+      rSummaryTasks.Interior.TintAndShade = -0.149998474074526
+      rSummaryTasks.Font.Bold = True
+    End If
+  End If '</issue16-17>
   'format milestones
-  Set rMilestones = xlCells(aMilestones(0), 1).Resize(, aHeaders.count)
-  For vCol = 1 To aMilestones.count - 1
-    Set rMilestones = xlApp.Union(rMilestones, xlCells(aMilestones(vCol), 1).Resize(, aHeaders.count))
-  Next vCol
-  If Not rMilestones Is Nothing Then
-    rMilestones.Font.ThemeColor = xlThemeColorAccent6
-    rMilestones.Font.TintAndShade = -0.249977111117893
-  End If
+  If aMilestones.count > 0 Then '<issue16-17> added
+    Set rMilestones = xlCells(aMilestones(0), 1).Resize(, aHeaders.count)
+    For vCol = 1 To aMilestones.count - 1
+      Set rMilestones = xlApp.Union(rMilestones, xlCells(aMilestones(vCol), 1).Resize(, aHeaders.count))
+    Next vCol
+    If Not rMilestones Is Nothing Then
+      rMilestones.Font.ThemeColor = xlThemeColorAccent6
+      rMilestones.Font.TintAndShade = -0.249977111117893
+    End If
+  End If '</issue16-17>
   'format normal
-  Set rNormal = xlCells(aNormal(0), 1).Resize(, aHeaders.count)
-  For vCol = 1 To aNormal.count - 1
-    Set rNormal = xlApp.Union(rNormal, xlCells(aNormal(vCol), 1).Resize(, aHeaders.count))
-  Next vCol
-  If Not rNormal Is Nothing Then
-    rNormal.Font.ThemeColor = xlThemeColorAccent1
-    rNormal.Font.TintAndShade = -0.499984740745262
-  End If
+  If aNormal.count > 0 Then '<issue16-17> added
+    Set rNormal = xlCells(aNormal(0), 1).Resize(, aHeaders.count)
+    For vCol = 1 To aNormal.count - 1
+      Set rNormal = xlApp.Union(rNormal, xlCells(aNormal(vCol), 1).Resize(, aHeaders.count))
+    Next vCol
+    If Not rNormal Is Nothing Then
+      rNormal.Font.ThemeColor = xlThemeColorAccent1
+      rNormal.Font.TintAndShade = -0.499984740745262
+    End If
+  End If '</issue16-17>
   'format assignments
-  Set rAssignments = xlCells(aAssignments(0), 1).Resize(, aHeaders.count)
-  For vCol = 1 To aAssignments.count - 1
-    Set rAssignments = xlApp.Union(rAssignments, xlCells(aAssignments(vCol), 1).Resize(, aHeaders.count))
-  Next vCol
-  If Not rAssignments Is Nothing Then rAssignments.Font.Italic = True
+  If aAssignments.count > 0 Then '<issue16-17> added
+    Set rAssignments = xlCells(aAssignments(0), 1).Resize(, aHeaders.count)
+    For vCol = 1 To aAssignments.count - 1
+      Set rAssignments = xlApp.Union(rAssignments, xlCells(aAssignments(vCol), 1).Resize(, aHeaders.count))
+    Next vCol
+    If Not rAssignments Is Nothing Then rAssignments.Font.Italic = True
+    End If '</issue16-17>
   Debug.Print "format rows: " & (GetTickCount - t) / 1000
   
   t = GetTickCount
   'format common borders
-  Set rng = Worksheet.Range(xlCells(lgHeaderRow, 1), xlCells(lgRow, aHeaders.count))
+  Set rng = Worksheet.Range(xlCells(lngHeaderRow, 1), xlCells(lngRow, aHeaders.count))
   rng.BorderAround xlContinuous, xlThin
   rng.Borders(xlInsideHorizontal).LineStyle = xlContinuous
   rng.Borders(xlInsideHorizontal).Weight = xlThin
@@ -558,7 +554,7 @@ next_task:
   
   t = GetTickCount
   'rename headers
-  Set rng = xlCells(lgHeaderRow, 1).Resize(, aHeaders.count)
+  Set rng = xlCells(lngHeaderRow, 1).Resize(, aHeaders.count)
   rng.Replace what:="Unique ID", Replacement:="UID", lookat:=xlWhole
   rng.Replace what:="Name", Replacement:="Task Name", lookat:=xlWhole
   rng.Replace what:="Start", Replacement:="Forecast Start", lookat:=xlWhole
@@ -585,42 +581,42 @@ next_task:
   Debug.Print "define aCentered and aEntryHeaders: " & (GetTickCount - t) / 1000
 
   t = GetTickCount
-  'define bulk ranges for formatting
-  For lgCol = 0 To aHeaders.count - 1
+  'define bulk column ranges for formatting
+  For lngCol = 0 To aHeaders.count - 1
     
     'format dates
-    If Len(cptRegEx(CStr(aHeaders(lgCol)(1)), "Start|Finish")) > 0 Then
+    If Len(cptRegEx(CStr(aHeaders(lngCol)(1)), "Start|Finish")) > 0 Then
       If rDates Is Nothing Then
-        Set rDates = xlCells(lgHeaderRow + 1, lgCol + 1).Resize(rowsize:=lgRow - lgHeaderRow)
+        Set rDates = xlCells(lngHeaderRow + 1, lngCol + 1).Resize(rowsize:=lngRow - lngHeaderRow)
       Else
-        Set rDates = xlApp.Union(rDates, xlCells(lgHeaderRow + 1, lgCol + 1).Resize(rowsize:=lgRow - lgHeaderRow))
+        Set rDates = xlApp.Union(rDates, xlCells(lngHeaderRow + 1, lngCol + 1).Resize(rowsize:=lngRow - lngHeaderRow))
       End If
     End If
     'format work
-    If Len(cptRegEx(CStr(aHeaders(lgCol)(1)), "Baseline Work|Remaining Work")) > 0 Then
+    If Len(cptRegEx(CStr(aHeaders(lngCol)(1)), "Baseline Work|Remaining Work")) > 0 Then
       If rWork Is Nothing Then
-        Set rWork = xlCells(lgHeaderRow + 1, lgCol + 1).Resize(rowsize:=lgRow - lgHeaderRow)
+        Set rWork = xlCells(lngHeaderRow + 1, lngCol + 1).Resize(rowsize:=lngRow - lngHeaderRow)
       Else
-        Set rWork = xlApp.Union(rWork, xlCells(lgHeaderRow + 1, lgCol + 1).Resize(rowsize:=lgRow - lgHeaderRow))
+        Set rWork = xlApp.Union(rWork, xlCells(lngHeaderRow + 1, lngCol + 1).Resize(rowsize:=lngRow - lngHeaderRow))
       End If
     End If
     'format centered
-    If aCentered.contains(aHeaders(lgCol)(1)) Then
+    If aCentered.contains(aHeaders(lngCol)(1)) Then
       If rCentered Is Nothing Then
-        Set rCentered = xlCells(lgHeaderRow + 1, lgCol + 1).Resize(rowsize:=lgRow - lgHeaderRow)
+        Set rCentered = xlCells(lngHeaderRow + 1, lngCol + 1).Resize(rowsize:=lngRow - lngHeaderRow)
       Else
-        Set rCentered = xlApp.Union(rCentered, xlCells(lgHeaderRow + 1, lgCol + 1).Resize(rowsize:=lgRow - lgHeaderRow))
+        Set rCentered = xlApp.Union(rCentered, xlCells(lngHeaderRow + 1, lngCol + 1).Resize(rowsize:=lngRow - lngHeaderRow))
       End If
     End If
     'format entry headers and columns
-    If aEntryHeaders.contains(aHeaders(lgCol)(1)) Then
+    If aEntryHeaders.contains(aHeaders(lngCol)(1)) Then
       If rEntry Is Nothing Then
-        Set rEntry = xlCells(lgHeaderRow, lgCol + 1)
-        Set rMedium = xlCells(lgHeaderRow + 1, lgCol + 1).Resize(rowsize:=lgRow - lgHeaderRow)
+        Set rEntry = xlCells(lngHeaderRow, lngCol + 1)
+        Set rMedium = xlCells(lngHeaderRow + 1, lngCol + 1).Resize(rowsize:=lngRow - lngHeaderRow)
         Set rLockedCells = rMedium
       Else
-        Set rEntry = xlApp.Union(rEntry, xlCells(lgHeaderRow, lgCol + 1))
-        Set rMedium = xlApp.Union(rMedium, xlCells(lgHeaderRow + 1, lgCol + 1).Resize(rowsize:=lgRow - lgHeaderRow))
+        Set rEntry = xlApp.Union(rEntry, xlCells(lngHeaderRow, lngCol + 1))
+        Set rMedium = xlApp.Union(rMedium, xlCells(lngHeaderRow + 1, lngCol + 1).Resize(rowsize:=lngRow - lngHeaderRow))
         Set rLockedCells = rMedium
       End If
     End If
@@ -641,8 +637,8 @@ next_task:
   rEntry.BorderAround xlContinuous, xlMedium
   rLockedCells.SpecialCells(xlCellTypeBlanks).Locked = False
   rMedium.BorderAround xlContinuous, xlMedium
-  lgCol = Worksheet.Rows(lgHeaderRow).Find("Actual Finish", lookat:=xlPart).Column
-  xlCells(lgHeaderRow + 1, lgCol).Resize(lgRow - lgHeaderRow).Borders(xlEdgeLeft).Weight = xlThin
+  lngCol = Worksheet.Rows(lngHeaderRow).Find("Actual Finish", lookat:=xlPart).Column
+  xlCells(lngHeaderRow + 1, lngCol).Resize(lngRow - lngHeaderRow).Borders(xlEdgeLeft).Weight = xlThin
   Debug.Print "apply bulk formatting: " & (GetTickCount - t) / 1000
   
   'todo: apply conditional formatting
@@ -668,14 +664,14 @@ next_task:
 '  .Interior.TintAndShade = 0  t = GetTickCount
   
   'define range for new start
-  xlCells(lgHeaderRow, 1).AutoFilter
-  Set rngAll = Worksheet.Range(xlCells(lgHeaderRow, 1).End(xlToRight), xlCells(lgHeaderRow, 1).End(xlDown))
+  xlCells(lngHeaderRow, 1).AutoFilter
+  Set rngAll = Worksheet.Range(xlCells(lngHeaderRow, 1).End(xlToRight), xlCells(lngHeaderRow, 1).End(xlDown))
   'filter for task rows [blue font]
-  rngAll.AutoFilter Field:=lgNameCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
+  rngAll.AutoFilter Field:=lngNameCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
   '...with blank Actual Start dates [blank AS]
-  rngAll.AutoFilter Field:=lgASCol, Criteria1:="="
+  rngAll.AutoFilter Field:=lngASCol, Criteria1:="="
   'add conditions only to blank cells in the column
-  Set rng = Worksheet.Range(xlCells(lgHeaderRow + 1, lgASCol), xlCells(lgRow, lgASCol)).SpecialCells(xlCellTypeVisible)
+  Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngASCol), xlCells(lngRow, lngASCol)).SpecialCells(xlCellTypeVisible)
   strFirstCell = rng(1).Address(False, True)
   '-->condition 1: blank and start is less than status date > update required
   rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, -2).Address(False, True) & "<=Indirect(""STATUS_DATE"")),TRUE,FALSE)"
@@ -690,7 +686,7 @@ next_task:
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
   '-->condition 2: blank and EV% > 0 > invalid
-  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lgEVPCol).Address(False, True) & ">0),TRUE,FALSE)"
+  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lngEVPCol).Address(False, True) & ">0),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
     .TintAndShade = 0
@@ -702,7 +698,7 @@ next_task:
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
   'greater than actual finish > invalid
-  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & strFirstCell & ">" & xlCells(rng(1).Row, lgAFCol).Address(False, True) & "," & xlCells(rng(1).Row, lgAFCol).Address(False, True) & "<>""""),TRUE,FALSE)"
+  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & strFirstCell & ">" & xlCells(rng(1).Row, lngAFCol).Address(False, True) & "," & xlCells(rng(1).Row, lngAFCol).Address(False, True) & "<>""""),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
     .TintAndShade = 0
@@ -714,7 +710,7 @@ next_task:
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
   'else: <> start > updated
-  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & strFirstCell & "<>" & xlCells(rng(1).Row, lgASCol - 2).Address(False, True) & "),TRUE,FALSE)"
+  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & strFirstCell & "<>" & xlCells(rng(1).Row, lngASCol - 2).Address(False, True) & "),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16752384
     .TintAndShade = 0
@@ -727,16 +723,16 @@ next_task:
   
   'new finish
   Worksheet.ShowAllData
-  xlCells(lgHeaderRow, 1).AutoFilter
+  xlCells(lngHeaderRow, 1).AutoFilter
   'filter for task rows [blue font]
-  rngAll.AutoFilter Field:=lgNameCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
+  rngAll.AutoFilter Field:=lngNameCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
   '...with blank Actual Start dates [blank AF]
-  rngAll.AutoFilter Field:=lgAFCol, Criteria1:="="
+  rngAll.AutoFilter Field:=lngAFCol, Criteria1:="="
   'add conditions only to blank cells in the column
-  Set rng = Worksheet.Range(xlCells(lgHeaderRow + 1, lgAFCol), xlCells(lgRow, lgAFCol)).SpecialCells(xlCellTypeVisible)
+  Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngAFCol), xlCells(lngRow, lngAFCol)).SpecialCells(xlCellTypeVisible)
   strFirstCell = rng(1).Address(False, True)
   'blank and finish is less than status date > update required
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lgAFCol - 2).Address(False, True) & "<Indirect(""STATUS_DATE"")),TRUE,FALSE)"
+  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lngAFCol - 2).Address(False, True) & "<Indirect(""STATUS_DATE"")),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .ThemeColor = xlThemeColorAccent4
     .TintAndShade = -0.499984740745262
@@ -748,7 +744,7 @@ next_task:
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
   'less than actual start -> invalid
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & xlCells(rng(1).Row, lgASCol).Address(False, True) & "<>""""," & strFirstCell & "<" & xlCells(rng(1).Row, lgASCol).Address(False, True) & "),TRUE,FALSE)"
+  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & xlCells(rng(1).Row, lngASCol).Address(False, True) & "<>""""," & strFirstCell & "<" & xlCells(rng(1).Row, lngASCol).Address(False, True) & "),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
     .TintAndShade = 0
@@ -760,7 +756,7 @@ next_task:
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
   'blank and EV% = 100 > invalid
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lgEVPCol).Address(False, True) & "=100),TRUE,FALSE)"
+  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lngEVPCol).Address(False, True) & "=100),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
     .TintAndShade = 0
@@ -772,7 +768,7 @@ next_task:
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
   'else: <> finish > updated
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & strFirstCell & "<>" & xlCells(rng(1).Row, lgAFCol - 2).Address(False, True) & "),TRUE,FALSE)"
+  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & strFirstCell & "<>" & xlCells(rng(1).Row, lngAFCol - 2).Address(False, True) & "),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16752384
     .TintAndShade = 0
@@ -785,16 +781,16 @@ next_task:
   
   'ev%
   Worksheet.ShowAllData
-  xlCells(lgHeaderRow, 1).AutoFilter
+  xlCells(lngHeaderRow, 1).AutoFilter
   'filter for task rows [blue font]
-  rngAll.AutoFilter Field:=lgNameCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
+  rngAll.AutoFilter Field:=lngNameCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
   '...with blank Actual Start dates [blank AF]
-  rngAll.AutoFilter Field:=lgEVPCol, Criteria1:="="
+  rngAll.AutoFilter Field:=lngEVPCol, Criteria1:="="
   'add conditions only to blank cells in the column
-  Set rng = Worksheet.Range(xlCells(lgHeaderRow + 1, lgEVPCol), xlCells(lgRow, lgEVPCol)).SpecialCells(xlCellTypeVisible)
+  Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngEVPCol), xlCells(lngRow, lngEVPCol)).SpecialCells(xlCellTypeVisible)
   strFirstCell = rng(1).Address(False, True)
   'Finish < Status Date AND EV% < 100 (complete but incomplete) > invalid
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<100," & xlCells(rng(1).Row, lgAFCol).Address(False, True) & "<=Indirect(""STATUS_DATE"")),TRUE,FALSE)"
+  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<100," & xlCells(rng(1).Row, lngAFCol).Address(False, True) & "<=Indirect(""STATUS_DATE"")),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .ThemeColor = xlThemeColorAccent4
     .TintAndShade = -0.499984740745262
@@ -805,7 +801,7 @@ next_task:
     .TintAndShade = 0.799981688894314
   End With
   'EV% > 0 and new start = "" (bogus actuals) > invalid
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & ">0," & xlCells(rng(1).Row, lgASCol).Address(False, True) & "=""""),TRUE,FALSE)"
+  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & ">0," & xlCells(rng(1).Row, lngASCol).Address(False, True) & "=""""),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
     .TintAndShade = 0
@@ -817,7 +813,7 @@ next_task:
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
   'EV% =100 and new finish = "" (update required) > invalid
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=100," & xlCells(rng(1).Row, lgAFCol).Address(False, True) & "=""""),TRUE,FALSE)"
+  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=100," & xlCells(rng(1).Row, lngAFCol).Address(False, True) & "=""""),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
     .TintAndShade = 0
@@ -829,7 +825,7 @@ next_task:
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
   '=100 and new finish > status date > invalid
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=100," & xlCells(rng(1).Row, lgAFCol).Address(False, True) & ">Indirect(""STATUS_DATE"")),TRUE,FALSE)"
+  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=100," & xlCells(rng(1).Row, lngAFCol).Address(False, True) & ">Indirect(""STATUS_DATE"")),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
     .TintAndShade = 0
@@ -845,13 +841,13 @@ next_task:
   
   'revised etc
   Worksheet.ShowAllData
-  xlCells(lgHeaderRow, 1).AutoFilter
+  xlCells(lngHeaderRow, 1).AutoFilter
   'filter for task rows [blue font]
-  rngAll.AutoFilter Field:=lgETCCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
+  rngAll.AutoFilter Field:=lngETCCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
   '...with blank Actual Start dates [blank AF]
-  rngAll.AutoFilter Field:=lgEVPCol, Criteria1:="="
+  rngAll.AutoFilter Field:=lngEVPCol, Criteria1:="="
   'add conditions only to blank cells in the column
-  Set rng = Worksheet.Range(xlCells(lgHeaderRow + 1, lgEVPCol), xlCells(lgRow, lgEVPCol)).SpecialCells(xlCellTypeVisible)
+  Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngEVPCol), xlCells(lngRow, lngEVPCol)).SpecialCells(xlCellTypeVisible)
   strFirstCell = rng(1).Address(False, True)
   'if assignments.count > 0
   'filter for assignments
@@ -884,10 +880,10 @@ next_task:
   xlApp.ScreenUpdating = True
   
   Worksheet.ShowAllData
-  xlCells(lgHeaderRow + 1, lgNameCol + 1).Select
+  xlCells(lngHeaderRow + 1, lngNameCol + 1).Select
   xlApp.ActiveWindow.FreezePanes = True
   'prettify the task name column
-  Worksheet.Columns(lgNameCol).AutoFit
+  Worksheet.Columns(lngNameCol).AutoFit
   
   t = GetTickCount
   cptStatusSheet_frm.lblStatus.Caption = "Saving Workbook" & IIf(cptStatusSheet_frm.optWorkbooks, "s", "") & "..."
@@ -907,8 +903,19 @@ next_task:
     Worksheet.EnableSelection = xlNoRestrictions
     'save to desktop in folder for status date
     strFileName = strFileName & "_StatusSheet_" & Format(dtStatus, "yyyy-mm-dd") & ".xlsx"
+    On Error Resume Next
     If Dir(strDir & "\" & strFileName) <> vbNullString Then Kill strDir & "\" & strFileName
-    Workbook.SaveAs strDir & "\" & strFileName, 51
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    'account for if the file exists and is open in the background
+    If Dir(strDir & "\" & strFileName) <> vbNullString Then 'delete failed, rename with timestamp
+      strMsg = "'" & strFileName & "' already exists, and is likely open." & vbCrLf
+      strFileName = Replace(strFileName, ".xlsx", "_" & Format(Now, "-hh-nn-ss") & ".xlsx")
+      strMsg = strMsg & "The file you are now creating will be named '" & strFileName & "'"
+      MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
+      Workbook.SaveAs strDir & "\" & strFileName, 51
+    Else
+      Workbook.SaveAs strDir & "\" & strFileName, 51
+    End If
   Else
     'rename master, apply autofilter
     'cycle through each option and create sheet
@@ -929,17 +936,14 @@ next_task:
   cptStatusSheet_frm.lblProgress.Width = cptStatusSheet_frm.lblStatus.Width
   cptStatusSheet_frm.lblStatus.Caption = " Complete."
   Application.StatusBar = "Complete."
-  
-  MsgBox "Status Sheet Created", vbInformation + vbOKOnly, "ClearPlan Status Sheet"
   xlApp.Visible = True
+  'MsgBox "Status Sheet Created", vbInformation + vbOKOnly, "ClearPlan Status Sheet"
   cptStatusSheet_frm.lblStatus.Caption = " Ready..."
 
 exit_here:
   On Error Resume Next
   Application.StatusBar = ""
-  
-  xlApp.Calculation = xlCalculationAutomatic
-  xlApp.ScreenUpdating = True
+  cptSpeed False
   Set Tasks = Nothing
   Set Task = Nothing
   Set Resource = Nothing
