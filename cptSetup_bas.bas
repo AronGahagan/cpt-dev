@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.2</cpt_version>
+'<cpt_version>v1.2.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -148,14 +148,14 @@ next_xmlNode:
     
     'avoid messy overwrites of ThisProject
     Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
-    If cmThisProject.Find("<cpt_version>", 1, 1, cmThisProject.CountOfLines, 1000, True, True) = True Then
-      strMsg = "Your 'ThisProject' module has already been updated to work with the ClearPlan toolbar." & vbCrLf
+    If cmThisProject.Find("<cpt_version>", 1, 1, cmThisProject.CountOfLines, 1000, False, True) = True Then
+      strMsg = "Your 'ThisProject' module has already been updated to work with the ClearPlan toolbar." & vbCrLf & vbCrLf
       strMsg = strMsg & "Would you like to reset it? This will only overwrite CodeModule lines appended with '</cpt>'"
       If MsgBox(strMsg, vbExclamation + vbYesNo, "Danger, Will Robinson!") = vbYes Then
         For lngLine = cmThisProject.CountOfLines To 1 Step -1
           If InStr(cmThisProject.Lines(lngLine, 1), "'</cpt>") > 0 Then
             cmThisProject.DeleteLines lngLine
-            Debug.Print "DELETED: " & lngLine & ": " & cmThisProject.Lines(lngLine)
+            Debug.Print "DELETED: " & lngLine & ": " & cmThisProject.Lines(lngLine, 1)
           End If
         Next lngLine
       End If
