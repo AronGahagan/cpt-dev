@@ -230,10 +230,10 @@ next_xmlNode:
       End With
     Next vEvent
     
-skip_import:
-    
     'leave no trace
     If Dir(strCptFileName) <> vbNullString Then Kill strCptFileName
+    
+skip_import:
     
   End If 'ThisProject.cls exists in tmp folder
   
