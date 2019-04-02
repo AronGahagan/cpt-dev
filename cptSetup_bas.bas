@@ -148,7 +148,10 @@ next_xmlNode:
     
     'avoid messy overwrites of ThisProject
     Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
+    '<issue10> revised
+    'If cmThisProject.Find("<cpt_version>", 1, 1, cmThisProject.CountOfLines, 1000, True, True) = True Then
     If cmThisProject.Find("<cpt_version>", 1, 1, cmThisProject.CountOfLines, 1000, False, True) = True Then
+    '</issue10>
       strMsg = "Your 'ThisProject' module has already been updated to work with the ClearPlan toolbar." & vbCrLf & vbCrLf
       strMsg = strMsg & "Would you like to reset it? This will only overwrite CodeModule lines appended with '</cpt>'"
       If MsgBox(strMsg, vbExclamation + vbYesNo, "Danger, Will Robinson!") = vbYes Then
