@@ -169,6 +169,8 @@ next_xmlNode:
             Debug.Print "DELETED: " & lngLine & ": " & cmThisProject.Lines(lngLine, 1)
           End If
         Next lngLine
+      Else
+        GoTo skip_import
       End If
     End If
     
@@ -227,6 +229,8 @@ next_xmlNode:
         End If
       End With
     Next vEvent
+    
+skip_import:
     
     'leave no trace
     If Dir(strCptFileName) <> vbNullString Then Kill strCptFileName
