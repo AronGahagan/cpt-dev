@@ -240,7 +240,7 @@ next_xmlNode:
   End If
 
   '<issue23> trigger Project_Activate() to refresh toolbar
-  cptSpeed True
+  Application.ScreenUpdating = False
   Projects.Add False, False, False
   FileCloseEx pjDoNotSave '</issue23>
 
@@ -249,7 +249,7 @@ exit_here:
   '<issue19> added
   Application.StatusBar = "" '</issue19>
   '<issue23> added
-  cptSpeed False '</issue23>
+  Application.ScreenUpdating = True '</issue23>
   Set vbComponent = Nothing
   Set arrCode = Nothing
   Set cmThisProject = Nothing
