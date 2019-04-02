@@ -37,6 +37,7 @@ End Sub
 
 Private Sub cmdUpgradeSelected_Click()
 'objects
+Dim Project As Object
 Dim vbComponent As Object
 Dim xmlHttpDoc As Object, oStream As Object 'ADODB.Stream
 Dim arrCurrent As Object, arrInstalled As Object
@@ -105,6 +106,7 @@ get_frx:
         '<issue19>
         Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
         vbComponent.Name = vbComponent.Name & "_" & Format(Now, "hhnnss")
+        DoEvents
         ThisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(strModule)
         DoEvents '</issue19>
       End If
@@ -115,8 +117,17 @@ get_frx:
     End If
   Next lngItem
 
+  '<issue23> trigger ribbon refresh
+  Application.ScreenUpdating = False
+  Set Project = ActiveProject
+  Projects.Add
+  FileCloseEx pjDoNotSave
+  Project.Activate '</issue23>
+
 exit_here:
   On Error Resume Next
+  Application.ScreenUpdating = True
+  Set Project = Nothing
   Set vbComponent = Nothing
   Application.StatusBar = ""
   Set arrTypes = Nothing
