@@ -10,6 +10,11 @@ Sub cptStartEvents()
   Set oMSPEvents = New cptEvents_cls
 End Sub
 
+'<issue19> attempting to avoid trailing 1
+Sub cptStopEvents()
+  Set oMSPEvents = Nothing
+End Sub
+
 Sub cptSpeed(blnOn As Boolean)
 
   Application.ScreenUpdating = Not blnOn
@@ -104,6 +109,8 @@ End Function
 
 Sub ShowCptAbout_frm()
 'objects
+Dim UserForm As UserForm
+Dim ctl As control
 'strings
 Dim strAbout As String
 'longs
@@ -111,6 +118,14 @@ Dim strAbout As String
 'booleans
 'variants
 'dates
+
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If Not cptModuleExists("cptAbout_frm") Then '<issue19>
+    MsgBox "Please re-run cptSetup() to restore the missing About form.", vbCritical + vbOKOnly, "Missing Form"
+    GoTo exit_here
+  End If '</issue19>
 
   'contact and license
   strAbout = vbCrLf & "The ClearPlan Toolbar" & vbCrLf
@@ -120,17 +135,35 @@ Dim strAbout As String
   strAbout = strAbout & "AS IS and without warranty." & vbCrLf
   strAbout = strAbout & "It is free to use, free to distribute with prior written consent from the developers/copyright holders and without modification." & vbCrLf & vbCrLf
   strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright 2019, ClearPlanConsulting, LLC"
-  cptAbout_frm.txtAbout.Value = strAbout
+  Set UserForm = ThisProject.VBProject.VBComponents("cptAbout_frm") '<issue19>
+  Set ctl = UserForm.Controls("txtAbout") '<issue19>
+  ctl.Value = strAbout
+  'cptAbout_frm.txtAbout.Value = strAbout  '<issue19>
 
   'follow the project
   strAbout = vbCrLf & vbCrLf & "Follow the Project:" & vbCrLf & vbCrLf
   strAbout = strAbout & "http://GitHub.com/ClearPlan/cpt" & vbCrLf & vbCrLf
-  cptAbout_frm.txtGitHub.Value = strAbout
+  Set ctl = cptGetControl(UserForm, "txtGitHub") '<issue19>
+  ctl.Value = strAbout
+  'cptAbout_frm.txtGitHub.Value = strAbout '<issue19>
 
   'show/hide
-  cptAbout_frm.lblScoreBoard.Visible = IIf(Now < #10/24/2019#, False, True)
-  cptAbout_frm.Show
-
+  Set ctl = cptGetControl(UserForm, "lblScoreboard") '<issue19>
+  ctl.Visible = IIf(Now < #10/24/2019#, False, True) '<issue19>
+  'cptAbout_frm.lblScoreBoard.Visible = IIf(Now < #10/24/2019#, False, True) '<issue19>
+  'cptAbout_frm.Show '<issue19>
+  UserForm.Show '<issue19>
+  
+  '<issue19> added error handling
+exit_here:
+  On Error Resume Next
+  Set ctl = Nothing
+  Set UserForm = Nothing
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "ShowCptAbout_frm", err)
+  Resume exit_here '</issue19>
+  
 End Sub
 
 Function cptReferenceExists(strReference As String) As Boolean

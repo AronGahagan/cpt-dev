@@ -104,7 +104,7 @@ Dim vPath As Variant
       lgSlide = lgSlide + 1
       SelectBeginning
       SelectTaskField Row:=lgTask - 20, Column:="Name", Height:=20, Extend:=False
-      EditCopyPicture Object:=False, ForPrinter:=0, SelectedRows:=1, FromDate:=Format(dtFrom, "mm/dd/yy hh:nn AMPM"), ToDate:=Format(dtTo, "m/d/yy hh:mm ampm"), ScaleOption:=pjCopyPictureTimescale, MaxImageHeight:=-1#, MaxImageWidth:=-1#, MeasurementUnits:=2  'pjCopyPictureShowOptions
+      EditCopyPicture object:=False, ForPrinter:=0, SelectedRows:=1, FromDate:=Format(dtFrom, "mm/dd/yy hh:nn AMPM"), ToDate:=Format(dtTo, "m/d/yy hh:mm ampm"), ScaleOption:=pjCopyPictureTimescale, MaxImageHeight:=-1#, MaxImageWidth:=-1#, MeasurementUnits:=2  'pjCopyPictureShowOptions
       'paste the picture
       Presentation.Slides.Add Presentation.Slides.count + 1, ppLayoutCustom
       Set Slide = Presentation.Slides(Presentation.Slides.count)

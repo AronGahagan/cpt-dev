@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.2.2</cpt_version>
+'<cpt_version>v1.2.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -67,7 +67,11 @@ Dim vEvent As Variant
   xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
   strURL = strGitHub & "CurrentVersions.xml"
   If Not xmlDoc.Load(strURL) Then
-    MsgBox xmlDoc.parseError.ErrorCode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
+    If xmlDoc.parseError.ErrorCode = -2146697210 Then
+      MsgBox "Please check your internet connection.", vbCritical + vbOKOnly, "Can't Connect"
+    Else
+      MsgBox xmlDoc.parseError.ErrorCode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
+    End If
     GoTo exit_here
   Else
     'download cpt/core/*.* to user's tmp directory
@@ -134,6 +138,8 @@ frx:
           Application.StatusBar = "Importing " & strFileName & "..."
           'Debug.Print Application.StatusBar
           ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
+          '<issue19> added
+          DoEvents '</issue19>
         End If
         
       End If
@@ -233,10 +239,17 @@ next_xmlNode:
     'Debug.Print strError
   End If
 
+  '<issue23> trigger Project_Activate() to refresh toolbar
+  cptSpeed True
+  Projects.Add False, False, False
+  FileCloseEx pjDoNotSave '</issue23>
+
 exit_here:
   On Error Resume Next
   '<issue19> added
   Application.StatusBar = "" '</issue19>
+  '<issue23> added
+  cptSpeed False '</issue23>
   Set vbComponent = Nothing
   Set arrCode = Nothing
   Set cmThisProject = Nothing
