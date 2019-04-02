@@ -13,11 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-
-
-
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -41,7 +37,8 @@ End Sub
 
 Private Sub cmdUpgradeSelected_Click()
 'objects
-Dim xmlHttpDoc As Object, oStream As ADODB.Stream ' Object
+Dim vbComponent As Object
+Dim xmlHttpDoc As Object, oStream As Object 'ADODB.Stream
 Dim arrCurrent As Object, arrInstalled As Object
 Dim arrTypes As Object
 'strings
@@ -105,7 +102,11 @@ get_frx:
       End If
       
       If cptModuleExists(strModule) Then
-        ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(strModule)
+        '<issue19>
+        Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
+        vbComponent.Name = vbComponent.Name & "_" & Format(Now, "hhnnss")
+        ThisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(strModule)
+        DoEvents '</issue19>
       End If
       ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
       
@@ -116,6 +117,7 @@ get_frx:
 
 exit_here:
   On Error Resume Next
+  Set vbComponent = Nothing
   Application.StatusBar = ""
   Set arrTypes = Nothing
   Set xmlHttpDoc = Nothing
