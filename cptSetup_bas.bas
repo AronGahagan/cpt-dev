@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -123,6 +123,8 @@ frx:
             Application.StatusBar = "Removing obsolete version of " & vbComponent.Name
             'Debug.Print Application.StatusBar
             ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
+            '<issue19> added
+            DoEvents '</issue19>
             Exit For
           End If
         Next vbComponent
@@ -179,7 +181,9 @@ next_xmlNode:
       Next
     End With
     ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
-    
+    '<issue19> added
+    DoEvents '</issue19>
+
     'add the events, or insert new text
     'three cases: empty or not empty (code exists or not)
     For Each vEvent In Array("Project_Activate", "Project_Open")
@@ -231,6 +235,8 @@ next_xmlNode:
 
 exit_here:
   On Error Resume Next
+  '<issue19> added
+  Application.StatusBar = "" '</issue19>
   Set vbComponent = Nothing
   Set arrCode = Nothing
   Set cmThisProject = Nothing
