@@ -126,8 +126,10 @@ frx:
           If vbComponent.Name = strModule Then
             Application.StatusBar = "Removing obsolete version of " & vbComponent.Name
             'Debug.Print Application.StatusBar
-            ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
-            '<issue19> added
+            '<issue19> revised
+            vbComponent.Name = vbComponent.Name & "_" & Format(Now, "hhnnss")
+            DoEvents
+            ThisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
             DoEvents '</issue19>
             Exit For
           End If
@@ -244,9 +246,7 @@ skip_import:
   End If
 
   '<issue23> trigger Project_Activate() to refresh toolbar
-  Application.ScreenUpdating = False
-  Projects.Add False, False, False
-  FileCloseEx pjDoNotSave '</issue23>
+  ActiveProject.Activate  '</issue23>
 
 exit_here:
   On Error Resume Next
