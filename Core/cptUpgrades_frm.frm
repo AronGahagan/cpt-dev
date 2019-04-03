@@ -36,20 +36,30 @@ Dim lngItem As Long
 End Sub
 
 Private Sub cmdUpgradeSelected_Click()
+'  Call cptCore_bas.cptUpgradeSelected
 'objects
+Dim arrCode As Object
+Dim cmCptThisProject As CodeModule 'Object
+Dim cmThisProject As CodeModule 'Object
 Dim Project As Object
 Dim vbComponent As Object
 Dim xmlHttpDoc As Object, oStream As Object 'ADODB.Stream
 Dim arrCurrent As Object, arrInstalled As Object
 Dim arrTypes As Object
 'strings
+Dim lngEvent As String
+Dim strVersion As String
+Dim strMsg As String
+Dim strCptFileName As String
 Dim strDirectory As String
 Dim strModule As String, strFileName As String, strURL As String
 'longs
+Dim lngLine As Long
 Dim lngItem As Long
 'integers
 'booleans
 'variants
+Dim vEvent As Variant
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -61,32 +71,29 @@ Dim lngItem As Long
   arrTypes.Add 100, ".cls"
 
   For lngItem = 0 To Me.lboModules.ListCount - 1
-  
+
     If Me.lboModules.Selected(lngItem) Then
-  
+
       Me.lboModules.List(lngItem, 3) = "<installing...>"
       strModule = Me.lboModules.List(lngItem, 0)
-            
+
       'get the module name
       'get the repo directory
       'get the filename
-      'strFileName = replace(".bas","_bas.bas")
       Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
       strFileName = strModule & arrTypes.Item(CInt(cptUpgrades_frm.lboModules.List(lngItem, 5)))
-      'strFileName = Replace(strFileName, cptRegEx(strFileName, "_frm|_bas|_cls"), "")
       strDirectory = cptUpgrades_frm.lboModules.List(lngItem, 1)
 get_frx:
       strURL = strGitHub & strDirectory & "/" & strFileName
       xmlHttpDoc.Open "GET", strURL, False
       xmlHttpDoc.Send
-    
+
       'strURL = xmlHttpDoc.responseBody
       If xmlHttpDoc.Status = 200 Then
         Set oStream = CreateObject("ADODB.Stream")
         oStream.Open
         oStream.Type = 1 'adTypeBinary
         oStream.Write xmlHttpDoc.responseBody
-        'strFileName = cptDir & strFileName
         If Dir(cptDir & "\" & strFileName) <> vbNullString Then Kill cptDir & "\" & strFileName
         oStream.SaveToFile cptDir & "\" & strFileName
         oStream.Close
@@ -101,7 +108,10 @@ get_frx:
       ElseIf Right(strFileName, 4) = ".frx" Then
         strFileName = Replace(strFileName, ".frx", ".frm")
       End If
-      
+
+      '<issue15> added
+      If strModule = "ThisProject" Then GoTo next_module 'handle separately </issue25>
+
       If cptModuleExists(strModule) Then
         '<issue19>
         Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
@@ -111,21 +121,105 @@ get_frx:
         DoEvents '</issue19>
       End If
       ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
-      
+
       Me.lboModules.List(lngItem, 3) = Me.lboModules.List(lngItem, 2)
       Me.lboModules.List(lngItem, 4) = "<updated>"
     End If
+next_module:     '</issue25>
   Next lngItem
 
-  '<issue23> trigger ribbon refresh
+  '<issue25> added
+  'update ThisProject
+  strFileName = cptDir & "\ThisProject.cls"
+  If Dir(strFileName) <> vbNullString Then 'the file was downloaded, proceed
+
+    'notify user that modifications are about to be made to the ThisProject module
+    strMsg = "This upgrade requires a revision to your ThisProject module. "
+    strMsg = strMsg & "If you have made modifications, your code will not be lost, but it may need to be rearanged." & vbCrLf & vbCrLf
+    strMsg = strMsg & "Please contact cpt@ClearPlanConsulting.com if you require assistance."
+    MsgBox strMsg, vbInformation + vbOKOnly, "Notice"
+    'ideally this would prompt user to proceed or rollback...
+
+    'clear out existing lines of cpt-related code
+    Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
+    For lngLine = cmThisProject.CountOfLines To 1 Step -1
+      'cover both '</cpt_version> and '</cpt>
+      If InStr(cmThisProject.Lines(lngLine, 1), "</cpt") > 0 Then
+        cmThisProject.DeleteLines lngLine, 1
+        DoEvents
+      End If
+    Next lngLine
+
+    'rename file and import it
+    strCptFileName = Replace(strFileName, "ThisProject", "cptThisProject")
+    Name strFileName As strCptFileName
+    Set cmCptThisProject = ThisProject.VBProject.VBComponents.import(strCptFileName).CodeModule
+
+    'grab and insert the updated version
+    strVersion = cptRegEx(cmCptThisProject.Lines(1, cmCptThisProject.CountOfLines), "<cpt_version>.*</cpt_version>")
+    cmThisProject.InsertLines 1, "'" & strVersion
+
+    'grab the imported code
+    Set arrCode = CreateObject("System.Collections.SortedList")
+    With cmCptThisProject
+      For Each vEvent In Array("Project_Activate", "Project_Open")
+        arrCode.Add CStr(vEvent), .Lines(.ProcStartLine(CStr(vEvent), 0) + 2, .ProcCountLines(CStr(vEvent), 0) - 3) '0 = vbext_pk_Proc
+      Next vEvent
+    End With
+    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
+    '<issue19> added
+    DoEvents '</issue19>
+
+    'add the events, or insert new text
+    'three cases: empty or not (code exists or not)
+    For Each vEvent In Array("Project_Activate", "Project_Open")
+
+      'if event exists then insert code else create new event handler
+      With cmThisProject
+        If .CountOfLines > .CountOfDeclarationLines Then 'complications
+          If .Find("Sub " & CStr(vEvent), 1, 1, .CountOfLines, 1000) = True Then
+          'find its line number
+            lngEvent = .ProcBodyLine(CStr(vEvent), 0)  '= vbext_pk_Proc
+            'import them if they *as a group* don't exist
+            If .Find(arrCode(CStr(vEvent)), .ProcStartLine(CStr(vEvent), 0), 1, .ProcCountLines(CStr(vEvent), 0), 1000) = False Then 'vbext_pk_Proc
+              .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
+            Else
+              'Debug.Print CStr(vEvent) & " code exists."
+            End If
+          Else 'create it
+            'create it, returning its line number
+            lngEvent = .CreateEventProc(Replace(CStr(vEvent), "Project_", ""), "Project")
+            'insert cpt code after line number
+            .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
+          End If
+        Else 'easy
+          'create it, returning its line number
+          lngEvent = .CreateEventProc(Replace(CStr(vEvent), "Project_", ""), "Project")
+          'insert cpt code after line number
+          .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
+        End If 'lines exist
+      End With 'thisproject.codemodule
+
+      'leave no trace
+      If Dir(strCptFileName) <> vbNullString Then Kill strCptFileName
+
+    Next vEvent
+  End If '</issue25>
+
+  '<issue23><issue25> trigger ribbon refresh
   Application.ScreenUpdating = False
   Set Project = ActiveProject
   Projects.Add
+  DoEvents
   FileCloseEx pjDoNotSave
-  Project.Activate '</issue23>
+  DoEvents
+  Project.Activate '</issue25></issue23>
 
 exit_here:
   On Error Resume Next
+  Set arrCode = Nothing
+  Set cmCptThisProject = Nothing
+  Set cmThisProject = Nothing
   Application.ScreenUpdating = True
   Set Project = Nothing
   Set vbComponent = Nothing
@@ -138,7 +232,7 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("frmUpdates", "cmdUpdate_Click", err)
-  Me.lboModules.List(lngItem, 3) = "<error>"
+  Me.lboModules.List(lngItem - 1, 3) = "<error>" '</issue25>
   Resume exit_here
 
 End Sub

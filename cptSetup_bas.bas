@@ -14,6 +14,7 @@ Private Declare Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lp
 Sub cptSetup()
 'setup only needs to be run once
 'objects
+Dim Project As Object
 Dim vbComponent As Object 'vbComponent
 Dim arrCode As Object
 Dim cmThisProject As Object 'CodeModule
@@ -79,7 +80,6 @@ Dim vEvent As Variant
     For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
       If xmlNode.SelectSingleNode("Directory").Text = "Core" Then
         Application.StatusBar = "Fetching " & xmlNode.SelectSingleNode("Name").Text & "..."
-        'Debug.Print Application.StatusBar
         arrCore.Add xmlNode.SelectSingleNode("FileName").Text, xmlNode.SelectSingleNode("Type").Text
         'get ThisProject status for later
         If xmlNode.SelectSingleNode("FileName").Text = "ThisProject.cls" Then
@@ -168,7 +168,6 @@ next_xmlNode:
         For lngLine = cmThisProject.CountOfLines To 1 Step -1
           If InStr(cmThisProject.Lines(lngLine, 1), "'</cpt>") > 0 Then
             cmThisProject.DeleteLines lngLine
-            Debug.Print "DELETED: " & lngLine & ": " & cmThisProject.Lines(lngLine, 1)
           End If
         Next lngLine
       Else
@@ -245,11 +244,18 @@ skip_import:
     'Debug.Print strError
   End If
 
-  '<issue23> trigger Project_Activate() to refresh toolbar
-  ActiveProject.Activate  '</issue23>
+  '<issue23><issue25> trigger ribbon refresh
+  Application.ScreenUpdating = False
+  Set Project = ActiveProject
+  Projects.Add
+  DoEvents
+  FileCloseEx pjDoNotSave
+  DoEvents
+  Project.Activate '</issue25></issue23>
 
 exit_here:
   On Error Resume Next
+  Set Project = Nothing
   '<issue19> added
   Application.StatusBar = "" '</issue19>
   '<issue23> added

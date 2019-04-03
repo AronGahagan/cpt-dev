@@ -452,7 +452,7 @@ Dim vCol As Variant
   'populate the listbox
   cptUpgrades_frm.lboModules.Clear
   For lngItem = 0 To arrCurrent.count - 1
-    If arrCurrent.getKey(lngItem) = "ThisProject" Then GoTo next_lngItem
+    'If arrCurrent.getKey(lngItem) = "ThisProject" Then GoTo next_lngItem '</issue25'
     strCurVer = arrCurrent.getValueList()(lngItem)
     If arrInstalled.contains(arrCurrent.getKey(lngItem)) Then
       strInstVer = arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.getKey(lngItem)))
