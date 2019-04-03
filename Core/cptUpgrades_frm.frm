@@ -13,7 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.2.2</cpt_version>
+
+'<cpt_version>v1.3.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -39,8 +40,8 @@ Private Sub cmdUpgradeSelected_Click()
 '  Call cptCore_bas.cptUpgradeSelected
 'objects
 Dim arrCode As Object
-Dim cmCptThisProject As CodeModule 'Object
-Dim cmThisProject As CodeModule 'Object
+Dim cmCptThisProject As Object
+Dim cmThisProject As Object
 Dim Project As Object
 Dim vbComponent As Object
 Dim xmlHttpDoc As Object, oStream As Object 'ADODB.Stream
@@ -206,14 +207,26 @@ next_module:     '</issue25>
     Next vEvent
   End If '</issue25>
 
-  '<issue23><issue25> trigger ribbon refresh
-  Application.ScreenUpdating = False
-  Set Project = ActiveProject
-  Projects.Add
-  DoEvents
-  FileCloseEx pjDoNotSave
-  DoEvents
-  Project.Activate '</issue25></issue23>
+  'reset the ribbon
+  strMsg = "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>" & vbCrLf
+  strMsg = strMsg + "<mso:customUI "
+  strMsg = strMsg + "xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui"" >"
+  strMsg = strMsg + vbCrLf & "<mso:ribbon startFromScratch=""false"" >"
+  strMsg = strMsg + vbCrLf & "<mso:tabs>"
+  strMsg = strMsg + cptBuildRibbonTab()
+  strMsg = strMsg + vbCrLf & "</mso:tabs>"
+  strMsg = strMsg + vbCrLf & "</mso:ribbon>"
+  strMsg = strMsg + vbCrLf & "</mso:customUI>"
+  ActiveProject.SetCustomUI (strMsg)
+
+'  '<issue23><issue25> trigger ribbon refresh
+'  Application.ScreenUpdating = False
+'  Set Project = ActiveProject
+'  Projects.Add
+'  DoEvents
+'  FileCloseEx pjDoNotSave
+'  DoEvents
+'  Project.Activate '</issue25></issue23>
 
 exit_here:
   On Error Resume Next

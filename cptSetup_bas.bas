@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.2.3</cpt_version>
+'<cpt_version>v1.3.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -244,14 +244,26 @@ skip_import:
     'Debug.Print strError
   End If
 
-  '<issue23><issue25> trigger ribbon refresh
-  Application.ScreenUpdating = False
-  Set Project = ActiveProject
-  Projects.Add
-  DoEvents
-  FileCloseEx pjDoNotSave
-  DoEvents
-  Project.Activate '</issue25></issue23>
+  'reset the toolbar
+  strMsg = "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>" & vbCrLf
+  strMsg = strMsg + "<mso:customUI "
+  strMsg = strMsg + "xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui"" >"
+  strMsg = strMsg + vbCrLf & "<mso:ribbon startFromScratch=""false"" >"
+  strMsg = strMsg + vbCrLf & "<mso:tabs>"
+  strMsg = strMsg + cptBuildRibbonTab()
+  strMsg = strMsg + vbCrLf & "</mso:tabs>"
+  strMsg = strMsg + vbCrLf & "</mso:ribbon>"
+  strMsg = strMsg + vbCrLf & "</mso:customUI>"
+  ActiveProject.SetCustomUI (strMsg)
+
+'  '<issue23><issue25> trigger ribbon refresh
+'  Application.ScreenUpdating = False
+'  Set Project = ActiveProject
+'  Projects.Add
+'  DoEvents
+'  FileCloseEx pjDoNotSave
+'  DoEvents
+'  Project.Activate '</issue25></issue23>
 
 exit_here:
   On Error Resume Next
@@ -271,18 +283,216 @@ exit_here:
   Set arrCore = Nothing
   Exit Sub
 err_here:
-  'Call cptHandleErr("cptCore_bas", "cptSetup", err)
-  strError = err.Number & ": " & err.Description & vbCrLf
-  strError = strError & "Module: cptSetup_bas" & vbCrLf
-  strError = strError & "Procedure: cptSetup"
-  MsgBox strError, vbExclamation + vbOKOnly, "CPT Setup Error"
+  Call cptHandleErr("cptSetup_bas", "cptSetup", err)
   Resume exit_here
 End Sub
+
+Public Function cptBuildRibbonTab()
+Dim ribbonXML As String
+Dim lngCleanUp As Long
+
+  'buuld ClearPlan Ribbon Tab XML
+  ribbonXML = ribbonXML + vbCrLf & "<mso:tab id=""tCommon"" label=""ClearPlan"" >" 'insertBeforeQ=""mso:TabTask"">"
+
+  'common tools
+  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""custom_view"" label=""View"" visible=""true"">"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:SummaryTasks"" visible=""true""/>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:NameIndent"" visible=""true""/>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:OutlineSymbolsShow"" visible=""true""/>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:AutoFilterProject"" visible=""true""/>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:FilterClear"" visible=""true""/>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:SplitViewCreate"" visible=""true""/>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetAll"" label=""Reset All"" imageMso=""FilterClear"" onAction=""cptResetAll"" visible=""true"" size=""large"" />"  'in basCore_bas
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bWrapItUp"" label=""WrapItUp"" imageMso=""CollapseAll"" onAction=""cptWrapItUp"" visible=""true"" size=""large"" />"   'in basCore_bas
+  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+
+  'task counters
+  If cptModuleExists("cptCountTasks_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCount"" label=""Count"" visible=""true"" >"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountAll"" label=""All Tasks"" imageMso=""NumberInsert"" onAction=""cptCountTasksAll"" visible=""true""/>" 'SelectWholeLayout
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountVisible"" label=""Visible Tasks"" imageMso=""NumberInsert"" onAction=""cptCountTasksVisible"" visible=""true""/>" 'SelectRows
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountSelected"" label=""Selected Tasks"" imageMso=""NumberInsert"" onAction=""cptCountTasksSelected"" visible=""true""/>" 'SelectTaskCell
+    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  End If
+
+  'text tools
+  If cptModuleExists("cptText_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gTextTools"" label=""Text"" visible=""true"" >"
+    If cptModuleExists("cptDynamicFilter_bas") And cptModuleExists("cptDynamicFilter_frm") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDynamicFilter"" label=""Dynamic Filter"" imageMso=""FilterBySelection"" onAction=""ShowcptDynamicFilter_frm"" visible=""true"" size=""large"" />"
+    End If
+    If cptModuleExists("cptText_frm") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbText"" size=""large"" >"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdvancedTextTools"" label=""Advanced"" imageMso=""AdvancedFilterDialog"" onAction=""ShowcptText_frm"" />" 'visible=""true""
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mText"">"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Utilities"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPrepend"" label=""Bulk Prepend"" imageMso=""RightArrow2"" onAction=""cptBulkPrepend"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAppend"" label=""Bulk Append"" imageMso=""LeftArrow2"" onAction=""cptBulkAppend"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMyReplace"" label=""MyReplace"" imageMso=""ReplaceDialog"" onAction=""cptMyReplace"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bEnumerate"" label=""Enumerate"" imageMso=""NumberingRestart"" onAction=""cptEnumerate"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrimText"" label=""Trim Task Names"" imageMso=""TextEffectsClear"" onAction=""cptTrimTaskNames"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process (WIP)"" imageMso=""DuplicateSelectedSlides"" onAction=""cptReplicateProcess"" visible=""true"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""cptFindDuplicateTaskNames"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetRowHeight"" label=""Reset Row Height"" imageMso=""RowHeight"" onAction=""cptResetRowHeight"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+      ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
+    Else
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTextTools"" label=""Tools"" imageMso=""TextBoxInsert"" visible=""true"" size=""large"" >"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPrepend"" label=""Bulk Prepend"" imageMso=""RightArrow2"" onAction=""cptBulkPrepend"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAppend"" label=""Bulk Append"" imageMso=""LeftArrow2"" onAction=""cptBulkAppend"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMyReplace"" label=""MyReplace"" imageMso=""ReplaceDialog"" onAction=""cptMyReplace"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bEnumerate"" label=""Enumerate"" imageMso=""NumberingRestart"" onAction=""cptEnumerate"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrimText"" label=""Trim Task Names"" imageMso=""TextEffectsClear"" onAction=""cptTrimTaskNames"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process"" imageMso=""DuplicateSelectedSlides"" onAction=""cptReplicateProcess"" visible=""true"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""cptFindDuplicateTaskNames"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetRowHeight"" label=""Reset Row Height"" imageMso=""RowHeight"" onAction=""cptResetRowHeight"" visible=""true""/>"
+      ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+    End If
+    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  End If
+
+  'trace tools
+  If cptModuleExists("cptCriticalPathTools_bas") Or cptModuleExists("cptCriticalPath_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCPA"" label=""Trace"" visible=""true"">"
+    If cptModuleExists("cptCriticalPathTools_bas") And cptModuleExists("cptCriticalPath_bas") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbTrace"" size=""large"" >"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrace"" imageMso=""TaskDrivers"" label=""Driving Path"" onAction=""DrivingPaths"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTrace"">"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Export"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPowerPoint"" label="">> PowerPoint"" imageMso=""SlideNew"" onAction=""cptExportCriticalPathSelected"" />"
+      ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+      ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
+    Else
+      If cptModuleExists("cptCriticalPath_bas") Then
+        ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrace"" label=""Driving Path"" imageMso=""TaskDrivers"" onAction=""DrivingPaths"" visible=""true"" size=""large"" />"
+      End If
+      If cptModuleExists("cptCriticalPathTools_bas") Then
+        ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExport"" label="">> PowerPoint"" imageMso=""SlideNew"" onAction=""cptExportCriticalPathSelected"" visible=""true"" size=""large"" />"
+      End If
+    End If
+    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  End If
+  
+  'status
+  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Status"" visible=""true"" >"
+  If cptModuleExists("cptStatusSheet_bas") And cptModuleExists("cptStatusSheet_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheet"" label=""Create Status Sheet"" imageMso=""DateAndTimeInsertOneNote"" onAction=""ShowcptStatusSheet_frm"" visible=""true""/>"
+  End If
+  If cptModuleExists("cptSmartDuration_frm") And cptModuleExists("cptSmartDuration_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSmartDuration"" label=""Smart Duration"" imageMso=""CalendarToolSelectDate"" onAction=""SmartDuration"" visible=""true""/>"
+  End If
+  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+
+  'snapshots
+
+  'resource allocation
+  If cptModuleExists("cptResourceDemand_bas") And cptModuleExists("cptResourceDemand_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gResourceDemand"" label=""Resource Demand"" visible=""true"" >"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResourceDemandExcel"" label=""Export to Excel"" imageMso=""Chart3DColumnChart"" onAction=""ShowFrmExportResourceDemand"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  End If
+
+  'scenarios
+
+  'compare
+
+  'metrics
+
+  'integration
+  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gIntegration"" label=""Integration"" visible=""true"" >"
+  If cptModuleExists("cptIMSCobraExport_bas") And cptModuleExists("cptIMSCobraExport_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCOBRA"" label=""COBRA Export Tool"" imageMso=""Export"" onAction=""Export_IMS"" visible=""true""/>"
+  End If
+  'mpm
+  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+
+  'bcr
+
+  'about
+  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gHelp"" label=""Help"" visible=""true"" >"
+  If cptInternetIsConnected Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mHelp"" label=""Help"" imageMso=""Help"" visible=""true"" size=""large"" >"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Upgrades"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUpdate"" label=""Check for Upgrades"" imageMso=""PreviousUnread"" onAction=""ShowCptUpgrades_frm"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Contribute"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIssue"" label=""Submit an Issue"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitIssue"" visible=""true"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bRequest"" label=""Submit a Feature Request"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitRequest"" visible=""true"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFeedback"" label=""Submit Other Feedback"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitFeedback"" visible=""true"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Remove"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUninstall"" label=""Uninstall ClearPlan Toolbar"" imageMso=""TasksUnlink"" onAction=""cptUninstall"" visible=""true"" />" 'supertip=" & Chr(34) & strSuperTip & Chr(34) & "
+    ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+  End If
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAbout"" onAction=""ShowcptAbout_frm""  size=""large"" visible=""true""  label=""About"" imageMso=""Info"" />"
+  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+
+  ribbonXML = ribbonXML + vbCrLf & "</mso:tab>"
+
+  'Debug.Print "<mso:customUI ""xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui"" >" & ribbonXML
+  cptBuildRibbonTab = ribbonXML
+
+End Function
+
+Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObject)
+'common error handling prompt
+Dim strMsg As String
+
+    strMsg = "Uh oh! Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
+    strMsg = strMsg & "Error Source:" & vbCrLf
+    strMsg = strMsg & "ModSub cptHaule: " & strModule & vbCrLf
+    strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf & vbCrLf
+    strMsg = strMsg & "Error Code:" & vbCrLf
+    strMsg = strMsg & err.Number & ": " & err.Description
+    MsgBox strMsg, vbExclamation + vbOKOnly, "Unknown Error"
+
+End Sub
+
+Function cptIncrement(ByRef lgCleanUp As Long) As Long
+  lgCleanUp = lgCleanUp + 1
+  cptIncrement = lgCleanUp
+End Function
 
 Public Function cptInternetIsConnected() As Boolean
  
     cptInternetIsConnected = InternetGetConnectedStateEx(0, "", 254, 0)
  
+End Function
+
+Function cptRegEx(strText As String, strRegEx As String) As String
+Dim RE As Object, REMatch As Variant, REMatches As Object
+Dim strMatch As String
+
+    On Error GoTo err_here
+
+    Set RE = CreateObject("vbscript.regexp")
+    With RE
+        .MultiLine = False
+        .Global = True
+        .IgnoreCase = True
+        .Pattern = strRegEx
+    End With
+
+    Set REMatches = RE.Execute(strText)
+    For Each REMatch In REMatches
+      strMatch = REMatch
+      Exit For
+    Next
+    cptRegEx = strMatch
+
+exit_here:
+    On Error Resume Next
+    Set RE = Nothing
+    Set REMatches = Nothing
+    Exit Function
+err_here:
+  If err.Number = 5 Then
+    cptRegEx = ""
+    err.Clear
+  End If
+  Resume exit_here
 End Function
 
 Function cptDir() As String
@@ -309,8 +519,11 @@ Dim strPath As String
 End Function
 
 Function cptModuleExists(strModule As String)
+'objects
 Dim vbComponent As Object
+'booleans
 Dim blnExists As Boolean
+'strings
 Dim strError As String
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -330,14 +543,89 @@ exit_here:
 
   Exit Function
 err_here:
-  'Call cptHandleErr("cptSetup_bas", "cptModuleExists", err)
-  strError = err.Number & ": " & err.Description & vbCrLf
-  strError = strError & "Module: cptSetup_bas" & vbCrLf
-  strError = strError & "Procedure: cptModuleExists"
-  MsgBox strError, vbExclamation + vbOKOnly, "CPT Setup Error"
-  
+  Call cptHandleErr("cptSetup_bas", "cptModuleExists", err)
   Resume exit_here
   
 End Function
 
+Sub cptUninstall()
+'objects
+Dim vEvent As Object
+Dim Project As Object
+Dim vbComponent As Object
+Dim cmThisProject As Object
+'strings
+Dim strMsg As String
+'longs
+Dim lngLine As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
 
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If MsgBox("Are you sure?", vbCritical + vbYesNo, "Uninstall CPT") = vbNo Then GoTo exit_here
+
+  strMsg = "1. Please delete the module 'cptSetup_bas' manually after this process completes." & vbCrLf
+  strMsg = strMsg & "2. If you have made modifications to the ThisProject codemodule, your code will not be lost, but must be temporarily commented out. Remove the leading apostrophes to reactivate your code." & vbCrLf & vbCrLf
+  strMsg = strMsg & "Alternatively, if you would like to reinstall, re-run cptSetup() and then install updates."
+  MsgBox strMsg, vbInformation + vbOKOnly, "Thank You!"
+
+  'remove cpt-related lines from ThisProject
+  Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
+  With cmThisProject
+    'delete the version
+    For lngLine = .CountOfDeclarationLines To 1 Step -1
+      If InStr(.Lines(lngLine, 1), "<cpt_version>") > 0 Then
+        .DeleteLines lngLine, 1
+        DoEvents
+      End If
+    Next lngLine
+    For lngLine = .CountOfLines To 1 Step -1
+      'comment out existing lines to avoid immediate errors
+      If InStr(.Lines(lngLine, 1), "Sub") > 0 Then
+        'do nothing
+      ElseIf InStr(.Lines(lngLine, 1), "</cpt") > 0 Then
+        If .ProcOfLine(lngLine, 1) = "Project_Activate" Then
+          'holding next line in case we decide to comment out instead of delete
+          '.ReplaceLine lngLine, "'" & .Lines(lngLine, 1)
+          .DeleteLines lngLine, 1
+          DoEvents
+        ElseIf .ProcOfLine(lngLine, 1) = "Project_Open" Then
+          .DeleteLines lngLine, 1
+          DoEvents
+        End If
+      End If
+    Next lngLine
+  End With
+  
+  'reset the toolbar
+  ActiveProject.SetCustomUI "<mso:customUI xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui""><mso:ribbon></mso:ribbon></mso:customUI>"
+  
+  'remove all cpt modules
+  For Each vbComponent In ThisProject.VBProject.VBComponents
+    If Left(vbComponent.Name, 3) = "cpt" And vbComponent.Name <> "cptSetup_bas" Then
+      If vbComponent.Name = "cptAdmin_bas" Then GoTo next_component
+      Application.StatusBar = "Purging module " & vbComponent.Name & "..."
+      If Dir(cptDir & "\modules\", vbDirectory) = vbNullString Then MkDir cptDir & "\modules"
+      vbComponent.Export cptDir & "\modules\" & vbComponent.Name
+      ThisProject.VBProject.VBComponents.remove vbComponent
+    End If
+next_component:
+  Next vbComponent
+  
+  MsgBox "Thank you for using the ClearPlan Toolbar.", vbInformation + vbOKOnly, "Uninstall Complete"
+  
+exit_here:
+  On Error Resume Next
+  Set vEvent = Nothing
+  Set Project = Nothing
+  Set vbComponent = Nothing
+  Set cmThisProject = Nothing
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSetup_bas", "cptUninstall", err)
+  Resume exit_here
+End Sub
