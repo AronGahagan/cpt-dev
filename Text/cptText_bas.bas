@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -411,7 +411,10 @@ Dim lngItem As Long, lgEnumerate As Long
         GoTo next_item
       End If
     End If
+    
+    'start with the task name
     strTaskName = Task.Name
+    
     If Len(strPrepend) > 0 Then
       strTaskName = Trim(strPrepend) & " " & strTaskName
     ElseIf Len(cptText_frm.txtPrepend.Value) > 0 Then
@@ -461,11 +464,14 @@ Dim lngItem As Long, lgEnumerate As Long
     Else
       cptText_frm.lboOutput.List(lngItem, 1) = strTaskName
     End If
-
+    
     'replace
+    '<issue27> added
+    If Len(strReplaceWhat) = 0 Then strReplaceWhat = cptText_frm.txtReplaceWhat.Value
+    If Len(strReplaceWith) = 0 Then strReplaceWith = cptText_frm.txtReplaceWith.Value
     If Len(strReplaceWhat) > 0 And Len(strReplaceWith) > 0 Then
       strTaskName = Replace(strTaskName, strReplaceWhat, strReplaceWith)
-      cptText_frm.lboOutput.List(lngItem, 1) = strTaskName
+      cptText_frm.lboOutput.List(lngItem, 1) = strTaskName & " " & strEnumerate '</issue27>
     End If
 next_item:
   Next lngItem
