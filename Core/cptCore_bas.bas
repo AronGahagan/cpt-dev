@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptCore_bas"
 '<cpt_version>v1.5.3</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private oMSPEvents As cptEvents_cls
@@ -22,6 +22,7 @@ Sub cptSpeed(blnOn As Boolean)
 End Sub
 
 Function cptGetUserForm(strModuleName As String) As UserForm
+'NOTE: this only works if the form is loaded
 'objects
 Dim UserForm As Object
 'strings
@@ -52,7 +53,10 @@ err_here:
 End Function
 
 Function cptGetControl(ByRef cptForm_frm As UserForm, strControlName As String) As control
+'NOTE: this only works for loaded forms
+
   Set cptGetControl = cptForm_frm.Controls(strControlName)
+  
 End Function
 
 Function cptGetUserFullName()
@@ -108,8 +112,8 @@ End Function
 
 Sub ShowCptAbout_frm()
 'objects
-Dim UserForm As Object 'UserForm
-Dim ctl As Object 'control
+'Dim frmAbout As UserForm
+'Dim ctl As control
 'strings
 Dim strAbout As String
 'longs
@@ -118,7 +122,6 @@ Dim strAbout As String
 'variants
 'dates
 
-  
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not cptModuleExists("cptAbout_frm") Then '<issue19>
@@ -134,30 +137,30 @@ Dim strAbout As String
   strAbout = strAbout & "AS IS and without warranty." & vbCrLf
   strAbout = strAbout & "It is free to use, free to distribute with prior written consent from the developers/copyright holders and without modification." & vbCrLf & vbCrLf
   strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright 2019, ClearPlanConsulting, LLC"
-  Set UserForm = ThisProject.VBProject.VBComponents("cptAbout_frm") '<issue19>
-  Set ctl = UserForm.Controls("txtAbout") '<issue19>
-  ctl.Value = strAbout
-  'cptAbout_frm.txtAbout.Value = strAbout  '<issue19>
+'  Set frmAbout = cptGetUserForm("cptAbout_frm") '<issue19>
+'  Set ctl = cptGetControl(frmAbout, "txtAbout") '<issue19>
+'  ctl.Value = strAbout
+  cptAbout_frm.txtAbout.Value = strAbout  '<issue19>
 
   'follow the project
   strAbout = vbCrLf & vbCrLf & "Follow the Project:" & vbCrLf & vbCrLf
   strAbout = strAbout & "http://GitHub.com/ClearPlan/cpt" & vbCrLf & vbCrLf
-  Set ctl = cptGetControl(UserForm, "txtGitHub") '<issue19>
-  ctl.Value = strAbout
-  'cptAbout_frm.txtGitHub.Value = strAbout '<issue19>
+'  Set ctl = cptGetControl(frmAbout, "txtGitHub") '<issue19>
+'  ctl.Value = strAbout
+  cptAbout_frm.txtGitHub.Value = strAbout '<issue19>
 
   'show/hide
-  Set ctl = cptGetControl(UserForm, "lblScoreboard") '<issue19>
-  ctl.Visible = IIf(Now < #10/24/2019#, False, True) '<issue19>
-  'cptAbout_frm.lblScoreBoard.Visible = IIf(Now < #10/24/2019#, False, True) '<issue19>
-  'cptAbout_frm.Show '<issue19>
-  UserForm.Show '<issue19>
+'  Set ctl = cptGetControl(frmAbout, "lblScoreboard") '<issue19>
+'  ctl.Visible = IIf(Now < #10/24/2019#, False, True) '<issue19>
+  cptAbout_frm.lblScoreBoard.Visible = IIf(Now < #10/24/2019#, False, True) '<issue19>
+  cptAbout_frm.Show '<issue19>
+'  frmAbout.Show '<issue19>
   
   '<issue19> added error handling
 exit_here:
   On Error Resume Next
-  Set ctl = Nothing
-  Set UserForm = Nothing
+'  Set ctl = Nothing
+'  Set frmAbout = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptCore_bas", "ShowCptAbout_frm", err)
