@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.5.3</cpt_version>
+'<cpt_version>v1.5.4</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private oMSPEvents As cptEvents_cls
@@ -385,14 +385,16 @@ Sub ShowCptUpgrades_frm()
 Dim arrDirectories As Object
 Dim vbComponent As Object
 Dim arrCurrent As Object, arrInstalled As Object
-Dim xmlDoc As Object, xmlNode As Object, xmlHttpDoc As Object, FindRecord As Object
-Dim oStream As Object
+Dim xmlDoc As Object
+Dim xmlNode As Object
+Dim FindRecord As Object
 'long
 Dim lngItem As Long
 'strings
 Dim strInstVer As String
 Dim strCurVer As String
-Dim strURL As String, strVersion As String
+Dim strURL As String
+Dim strVersion As String
 'booleans
 Dim blnUpdatesAreAvailable As Boolean
 'variants
@@ -441,7 +443,16 @@ Dim vCol As Variant
       arrInstalled.Add vbComponent.Name, strVersion
     End If
   Next vbComponent
-
+  Set vbComponent = Nothing
+  
+  '<issue31> if cptUpgrade_frm is updated, install it automatically
+  If arrInstalled.contains("cptUpgrades_frm") And arrCurrent.contains("cptUpgrades_frm") Then
+    If cptVersionStatus(arrInstalled("cptUpgrades_frm"), arrCurrent("cptUpgrades_frm")) <> "ok" Then
+      Call cptUpgrade(arrDirectories("cptUpgrades_frm") & "/cptUpgrades_frm.frm") 'uri slash
+      GoTo exit_here
+    End If
+  End If '</issue31>
+  
   'populate the listbox header
   lngItem = 0
   cptUpgrades_frm.lboHeader.AddItem
@@ -489,15 +500,14 @@ next_lngItem:
 
 exit_here:
   On Error Resume Next
+  Application.StatusBar = ""
   Set arrDirectories = Nothing
   Set vbComponent = Nothing
   Set arrCurrent = Nothing
   Set arrInstalled = Nothing
   Set xmlDoc = Nothing
   Set xmlNode = Nothing
-  Set xmlHttpDoc = Nothing
   Set FindRecord = Nothing
-  Set oStream = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptCore_bas", "UpdatesAreAvailable", err)

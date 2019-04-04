@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.3.3</cpt_version>
+'<cpt_version>v1.3.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -287,6 +287,90 @@ err_here:
   Resume exit_here
 End Sub
 
+'<issue31>
+Sub cptUpgrade(Optional strFileName As String)
+'objects
+Dim oStream As Object
+Dim xmlHttpDoc As Object
+'strings
+Dim strNewFileName As String
+Dim strModule As String
+Dim strError As String
+Dim strURL As String
+'longs
+'integers
+'doubles
+'booleans
+Dim blnExists As Boolean
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If Len(strFileName) = 0 Then strFileName = "Core/cptUpgrades_frm.frm"
+
+  'go get it
+  strURL = strGitHub
+  strURL = strURL & strFileName
+  strFileName = Replace(cptRegEx(strFileName, "\/.*\.[A-z]{3}"), "/", "")
+frx:
+  Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
+  xmlHttpDoc.Open "GET", strURL, False
+  xmlHttpDoc.Send
+  If xmlHttpDoc.Status = 200 Then
+    Set oStream = CreateObject("ADODB.Stream")
+    oStream.Open
+    oStream.Type = 1 'adTypeBinary
+    oStream.Write xmlHttpDoc.responseBody
+    If Dir(cptDir & "\" & strFileName) <> vbNullString Then Kill cptDir & "\" & strFileName
+    oStream.SaveToFile cptDir & "\" & strFileName
+    oStream.Close
+    'need to fetch the .frx first
+    If Right(strURL, 4) = ".frm" Then
+      strURL = Replace(strURL, ".frm", ".frx")
+      strFileName = Replace(strFileName, ".frm", ".frx")
+      GoTo frx
+    ElseIf Right(strURL, 4) = ".frx" Then
+      strURL = Replace(strURL, ".frx", ".frm")
+      strFileName = Replace(strFileName, ".frx", ".frm")
+    End If
+  Else
+    strError = strError & "- " & strFileName & vbCrLf
+  End If
+  
+  'remove if exists
+  strModule = Left(strFileName, InStr(strFileName, ".") - 1)
+  blnExists = Not ThisProject.VBProject.VBComponents(strModule) Is Nothing
+  If blnExists Then
+    'Set vbComponent = ThisProject.VBProject.VBComponents("cptUpgrades_frm")
+    Application.StatusBar = "Removing obsolete version of " & strModule
+    strNewFileName = strModule & "_" & Format(Now, "hhnnss")
+    ThisProject.VBProject.VBComponents(strModule).Name = strNewFileName
+    DoEvents
+    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(strNewFileName)
+    cptCore_bas.cptStartEvents
+    DoEvents
+  End If
+  
+  'import the module
+  Application.StatusBar = "Importing " & strFileName & "..."
+  ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
+  DoEvents
+  
+  MsgBox "The Upgrade Form was itself just updated. Please try again.", vbInformation + vbOKOnly, "Upgraded the Upgrader"
+  
+exit_here:
+  On Error Resume Next
+  Set oStream = Nothing
+  Set xmlHttpDoc = Nothing
+  Application.StatusBar = ""
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptUpgrade", err)
+  Resume exit_here
+
+End Sub '<issue31>
+
 Public Function cptBuildRibbonTab()
 Dim ribbonXML As String
 Dim lngCleanUp As Long
@@ -440,12 +524,9 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
 'common error handling prompt
 Dim strMsg As String
 
-    strMsg = "Uh oh! Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
-    strMsg = strMsg & "Error Source:" & vbCrLf
-    strMsg = strMsg & "ModSub cptHaule: " & strModule & vbCrLf
-    strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf & vbCrLf
-    strMsg = strMsg & "Error Code:" & vbCrLf
-    strMsg = strMsg & err.Number & ": " & err.Description
+    strMsg = "Uh oh!" & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
+    strMsg = strMsg & "Error " & err.Number & ": " & err.Description & vbCrLf
+    strMsg = strMsg & "Source: " & strModule & "." & strProcedure
     MsgBox strMsg, vbExclamation + vbOKOnly, "Unknown Error"
 
 End Sub
@@ -525,10 +606,13 @@ Dim vbComponent As Object
 Dim blnExists As Boolean
 'strings
 Dim strError As String
-
+  
+  On Error Resume Next
+  'Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
+  cptModuleExists = Not ThisProject.VBProject.VBComponents(strModule) Is Nothing
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  blnExists = False
+  GoTo exit_here
+  
   For Each vbComponent In ThisProject.VBProject.VBComponents
     If UCase(vbComponent.Name) = UCase(strModule) Then
       blnExists = True
