@@ -2,7 +2,7 @@ _License: This software is provided gratis (free of charge), AS IS and without W
 
 # cpt: The CP Toolbar
 
-![cpt](/images/cpt.png)
+![cpt](https://github.com/AronGahagan/cpt-dev/blob/master/images/cpt.png?raw=true)
 
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
@@ -30,8 +30,8 @@ _License: This software is provided gratis (free of charge), AS IS and without W
     1. Open Microsoft Project, go to File > Options > Trust Center > Trust Center Settings... > Macros
     1. Click Enable all macros
     1. Completely exit Microsoft Project, then restart (this makes the settings above 'stick')
-1. Download [cpt.mpp](cpt.mpp) and copy all modules prefixed with "cpt" into your Global.MPT
-1. View > Visual Baic > Macros > run the macro **cptSetup**
+1. Download [cpt.mpp](https://github.com/AronGahagan/cpt-dev/releases/download/v1.2.2/cpt.mpp) and copy all modules prefixed with "cpt" into your Global.MPT
+1. View > Visual Baic > Macros > run the macro `cptSetup`
     1. This macro installs necessary core modules if they are not already installed
     1. Changes will be made to your ThisProject module, but if you have exising code it will not be overwritten. cpt-related code will be inserted at the very top of the procedures *Project_Activate* and *Project_Open* and each line is appended with '</cpt> for reference.
     
