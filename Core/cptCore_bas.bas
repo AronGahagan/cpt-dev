@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.5.4</cpt_version>
+'<cpt_version>v1.5.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -109,6 +109,90 @@ err_here:
   Resume exit_here
 
 End Function
+
+'<issue31>
+Sub cptUpgrade(Optional strFileName As String)
+'objects
+Dim oStream As Object
+Dim xmlHttpDoc As Object
+'strings
+Dim strNewFileName As String
+Dim strModule As String
+Dim strError As String
+Dim strURL As String
+'longs
+'integers
+'doubles
+'booleans
+Dim blnExists As Boolean
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If Len(strFileName) = 0 Then strFileName = "Core/cptUpgrades_frm.frm"
+
+  'go get it
+  strURL = strGitHub
+  strURL = strURL & strFileName
+  strFileName = Replace(cptRegEx(strFileName, "\/.*\.[A-z]{3}"), "/", "")
+frx:
+  Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
+  xmlHttpDoc.Open "GET", strURL, False
+  xmlHttpDoc.Send
+  If xmlHttpDoc.Status = 200 Then
+    Set oStream = CreateObject("ADODB.Stream")
+    oStream.Open
+    oStream.Type = 1 'adTypeBinary
+    oStream.Write xmlHttpDoc.responseBody
+    If Dir(cptDir & "\" & strFileName) <> vbNullString Then Kill cptDir & "\" & strFileName
+    oStream.SaveToFile cptDir & "\" & strFileName
+    oStream.Close
+    'need to fetch the .frx first
+    If Right(strURL, 4) = ".frm" Then
+      strURL = Replace(strURL, ".frm", ".frx")
+      strFileName = Replace(strFileName, ".frm", ".frx")
+      GoTo frx
+    ElseIf Right(strURL, 4) = ".frx" Then
+      strURL = Replace(strURL, ".frx", ".frm")
+      strFileName = Replace(strFileName, ".frx", ".frm")
+    End If
+  Else
+    strError = strError & "- " & strFileName & vbCrLf
+  End If
+
+  'remove if exists
+  strModule = Left(strFileName, InStr(strFileName, ".") - 1)
+  blnExists = Not ThisProject.VBProject.VBComponents(strModule) Is Nothing
+  If blnExists Then
+    'Set vbComponent = ThisProject.VBProject.VBComponents("cptUpgrades_frm")
+    Application.StatusBar = "Removing obsolete version of " & strModule
+    strNewFileName = strModule & "_" & Format(Now, "hhnnss")
+    ThisProject.VBProject.VBComponents(strModule).Name = strNewFileName
+    DoEvents
+    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(strNewFileName)
+    cptCore_bas.cptStartEvents
+    DoEvents
+  End If
+
+  'import the module
+  Application.StatusBar = "Importing " & strFileName & "..."
+  ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
+  DoEvents
+
+  'MsgBox "The Upgrade Form was itself just upgraded. Please repeat your click.", vbInformation + vbOKOnly, "Upgraded the Upgrader"
+
+exit_here:
+  On Error Resume Next
+  Set oStream = Nothing
+  Set xmlHttpDoc = Nothing
+  Application.StatusBar = ""
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptUpgrade", err)
+  Resume exit_here
+
+End Sub '<issue31>
 
 Sub ShowCptAbout_frm()
 'objects
@@ -449,7 +533,8 @@ Dim vCol As Variant
   If arrInstalled.contains("cptUpgrades_frm") And arrCurrent.contains("cptUpgrades_frm") Then
     If cptVersionStatus(arrInstalled("cptUpgrades_frm"), arrCurrent("cptUpgrades_frm")) <> "ok" Then
       Call cptUpgrade(arrDirectories("cptUpgrades_frm") & "/cptUpgrades_frm.frm") 'uri slash
-      GoTo exit_here
+      'update the version number in the array
+      arrInstalled.Item("cptUpgrades_frm") = arrCurrent("cptUpgrades_frm")
     End If
   End If '</issue31>
   
@@ -496,7 +581,7 @@ Dim vCol As Variant
 next_lngItem:
   Next lngItem
 
-  cptUpgrades_frm.Show False
+  cptUpgrades_frm.Show
 
 exit_here:
   On Error Resume Next
