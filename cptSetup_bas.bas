@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.3.5</cpt_version>
+'<cpt_version>v1.3.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -568,10 +568,10 @@ Dim lngLine As Long
 
   If MsgBox("Are you sure?", vbCritical + vbYesNo, "Uninstall CPT") = vbNo Then GoTo exit_here
 
-  strMsg = "1. Please delete the module 'cptSetup_bas' manually after this process completes." & vbCrLf
-  strMsg = strMsg & "2. If you have made modifications to the ThisProject codemodule, your code will not be lost, but must be temporarily commented out. Remove the leading apostrophes to reactivate your code." & vbCrLf & vbCrLf
+  strMsg = "1. Please delete the module 'cptSetup_bas' manually after this process completes." & vbCrLf & vbCrLf
+  strMsg = strMsg & "2. If you have made modifications to the ThisProject codemodule, you may need to review it." & vbCrLf & vbCrLf
   strMsg = strMsg & "Alternatively, if you would like to reinstall, re-run cptSetup() and then install updates."
-  MsgBox strMsg, vbInformation + vbOKOnly, "Thank You!"
+  If MsgBox(strMsg, vbInformation + vbOKCancel, "Thank You!") = vbCancel Then GoTo exit_here
 
   'remove cpt-related lines from ThisProject
   Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
@@ -620,6 +620,7 @@ next_component:
   
 exit_here:
   On Error Resume Next
+  Application.StatusBar = ""
   Set vEvent = Nothing
   Set Project = Nothing
   Set vbComponent = Nothing
