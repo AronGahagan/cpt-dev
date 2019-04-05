@@ -2,7 +2,11 @@
 
 ![cpt](https://github.com/AronGahagan/cpt-dev/blob/develop/images/cpt.png?raw=true)
 
-_License: This software is provided gratis (free of charge), AS IS and without Warranty. It is free to use, and it is free to distribute **with prior written consent from the contributors/copyright holders** provided **no modifications are made**. Contributors retain their patents. All other rights reserved. Copyright 2019, contributors and ClearPlan Consulting, LLC._
+<sub>_License: This software is provided gratis (free of charge), AS IS and without Warranty. It is free to use, and it is free to distribute **with prior written consent from the contributors/copyright holders** provided **no modifications are made**. Contributors retain their patents. All other rights reserved. Copyright 2019, contributors and ClearPlan Consulting, LLC._</sub>
+
+---
+[![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/AronGahagan/cpt-dev.svg)](http://isitmaintained.com/project/AronGahagan/cpt-dev "Average time to resolve an issue")
+[![Percentage of issues still open](http://isitmaintained.com/badge/open/AronGahagan/cpt-dev.svg)](http://isitmaintained.com/project/AronGahagan/cpt-dev "Percentage of issues still open")
 
 ---
 ## Telos
@@ -145,4 +149,4 @@ A special thanks to our developers and contributors, and to the ClearPlan leader
 [[up]](#help) | [[toc]](#table-of-contents)
 
 ---
-Copyright 2019 ClearPlan Consulting, LLC. All Rights Reserved.
+<sub>Copyright 2019 ClearPlan Consulting, LLC. All Rights Reserved.</sub>
