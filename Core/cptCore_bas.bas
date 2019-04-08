@@ -1,9 +1,8 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.5.5</cpt_version>
+'<cpt_version>v1.5.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
 Private oMSPEvents As cptEvents_cls
 
 Sub cptStartEvents()
@@ -56,7 +55,7 @@ Function cptGetControl(ByRef cptForm_frm As UserForm, strControlName As String) 
 'NOTE: this only works for loaded forms
 
   Set cptGetControl = cptForm_frm.Controls(strControlName)
-  
+
 End Function
 
 Function cptGetUserFullName()
@@ -121,6 +120,7 @@ Dim strModule As String
 Dim strError As String
 Dim strURL As String
 'longs
+Dim lngLine As Long
 'integers
 'doubles
 'booleans
@@ -179,6 +179,13 @@ frx:
   Application.StatusBar = "Importing " & strFileName & "..."
   ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
   DoEvents
+  
+  '<issue24> remove the whitespace added by VBE import/export
+  With ThisProject.VBProject.VBComponents(strModule).CodeModule
+    For lngLine = .CountOfDeclarationLines To 1 Step -1
+      If Len(.Lines(lngLine, 1)) = 0 Then .DeleteLines lngLine, 1
+    Next lngLine
+  End With '</issue24>
 
   'MsgBox "The Upgrade Form was itself just upgraded. Please repeat your click.", vbInformation + vbOKOnly, "Upgraded the Upgrader"
 
@@ -239,7 +246,7 @@ Dim strAbout As String
   cptAbout_frm.lblScoreBoard.Visible = IIf(Now < #10/24/2019#, False, True) '<issue19>
   cptAbout_frm.Show '<issue19>
 '  frmAbout.Show '<issue19>
-  
+
   '<issue19> added error handling
 exit_here:
   On Error Resume Next
@@ -249,7 +256,7 @@ exit_here:
 err_here:
   Call cptHandleErr("cptCore_bas", "ShowCptAbout_frm", err)
   Resume exit_here '</issue19>
-  
+
 End Sub
 
 Function cptReferenceExists(strReference As String) As Boolean
@@ -528,7 +535,7 @@ Dim vCol As Variant
     End If
   Next vbComponent
   Set vbComponent = Nothing
-  
+
   '<issue31> if cptUpgrade_frm is updated, install it automatically
   If arrInstalled.contains("cptUpgrades_frm") And arrCurrent.contains("cptUpgrades_frm") Then
     If cptVersionStatus(arrInstalled("cptUpgrades_frm"), arrCurrent("cptUpgrades_frm")) <> "ok" Then
@@ -537,7 +544,7 @@ Dim vCol As Variant
       arrInstalled.Item("cptUpgrades_frm") = arrCurrent("cptUpgrades_frm")
     End If
   End If '</issue31>
-  
+
   'populate the listbox header
   lngItem = 0
   cptUpgrades_frm.lboHeader.AddItem

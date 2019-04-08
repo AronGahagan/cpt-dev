@@ -1,11 +1,10 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.3.6</cpt_version>
+'<cpt_version>v1.3.7</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
-
 Private Declare Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As Long, _
                                                                         ByVal lpszConnectionName As String, _
                                                                         ByVal dwNameLen As Integer, _
@@ -142,6 +141,14 @@ frx:
           ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
           '<issue19> added
           DoEvents '</issue19>
+          
+          '<issue24>remove the whitespace added by VBE import/export
+          With ThisProject.VBProject.VBComponents(strModule).CodeModule
+            For lngLine = .CountOfDeclarationLines To 1 Step -1
+              If Len(.Lines(lngLine, 1)) = 0 Then .DeleteLines lngLine, 1
+            Next lngLine
+          End With '</issue24>
+          
         End If
         
       End If

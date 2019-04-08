@@ -17,7 +17,7 @@
 	<Module>
 		<Name>cptCore_bas</Name>
 		<FileName>cptCore_bas.bas</FileName>
-		<Version>v1.5.5</Version>
+		<Version>v1.5.6</Version>
 		<Type>1</Type>
 		<Directory>Core</Directory>
 	</Module>
@@ -101,7 +101,7 @@
 	<Module>
 		<Name>cptSetup_bas</Name>
 		<FileName>cptSetup_bas.bas</FileName>
-		<Version>v1.3.6</Version>
+		<Version>v1.3.7</Version>
 		<Type>1</Type>
 		<Directory></Directory>
 	</Module>
@@ -150,7 +150,7 @@
 	<Module>
 		<Name>cptUpgrades_frm</Name>
 		<FileName>cptUpgrades_frm.frm</FileName>
-		<Version>v1.3.3</Version>
+		<Version>v1.3.4</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>

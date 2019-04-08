@@ -13,8 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-'<cpt_version>v1.3.3</cpt_version>
+'<cpt_version>v1.3.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -122,7 +121,14 @@ get_frx:
         DoEvents '</issue19>
       End If
       ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
-
+      
+      '<issue24> remove the whitespace added by VBE import/export
+      With ThisProject.VBProject.VBComponents(strModule).CodeModule
+        For lngLine = .CountOfDeclarationLines To 1 Step -1
+          If Len(.Lines(lngLine, 1)) = 0 Then .DeleteLines lngLine, 1
+        Next lngLine
+      End With '</issue24>
+      
       Me.lboModules.List(lngItem, 3) = Me.lboModules.List(lngItem, 2)
       Me.lboModules.List(lngItem, 4) = "<updated>"
     End If
@@ -155,7 +161,6 @@ next_module:     '</issue25>
     strCptFileName = Replace(strFileName, "ThisProject", "cptThisProject")
     Name strFileName As strCptFileName
     Set cmCptThisProject = ThisProject.VBProject.VBComponents.import(strCptFileName).CodeModule
-
     'grab and insert the updated version
     strVersion = cptRegEx(cmCptThisProject.Lines(1, cmCptThisProject.CountOfLines), "<cpt_version>.*</cpt_version>")
     cmThisProject.InsertLines 1, "'" & strVersion
