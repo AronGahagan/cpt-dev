@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptResourceDemand_frm 
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptResourceDemand_frm
    Caption         =   "Export Resource Demand"
    ClientHeight    =   5415
    ClientLeft      =   120
@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.1.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -105,7 +105,21 @@ exit_here:
 err_here:
   Call cptHandleErr("cptResourceDemand_frm", "cmdExport_Click", Err, Erl)
   Resume exit_here
-  
+
+End Sub
+
+Private Sub cmdFormGrow_Click()
+  Me.cmdFormGrow.Visible = False
+  Me.imgLogo.Visible = True
+  Me.Height = 300
+  Me.Width = 485.25
+End Sub
+
+Private Sub cmdFormShrink_Click()
+  Me.cmdFormGrow.Visible = True
+  Me.imgLogo.Visible = False
+  Me.Height = 65
+  Me.Width = 50
 End Sub
 
 Private Sub cmdRemove_Click()
@@ -141,7 +155,7 @@ exit_here:
 err_here:
   Call cptHandleErr("cptResourceDemand_frm", "lblURL_Click", Err, Erl)
   Resume exit_here
-  
+
 End Sub
 
 Private Sub stxtSearch_Change()
@@ -183,13 +197,13 @@ Dim lngItem As Long
     .Close
     Me.lblStatus.Caption = lngItem & " record" & IIf(lngItem = 1, "", "s") & " found."
   End With
-  
-  
+
+
 exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
   Call cptHandleErr("cptResourceDemand_frm", "stxtSearch_Change", Err, Erl)
   Resume exit_here
-  
+
 End Sub

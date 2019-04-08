@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptText_frm 
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptText_frm
    Caption         =   "Text Tools"
    ClientHeight    =   6615
    ClientLeft      =   120
@@ -14,7 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.3</cpt_version>
+'<cpt_version>v1.1.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -33,7 +33,7 @@ Dim lngItem As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If MsgBox("Are you sure?", vbYesNo + vbExclamation, "Please confirm bulk action.") = vbNo Then GoTo exit_here
-  
+
   Application.OpenUndoTransaction "Advanced Text Action"
   For lngItem = 0 To Me.lboOutput.ListCount - 1
     On Error Resume Next
@@ -96,6 +96,21 @@ Private Sub cmdDone_Click()
   Unload Me
 End Sub
 
+
+Private Sub cmdFormGrow_Click()
+  Me.cmdFormGrow.Visible = False
+  Me.imgLogo.Visible = True
+  Me.Height = 360
+  Me.Width = 582
+End Sub
+
+Private Sub cmdFormShrink_Click()
+  Me.cmdFormGrow.Visible = True
+  Me.imgLogo.Visible = False
+  Me.Height = 65
+  Me.Width = 50
+End Sub
+
 Private Sub cmdWakeUp_Click()
   Call cptStartEvents
 End Sub
@@ -126,7 +141,7 @@ Dim lngItem As Long
     Call cptUpdatePreview
   End If
   Exit Sub
-  
+
   If Len(Me.txtAppend.Text) > 0 Then
     For lngItem = 0 To Me.lboOutput.ListCount - 1
       Me.lboOutput.List(lngItem, 1) = ActiveProject.Tasks.UniqueID(Me.lboOutput.List(lngItem, 0)).Name & " " & Trim(Me.txtAppend.Text)
@@ -223,7 +238,7 @@ exit_here:
 err_here:
   Call cptHandleErr("cptText_frm", "txtPrefix_Change", err, Erl)
   Resume exit_here
-  
+
 End Sub
 
 Private Sub txtPrepend_Change()
@@ -284,7 +299,7 @@ Private Sub txtReplaceWith_Change()
     Call cptUpdatePreview
   End If
   Me.chkIsDirty = CheckDirty
-  
+
 exit_here:
   On Error Resume Next
 
@@ -292,7 +307,7 @@ exit_here:
 err_here:
   Call cptHandleErr("cptText_frm", "txtReplaceWith_Change", err, Erl)
   Resume exit_here
-  
+
 End Sub
 
 Private Sub txtStartAt_Change()
@@ -320,7 +335,7 @@ exit_here:
 err_here:
   Call cptHandleErr("cptText_frm", "txtStartAt_Change", err, Erl)
   Resume exit_here
-  
+
 End Sub
 
 Private Sub txtSuffix_Change()
@@ -341,7 +356,7 @@ exit_here:
 err_here:
   Call cptHandleErr("cptText_frm", "txtSuffix_Change", err, Erl)
   Resume exit_here
-  
+
 End Sub
 
 Public Function CheckDirty() As Boolean
@@ -367,5 +382,5 @@ exit_here:
 err_here:
   Call cptHandleErr("cptText_frm", "CheckDirty", err, Erl)
   Resume exit_here
-  
+
 End Function
