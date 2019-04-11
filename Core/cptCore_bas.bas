@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.5.6</cpt_version>
+'<cpt_version>v1.5.7</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -414,8 +414,12 @@ Function cptCheckReference(strReference As String) As Boolean
         ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\stdole2.tlb"
       End If
     Case "mscorlib"
-      If Not cptReferenceExists("") Then
+      If Not cptReferenceExists("mscorlib") Then
         ThisProject.VBProject.References.AddFromFile Environ("windir") & "\Microsoft.NET\Framework\v4.0.30319\mscorlib.tlb"
+      End If
+    Case "MSXML2"
+      If Not cptReferenceExists("MSXML2") Then '</issue33>
+        ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\msxml3.dll"
       End If
     Case Else
       cptCheckReference = False
@@ -659,6 +663,10 @@ Dim strDir As String
   If Not cptReferenceExists("mscorlib") Then
     ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\Microsoft.NET\Framework\v4.0.30319\mscorlib.tlb"
   End If
+  '<issue33> added
+  If Not cptReferenceExists("MSXML2") Then
+    ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\SysWOW64\msxml3.dll"
+  End If '</issue33>
 
 End Sub
 

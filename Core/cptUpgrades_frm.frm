@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.2</cpt_version>
+'<cpt_version>v1.3.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -36,15 +36,16 @@ Dim lngItem As Long
 End Sub
 
 Private Sub cmdUpgradeSelected_Click()
-'  Call cptCore_bas.cptUpgradeSelected
 'objects
 Dim arrCode As Object
 Dim cmCptThisProject As Object
 Dim cmThisProject As Object
 Dim Project As Object
 Dim vbComponent As Object
-Dim xmlHttpDoc As Object, oStream As Object 'ADODB.Stream
-Dim arrCurrent As Object, arrInstalled As Object
+Dim xmlHttpDoc As MSXML2.xmlhttp ' Object
+Dim oStream As Object 'ADODB.Stream
+Dim arrCurrent As Object
+Dim arrInstalled As Object
 Dim arrTypes As Object
 'strings
 Dim lngEvent As String
@@ -73,8 +74,15 @@ Dim vEvent As Variant
   For lngItem = 0 To Me.lboModules.ListCount - 1
 
     If Me.lboModules.Selected(lngItem) Then
-
+      
+      '<issue33> trap invalid use of null error?
+      If IsNull(Me.lboModules.List(lngItem, 0)) Then
+        MsgBox "Unable to download upgrades.", vbExclamation + vbOKOnly, "Can't Connect"
+        GoTo exit_here
+      End If '</issue33>
+      
       Me.lboModules.List(lngItem, 3) = "<installing...>"
+
       strModule = Me.lboModules.List(lngItem, 0)
 
       'get the module name
@@ -223,15 +231,6 @@ next_module:     '</issue25>
   strMsg = strMsg + vbCrLf & "</mso:ribbon>"
   strMsg = strMsg + vbCrLf & "</mso:customUI>"
   ActiveProject.SetCustomUI (strMsg)
-
-'  '<issue23><issue25> trigger ribbon refresh
-'  Application.ScreenUpdating = False
-'  Set Project = ActiveProject
-'  Projects.Add
-'  DoEvents
-'  FileCloseEx pjDoNotSave
-'  DoEvents
-'  Project.Activate '</issue25></issue23>
 
 exit_here:
   On Error Resume Next
