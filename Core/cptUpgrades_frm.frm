@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.5</cpt_version>
+'<cpt_version>v1.3.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -42,7 +42,7 @@ Dim cmCptThisProject As Object
 Dim cmThisProject As Object
 Dim Project As Object
 Dim vbComponent As Object
-Dim xmlHttpDoc As MSXML2.xmlhttp ' Object
+Dim xmlHttpDoc As Object
 Dim oStream As Object 'ADODB.Stream
 Dim arrCurrent As Object
 Dim arrInstalled As Object
@@ -95,9 +95,9 @@ get_frx:
       strURL = strGitHub & strDirectory & "/" & strFileName
       xmlHttpDoc.Open "GET", strURL, False
       xmlHttpDoc.Send
-
+      
       'strURL = xmlHttpDoc.responseBody
-      If xmlHttpDoc.Status = 200 Then
+      If xmlHttpDoc.Status = 200 And xmlHttpDoc.readyState = 4 Then
         Set oStream = CreateObject("ADODB.Stream")
         oStream.Open
         oStream.Type = 1 'adTypeBinary
