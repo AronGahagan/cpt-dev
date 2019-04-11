@@ -3,7 +3,7 @@
 	<Module>
 		<Name>cptAbout_frm</Name>
 		<FileName>cptAbout_frm.frm</FileName>
-		<Version>v1.1.1</Version>
+		<Version>v1.1.2</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>
@@ -52,7 +52,7 @@
 	<Module>
 		<Name>cptDynamicFilter_frm</Name>
 		<FileName>cptDynamicFilter_frm.frm</FileName>
-		<Version>v1.3.1</Version>
+		<Version>v1.3.2</Version>
 		<Type>3</Type>
 		<Directory>Text</Directory>
 	</Module>
@@ -94,7 +94,7 @@
 	<Module>
 		<Name>cptResourceDemand_frm</Name>
 		<FileName>cptResourceDemand_frm.frm</FileName>
-		<Version>v1.0.2</Version>
+		<Version>v1.0.3</Version>
 		<Type>3</Type>
 		<Directory>ResourceDemand</Directory>
 	</Module>
@@ -129,7 +129,7 @@
 	<Module>
 		<Name>cptStatusSheet_frm</Name>
 		<FileName>cptStatusSheet_frm.frm</FileName>
-		<Version>v1.1.2</Version>
+		<Version>v1.1.3</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
@@ -143,14 +143,14 @@
 	<Module>
 		<Name>cptText_frm</Name>
 		<FileName>cptText_frm.frm</FileName>
-		<Version>v1.0.01</Version>
+		<Version>v1.0.2</Version>
 		<Type>3</Type>
 		<Directory>Text</Directory>
 	</Module>
 	<Module>
 		<Name>cptUpgrades_frm</Name>
 		<FileName>cptUpgrades_frm.frm</FileName>
-		<Version>v1.3.4</Version>
+		<Version>v1.3.5</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>
