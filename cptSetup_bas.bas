@@ -126,14 +126,14 @@ frx:
         strModule = Left(strFileName, InStr(strFileName, ".") - 1)
         If strModule = "ThisProject" Then GoTo next_xmlNode
         blnExists = False
-        For Each vbComponent In thisProject.VBProject.VBComponents
+        For Each vbComponent In ThisProject.VBProject.VBComponents
           If vbComponent.Name = strModule Then
             Application.StatusBar = "Removing obsolete version of " & vbComponent.Name
             'Debug.Print Application.StatusBar
             '<issue19> revised
             vbComponent.Name = vbComponent.Name & "_" & Format(Now, "hhnnss")
             DoEvents
-            thisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
+            ThisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
             DoEvents '</issue19>
             Exit For
           End If
@@ -143,12 +143,12 @@ frx:
         If strModule <> "ThisProject" Then
           Application.StatusBar = "Importing " & strFileName & "..."
           'Debug.Print Application.StatusBar
-          thisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
+          ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
           '<issue19> added
           DoEvents '</issue19>
           
           '<issue24>remove the whitespace added by VBE import/export
-          With thisProject.VBProject.VBComponents(strModule).CodeModule
+          With ThisProject.VBProject.VBComponents(strModule).CodeModule
             For lngLine = .CountOfDeclarationLines To 1 Step -1
               If Len(.Lines(lngLine, 1)) = 0 Then .DeleteLines lngLine, 1
             Next lngLine
@@ -175,18 +175,18 @@ this_project:
     Name strFileName As strCptFileName
     'import the module
     If cptModuleExists("cptThisProject_cls") Then
-      thisProject.VBProject.VBComponents.remove thisProject.VBProject.VBComponents("cptThisProject_cls")
+      ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents("cptThisProject_cls")
       DoEvents
     End If
-    Set cmCptThisProject = thisProject.VBProject.VBComponents.import(strCptFileName).CodeModule
+    Set cmCptThisProject = ThisProject.VBProject.VBComponents.import(strCptFileName).CodeModule
   ElseIf cptModuleExists("cptThisProject_cls") Then 'it was copied in
-    Set cmCptThisProject = thisProject.VBProject.VBComponents("cptThisProject_cls").CodeModule
+    Set cmCptThisProject = ThisProject.VBProject.VBComponents("cptThisProject_cls").CodeModule
   Else 'ThisProject not imported or downloaded, so skip
     GoTo skip_import
   End If '</issue35>
   
   'avoid messy overwrites of ThisProject
-  Set cmThisProject = thisProject.VBProject.VBComponents("ThisProject").CodeModule
+  Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
   '<issue10> revised
   'If cmThisProject.Find("<cpt_version>", 1, 1, cmThisProject.CountOfLines, 1000, True, True) = True Then
   If cmThisProject.Find("<cpt_version>", 1, 1, cmThisProject.CountOfLines, 1000, False, True) = True Then
@@ -208,7 +208,7 @@ this_project:
   'grab the imported code
   '<issue35>
   If Len(strVersion) = 0 Then 'grab the version
-    strVersion = cptRegEx(thisProject.VBProject.VBComponents("cptThisProject_cls").CodeModule.Lines(1, 1000), "<cpt_version>.*</cpt_version>")
+    strVersion = cptRegEx(ThisProject.VBProject.VBComponents("cptThisProject_cls").CodeModule.Lines(1, 1000), "<cpt_version>.*</cpt_version>")
     strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
   End If '</issue35>
   Set arrCode = CreateObject("System.Collections.SortedList")
@@ -217,7 +217,7 @@ this_project:
       arrCode.Add CStr(vEvent), .Lines(.ProcStartLine(CStr(vEvent), 0) + 2, .ProcCountLines(CStr(vEvent), 0) - 3) '0 = vbext_pk_Proc
     Next
   End With
-  thisProject.VBProject.VBComponents.remove thisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
+  ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
   '<issue19> added
   DoEvents '</issue19>
 
@@ -542,11 +542,11 @@ Dim strError As String
   
   On Error Resume Next
   'Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
-  cptModuleExists = Not thisProject.VBProject.VBComponents(strModule) Is Nothing
+  cptModuleExists = Not ThisProject.VBProject.VBComponents(strModule) Is Nothing
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   GoTo exit_here
   
-  For Each vbComponent In thisProject.VBProject.VBComponents
+  For Each vbComponent In ThisProject.VBProject.VBComponents
     If UCase(vbComponent.Name) = UCase(strModule) Then
       blnExists = True
       Exit For
@@ -591,7 +591,7 @@ Dim lngLine As Long
   If MsgBox(strMsg, vbInformation + vbOKCancel, "Thank You!") = vbCancel Then GoTo exit_here
 
   'remove cpt-related lines from ThisProject
-  Set cmThisProject = thisProject.VBProject.VBComponents("ThisProject").CodeModule
+  Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
   With cmThisProject
     'delete the version
     For lngLine = .CountOfDeclarationLines To 1 Step -1
@@ -622,13 +622,13 @@ Dim lngLine As Long
   ActiveProject.SetCustomUI "<mso:customUI xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui""><mso:ribbon></mso:ribbon></mso:customUI>"
   
   'remove all cpt modules
-  For Each vbComponent In thisProject.VBProject.VBComponents
+  For Each vbComponent In ThisProject.VBProject.VBComponents
     If Left(vbComponent.Name, 3) = "cpt" And vbComponent.Name <> "cptSetup_bas" Then
       If vbComponent.Name = "cptAdmin_bas" Then GoTo next_component
       Application.StatusBar = "Purging module " & vbComponent.Name & "..."
       If Dir(cptDir & "\modules\", vbDirectory) = vbNullString Then MkDir cptDir & "\modules"
       vbComponent.Export cptDir & "\modules\" & vbComponent.Name
-      thisProject.VBProject.VBComponents.remove vbComponent
+      ThisProject.VBProject.VBComponents.remove vbComponent
     End If
 next_component:
   Next vbComponent

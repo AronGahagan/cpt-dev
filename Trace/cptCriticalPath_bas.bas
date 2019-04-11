@@ -1,38 +1,28 @@
 Attribute VB_Name = "cptCriticalPath_bas"
 '<cpt_version>v2.7</cpt_version>
-
 Option Explicit
-
 Private CritField As String 'Stores comma seperated values for each task showing which paths they are a part of
 Private GroupField As String 'Stores a single value - used to group/sort tasks in final CP view
-
 'Custom type used to store driving path vars
 Type DrivingPaths
-
     PrimaryFloat As Double 'Stores True Float vlaue for Primary Driving Path
     FindPrimary As Boolean 'Tracks evluation progress by noting Primary Found
     SecondaryFloat As Double 'Stores True Float vlaue for Secondary Driving Path
     FindSecondary As Boolean 'Tracks evluation progress by noting Secondary Found
     TertiaryFloat As Double 'Stores True Float vlaue for Secondary Driving Path
     FindTertiary As Boolean 'Tracks evluation progress by noting Tertiar Found
-
 End Type
-
 Private tDrivingPaths As DrivingPaths 'var to store DrivingPaths type
 Private SecondaryDrivers() As String 'Array of Secondary Drivers to be analyzed
 Private SecondaryDriverCount As Integer 'Count of secondary Drivers
 Private TertiaryDrivers() As String 'Array of tertiary drivers to be analyzed
 Private TertiaryDriverCount As Integer 'Count of tertiary drivers
 Private AnalyzedTasks As Collection 'Collection of task relationships analyzied (From UID - To UID); unique to each path analysis
-
 'Custom type used to store Driving Task data
 Type DrivingTask
-
     UID As String
     tFloat As Double
-
 End Type
-
 Private DrivingTasks() As DrivingTask 'var to store DrivingTask type
 Private drivingTasksCount As Integer 'coung of DrivingTasks
 '/ag edit private > public\

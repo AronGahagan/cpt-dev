@@ -26,16 +26,11 @@ Private DescExport As Boolean
 Private ErrMsg As String
 Private WPDescArray() As WP_Descriptions
 Private WPDescCount As Integer
-
 Private Type WP_Descriptions
-
     WP_ID As String
     Desc As String
-
 End Type
-
 Private Type ACTrowWP
-
     CAID1 As String
     CAID3 As String
     CAID2 As String
@@ -53,19 +48,14 @@ Private Type ACTrowWP
     sumBCWS As Double
     sumBCWP As Double
     Prog As Integer
-
 End Type
-
 Private Type WPDataCheck
-
     WP_ID As String
     ID_Test As String
     EVT_Test As String
     WP_DupError As Boolean
     EVT_Error As Boolean
-
 End Type
-
 Private Type CAMDataCheck
     
     ID_str As String '**CAID1/CAID2/CAID3**
@@ -73,9 +63,7 @@ Private Type CAMDataCheck
     CAM_Error As Boolean
     
 End Type
-
 Private Type TaskDataCheck
-
     UID As String
     WP As String
     CAID1 As String
@@ -94,7 +82,6 @@ Private Type TaskDataCheck
     MSID As String
     MSWeight As String
     AssignmentCount As Integer
-
 End Type
 
 Sub Export_IMS()

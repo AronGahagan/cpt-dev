@@ -1,6 +1,5 @@
 Attribute VB_Name = "cptBrowseFolder_bas"
 '<cpt_version>v1.0.1</cpt_version>
-
 Private Type BROWSEINFO
   hOwner As Long
   pidlRoot As Long

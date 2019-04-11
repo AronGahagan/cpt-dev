@@ -3,7 +3,6 @@ Attribute VB_Name = "cptResourceDemand_bas"
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
 Private Const adVarChar As Long = 200
 
 Sub cptExportResourceDemand(Optional lngTaskCount As Long)

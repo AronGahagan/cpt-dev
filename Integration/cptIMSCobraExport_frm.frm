@@ -14,6 +14,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
+
 '<cpt_version>v3.1.2</cpt_version>
 
 Private Sub bcrBox_Change()
@@ -493,7 +494,7 @@ Private Sub CancelBtn_Click()
 End Sub
 
 Private Sub cptLinkLabel_Click()
-    Application.OpenBrowser "http://www.ClearPlanConsulting.com"
+    If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
 End Sub
 
 Private Sub CSVBtn_Change()
