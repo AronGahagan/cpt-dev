@@ -9,10 +9,10 @@
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/AronGahagan/cpt-dev.svg)](http://isitmaintained.com/project/AronGahagan/cpt-dev "Percentage of issues still open")
 
 ---
-## Telos
-* The _telos_ (purpose, goal, ultimate end) of this project is to provide schedulers with a time-saving and error-free tool _to be used in support of industry best practics and **solid processes**_. (Read: don't be like the TSA conveyor belt.)
-* It is **not** the _telos_ of this project to absolve schedulers of the duty to build, analyze, and maintain good schedules. No tool, and no automation, can replace the mind, experience, judgment, and instincts of a living, breathing human being. Therefore:
-* Use only as directed. When in doubt, read the directions.
+## Purpose
+* The purpose of this project is to provide schedulers with a time-saving and error-free tool _to be used in support of industry best practics and **solid processes**_. (Read: don't be like the TSA conveyor belt.)
+* It is **not** the purpose of this project to absolve schedulers of the duty to build, analyze, and maintain good schedules. No tool, and no automation, can replace the mind, experience, judgment, and instincts of a living, breathing human being. Therefore:
+* Use only as directed. "When in doubt, read the directions."
 
 ---
 ## Table of Contents
@@ -52,12 +52,12 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
     1. Completely exit, and then restart, Microsoft Project (this makes the settings above 'stick')
 1. Download and open [cpt.mpp](https://github.com/AronGahagan/cpt-dev/releases/download/v1.3/cpt.mpp)
 1. Open the **Organizer** and select the **Modules** tab:
-    1. **If you have an internet connection:** copy the `cptSetup_bas` module your Global.MPT
-    1. **If you do not have an internet connection:** copy all modules prefixed with `cpt` into your Global.MPT
-1. On the Ribbon, click View > Visual Basic > Macros > and run the macro `cptSetup()`
+    1. **If you have an internet connection:** copy the `cptSetup_bas` module into your Global.MPT
+    1. **If you do not have an internet connection:** copy **all** modules prefixed with `cpt` into your Global.MPT
+1. On the Ribbon, click **View** > **Visual Basic** > **Macro**s > and run the macro `cptSetup()`
     1. This macro installs necessary core modules if they are not already installed
     1. Changes will be made to your ThisProject module, but if you have exising code it will not be overwritten. cpt-related code will be inserted at the very top of the procedures **Project_Activate** and **Project_Open** and each line is appended with `'</cpt>` for reference.
-1. The ClearPlan Toolbar will be added. Click ClearPlan > Help > Help > Check for Upgrades to download the latest hotfixes. If you do not have an internet connection, please contact [cpt@ClearPlanConsulting.com](mailto:cpt@ClearPlanConsulting.com) for the latest hotfixes.
+1. The ClearPlan Toolbar will be added. Click **ClearPlan** > **Help** > **Help** > **Check for Upgrades** to download the latest hotfixes. If you do not have an internet connection, please contact [cpt@ClearPlanConsulting.com](mailto:cpt@ClearPlanConsulting.com) for the latest hotfixes.
     
 [[top]](#table-of-contents)
 
