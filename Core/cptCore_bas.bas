@@ -711,9 +711,9 @@ Dim strURL As String
   End If
 
   'create the email and set generic settings
-  Set MailItem = objOutlook.CreateItem(olMailItem)
+  Set MailItem = objOutlook.CreateItem(0) 'olMailItem
   MailItem.To = "cpt@ClearPlanConsulting.com"
-  MailItem.Importance = olImportanceHigh
+  MailItem.Importance = 2 'olImportanceHigh
   MailItem.Display
 
   'get strURL and message body
