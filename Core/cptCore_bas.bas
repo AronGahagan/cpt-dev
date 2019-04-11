@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.5.7</cpt_version>
+'<cpt_version>v1.5.8</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -671,15 +671,86 @@ Dim strDir As String
 End Sub
 
 Sub cptSubmitIssue()
-  Application.OpenBrowser "https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUQ0VSV1JBRU4xQ1E5VUkyQjE5RDcwQllWRSQlQCN0PWcu"
+  If Not Application.FollowHyperlink("https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUQ0VSV1JBRU4xQ1E5VUkyQjE5RDcwQllWRSQlQCN0PWcu", , , True) Then
+    Call cptSendMail("Issue")
+  End If
 End Sub
 
 Sub cptSubmitRequest()
-  Application.OpenBrowser "https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUNVBET1RGUzRWMzZHN0pYNFZBUjZCUzgzNSQlQCN0PWcu"
+  If Not Application.FollowHyperlink("https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUNVBET1RGUzRWMzZHN0pYNFZBUjZCUzgzNSQlQCN0PWcu", , , True) Then
+    Call cptSendMail("Request")
+  End If
 End Sub
 
 Sub cptSubmitFeedback()
-  Application.OpenBrowser "https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUNERTVDRISUhVVVFSWjBBMlVLQThCRFlHQiQlQCN0PWcu"
+  If Not Application.FollowHyperlink("https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUNERTVDRISUhVVVFSWjBBMlVLQThCRFlHQiQlQCN0PWcu", , , True) Then
+    Call cptSendMail("Feedback")
+  End If
+End Sub
+
+Sub cptSendMail(strCategory As String)
+'objects
+Dim objOutlook As Object 'Outlook.Application
+Dim MailItem As Object 'MailItem
+'strings
+Dim strHTML As String
+Dim strURL As String
+'longs
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  'get outlook
+  On Error Resume Next
+  Set objOutlook = GetObject(, "Outlook.Application")
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If objOutlook Is Nothing Then
+    Set objOutlook = CreateObject("Outlook.Application")
+  End If
+
+  'create the email and set generic settings
+  Set MailItem = objOutlook.CreateItem(olMailItem)
+  MailItem.To = "cpt@ClearPlanConsulting.com"
+  MailItem.Importance = olImportanceHigh
+  MailItem.Display
+
+  'get strURL and message body
+  Select Case strCategory
+    Case "Issue"
+      MailItem.Subject = "Issue: <enter brief summary of the issue>"
+      strHTML = "<h3>Please Describe Your Environment:</h3><p>"
+      strHTML = strHTML & "<i>Operating System</i>: [operating system]<p>"
+      strHTML = strHTML & "<i>Microsoft Project Version</i>: [Standard / Professional] [Year]<p>"
+      strHTML = strHTML & "<i>Do you have unfettered internet access (try opening <a href=""https://github.com/AronGahagan/cpt-dev/blob/master/README.md"">this page</a>)?</i> [Yes/No]<p>"
+      strHTML = strHTML & "<h3>Please Describe the Issue:</h3><p><p>"
+      strHTML = strHTML & "<i>Please be as detailed as possible: what were you trying to do, what selections did you make, describe the file you are working on, etc.</i><p>"
+      strHTML = strHTML & "<h3>Please Include Screenshot(s):</h3><p>Please include any screenshot(s) of any error messages or anything else that might help us troubleshoot this issue for you.<p><p>"
+      strHTML = strHTML & "<i>Thank you for helping us improve the ClearPlan Toolbar!</i>"
+      MailItem.HTMLBody = strHTML & MailItem.HTMLBody
+      
+    Case "Request"
+      MailItem.Subject = "Feature Request: <enter brief description of the feature>"
+      strHTML = "<h3>Please Describe the Feature you are Requesting:</h3><p>&nbsp;<p>&nbsp;"
+      strHTML = strHTML & "<i>Thank you for contributing to the ClearPlan Toolbar project!</i>"
+      MailItem.HTMLBody = strHTML & MailItem.HTMLBody
+      
+    Case "Feedback"
+      MailItem.Subject = "Feedback: <enter summary of feedback>"
+      strHTML = "<h3>Feedback:</h3><p>&nbsp;<p>&nbsp;<i>We sincerely appreciate any and all constructive feedback. Thank you for contributing!</i>"
+      MailItem.HTMLBody = strHTML & MailItem.HTMLBody
+      
+  End Select
+  
+exit_here:
+  On Error Resume Next
+  Set objOutlook = Nothing
+  Set MailItem = Nothing
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptSendMail", err)
+  Resume exit_here
 End Sub
 
 Function cptRemoveIllegalCharacters(strText As String) As String
