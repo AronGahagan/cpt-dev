@@ -37,6 +37,7 @@ Dim lngEvent As Long
 'Dim lngFile As Long
 'integers
 'booleans
+Dim blnImportModule As Boolean
 Dim blnExists As Boolean
 'variants
 Dim vEvent As Variant
@@ -54,7 +55,7 @@ Dim vEvent As Variant
   strMsg = strMsg & "Have you completed the above steps?" & vbCrLf & vbCrLf
   strMsg = strMsg & "(Yes = Proceed; No = Cancel and Close)"
   If MsgBox(strMsg, vbQuestion + vbYesNo, "Before you proceed...") = vbNo Then GoTo exit_here
-    
+  
   'capture list of files to download
   Set arrCore = CreateObject("System.Collections.SortedList")
   Application.StatusBar = "Identifying latest core CPT modules..."
@@ -67,12 +68,16 @@ Dim vEvent As Variant
   xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
   strURL = strGitHub & "CurrentVersions.xml"
   If Not xmlDoc.Load(strURL) Then
-    If xmlDoc.parseError.ErrorCode = -2146697210 Then
+    If xmlDoc.parseError.ErrorCode = -2146697210 Or -xmlDoc.parseError.ErrorCode = -2146697208 Then '</issue35>
       MsgBox "Please check your internet connection.", vbCritical + vbOKOnly, "Can't Connect"
     Else
-      MsgBox xmlDoc.parseError.ErrorCode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
+      strMsg = "We're having trouble downloading modules:" & vbCrLf & vbCrLf  '</issue35>
+      strMsg = strMsg & xmlDoc.parseError.ErrorCode & ": " & xmlDoc.parseError.reason & vbCrLf & vbCrLf '</issue35>
+      strMsg = strMsg & "If the ClearPlan ribbon doesn't show up, please contact cpt@ClearPlanConsulting.com for assistance." '</issue35>
+      MsgBox strMsg, vbExclamation + vbOKOnly, "XML Error" '</issue35>
     End If
-    GoTo exit_here
+    'GoTo exit_here '</issue35> redirected
+    GoTo this_project '</issue35> redirected
   Else
     'download cpt/core/*.* to user's tmp directory
     arrCore.Clear
@@ -121,14 +126,14 @@ frx:
         strModule = Left(strFileName, InStr(strFileName, ".") - 1)
         If strModule = "ThisProject" Then GoTo next_xmlNode
         blnExists = False
-        For Each vbComponent In ThisProject.VBProject.VBComponents
+        For Each vbComponent In thisProject.VBProject.VBComponents
           If vbComponent.Name = strModule Then
             Application.StatusBar = "Removing obsolete version of " & vbComponent.Name
             'Debug.Print Application.StatusBar
             '<issue19> revised
             vbComponent.Name = vbComponent.Name & "_" & Format(Now, "hhnnss")
             DoEvents
-            ThisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
+            thisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
             DoEvents '</issue19>
             Exit For
           End If
@@ -138,12 +143,12 @@ frx:
         If strModule <> "ThisProject" Then
           Application.StatusBar = "Importing " & strFileName & "..."
           'Debug.Print Application.StatusBar
-          ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
+          thisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
           '<issue19> added
           DoEvents '</issue19>
           
           '<issue24>remove the whitespace added by VBE import/export
-          With ThisProject.VBProject.VBComponents(strModule).CodeModule
+          With thisProject.VBProject.VBComponents(strModule).CodeModule
             For lngLine = .CountOfDeclarationLines To 1 Step -1
               If Len(.Lines(lngLine, 1)) = 0 Then .DeleteLines lngLine, 1
             Next lngLine
@@ -158,93 +163,107 @@ next_xmlNode:
   
   Application.StatusBar = "CPT Modules imported."
   
-  'update user's ThisProject - if it downloaded correctly
-  strFileName = cptDir & "\ThisProject.cls"
+this_project:
   
-  If Dir(strFileName) <> vbNullString Then 'the file exists, proceed
-    
-    'avoid messy overwrites of ThisProject
-    Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
-    '<issue10> revised
-    'If cmThisProject.Find("<cpt_version>", 1, 1, cmThisProject.CountOfLines, 1000, True, True) = True Then
-    If cmThisProject.Find("<cpt_version>", 1, 1, cmThisProject.CountOfLines, 1000, False, True) = True Then
-    '</issue10>
-      strMsg = "Your 'ThisProject' module has already been updated to work with the ClearPlan toolbar." & vbCrLf & vbCrLf
-      strMsg = strMsg & "Would you like to reset it? This will only overwrite CodeModule lines appended with '</cpt>'"
-      If MsgBox(strMsg, vbExclamation + vbYesNo, "Danger, Will Robinson!") = vbYes Then
-        For lngLine = cmThisProject.CountOfLines To 1 Step -1
-          If InStr(cmThisProject.Lines(lngLine, 1), "'</cpt>") > 0 Then
-            cmThisProject.DeleteLines lngLine
-          End If
-        Next lngLine
-      Else
-        GoTo skip_import
-      End If
-    End If
-    
+  '<issue35>
+  'update user's ThisProject - if it downloaded correctly, or was copied in correctly
+  strFileName = cptDir & "\ThisProject.cls"
+  If Dir(strFileName) <> vbNullString Then 'it was downloaded, import it
     'rename the file and import it
-    strCptFileName = Replace(strFileName, "ThisProject", "cptThisProject")
+    strCptFileName = Replace(strFileName, "ThisProject", "cptThisProject_cls")
     If Dir(strCptFileName) <> vbNullString Then Kill strCptFileName
     Name strFileName As strCptFileName
-    Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
-    Set cmCptThisProject = ThisProject.VBProject.VBComponents.import(strCptFileName).CodeModule
-    
-    'grab the imported code
-    Set arrCode = CreateObject("System.Collections.SortedList")
-    With cmCptThisProject
-      For Each vEvent In Array("Project_Activate", "Project_Open")
-        arrCode.Add CStr(vEvent), .Lines(.ProcStartLine(CStr(vEvent), 0) + 2, .ProcCountLines(CStr(vEvent), 0) - 3) '0 = vbext_pk_Proc
-      Next
-    End With
-    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
-    '<issue19> added
-    DoEvents '</issue19>
-
-    'add the events, or insert new text
-    'three cases: empty or not empty (code exists or not)
+    'import the module
+    If cptModuleExists("cptThisProject_cls") Then
+      thisProject.VBProject.VBComponents.remove thisProject.VBProject.VBComponents("cptThisProject_cls")
+      DoEvents
+    End If
+    Set cmCptThisProject = thisProject.VBProject.VBComponents.import(strCptFileName).CodeModule
+  ElseIf cptModuleExists("cptThisProject_cls") Then 'it was copied in
+    Set cmCptThisProject = thisProject.VBProject.VBComponents("cptThisProject_cls").CodeModule
+  Else 'ThisProject not imported or downloaded, so skip
+    GoTo skip_import
+  End If '</issue35>
+  
+  'avoid messy overwrites of ThisProject
+  Set cmThisProject = thisProject.VBProject.VBComponents("ThisProject").CodeModule
+  '<issue10> revised
+  'If cmThisProject.Find("<cpt_version>", 1, 1, cmThisProject.CountOfLines, 1000, True, True) = True Then
+  If cmThisProject.Find("<cpt_version>", 1, 1, cmThisProject.CountOfLines, 1000, False, True) = True Then
+  '</issue10>
+    strMsg = "Your 'ThisProject' module has already been updated to work with the ClearPlan toolbar." & vbCrLf & vbCrLf
+    strMsg = strMsg & "Would you like to reset it? This will only overwrite CodeModule lines appended with '</cpt>'" & vbCrLf & vbCrLf
+    strMsg = strMsg & "(Please note: if you have made modifications to your ThisProject module, you may need to review them if you proceed.)"
+    If MsgBox(strMsg, vbExclamation + vbYesNo, "Danger, Will Robinson!") = vbYes Then
+      For lngLine = cmThisProject.CountOfLines To 1 Step -1
+        If InStr(cmThisProject.Lines(lngLine, 1), "'</cpt>") > 0 Then
+          cmThisProject.DeleteLines lngLine
+        End If
+      Next lngLine
+    Else
+      GoTo skip_import
+    End If
+  End If
+  
+  'grab the imported code
+  '<issue35>
+  If Len(strVersion) = 0 Then 'grab the version
+    strVersion = cptRegEx(thisProject.VBProject.VBComponents("cptThisProject_cls").CodeModule.Lines(1, 1000), "<cpt_version>.*</cpt_version>")
+    strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
+  End If '</issue35>
+  Set arrCode = CreateObject("System.Collections.SortedList")
+  With cmCptThisProject
     For Each vEvent In Array("Project_Activate", "Project_Open")
-      
-      'if event exists then insert code else create new event handler
-      With cmThisProject
-        If .CountOfLines > .CountOfDeclarationLines Then 'complications
-          If .Find("Sub " & CStr(vEvent), 1, 1, .CountOfLines, 1000) = True Then
-          'find its line number
-            lngEvent = .ProcBodyLine(CStr(vEvent), 0) '= vbext_pk_Proc
-            'import them if they *as a group* don't exist
-            If .Find(arrCode(CStr(vEvent)), .ProcStartLine(CStr(vEvent), 0), 1, .ProcCountLines(CStr(vEvent), 0), 1000) = False Then 'vbext_pk_Proc
-              .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
-            Else
-              'Debug.Print CStr(vEvent) & " code exists."
-            End If
-          Else 'create it
-            'create it, returning its line number
-            lngEvent = .CreateEventProc(Replace(CStr(vEvent), "Project_", ""), "Project")
-            'insert cpt code after line number
+      arrCode.Add CStr(vEvent), .Lines(.ProcStartLine(CStr(vEvent), 0) + 2, .ProcCountLines(CStr(vEvent), 0) - 3) '0 = vbext_pk_Proc
+    Next
+  End With
+  thisProject.VBProject.VBComponents.remove thisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
+  '<issue19> added
+  DoEvents '</issue19>
+
+  'add the events, or insert new text
+  'three cases: empty or not empty (code exists or not)
+  For Each vEvent In Array("Project_Activate", "Project_Open")
+    
+    'if event exists then insert code else create new event handler
+    With cmThisProject
+      If .CountOfLines > .CountOfDeclarationLines Then 'complications
+        If .Find("Sub " & CStr(vEvent), 1, 1, .CountOfLines, 1000) = True Then
+        'find its line number
+          lngEvent = .ProcBodyLine(CStr(vEvent), 0) '= vbext_pk_Proc
+          'import them if they *as a group* don't exist
+          If .Find(arrCode(CStr(vEvent)), .ProcStartLine(CStr(vEvent), 0), 1, .ProcCountLines(CStr(vEvent), 0), 1000) = False Then 'vbext_pk_Proc
             .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
+          Else
+            'Debug.Print CStr(vEvent) & " code exists."
           End If
-        Else 'easy
+        Else 'create it
           'create it, returning its line number
           lngEvent = .CreateEventProc(Replace(CStr(vEvent), "Project_", ""), "Project")
           'insert cpt code after line number
           .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
-        End If 'lines exist
-      End With 'thisproject.codemodule
-      
-      'add version if not exists
-      With cmThisProject
-        If .Find("<cpt_version>", 1, 1, .CountOfLines, 1000) = False Then
-          .InsertLines 1, "'<cpt_version>" & strVersion & "</cpt_version>" & vbCrLf
         End If
-      End With
-    Next vEvent
+      Else 'easy
+        'create it, returning its line number
+        lngEvent = .CreateEventProc(Replace(CStr(vEvent), "Project_", ""), "Project")
+        'insert cpt code after line number
+        .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
+      End If 'lines exist
+    End With 'thisproject.codemodule
     
-    'leave no trace
-    If Dir(strCptFileName) <> vbNullString Then Kill strCptFileName
+    'add version if not exists
+    With cmThisProject
+      If .Find("<cpt_version>", 1, 1, .CountOfLines, 1000) = False Then
+        .InsertLines 1, "'<cpt_version>" & strVersion & "</cpt_version>" & vbCrLf
+      End If
+    End With
+  Next vEvent
+  
+  'leave no trace
+  'If Dir(strCptFileName, vbNormal) <> vbNullString Then Kill strCptFileName
     
 skip_import:
-    
-  End If 'ThisProject.cls exists in tmp folder
-  
+      
   If Len(strError) > 0 Then
     strError = "The following modules did not download correctly:" & vbCrLf & strError & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for assistance."
     MsgBox strError, vbCritical + vbOKOnly, "Unknown Error"
@@ -262,15 +281,6 @@ skip_import:
   strMsg = strMsg + vbCrLf & "</mso:ribbon>"
   strMsg = strMsg + vbCrLf & "</mso:customUI>"
   ActiveProject.SetCustomUI (strMsg)
-
-'  '<issue23><issue25> trigger ribbon refresh
-'  Application.ScreenUpdating = False
-'  Set Project = ActiveProject
-'  Projects.Add
-'  DoEvents
-'  FileCloseEx pjDoNotSave
-'  DoEvents
-'  Project.Activate '</issue25></issue23>
 
 exit_here:
   On Error Resume Next
@@ -532,11 +542,11 @@ Dim strError As String
   
   On Error Resume Next
   'Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
-  cptModuleExists = Not ThisProject.VBProject.VBComponents(strModule) Is Nothing
+  cptModuleExists = Not thisProject.VBProject.VBComponents(strModule) Is Nothing
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   GoTo exit_here
   
-  For Each vbComponent In ThisProject.VBProject.VBComponents
+  For Each vbComponent In thisProject.VBProject.VBComponents
     If UCase(vbComponent.Name) = UCase(strModule) Then
       blnExists = True
       Exit For
@@ -581,7 +591,7 @@ Dim lngLine As Long
   If MsgBox(strMsg, vbInformation + vbOKCancel, "Thank You!") = vbCancel Then GoTo exit_here
 
   'remove cpt-related lines from ThisProject
-  Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
+  Set cmThisProject = thisProject.VBProject.VBComponents("ThisProject").CodeModule
   With cmThisProject
     'delete the version
     For lngLine = .CountOfDeclarationLines To 1 Step -1
@@ -612,13 +622,13 @@ Dim lngLine As Long
   ActiveProject.SetCustomUI "<mso:customUI xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui""><mso:ribbon></mso:ribbon></mso:customUI>"
   
   'remove all cpt modules
-  For Each vbComponent In ThisProject.VBProject.VBComponents
+  For Each vbComponent In thisProject.VBProject.VBComponents
     If Left(vbComponent.Name, 3) = "cpt" And vbComponent.Name <> "cptSetup_bas" Then
       If vbComponent.Name = "cptAdmin_bas" Then GoTo next_component
       Application.StatusBar = "Purging module " & vbComponent.Name & "..."
       If Dir(cptDir & "\modules\", vbDirectory) = vbNullString Then MkDir cptDir & "\modules"
       vbComponent.Export cptDir & "\modules\" & vbComponent.Name
-      ThisProject.VBProject.VBComponents.remove vbComponent
+      thisProject.VBProject.VBComponents.remove vbComponent
     End If
 next_component:
   Next vbComponent
