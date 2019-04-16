@@ -43,6 +43,12 @@
 		<Directory>Trace</Directory>
 	</Module>
 	<Module>
+		<Name>cptDataDictionary_bas</Name>
+		<FileName>cptExportDataDictionary_bas.bas</FileName>
+		<Type>1</Type>
+		<Directory>BackBone</Directory>
+	</Module>
+	<Module>
 		<Name>cptDynamicFilter_bas</Name>
 		<FileName>cptDynamicFilter_bas.bas</FileName>
 		<Version>v1.2.1</Version>
