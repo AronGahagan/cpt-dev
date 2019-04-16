@@ -372,6 +372,13 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
 
+  'backBone
+  If cptModuleExists("cptDataDictionary_frm") And cptModuleExists("cptDataDictionary_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gDataDictionary"" label=""Dictionary"" visible=""true"">"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDataDictionary"" imageMso=""ReadingMode"" label=""IMS Data Dictionary"" onAction=""ShowFrmCptDataDictionary"" size=""large"" />"
+    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  End If
+
   'trace tools
   If cptModuleExists("cptCriticalPathTools_bas") Or cptModuleExists("cptCriticalPath_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCPA"" label=""Trace"" visible=""true"">"
@@ -453,13 +460,16 @@ Dim lngCleanUp As Long
 
 End Function
 
-Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObject)
+Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObject, Optional lngErl As Long)
 'common error handling prompt
 Dim strMsg As String
 
     strMsg = "Uh oh!" & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
     strMsg = strMsg & "Error " & err.Number & ": " & err.Description & vbCrLf
     strMsg = strMsg & "Source: " & strModule & "." & strProcedure
+    If lngErl > 0 Then
+      strMsg = strMsg & vbCrLf & "Line: " & lngErl
+    End If
     MsgBox strMsg, vbExclamation + vbOKOnly, "Unknown Error"
 
 End Sub

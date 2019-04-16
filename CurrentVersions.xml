@@ -44,9 +44,17 @@
 	</Module>
 	<Module>
 		<Name>cptDataDictionary_bas</Name>
-		<FileName>cptExportDataDictionary_bas.bas</FileName>
+		<FileName>cptDataDictionary_bas.bas</FileName>
+		<Version>v1.0</Version>
 		<Type>1</Type>
 		<Directory>BackBone</Directory>
+	</Module>
+	<Module>
+		<Name>cptDataDictionary_frm</Name>
+		<FileName>cptDataDictionary_frm.frm</FileName>
+		<Version>v1.0</Version>
+		<Type>3</Type>
+		<Directory>DataDictionary</Directory>
 	</Module>
 	<Module>
 		<Name>cptDynamicFilter_bas</Name>

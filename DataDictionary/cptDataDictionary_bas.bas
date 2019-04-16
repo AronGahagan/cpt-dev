@@ -1,13 +1,15 @@
 Attribute VB_Name = "cptDataDictionary_bas"
 '<cpt_version>0.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptExportDataDictionary()
 'objects
+Dim rst As Object
 Dim xlApp As Excel.Application, Workbook As Workbook, Worksheet As Worksheet, rng As Range
 'strings
+Dim strGUID As String
 Dim strAttributes As String
 Dim strFieldName As String
 'longs
@@ -21,6 +23,7 @@ Dim intListItem As Integer
 Dim intField As Integer
 'doubles
 'booleans
+Dim blnExists As Boolean
 'variants
 Dim arrColumns As Variant
 Dim vFieldType As Variant
@@ -28,6 +31,13 @@ Dim vFieldScope As Variant
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'get project uid
+  If Application.Version < 12 Then
+    strGUID = ActiveProject.DatabaseProjectUniqueID
+  Else
+    strGUID = ActiveProject.GetServerProjectGuid
+  End If
   
   'set up a workbook/worksheet
   Application.StatusBar = "Creating Excel Workbook..."
@@ -59,6 +69,13 @@ Dim vFieldScope As Variant
   xlApp.ActiveWindow.Zoom = 85
 
   Application.StatusBar = "Exporting local custom fields..."
+  
+  blnExists = Dir(cptDir & "\settings\data-dictionary.adtg") <> vbNullString
+
+  If blnExists Then
+    Set rst = CreateObject("ADODB.Recordset")
+    rst.Open cptDir & "\settings\data-dictionary.adtg"
+  End If
 
   'prep for data dump
   lngRow = lngHeaderRow
@@ -105,6 +122,13 @@ Dim vFieldScope As Variant
 exit_for:
           If Len(strAttributes) > 0 Then Worksheet.Cells(lngRow, 6).Value = "Lookup Values:" & strAttributes
         End If
+
+        If blnExists Then
+          rst.Filter = "PROJECT_ID='" & strGUID & "' AND FIELD_ID=" & lngField
+          If Not rst.EOF Then Worksheet.Cells(lngRow, 7).Value = rst("DESCRIPTION")
+          rst.Filter = ""
+        End If
+        
 next_field:
       Next intField
     Next vFieldType
@@ -123,9 +147,14 @@ next_field:
       Worksheet.Cells(lngRow, 4).Value = "n/a"
       Worksheet.Cells(lngRow, 5).Value = FieldConstantToFieldName(lngField)
       'field attributes like formulae and pick lists not exposed to VBA
+      If blnExists Then
+        rst.Filter = "PROJECT_ID='" & strGUID & "' AND FIELD_ID=" & lngField
+        If Not rst.EOF Then Worksheet.Cells(lngRow, 7).Value = rst("DESCRIPTION")
+        rst.Filter = ""
+      End If
     End If
   Next lngField
-  
+    
   Application.StatusBar = "Formatting..."
   
   'make it nice
@@ -149,6 +178,8 @@ next_field:
   
 exit_here:
   On Error Resume Next
+  If rst.State = 1 Then rst.Close
+  Set rst = Nothing
   Application.StatusBar = ""
   If Not xlApp Is Nothing Then xlApp.Visible = True
   Set rng = Nothing
@@ -166,4 +197,163 @@ err_here:
     Call cptHandleErr("cptExportCustomFields_bas", "cptExportDataDictionary", err, Erl)
   End If
   
+End Sub
+
+Sub ShowFrmCptDataDictionary()
+'objects
+'strings
+'longs
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  Call cptRefreshDictionary
+  cptDataDictionary_frm.Show
+  
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptDataDictionary_bas", "ShowFrmCptDataDictionary()", err)
+  Resume exit_here
+End Sub
+
+Sub cptRefreshDictionary()
+'objects
+Dim rst As ADODB.Recordset ' Object
+'strings
+Dim strFieldName As String
+Dim strGUID As String
+'longs
+Dim lngField As Long
+Dim lngMax As Long
+'integers
+Dim intField As Integer
+'doubles
+'booleans
+Dim blnCreate As Boolean
+Dim blnExists As Boolean
+'variants
+Dim vFieldType As Variant
+Dim vFieldScope As Variant
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'clear the form if it's visible
+  If cptDataDictionary_frm.Visible Then
+    cptDataDictionary_frm.lboCustomFields.Clear
+    cptDataDictionary_frm.txtDescription.Value = ""
+  End If
+  
+  'get unique id of the current project
+  If Application.Version < 12 Then
+    strGUID = ActiveProject.DatabaseProjectUniqueID
+  Else
+    strGUID = ActiveProject.GetServerProjectGuid
+  End If
+  
+  'if data file exists then use it else create it
+  Set rst = CreateObject("ADODB.Recordset")
+  With rst
+    If Dir(cptDir & "\settings\data-dictionary.adtg") = vbNullString Then
+      blnCreate = True
+      .Fields.Append "PROJECT_ID", 200, 38 'adVarChar
+      .Fields.Append "FIELD_ID", 3 'adInteger = Long
+      .Fields.Append "DESCRIPTION", 203 'adLongVarWChar
+      .Open
+    Else
+      blnCreate = False
+      .Open cptDir & "\settings\data-dictionary.adtg"
+    End If
+    
+    'get local custom fields
+    'export local custom fields
+    For Each vFieldScope In Array(0, 1) '0 = pjTask; 1 = pjResource; 2 = pjProject
+      For Each vFieldType In Array("Cost", "Date", "Duration", "Flag", "Finish", "Number", "Start", "Text", "Outline Code")
+        'avoid the errors
+        Select Case vFieldType
+          Case "Text"
+            lngMax = 30
+          Case "Flag"
+            lngMax = 20
+          Case "Number"
+            lngMax = 20
+          Case Else
+            lngMax = 10
+        End Select
+        For intField = 1 To lngMax
+          lngField = FieldNameToFieldConstant(vFieldType & intField, vFieldScope)
+          strFieldName = CustomFieldGetName(lngField)
+          If Len(strFieldName) > 0 Then
+            'add to the lbo
+            cptDataDictionary_frm.lboCustomFields.AddItem
+            cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 0) = lngField
+            cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 1) = CustomFieldGetName(lngField) & " (" & FieldConstantToFieldName(lngField) & ")"
+            If blnCreate Then
+              'add to data store
+              .AddNew Array("PROJECT_ID", "FIELD_ID", "DESCRIPTION"), Array(strGUID, lngField, "<missing>")
+              'populate the form
+              cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 2) = "<missing>"
+            Else
+              'does it exist?
+              .Filter = "PROJECT_ID='" & strGUID & "' AND FIELD_ID=" & CLng(lngField)
+              'if not then add it
+              If Not .EOF Then
+                cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 2) = rst("DESCRIPTION")
+              Else
+                .AddNew Array("PROJECT_ID", "FIELD_ID", "DESCRIPTION"), Array(strGUID, lngField, "<missing>")
+                cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 2) = "<missing>"
+              End If
+              .Filter = ""
+            End If
+          End If
+        Next intField
+      Next vFieldType
+    Next vFieldScope
+    .Update
+    
+    'get enterprise custom fields
+    For lngField = 188776000 To 188778000
+      If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
+        cptDataDictionary_frm.lboCustomFields.AddItem
+        cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 0) = lngField
+        cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 1) = CustomFieldGetName(lngField) & " (Enterprise)"
+        If blnCreate Then
+          .AddNew Array("PROJECT_ID", "FIELD_ID", "DESCRIPTION"), Array(strGUID, lngField, "<missing>")
+          cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 2) = "<missing>"
+        Else
+          'does it exist?
+          .Filter = "PROJECT_ID='" & strGUID & "' AND FIELD_ID=" & lngField
+          'if not, then add it
+          If Not .EOF Then
+            cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 2) = rst("DESCRIPTION")
+          Else
+            .AddNew Array("PROJECT_ID", "FIELD_ID", "DESCRIPTION"), Array(strGUID, lngField, "<missing>")
+            cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 2) = "<missing>"
+          End If
+          .Filter = ""
+        End If
+      End If
+    Next lngField
+    .Update
+    'save the data
+    .Save cptDir & "\settings\data-dictionary.adtg"
+    .Close
+  End With
+  
+exit_here:
+  On Error Resume Next
+  If rst.State = 1 Then rst.Close
+  Set rst = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptDataDictionary_bas", "cptRefreshDictionary", err)
+  Resume exit_here
 End Sub
