@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptDataDictionary_frm 
    Caption         =   "IMS Data Dictionary"
-   ClientHeight    =   5370
+   ClientHeight    =   5415
    ClientLeft      =   120
    ClientTop       =   465
    ClientWidth     =   9465
@@ -55,6 +55,20 @@ End Sub
 
 Private Sub cmdExport_Click()
   Call cptExportDataDictionary
+End Sub
+
+Private Sub cmdFormGrow_Click()
+  Me.cmdFormGrow.Visible = False
+  Me.imgLogo.Visible = True
+  Me.Height = 300
+  Me.Width = 485.25
+End Sub
+
+Private Sub cmdFormShrink_Click()
+  Me.cmdFormGrow.Visible = True
+  Me.imgLogo.Visible = False
+  Me.Height = 65
+  Me.Width = 50
 End Sub
 
 Private Sub lboCustomFields_AfterUpdate()
