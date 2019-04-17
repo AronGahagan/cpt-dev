@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptDataDictionary_bas"
 '<cpt_version>0.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptExportDataDictionary()
@@ -13,6 +13,8 @@ Dim strGUID As String
 Dim strAttributes As String
 Dim strFieldName As String
 'longs
+Dim lngItem As Long
+Dim lngItems As Long
 Dim lngCol As Long
 Dim lngMax As Long
 Dim lngHeaderRow As Long
@@ -40,7 +42,7 @@ Dim vFieldScope As Variant
   End If
   
   'set up a workbook/worksheet
-  Application.StatusBar = "Creating Excel Workbook..."
+  cptDataDictionary_frm.lblStatus.Caption = "Creating Excel Workbook..."
   Set xlApp = CreateObject("Excel.Application")
   Set Workbook = xlApp.Workbooks.Add
   Set Worksheet = Workbook.Worksheets(1)
@@ -68,7 +70,7 @@ Dim vFieldScope As Variant
   xlApp.ActiveWindow.FreezePanes = True
   xlApp.ActiveWindow.Zoom = 85
 
-  Application.StatusBar = "Exporting local custom fields..."
+  cptDataDictionary_frm.lblStatus.Caption = "Exporting local custom fields..."
   
   blnExists = Dir(cptDir & "\settings\data-dictionary.adtg") <> vbNullString
 
@@ -76,7 +78,9 @@ Dim vFieldScope As Variant
     Set rst = CreateObject("ADODB.Recordset")
     rst.Open cptDir & "\settings\data-dictionary.adtg"
   End If
-
+  
+  lngItems = 260 + (188778000 - 188776000)
+  
   'prep for data dump
   lngRow = lngHeaderRow
   'export local custom fields
@@ -130,11 +134,14 @@ exit_for:
         End If
         
 next_field:
+        lngItem = lngItem + 1
+        cptDataDictionary_frm.lblStatus.Caption = "Exporting Local Custom Fields..." & lngItem & "/" & lngItems & " (" & Format(lngItem / lngItems, "0%") & ")"
+        cptDataDictionary_frm.lblProgress.Width = (lngItem / lngItems) * cptDataDictionary_frm.lblStatus.Width
       Next intField
     Next vFieldType
   Next vFieldScope
   
-  Application.StatusBar = "Exporting Enterprise Custom Fields..."
+  cptDataDictionary_frm.lblStatus.Caption = "Exporting Enterprise Custom Fields..."
   
   'get enterprise custom fields
   For lngField = 188776000 To 188778000
@@ -142,9 +149,9 @@ next_field:
       lngRow = lngRow + 1
       'xlApp.ActiveWindow.ScrollRow = lngRow - 1
       Worksheet.Cells(lngRow, 1).Value = True
-      Worksheet.Cells(lngRow, 2).Value = "n/a"
-      Worksheet.Cells(lngRow, 3).Value = "n/a"
-      Worksheet.Cells(lngRow, 4).Value = "n/a"
+      Worksheet.Cells(lngRow, 2).Value = "Enterprise"
+      Worksheet.Cells(lngRow, 3).Value = "Enterprise"
+      Worksheet.Cells(lngRow, 4).Value = FieldConstantToFieldName(lngField)
       Worksheet.Cells(lngRow, 5).Value = FieldConstantToFieldName(lngField)
       'field attributes like formulae and pick lists not exposed to VBA
       If blnExists Then
@@ -153,9 +160,12 @@ next_field:
         rst.Filter = ""
       End If
     End If
+    lngItem = lngItem + 1
+    cptDataDictionary_frm.lblStatus.Caption = "Exporting Enterprise Custom Fields..." & lngItem & "/" & lngItems & " (" & Format(lngItem / lngItems, "0%") & ")"
+    cptDataDictionary_frm.lblProgress.Width = (lngItem / lngItems) * cptDataDictionary_frm.lblStatus.Width
   Next lngField
     
-  Application.StatusBar = "Formatting..."
+  cptDataDictionary_frm.lblStatus.Caption = "Formatting..."
   
   'make it nice
   'convert to table / format it
@@ -174,13 +184,13 @@ next_field:
   Worksheet.Columns(lngCol).ColumnWidth = 100
   Worksheet.Cells(lngHeaderRow + 1, 1).Select
   
-  Application.StatusBar = "Complete."
+  cptDataDictionary_frm.lblStatus.Caption = "Opening..."
   
 exit_here:
   On Error Resume Next
   If rst.State = 1 Then rst.Close
   Set rst = Nothing
-  Application.StatusBar = ""
+  cptDataDictionary_frm.lblStatus.Caption = "Ready..."
   If Not xlApp Is Nothing Then xlApp.Visible = True
   Set rng = Nothing
   Set Worksheet = Nothing
@@ -200,18 +210,11 @@ err_here:
 End Sub
 
 Sub ShowFrmCptDataDictionary()
-'objects
-'strings
-'longs
-'integers
-'doubles
-'booleans
-'variants
-'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   Call cptRefreshDictionary
+  cptDataDictionary_frm.txtFilter.SetFocus
   cptDataDictionary_frm.Show
   
 exit_here:
@@ -225,11 +228,13 @@ End Sub
 
 Sub cptRefreshDictionary()
 'objects
-Dim rst As ADODB.Recordset ' Object
+Dim rst As Object 'ADODB.Recordset
 'strings
 Dim strFieldName As String
+Dim strCustomName As String
 Dim strGUID As String
 'longs
+Dim lngItem As Long
 Dim lngField As Long
 Dim lngMax As Long
 'integers
@@ -263,9 +268,11 @@ Dim vFieldScope As Variant
   With rst
     If Dir(cptDir & "\settings\data-dictionary.adtg") = vbNullString Then
       blnCreate = True
-      .Fields.Append "PROJECT_ID", 200, 38 'adVarChar
+      .Fields.Append "PROJECT_ID", 200, 50 'adVarChar
       .Fields.Append "FIELD_ID", 3 'adInteger = Long
-      .Fields.Append "DESCRIPTION", 203 'adLongVarWChar
+      .Fields.Append "FIELD_NAME", 200, 50
+      .Fields.Append "CUSTOM_NAME", 200, 50
+      .Fields.Append "DESCRIPTION", 203, 500 'adLongVarWChar
       .Open
     Else
       blnCreate = False
@@ -289,26 +296,18 @@ Dim vFieldScope As Variant
         End Select
         For intField = 1 To lngMax
           lngField = FieldNameToFieldConstant(vFieldType & intField, vFieldScope)
-          strFieldName = CustomFieldGetName(lngField)
-          If Len(strFieldName) > 0 Then
-            'add to the lbo
-            cptDataDictionary_frm.lboCustomFields.AddItem
-            cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 0) = lngField
-            cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 1) = CustomFieldGetName(lngField) & " (" & FieldConstantToFieldName(lngField) & ")"
+          strFieldName = FieldConstantToFieldName(lngField)
+          strCustomName = CustomFieldGetName(lngField)
+          If Len(strCustomName) > 0 Then
             If blnCreate Then
               'add to data store
-              .AddNew Array("PROJECT_ID", "FIELD_ID", "DESCRIPTION"), Array(strGUID, lngField, "<missing>")
-              'populate the form
-              cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 2) = "<missing>"
+              .AddNew Array("PROJECT_ID", "FIELD_ID", "FIELD_NAME", "CUSTOM_NAME", "DESCRIPTION"), Array(strGUID, lngField, strFieldName, strCustomName, "<missing>")
             Else
               'does it exist?
               .Filter = "PROJECT_ID='" & strGUID & "' AND FIELD_ID=" & CLng(lngField)
               'if not then add it
-              If Not .EOF Then
-                cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 2) = rst("DESCRIPTION")
-              Else
-                .AddNew Array("PROJECT_ID", "FIELD_ID", "DESCRIPTION"), Array(strGUID, lngField, "<missing>")
-                cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 2) = "<missing>"
+              If .EOF Then
+                .AddNew Array("PROJECT_ID", "FIELD_ID", "FIELD_NAME", "CUSTOM_NAME", "DESCRIPTION"), Array(strGUID, lngField, strFieldName, strCustomName, "<missing>")
               End If
               .Filter = ""
             End If
@@ -316,35 +315,48 @@ Dim vFieldScope As Variant
         Next intField
       Next vFieldType
     Next vFieldScope
-    .Update
     
     'get enterprise custom fields
     For lngField = 188776000 To 188778000
       If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
-        cptDataDictionary_frm.lboCustomFields.AddItem
-        cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 0) = lngField
-        cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 1) = CustomFieldGetName(lngField) & " (Enterprise)"
+        strFieldName = "Enterprise"
+        strCustomName = FieldConstantToFieldName(lngField)
         If blnCreate Then
-          .AddNew Array("PROJECT_ID", "FIELD_ID", "DESCRIPTION"), Array(strGUID, lngField, "<missing>")
-          cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 2) = "<missing>"
+          .AddNew Array("PROJECT_ID", "FIELD_ID", "FIELD_NAME", "CUSTOM_NAME", "DESCRIPTION"), Array(strGUID, lngField, strFieldName, strCustomName, "<missing>")
         Else
           'does it exist?
           .Filter = "PROJECT_ID='" & strGUID & "' AND FIELD_ID=" & lngField
           'if not, then add it
-          If Not .EOF Then
-            cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 2) = rst("DESCRIPTION")
-          Else
-            .AddNew Array("PROJECT_ID", "FIELD_ID", "DESCRIPTION"), Array(strGUID, lngField, "<missing>")
-            cptDataDictionary_frm.lboCustomFields.List(cptDataDictionary_frm.lboCustomFields.ListCount - 1, 2) = "<missing>"
+          If .EOF Then
+            .AddNew Array("PROJECT_ID", "FIELD_ID", "FIELD_NAME", "CUSTOM_NAME", "DESCRIPTION"), Array(strGUID, lngField, strFieldName, strCustomName, "<missing>")
           End If
           .Filter = ""
         End If
       End If
     Next lngField
-    .Update
+    
     'save the data
     .Save cptDir & "\settings\data-dictionary.adtg"
-    .Close
+    
+    'populate the list
+    If Not .EOF Then
+      .Sort = "CUSTOM_NAME"
+      .MoveFirst
+      lngItem = 0
+      Do While Not .EOF
+        cptDataDictionary_frm.lboCustomFields.AddItem
+        cptDataDictionary_frm.lboCustomFields.List(lngItem, 0) = .Fields("FIELD_ID")
+        If .Fields("FIELD_ID") >= 188776000 Then
+          cptDataDictionary_frm.lboCustomFields.List(lngItem, 1) = .Fields("CUSTOM_NAME") & " (Enterprise)"
+        Else
+          cptDataDictionary_frm.lboCustomFields.List(lngItem, 1) = .Fields("CUSTOM_NAME") & " (" & .Fields("FIELD_NAME") & ")"
+        End If
+        cptDataDictionary_frm.lboCustomFields.List(lngItem, 2) = .Fields("DESCRIPTION")
+        .MoveNext
+        lngItem = lngItem + 1
+      Loop
+      .Close
+    End If
   End With
   
 exit_here:

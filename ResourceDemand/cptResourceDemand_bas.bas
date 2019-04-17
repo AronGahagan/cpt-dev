@@ -446,7 +446,7 @@ option_2:
   'col0 = custom field name (sortfield)
   'col1 = field constant
   
-  For Each vFieldType In Array("Text", "Outline Code")
+  For Each vFieldType In Array("Text", "Outline Code", "Flag")
     On Error GoTo err_here
     For lngItem = 1 To 30
       lngField = FieldNameToFieldConstant(vFieldType & lngItem) ',lngFieldType)

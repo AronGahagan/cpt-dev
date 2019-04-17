@@ -13,7 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.3</cpt_version>
+
+'<cpt_version>v1.1.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -83,7 +84,21 @@ exit_here:
 err_here:
   Call cptHandleErr("cptResourceDemand_frm", "cmdExport_Click", err)
   Resume exit_here
-  
+
+End Sub
+
+Private Sub cmdFormGrow_Click()
+  Me.cmdFormGrow.Visible = False
+  Me.imgLogo.Visible = True
+  Me.Height = 300
+  Me.Width = 485.25
+End Sub
+
+Private Sub cmdFormShrink_Click()
+  Me.cmdFormGrow.Visible = True
+  Me.imgLogo.Visible = False
+  Me.Height = 65
+  Me.Width = 50
 End Sub
 
 Private Sub cmdRemove_Click()
@@ -119,7 +134,7 @@ exit_here:
 err_here:
   Call cptHandleErr("cptResourceDemand_frm", "lblURL_Click", err)
   Resume exit_here
-  
+
 End Sub
 
 Private Sub stxtSearch_Change()
@@ -136,12 +151,12 @@ Dim lngItem As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   Me.lboFields.Clear
-  
+
   strFileName = Environ("tmp") & "\cpt-resource-demand-search.adtg"
   With CreateObject("ADODB.Recordset")
     .Open strFileName
     If Len(Me.stxtSearch.Text) > 0 Then
-      .Filter = "[Custom Field Name] LIKE *" & cptRemoveIllegalCharacters(Me.stxtSearch.Text) & "*"
+      .Filter = "[Custom Field Name] LIKE '*" & cptRemoveIllegalCharacters(Me.stxtSearch.Text) & "*'"
     Else
       .Filter = 0
     End If
@@ -157,13 +172,13 @@ Dim lngItem As Long
     .Close
     Me.lblStatus.Caption = lngItem & " record" & IIf(lngItem = 1, "", "s") & " found."
   End With
-  
-  
+
+
 exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
   Call cptHandleErr("cptResourceDemand_frm", "stxtSearch_Change", err)
   Resume exit_here
-  
+
 End Sub

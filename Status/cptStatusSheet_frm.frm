@@ -470,7 +470,7 @@ Dim lgItem As Long
   With CreateObject("ADODB.REcordset")
     .Open cptDir & "\settings\cpt-status-sheet-search.adtg"
     If Len(Me.stxtSearch.Text) > 0 Then
-      .Filter = "[Custom Field Name] LIKE *" & cptRemoveIllegalCharacters(Me.stxtSearch.Text) & "*"
+      .Filter = "[Custom Field Name] LIKE '*" & cptRemoveIllegalCharacters(Me.stxtSearch.Text) & "*'"
     Else
       .Filter = 0
     End If

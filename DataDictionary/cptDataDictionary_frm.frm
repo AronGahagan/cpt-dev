@@ -71,6 +71,22 @@ Private Sub cmdFormShrink_Click()
   Me.Width = 50
 End Sub
 
+Private Sub lblURL_Click()
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptDataDictionary_frm", "lblURL_Click()", err)
+  Resume exit_here
+
+End Sub
+
 Private Sub lboCustomFields_AfterUpdate()
   If Not IsNull(Me.lboCustomFields.Value) Then Me.txtDescription = Me.lboCustomFields.Column(2)
 End Sub
@@ -89,6 +105,8 @@ Dim strGUID As String
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If IsNull(Me.lboCustomFields.Value) Then GoTo exit_here
+
+  Me.lblStatus.Caption = "Saving..."
 
   'get project uid
   If Application.Version < 12 Then
@@ -113,7 +131,7 @@ Dim strGUID As String
   
 exit_here:
   On Error Resume Next
-
+  Me.lblStatus.Caption = "Ready..."
   Exit Sub
 err_here:
   Call cptHandleErr("cptDataDictionary_frm", "txtDescription_Change()", err)
@@ -121,5 +139,54 @@ err_here:
 End Sub
 
 Private Sub txtFilter_Change()
-'need to capture native field name (or 'enterprise') and custom field name in adtg file
+'objects
+'strings
+Dim strDictionary As String
+'longs
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  strDictionary = cptDir & "\settings\data-dictionary.adtg"
+
+  If Dir(strDictionary) <> vbNullString Then
+    Me.lboCustomFields.Clear
+    Me.txtDescription = ""
+    With CreateObject("ADODB.Recordset")
+      .Open strDictionary
+      .Sort = "CUSTOM_NAME"
+      If Len(Me.txtFilter.Text) > 0 Then
+        .Filter = "CUSTOM_NAME LIKE '*" & cptRemoveIllegalCharacters(Me.txtFilter.Text) & "*' OR FIELD_NAME LIKE '*" & cptRemoveIllegalCharacters(Me.txtFilter.Text) & "*'"
+      End If
+      If Not .EOF Then .MoveFirst
+      lngItem = 0
+      Do While Not .EOF
+        Me.lboCustomFields.AddItem
+        Me.lboCustomFields.Column(0, lngItem) = .Fields("FIELD_ID")
+        Me.lboCustomFields.Column(1, lngItem) = .Fields("CUSTOM_NAME") & " (" & .Fields("FIELD_NAME") & ")"
+        Me.lboCustomFields.Column(2, lngItem) = .Fields("DESCRIPTION")
+        .MoveNext
+        lngItem = lngItem + 1
+      Loop
+      .Close
+    End With
+  Else
+    MsgBox "IMS Data Dictionary file not found!" & vbCrLf & "Please close and re-open the form to reset.", vbExclamation + vbOKOnly, "Error"
+    GoTo exit_here
+  End If
+
+  Me.lblStatus.Caption = Me.lboCustomFields.ListCount & " result" & IIf(Me.lboCustomFields.ListCount = 1, "", "s")
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptDataDictionary_frm", "txtFilter_Change()", err, Erl)
+  Resume exit_here
 End Sub

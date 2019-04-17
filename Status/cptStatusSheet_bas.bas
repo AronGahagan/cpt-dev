@@ -30,15 +30,17 @@ Dim vFieldType As Variant
   'requires scripting (cptRegEx)
   If Not cptCheckReference("Scripting") Then GoTo exit_here
   
-  cptStatusSheet_frm.lboFields.Clear
-  cptStatusSheet_frm.lboExport.Clear
-  cptStatusSheet_frm.cboEVT.Clear
-  cptStatusSheet_frm.cboEVP.Clear
-  cptStatusSheet_frm.cboEVP.AddItem "Physical % Complete"
-  cptStatusSheet_frm.cboCostTool.Clear
-  cptStatusSheet_frm.cboCostTool.AddItem "COBRA"
-  cptStatusSheet_frm.cboCostTool.AddItem "MPM"
-  cptStatusSheet_frm.cboCostTool.AddItem "<none>"
+  With cptStatusSheet_frm
+    .lboFields.Clear
+    .lboExport.Clear
+    .cboEVT.Clear
+    .cboEVP.Clear
+    .cboEVP.AddItem "Physical % Complete"
+    .cboCostTool.Clear
+    .cboCostTool.AddItem "COBRA"
+    .cboCostTool.AddItem "MPM"
+    .cboCostTool.AddItem "<none>"
+  End With
   
   Set arrFields = CreateObject("System.Collections.SortedList")
   Set arrEVT = CreateObject("System.Collections.SortedList")
@@ -566,6 +568,9 @@ next_task:
 
   t = GetTickCount
   cptStatusSheet_frm.lblStatus.Caption = "Formatting Columns..."
+  
+  '================ Issue 36 below this line ======================
+  
   'columns to center
   Set aCentered = CreateObject("System.Collections.ArrayList")
   For Each vCol In Array("UID", "Duration", "Total Slack", strEVT, strEVP, "New EV%")
@@ -883,6 +888,8 @@ next_task:
   xlApp.ActiveWindow.FreezePanes = True
   'prettify the task name column
   Worksheet.Columns(lngNameCol).AutoFit
+  
+  '=============== Issue36 above this line =================
   
   t = GetTickCount
   cptStatusSheet_frm.lblStatus.Caption = "Saving Workbook" & IIf(cptStatusSheet_frm.optWorkbooks, "s", "") & "..."
