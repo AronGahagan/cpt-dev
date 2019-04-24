@@ -5,16 +5,19 @@
 <sub>_License: This software is provided gratis (free of charge), AS IS and without Warranty. It is free to use, and it is free to distribute **with prior written consent from the contributors/copyright holders** provided **no modifications are made**. Contributors retain their patents. All other rights reserved. Copyright &#169; 2019, contributors and ClearPlan Consulting, LLC._</sub>
 
 ---
+
 [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/AronGahagan/cpt-dev.svg)](http://isitmaintained.com/project/AronGahagan/cpt-dev "Average time to resolve an issue")
 [![Percentage of issues still open](http://isitmaintained.com/badge/open/AronGahagan/cpt-dev.svg)](http://isitmaintained.com/project/AronGahagan/cpt-dev "Percentage of issues still open")
 
 ---
+
 ## Purpose
 * The purpose of this project is to provide schedulers with a time-saving and error-free tool _to be used in support of industry best practices and **solid processes**_. (Read: don't be like the TSA conveyor belt.)
 * It is **not** the purpose of this project to absolve schedulers of the duty to build, analyze, and maintain good schedules. No tool, and no automation, can replace the mind, experience, judgment, and instincts of a living, breathing human being. Therefore:
 * Use only as directed. "When in doubt, read the directions."
 
 ---
+
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
 1. [Installation](#installation)
@@ -24,13 +27,14 @@
     1. [Trace Tools](#trace-tools)
     1. [Status Tools](#status-tools)
     1. [Resource Demand](#resource-demand)
-    1. [Integration Tool](#integration-tools)
+    1. [Integration Tools](#integration-tools)
 1. [Help](#help)
 1. [Credits](#credits)
 
 [[top]](#table-of-contents)
 
 ---
+
 ## Prerequisites
 1. Microsoft Project Standard or Professional 2013+
 1. Microsoft Office (Outlook, Excel, Word, PowerPoint)
@@ -39,6 +43,7 @@
 [[top]](#table-of-contents)
 
 ---
+
 ## Installation
 _Note: this tool is not currently designed (nor has it been tested) for use with Microsoft Project Server._
 
@@ -62,18 +67,22 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 [[top]](#table-of-contents)
 
 ---
+
 ## Use
+
 ---
+
 ### View and Count Tools
 ![view](https://github.com/AronGahagan/cpt-dev/blob/develop/images/view.png?raw=true)
 
-1. _**Reset All**_ - removes all groups and filters, expands all tasks, and reorders by Task.ID
+1. _**Reset All**_ - removes all groups and filters, expands all tasks, and reorders by Task ID.
 1. _**WrapItUp**_ - collapses the currently visible outline (or group) of your project starting from the lowest level up.
 1. _**Count Tasks**_ - Just what it sounds like - optionally count all tasks, visible (filtered) tasks, or selected tasks. User is prompted with a tally of subtasks vs. summary tasks and includes inactive tasks separately. External and 'Nothing' Tasks are skipped.
 
 [[up]](#use) | [[toc]](#table-of-contents)
 
 ---
+
 ### Text Tools
 ![text](https://github.com/AronGahagan/cpt-dev/blob/develop/images/text.png?raw=true)
 
@@ -95,6 +104,7 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 [[up]](#use) | [[toc]](#table-of-contents)
 
 ---
+
 ### Trace Tools
 ![trace](https://github.com/AronGahagan/cpt-dev/blob/develop/images/trace.png?raw=true)
 
@@ -106,6 +116,7 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 [[up]](#use) | [[toc]](#table-of-contents)
 
 ---
+
 ### Status Tools
 ![status](https://github.com/AronGahagan/cpt-dev/blob/develop/images/status.png?raw=true)
 
@@ -115,6 +126,7 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 [[up]](#use) | [[toc]](#table-of-contents)
 
 ---
+
 ### Resource Demand
 ![resource](https://github.com/AronGahagan/cpt-dev/blob/develop/images/resource-demand.png?raw=true)
 
@@ -123,6 +135,7 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 [[up]](#use) | [[toc]](#table-of-contents)
 
 ---
+
 ### Integration Tools
 ![integration](https://github.com/AronGahagan/cpt-dev/blob/develop/images/integration.png?raw=true)
 
@@ -131,6 +144,7 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 [[up]](#use) | [[toc]](#table-of-contents)
 
 ---
+
 ## Help
 ![help](https://github.com/AronGahagan/cpt-dev/blob/develop/images/help.png?raw=true)
 
@@ -143,10 +157,12 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 [[up]](#help) | [[toc]](#table-of-contents)
 
 ---
+
 ## Credits
 A special thanks to our developers and contributors, and to the ClearPlan leadership team for inspiring us to `make it better`.
 
 [[up]](#help) | [[toc]](#table-of-contents)
 
 ---
+
 <sub>Copyright &#169; 2019 ClearPlan Consulting, LLC. All Rights Reserved.</sub>
