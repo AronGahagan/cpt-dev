@@ -59,9 +59,9 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 1. Enable Macros
     1. Open Microsoft Project, go to File > Options > Trust Center > Trust Center Settings...
     1. In the **Macro Settings** pane, click **Enable all macros**
-    ![installation-01](/images/installation-01.PNG?raw=true)
-    1. In the **Legacy Formats** pane, click **Allow loading files with legacy or non-default formats** _(this will allow import/export of settings required for various features)_ 
-    ![installation-02](/images/installation-02.PNG?raw=true)
+    ![installation-01](https://github.com/AronGahagan/cpt-dev/blob/develop/images/installation-01.PNG?raw=true)
+    1. In the **Legacy Formats** pane, click **Allow loading files with legacy or non-default formats** _(this will allow import/export of settings required for various features)_
+    ![installation-02](https://github.com/AronGahagan/cpt-dev/blob/develop/images/installation-02.PNG?raw=true)
     1. Click **OK** a couple of times to close the dialogs
     1. Completely exit, and then restart, Microsoft Project (this makes the settings above 'stick')
 1. Download and open [cpt.mpp](https://github.com/AronGahagan/cpt-dev/releases/download/1.5.3/cpt_v1.5.3.mpp)
@@ -72,7 +72,7 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
     1. This macro installs necessary core modules if they are not already installed
     1. Changes will be made to your ThisProject module, but if you have existing code it will not be overwritten. cpt-related code will be inserted at the very top of the procedures **Project_Activate** and **Project_Open** and each line is appended with `'</cpt>` for reference.
 1. The ClearPlan Toolbar will be added. Click **ClearPlan** > **Help** > **Help** > **Check for Upgrades** to download the latest hotfixes. If you do not have an internet connection, please contact [cpt@ClearPlanConsulting.com](mailto:cpt@ClearPlanConsulting.com) for the latest hotfixes.
-    
+
 [[top]](#table-of-contents)
 
 ---
