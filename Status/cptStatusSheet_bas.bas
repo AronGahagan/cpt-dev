@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.0.2</cpt_version>
+'<cpt_version>v1.0.3</cpt_version>
 Option Explicit
 Declare Function GetTickCount Lib "kernel32" () As Long
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -338,9 +338,12 @@ Dim blnFast As Boolean
     For lngField = 0 To UBound(aUserFields)
       .AddNew Array(0, 1, 2), Array(aUserFields(lngField, 0), aUserFields(lngField, 1), aUserFields(lngField, 2))
     Next lngField
-    .Update
-    If Dir(strFileName) <> vbNullString Then Kill strFileName
-    .Save strFileName
+    '<issue43> capture case when no custom fields are selected
+    If cptStatusSheet_frm.lboExport.ListCount > 0 Then
+      .Update
+     If Dir(strFileName) <> vbNullString Then Kill strFileName
+     .Save strFileName
+    End If '</issue43>
     .Close
   End With
   

@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.1.4</cpt_version>
+'<cpt_version>v1.1.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -49,12 +49,15 @@ Dim aUserFields() As Variant
     For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
       .AddNew Array(0, 1), Array(aUserFields(lgExport, 0), aUserFields(lgExport, 1))
     Next lgExport
-    .Update
-    If Dir(strFileName) <> vbNullString Then Kill strFileName
-    .Save strFileName
+    '<issue43> capture case when no custom fields are selected
+    If cptResourceDemand_frm.lboExport.ListCount > 0 Then
+      .Update
+      If Dir(strFileName) <> vbNullString Then Kill strFileName
+      .Save strFileName
+    End If '</issue43>
     .Close
   End With
-  
+    
   lgFile = FreeFile
   strFile = Environ("USERPROFILE") & "\Desktop\" & Replace(Replace(ActiveProject.Name, ".mpp", ""), " ", "_") & "_ResourceDemand.csv"
   
@@ -85,46 +88,46 @@ Dim aUserFields() As Variant
     cptSpeed False
   End If
   
-'iterate over tasks
-For Each Task In ActiveProject.Tasks
-  If Not Task Is Nothing Then 'skip blank lines
-    If Task.ExternalTask Then GoTo next_task 'skip external tasks
-    If Not Task.Summary And Task.RemainingDuration > 0 And Task.Active Then 'skip summary, complete tasks/milestones, and inactive
-      If Task.Start > ActiveProject.StatusDate Then dtStart = Task.Start Else dtStart = ActiveProject.StatusDate
-      If dtStart > Task.Finish Then GoTo next_task '<issue39>
-      'examine every assignment on the task
-      For Each Assignment In Task.Assignments
-        'limit export to labor resources only
-        If Assignment.ResourceType = pjResourceTypeWork Then
-          'capture timephased work (ETC)
-          Set TSVS_WORK = Assignment.TimeScaleData(DateAdd("d", -7, dtStart), Task.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks, 1)
-          For Each TSV In TSVS_WORK
-            'capture (and subtract) actual work, leaving ETC/Remaining Work
-            Set TSVS_ACTUAL = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleWeeks, 1)
-            dblWork = Val(TSV.Value) - Val(TSVS_ACTUAL(1))
-            'write a record to the CSV
-            '<issue14-15>strRecord = Task.Project & ",[" & Task.UniqueID & "] " & Replace(Task.Name, ",", "") & "," & Assignment.ResourceName & "," & dblWork / 60 & "," & DateAdd("d", 1, TSV.startDate) - removed </issue14-15>
-            '<issue14-15> added
-            strRecord = Task.Project & "," & Chr(34) & "[" & Task.UniqueID & "] " & Replace(Task.Name, Chr(34), Chr(39)) & Chr(34) & "," & Assignment.ResourceName & "," & dblWork / 60 & "," & DateAdd("d", 1, TSV.StartDate)
-            '</issue14-15>
-            For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
-              lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
-              strRecord = strRecord & "," & Task.GetField(lgField)
-            Next lgExport
-            Print #lgFile, strRecord
-          Next TSV
-        End If 'Assignment.ResourceType = pjResourceTypeWork
+  'iterate over tasks
+  For Each Task In ActiveProject.Tasks
+    If Not Task Is Nothing Then 'skip blank lines
+      If Task.ExternalTask Then GoTo next_task 'skip external tasks
+      If Not Task.Summary And Task.RemainingDuration > 0 And Task.Active Then 'skip summary, complete tasks/milestones, and inactive
+        If Task.Start > ActiveProject.StatusDate Then dtStart = Task.Start Else dtStart = ActiveProject.StatusDate
+        If dtStart > Task.Finish Then GoTo next_task '<issue39>
+        'examine every assignment on the task
+        For Each Assignment In Task.Assignments
+          'limit export to labor resources only
+          If Assignment.ResourceType = pjResourceTypeWork Then
+            'capture timephased work (ETC)
+            Set TSVS_WORK = Assignment.TimeScaleData(DateAdd("d", -7, dtStart), Task.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks, 1)
+            For Each TSV In TSVS_WORK
+              'capture (and subtract) actual work, leaving ETC/Remaining Work
+              Set TSVS_ACTUAL = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleWeeks, 1)
+              dblWork = Val(TSV.Value) - Val(TSVS_ACTUAL(1))
+              'write a record to the CSV
+              '<issue14-15>strRecord = Task.Project & ",[" & Task.UniqueID & "] " & Replace(Task.Name, ",", "") & "," & Assignment.ResourceName & "," & dblWork / 60 & "," & DateAdd("d", 1, TSV.startDate) - removed </issue14-15>
+              '<issue14-15> added
+              strRecord = Task.Project & "," & Chr(34) & "[" & Task.UniqueID & "] " & Replace(Task.Name, Chr(34), Chr(39)) & Chr(34) & "," & Assignment.ResourceName & "," & dblWork / 60 & "," & DateAdd("d", 1, TSV.StartDate)
+              '</issue14-15>
+              For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
+                lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
+                strRecord = strRecord & "," & Task.GetField(lgField)
+              Next lgExport
+              Print #lgFile, strRecord
+            Next TSV
+          End If 'Assignment.ResourceType = pjResourceTypeWork
 next_assignment:
-      Next Assignment
-    End If 'skip external tasks
-  End If 'skip blank lines
+        Next Assignment
+      End If 'skip external tasks
+    End If 'skip blank lines
 next_task:
-  lgTask = lgTask + 1
-  Application.StatusBar = "Exporting " & Format(lgTask, "#,##0") & " of " & Format(lgTasks, "#,##0") & "...(" & Format(lgTask / lgTasks, "0%") & ")"
-  cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
-  cptResourceDemand_frm.lblProgress.Width = (lgTask / lgTasks) * cptResourceDemand_frm.lblStatus.Width
-  DoEvents
-Next Task
+    lgTask = lgTask + 1
+    Application.StatusBar = "Exporting " & Format(lgTask, "#,##0") & " of " & Format(lgTasks, "#,##0") & "...(" & Format(lgTask / lgTasks, "0%") & ")"
+    cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
+    cptResourceDemand_frm.lblProgress.Width = (lgTask / lgTasks) * cptResourceDemand_frm.lblStatus.Width
+    DoEvents
+  Next Task
   
   'close the CSV
   Close #lgFile
@@ -446,7 +449,7 @@ option_2:
   'col0 = custom field name (sortfield)
   'col1 = field constant
   
-  For Each vFieldType In Array("Text", "Outline Code", "Flag")
+  For Each vFieldType In Array("Text", "Outline Code")
     On Error GoTo err_here
     For lngItem = 1 To 30
       lngField = FieldNameToFieldConstant(vFieldType & lngItem) ',lngFieldType)
