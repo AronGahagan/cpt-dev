@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.0.3</cpt_version>
+'<cpt_version>v1.0.4</cpt_version>
 Option Explicit
 Declare Function GetTickCount Lib "kernel32" () As Long
 Private Const BLN_TRAP_ERRORS As Boolean = True
