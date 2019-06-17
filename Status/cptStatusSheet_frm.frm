@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.3</cpt_version>
+'<cpt_version>v1.1.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -470,7 +470,7 @@ Dim lgItem As Long
   With CreateObject("ADODB.REcordset")
     .Open cptDir & "\settings\cpt-status-sheet-search.adtg"
     If Len(Me.stxtSearch.Text) > 0 Then
-      .Filter = "[Custom Field Name] LIKE *" & cptRemoveIllegalCharacters(Me.stxtSearch.Text) & "*"
+      .Filter = "[Custom Field Name] LIKE '*" & cptRemoveIllegalCharacters(Me.stxtSearch.Text) & "*'"
     Else
       .Filter = 0
     End If
