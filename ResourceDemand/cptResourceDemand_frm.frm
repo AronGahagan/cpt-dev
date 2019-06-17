@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptResourceDemand_frm 
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptResourceDemand_frm
    Caption         =   "Export Resource Demand"
    ClientHeight    =   5415
    ClientLeft      =   120
@@ -83,7 +83,7 @@ exit_here:
 err_here:
   Call cptHandleErr("cptResourceDemand_frm", "cmdExport_Click", err, Erl)
   Resume exit_here
-  
+
 End Sub
 
 Private Sub cmdRemove_Click()
@@ -119,7 +119,7 @@ exit_here:
 err_here:
   Call cptHandleErr("cptResourceDemand_frm", "lblURL_Click", err, Erl)
   Resume exit_here
-  
+
 End Sub
 
 Private Sub stxtSearch_Change()
@@ -157,13 +157,13 @@ Dim lngItem As Long
     .Close
     Me.lblStatus.Caption = lngItem & " record" & IIf(lngItem = 1, "", "s") & " found."
   End With
-  
-  
+
+
 exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
   Call cptHandleErr("cptResourceDemand_frm", "stxtSearch_Change", err, Erl)
   Resume exit_here
-  
+
 End Sub
