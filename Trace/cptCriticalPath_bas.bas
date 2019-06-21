@@ -34,7 +34,7 @@ End Type
 
 Private DrivingTasks() As DrivingTask 'var to store DrivingTask type
 Private drivingTasksCount As Integer 'coung of DrivingTasks
-Private export_to_PPT As Boolean 'cpt ToolBar controlled var for controlling user notification of completed analysis
+Public export_to_PPT As Boolean 'cpt ToolBar controlled var for controlling user notification of completed analysis
 
 Sub DrivingPaths()
 'Primary analysis module that controls analysis
