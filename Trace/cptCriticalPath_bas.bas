@@ -1,31 +1,39 @@
 Attribute VB_Name = "cptCriticalPath_bas"
-'<cpt_version>v2.7</cpt_version>
+'<cpt_version>v2.8</cpt_version>
 Option Explicit
+
 Private CritField As String 'Stores comma seperated values for each task showing which paths they are a part of
 Private GroupField As String 'Stores a single value - used to group/sort tasks in final CP view
+
 'Custom type used to store driving path vars
 Type DrivingPaths
+
     PrimaryFloat As Double 'Stores True Float vlaue for Primary Driving Path
     FindPrimary As Boolean 'Tracks evluation progress by noting Primary Found
     SecondaryFloat As Double 'Stores True Float vlaue for Secondary Driving Path
     FindSecondary As Boolean 'Tracks evluation progress by noting Secondary Found
     TertiaryFloat As Double 'Stores True Float vlaue for Secondary Driving Path
     FindTertiary As Boolean 'Tracks evluation progress by noting Tertiar Found
+
 End Type
+
 Private tDrivingPaths As DrivingPaths 'var to store DrivingPaths type
 Private SecondaryDrivers() As String 'Array of Secondary Drivers to be analyzed
 Private SecondaryDriverCount As Integer 'Count of secondary Drivers
 Private TertiaryDrivers() As String 'Array of tertiary drivers to be analyzed
 Private TertiaryDriverCount As Integer 'Count of tertiary drivers
 Private AnalyzedTasks As Collection 'Collection of task relationships analyzied (From UID - To UID); unique to each path analysis
+
 'Custom type used to store Driving Task data
 Type DrivingTask
+
     UID As String
     tFloat As Double
+
 End Type
+
 Private DrivingTasks() As DrivingTask 'var to store DrivingTask type
 Private drivingTasksCount As Integer 'coung of DrivingTasks
-'/ag edit private > public\
 Public export_to_PPT As Boolean 'cpt ToolBar controlled var for controlling user notification of completed analysis
 
 Sub DrivingPaths()
@@ -63,7 +71,7 @@ Sub DrivingPaths()
     End If
     
     'Exit if multiple tasks are selected
-    If curproj.Application.ActiveSelection.Tasks.count > 1 Then
+    If curproj.Application.ActiveSelection.Tasks.Count > 1 Then
         MsgBox "Select a single activity only."
         curproj = Nothing
         Exit Sub
@@ -97,7 +105,7 @@ Sub DrivingPaths()
     curproj.Application.Calculation = pjManual
     curproj.Application.ScreenUpdating = False
     
-    On Error GoTo CleanUp
+    On Error GoTo Cleanup
     
     '**********************************************
     'On Error GoTo 0 '*****used for debug only*****
@@ -282,7 +290,7 @@ Sub DrivingPaths()
     'Create and Apply the "ClearPlan Driving Path" Table, View, Group, and Filter
     SetupCPView GroupField, curproj, analysisTaskUID
     
-CleanUp:
+Cleanup:
 
     'If error encountered, alert the user, otherwise notify of completion
     If err Then
@@ -331,13 +339,13 @@ Private Sub SetGroupCPFieldLookupTable(ByVal GroupField As String, ByVal curproj
 'Set Crit and Group field names, assign lookup table to Group Field
 
     'Store Field Names
-    curproj.Application.CustomFieldRename FieldID:=FieldNameToFieldConstant(CritField), NewName:="CP Driving Paths"
-    curproj.Application.CustomFieldRename FieldID:=FieldNameToFieldConstant(GroupField), NewName:="CP Driving Path Group ID"
+    curproj.Application.CustomFieldRename FieldID:=FieldNameToFieldConstant(CritField), newname:="CP Driving Paths"
+    curproj.Application.CustomFieldRename FieldID:=FieldNameToFieldConstant(GroupField), newname:="CP Driving Path Group ID"
     
     'Setup Lookup Table Properties
-    curproj.Application.CustomFieldPropertiesEx FieldID:=FieldNameToFieldConstant(GroupField), Attribute:=pjFieldAttributeNone
+    curproj.Application.CustomFieldPropertiesEx FieldID:=FieldNameToFieldConstant(GroupField), attribute:=pjFieldAttributeNone
     curproj.Application.CustomOutlineCodeEditEx FieldID:=FieldNameToFieldConstant(GroupField), OnlyLookUpTableCodes:=True, OnlyLeaves:=False, LookupDefault:=False, SortOrder:=0
-    curproj.Application.CustomFieldPropertiesEx FieldID:=FieldNameToFieldConstant(GroupField), Attribute:=pjFieldAttributeValueList, SummaryCalc:=pjCalcNone, GraphicalIndicators:=False, AutomaticallyRolldownToAssn:=False
+    curproj.Application.CustomFieldPropertiesEx FieldID:=FieldNameToFieldConstant(GroupField), attribute:=pjFieldAttributeValueList, SummaryCalc:=pjCalcNone, GraphicalIndicators:=False, AutomaticallyRolldownToAssn:=False
     
     'Assign Lookup Table Values
     curproj.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "1", "Primary"
@@ -353,19 +361,19 @@ Private Sub SetupCPView(ByVal GroupField As String, ByVal curproj As Project, By
     Dim t As Task 'used to store user selected anlaysis task
     
     'Create CP Driving Path Table
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, Create:=True, ShowAddNewColumn:=True, OverwriteExisting:=True, FieldName:="ID", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, LockFirstColumn:=True, ColumnPosition:=0
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, Create:=True, ShowAddNewColumn:=True, OverwriteExisting:=True, FieldName:="ID", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, LockFirstColumn:=True, ColumnPosition:=0
     
     'Add fields to CP Driving Path Table
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Unique ID", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1, LockFirstColumn:=True
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:=GroupField, Title:="Driving Path", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Name", Width:=45, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=2
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Duration", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=3
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Start", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=4
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Finish", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=5
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Total Slack", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=6
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Unique ID", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1, LockFirstColumn:=True
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:=GroupField, Title:="Driving Path", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Name", Width:=45, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=2
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Duration", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=3
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Start", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=4
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Finish", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=5
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", tasktable:=True, NewFieldName:="Total Slack", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=6
 
     'Create CP Driving Path Filter
-    curproj.Application.FilterEdit Name:="*ClearPlan Driving Path Filter", Taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=GroupField, test:="is greater than", Value:="0", ShowInMenu:=False, ShowSummaryTasks:=False
+    curproj.Application.FilterEdit Name:="*ClearPlan Driving Path Filter", taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=GroupField, Test:="is greater than", Value:="0", ShowInMenu:=False, showsummarytasks:=False
     
     'On Error Resume Next
     
@@ -389,21 +397,22 @@ Private Sub SetupCPView(ByVal GroupField As String, ByVal curproj As Project, By
     
     'Iterate through each task in view and color the Gantt bars based on CP Group Code
     For Each t In ActiveProject.Tasks
-        
-        Select Case t.GetField(FieldNameToFieldConstant(GroupField))
-        
-            Case "1"
-                t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=192, MiddleColor:=192, EndColor:=192
-    
-            Case "2"
-                t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=3243501, MiddleColor:=3243501, EndColor:=3243501
+        If Not t Is Nothing Then 'Fix issue 44 for v2.8
+            Select Case t.GetField(FieldNameToFieldConstant(GroupField))
             
-            Case "3"
-                t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=65535, MiddleColor:=65535, EndColor:=65535
-            
-            Case Else
+                Case "1"
+                    t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=192, MiddleColor:=192, EndColor:=192
         
-        End Select
+                Case "2"
+                    t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=3243501, MiddleColor:=3243501, EndColor:=3243501
+                
+                Case "3"
+                    t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=65535, MiddleColor:=65535, EndColor:=65535
+                
+                Case Else
+            
+            End Select
+        End If
     
     Next t
     
@@ -418,11 +427,14 @@ Private Sub CleanCritFlag(ByVal curproj As Project)
     
     'iterate through every task in the project
     For Each t In curproj.Tasks
-        
-        'Reset values
-        t.SetField FieldNameToFieldConstant(CritField), vbNullString
-        t.SetField FieldNameToFieldConstant(GroupField), "0"
     
+        If Not t Is Nothing Then 'Fix issue #44 for v2.8
+        
+            'Reset values
+            t.SetField FieldNameToFieldConstant(CritField), vbNullString
+            t.SetField FieldNameToFieldConstant(GroupField), "0"
+            
+        End If
     Next t
 
 End Sub
