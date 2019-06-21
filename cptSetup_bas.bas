@@ -386,6 +386,14 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
 
+  'backbone
+  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gBackbone"" label=""Backbone"" visible=""true"">"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBackbone"" imageMso=""OutlineShowDetail"" label=""Import Mil-Std-881D Appendix B"" onAction=""DrivingPaths"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bOutlineCode"" imageMso=""OutlineShowDetail"" label=""Create Outline Code"" onAction=""DrivingPaths"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDD"" imageMso=""OutlineShowDetail"" label=""Data Dictionary"" onAction=""DrivingPaths"" />"
+  ribbonXML = ribbonXML + vbCrLf & "</mso:group> "
+  
+  
   'trace tools
   If cptModuleExists("cptCriticalPathTools_bas") Or cptModuleExists("cptCriticalPath_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCPA"" label=""Trace"" visible=""true"">"
