@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIMSCobraExport_frm 
-   Caption         =   "IMS Export Utility v3.1.3"
+   Caption         =   "IMS Export Utility v3.1.5"
    ClientHeight    =   7380
    ClientLeft      =   120
    ClientTop       =   468
@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v3.1.3</cpt_version>
+'<cpt_version>v3.1.5</cpt_version>
 Private Sub bcrBox_Change()
 
     If checkDuplicate(bcrBox) = True Then

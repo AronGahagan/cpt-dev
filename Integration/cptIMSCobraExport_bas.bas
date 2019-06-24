@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.1.4</cpt_version>
+'<cpt_version>v3.1.5</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -1264,7 +1264,6 @@ Private Sub BCWP_Export(ByVal curproj As Project)
                                         If t.ActualFinish <> "NA" Then
                                             ACTarray(x).AFinish = t.ActualFinish
                                         End If
-                                        ACTarray(x).WP = WP
                                         If t.BaselineWork <> 0 Then
                                             ACTarray(x).sumBCWS = 1
                                             ACTarray(x).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
@@ -1367,7 +1366,6 @@ Private Sub BCWP_Export(ByVal curproj As Project)
                                     If t.ActualFinish <> "NA" Then
                                         ACTarray(x).AFinish = t.ActualFinish
                                     End If
-                                    ACTarray(x).WP = WP
                                     If t.BaselineWork <> 0 Then
                                         ACTarray(i).sumBCWS = 1
                                         ACTarray(i).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
@@ -1413,7 +1411,6 @@ Private Sub BCWP_Export(ByVal curproj As Project)
                                         If t.ActualFinish <> "NA" Then
                                             ACTarray(x).AFinish = t.ActualFinish
                                         End If
-                                        ACTarray(x).WP = WP
 
                                         x = x + 1
                                         ActFound = True
@@ -1499,7 +1496,6 @@ Private Sub BCWP_Export(ByVal curproj As Project)
                                     If t.ActualFinish <> "NA" Then
                                         ACTarray(x).AFinish = t.ActualFinish
                                     End If
-                                    ACTarray(x).WP = WP
 
                                     x = x + 1
                                     ActFound = True
@@ -1603,7 +1599,6 @@ nrBCWP_WP_Match_A:
                                     If t.ActualFinish <> "NA" Then
                                         ACTarray(x).AFinish = t.ActualFinish
                                     End If
-                                    ACTarray(x).WP = WP
                                     If t.BaselineWork <> 0 Then
                                         ACTarray(x).sumBCWS = 1
                                         ACTarray(x).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
@@ -1705,7 +1700,6 @@ nrBCWP_WP_Match_A:
                                 If t.ActualFinish <> "NA" Then
                                     ACTarray(x).AFinish = t.ActualFinish
                                 End If
-                                ACTarray(x).WP = WP
                                 If t.BaselineWork <> 0 Then
                                     ACTarray(x).sumBCWS = 1
                                     ACTarray(x).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
@@ -1751,7 +1745,6 @@ nrBCWP_WP_Match_A:
                                     If t.ActualFinish <> "NA" Then
                                         ACTarray(x).AFinish = t.ActualFinish
                                     End If
-                                    ACTarray(x).WP = WP
 
                                     x = x + 1
                                     ActFound = True
@@ -1837,7 +1830,6 @@ nrBCWP_WP_Match_A:
                                 If t.ActualFinish <> "NA" Then
                                     ACTarray(x).AFinish = t.ActualFinish
                                 End If
-                                ACTarray(x).WP = WP
 
                                 x = x + 1
                                 ActFound = True
@@ -1986,7 +1978,6 @@ nrBCWP_WP_Match_B:
                                         If t.ActualFinish <> "NA" Then
                                             ACTarray(x).AFinish = t.ActualFinish
                                         End If
-                                        ACTarray(x).WP = WP
                                         If t.BaselineWork <> 0 Then
                                             ACTarray(x).sumBCWS = t.BaselineWork / 60
                                             ACTarray(x).sumBCWP = t.BaselineWork / 60 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
@@ -2089,7 +2080,6 @@ nrBCWP_WP_Match_B:
                                     If t.ActualFinish <> "NA" Then
                                         ACTarray(x).AFinish = t.ActualFinish
                                     End If
-                                    ACTarray(x).WP = WP
                                     If t.BaselineWork <> 0 Then
                                         ACTarray(i).sumBCWS = t.BaselineWork / 60
                                         ACTarray(i).sumBCWP = t.BaselineWork / 60 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
@@ -2135,7 +2125,6 @@ nrBCWP_WP_Match_B:
                                         If t.ActualFinish <> "NA" Then
                                             ACTarray(x).AFinish = t.ActualFinish
                                         End If
-                                        ACTarray(x).WP = WP
 
                                         x = x + 1
                                         ActFound = True
@@ -2221,7 +2210,6 @@ nrBCWP_WP_Match_B:
                                     If t.ActualFinish <> "NA" Then
                                         ACTarray(x).AFinish = t.ActualFinish
                                     End If
-                                    ACTarray(x).WP = WP '<issue47>
 
                                     x = x + 1
                                     ActFound = True
@@ -2325,7 +2313,6 @@ BCWP_WP_Match_A:
                                     If t.ActualFinish <> "NA" Then
                                         ACTarray(x).AFinish = t.ActualFinish
                                     End If
-                                    ACTarray(x).WP = WP
                                     If t.BaselineWork <> 0 Then
                                         ACTarray(x).sumBCWS = t.BaselineWork / 60
                                         ACTarray(x).sumBCWP = t.BaselineWork / 60 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
@@ -2427,7 +2414,6 @@ BCWP_WP_Match_A:
                                 If t.ActualFinish <> "NA" Then
                                     ACTarray(x).AFinish = t.ActualFinish
                                 End If
-                                ACTarray(x).WP = WP
                                 If t.BaselineWork <> 0 Then
                                     ACTarray(x).sumBCWS = t.BaselineWork / 60
                                     ACTarray(x).sumBCWP = t.BaselineWork / 60 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
@@ -2473,7 +2459,6 @@ BCWP_WP_Match_A:
                                     If t.ActualFinish <> "NA" Then
                                         ACTarray(x).AFinish = t.ActualFinish
                                     End If
-                                    ACTarray(x).WP = WP
 
                                     x = x + 1
                                     ActFound = True
@@ -2559,7 +2544,6 @@ BCWP_WP_Match_A:
                                 If t.ActualFinish <> "NA" Then
                                     ACTarray(x).AFinish = t.ActualFinish
                                 End If
-                                ACTarray(x).WP = WP '<issue47>
 
                                 x = x + 1
                                 ActFound = True
