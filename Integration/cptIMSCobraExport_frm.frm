@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIMSCobraExport_frm 
-   Caption         =   "IMS Export Utility v3.1.2"
+   Caption         =   "IMS Export Utility v3.1.5"
    ClientHeight    =   7380
    ClientLeft      =   120
-   ClientTop       =   465
-   ClientWidth     =   4395
+   ClientTop       =   468
+   ClientWidth     =   4392
    OleObjectBlob   =   "cptIMSCobraExport_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -13,8 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v3.1.3</cpt_version>
-
+'<cpt_version>v3.1.5</cpt_version>
 Private Sub bcrBox_Change()
 
     If checkDuplicate(bcrBox) = True Then
@@ -64,7 +63,7 @@ Private Function checkDuplicate(ByVal cBoxTest As ComboBox) As Boolean
     End If
 
     Dim cBoxOther As ComboBox
-    Dim formObj As control
+    Dim formObj As Control
     
     For Each formObj In Me.TabButtons.Pages(1).Controls
     
@@ -492,7 +491,7 @@ Private Sub CancelBtn_Click()
 End Sub
 
 Private Sub cptLinkLabel_Click()
-    If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
+   If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
 End Sub
 
 Private Sub CSVBtn_Change()
