@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.1.5</cpt_version>
+'<cpt_version>v1.1.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -144,7 +144,7 @@ next_task:
     Set xlApp = CreateObject("Excel.Application")
   End If
   
-  'is previous run still open>
+  'is previous run still open?
   On Error Resume Next
   Set Workbook = xlApp.Workbooks(strFile)
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -344,12 +344,21 @@ next_task:
   'strFile = Replace(strFile, ".xlsx", "_" & Format(dtStart, "yyyy-mm-dd") & ".xlsx") - removed
 file_save:
   'If Dir(strFile) <> vbNullString Then Kill strFile - removed </issue14-15>
-  Workbook.SaveAs Environ("USERPROFILE") & "\Desktop\" & Workbook.Name, 51
+  '<issue49> - file exists in location
+  strFile = Environ("USERPROFILE") & "\Desktop\" & Replace(Workbook.Name, ".xlsx", "_" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".xlsx") '<issue49>
+  If Dir(strFile) <> vbNullString Then '<issue49>
+    If MsgBox("A file named '" & strFile & "' already exists in this location. Replace?", vbYesNo + vbExclamation, "Overwrite?") = vbYes Then '<issue49>
+      Kill strFile '<issue49>
+      Workbook.SaveAs strFile, 51 '<issue49>
+      MsgBox "Saved to your Desktop:" & vbCrLf & vbCrLf & Dir(strFile), vbInformation + vbOKOnly, "Resource Demand Exported" '<issue49>
+    End If '<issue49>
+  Else '<issue49>
+    Workbook.SaveAs strFile, 51  '<issue49>
+  End If '</issue49>
   
   Application.StatusBar = "Complete."
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
   
-  MsgBox "Saved to your Desktop:" & vbCrLf & vbCrLf & Workbook.Name, vbInformation + vbOKOnly, "Resource Demand Exported"
   xlApp.Visible = True
   
 exit_here:
