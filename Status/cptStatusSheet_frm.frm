@@ -37,14 +37,12 @@ Dim lngField As Long
     Case 0 'A single workbook
       Me.lboItems.ForeColor = -2147483630
       Me.chkSendEmails.Caption = "Create Email"
-      Me.lblForEach.Visible = False
       Me.cboEach.Enabled = False
       Me.lboItems.Enabled = False
 
     Case 1 'A worksheet for each
       Me.lboItems.ForeColor = -2147483630
-      Me.chkSendEmails.Caption = "Create Email(s)"
-      Me.lblForEach.Visible = True
+      Me.chkSendEmails.Caption = "Create Email"
       Me.cboEach.Enabled = True
       Me.lboItems.Enabled = True
       If Me.Visible Then Me.cboEach.DropDown
@@ -52,7 +50,6 @@ Dim lngField As Long
     Case 2 'A workbook for each
       Me.lboItems.ForeColor = -2147483630
       Me.chkSendEmails.Caption = "Create Email(s)"
-      Me.lblForEach.Visible = True
       Me.cboEach.Enabled = True
       Me.lboItems.Enabled = True
       If Me.Visible Then Me.cboEach.DropDown
@@ -131,7 +128,7 @@ Private Sub cboEVP_Change()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  Call cptRefreshStatusTable
+  If cptStatusSheet_frm.Visible Then Call cptRefreshStatusTable
 
 exit_here:
   On Error Resume Next
@@ -165,7 +162,7 @@ Private Sub cboEVT_Change()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  Call cptRefreshStatusTable
+  If cptStatusSheet_frm.Visible Then Call cptRefreshStatusTable
 
 exit_here:
   On Error Resume Next
@@ -181,6 +178,7 @@ Private Sub chkHide_Click()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   Me.txtHideCompleteBefore.Enabled = Me.chkHide
+  Call cptRefreshStatusTable
 
 exit_here:
   On Error Resume Next
@@ -391,7 +389,6 @@ Dim strFileName As String
   Me.lblStatus.ForeColor = -2147483630
   Me.cboCostTool.ForeColor = -2147483630
   Me.cboCreate.ForeColor = -2147483630
-  Me.lboItems.ForeColor = -2147483630
 
   'validation
   If Not IsDate(Me.txtStatusDate.Value) Then
@@ -444,7 +441,8 @@ Dim strFileName As String
       If Me.lboItems.Selected(lngItem) Then lngSelectedItems = lngSelectedItems + 1
     Next lngItem
     If lngSelectedItems = 0 Then
-      Me.lboItems.ForeColor = 92
+      Me.lboItems.Selected(0) = True
+      'Me.lboItems.ForeColor = 92
       blnError = True
     End If
     'the limiting field should be included in the export list

@@ -141,8 +141,6 @@ next_field:
         cptStatusSheet_frm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
         cptStatusSheet_frm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
         cptStatusSheet_frm.lboExport.List(lngItem, 2) = .Fields(2) 'Local Field Name
-        Debug.Print FieldConstantToFieldName(.Fields(0))
-        Debug.Print .Fields(1)
         If CustomFieldGetName(.Fields(0)) <> CStr(.Fields(1)) Then
           strFieldNamesChanged = strFieldNamesChanged & .Fields(2) & " '" & .Fields(1) & "' is now "
           If Len(CustomFieldGetName(.Fields(0))) > 0 Then
@@ -270,6 +268,8 @@ Dim vCol As Variant, aUserFields As Variant
   cptStatusSheet_frm.lblStatus.Caption = " Analyzing project..."
   'get task count
   t = GetTickCount
+  SelectAll
+  Set Tasks = ActiveSelection.Tasks
   For Each Task In Tasks
     lngTaskCount = lngTaskCount + 1
   Next Task
@@ -439,6 +439,8 @@ next_field:
   'capture task data
   t = GetTickCount
   lngRow = lngHeaderRow
+  SelectAll
+  Set Tasks = ActiveSelection.Tasks
   For Each Task In Tasks
     If Task Is Nothing Then GoTo next_task
     If Task.OutlineLevel = 0 Then GoTo next_task
@@ -970,6 +972,8 @@ evt_vs_evp:
 
   '=============== Issue36 above this line =================
 
+skip_formatting: 'for dev/debug
+
   t = GetTickCount
   cptStatusSheet_frm.lblStatus.Caption = "Saving Workbook" & IIf(cptStatusSheet_frm.cboCreate.Value = "1", "s", "") & "..."
   'todo:save the workbook, worksheets, or workbooks
@@ -1003,37 +1007,62 @@ evt_vs_evp:
     End If
   Else
     'cycle through each option and create sheet
-    For lngItem = 0 To cptStatusSheet_frm.lboItems.ListCount - 1
-      If cptStatusSheet_frm.lboItems.Selected(lngItem) Then
-        'get item
-        strItem = cptStatusSheet_frm.lboItems.List(lngItem)
-        Workbook.Sheets(1).Copy After:=Workbook.Sheets(1)
-        Set Worksheet = Workbook.Sheets("Status Sheet (2)")
-        Worksheet.Name = strItem
-        lngCol = Worksheet.Rows(lngHeaderRow).Find(cptStatusSheet_frm.cboEach.Value).Column
-        lngLastRow = lngRow
-        For lngRow = lngLastRow To lngHeaderRow + 1 Step -1
-          'use uid to look it up rather than referring to the worksheet, in case forEach field is not included
-          If Len(Worksheet.Cells(lngRow, lngCol)) > 0 And Worksheet.Cells(lngRow, lngCol) <> strItem Then
-            Worksheet.Rows(lngRow).Delete
-          End If
-        Next lngRow
-      End If
-      'alternative methods:
-      'apply autofilter, select all, if worksheet uid not in list then delete it
-      'apply initial autofilter for all items; apply autofilter for each item, capture in sortedlist, if not contains then delete row
-      'ensure workbook calculation and screenupdating are off
+    For lngItem = aEach.count - 1 To 0 Step -1
+      Workbook.Sheets(1).Copy After:=Workbook.Sheets(1)
+      Set Worksheet = Workbook.Sheets("Status Sheet (2)")
+      Worksheet.Name = aEach.getKey(lngItem)
+      SetAutoFilter FieldName:=cptStatusSheet_frm.cboEach, FilterType:=pjAutoFilterIn, Criteria1:=aEach.getKey(lngItem)
+      SelectAll
+      'get array of task and assignment unique ids
+      Worksheet.Cells(lngRow + 2, 1).Value = "KEEP"
+      For Each Task In ActiveSelection.Tasks
+        Worksheet.Cells(Worksheet.Rows.count, 1).End(xlUp).Offset(1, 0) = Task.UniqueID
+        For Each Assignment In Task.Assignments
+          Worksheet.Cells(Worksheet.Rows.count, 1).End(xlUp).Offset(1, 0) = Assignment.UniqueID
+        Next Assignment
+      Next Task
+      'name the range
+      Set rngKeep = Worksheet.Cells(lngRow + 2, 1)
+      Set rngKeep = Worksheet.Range(rngKeep, rngKeep.End(xlDown))
+      Workbook.Names.Add Name:="KEEP", RefersToR1C1:="=" & aEach.getKey(lngItem) & "!" & rngKeep.Address(True, True, xlR1C1)
+      lngLastCol = Worksheet.Cells(lngHeaderRow, 1).End(xlToRight).Offset(1, 1).Column
+      Set rngKeep = Worksheet.Range(Worksheet.Cells(lngHeaderRow + 1, lngLastCol), Worksheet.Cells(lngRow, lngLastCol))
+      rngKeep(1).Offset(-1, 0).Value = "KEEP"
+      rngKeep.Formula = "=IFERROR(VLOOKUP(A" & lngHeaderRow + 1 & ",KEEP,1,FALSE),""DELETE"")"
+      xlApp.Calculate
+      Worksheet.Cells(lngHeaderRow, 1).AutoFilter
+      Worksheet.Range(Worksheet.Cells(lngHeaderRow - 1, 1), Worksheet.Cells(lngRow, lngLastCol)).AutoFilter Field:=lngLastCol, Criteria1:="DELETE"
+      Worksheet.Rows(CStr(lngHeaderRow + 1 & ":" & lngRow)).Delete Shift:=xlUp
+      Worksheet.Cells(lngHeaderRow, 1).AutoFilter
+      Worksheet.Columns(lngLastCol).Delete
+      Worksheet.Range("KEEP").Clear
+      Workbook.Names("KEEP").Delete
+      Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
+      Worksheet.EnableSelection = xlNoRestrictions
+      'todo:handle if separate workbooks
+      'todo:retain user's applied group
     Next
+    xlApp.Visible = True
+    xlApp.ScreenUpdating = True
+    xlApp.Calculation = True
+
+    'reset autofilter
+    strFieldName = cptStatusSheet_frm.cboEach.Value
+    For lngItem = 0 To aEach.count - 1
+      strCriteria = strCriteria & aEach.getKey(lngItem) & Chr$(9)
+    Next
+    strCriteria = Left(strCriteria, Len(strCriteria) - 1)
+    SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
+
     If cptStatusSheet_frm.cboCreate.Value = "2" Then
       'copy worksheet to new workbook
       Set Workbook = Worksheet.Move
       'save new workbook with item name in file name
       Set Worksheet = Workbook.Sheets(strItem)
     End If
-    Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
-    Worksheet.EnableSelection = xlNoRestrictions
     'save workbook
   End If
+
   Debug.Print "save workbook: " & (GetTickCount - t) / 1000
   Debug.Print "</=====PERFORMANCE TEST=====>"
 
@@ -1127,6 +1156,14 @@ Dim lngItem As Long
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False, ShowAddNewColumn:=False
   TableApply Name:="cptStatusSheet Table"
+
+  'reset the filter
+  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
+  If cptStatusSheet_frm.chkHide Then
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
+  End If
+  FilterApply "cptStatusSheet Filter"
+
 
 exit_here:
   On Error Resume Next
