@@ -21,6 +21,7 @@ Dim lngField As Long, lngItem As Long
 'integers
 Dim intField As Integer
 'strings
+Dim strFieldNamesChanged As String
 Dim strFieldName As String, strFileName As String
 'dates
 Dim dtStatus As Date
@@ -33,7 +34,8 @@ Dim vFieldType As Variant
   If Not cptCheckReference("Excel") Then GoTo exit_here
   'requires scripting (cptRegEx)
   If Not cptCheckReference("Scripting") Then GoTo exit_here
-  
+
+  'reset options
   With cptStatusSheet_frm
     .lboFields.Clear
     .lboExport.Clear
@@ -44,12 +46,19 @@ Dim vFieldType As Variant
     .cboCostTool.AddItem "COBRA"
     .cboCostTool.AddItem "MPM"
     .cboCostTool.AddItem "<none>"
+    .cboCreate.AddItem
+    For lngItem = 0 To 2
+      .cboCreate.AddItem
+      .cboCreate.List(lngItem, 0) = lngItem
+      .cboCreate.List(lngItem, 1) = Choose(lngItem + 1, "A Single Workbook", "A Worksheet for each", "A Workbook for each")
+    Next lngItem
   End With
-  
+
+  'set up arrays to capture values
   Set arrFields = CreateObject("System.Collections.SortedList")
   Set arrEVT = CreateObject("System.Collections.SortedList")
   Set arrEVP = CreateObject("System.Collections.SortedList")
-  
+
   For Each vFieldType In Array("Text", "Outline Code", "Number")
     On Error GoTo err_here
     For intField = 1 To 30
@@ -68,25 +77,25 @@ Dim vFieldType As Variant
 next_field:
     Next intField
   Next vFieldType
-  
+
   'get enterprise custom fields
   For lngField = 188776000 To 188778000 '2000 should do it for now
     If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
       arrFields.Add Application.FieldConstantToFieldName(lngField), lngField
     End If
   Next lngField
-  
+
   'add custom fields
   'col0 = constant
   'col1 = name
   For intField = 0 To arrFields.count - 1
     cptStatusSheet_frm.lboFields.AddItem
-    cptStatusSheet_frm.lboFields.List(intField, 0) = arrFields.getByIndex(intField)
+    cptStatusSheet_frm.lboFields.List(intField, 0) = arrFields.GetByIndex(intField)
     cptStatusSheet_frm.lboFields.List(intField, 1) = arrFields.getKey(intField)
     If FieldNameToFieldConstant(arrFields.getKey(intField)) >= 188776000 Then
       cptStatusSheet_frm.lboFields.List(intField, 2) = "Enterprise"
     Else
-      cptStatusSheet_frm.lboFields.List(intField, 2) = FieldConstantToFieldName(arrFields.getByIndex(intField))
+      cptStatusSheet_frm.lboFields.List(intField, 2) = FieldConstantToFieldName(arrFields.GetByIndex(intField))
     End If
     cptStatusSheet_frm.cboEach.AddItem arrFields.getKey(intField)
   Next
@@ -98,7 +107,7 @@ next_field:
   For intField = 0 To arrEVP.count - 1 'UBound(st)
     cptStatusSheet_frm.cboEVP.AddItem arrEVP.getKey(intField) 'st(intField)(1)
   Next
-  
+
   'add saved settings if they exist
   strFileName = cptDir & "\settings\cpt-status-sheet.adtg"
   If Dir(strFileName) <> vbNullString Then
@@ -108,9 +117,7 @@ next_field:
       On Error Resume Next
       cptStatusSheet_frm.cboEVT.Value = .Fields(0) 'cboEVT
       cptStatusSheet_frm.cboEVP.Value = .Fields(1) 'cboEVP
-      cptStatusSheet_frm.optWorkbook = .Fields(2) = 1 'chkOutput
-      cptStatusSheet_frm.optWorksheets = .Fields(2) = 2 'chkOutput
-      cptStatusSheet_frm.optWorkbooks = .Fields(2) = 3 'chkOutput
+      cptStatusSheet_frm.cboCreate = .Fields(2) - 1
       cptStatusSheet_frm.chkHide = .Fields(3) = 1 'chkHide
       If .Fields.count >= 5 Then
         If Not IsNull(.Fields(4)) Then cptStatusSheet_frm.cboCostTool.Value = .Fields(4) 'cboCostTool
@@ -121,7 +128,7 @@ next_field:
       .Close
     End With
   End If
-  
+
   'add saved export fields if they exist
   strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
   If Dir(strFileName) <> vbNullString Then
@@ -134,27 +141,53 @@ next_field:
         cptStatusSheet_frm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
         cptStatusSheet_frm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
         cptStatusSheet_frm.lboExport.List(lngItem, 2) = .Fields(2) 'Local Field Name
+        Debug.Print FieldConstantToFieldName(.Fields(0))
+        Debug.Print .Fields(1)
+        If CustomFieldGetName(.Fields(0)) <> CStr(.Fields(1)) Then
+          strFieldNamesChanged = strFieldNamesChanged & .Fields(2) & " '" & .Fields(1) & "' is now "
+          If Len(CustomFieldGetName(.Fields(0))) > 0 Then
+            strFieldNamesChanged = strFieldNamesChanged & "'" & CustomFieldGetName(.Fields(0)) & "'" & vbCrLf
+          Else
+            strFieldNamesChanged = strFieldNamesChanged & "<unnamed>" & vbCrLf
+          End If
+        End If
         lngItem = lngItem + 1
         .MoveNext
       Loop
       .Close
     End With
   End If
-  
+
+  'reset the view
+  Call cptRefreshStatusTable
+  FilterClear
+  OptionsViewEx displaysummarytasks:=True
+  OutlineShowAllTasks
+
   'set the status date / hide complete
   If ActiveProject.StatusDate = "NA" Then
     cptStatusSheet_frm.txtStatusDate.Value = FormatDateTime(DateAdd("d", 6 - Weekday(Now), Now), vbShortDate)
   Else
     cptStatusSheet_frm.txtStatusDate = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
   End If
-  
+
   'delete pre-existing search file
   strFileName = cptDir & "\settings\cpt-status-sheet-search.adtg"
   If Dir(strFileName) <> vbNullString Then Kill strFileName
-  
+
   dtStatus = CDate(cptStatusSheet_frm.txtStatusDate.Value)
   cptStatusSheet_frm.txtHideCompleteBefore.Value = DateAdd("d", -(Day(dtStatus) - 1), dtStatus)
+
+  'set up the view/table/filter
+  cptRefreshStatusTable
+
   cptStatusSheet_frm.Show False
+
+  If Len(strFieldNamesChanged) > 0 Then
+    strFieldNamesChanged = "The following saved export field names have changed:" & vbCrLf & vbCrLf & strFieldNamesChanged
+    strFieldNamesChanged = strFieldNamesChanged & vbCrLf & vbCrLf & "You may wish to remove them from the export list."
+    MsgBox strFieldNamesChanged, vbInformation + vbOKOnly, "Saved Settings - Mismatches"
+  End If
 
 exit_here:
   On Error Resume Next
@@ -201,19 +234,21 @@ Dim lngASCol As Long, lngAFCol As Long, lngETCCol As Long, lngEVPCol As Long
 #Else '<issue53>
 	Dim t As Long, tTotal As Long '<issue53>
 #End If '<issue53>
+Dim lngItem As Long, lngLastRow As Long
 'strings
 Dim strMsg As String
 Dim strEVT As String, strEVP As String, strDir As String, strFileName As String
 Dim strFirstCell As String
+Dim strItem As String
 'dates
 Dim dtStatus As Date
 'variants
 Dim vCol As Variant, aUserFields As Variant
 'booleans
-Dim blnFast As Boolean
 
+  'start a timer for performance tracking
   tTotal = GetTickCount
-  
+
   'check reference
   If Not cptCheckReference("Excel") Then GoTo exit_here
 
@@ -222,18 +257,16 @@ Dim blnFast As Boolean
     MsgBox "Please install the ClearPlan 'cptCore_bas' module.", vbExclamation + vbOKOnly, "Missing Module"
     GoTo exit_here
   End If
-  
-  blnFast = True
-  
+
+  'ensure project has tasks
   On Error Resume Next
   Set Tasks = ActiveProject.Tasks
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
   If Tasks Is Nothing Then
     MsgBox "This project has no tasks.", vbExclamation + vbOKOnly, "Create Status Sheet"
     GoTo exit_here
   End If
-  
+
   cptStatusSheet_frm.lblStatus.Caption = " Analyzing project..."
   'get task count
   t = GetTickCount
@@ -242,7 +275,7 @@ Dim blnFast As Boolean
   Next Task
   Debug.Print "<=====PERFORMANCE TEST " & Now() & "=====>"
   Debug.Print "get task count: " & (GetTickCount - t) / 1000
-  
+
   cptStatusSheet_frm.lblStatus.Caption = " Setting up workbook..."
   'set up an excel workbook
   t = GetTickCount
@@ -254,7 +287,7 @@ Dim blnFast As Boolean
   Worksheet.Name = "Status Sheet"
   Set xlCells = Worksheet.Cells
   Debug.Print "set up excel workbook: " & (GetTickCount - t) / 1000
-  
+
   'set up legend
   t = GetTickCount
   xlCells(1, 1).Value = "Status Date:"
@@ -290,17 +323,17 @@ Dim blnFast As Boolean
   Debug.Print "set up legend: " & (GetTickCount - t) / 1000
 
   lngHeaderRow = 8
-  
+
   'set up header
   t = GetTickCount
-  
+
   'get selected fields for two non-standard fields
   strEVT = cptStatusSheet_frm.cboEVT.Value
   strEVP = cptStatusSheet_frm.cboEVP.Value
-  
+
   'set up header
   Set aHeaders = CreateObject("System.Collections.ArrayList")
-  
+
   'define non-standard columwidths - default is 10
   Set aOddBalls = CreateObject("System.Collections.SortedList")
   aOddBalls.Add "Name", 60
@@ -309,7 +342,7 @@ Dim blnFast As Boolean
   aOddBalls.Add strEVT, 5
   aOddBalls.Add strEVP, 5
   aOddBalls.Add "Notes", 45
-  
+
   'add standard local fields, required EVT and EV%
   'some of these will be renamed later
   For Each vCol In Array("Unique ID", _
@@ -327,14 +360,14 @@ Dim blnFast As Boolean
                     "Baseline Start", _
                     "Baseline Finish", _
                     "Notes")
-    If aOddBalls.contains(vCol) Then
+    If aOddBalls.Contains(vCol) Then
       lngColumnWidth = aOddBalls.Item(vCol)
     Else
       lngColumnWidth = 10 'default
     End If
     aHeaders.Add Array(FieldNameToFieldConstant(vCol), vCol, lngColumnWidth)
   Next vCol
-  
+
   'save fields to adtg file
   strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
   aUserFields = cptStatusSheet_frm.lboExport.List()
@@ -354,7 +387,7 @@ Dim blnFast As Boolean
     End If '</issue43>
     .Close
   End With
-  
+
   'get user fields
   For lngField = UBound(aUserFields) To 0 Step -1
     If aUserFields(lngField, 1) = strEVT Then GoTo next_field
@@ -363,7 +396,7 @@ Dim blnFast As Boolean
     aHeaders.Insert 1, Array(aUserFields(lngField, 0), aUserFields(lngField, 1), lngColumnWidth)
 next_field:
   Next lngField
-    
+
   'write the headers and size the columns
   For lngField = 0 To aHeaders.count - 1
     xlCells(lngHeaderRow, lngField + 1).Value = aHeaders(lngField)(1)
@@ -389,20 +422,20 @@ next_field:
     .WrapText = True
   End With
   Debug.Print "set up header: " & (GetTickCount - t) / 1000
-  
+
   'prepare to capture each
-  If cptStatusSheet_frm.optWorkbook = False Then
+  If cptStatusSheet_frm.cboCreate.Value <> "0" Then
     Set aEach = CreateObject("System.Collections.SortedList")
     lngEach = FieldNameToFieldConstant(cptStatusSheet_frm.cboEach.Value)
   End If
-  
+
   'prepare to capture bulk ranges
   Set aTaskRow = CreateObject("System.Collections.ArrayList")
   Set aAssignments = CreateObject("System.Collections.ArrayList")
   Set aSummaries = CreateObject("System.Collections.ArrayList")
   Set aMilestones = CreateObject("System.Collections.ArrayList")
   Set aNormal = CreateObject("System.Collections.ArrayList")
-  
+
   'capture task data
   t = GetTickCount
   lngRow = lngHeaderRow
@@ -414,21 +447,23 @@ next_field:
     If cptStatusSheet_frm.chkHide = True Then
       If Task.ActualFinish <= CDate(cptStatusSheet_frm.txtHideCompleteBefore) Then GoTo next_task
     End If
-    
+
     lngRow = lngRow + 1
-    
-    If cptStatusSheet_frm.optWorkbook = False Then
-      aEach.Add Task.GetField(lngEach), Task.GetField(lngEach)
+
+    If cptStatusSheet_frm.cboCreate.Value <> "0" Then
+      If Not aEach.Contains(Task.GetField(lngEach)) Then
+        If Len(Task.GetField(lngEach)) > 0 Then aEach.Add Task.GetField(lngEach), Task.GetField(lngEach)
+      End If
     End If
-    
+
     'get common data
     For lngCol = 1 To lngNameCol
       aTaskRow.Add Task.GetField(aHeaders(lngCol - 1)(0))
     Next lngCol
-    
+
     'indent the task name
     xlCells(lngRow, lngNameCol).IndentLevel = Task.OutlineLevel + 1
-    
+
     'todo: error writing to worksheet
     If Task.Summary Then
       xlCells(lngRow, 1).Resize(, aTaskRow.count).Value = aTaskRow.ToArray()
@@ -444,17 +479,17 @@ next_field:
           aTaskRow.Add Task.GetField(aHeaders(lngCol - 1)(0))
         End If
       Next lngCol
-      
+
       'identify for formatting
       If Task.Milestone Then aMilestones.Add lngRow Else aNormal.Add lngRow
-      
+
       'debug only
       'xlCells(lngRow, lgLastCol + 1).Value = (GetTickCount - t) / 1000
-      
+
       'write task data to sheet
       xlCells(lngRow, 1).Resize(, aTaskRow.count).Value = aTaskRow.ToArray()
       aTaskRow.Clear
-      
+
       'get assignment data for incomplete tasks
       If Task.ActualFinish = "NA" Then
         'add a rollup formlua for Revised ETC?
@@ -477,31 +512,31 @@ next_field:
           xlCells(lngRow, lngRemainingWorkCol).Value = Assignment.RemainingWork / 60
           xlCells(lngRow, 1).Resize(, aTaskRow.count).Value = aTaskRow.ToArray()
           aTaskRow.Clear
-          
+
           '/===debug===\
           'xlCells(lngRow, aHeaders.count + 1).Value = (GetTickCount - t) / 1000
           '\===debug===/
         Next Assignment
       End If 'Task.ActualFinish = "NA"
-      
+
     End If 'Task Summary
-    
+
 next_task:
     lngTask = lngTask + 1
     Application.StatusBar = "Exporting..." & Format(lngTask, "#,##0") & " / " & Format(lngTaskCount, "#,##0") & " (" & Format(lngTask / lngTaskCount, "0%") & ")"
     cptStatusSheet_frm.lblStatus.Caption = " Exporting..." & Format(lngTask, "#,##0") & " / " & Format(lngTaskCount, "#,##0") & " (" & Format(lngTask / lngTaskCount, "0%") & ")"
     cptStatusSheet_frm.lblProgress.Width = (lngTask / (lngTaskCount)) * cptStatusSheet_frm.lblStatus.Width
   Next Task
-  
+
   Debug.Print "capture task data: " & (GetTickCount - t) / 1000 & " >> " & Format(((GetTickCount - t) / 1000) / (lngRow - lngHeaderRow), "#0.00000") & " per task"
-  
+
   t = GetTickCount
   'add New EV% after EV% - update aHeaders
   lngEVPCol = Worksheet.Rows(lngHeaderRow).Find(strEVP).Column + 1
   Worksheet.Columns(lngEVPCol).Insert Shift:=xlToRight
   xlCells(lngHeaderRow, lngEVPCol).Value = "New EV%"
   aHeaders.Insert lngEVPCol - 1, Array(0, "New EV%", 10)
-    
+
   'add Revised ETC after Remaining Work - update aHeaders
   lngETCCol = Worksheet.Rows(lngHeaderRow).Find("Remaining Work").Column + 1
   Worksheet.Columns(lngETCCol).Insert Shift:=xlToRight
@@ -556,7 +591,7 @@ next_task:
     If Not rAssignments Is Nothing Then rAssignments.Font.Italic = True
     End If '</issue16-17>
   Debug.Print "format rows: " & (GetTickCount - t) / 1000
-  
+
   t = GetTickCount
   'format common borders
   Set rng = Worksheet.Range(xlCells(lngHeaderRow, 1), xlCells(lngRow, aHeaders.count))
@@ -564,7 +599,7 @@ next_task:
   rng.Borders(xlInsideHorizontal).LineStyle = xlContinuous
   rng.Borders(xlInsideHorizontal).Weight = xlThin
   Debug.Print "format common borders: " & (GetTickCount - t) / 1000
-  
+
   t = GetTickCount
   'rename headers
   Set rng = xlCells(lngHeaderRow, 1).Resize(, aHeaders.count)
@@ -580,15 +615,15 @@ next_task:
 
   t = GetTickCount
   cptStatusSheet_frm.lblStatus.Caption = "Formatting Columns..."
-  
+
   '================ Issue 36 below this line ======================
-  
+
   'columns to center
   Set aCentered = CreateObject("System.Collections.ArrayList")
   For Each vCol In Array("UID", "Duration", "Total Slack", strEVT, strEVP, "New EV%")
     aCentered.Add vCol
   Next vCol
-  
+
   'entry headers
   Set aEntryHeaders = CreateObject("System.Collections.ArrayList")
   For Each vCol In Array("Actual Start", "Actual Finish", "New EV%", "Revised ETC", "Notes")
@@ -599,7 +634,7 @@ next_task:
   t = GetTickCount
   'define bulk column ranges for formatting
   For lngCol = 0 To aHeaders.count - 1
-    
+
     'format dates
     If Len(cptRegEx(CStr(aHeaders(lngCol)(1)), "Start|Finish")) > 0 Then
       If rDates Is Nothing Then
@@ -617,7 +652,7 @@ next_task:
       End If
     End If
     'format centered
-    If aCentered.contains(aHeaders(lngCol)(1)) Then
+    If aCentered.Contains(aHeaders(lngCol)(1)) Then
       If rCentered Is Nothing Then
         Set rCentered = xlCells(lngHeaderRow + 1, lngCol + 1).Resize(rowsize:=lngRow - lngHeaderRow)
       Else
@@ -625,7 +660,7 @@ next_task:
       End If
     End If
     'format entry headers and columns
-    If aEntryHeaders.contains(aHeaders(lngCol)(1)) Then
+    If aEntryHeaders.Contains(aHeaders(lngCol)(1)) Then
       If rEntry Is Nothing Then
         Set rEntry = xlCells(lngHeaderRow, lngCol + 1)
         Set rMedium = xlCells(lngHeaderRow + 1, lngCol + 1).Resize(rowsize:=lngRow - lngHeaderRow)
@@ -636,10 +671,10 @@ next_task:
         Set rLockedCells = rMedium
       End If
     End If
-    
+
   Next
   Debug.Print "define bulk ranges for formatting: " & (GetTickCount - t) / 1000
-  
+
   t = GetTickCount
   'apply bulk formatting
   rDates.NumberFormat = "m/d/yy;@"
@@ -656,7 +691,7 @@ next_task:
   lngCol = Worksheet.Rows(lngHeaderRow).Find("Actual Finish", lookat:=xlPart).Column
   xlCells(lngHeaderRow + 1, lngCol).Resize(lngRow - lngHeaderRow).Borders(xlEdgeLeft).Weight = xlThin
   Debug.Print "apply bulk formatting: " & (GetTickCount - t) / 1000
-  
+
   'todo: apply conditional formatting
   'update required formatting ("neutral"): - update required
 '  .Font.Color = -16754788
@@ -678,7 +713,7 @@ next_task:
 '  .Interior.PatternColorIndex = xlAutomatic
 '  .Interior.Color = 13561798
 '  .Interior.TintAndShade = 0  t = GetTickCount
-  
+
   'define range for new start
   xlCells(lngHeaderRow, 1).AutoFilter
   Set rngAll = Worksheet.Range(xlCells(lngHeaderRow, 1).End(xlToRight), xlCells(lngHeaderRow, 1).End(xlDown))
@@ -742,7 +777,7 @@ next_task:
     .Color = 13561798
     .TintAndShade = 0
   End With
-  
+
 new_finish: '<issue52>
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   'new finish
@@ -808,7 +843,7 @@ new_finish: '<issue52>
     .Color = 13561798
     .TintAndShade = 0
   End With
-  
+
 ev_percent:
   'ev%
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -873,10 +908,10 @@ ev_percent:
     .Color = 13551615
     .TintAndShade = 0
   End With
-  
+
   '(new start <> "" AND new start <> start) OR (newn finish <> "" AND new finish <> finish) (update required) > update required
   '<skipped>
-  
+
 revised_etc:
   'revised etc
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
@@ -901,13 +936,13 @@ revised_etc:
 '        xlFilterAutomaticFontColor
 '    ActiveSheet.Range("$A$8:$U$100").AutoFilter Field:=7, Operator:= _
 '        xlFilterNoFill
-  
+
   '>0 and ev%=100 (complete with etc) > invalid
   '>0 and finish < status date (complete with etc) > invalid
   '=0 and ev%<100 (incpmlete without etc) > invalid
   '=0 and finish > status date (incomplete without etc) > invalid
   '(new start <> "" AND new start <> start) OR (newn finish <> "" AND new finish <> finish) (update required) > update required
-  
+
 evt_vs_evp:
   'evt vs evp checks
   If cptStatusSheet_frm.cboCostTool = "COBRA" Then
@@ -922,21 +957,21 @@ evt_vs_evp:
     'skip it - too many variables
   End If
   Debug.Print "apply conditional formatting " & (GetTickCount - t) / 1000
-  
+
   xlApp.Visible = True
   xlApp.ScreenUpdating = True
-  
+
   Worksheet.ShowAllData
   xlApp.ActiveWindow.ScrollRow = 1 '<issue54>
   xlCells(lngHeaderRow + 1, lngNameCol + 1).Select
   xlApp.ActiveWindow.FreezePanes = True
   'prettify the task name column
   Worksheet.Columns(lngNameCol).AutoFit
-  
+
   '=============== Issue36 above this line =================
-  
+
   t = GetTickCount
-  cptStatusSheet_frm.lblStatus.Caption = "Saving Workbook" & IIf(cptStatusSheet_frm.optWorkbooks, "s", "") & "..."
+  cptStatusSheet_frm.lblStatus.Caption = "Saving Workbook" & IIf(cptStatusSheet_frm.cboCreate.Value = "1", "s", "") & "..."
   'todo:save the workbook, worksheets, or workbooks
   strDir = Environ("USERPROFILE") & "\Desktop\CP_Status_Sheets\"
   'get clean project name
@@ -947,7 +982,7 @@ evt_vs_evp:
   strFileName = Replace(strFileName, ".mpp", "")
   'create folder on desktop for project(?)
   'create folder on desktop for status date
-  If cptStatusSheet_frm.optWorkbook Then
+  If cptStatusSheet_frm.cboCreate.Value = "0" Then
     'protect the sheet
     Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
     Worksheet.EnableSelection = xlNoRestrictions
@@ -967,22 +1002,41 @@ evt_vs_evp:
       Workbook.SaveAs strDir & "\" & strFileName, 51
     End If
   Else
-    'rename master, apply autofilter
     'cycle through each option and create sheet
+    For lngItem = 0 To cptStatusSheet_frm.lboItems.ListCount - 1
+      If cptStatusSheet_frm.lboItems.Selected(lngItem) Then
+        'get item
+        strItem = cptStatusSheet_frm.lboItems.List(lngItem)
+        Workbook.Sheets(1).Copy After:=Workbook.Sheets(1)
+        Set Worksheet = Workbook.Sheets("Status Sheet (2)")
+        Worksheet.Name = strItem
+        lngCol = Worksheet.Rows(lngHeaderRow).Find(cptStatusSheet_frm.cboEach.Value).Column
+        lngLastRow = lngRow
+        For lngRow = lngLastRow To lngHeaderRow + 1 Step -1
+          'use uid to look it up rather than referring to the worksheet, in case forEach field is not included
+          If Len(Worksheet.Cells(lngRow, lngCol)) > 0 And Worksheet.Cells(lngRow, lngCol) <> strItem Then
+            Worksheet.Rows(lngRow).Delete
+          End If
+        Next lngRow
+      End If
+      'alternative methods:
+      'apply autofilter, select all, if worksheet uid not in list then delete it
+      'apply initial autofilter for all items; apply autofilter for each item, capture in sortedlist, if not contains then delete row
+      'ensure workbook calculation and screenupdating are off
+    Next
+    If cptStatusSheet_frm.cboCreate.Value = "2" Then
+      'copy worksheet to new workbook
+      Set Workbook = Worksheet.Move
+      'save new workbook with item name in file name
+      Set Worksheet = Workbook.Sheets(strItem)
+    End If
     Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
     Worksheet.EnableSelection = xlNoRestrictions
-    If cptStatusSheet_frm.optWorksheets Then
-      'save to desktop in folder for status date
-    ElseIf cptStatusSheet_frm.optWorkbooks Then
-      'cycle through each worksheet and create workbook
-      Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
-      Worksheet.EnableSelection = xlNoRestrictions
-      'save to desktop in folder for status date
-    End If
+    'save workbook
   End If
   Debug.Print "save workbook: " & (GetTickCount - t) / 1000
   Debug.Print "</=====PERFORMANCE TEST=====>"
-  
+
   cptStatusSheet_frm.lblProgress.Width = cptStatusSheet_frm.lblStatus.Width
   cptStatusSheet_frm.lblStatus.Caption = " Complete."
   Application.StatusBar = "Complete."
@@ -1029,4 +1083,57 @@ err_here:
   End If
   Resume exit_here
 
+End Sub
+
+Sub cptRefreshStatusTable()
+'objects
+'strings
+'longs
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  cptSpeed True
+
+  'reset the table
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Unique ID", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  lngItem = 0
+  If cptStatusSheet_frm.lboExport.ListCount > 0 Then
+    For lngItem = 0 To cptStatusSheet_frm.lboExport.ListCount - 1
+      TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=FieldConstantToFieldName(cptStatusSheet_frm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+    Next lngItem
+  End If
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Name", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Duration", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Actual Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Actual Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Total Slack", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  If cptStatusSheet_frm.cboEVT <> 0 Then
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVT.Value, Title:="", Width:=5, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  End If
+  If cptStatusSheet_frm.cboEVP <> 0 Then
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVP.Value, Title:="EV%", Width:=5, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  End If
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False, ShowAddNewColumn:=False
+  TableApply Name:="cptStatusSheet Table"
+
+exit_here:
+  On Error Resume Next
+  cptSpeed False
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptRefreshStatusView", err, Erl)
+  err.Clear
+  Resume exit_here
 End Sub
