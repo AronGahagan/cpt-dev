@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.0.9</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -177,9 +177,12 @@ next_field:
   cptStatusSheet_frm.txtHideCompleteBefore.Value = DateAdd("d", -(Day(dtStatus) - 1), dtStatus)
 
   'set up the view/table/filter
-  cptRefreshStatusTable
-
   cptStatusSheet_frm.Show False
+  cptRefreshStatusTable
+  FilterClear
+  OptionsViewEx displaysummarytasks:=True
+  OutlineShowAllTasks
+
 
   If Len(strFieldNamesChanged) > 0 Then
     strFieldNamesChanged = "The following saved export field names have changed:" & vbCrLf & vbCrLf & strFieldNamesChanged
@@ -207,6 +210,7 @@ End Sub
 
 Sub cptCreateStatusSheet()
 'objects
+Dim rngKeep As Object
 Dim Tasks As Tasks, Task As Task, Resource As Resource, Assignment As Assignment
 'early binding:
 'Dim xlApp As Excel.Application, Workbook As Workbook, Worksheet As Worksheet, rng As Excel.Range
@@ -222,6 +226,7 @@ Dim aSummaries As Object, aMilestones As Object, aNormal As Object, aAssignments
 Dim aEach As Object, aTaskRow As Object, aHeaders As Object
 Dim aOddBalls As Object, aCentered As Object, aEntryHeaders As Object
 'longs
+Dim lngLastCol As Long
 Dim lngTaskCount As Long, lngTask As Long, lngHeaderRow As Long
 Dim lngRow As Long, lngCol As Long, lngField As Long
 Dim lngNameCol As Long, lngBaselineWorkCol As Long, lngRemainingWorkCol As Long, lngEach As Long
@@ -234,6 +239,8 @@ Dim lngASCol As Long, lngAFCol As Long, lngETCCol As Long, lngEVPCol As Long
 #End If '<issue53>
 Dim lngItem As Long, lngLastRow As Long
 'strings
+Dim strCriteria As String
+Dim strFieldName As String
 Dim strMsg As String
 Dim strEVT As String, strEVP As String, strDir As String, strFileName As String
 Dim strFirstCell As String
@@ -976,16 +983,19 @@ skip_formatting: 'for dev/debug
 
   t = GetTickCount
   cptStatusSheet_frm.lblStatus.Caption = "Saving Workbook" & IIf(cptStatusSheet_frm.cboCreate.Value = "1", "s", "") & "..."
-  'todo:save the workbook, worksheets, or workbooks
   strDir = Environ("USERPROFILE") & "\Desktop\CP_Status_Sheets\"
+  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
   'get clean project name
-  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
-  strDir = strDir & Format(dtStatus, "yyyy-mm-dd")
-  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
   strFileName = cptRemoveIllegalCharacters(ActiveProject.Name)
   strFileName = Replace(strFileName, ".mpp", "")
-  'create folder on desktop for project(?)
-  'create folder on desktop for status date
+  'create project status folder
+  strDir = strDir & Replace(strFileName, " ", "") & "\"
+  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
+  'create project status date folder
+  strDir = strDir & Format(dtStatus, "yyyy-mm-dd") & "\"
+  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
+  strFileName = "SS_" & strFileName & "_" & Format(dtStatus, "yyyy-mm-dd") & ".xlsx"
+  strFileName = Replace(strFileName, " ", "")
   If cptStatusSheet_frm.cboCreate.Value = "0" Then
     'protect the sheet
     Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
@@ -993,17 +1003,17 @@ skip_formatting: 'for dev/debug
     'save to desktop in folder for status date
     strFileName = strFileName & "_StatusSheet_" & Format(dtStatus, "yyyy-mm-dd") & ".xlsx"
     On Error Resume Next
-    If Dir(strDir & "\" & strFileName) <> vbNullString Then Kill strDir & "\" & strFileName
+    If Dir(strDir & strFileName) <> vbNullString Then Kill strDir & strFileName
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     'account for if the file exists and is open in the background
-    If Dir(strDir & "\" & strFileName) <> vbNullString Then 'delete failed, rename with timestamp
+    If Dir(strDir & strFileName) <> vbNullString Then  'delete failed, rename with timestamp
       strMsg = "'" & strFileName & "' already exists, and is likely open." & vbCrLf
       strFileName = Replace(strFileName, ".xlsx", "_" & Format(Now, "-hh-nn-ss") & ".xlsx")
       strMsg = strMsg & "The file you are now creating will be named '" & strFileName & "'"
       MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
-      Workbook.SaveAs strDir & "\" & strFileName, 51
+      Workbook.SaveAs strDir & strFileName, 51
     Else
-      Workbook.SaveAs strDir & "\" & strFileName, 51
+      Workbook.SaveAs strDir & strFileName, 51
     End If
   Else
     'cycle through each option and create sheet
@@ -1039,12 +1049,24 @@ skip_formatting: 'for dev/debug
       Workbook.Names("KEEP").Delete
       Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
       Worksheet.EnableSelection = xlNoRestrictions
-      'todo:handle if separate workbooks
       'todo:retain user's applied group
     Next
+
     xlApp.Visible = True
     xlApp.ScreenUpdating = True
     xlApp.Calculation = True
+
+    'handle workbook for each
+    If cptStatusSheet_frm.cboCreate = "1" Then
+      Workbook.SaveAs strDir & strFileName, 51
+    ElseIf cptStatusSheet_frm.cboCreate.Value = "2" Then
+      For lngItem = aEach.count - 1 To 0 Step -1
+        Workbook.Sheets(aEach.getKey(lngItem)).Copy
+        If Dir(strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")) <> vbNullString Then Kill strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")
+        xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51
+      Next lngItem
+      Workbook.Close False
+    End If
 
     'reset autofilter
     strFieldName = cptStatusSheet_frm.cboEach.Value
@@ -1053,14 +1075,8 @@ skip_formatting: 'for dev/debug
     Next
     strCriteria = Left(strCriteria, Len(strCriteria) - 1)
     SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
+    SelectBeginning
 
-    If cptStatusSheet_frm.cboCreate.Value = "2" Then
-      'copy worksheet to new workbook
-      Set Workbook = Worksheet.Move
-      'save new workbook with item name in file name
-      Set Worksheet = Workbook.Sheets(strItem)
-    End If
-    'save workbook
   End If
 
   Debug.Print "save workbook: " & (GetTickCount - t) / 1000
@@ -1075,6 +1091,7 @@ skip_formatting: 'for dev/debug
 
 exit_here:
   On Error Resume Next
+  Set rngKeep = Nothing
   Application.StatusBar = ""
   cptSpeed False
   Set Tasks = Nothing
@@ -1126,6 +1143,7 @@ Dim lngItem As Long
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If Not cptStatusSheet_frm.Visible Then GoTo exit_here
 
   cptSpeed True
 
@@ -1159,11 +1177,10 @@ Dim lngItem As Long
 
   'reset the filter
   FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
-  If cptStatusSheet_frm.chkHide Then
+  If cptStatusSheet_frm.chkHide And IsDate(cptStatusSheet_frm.txtHideCompleteBefore) Then
     FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
   End If
   FilterApply "cptStatusSheet Filter"
-
 
 exit_here:
   On Error Resume Next
