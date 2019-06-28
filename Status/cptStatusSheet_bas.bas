@@ -1042,7 +1042,10 @@ skip_formatting: 'for dev/debug
       xlApp.Calculate
       Worksheet.Cells(lngHeaderRow, 1).AutoFilter
       Worksheet.Range(Worksheet.Cells(lngHeaderRow - 1, 1), Worksheet.Cells(lngRow, lngLastCol)).AutoFilter Field:=lngLastCol, Criteria1:="DELETE"
-      Worksheet.Rows(CStr(lngHeaderRow + 1 & ":" & lngRow)).Delete Shift:=xlUp
+      'if there are results from the filter, then delete them
+      If Worksheet.AutoFilter.Range.Columns(1).SpecialCells(xlCellTypeVisible).Cells.count - 1 > 0 Then
+        Worksheet.Rows(CStr(lngHeaderRow + 1 & ":" & lngRow)).Delete Shift:=xlUp
+      End If
       Worksheet.Cells(lngHeaderRow, 1).AutoFilter
       Worksheet.Columns(lngLastCol).Delete
       Worksheet.Range("KEEP").Clear
