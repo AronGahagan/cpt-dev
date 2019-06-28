@@ -91,21 +91,21 @@ next_field:
   For intField = 0 To arrFields.count - 1
     cptStatusSheet_frm.lboFields.AddItem
     cptStatusSheet_frm.lboFields.List(intField, 0) = arrFields.GetByIndex(intField)
-    cptStatusSheet_frm.lboFields.List(intField, 1) = arrFields.getKey(intField)
-    If FieldNameToFieldConstant(arrFields.getKey(intField)) >= 188776000 Then
+    cptStatusSheet_frm.lboFields.List(intField, 1) = arrFields.GetKey(intField)
+    If FieldNameToFieldConstant(arrFields.GetKey(intField)) >= 188776000 Then
       cptStatusSheet_frm.lboFields.List(intField, 2) = "Enterprise"
     Else
       cptStatusSheet_frm.lboFields.List(intField, 2) = FieldConstantToFieldName(arrFields.GetByIndex(intField))
     End If
-    cptStatusSheet_frm.cboEach.AddItem arrFields.getKey(intField)
+    cptStatusSheet_frm.cboEach.AddItem arrFields.GetKey(intField)
   Next
   'add EVT values
   For intField = 0 To arrEVT.count - 1
-    cptStatusSheet_frm.cboEVT.AddItem arrEVT.getKey(intField)
+    cptStatusSheet_frm.cboEVT.AddItem arrEVT.GetKey(intField)
   Next
   'add EVP values
   For intField = 0 To arrEVP.count - 1 'UBound(st)
-    cptStatusSheet_frm.cboEVP.AddItem arrEVP.getKey(intField) 'st(intField)(1)
+    cptStatusSheet_frm.cboEVP.AddItem arrEVP.GetKey(intField) 'st(intField)(1)
   Next
 
   'add saved settings if they exist
@@ -210,6 +210,7 @@ End Sub
 
 Sub cptCreateStatusSheet()
 'objects
+Dim aGroups As Object
 Dim rngKeep As Object
 Dim Tasks As Tasks, Task As Task, Resource As Resource, Assignment As Assignment
 'early binding:
@@ -226,6 +227,7 @@ Dim aSummaries As Object, aMilestones As Object, aNormal As Object, aAssignments
 Dim aEach As Object, aTaskRow As Object, aHeaders As Object
 Dim aOddBalls As Object, aCentered As Object, aEntryHeaders As Object
 'longs
+Dim lngGroups As Long
 Dim lngLastCol As Long
 Dim lngTaskCount As Long, lngTask As Long, lngHeaderRow As Long
 Dim lngRow As Long, lngCol As Long, lngField As Long
@@ -448,7 +450,20 @@ next_field:
   lngRow = lngHeaderRow
   SelectAll
   Set Tasks = ActiveSelection.Tasks
-  For Each Task In Tasks
+
+  SelectBeginning
+  Set aGroups = CreateObject("System.Collections.SortedList")
+  Do
+    On Error Resume Next
+    Set Task = ActiveCell.Task
+    If err.Number > 0 Then
+      err.Number = 0
+      err.Clear
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      Exit Do
+    End If
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
     If Task Is Nothing Then GoTo next_task
     If Task.OutlineLevel = 0 Then GoTo next_task
     If Task.ExternalTask Then GoTo next_task
@@ -458,6 +473,17 @@ next_field:
     End If
 
     lngRow = lngRow + 1
+
+    'retain-grouping
+    If Task.GroupBySummary Then
+      aSummaries.Add lngRow 'capture for formatting
+      aGroups.Add Task.Name, Task.UniqueID
+      xlCells(lngRow, lngNameCol).IndentLevel = Task.OutlineLevel - 1
+      xlCells(lngRow, 1).Value = Task.UniqueID
+      xlCells(lngRow, lngNameCol).Value = Task.Name
+      lngTaskCount = lngTaskCount + 1
+      GoTo next_task
+    End If
 
     If cptStatusSheet_frm.cboCreate.Value <> "0" Then
       If Not aEach.Contains(Task.GetField(lngEach)) Then
@@ -535,7 +561,8 @@ next_task:
     Application.StatusBar = "Exporting..." & Format(lngTask, "#,##0") & " / " & Format(lngTaskCount, "#,##0") & " (" & Format(lngTask / lngTaskCount, "0%") & ")"
     cptStatusSheet_frm.lblStatus.Caption = " Exporting..." & Format(lngTask, "#,##0") & " / " & Format(lngTaskCount, "#,##0") & " (" & Format(lngTask / lngTaskCount, "0%") & ")"
     cptStatusSheet_frm.lblProgress.Width = (lngTask / (lngTaskCount)) * cptStatusSheet_frm.lblStatus.Width
-  Next Task
+    SelectCellDown
+  Loop
 
   Debug.Print "capture task data: " & (GetTickCount - t) / 1000 & " >> " & Format(((GetTickCount - t) / 1000) / (lngRow - lngHeaderRow), "#0.00000") & " per task"
 
@@ -996,7 +1023,9 @@ skip_formatting: 'for dev/debug
   If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
   strFileName = "SS_" & strFileName & "_" & Format(dtStatus, "yyyy-mm-dd") & ".xlsx"
   strFileName = Replace(strFileName, " ", "")
+  Worksheet.[B1].Select
   If cptStatusSheet_frm.cboCreate.Value = "0" Then
+    Worksheet.[B1].Select
     'protect the sheet
     Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
     Worksheet.EnableSelection = xlNoRestrictions
@@ -1020,11 +1049,28 @@ skip_formatting: 'for dev/debug
     For lngItem = aEach.count - 1 To 0 Step -1
       Workbook.Sheets(1).Copy After:=Workbook.Sheets(1)
       Set Worksheet = Workbook.Sheets("Status Sheet (2)")
-      Worksheet.Name = aEach.getKey(lngItem)
-      SetAutoFilter FieldName:=cptStatusSheet_frm.cboEach, FilterType:=pjAutoFilterIn, Criteria1:=aEach.getKey(lngItem)
-      SelectAll
+      Worksheet.Name = aEach.GetKey(lngItem)
+      SetAutoFilter FieldName:=cptStatusSheet_frm.cboEach, FilterType:=pjAutoFilterIn, Criteria1:=aEach.GetKey(lngItem)
       'get array of task and assignment unique ids
       Worksheet.Cells(lngRow + 2, 1).Value = "KEEP"
+      'get group by summaries
+      SelectBeginning
+      Do
+        On Error Resume Next
+        Set Task = ActiveCell.Task
+        If err.Number > 0 Then
+          err.Number = 0
+          err.Clear
+          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          Exit Do
+        End If
+        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        If Task.GroupBySummary Then
+          Worksheet.Cells(Worksheet.Rows.count, 1).End(xlUp).Offset(1, 0) = aGroups.getvaluelist()(aGroups.indexofkey(Task.Name))
+        End If
+        SelectCellDown
+      Loop
+      SelectAll
       For Each Task In ActiveSelection.Tasks
         Worksheet.Cells(Worksheet.Rows.count, 1).End(xlUp).Offset(1, 0) = Task.UniqueID
         For Each Assignment In Task.Assignments
@@ -1034,7 +1080,7 @@ skip_formatting: 'for dev/debug
       'name the range
       Set rngKeep = Worksheet.Cells(lngRow + 2, 1)
       Set rngKeep = Worksheet.Range(rngKeep, rngKeep.End(xlDown))
-      Workbook.Names.Add Name:="KEEP", RefersToR1C1:="=" & aEach.getKey(lngItem) & "!" & rngKeep.Address(True, True, xlR1C1)
+      Workbook.Names.Add Name:="KEEP", RefersToR1C1:="=" & aEach.GetKey(lngItem) & "!" & rngKeep.Address(True, True, xlR1C1)
       lngLastCol = Worksheet.Cells(lngHeaderRow, 1).End(xlToRight).Offset(1, 1).Column
       Set rngKeep = Worksheet.Range(Worksheet.Cells(lngHeaderRow + 1, lngLastCol), Worksheet.Cells(lngRow, lngLastCol))
       rngKeep(1).Offset(-1, 0).Value = "KEEP"
@@ -1050,6 +1096,7 @@ skip_formatting: 'for dev/debug
       Worksheet.Columns(lngLastCol).Delete
       Worksheet.Range("KEEP").Clear
       Workbook.Names("KEEP").Delete
+      Worksheet.[B1].Select
       Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
       Worksheet.EnableSelection = xlNoRestrictions
       'todo:retain user's applied group
@@ -1064,9 +1111,9 @@ skip_formatting: 'for dev/debug
       Workbook.SaveAs strDir & strFileName, 51
     ElseIf cptStatusSheet_frm.cboCreate.Value = "2" Then
       For lngItem = aEach.count - 1 To 0 Step -1
-        Workbook.Sheets(aEach.getKey(lngItem)).Copy
-        If Dir(strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")) <> vbNullString Then Kill strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")
-        xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51
+        Workbook.Sheets(aEach.GetKey(lngItem)).Copy
+        If Dir(strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx")) <> vbNullString Then Kill strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx")
+        xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx"), 51
       Next lngItem
       Workbook.Close False
     End If
@@ -1074,7 +1121,7 @@ skip_formatting: 'for dev/debug
     'reset autofilter
     strFieldName = cptStatusSheet_frm.cboEach.Value
     For lngItem = 0 To aEach.count - 1
-      strCriteria = strCriteria & aEach.getKey(lngItem) & Chr$(9)
+      strCriteria = strCriteria & aEach.GetKey(lngItem) & Chr$(9)
     Next
     strCriteria = Left(strCriteria, Len(strCriteria) - 1)
     SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
@@ -1094,6 +1141,7 @@ skip_formatting: 'for dev/debug
 
 exit_here:
   On Error Resume Next
+  Set aGroups = Nothing
   Set rngKeep = Nothing
   Application.StatusBar = ""
   cptSpeed False

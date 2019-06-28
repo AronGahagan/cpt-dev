@@ -1,5 +1,5 @@
 VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptStatusSheet_frm
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptStatusSheet_frm 
    Caption         =   "Create Status Sheet"
    ClientHeight    =   7230
    ClientLeft      =   120
@@ -55,7 +55,7 @@ Dim lngField As Long
       If Me.Visible Then Me.cboEach.DropDown
 
     End Select
-
+        
 exit_here:
   On Error Resume Next
 
@@ -83,7 +83,7 @@ Dim lngField As Long
   Me.lboItems.Clear
   Me.lboItems.ForeColor = -2147483630
   FilterClear
-
+  
   lngField = FieldNameToFieldConstant(Me.cboEach)
   With CreateObject("System.Collections.SortedList")
     For Each Task In ActiveProject.Tasks
@@ -95,7 +95,7 @@ Dim lngField As Long
       Me.lboItems.AddItem .GetByIndex(lngItem)
     Next lngItem
   End With
-
+  
 exit_here:
   On Error Resume Next
   Set Task = Nothing
@@ -107,9 +107,9 @@ err_here:
 End Sub
 
 Private Sub cboEVP_AfterUpdate()
-
+  
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
   If Len(Me.cboEVP.Value) > 0 Then
     Me.lblEVP.ForeColor = -2147483630 '"Black"
   Else
@@ -120,7 +120,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cboEVP_AfterUpdate", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cboEVP_AfterUpdate", err)
   Resume exit_here
 End Sub
 
@@ -154,7 +154,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cboEVT_AfterUpdate", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cboEVT_AfterUpdate", err)
   Resume exit_here
 End Sub
 
@@ -179,15 +179,15 @@ Private Sub chkHide_Click()
 
   Me.txtHideCompleteBefore.Enabled = Me.chkHide
   If Me.Visible Then Call cptRefreshStatusTable
-
+  
 exit_here:
   On Error Resume Next
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "chkHide_Click", err, Erl)
+  Call cptHandleErr("chkHide_Click", "chkHide_Click", err)
   Resume exit_here
-
+  
 End Sub
 
 Sub cmdAdd_Click()
@@ -221,7 +221,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdAdd_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdAdd_Click", err)
   Resume exit_here
 
 End Sub
@@ -255,7 +255,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdAddAll_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdAddAll_Click", err)
   Resume exit_here
 
 End Sub
@@ -274,7 +274,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdCancel_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdCancel_Click", err)
   Resume exit_here
 
 End Sub
@@ -282,9 +282,9 @@ End Sub
 Private Sub cmdDown_Click()
 Dim lgExport As Long
 Dim lgField As Long, strField As String, strField2 As String
-
+  
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
   For lgExport = Me.lboExport.ListCount - 1 To 0 Step -1
     If lgExport < Me.lboExport.ListCount - 1 Then
       If Me.lboExport.Selected(lgExport) Then
@@ -312,7 +312,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdDown_Click", err, Erl)
+  Call cptHandleErr("frmStatusSeet", "cmdDown_Click", err)
   Resume exit_here
 
 End Sub
@@ -335,9 +335,9 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdRemove_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdRemove_Click", err)
   Resume exit_here
-
+  
 End Sub
 
 Private Sub cmdRemoveAll_Click()
@@ -356,7 +356,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdRemoveAll_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdRemoveAll_Click", err)
   Resume exit_here
 
 End Sub
@@ -389,7 +389,7 @@ Dim strFileName As String
   Me.lblStatus.ForeColor = -2147483630
   Me.cboCostTool.ForeColor = -2147483630
   Me.cboCreate.ForeColor = -2147483630
-
+  
   'validation
   If Not IsDate(Me.txtStatusDate.Value) Then
     Me.lblStatusDate.ForeColor = 192  'Red
@@ -495,17 +495,17 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdRun_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdRun_Click", err)
   Resume exit_here
-
+  
 End Sub
 
 Private Sub cmdUp_Click()
 Dim lgExport As Long
 Dim lgField As Long, strField As String, strField2 As String
-
+  
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
   For lgExport = 0 To Me.lboExport.ListCount - 1
     If lgExport > 0 Then
       If Me.lboExport.Selected(lgExport) Then
@@ -525,7 +525,7 @@ Dim lgField As Long, strField As String, strField2 As String
       End If
     End If
   Next lgExport
-
+  
   Call cptRefreshStatusTable
 
 exit_here:
@@ -533,9 +533,9 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdUp_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdUp_Click", err)
   Resume exit_here
-
+  
 End Sub
 
 Private Sub lblURL_Click()
@@ -549,7 +549,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "lblURL", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "lblURL", err)
   Resume exit_here
 End Sub
 
@@ -568,9 +568,9 @@ Dim lngItem As Long
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
   cptSpeed True
-
+  
   strFieldName = Me.cboEach.Value
 
   For lngItem = 0 To Me.lboItems.ListCount - 1
@@ -579,9 +579,9 @@ Dim lngItem As Long
       lngSelectedItems = lngSelectedItems + 1
     End If
   Next lngItem
-
+  
   strCriteria = Left(strCriteria, Len(strCriteria) - 1)
-
+  
   If lngSelectedItems < Me.lboItems.ListCount Then
     SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
   Else
@@ -603,7 +603,7 @@ Dim lgItem As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   Me.lboFields.Clear
-
+  
   With CreateObject("ADODB.REcordset")
     .Open cptDir & "\settings\cpt-status-sheet-search.adtg"
     If Len(Me.stxtSearch.Text) > 0 Then
@@ -623,19 +623,19 @@ Dim lgItem As Long
     Loop
     .Close
   End With
-
+  
 exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "stxtSearch_Change", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "stxtSearch_Change", err)
   Resume exit_here
-
+  
 End Sub
 
 Private Sub stxtSearch_Enter()
 Dim lgField As Long, strFileName As String
-
+  
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   strFileName = cptDir & "\settings\cpt-status-sheet-search.adtg"
@@ -652,19 +652,19 @@ Dim lgField As Long, strFileName As String
     .Save strFileName
     .Close
   End With
-
+  
 exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "stxtSearch_Enter", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "stxtSearch_Enter", err)
   Resume exit_here
-
+  
 End Sub
 
 Private Sub txtHideCompleteBefore_Change()
 Dim stxt As String
-
+  
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   stxt = cptRegEx(Me.txtHideCompleteBefore.Text, "[0-9\/]*")
@@ -685,7 +685,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "txtHideCompleteBefore", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "txtHideCompleteBefore", err)
   Resume exit_here
 
 End Sub
@@ -708,12 +708,12 @@ Dim stxt As String
       Me.lblStatusDate.ForeColor = 192 'red
     End If
   End If
-
+  
 exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "txtStatusDate_Change", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "txtStatusDate_Change", err)
   Resume exit_here
-
+  
 End Sub
