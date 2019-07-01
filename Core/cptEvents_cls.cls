@@ -7,7 +7,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.1</cpt_version>
+'<cpt_version>v1.1.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -85,7 +85,7 @@ exit_here:
   Set Resources = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("clsChange_cls", "MyMSApplication_WindowSelectionChange", err)
+  Call cptHandleErr("clsChange_cls", "MyMSApplication_WindowSelectionChange", err, Erl)
   Resume exit_here
   
 End Sub

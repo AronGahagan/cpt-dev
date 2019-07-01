@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.0.4</cpt_version>
+'<cpt_version>v1.0.5</cpt_version>
 Option Explicit
 Declare Function GetTickCount Lib "kernel32" () As Long
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -981,7 +981,7 @@ exit_here:
   Exit Sub
 
 err_here:
-  Call cptHandleErr("cptStatusSheet_bas", "cptCreateStatusSheet", err)
+  Call cptHandleErr("cptStatusSheet_bas", "cptCreateStatusSheet", err, Erl)
   If Not xlApp Is Nothing Then
     If Not Workbook Is Nothing Then Workbook.Close False
     xlApp.Quit

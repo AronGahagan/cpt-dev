@@ -45,7 +45,7 @@ Sub SmartDuration()
     
     With smrtForm
     
-        .startDate = t.Start
+        .StartDate = t.Start
         .SmartDatePicker.Text = t.GetField(pjTaskFinish)
         .weekDayLbl = Format(t.Finish, "DDD")
     

@@ -14,7 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.2</cpt_version>
+'<cpt_version>v1.0.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -58,7 +58,7 @@ exit_here:
   Call cptStartEvents
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "cmdApply_Click()", err)
+  Call cptHandleErr("cptText_frm", "cmdApply_Click()", err, Erl)
   Resume exit_here
 
 End Sub
@@ -88,7 +88,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "cmdClear_Click", err)
+  Call cptHandleErr("cptText_frm", "cmdClear_Click", err, Erl)
   Resume exit_here
 End Sub
 
@@ -111,7 +111,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "lblURL_Click", err)
+  Call cptHandleErr("cptText_frm", "lblURL_Click", err, Erl)
   Resume exit_here
 End Sub
 
@@ -142,7 +142,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtAppend_Change", err)
+  Call cptHandleErr("cptText_frm", "txtAppend_Change", err, Erl)
   Resume exit_here
 End Sub
 
@@ -171,7 +171,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtCharacters_Change", err)
+  Call cptHandleErr("cptText_frm", "txtCharacters_Change", err, Erl)
   Resume exit_here
 
 End Sub
@@ -200,7 +200,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("frmTextToolls", "txtCountBy_Change", err)
+  Call cptHandleErr("frmTextToolls", "txtCountBy_Change", err, Erl)
   Resume exit_here
 End Sub
 
@@ -221,7 +221,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtPrefix_Change", err)
+  Call cptHandleErr("cptText_frm", "txtPrefix_Change", err, Erl)
   Resume exit_here
   
 End Sub
@@ -249,7 +249,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtPrepend_Change", err)
+  Call cptHandleErr("cptText_frm", "txtPrepend_Change", err, Erl)
   Resume exit_here
 
 End Sub
@@ -270,7 +270,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtReplaceWhat_Change", err)
+  Call cptHandleErr("cptText_frm", "txtReplaceWhat_Change", err, Erl)
   Resume exit_here
 End Sub
 
@@ -290,7 +290,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtReplaceWith_Change", err)
+  Call cptHandleErr("cptText_frm", "txtReplaceWith_Change", err, Erl)
   Resume exit_here
   
 End Sub
@@ -318,7 +318,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtStartAt_Change", err)
+  Call cptHandleErr("cptText_frm", "txtStartAt_Change", err, Erl)
   Resume exit_here
   
 End Sub
@@ -339,7 +339,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtSuffix_Change", err)
+  Call cptHandleErr("cptText_frm", "txtSuffix_Change", err, Erl)
   Resume exit_here
   
 End Sub
@@ -365,7 +365,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptText_frm", "CheckDirty", err)
+  Call cptHandleErr("cptText_frm", "CheckDirty", err, Erl)
   Resume exit_here
   
 End Function

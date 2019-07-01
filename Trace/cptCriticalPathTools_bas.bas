@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCriticalPathTools_bas"
-'<cpt_version>v1.0.1</cpt_version>
+'<cpt_version>v1.0.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -140,7 +140,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptCriticalPathTools_bas", "cptExportCriticalPath", err)
+  Call cptHandleErr("cptCriticalPathTools_bas", "cptExportCriticalPath", err, Erl)
   Resume exit_here
 End Sub
 
@@ -161,7 +161,7 @@ err_here:
   If err.Number = 1101 Then
     MsgBox "Please a a single (non-summary, active, and incomplete) 'Target' task.", vbExclamation + vbOKOnly, "Trace Tools - Error"
   Else
-    Call cptHandleErr("basCriticalPathTools", "cptExportCriticalPathSelected", err)
+    Call cptHandleErr("basCriticalPathTools", "cptExportCriticalPathSelected", err, Erl)
   End If
   Resume exit_here
 End Sub

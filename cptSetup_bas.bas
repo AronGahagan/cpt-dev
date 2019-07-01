@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.3.8</cpt_version>
+'<cpt_version>v1.3.9</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -300,7 +300,7 @@ exit_here:
   Set arrCore = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptSetup", err)
+  Call cptHandleErr("cptSetup_bas", "cptSetup", err, Erl)
   Resume exit_here
 End Sub
 
@@ -563,7 +563,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptModuleExists", err)
+  Call cptHandleErr("cptSetup_bas", "cptModuleExists", err, Erl)
   Resume exit_here
   
 End Function
@@ -647,6 +647,6 @@ exit_here:
   Set cmThisProject = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptUninstall", err)
+  Call cptHandleErr("cptSetup_bas", "cptUninstall", err, Erl)
   Resume exit_here
 End Sub

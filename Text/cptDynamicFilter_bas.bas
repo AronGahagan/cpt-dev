@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDynamicFilter_bas"
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -58,6 +58,6 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDynamicFilter_bas", "ShowCptDynamicFilter", err)
+  Call cptHandleErr("cptDynamicFilter_bas", "ShowCptDynamicFilter", err, Erl)
   Resume exit_here
 End Sub
