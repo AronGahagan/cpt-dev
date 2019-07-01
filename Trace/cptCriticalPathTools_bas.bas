@@ -161,7 +161,7 @@ err_here:
   If err.Number = 1101 Then
     MsgBox "Please a a single (non-summary, active, and incomplete) 'Target' task.", vbExclamation + vbOKOnly, "Trace Tools - Error"
   Else
-    Call cptHandleErr("basCriticalPathTools", "cptExportCriticalPathSelected", err, Erl)
+    Call cptHandleErr("cptCriticalPathTools_bas", "cptExportCriticalPathSelected", err, Erl)
   End If
   Resume exit_here
 End Sub

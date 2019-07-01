@@ -248,7 +248,7 @@ exit_here:
   Set oStream = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("frmUpdates", "cmdUpdate_Click", err, Erl)
+  Call cptHandleErr("cptUpgrades_frm", "cmdUpdate_Click", err, Erl)
   Me.lboModules.List(lngItem - 1, 3) = "<error>" '</issue25>
   Resume exit_here
 

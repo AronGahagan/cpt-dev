@@ -68,7 +68,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("chkHide_Click", "chkHide_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "chkHide_Click", err, Erl)
   Resume exit_here
   
 End Sub
@@ -189,7 +189,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("frmStatusSeet", "cmdDown_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdDown_Click", err, Erl)
   Resume exit_here
 
 End Sub

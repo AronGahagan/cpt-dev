@@ -200,7 +200,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("frmTextToolls", "txtCountBy_Change", err, Erl)
+  Call cptHandleErr("cptText_frm", "txtCountBy_Change", err, Erl)
   Resume exit_here
 End Sub
 

@@ -80,7 +80,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptAbout_frm", "lblURL", err, Erl)
+  Call cptHandleErr("cptDynamicFilter_frm", "lblURL", err, Erl)
   Resume exit_here
 
 End Sub

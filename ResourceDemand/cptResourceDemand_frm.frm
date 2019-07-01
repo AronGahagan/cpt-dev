@@ -66,7 +66,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("module", "procedure", err, Erl)
+  Call cptHandleErr("cptResourceDemand_frm", "cmdCancel_Click", err, Erl)
   Resume exit_here
 
 End Sub
