@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCountTasks_bas"
-'<cpt_version>v1.0.1</cpt_version>
+'<cpt_version>v1.0.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -82,7 +82,7 @@ exit_here:
   Set Task = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCountTasks_bas", "cptCountTasks", err)
+  Call cptHandleErr("cptCountTasks_bas", "cptCountTasks", err, Erl)
   Resume exit_here
 End Sub
 

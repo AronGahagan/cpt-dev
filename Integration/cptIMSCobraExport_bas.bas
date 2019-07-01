@@ -92,7 +92,7 @@ Sub Export_IMS()
     Dim curproj As Project
     Dim i As Integer
 
-    On Error GoTo Cleanup
+    On Error GoTo CleanUp
 
     Set curproj = ActiveProject
 
@@ -176,7 +176,7 @@ Sub Export_IMS()
             .bcrBox.AddItem CustOLCodeFields(i)
         Next i
 
-        On Error GoTo Cleanup
+        On Error GoTo CleanUp
         ErrMsg = "Please try again, or contact the developer if this message repeats."
         '********************************************
         'On Error GoTo 0 '**Used for Debugging ONLY**
@@ -256,7 +256,7 @@ Sub Export_IMS()
 
     Exit Sub
 
-Cleanup:
+CleanUp:
 
     If ACTfilename <> "" Then Reset
 
