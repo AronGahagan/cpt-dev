@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.0.5</cpt_version>
+'<cpt_version>v1.0.6</cpt_version>
 Option Explicit
 Declare Function GetTickCount Lib "kernel32" () As Long
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -678,7 +678,13 @@ next_task:
   '...with blank Actual Start dates [blank AS]
   rngAll.AutoFilter Field:=lngASCol, Criteria1:="="
   'add conditions only to blank cells in the column
+  On Error Resume Next '<issue52-no cells found>
   Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngASCol), xlCells(lngRow, lngASCol)).SpecialCells(xlCellTypeVisible)
+  If err.Number = 1004 Then 'no cells found
+    err.Clear '<issue52>
+    GoTo new_finish '<issue52>
+  End If '<issue52>
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
   '-->condition 1: blank and start is less than status date > update required
   rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, -2).Address(False, True) & "<=Indirect(""STATUS_DATE"")),TRUE,FALSE)"
@@ -728,6 +734,8 @@ next_task:
     .TintAndShade = 0
   End With
   
+new_finish: '<issue52>
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   'new finish
   Worksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
@@ -736,7 +744,13 @@ next_task:
   '...with blank Actual Start dates [blank AF]
   rngAll.AutoFilter Field:=lngAFCol, Criteria1:="="
   'add conditions only to blank cells in the column
+  On Error Resume Next '<issue52>
   Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngAFCol), xlCells(lngRow, lngAFCol)).SpecialCells(xlCellTypeVisible)
+  If err.Number = 1004 Then '<issue52>
+    err.Clear '<issue52>
+    GoTo ev_percent '<issue52>
+  End If '<issue52>
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
   'blank and finish is less than status date > update required
   rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lngAFCol - 2).Address(False, True) & "<Indirect(""STATUS_DATE"")),TRUE,FALSE)"
@@ -786,7 +800,9 @@ next_task:
     .TintAndShade = 0
   End With
   
+ev_percent:
   'ev%
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   Worksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for task rows [blue font]
@@ -794,7 +810,13 @@ next_task:
   '...with blank Actual Start dates [blank AF]
   rngAll.AutoFilter Field:=lngEVPCol, Criteria1:="="
   'add conditions only to blank cells in the column
+  On Error Resume Next '<issue52-noCellsFound>
   Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngEVPCol), xlCells(lngRow, lngEVPCol)).SpecialCells(xlCellTypeVisible)
+  If err.Number = 1004 Then '<issue52>
+    err.Clear '<issue52>
+    GoTo revised_etc '<issue52>
+  End If '<issue52>
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
   'Finish < Status Date AND EV% < 100 (complete but incomplete) > invalid
   rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<100," & xlCells(rng(1).Row, lngAFCol).Address(False, True) & "<=Indirect(""STATUS_DATE"")),TRUE,FALSE)"
@@ -846,7 +868,9 @@ next_task:
   '(new start <> "" AND new start <> start) OR (newn finish <> "" AND new finish <> finish) (update required) > update required
   '<skipped>
   
+revised_etc:
   'revised etc
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   Worksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for task rows [blue font]
@@ -854,7 +878,13 @@ next_task:
   '...with blank Actual Start dates [blank AF]
   rngAll.AutoFilter Field:=lngEVPCol, Criteria1:="="
   'add conditions only to blank cells in the column
+  On Error Resume Next '<issue52>
   Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngEVPCol), xlCells(lngRow, lngEVPCol)).SpecialCells(xlCellTypeVisible)
+  If err.Number = 1004 Then '<issue52>
+    err.Clear '<issue52>
+    GoTo evt_vs_evp '<issue52>
+  End If '<issue52>
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
   'if assignments.count > 0
   'filter for assignments
@@ -869,6 +899,7 @@ next_task:
   '=0 and finish > status date (incomplete without etc) > invalid
   '(new start <> "" AND new start <> start) OR (newn finish <> "" AND new finish <> finish) (update required) > update required
   
+evt_vs_evp:
   'evt vs evp checks
   If cptStatusSheet_frm.cboCostTool = "COBRA" Then
     'EVT = E 50/50
