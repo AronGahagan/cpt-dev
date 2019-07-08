@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.5.8</cpt_version>
+'<cpt_version>v1.5.9</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -47,7 +47,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "GetModule()", err)
+  Call cptHandleErr("cptCore_bas", "GetModule()", err, Erl)
   Resume exit_here
 End Function
 
@@ -79,7 +79,7 @@ exit_here:
   Set objIndName = Nothing
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptGetUserFullName", err)
+  Call cptHandleErr("cptCore_bas", "cptGetUserFullName", err, Erl)
   Resume exit_here
 
 End Function
@@ -104,7 +104,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptGetVersions", err)
+  Call cptHandleErr("cptCore_bas", "cptGetVersions", err, Erl)
   Resume exit_here
 
 End Function
@@ -196,7 +196,7 @@ exit_here:
   Application.StatusBar = ""
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptUpgrade", err)
+  Call cptHandleErr("cptCore_bas", "cptUpgrade", err, Erl)
   Resume exit_here
 
 End Sub '<issue31>
@@ -254,7 +254,7 @@ exit_here:
 '  Set frmAbout = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "ShowCptAbout_frm", err)
+  Call cptHandleErr("cptCore_bas", "ShowCptAbout_frm", err, Erl)
   Resume exit_here '</issue19>
 
 End Sub
@@ -281,7 +281,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptReferenceExists", err)
+  Call cptHandleErr("cptCore_bas", "cptReferenceExists", err, Erl)
   Resume exit_here
 End Function
 
@@ -337,7 +337,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptGetDirectory()", err)
+  Call cptHandleErr("cptCore_bas", "cptGetDirectory()", err, Erl)
   Resume exit_here
 End Function
 
@@ -470,7 +470,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptResetAll", err)
+  Call cptHandleErr("cptCore_bas", "cptResetAll", err, Erl)
   Resume exit_here
 
 End Sub
@@ -606,7 +606,7 @@ exit_here:
   Set FindRecord = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "UpdatesAreAvailable", err)
+  Call cptHandleErr("cptCore_bas", "UpdatesAreAvailable", err, Erl)
   Resume exit_here
 
 End Sub
@@ -749,7 +749,7 @@ exit_here:
   Set MailItem = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptSendMail", err)
+  Call cptHandleErr("cptCore_bas", "cptSendMail", err, Erl)
   Resume exit_here
 End Sub
 
@@ -818,7 +818,7 @@ exit_here:
 '  GoTo exit_here
 
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptWrapItUp", err)
+  Call cptHandleErr("cptCore_bas", "cptWrapItUp", err, Erl)
   Resume exit_here
 End Sub
 
@@ -886,7 +886,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptVersionStatus", err)
+  Call cptHandleErr("cptCore_bas", "cptVersionStatus", err, Erl)
   Resume exit_here
 
 End Function

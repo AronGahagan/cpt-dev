@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.1.6</cpt_version>
+'<cpt_version>v1.1.7</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -382,7 +382,7 @@ exit_here:
   If Not xlApp Is Nothing Then xlApp.Quit
   Exit Sub
 err_here:
-  Call cptHandleErr("cptResourceDemand_bas", "cptExportResourceDemand", err)
+  Call cptHandleErr("cptResourceDemand_bas", "cptExportResourceDemand", err, Erl)
   On Error Resume Next
   Resume exit_here
       
@@ -538,7 +538,7 @@ err_here:
     err.Clear
     Resume next_field
   Else
-    Call cptHandleErr("cptResourceDemand_bas", "ShowCptResourceDemand_frm", err)
+    Call cptHandleErr("cptResourceDemand_bas", "ShowCptResourceDemand_frm", err, Erl)
     Resume exit_here
   End If
   
