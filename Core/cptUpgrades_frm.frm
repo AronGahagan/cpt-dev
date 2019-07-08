@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.5</cpt_version>
+'<cpt_version>v1.3.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -248,7 +248,7 @@ exit_here:
   Set oStream = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("frmUpdates", "cmdUpdate_Click", err)
+  Call cptHandleErr("cptUpgrades_frm", "cmdUpdate_Click", err, Erl)
   Me.lboModules.List(lngItem - 1, 3) = "<error>" '</issue25>
   Resume exit_here
 
@@ -265,6 +265,6 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptUpgrades_frm", "lblURL_Click", err)
+  Call cptHandleErr("cptUpgrades_frm", "lblURL_Click", err, Erl)
   Resume exit_here
 End Sub

@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.2.2</cpt_version>
+'<cpt_version>v1.2.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -44,7 +44,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptText_bas", "cptBulkAppend", err)
+  Call cptHandleErr("cptText_bas", "cptBulkAppend", err, Erl)
   Resume exit_here
   
 End Sub
@@ -80,7 +80,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("basTextTool", "cptBulkPrepend", err)
+  Call cptHandleErr("basTextTool", "cptBulkPrepend", err, Erl)
   Resume exit_here
   
 End Sub
@@ -139,7 +139,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptText_bas", "cptEnumerate", err)
+  Call cptHandleErr("cptText_bas", "cptEnumerate", err, Erl)
   Resume exit_here
 
 End Sub
@@ -227,7 +227,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptText_bas", "cptMyReplace", err)
+  Call cptHandleErr("cptText_bas", "cptMyReplace", err, Erl)
   Resume exit_here
 
 End Sub
@@ -307,7 +307,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptText_bas", "cptFindDuplicateTaskNames", err)
+  Call cptHandleErr("cptText_bas", "cptFindDuplicateTaskNames", err, Erl)
   Resume exit_here
 
 End Sub
@@ -337,7 +337,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_bas", "cptTrimTaskNames", err)
+  Call cptHandleErr("cptText_bas", "cptTrimTaskNames", err, Erl)
   Resume exit_here
 
 End Sub
@@ -379,7 +379,7 @@ exit_here:
   Set Tasks = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_bas", "ShowcptText_frm", err)
+  Call cptHandleErr("cptText_bas", "ShowcptText_frm", err, Erl)
   Resume exit_here
   
 End Sub
@@ -482,7 +482,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_bas", "cptUpdatePreview", err)
+  Call cptHandleErr("cptText_bas", "cptUpdatePreview", err, Erl)
   Resume exit_here
 
 End Sub
@@ -510,7 +510,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_bas", "cptResetRowHeight", err)
+  Call cptHandleErr("cptText_bas", "cptResetRowHeight", err, Erl)
   Resume exit_here
 End Sub
 
