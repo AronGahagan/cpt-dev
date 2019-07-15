@@ -372,13 +372,6 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
 
-  'backBone
-  If cptModuleExists("cptDataDictionary_frm") And cptModuleExists("cptDataDictionary_bas") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gDataDictionary"" label=""Dictionary"" visible=""true"">"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDataDictionary"" imageMso=""ReadingMode"" label=""IMS Data Dictionary"" onAction=""ShowFrmCptDataDictionary"" size=""large"" />"
-    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
-  End If
-
   'trace tools
   If cptModuleExists("cptCriticalPathTools_bas") Or cptModuleExists("cptCriticalPath_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCPA"" label=""Trace"" visible=""true"">"
