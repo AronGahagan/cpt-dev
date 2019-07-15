@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.0.6</cpt_version>
+'<cpt_version>v1.0.7</cpt_version>
 Option Explicit
 Declare Function GetTickCount Lib "kernel32" () As Long
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -534,8 +534,9 @@ next_task:
       Set rNormal = xlApp.Union(rNormal, xlCells(aNormal(vCol), 1).Resize(, aHeaders.count))
     Next vCol
     If Not rNormal Is Nothing Then
-      rNormal.Font.ThemeColor = xlThemeColorAccent1
-      rNormal.Font.TintAndShade = -0.499984740745262
+      rNormal.Font.Color = RGB(32, 55, 100) '<issue54>
+      'rNormal.Font.ThemeColor = xlThemeColorAccent1 '<issue54>
+      'rNormal.Font.TintAndShade = -0.499984740745262 '<issue54>
     End If
   End If '</issue16-17>
   'format assignments
