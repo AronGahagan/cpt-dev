@@ -28,9 +28,9 @@ Dim lgFile As Long, lgTasks As Long, lgTask As Long
 Dim lgCol As Long, lgExport As Long, lgField As Long
 'variants
 Dim aUserFields() As Variant
-  
+
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
+
   If IsDate(ActiveProject.StatusDate) Then
     dtStart = ActiveProject.StatusDate
     If ActiveProject.ProjectStart > dtStart Then dtStart = ActiveProject.ProjectStart
@@ -38,7 +38,7 @@ Dim aUserFields() As Variant
     MsgBox "Please enter a Status Date.", vbExclamation + vbOKOnly, "Invalid Status Date"
     GoTo exit_here
   End If
-  
+
   'save settings
   strFileName = Environ("tmp") & "\cpt-export-resource-userfields.adtg."
   aUserFields = cptResourceDemand_frm.lboExport.List()
@@ -57,12 +57,12 @@ Dim aUserFields() As Variant
     End If '</issue43>
     .Close
   End With
-    
+
   lgFile = FreeFile
   strFile = Environ("USERPROFILE") & "\Desktop\" & Replace(Replace(ActiveProject.Name, ".mpp", ""), " ", "_") & "_ResourceDemand.csv"
-  
+
   If Dir(strFile) <> vbNullString Then Kill strFile
-  
+
   Open strFile For Output As #lgFile
   strHeaders = "PROJECT,[UID] TASK,RESOURCE_NAME,HOURS,WEEK"
   For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
@@ -70,7 +70,7 @@ Dim aUserFields() As Variant
     strHeaders = strHeaders & "," & CustomFieldGetName(lgField)
   Next lgExport
   Print #lgFile, strHeaders
-  
+
   If ActiveProject.Subprojects.count = 0 Then
     lgTasks = ActiveProject.Tasks.count
   Else
@@ -87,7 +87,7 @@ Dim aUserFields() As Variant
     ViewApply strView
     cptSpeed False
   End If
-  
+
   'iterate over tasks
   For Each Task In ActiveProject.Tasks
     If Not Task Is Nothing Then 'skip blank lines
@@ -128,13 +128,13 @@ next_task:
     cptResourceDemand_frm.lblProgress.Width = (lgTask / lgTasks) * cptResourceDemand_frm.lblStatus.Width
     DoEvents
   Next Task
-  
+
   'close the CSV
   Close #lgFile
-   
+
   Application.StatusBar = "Creating Workbook..."
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
-  
+
   'set reference to Excel
   '<issue14-15> added
   On Error Resume Next
@@ -143,7 +143,7 @@ next_task:
   If xlApp Is Nothing Then
     Set xlApp = CreateObject("Excel.Application")
   End If
-  
+
   'is previous run still open?
   On Error Resume Next
   Set Workbook = xlApp.Workbooks(strFile)
@@ -159,10 +159,10 @@ next_task:
     strMsg = strMsg & "Your new file will be saved as:" & vbCrLf & strFile
     MsgBox strMsg, vbExclamation + vbOKOnly, "File Exists and is Open"
   End If '</issue14-15>
-  
+
   'create a new workbook
   Set Workbook = xlApp.Workbooks.Open(strFile)
-  
+
   '<issue14-15> added
   On Error Resume Next
   If Dir(Environ("TEMP") & "\ExportResourceDemand.xlsx") <> vbNullString Then Kill Environ("TEMP") & "\ExportResourceDemand.xlsx"
@@ -173,7 +173,7 @@ next_task:
     Workbook.SaveAs Environ("TEMP") & "\ExportResourceDemand.xlsx", 51
   End If
   If Dir(strFile) <> vbNullString Then Kill strFile '</issue14-15>
-  
+
   'set reference to worksheet to manipulate it
   Set Worksheet = Workbook.Sheets(1)
   'rename the worksheet
@@ -181,7 +181,7 @@ next_task:
   lgCol = Worksheet.Rows(1).Find(what:="WEEK").Column
   dtMin = xlApp.WorksheetFunction.Min(Worksheet.Columns(lgCol))
   dtMax = xlApp.WorksheetFunction.Max(Worksheet.Columns(lgCol))
-  
+
   'import fiscal weeks
 '  Set Worksheet = Workbook.Sheets.Add(After:=Workbook.Sheets("SourceData"))
 '  Worksheet.Name = "Fiscal Weeks"
@@ -202,7 +202,7 @@ next_task:
 '  Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, rng, , xlYes)
 '  ListObject.Name = "FISCAL_WEEKS"
 '  ListObject.TableStyle = ""
-  
+
   Set Worksheet = Workbook.Sheets("SourceData")
   'Worksheet.Activate
 '  'add fiscal year calc
@@ -217,7 +217,7 @@ next_task:
 '  rng.FormulaR1C1 = "=IFERROR(LEFT(VLOOKUP(RC[-2]+4,FISCAL_WEEKS,2,FALSE),3),""<n/a>"")"
 '  rng.Copy
 '  rng.PasteSpecial xlPasteValues
-  
+
   'capture the range of data to feed as variable to PivotTable
   Set rng = Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown))
   strRange = Worksheet.Name & "!" & Replace(rng.Address, "$", "")
@@ -225,10 +225,10 @@ next_task:
   Set Worksheet = Workbook.Sheets.Add
   'rename the new worksheet
   Worksheet.Name = "ResourceDemand"
-  
+
   Application.StatusBar = "Creating PivotTable..."
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
-  
+
   'create the PivotTable
   Workbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:= _
         strRange, Version:= _
@@ -245,10 +245,10 @@ next_task:
   PivotTable.TableStyle2 = "PivotStyleMedium2"
   PivotTable.PivotSelect "", xlDataOnly, True
   xlApp.Selection.Style = "Comma"
-  
+
   Application.StatusBar = "Building header..."
   cptResourceDemand_frm.lblStatus = Application.StatusBar
-  
+
   'add a title
   Worksheet.[A2] = "Status Date: " & FormatDateTime(ActiveProject.StatusDate, vbShortDate)
   Worksheet.[A2].EntireColumn.AutoFit
@@ -267,13 +267,13 @@ next_task:
   'xlApp.Selection.Group Start:=True, End:=True, Periods:=Array(False, False, False, True, True, False, True)
   Worksheet.[B5].Select
   'PivotTable.PivotFields("Months").ShowDetail = False
-  
+
   'make it nice
   xlApp.ActiveWindow.Zoom = 85
-  
+
   Application.StatusBar = "Creating PivotChart..."
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
-  
+
   'create a PivotChart
   Set Worksheet = Workbook.Sheets("SourceData")
   Worksheet.Activate
@@ -330,14 +330,14 @@ next_task:
   xlApp.ActiveChart.Location xlLocationAsNewSheet, "PivotChart"
   Set Worksheet = Workbook.Sheets("PivotChart_Source")
   Worksheet.Visible = False
-  
+
   'add legend
   xlApp.ActiveChart.SetElement (msoElementPrimaryValueAxisTitleRotated)
   xlApp.ActiveChart.Axes(xlValue, xlPrimary).AxisTitle.Text = "Hours"
-    
+
   Application.StatusBar = "Saving the Workbook..."
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
-  
+
   'save the file
   '<issue14-15> dtStart = ActiveProject.StatusDate - removed
   'strFile = Environ("USERPROFILE") & "\Deskop\" & Replace(strFile, ".csv", ".xlsx") - removed
@@ -355,12 +355,12 @@ file_save:
   Else '<issue49>
     Workbook.SaveAs strFile, 51  '<issue49>
   End If '</issue49>
-  
+
   Application.StatusBar = "Complete."
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
-  
+
   xlApp.Visible = True
-  
+
 exit_here:
   On Error Resume Next
   If Not xlApp Is Nothing Then xlApp.Visible = True
@@ -385,7 +385,7 @@ err_here:
   Call cptHandleErr("cptResourceDemand_bas", "cptExportResourceDemand", err, Erl)
   On Error Resume Next
   Resume exit_here
-      
+
 End Sub
 
 Sub ShowFrmExportResourceDemand()
@@ -450,14 +450,14 @@ option_2:
     Application.StatusBar = ""
     cptSpeed False
   End If
-  
+
   cptResourceDemand_frm.lboFields.Clear
   cptResourceDemand_frm.lboExport.Clear
 
   Set arrFields = CreateObject("System.Collections.SortedList")
   'col0 = custom field name (sortfield)
   'col1 = field constant
-  
+
   For Each vFieldType In Array("Text", "Outline Code")
     On Error GoTo err_here
     For lngItem = 1 To 30
@@ -476,7 +476,7 @@ next_field:
       arrFields.Add Application.FieldConstantToFieldName(lngField), lngField
     End If
   Next lngField
-  
+
   'add fields to listbox
   For lngItem = 0 To arrFields.count - 1
     cptResourceDemand_frm.lboFields.AddItem
@@ -489,7 +489,7 @@ next_field:
       cptResourceDemand_frm.lboFields.List(lngItem, 1) = arrFields.getKey(lngItem) & " (" & FieldConstantToFieldName(arrFields.getValueList()(lngItem)) & ")"
     End If
   Next lngItem
-  
+
   'save the fields to a file
   strFileName = Environ("tmp") & "\cpt-resource-demand-search.adtg"
   If Dir(strFileName) <> vbNullString Then Kill strFileName
@@ -505,7 +505,7 @@ next_field:
     .Save strFileName
     .Close
   End With
-  
+
   'import saved fields if exists
   strFileName = Environ("tmp") & "\cpt-export-resource-userfields.adtg"
   If Dir(strFileName) <> vbNullString Then
@@ -541,5 +541,5 @@ err_here:
     Call cptHandleErr("cptResourceDemand_bas", "ShowCptResourceDemand_frm", err, Erl)
     Resume exit_here
   End If
-  
+
 End Sub
