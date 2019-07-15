@@ -292,7 +292,7 @@ Sub cptGetReferences()
 Dim Ref As Object
 
   For Each Ref In ThisProject.VBProject.References
-    Debug.Print Ref.Name & " (" & Ref.Description & ")" & Ref.FullPath
+    Debug.Print Ref.Name & " (" & Ref.Description & ") " & Ref.FullPath
   Next Ref
 
 End Sub
@@ -624,6 +624,8 @@ Dim strDir As String
   End If
   If Not cptReferenceExists("VBIDE") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB"
+    'need win64 file path '<issue53>
+    'C:\Program Files\Common Files\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB?
   End If
   If Not cptReferenceExists("VBA") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA7.1\VBE7.DLL"
