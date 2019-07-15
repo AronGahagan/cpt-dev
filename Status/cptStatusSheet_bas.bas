@@ -918,6 +918,7 @@ evt_vs_evp:
   xlApp.ScreenUpdating = True
   
   Worksheet.ShowAllData
+  xlApp.ActiveWindow.ScrollRow = 1 '<issue54>
   xlCells(lngHeaderRow + 1, lngNameCol + 1).Select
   xlApp.ActiveWindow.FreezePanes = True
   'prettify the task name column
