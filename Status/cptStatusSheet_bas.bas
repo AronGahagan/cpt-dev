@@ -652,8 +652,6 @@ next_task:
   t = GetTickCount
   cptStatusSheet_frm.lblStatus.Caption = "Formatting Columns..."
 
-  '================ Issue 36 below this line ======================
-
   'columns to center
   Set aCentered = CreateObject("System.Collections.ArrayList")
   For Each vCol In Array("UID", "Duration", "Total Slack", strEVT, strEVP, "New EV%")
@@ -1003,10 +1001,6 @@ evt_vs_evp:
   xlApp.ActiveWindow.FreezePanes = True
   'prettify the task name column
   Worksheet.Columns(lngNameCol).AutoFit
-
-  '=============== Issue36 above this line =================
-
-skip_formatting: 'for dev/debug
 
   t = GetTickCount
   cptStatusSheet_frm.lblStatus.Caption = "Saving Workbook" & IIf(cptStatusSheet_frm.cboCreate.Value = "1", "s", "") & "..."
