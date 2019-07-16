@@ -218,11 +218,13 @@ Dim Tasks As Tasks, Task As Task, Resource As Resource, Assignment As Assignment
 'Dim rSummaryTasks As Excel.Range, rMilestones As Excel.Range, rNormal As Excel.Range, rAssignments As Excel.Range, rLockedCells As Excel.Range
 'Dim rDates As Excel.Range, rWork As Excel.Range, rMedium As Excel.Range, rCentered As Excel.Range, rEntry As Excel.Range
 'Dim xlCells As Excel.Range, rngAll As Excel.Range
+'Dim olApp As Outlook.Application, MailItem As MailItem, objWord As Word.Application, objSel As Word.Selection, objETemp As Word.Template
 'late binding:
 Dim xlApp As Object, Workbook As Object, Worksheet As Object, rng As Object
 Dim rSummaryTasks As Object, rMilestones As Object, rNormal As Object, rAssignments As Object, rLockedCells As Object
 Dim rDates As Object, rWork As Object, rMedium As Object, rCentered As Object, rEntry As Object
 Dim xlCells As Object, rngAll As Object
+Dim olApp As Object, MailItem As Object, objDoc As Object, objWord As Object, objSel As Object, objETemp As Object
 Dim aSummaries As Object, aMilestones As Object, aNormal As Object, aAssignments As Object
 Dim aEach As Object, aTaskRow As Object, aHeaders As Object
 Dim aOddBalls As Object, aCentered As Object, aEntryHeaders As Object
@@ -252,12 +254,14 @@ Dim dtStatus As Date
 'variants
 Dim vCol As Variant, aUserFields As Variant
 'booleans
+Dim blnEmail As Boolean
 
   'start a timer for performance tracking
   tTotal = GetTickCount
 
   'check reference
   If Not cptCheckReference("Excel") Then GoTo exit_here
+  If Not cptCheckReference("Outlook") Then GoTo exit_here '<issue50>
 
   'ensure required module exists
   If Not cptModuleExists("cptCore_bas") Then
@@ -273,7 +277,7 @@ Dim vCol As Variant, aUserFields As Variant
     MsgBox "This project has no tasks.", vbExclamation + vbOKOnly, "Create Status Sheet"
     GoTo exit_here
   End If
-
+  
   cptStatusSheet_frm.lblStatus.Caption = " Analyzing project..."
   'get task count
   t = GetTickCount
@@ -558,6 +562,7 @@ next_field:
 
 next_task:
     lngTask = lngTask + 1
+    If lngTask > lngTaskCount Then lngTaskCount = lngTask
     Application.StatusBar = "Exporting..." & Format(lngTask, "#,##0") & " / " & Format(lngTaskCount, "#,##0") & " (" & Format(lngTask / lngTaskCount, "0%") & ")"
     cptStatusSheet_frm.lblStatus.Caption = " Exporting..." & Format(lngTask, "#,##0") & " / " & Format(lngTaskCount, "#,##0") & " (" & Format(lngTask / lngTaskCount, "0%") & ")"
     cptStatusSheet_frm.lblProgress.Width = (lngTask / (lngTaskCount)) * cptStatusSheet_frm.lblStatus.Width
@@ -1002,6 +1007,15 @@ evt_vs_evp:
   'prettify the task name column
   Worksheet.Columns(lngNameCol).AutoFit
 
+  'optionallly set reference to Outlook and prepare to email
+  blnEmail = cptStatusSheet_frm.chkSendEmails = True
+  If blnEmail Then
+    On Error Resume Next
+    Set olApp = GetObject(, "Outlook.Application")
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If olApp Is Nothing Then Set olApp = CreateObject("Outlook.Application")
+  End If
+
   t = GetTickCount
   cptStatusSheet_frm.lblStatus.Caption = "Saving Workbook" & IIf(cptStatusSheet_frm.cboCreate.Value = "1", "s", "") & "..."
   strDir = Environ("USERPROFILE") & "\Desktop\CP_Status_Sheets\"
@@ -1037,6 +1051,12 @@ evt_vs_evp:
       Workbook.SaveAs strDir & strFileName, 51
     Else
       Workbook.SaveAs strDir & strFileName, 51
+    End If
+    If blnEmail Then
+      Set MailItem = olApp.CreateItem(olMailItem)
+      MailItem.Attachments.Add strDir & strFileName
+      MailItem.Subject = "Status Request - " & Format(dtStatus, "yyyy-mm-dd")
+      MailItem.Display False
     End If
   Else
     'cycle through each option and create sheet
@@ -1099,15 +1119,27 @@ evt_vs_evp:
     xlApp.Visible = True
     xlApp.ScreenUpdating = True
     xlApp.Calculation = True
-
+        
     'handle workbook for each
-    If cptStatusSheet_frm.cboCreate = "1" Then
+    If cptStatusSheet_frm.cboCreate = "1" Then 'worksheet for each
       Workbook.SaveAs strDir & strFileName, 51
-    ElseIf cptStatusSheet_frm.cboCreate.Value = "2" Then
+      If blnEmail Then
+        Set MailItem = olApp.CreateItem(olMailItem)
+        MailItem.Attachments.Add strDir & strFileName
+        MailItem.Subject = "Status Request - " & Format(dtStatus, "yyyy-mm-dd")
+        MailItem.Display False
+      End If
+    ElseIf cptStatusSheet_frm.cboCreate.Value = "2" Then 'workbook for each
       For lngItem = aEach.count - 1 To 0 Step -1
         Workbook.Sheets(aEach.GetKey(lngItem)).Copy
         If Dir(strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx")) <> vbNullString Then Kill strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx")
         xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx"), 51
+        If blnEmail Then
+          Set MailItem = olApp.CreateItem(olMailItem)
+          MailItem.Attachments.Add strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx")
+          MailItem.Subject = "Status Request [" & aEach.GetKey(lngItem) & "] " & Format(dtStatus, "yyyy-mm-dd")
+          MailItem.Display False
+        End If
       Next lngItem
       Workbook.Close False
     End If
@@ -1164,6 +1196,12 @@ exit_here:
   Set aCentered = Nothing
   Set aEntryHeaders = Nothing
   Set xlCells = Nothing
+  Set olApp = Nothing
+  Set MailItem = Nothing
+  Set objDoc = Nothing
+  Set objWord = Nothing
+  Set objSel = Nothing
+  Set objETemp = Nothing
   Exit Sub
 
 err_here:

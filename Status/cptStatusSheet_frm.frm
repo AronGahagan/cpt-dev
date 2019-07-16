@@ -37,12 +37,15 @@ Dim lngField As Long
     Case 0 'A single workbook
       Me.lboItems.ForeColor = -2147483630
       Me.chkSendEmails.Caption = "Create Email"
+      Me.lblForEach.Visible = False
       Me.cboEach.Enabled = False
       Me.lboItems.Enabled = False
+      FilterClear
 
     Case 1 'A worksheet for each
       Me.lboItems.ForeColor = -2147483630
       Me.chkSendEmails.Caption = "Create Email"
+      Me.lblForEach.Visible = True
       Me.cboEach.Enabled = True
       Me.lboItems.Enabled = True
       If Me.Visible Then Me.cboEach.DropDown
@@ -50,6 +53,7 @@ Dim lngField As Long
     Case 2 'A workbook for each
       Me.lboItems.ForeColor = -2147483630
       Me.chkSendEmails.Caption = "Create Email(s)"
+      Me.lblForEach.Visible = True
       Me.cboEach.Enabled = True
       Me.lboItems.Enabled = True
       If Me.Visible Then Me.cboEach.DropDown
@@ -120,7 +124,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cboEVP_AfterUpdate", err)
+  Call cptHandleErr("cptStatusSheet_frm", "cboEVP_AfterUpdate", err, Erl)
   Resume exit_here
 End Sub
 
@@ -154,7 +158,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cboEVT_AfterUpdate", err)
+  Call cptHandleErr("cptStatusSheet_frm", "cboEVT_AfterUpdate", err, Erl)
   Resume exit_here
 End Sub
 
@@ -185,7 +189,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("chkHide_Click", "chkHide_Click", err)
+  Call cptHandleErr("chkHide_Click", "chkHide_Click", err, Erl)
   Resume exit_here
   
 End Sub
@@ -221,7 +225,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdAdd_Click", err)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdAdd_Click", err, Erl)
   Resume exit_here
 
 End Sub
@@ -255,7 +259,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdAddAll_Click", err)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdAddAll_Click", err, Erl)
   Resume exit_here
 
 End Sub
@@ -274,7 +278,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdCancel_Click", err)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdCancel_Click", err, Erl)
   Resume exit_here
 
 End Sub
@@ -312,7 +316,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("frmStatusSeet", "cmdDown_Click", err)
+  Call cptHandleErr("frmStatusSeet", "cmdDown_Click", err, Erl)
   Resume exit_here
 
 End Sub
@@ -335,7 +339,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdRemove_Click", err)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdRemove_Click", err, Erl)
   Resume exit_here
   
 End Sub
@@ -356,7 +360,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdRemoveAll_Click", err)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdRemoveAll_Click", err, Erl)
   Resume exit_here
 
 End Sub
@@ -389,6 +393,7 @@ Dim strFileName As String
   Me.lblStatus.ForeColor = -2147483630
   Me.cboCostTool.ForeColor = -2147483630
   Me.cboCreate.ForeColor = -2147483630
+  Me.cboEach.BorderColor = -2147483642
   
   'validation
   If Not IsDate(Me.txtStatusDate.Value) Then
@@ -433,7 +438,7 @@ Dim strFileName As String
   If Me.cboCreate.Value <> "0" Then
     'a limiting field must be selected
     If Me.cboEach.Value = 0 Then
-      Me.cboEach.ForeColor = 192
+      Me.cboEach.BorderColor = 192
       blnError = True
     End If
     'at least one item selected
@@ -495,7 +500,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdRun_Click", err)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdRun_Click", err, Erl)
   Resume exit_here
   
 End Sub
@@ -533,7 +538,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdUp_Click", err)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdUp_Click", err, Erl)
   Resume exit_here
   
 End Sub
@@ -549,7 +554,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "lblURL", err)
+  Call cptHandleErr("cptStatusSheet_frm", "lblURL", err, Erl)
   Resume exit_here
 End Sub
 
@@ -587,7 +592,10 @@ Dim lngItem As Long
   Else
     FilterClear
   End If
-
+  
+  ActiveWindow.TopPane.Activate
+  SelectBeginning
+  
 exit_here:
   On Error Resume Next
   cptSpeed False
@@ -628,7 +636,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "stxtSearch_Change", err)
+  Call cptHandleErr("cptStatusSheet_frm", "stxtSearch_Change", err, Erl)
   Resume exit_here
   
 End Sub
@@ -657,7 +665,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "stxtSearch_Enter", err)
+  Call cptHandleErr("cptStatusSheet_frm", "stxtSearch_Enter", err, Erl)
   Resume exit_here
   
 End Sub
@@ -685,7 +693,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "txtHideCompleteBefore", err)
+  Call cptHandleErr("cptStatusSheet_frm", "txtHideCompleteBefore", err, Erl)
   Resume exit_here
 
 End Sub
@@ -713,7 +721,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "txtStatusDate_Change", err)
+  Call cptHandleErr("cptStatusSheet_frm", "txtStatusDate_Change", err, Erl)
   Resume exit_here
   
 End Sub
