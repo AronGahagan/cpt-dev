@@ -1,7 +1,11 @@
 Attribute VB_Name = "basNetworkBrowser"
+Option Explicit
+Private Const BLN_TRAP_ERRORS As Boolean = True
+'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
 Sub ShowFrmPreds()
   Call ShowPreds
-  frmNetworkBrowser.Show False
+  frmNetworkBrowser.show False
 End Sub
 
 Sub ShowPreds()
@@ -14,7 +18,7 @@ Dim Pred As Object, Succ As Object, numTasks As Integer, t As Task
   
   On Error GoTo err_here
   
-  numTasks = ActiveSelection.Tasks.Count
+  numTasks = ActiveSelection.Tasks.count
   
   With frmNetworkBrowser
     Select Case numTasks
@@ -114,3 +118,32 @@ Dim Task As Task
   ViewApply "Network Diagram"
 End Sub
 
+Sub HistoryDoubleClick()
+Dim X As Double
+
+  On Error GoTo err_here
+  
+  X = Int(Me.lboHistory.Value)
+  WindowActivate TopPane:=True
+  If IsNumeric(X) Then EditGoTo X
+
+exit_here:
+  Exit Sub
+err_here:
+  If err.Number = 1101 Then Call RemoveFilters(X)
+  Resume exit_here
+End Sub
+
+Sub RemoveFilters(lngTaskID As Long)
+  Dim msg As String
+  msg = "ID " & lngTaskID & " is not currently visible." & vbCrLf & vbCrLf & "Remove filters and go to " & lngTaskID & "?"
+  If MsgBox(msg, vbExclamation + vbYesNo, "Hidden") = vbYes Then
+    Application.FilterApply "All Tasks"
+    If ActiveProject.AutoFilter Then AutoFilter
+    Sort Key1:="ID"
+    On Error Resume Next
+    If err.Number = 1100 Then SummaryTasksShow
+    Application.OutlineShowAllTasks
+    EditGoTo lngTaskID
+  End If
+End Sub
