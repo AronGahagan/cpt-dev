@@ -1,15 +1,15 @@
 VERSION 5.00
-Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} frmNetworkBrowser 
+Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptNetworkBrowser_frm 
    Caption         =   "Dependency Browser"
    ClientHeight    =   5550
    ClientLeft      =   45
    ClientTop       =   330
    ClientWidth     =   9540
-   OleObjectBlob   =   "frmNetworkBrowser.frx":0000
+   OleObjectBlob   =   "cptNetworkBrowser_frm.frx":0000
    ShowModal       =   0   'False
    StartUpPosition =   1  'CenterOwner
 End
-Attribute VB_Name = "frmNetworkBrowser"
+Attribute VB_Name = "cptNetworkBrowser_frm"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
@@ -20,7 +20,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
 
 Private Sub cmdBack_Click()
 
-  On Error GoTo err_here
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   Me.lboHistory.SetFocus
   
@@ -34,7 +34,11 @@ Private Sub cmdBack_Click()
 exit_here:
   Exit Sub
 err_here:
-  If err.Number = 380 Then MsgBox "No more history.", vbInformation, "The End"
+  If err.Number = 380 Then
+    err.Clear
+  Else
+    Call cptHandleErr("cptNetworkBrowser_frm", "cmdBack_Click", err, Erl)
+  End If
   Resume exit_here
   
 End Sub
@@ -51,7 +55,7 @@ End Sub
 
 Private Sub cmdFwd_Click()
 
-  On Error GoTo err_here
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   Me.lboHistory.SetFocus
   
@@ -65,6 +69,11 @@ Private Sub cmdFwd_Click()
 exit_here:
   Exit Sub
 err_here:
+  If err.Number = 380 Then
+    err.Clear
+  Else
+    Call cptHandleErr("cptNetworkBrowser_frm", "cmdFwd_Click", err, Erl)
+  End If
   Resume exit_here
 
 End Sub

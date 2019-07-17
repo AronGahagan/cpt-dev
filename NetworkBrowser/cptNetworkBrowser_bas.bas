@@ -1,4 +1,4 @@
-Attribute VB_Name = "basNetworkBrowser"
+Attribute VB_Name = "cptNetworkBrowser_bas"
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -9,19 +9,27 @@ Sub ShowFrmPreds()
 End Sub
 
 Sub ShowPreds()
-Dim Pred As Object, Succ As Object, numTasks As Integer, t As Task
-  Dim Tasks As Tasks
+'objects
+Dim Pred As Object, Succ As Object, Task As Task, Tasks As Tasks
+'strings
+'longs
+Dim lngTasks As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
   
   On Error Resume Next
-  Set t = ActiveSelection.Tasks(1)
-  If t Is Nothing Then GoTo exit_here
+  Set Task = ActiveSelection.Tasks(1)
+  If Task Is Nothing Then GoTo exit_here
   
-  On Error GoTo err_here
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  numTasks = ActiveSelection.Tasks.count
+  lngTasks = ActiveSelection.Tasks.count
   
   With frmNetworkBrowser
-    Select Case numTasks
+    Select Case lngTasks
       Case Is < 1
         .lboPredecessors.Clear
         .lboPredecessors.ColumnCount = 1
@@ -40,9 +48,7 @@ Dim Pred As Object, Succ As Object, numTasks As Integer, t As Task
         GoTo exit_here
     End Select
   End With
-  
-  If ActiveCell.Task Is Nothing Then GoTo exit_here
-  
+    
   'only 1 is selected
   With frmNetworkBrowser.lboPredecessors
     .Clear
@@ -56,8 +62,8 @@ Dim Pred As Object, Succ As Object, numTasks As Integer, t As Task
     .Column(5, .ListCount - 1) = "Task"
     .Column(6, .ListCount - 1) = "Critical"
     
-    For Each Pred In ActiveCell.Task.TaskDependencies
-      If Pred.From.ID <> ActiveCell.Task.ID Then
+    For Each Pred In Task.TaskDependencies
+      If Pred.From.ID <> Task.ID Then
         .AddItem
         .Column(0, .ListCount - 1) = Pred.From.ID
         .Column(1, .ListCount - 1) = Pred.From.UniqueID
@@ -81,8 +87,8 @@ Dim Pred As Object, Succ As Object, numTasks As Integer, t As Task
     .Column(4, .ListCount - 1) = "Slack"
     .Column(5, .ListCount - 1) = "Task"
     .Column(6, .ListCount - 1) = "Critical"
-    For Each Succ In ActiveCell.Task.TaskDependencies
-      If Succ.To.ID <> ActiveCell.Task.ID Then
+    For Each Succ In Task.TaskDependencies
+      If Succ.To.ID <> Task.ID Then
         .AddItem
         .Column(0, .ListCount - 1) = Succ.To.ID
         .Column(1, .ListCount - 1) = Succ.To.UniqueID
@@ -94,8 +100,6 @@ Dim Pred As Object, Succ As Object, numTasks As Integer, t As Task
       End If
     Next
   End With
-  
-  'Application.Sort "Start"
   
 exit_here:
   Exit Sub
@@ -118,24 +122,28 @@ Dim Task As Task
   ViewApply "Network Diagram"
 End Sub
 
-Sub HistoryDoubleClick()
-Dim X As Double
+Sub cptHistoryDoubleClick()
+Dim lngTaskID As Long
 
-  On Error GoTo err_here
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  X = Int(Me.lboHistory.Value)
+  lngTaskID = CLng(Me.lboHistory.Value)
   WindowActivate TopPane:=True
-  If IsNumeric(X) Then EditGoTo X
+  If IsNumeric(lngTaskID) Then EditGoTo lngTaskID
 
 exit_here:
   Exit Sub
 err_here:
-  If err.Number = 1101 Then Call RemoveFilters(X)
+  If err.Number = 1101 Then
+    Call RemoveFilters(lngTaskID)
+  Else
+    Call cptHandleErr("cptNetworkBrowser_bas", "cptHistoryDoubleClick", err, Erl)
+  End If
   Resume exit_here
 End Sub
 
 Sub RemoveFilters(lngTaskID As Long)
-  Dim msg As String
+Dim msg As String
   msg = "ID " & lngTaskID & " is not currently visible." & vbCrLf & vbCrLf & "Remove filters and go to " & lngTaskID & "?"
   If MsgBox(msg, vbExclamation + vbYesNo, "Hidden") = vbYes Then
     Application.FilterApply "All Tasks"
