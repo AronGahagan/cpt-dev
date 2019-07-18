@@ -237,6 +237,7 @@ Dim blnFast As Boolean
   End If
 
   cptStatusSheet_frm.lblStatus.Caption = " Analyzing project..."
+  Application.StatusBar = "Analyzing project..."
   'get task count
   t = GetTickCount
   For Each Task In Tasks
@@ -246,6 +247,7 @@ Dim blnFast As Boolean
   Debug.Print "get task count: " & (GetTickCount - t) / 1000
 
   cptStatusSheet_frm.lblStatus.Caption = " Setting up workbook..."
+  Application.StatusBar = "Setting up workbook..."
   'set up an excel workbook
   t = GetTickCount
   Set xlApp = CreateObject("Excel.Application")
@@ -271,13 +273,15 @@ Dim blnFast As Boolean
   xlCells(1, 2).Font.Bold = True
   xlCells(1, 2).Font.Size = 14
   'current
-  xlCells(3, 1).Style = "Neutral" '<issue58>
+  xlCells(3, 1).Style = "Input" '<issue58>
   'xlCells(3, 1).Interior.ThemeColor = xlThemeColorAccent2 '<issue58>
   'xlCells(3, 1).Interior.TintAndShade = 0.799981688894314 '<issue58>
-  xlCells(3, 2) = "Task is active or within current status window. Update required."
+  xlCells(3, 2) = "Task is active or within current status window. Cell requires update."
   'within two weeks
-  xlCells(4, 1).Interior.ThemeColor = xlThemeColorAccent5
-  xlCells(4, 1).Interior.TintAndShade = 0.799981688894314
+  xlCells(4, 1).Style = "Neutral" '<issue58>
+  'xlCells(4, 1).Interior.ThemeColor = xlThemeColorAccent5 '<issue58>
+  'xlCells(4, 1).Interior.TintAndShade = 0.799981688894314 '<issue58>
+  xlCells(4, 1).BorderAround xlContinuous, xlThin, , -8421505
   xlCells(4, 2) = "Task is within two week look-ahead. Please review forecast dates."
   'complete
   xlCells(5, 1) = "AaBbCc"
@@ -458,7 +462,7 @@ next_field:
 
       'get assignment data for incomplete tasks
       If Task.ActualFinish = "NA" Then
-        'add a rollup formlua for Revised ETC?
+        'todo:add a rollup formlua for Revised ETC?
         For Each Assignment In Task.Assignments
           lngRow = lngRow + 1
           'xlCells(lngRow, 1).Value = Assignment.UniqueID
@@ -478,11 +482,8 @@ next_field:
           xlCells(lngRow, lngRemainingWorkCol).Value = Assignment.RemainingWork / 60
           xlCells(lngRow, 1).Resize(, aTaskRow.count).Value = aTaskRow.ToArray()
           aTaskRow.Clear
-
-          '/===debug===\
-          'xlCells(lngRow, aHeaders.count + 1).Value = (GetTickCount - t) / 1000
-          '\===debug===/
         Next Assignment
+
       Else 'task is complete '<issue58>
         aCompleted.Add lngRow '<issue58>
 
@@ -514,6 +515,7 @@ next_task:
   Debug.Print "add columns: " & (GetTickCount - t) / 1000
 
   cptStatusSheet_frm.lblStatus = " Formatting rows..."
+  Application.StatusBar = "Formatting rows..."
   t = GetTickCount
   'format rows
   'format summary tasks
@@ -559,8 +561,8 @@ next_task:
     Next vCol
     If Not rAssignments Is Nothing Then rAssignments.Font.Italic = True
   End If '</issue16-17>
-  'format completed
-  If aCompleted.count > 0 Then '<issue58>
+  'format completed '<issue58>
+  If aCompleted.count > 0 Then
     'format the entire row - assignments are skipped on completd tasks
     Set rCompleted = xlCells(aCompleted(0), 1).Resize(, aHeaders.count)
     For vCol = 1 To aCompleted.count - 1
@@ -602,9 +604,8 @@ next_task:
   Debug.Print "rename headers: " & (GetTickCount - t) / 1000
 
   t = GetTickCount
-  cptStatusSheet_frm.lblStatus.Caption = "Formatting Columns..."
-
-  '================ Issue 36 below this line ======================
+  cptStatusSheet_frm.lblStatus.Caption = " Formatting columns..."
+  Application.StatusBar = "Formatting Columns..."
 
   'columns to center
   Set aCentered = CreateObject("System.Collections.ArrayList")
@@ -681,12 +682,21 @@ next_task:
   Debug.Print "apply bulk formatting: " & (GetTickCount - t) / 1000
 
   'todo: apply conditional formatting
-  'update required formatting ("neutral"): - update required
+  'update required formatting ("input"): - update required
+'  .Font.Color = 7749439
+'  .Font.TintAndShade = 0
+'  .Interior.PatternColorIndex = -4105
+'  .Interior.Color = 10079487
+'  .Interior.TintAndShade = 0
+'  .BorderAround xlContinuous, xlThin, , Color:=RGB(127, 127, 127)
+
+  'two week window ("neutral"): - review
 '  .Font.Color = -16754788
 '  .Font.TintAndShade = 0
 '  .Interior.PatternColorIndex = xlAutomatic
 '  .Interior.Color = 10284031
 '  .Interior.TintAndShade = 0
+'  .BorderAround xlContinuous, xlThin,,color:=RGB(127,127,127)
 
   'invalid required formatting ("bad"): - invalid
 '  .Font.Color = -16383844
@@ -701,6 +711,9 @@ next_task:
 '  .Interior.PatternColorIndex = xlAutomatic
 '  .Interior.Color = 13561798
 '  .Interior.TintAndShade = 0  t = GetTickCount
+
+  cptStatusSheet_frm.lblStatus.Caption = " Applying conditional formats..."
+  Application.StatusBar = "Applying conditional formats..."
 
   'define range for new start
   xlCells(lngHeaderRow, 1).AutoFilter
@@ -718,19 +731,39 @@ next_task:
   End If '<issue52>
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
+
   '-->condition 1: blank and start is less than status date > update required
   rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, -2).Address(False, True) & "<=Indirect(""STATUS_DATE"")),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
-    .ThemeColor = xlThemeColorAccent4
-    .TintAndShade = -0.499984740745262
+    '.ThemeColor = xlThemeColorAccent4
+    '.TintAndShade = -0.499984740745262
+    .Color = 7749439
+    .TintAndShade = 0
+  End With
+  With rng.FormatConditions(rng.FormatConditions.count).Interior
+    '.PatternColorIndex = xlAutomatic
+    '.ThemeColor = xlThemeColorAccent4
+    '.TintAndShade = 0.799981688894314
+    .PatternColorIndex = -4105
+    .Color = 10079487
+    .TintAndShade = 0
+  End With
+  rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
+
+  '-->condition 2: two-week-window                      '=IF($E50<=(INDIRECT("STATUS_DATE")+14),TRUE,FALSE)
+  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(" & rng(1).Offset(0, -2).Address(False, True) & "<=(INDIRECT(""STATUS_DATE"")+14),TRUE,FALSE)"
+  With rng.FormatConditions(rng.FormatConditions.count).Font
+    .Color = -16754788
+    .TintAndShade = 0
   End With
   With rng.FormatConditions(rng.FormatConditions.count).Interior
     .PatternColorIndex = xlAutomatic
-    .ThemeColor = xlThemeColorAccent4
-    .TintAndShade = 0.799981688894314
+    .Color = 10284031
+    .TintAndShade = 0
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
-  '-->condition 2: blank and EV% > 0 > invalid
+
+  '-->condition 3: blank and EV% > 0 > invalid
   rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lngEVPCol).Address(False, True) & ">0),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
@@ -742,7 +775,8 @@ next_task:
     .TintAndShade = 0
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
-  'greater than actual finish > invalid
+
+  '-->condition 4: greater than actual finish > invalid
   rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & strFirstCell & ">" & xlCells(rng(1).Row, lngAFCol).Address(False, True) & "," & xlCells(rng(1).Row, lngAFCol).Address(False, True) & "<>""""),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
@@ -768,7 +802,6 @@ next_task:
 
 new_finish: '<issue52>
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
-  'new finish
   Worksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for task rows [blue font]
@@ -784,19 +817,39 @@ new_finish: '<issue52>
   End If '<issue52>
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
-  'blank and finish is less than status date > update required
+
+  '-->condition 1: blank and finish is less than status date > update required
   rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lngAFCol - 2).Address(False, True) & "<Indirect(""STATUS_DATE"")),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
-    .ThemeColor = xlThemeColorAccent4
-    .TintAndShade = -0.499984740745262
+    '.ThemeColor = xlThemeColorAccent4
+    '.TintAndShade = -0.499984740745262
+    .Color = 7749439
+    .TintAndShade = 0
+  End With
+  With rng.FormatConditions(rng.FormatConditions.count).Interior
+    '.PatternColorIndex = xlAutomatic
+    '.ThemeColor = xlThemeColorAccent4
+    '.TintAndShade = 0.799981688894314
+    .PatternColorIndex = -4105
+    .Color = 10079487
+    .TintAndShade = 0
+  End With
+  rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
+
+  '-->condition 2: two-week-window
+  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(" & rng(1).Offset(0, -2).Address(False, True) & "<=(INDIRECT(""STATUS_DATE"")+14),TRUE,FALSE)"
+  With rng.FormatConditions(rng.FormatConditions.count).Font
+    .Color = -16754788
+    .TintAndShade = 0
   End With
   With rng.FormatConditions(rng.FormatConditions.count).Interior
     .PatternColorIndex = xlAutomatic
-    .ThemeColor = xlThemeColorAccent4
-    .TintAndShade = 0.799981688894314
+    .Color = 10284031
+    .TintAndShade = 0
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
-  'less than actual start -> invalid
+
+  '-->condition 3: less than actual start -> invalid
   rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & xlCells(rng(1).Row, lngASCol).Address(False, True) & "<>""""," & strFirstCell & "<" & xlCells(rng(1).Row, lngASCol).Address(False, True) & "),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
@@ -808,7 +861,7 @@ new_finish: '<issue52>
     .TintAndShade = 0
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
-  'blank and EV% = 100 > invalid
+  '-->condition 4: blank and EV% = 100 > invalid
   rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lngEVPCol).Address(False, True) & "=100),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
@@ -820,6 +873,7 @@ new_finish: '<issue52>
     .TintAndShade = 0
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
+
   'else: <> finish > updated
   rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & strFirstCell & "<>" & xlCells(rng(1).Row, lngAFCol - 2).Address(False, True) & "),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
@@ -956,10 +1010,9 @@ evt_vs_evp:
   'prettify the task name column
   Worksheet.Columns(lngNameCol).AutoFit
 
-  '=============== Issue36 above this line =================
-
   t = GetTickCount
   cptStatusSheet_frm.lblStatus.Caption = "Saving Workbook" & IIf(cptStatusSheet_frm.optWorkbooks, "s", "") & "..."
+  Application.StatusBar = "Saving Workbook" & IIf(cptStatusSheet_frm.optWorkbooks, "s", "") & "..."
   'todo:save the workbook, worksheets, or workbooks
   strDir = Environ("USERPROFILE") & "\Desktop\CP_Status_Sheets\"
   'get clean project name
@@ -970,6 +1023,7 @@ evt_vs_evp:
   strFileName = Replace(strFileName, ".mpp", "")
   'create folder on desktop for project(?)
   'create folder on desktop for status date
+  xlApp.Calculation = xlAutomatic
   If cptStatusSheet_frm.optWorkbook Then
     'protect the sheet
     Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
