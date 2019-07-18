@@ -715,6 +715,7 @@ next_task:
   cptStatusSheet_frm.lblStatus.Caption = " Applying conditional formats..."
   Application.StatusBar = "Applying conditional formats..."
 
+new_start:
   'define range for new start
   xlCells(lngHeaderRow, 1).AutoFilter
   Set rngAll = Worksheet.Range(xlCells(lngHeaderRow, 1).End(xlToRight), xlCells(lngHeaderRow, 1).End(xlDown))
@@ -751,7 +752,7 @@ next_task:
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
 
   '-->condition 2: two-week-window                      '=IF($E50<=(INDIRECT("STATUS_DATE")+14),TRUE,FALSE)
-  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(" & rng(1).Offset(0, -2).Address(False, True) & "<=(INDIRECT(""STATUS_DATE"")+14),TRUE,FALSE)"
+  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, -2).Address(False, True) & "<=(INDIRECT(""STATUS_DATE"")+14)),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16754788
     .TintAndShade = 0
@@ -837,7 +838,7 @@ new_finish: '<issue52>
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
 
   '-->condition 2: two-week-window
-  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(" & rng(1).Offset(0, -2).Address(False, True) & "<=(INDIRECT(""STATUS_DATE"")+14),TRUE,FALSE)"
+  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, -2).Address(False, True) & "<=(INDIRECT(""STATUS_DATE"")+14)),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16754788
     .TintAndShade = 0
@@ -861,6 +862,7 @@ new_finish: '<issue52>
     .TintAndShade = 0
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
+
   '-->condition 4: blank and EV% = 100 > invalid
   rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lngEVPCol).Address(False, True) & "=100),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
@@ -887,13 +889,12 @@ new_finish: '<issue52>
   End With
 
 ev_percent:
-  'ev%
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   Worksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for task rows [blue font]
   rngAll.AutoFilter Field:=lngNameCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
-  '...with blank Actual Start dates [blank AF]
+  '...with blank EVP
   rngAll.AutoFilter Field:=lngEVPCol, Criteria1:="="
   'add conditions only to blank cells in the column
   On Error Resume Next '<issue52-noCellsFound>
@@ -904,18 +905,26 @@ ev_percent:
   End If '<issue52>
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
-  'Finish < Status Date AND EV% < 100 (complete but incomplete) > invalid
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<100," & xlCells(rng(1).Row, lngAFCol).Address(False, True) & "<=Indirect(""STATUS_DATE"")),TRUE,FALSE)"
+
+  '-->condition 1: Start < Status Date AND EV% < 100 (complete but incomplete) > update required
+  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & rng(1).Offset(0, -1).Address(False, True) & "<1," & rng(1).Address(False, True) & "<1," & rng(1).Offset(0, -7).Address(False, True) & "<=Indirect(""STATUS_DATE"")),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
-    .ThemeColor = xlThemeColorAccent4
-    .TintAndShade = -0.499984740745262
+    '.ThemeColor = xlThemeColorAccent4
+    '.TintAndShade = -0.499984740745262
+    .Color = 7749439
+    .TintAndShade = 0
   End With
   With rng.FormatConditions(rng.FormatConditions.count).Interior
-    .PatternColorIndex = xlAutomatic
-    .ThemeColor = xlThemeColorAccent4
-    .TintAndShade = 0.799981688894314
+    '.PatternColorIndex = xlAutomatic
+    '.ThemeColor = xlThemeColorAccent4
+    '.TintAndShade = 0.799981688894314
+    .PatternColorIndex = -4105
+    .Color = 10079487
+    .TintAndShade = 0
   End With
-  'EV% > 0 and new start = "" (bogus actuals) > invalid
+  rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
+
+  '-->condition 2: EV% > 0 and new start = "" (bogus actuals) > invalid
   rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & ">0," & xlCells(rng(1).Row, lngASCol).Address(False, True) & "=""""),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
@@ -927,7 +936,8 @@ ev_percent:
     .TintAndShade = 0
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
-  'EV% =100 and new finish = "" (update required) > invalid
+
+  '-->condition 3: EV% =100 and new finish = "" (update required) > invalid
   rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=100," & xlCells(rng(1).Row, lngAFCol).Address(False, True) & "=""""),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
@@ -939,7 +949,8 @@ ev_percent:
     .TintAndShade = 0
   End With
   rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
-  '=100 and new finish > status date > invalid
+
+  '-->condition 4: =100 and new finish > status date > invalid
   rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=100," & xlCells(rng(1).Row, lngAFCol).Address(False, True) & ">Indirect(""STATUS_DATE"")),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
@@ -955,7 +966,6 @@ ev_percent:
   '<skipped>
 
 revised_etc:
-  'revised etc
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   Worksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
