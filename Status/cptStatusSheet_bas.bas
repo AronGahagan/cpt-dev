@@ -193,6 +193,7 @@ Dim aSummaries As Object, aMilestones As Object, aNormal As Object, aAssignments
 Dim aEach As Object, aTaskRow As Object, aHeaders As Object
 Dim aOddBalls As Object, aCentered As Object, aEntryHeaders As Object
 'longs
+Dim lngDateFormat As Long
 Dim lngTaskCount As Long, lngTask As Long, lngHeaderRow As Long
 Dim lngRow As Long, lngCol As Long, lngField As Long
 Dim lngNameCol As Long, lngBaselineWorkCol As Long, lngRemainingWorkCol As Long, lngEach As Long
@@ -410,6 +411,10 @@ next_field:
   Set aMilestones = CreateObject("System.Collections.ArrayList")
   Set aNormal = CreateObject("System.Collections.ArrayList")
   Set aCompleted = CreateObject("System.Collections.ArrayList") '<issue58>
+
+  'set the date and duration formats '<issue58>
+  lngDateFormat = Application.DefaultDateFormat
+  Application.DefaultDateFormat = pjDate_mm_dd_yyyy
 
   'capture task data
   t = GetTickCount
@@ -1079,6 +1084,7 @@ evt_vs_evp:
 
 exit_here:
   On Error Resume Next
+  Application.DefaultDateFormat = lngDateFormat '<issue58>
   Set rCompleted = Nothing
   Set aCompleted = Nothing
   Application.StatusBar = ""
