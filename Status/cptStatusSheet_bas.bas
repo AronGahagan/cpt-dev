@@ -741,9 +741,13 @@ next_task:
   cptStatusSheet_frm.lblStatus.Caption = " Applying conditional formats..."
   Application.StatusBar = "Applying conditional formats..."
   cptStatusSheet_frm.lblProgress.Width = (1 / 100) * cptStatusSheet_frm.lblStatus.Width
-  lngConditionalFormats = 15
+  lngConditionalFormats = 22
   'capture status date address
   strStatusDate = Worksheet.Range("STATUS_DATE").Address(True, True)
+
+  'attempt to speed up
+  xlApp.EnableEvents = False
+  Worksheet.DisplayPageBreaks = False
 
 new_start:
   'define range for new start
@@ -945,12 +949,6 @@ ev_percent:
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
 
-'  E48 = start
-'  F48 = finish
-'  G48 = new start
-'  H48 = new finish
-'  L48 = new ev
-
   '-->condition 0: =IF(AND($H48>$B$1,$L48>$K48,$L48<1),TRUE,FALSE) 'green
   rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & rng(1).Offset(0, -4).Address(False, True) & ">" & strStatusDate & "," & strFirstCell & ">" & rng(1).Offset(0, -1).Address(False, True) & "," & strFirstCell & "<1),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.Count).Font
@@ -1135,6 +1133,7 @@ revised_etc:
       rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
 
     End If
+    cptStatusSheet_frm.lblStatus.Caption = "Adding ETC conditional formats (" & Format(lngRow / lngLastRow, "0%") & ")"
   Next lngRow
   lngFormatCondition = lngFormatCondition + 1
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
@@ -1234,6 +1233,7 @@ exit_here:
   Application.DefaultDateFormat = lngDateFormat
   ActiveProject.SpaceBeforeTimeLabels = blnSpace
   ActiveProject.DayLabelDisplay = lngDayLabelDisplay
+  xlApp.EnableEvents = False
   Set rCompleted = Nothing
   Set aCompleted = Nothing
   Application.StatusBar = ""
