@@ -168,7 +168,7 @@ err_here:
     err.Clear
     Resume next_field
   Else
-    MsgBox err.Number & ": " & err.Description, vbExclamation + vbOKOnly, "Error"
+    Call cptHandleErr("cptStatusSheet_frm", "ShowCptStatusSheet_frm", err, Erl)
     Resume exit_here
   End If
 
@@ -193,6 +193,9 @@ Dim aSummaries As Object, aMilestones As Object, aNormal As Object, aAssignments
 Dim aEach As Object, aTaskRow As Object, aHeaders As Object
 Dim aOddBalls As Object, aCentered As Object, aEntryHeaders As Object
 'longs
+Dim lngDayLabelDisplay As Long
+Dim lngTaskRow As Long
+Dim lngLastRow As Long
 Dim lngDateFormat As Long
 Dim lngTaskCount As Long, lngTask As Long, lngHeaderRow As Long
 Dim lngRow As Long, lngCol As Long, lngField As Long
@@ -205,6 +208,7 @@ Dim lngASCol As Long, lngAFCol As Long, lngETCCol As Long, lngEVPCol As Long
 	Dim t As Long, tTotal As Long '<issue53>
 #End If '<issue53>
 'strings
+Dim strStatusDate As String
 Dim strMsg As String
 Dim strEVT As String, strEVP As String, strDir As String, strFileName As String
 Dim strFirstCell As String
@@ -213,6 +217,8 @@ Dim dtStatus As Date
 'variants
 Dim vCol As Variant, aUserFields As Variant
 'booleans
+Dim blnPerformanceTest As Boolean
+Dim blnSpace As Boolean
 Dim blnFast As Boolean
 
   tTotal = GetTickCount
@@ -240,17 +246,18 @@ Dim blnFast As Boolean
   cptStatusSheet_frm.lblStatus.Caption = " Analyzing project..."
   Application.StatusBar = "Analyzing project..."
   'get task count
-  t = GetTickCount
+  If blnPerformanceTest Then t = GetTickCount
   For Each Task In Tasks
     lngTaskCount = lngTaskCount + 1
   Next Task
-  Debug.Print "<=====PERFORMANCE TEST " & Now() & "=====>"
-  Debug.Print "get task count: " & (GetTickCount - t) / 1000
+  blnPerformanceTest = True
+  If blnPerformanceTest Then Debug.Print "<=====PERFORMANCE TEST " & Now() & "=====>"
+  If blnPerformanceTest Then Debug.Print "get task count: " & (GetTickCount - t) / 1000
 
   cptStatusSheet_frm.lblStatus.Caption = " Setting up workbook..."
   Application.StatusBar = "Setting up workbook..."
   'set up an excel workbook
-  t = GetTickCount
+  If blnPerformanceTest Then t = GetTickCount
   Set xlApp = CreateObject("Excel.Application")
   Set Workbook = xlApp.Workbooks.Add
   xlApp.Calculation = xlCalculationManual
@@ -258,10 +265,10 @@ Dim blnFast As Boolean
   Set Worksheet = Workbook.Sheets(1)
   Worksheet.Name = "Status Sheet"
   Set xlCells = Worksheet.Cells
-  Debug.Print "set up excel workbook: " & (GetTickCount - t) / 1000
+  If blnPerformanceTest Then Debug.Print "set up excel workbook: " & (GetTickCount - t) / 1000
 
   'set up legend
-  t = GetTickCount
+  If blnPerformanceTest Then t = GetTickCount
   xlCells(1, 1).Value = "Status Date:"
   xlCells(1, 1).Font.Bold = True
   If ActiveProject.StatusDate = "NA" Then
@@ -295,12 +302,12 @@ Dim blnFast As Boolean
   xlCells(6, 1).Interior.ThemeColor = xlThemeColorDark1
   xlCells(6, 1).Interior.TintAndShade = -0.149998474074526
   xlCells(6, 2) = "MS Project Summary Task (Rollup).  No update required."
-  Debug.Print "set up legend: " & (GetTickCount - t) / 1000
+  If blnPerformanceTest Then Debug.Print "set up legend: " & (GetTickCount - t) / 1000
 
   lngHeaderRow = 8
 
   'set up header
-  t = GetTickCount
+  If blnPerformanceTest Then t = GetTickCount
 
   'get selected fields for two non-standard fields
   strEVT = cptStatusSheet_frm.cboEVT.Value
@@ -396,7 +403,7 @@ next_field:
     .VerticalAlignment = xlCenter
     .WrapText = True
   End With
-  Debug.Print "set up header: " & (GetTickCount - t) / 1000
+  If blnPerformanceTest Then Debug.Print "set up header: " & (GetTickCount - t) / 1000
 
   'prepare to capture each
   If cptStatusSheet_frm.optWorkbook = False Then
@@ -415,9 +422,13 @@ next_field:
   'set the date and duration formats '<issue58>
   lngDateFormat = Application.DefaultDateFormat
   Application.DefaultDateFormat = pjDate_mm_dd_yyyy
+  blnSpace = ActiveProject.SpaceBeforeTimeLabels
+  ActiveProject.SpaceBeforeTimeLabels = False
+  lngDayLabelDisplay = ActiveProject.DayLabelDisplay
+  ActiveProject.DayLabelDisplay = 0
 
   'capture task data
-  t = GetTickCount
+  If blnPerformanceTest Then t = GetTickCount
   lngRow = lngHeaderRow
   For Each Task In Tasks
     If Task Is Nothing Then GoTo next_task
@@ -442,7 +453,7 @@ next_field:
     'indent the task name
     xlCells(lngRow, lngNameCol).IndentLevel = Task.OutlineLevel + 1
 
-    'todo: error writing to worksheet
+    'write to worksheet
     If Task.Summary Then
       xlCells(lngRow, 1).Resize(, aTaskRow.count).Value = aTaskRow.ToArray()
       aTaskRow.Clear
@@ -507,9 +518,9 @@ next_task:
     cptStatusSheet_frm.lblProgress.Width = (lngTask / (lngTaskCount)) * cptStatusSheet_frm.lblStatus.Width
   Next Task
 
-  Debug.Print "capture task data: " & (GetTickCount - t) / 1000 & " >> " & Format(((GetTickCount - t) / 1000) / (lngRow - lngHeaderRow), "#0.00000") & " per task"
+  If blnPerformanceTest Then Debug.Print "capture task data: " & (GetTickCount - t) / 1000 & " >> " & Format(((GetTickCount - t) / 1000) / (lngRow - lngHeaderRow), "#0.00000") & " per task"
 
-  t = GetTickCount
+  If blnPerformanceTest Then t = GetTickCount
   'add New EV% after EV% - update aHeaders
   lngEVPCol = Worksheet.Rows(lngHeaderRow).Find(strEVP).Column + 1
   Worksheet.Columns(lngEVPCol - 1).Copy
@@ -527,14 +538,15 @@ next_task:
   Worksheet.Range(xlCells(lngHeaderRow + 1, lngETCCol), xlCells(lngRow, lngETCCol)).Style = "Comma"
   Worksheet.Columns(lngETCCol).ColumnWidth = 10
   xlCells(lngHeaderRow, lngETCCol).Value = "Revised ETC"
+  Worksheet.Calculate 'trigger Remaining Work formula to calculate
   Worksheet.Range(xlCells(lngHeaderRow, lngRemainingWorkCol), xlCells(lngRow, lngRemainingWorkCol)).Copy
   xlCells(lngHeaderRow, lngRemainingWorkCol).PasteSpecial xlValues
   aHeaders.Insert lngETCCol - 1, Array(0, "Revised ETC", 10)
-  Debug.Print "add columns: " & (GetTickCount - t) / 1000
+  If blnPerformanceTest Then Debug.Print "add columns: " & (GetTickCount - t) / 1000
 
   cptStatusSheet_frm.lblStatus = " Formatting rows..."
   Application.StatusBar = "Formatting rows..."
-  t = GetTickCount
+  If blnPerformanceTest Then t = GetTickCount
   'format rows
   'format summary tasks
   If aSummaries.count > 0 Then '<issue16-17> added
@@ -596,17 +608,17 @@ next_task:
     Next vCol
     rCompleted = 1
   End If '</issue58>
-  Debug.Print "format rows: " & (GetTickCount - t) / 1000
+  If blnPerformanceTest Then Debug.Print "format rows: " & (GetTickCount - t) / 1000
 
-  t = GetTickCount
+  If blnPerformanceTest Then t = GetTickCount
   'format common borders
   Set rng = Worksheet.Range(xlCells(lngHeaderRow, 1), xlCells(lngRow, aHeaders.count))
   rng.BorderAround xlContinuous, xlThin
   rng.Borders(xlInsideHorizontal).LineStyle = xlContinuous
   rng.Borders(xlInsideHorizontal).Weight = xlThin
-  Debug.Print "format common borders: " & (GetTickCount - t) / 1000
+  If blnPerformanceTest Then Debug.Print "format common borders: " & (GetTickCount - t) / 1000
 
-  t = GetTickCount
+  If blnPerformanceTest Then t = GetTickCount
   'rename headers
   Set rng = xlCells(lngHeaderRow, 1).Resize(, aHeaders.count)
   rng.Replace what:="Unique ID", Replacement:="UID", lookat:=xlWhole
@@ -617,9 +629,9 @@ next_task:
   rng.Replace what:="Actual Finish", Replacement:="New Forecast/ Actual Finish", lookat:=xlWhole
   rng.Replace what:=strEVP, Replacement:="EV%", lookat:=xlWhole
   rng.Replace what:="Notes", Replacement:="Reason / Action / Impact", lookat:=xlWhole
-  Debug.Print "rename headers: " & (GetTickCount - t) / 1000
+  If blnPerformanceTest Then Debug.Print "rename headers: " & (GetTickCount - t) / 1000
 
-  t = GetTickCount
+  If blnPerformanceTest Then t = GetTickCount
   cptStatusSheet_frm.lblStatus.Caption = " Formatting columns..."
   Application.StatusBar = "Formatting Columns..."
 
@@ -634,9 +646,9 @@ next_task:
   For Each vCol In Array("Actual Start", "Actual Finish", "New EV%", "Revised ETC", "Notes")
     aEntryHeaders.Add vCol
   Next vCol
-  Debug.Print "define aCentered and aEntryHeaders: " & (GetTickCount - t) / 1000
+  If blnPerformanceTest Then Debug.Print "define aCentered and aEntryHeaders: " & (GetTickCount - t) / 1000
 
-  t = GetTickCount
+  If blnPerformanceTest Then t = GetTickCount
   'define bulk column ranges for formatting
   For lngCol = 0 To aHeaders.count - 1
 
@@ -678,9 +690,9 @@ next_task:
     End If
 
   Next
-  Debug.Print "define bulk ranges for formatting: " & (GetTickCount - t) / 1000
+  If blnPerformanceTest Then Debug.Print "define bulk ranges for formatting: " & (GetTickCount - t) / 1000
 
-  t = GetTickCount
+  If blnPerformanceTest Then t = GetTickCount
   'apply bulk formatting
   rDates.NumberFormat = "m/d/yy;@"
   rDates.HorizontalAlignment = xlCenter
@@ -695,7 +707,7 @@ next_task:
   rMedium.BorderAround xlContinuous, xlMedium
   lngCol = Worksheet.Rows(lngHeaderRow).Find("Actual Finish", lookat:=xlPart).Column
   xlCells(lngHeaderRow + 1, lngCol).Resize(lngRow - lngHeaderRow).Borders(xlEdgeLeft).Weight = xlThin
-  Debug.Print "apply bulk formatting: " & (GetTickCount - t) / 1000
+  If blnPerformanceTest Then Debug.Print "apply bulk formatting: " & (GetTickCount - t) / 1000
 
   'apply conditional formatting
   'update required formatting ("input"): - update required
@@ -731,6 +743,9 @@ next_task:
   cptStatusSheet_frm.lblStatus.Caption = " Applying conditional formats..."
   Application.StatusBar = "Applying conditional formats..."
 
+  'capture status date address
+  strStatusDate = Worksheet.Range("STATUS_DATE").Address(True, True)
+
 new_start:
   'define range for new start
   xlCells(lngHeaderRow, 1).AutoFilter
@@ -750,7 +765,7 @@ new_start:
   strFirstCell = rng(1).Address(False, True)
 
   '-->condition 1: blank and start is less than status date > update required
-  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, -2).Address(False, True) & "<=Indirect(""STATUS_DATE"")),TRUE,FALSE)"
+  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, -2).Address(False, True) & "<=" & strStatusDate & "),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = 7749439
     .TintAndShade = 0
@@ -764,7 +779,7 @@ new_start:
   cptStatusSheet_frm.lblProgress.Width = (1 / 14) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 2: two-week-window                      '=IF($E50<=(INDIRECT("STATUS_DATE")+14),TRUE,FALSE)
-  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, -2).Address(False, True) & "<=(INDIRECT(""STATUS_DATE"")+14)),TRUE,FALSE)"
+  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, -2).Address(False, True) & "<=(" & strStatusDate & "+14)),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16754788
     .TintAndShade = 0
@@ -837,7 +852,7 @@ new_finish: '<issue52>
   strFirstCell = rng(1).Address(False, True)
 
   '-->condition 1: blank and finish is less than status date > update required
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lngAFCol - 2).Address(False, True) & "<Indirect(""STATUS_DATE"")),TRUE,FALSE)"
+  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lngAFCol - 2).Address(False, True) & "<" & strStatusDate & "),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = 7749439
     .TintAndShade = 0
@@ -851,7 +866,7 @@ new_finish: '<issue52>
   cptStatusSheet_frm.lblProgress.Width = (6 / 14) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 2: two-week-window
-  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, -2).Address(False, True) & "<=(INDIRECT(""STATUS_DATE"")+14)),TRUE,FALSE)"
+  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, -2).Address(False, True) & "<=(" & strStatusDate & "+14)),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16754788
     .TintAndShade = 0
@@ -911,8 +926,6 @@ ev_percent:
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for task rows [blue font]
   rngAll.AutoFilter Field:=lngNameCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
-  '...with blank EVP
-  rngAll.AutoFilter Field:=lngEVPCol, Criteria1:="="
   'add conditions only to blank cells in the column
   On Error Resume Next '<issue52-noCellsFound>
   Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngEVPCol), xlCells(lngRow, lngEVPCol)).SpecialCells(xlCellTypeVisible)
@@ -923,8 +936,8 @@ ev_percent:
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
 
-  '-->condition 1: Start < Status Date AND EV% < 100 (complete but incomplete) > update required
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & rng(1).Offset(0, -1).Address(False, True) & "<1," & rng(1).Address(False, True) & "<1," & rng(1).Offset(0, -7).Address(False, True) & "<=Indirect(""STATUS_DATE"")),TRUE,FALSE)"
+  '-->condition 1: Start < Status Date AND EV% < 100 > update required
+  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & rng(1).Offset(0, -1).Address(False, True) & "<1," & rng(1).Address(False, True) & "<1," & rng(1).Offset(0, -7).Address(False, True) & "<=" & strStatusDate & "),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = 7749439
     .TintAndShade = 0
@@ -966,7 +979,7 @@ ev_percent:
   cptStatusSheet_frm.lblProgress.Width = (13 / 14) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 4: =100 and new finish > status date > invalid
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=100," & xlCells(rng(1).Row, lngAFCol).Address(False, True) & ">Indirect(""STATUS_DATE"")),TRUE,FALSE)"
+  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=100," & xlCells(rng(1).Row, lngAFCol).Address(False, True) & ">" & strStatusDate & "),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = -16383844
     .TintAndShade = 0
@@ -986,30 +999,48 @@ revised_etc:
   Worksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for Task
-  rngAll.AutoFilter Field:=lngETCCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
+  rngAll.AutoFilter Field:=lngETCCol, Operator:=xlFilterAutomaticFontColor
   '...with blank Actual Start dates [blank AF]
-  rngAll.AutoFilter Field:=lngEVPCol, Criteria1:="="
+  rngAll.AutoFilter Field:=lngRemainingWorkCol, Operator:=xlFilterNoFill
   'add conditions only to blank cells in the column
   On Error Resume Next '<issue52>
-  Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngEVPCol), xlCells(lngRow, lngEVPCol)).SpecialCells(xlCellTypeVisible)
+  Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngETCCol), xlCells(lngRow, lngETCCol)).SpecialCells(xlCellTypeVisible)
   If err.Number = 1004 Then '<issue52>
     err.Clear '<issue52>
     GoTo evt_vs_evp '<issue52>
   End If '<issue52>
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
+  rng.Cells.Locked = False
   strFirstCell = rng(1).Address(False, True)
-  '
-  'filter for assignments
-'      ActiveSheet.Range("$A$8:$U$100").AutoFilter Field:=6, Operator:= _
-'        xlFilterAutomaticFontColor
-'    ActiveSheet.Range("$A$8:$U$100").AutoFilter Field:=7, Operator:= _
-'        xlFilterNoFill
+
+  lngLastRow = lngRow
+
+  For lngRow = lngHeaderRow + 1 To lngLastRow
+    If xlCells(lngRow, lngETCCol).Font.Color = RGB(32, 55, 100) Then
+      lngTaskRow = lngRow
+    ElseIf xlCells(lngRow, lngETCCol).Font.Italic And xlCells(lngRow, lngETCCol).Font.Color = xlAutomaticFontColor Then
+      Set rng = xlCells(lngRow, lngETCCol)
+        '-->condition 1: Start < Status Date AND EV% < 100 > update required
+        rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & xlCells(lngTaskRow, lngEVPCol).Address(True, True) & "<1," & xlCells(lngTaskRow, lngASCol - 2).Address(True, True) & "<=(INDIRECT(""STATUS_DATE""))),TRUE,FALSE)"
+        With rng.FormatConditions(rng.FormatConditions.count).Font
+          .Color = 7749439
+          .TintAndShade = 0
+        End With
+        With rng.FormatConditions(rng.FormatConditions.count).Interior
+          .PatternColorIndex = -4105
+          .Color = 10079487
+          .TintAndShade = 0
+        End With
+        rng.FormatConditions(rng.FormatConditions.count).StopIfTrue = True
+
+    End If
+  Next lngRow
 
   '>0 and ev%=100 (complete with etc) > invalid
   '>0 and finish < status date (complete with etc) > invalid
   '=0 and ev%<100 (incpmlete without etc) > invalid
   '=0 and finish > status date (incomplete without etc) > invalid
-  '(new start <> "" AND new start <> start) OR (newn finish <> "" AND new finish <> finish) (update required) > update required
+  '(new start <> "" AND new start <> start) OR (new finish <> "" AND new finish <> finish) (update required) > update required
 
 evt_vs_evp:
   'evt vs evp checks
@@ -1024,7 +1055,7 @@ evt_vs_evp:
   Else
     'skip it - too many variables
   End If
-  Debug.Print "apply conditional formatting " & (GetTickCount - t) / 1000
+  If blnPerformanceTest Then Debug.Print "apply conditional formatting " & (GetTickCount - t) / 1000
 
   xlApp.Visible = True
   xlApp.ScreenUpdating = True
@@ -1036,7 +1067,7 @@ evt_vs_evp:
   'prettify the task name column
   Worksheet.Columns(lngNameCol).AutoFit
 
-  t = GetTickCount
+  If blnPerformanceTest Then t = GetTickCount
   cptStatusSheet_frm.lblStatus.Caption = "Saving Workbook" & IIf(cptStatusSheet_frm.optWorkbooks, "s", "") & "..."
   Application.StatusBar = "Saving Workbook" & IIf(cptStatusSheet_frm.optWorkbooks, "s", "") & "..."
   'todo:save the workbook, worksheets, or workbooks
@@ -1083,8 +1114,8 @@ evt_vs_evp:
       'save to desktop in folder for status date
     End If
   End If
-  Debug.Print "save workbook: " & (GetTickCount - t) / 1000
-  Debug.Print "</=====PERFORMANCE TEST=====>"
+  If blnPerformanceTest Then Debug.Print "save workbook: " & (GetTickCount - t) / 1000
+  If blnPerformanceTest Then Debug.Print "</=====PERFORMANCE TEST=====>"
 
   cptStatusSheet_frm.lblProgress.Width = cptStatusSheet_frm.lblStatus.Width
   cptStatusSheet_frm.lblStatus.Caption = " Complete."
@@ -1096,6 +1127,8 @@ evt_vs_evp:
 exit_here:
   On Error Resume Next
   Application.DefaultDateFormat = lngDateFormat
+  ActiveProject.SpaceBeforeTimeLabels = blnSpace
+  ActiveProject.DayLabelDisplay = lngDayLabelDisplay
   Set rCompleted = Nothing
   Set aCompleted = Nothing
   Application.StatusBar = ""
