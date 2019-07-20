@@ -852,7 +852,7 @@ new_finish: '<issue52>
   strFirstCell = rng(1).Address(False, True)
 
   '-->condition 1: blank and finish is less than status date > update required
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lngAFCol - 2).Address(False, True) & "<" & strStatusDate & "),TRUE,FALSE)"
+  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & rng(1).Offset(0, 4).Address(False, True) & "<1," & rng(1).Offset(0, -3).Address(False, True) & "<" & strStatusDate & "),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.count).Font
     .Color = 7749439
     .TintAndShade = 0
