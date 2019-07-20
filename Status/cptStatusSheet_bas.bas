@@ -221,9 +221,6 @@ Dim vCol As Variant, aUserFields As Variant
 'booleans
 Dim blnPerformanceTest As Boolean
 Dim blnSpace As Boolean
-Dim blnFast As Boolean
-
-  tTotal = GetTickCount
 
   'check reference
   If Not cptCheckReference("Excel") Then GoTo exit_here
@@ -234,12 +231,15 @@ Dim blnFast As Boolean
     GoTo exit_here
   End If
 
-  blnFast = True
+  'this boolean spits out a speed test to the immediate window
+  blnPerformanceTest = False
+  If blnPerformanceTest Then tTotal = GetTickCount
 
   On Error Resume Next
   Set Tasks = ActiveProject.Tasks
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+  'ensure project has tasks
   If Tasks Is Nothing Then
     MsgBox "This project has no tasks.", vbExclamation + vbOKOnly, "Create Status Sheet"
     GoTo exit_here
@@ -252,7 +252,6 @@ Dim blnFast As Boolean
   For Each Task In Tasks
     lngTaskCount = lngTaskCount + 1
   Next Task
-  blnPerformanceTest = True
   If blnPerformanceTest Then Debug.Print "<=====PERFORMANCE TEST " & Now() & "=====>"
   If blnPerformanceTest Then Debug.Print "get task count: " & (GetTickCount - t) / 1000
 
@@ -443,7 +442,7 @@ next_field:
       aEach.Add Task.GetField(lngEach), Task.GetField(lngEach)
     End If
 
-    'get common data
+    'get common data: UID,{userFields},Task Name
     For lngCol = 1 To lngNameCol
       aTaskRow.Add Task.GetField(aHeaders(lngCol - 1)(0))
     Next lngCol
@@ -462,6 +461,8 @@ next_field:
           aTaskRow.Add Task.BaselineWork / 60
         ElseIf aHeaders(lngCol - 1)(1) = "Remaining Work" Then
           aTaskRow.Add Task.RemainingWork / 60
+        'elseif = new evp then get physical %
+        'elseif = revised etc then get remaining work and divide
         Else
           aTaskRow.Add Task.GetField(aHeaders(lngCol - 1)(0))
         End If
@@ -497,6 +498,7 @@ next_field:
           xlCells(lngRow, lngNameCol).IndentLevel = Task.OutlineLevel + 2
           xlCells(lngRow, lngBaselineWorkCol).Value = Assignment.BaselineWork / 60
           xlCells(lngRow, lngRemainingWorkCol).Value = Assignment.RemainingWork / 60
+          'revised etc = same as above
           xlCells(lngRow, 1).Resize(, aTaskRow.Count).Value = aTaskRow.ToArray()
           aTaskRow.Clear
 
@@ -686,7 +688,7 @@ next_task:
       End If
     End If
 
-  Next
+  Next 'lngCol = aHeader item
   If blnPerformanceTest Then Debug.Print "define bulk ranges for formatting: " & (GetTickCount - t) / 1000
 
   If blnPerformanceTest Then t = GetTickCount
@@ -741,7 +743,7 @@ next_task:
   cptStatusSheet_frm.lblStatus.Caption = " Applying conditional formats..."
   Application.StatusBar = "Applying conditional formats..."
   cptStatusSheet_frm.lblProgress.Width = (1 / 100) * cptStatusSheet_frm.lblStatus.Width
-  lngConditionalFormats = 22
+  lngConditionalFormats = 18 'bash: "grep -c 'lngFormatCondition = lngFormatCondition + 1' Status/cptStatusSheet_bas.bas"
   'capture status date address
   strStatusDate = Worksheet.Range("STATUS_DATE").Address(True, True)
 
@@ -780,6 +782,7 @@ new_start:
   End With
   rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Start (1/5)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 2: two-week-window                      '=IF($E50<=(INDIRECT("STATUS_DATE")+14),TRUE,FALSE)
@@ -795,6 +798,7 @@ new_start:
   End With
   rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Start (2/5)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 3: blank and EV% > 0 > invalid
@@ -810,6 +814,7 @@ new_start:
   End With
   rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Start (3/5)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 4: greater than actual finish > invalid
@@ -825,6 +830,7 @@ new_start:
   End With
   rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Start (4/5)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
   'else: <> start > updated
@@ -839,6 +845,7 @@ new_start:
     .TintAndShade = 0
   End With
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Start (5/5)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
 new_finish: '<issue52>
@@ -872,6 +879,7 @@ new_finish: '<issue52>
   End With
   rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Finish (1/5)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 2: two-week-window
@@ -887,6 +895,7 @@ new_finish: '<issue52>
   End With
   rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Finish (2/5)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 3: less than actual start -> invalid
@@ -902,6 +911,7 @@ new_finish: '<issue52>
   End With
   rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Finish (3/5)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 4: blank and EV% = 100 > invalid
@@ -917,6 +927,7 @@ new_finish: '<issue52>
   End With
   rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Finish (4/5)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
   'else: <> finish > updated
@@ -931,6 +942,7 @@ new_finish: '<issue52>
     .TintAndShade = 0
   End With
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Finish (5/5)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
 ev_percent:
@@ -962,6 +974,7 @@ ev_percent:
   End With
   rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (1/7)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 1: =IF(AND($H48>0,$H48<=$B$1,$L48=1),TRUE,FALSE) 'green
@@ -977,6 +990,7 @@ ev_percent:
   End With
   rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (2/7)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 2: New Finish < Status Date (complete) and EV%<100 > invalid '=IF(AND($H48>0,$H48<=$B$1,$L48<1),TRUE,FALSE)
@@ -992,6 +1006,7 @@ ev_percent:
   End With
   rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (3/7)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 3: Start < Status Date AND EV% < 100 > update required '  =IF(AND($L48<1,$E48<=$B$1),TRUE,FALSE) 'orange
@@ -1007,6 +1022,7 @@ ev_percent:
   End With
   rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (4/7)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 4: EV% > 0 and new start = "" (bogus actuals) > invalid '  =IF(AND($L48>0,$G48=0),TRUE,FALSE) 'red
@@ -1022,6 +1038,7 @@ ev_percent:
   End With
   rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (5/7)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 5: EV% =100 and new finish = "" (update required) > invalid '  =IF(AND($L48=1,$H48=0),TRUE,FALSE) 'red
@@ -1037,6 +1054,7 @@ ev_percent:
   End With
   rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (6/7)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
   '-->condition 6: =100 and new finish > status date > invalid '  =IF(AND($L48=1,$H48>$B$1),TRUE,FALSE) 'red
@@ -1051,6 +1069,7 @@ ev_percent:
     .TintAndShade = 0
   End With
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (7/7)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
 revised_etc:
@@ -1092,6 +1111,8 @@ revised_etc:
         .TintAndShade = 0
       End With
       rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
+
+      'todo: if in-progress and new etc <> prev etc
 
       '-->condition 2: new actual start and ETC > 0 =IF(AND($H48>0,$H48<=$B$1,$O$49>0),TRUE,FALSE) 'red
       rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & xlCells(lngTaskRow, lngAFCol).Address(True, True) & ">0," & xlCells(lngTaskRow, lngAFCol).Address(True, True) & "<=" & strStatusDate & "," & xlCells(lngRow, lngETCCol).Address(True, True) & ">0),TRUE,FALSE)"
@@ -1136,13 +1157,8 @@ revised_etc:
     cptStatusSheet_frm.lblStatus.Caption = "Adding ETC conditional formats (" & Format(lngRow / lngLastRow, "0%") & ")"
   Next lngRow
   lngFormatCondition = lngFormatCondition + 1
+  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New ETC (4/4)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-
-  'todo: finish new etc conditional formats
-  '>0 and ev%=100 (complete with etc) > invalid
-  '>0 and finish < status date (complete with etc) > invalid
-  '=0 and ev%<100 (incomplete without etc) > invalid
-  '=0 and finish > status date (incomplete without etc) > invalid
 
 evt_vs_evp:
   'evt vs evp checks
