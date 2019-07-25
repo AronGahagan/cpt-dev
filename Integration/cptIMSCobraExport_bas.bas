@@ -58,11 +58,11 @@ Private Type WPDataCheck
     EVT_Error As Boolean
 End Type
 Private Type CAMDataCheck
-
+    
     ID_str As String '**CAID1/CAID2/CAID3**
     CAM_Test As String
     CAM_Error As Boolean
-
+    
 End Type
 Private Type TaskDataCheck
     UID As String
@@ -4254,7 +4254,7 @@ next_task:
         Close #2
 
     End If
-
+        
 End Sub
 
 Private Function SetDirectory(ByVal ProjName As String) As String
