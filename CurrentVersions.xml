@@ -106,6 +106,13 @@
 		<Directory>Integration</Directory>
 	</Module>
 	<Module>
+		<Name>cptMetrics_bas</Name>
+		<FileName>cptMetrics_bas.bas</FileName>
+		<Version>v1.0.0</Version>
+		<Type>1</Type>
+		<Directory>Metrics</Directory>
+	</Module>
+	<Module>
 		<Name>cptPatch_bas</Name>
 		<FileName>cptPatch_bas.bas</FileName>
 		<Version>19.06.29</Version>
