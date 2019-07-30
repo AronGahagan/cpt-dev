@@ -58,7 +58,7 @@ Dim lngFile As Long
   
   '<issue18> sort the list to limit merge conflicts - added
   Set arrModules = CreateObject("System.Collections.SortedList")
-  For Each vbComponent In ThisProject.VBProject.VBComponents
+  For Each vbComponent In ProjectGlobal.ThisProject.VBProject.VBComponents '<issue61>
     If vbComponent.Name = "cptAdmin_bas" Then GoTo next_vbComponent
     If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
       arrModules.Add vbComponent.Name, vbComponent.Name
@@ -71,12 +71,12 @@ next_vbComponent:
   strXML = "<?xml version=""1.0"" encoding=""utf-8"" ?>" & vbCrLf
   strXML = strXML & "<Modules>" & vbCrLf
   '<issue18>removed
-  'For Each vbComponent In ThisProject.VBProject.VBComponents - removed
+  'For Each vbComponent In ProjectGlobal.ThisProject.VBProject.VBComponents - removed '<issue61>
   '  If vbComponent.Name = "cptAdmin_bas" Then GoTo next_vbComponent - removed
   '  If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then - removed
   '</issue18>
   For lngItem = 0 To arrModules.count - 1
-    Set vbComponent = ThisProject.VBProject.VBComponents(arrModules.getKey(lngItem))
+    Set vbComponent = ProjectGlobal.ThisProject.VBProject.VBComponents(arrModules.getKey(lngItem)) '<issue61>
     Debug.Print arrModules.getKey(lngItem)
     strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
     strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
@@ -167,7 +167,7 @@ Dim arrHeader As Variant
   
   lngRow = 2
   
-  For Each vbComponent In ThisProject.VBProject.VBComponents
+  For Each vbComponent In ProjectGlobal.ThisProject.VBProject.VBComponents '<issue61>
     strModule = vbComponent.Name
     Debug.Print "working on " & strModule & "..."
     If strModule = "ThisProject" Or Left(strModule, 3) = "cpt" Then
@@ -219,7 +219,7 @@ End Sub
 Sub cptCheckAllVersions()
 Dim vbComponent As vbComponent
 
-  For Each vbComponent In ThisProject.VBProject.VBComponents
+  For Each vbComponent In ProjectGlobal.ThisProject.VBProject.VBComponents '<issue61>
     If Left(vbComponent.Name, 3) = "cpt" Then
       Debug.Print vbComponent.Name & ": " & vbComponent.CodeModule.Lines(1, 1)
     End If
