@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.5.11</cpt_version>
+'<cpt_version>v1.5.10</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -90,7 +90,7 @@ Dim vbComponent As Object, strVersion As String
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  For Each vbComponent In ProjectGlobal.ThisProject.VBProject.VBComponents '<issue61>
+  For Each vbComponent In ThisProject.VBProject.VBComponents
     'is the vbComponent one of ours?
     If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
       strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
@@ -163,25 +163,25 @@ frx:
 
   'remove if exists
   strModule = Left(strFileName, InStr(strFileName, ".") - 1)
-  blnExists = Not ProjectGlobal.ThisProject.VBProject.VBComponents(strModule) Is Nothing '<issue61>
+  blnExists = Not ThisProject.VBProject.VBComponents(strModule) Is Nothing
   If blnExists Then
-    'Set vbComponent = ProjectGlobal.ThisProject.VBProject.VBComponents("cptUpgrades_frm") '<issue61>
+    'Set vbComponent = ThisProject.VBProject.VBComponents("cptUpgrades_frm")
     Application.StatusBar = "Removing obsolete version of " & strModule
     strNewFileName = strModule & "_" & Format(Now, "hhnnss")
-    ProjectGlobal.ThisProject.VBProject.VBComponents(strModule).Name = strNewFileName '<issue61>
+    ThisProject.VBProject.VBComponents(strModule).Name = strNewFileName
     DoEvents
-    ProjectGlobal.ThisProject.VBProject.VBComponents.remove ProjectGlobal.ThisProject.VBProject.VBComponents(strNewFileName) '<issue61>'
+    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(strNewFileName)
     cptCore_bas.cptStartEvents
     DoEvents
   End If
 
   'import the module
   Application.StatusBar = "Importing " & strFileName & "..."
-  ProjectGlobal.ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName '<issue61>
+  ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
   DoEvents
   
   '<issue24> remove the whitespace added by VBE import/export
-  With ProjectGlobal.ThisProject.VBProject.VBComponents(strModule).CodeModule '<issue61>
+  With ThisProject.VBProject.VBComponents(strModule).CodeModule
     For lngLine = .CountOfDeclarationLines To 1 Step -1
       If Len(.Lines(lngLine, 1)) = 0 Then .DeleteLines lngLine, 1
     Next lngLine
@@ -267,7 +267,7 @@ Dim Ref As Object, blnExists As Boolean
 
   blnExists = False
 
-  For Each Ref In ProjectGlobal.ThisProject.VBProject.References '<issue61>
+  For Each Ref In ThisProject.VBProject.References
     If Ref.Name = strReference Then
       blnExists = True
       Exit For
@@ -291,7 +291,7 @@ Sub cptGetReferences()
 'although simply runing setreferences would fix it
 Dim Ref As Object
 
-  For Each Ref In ProjectGlobal.ThisProject.VBProject.References '<issue61>
+  For Each Ref In ThisProject.VBProject.References
     Debug.Print Ref.Name & " (" & Ref.Description & ")" & Ref.FullPath
   Next Ref
 
@@ -363,63 +363,63 @@ Function cptCheckReference(strReference As String) As Boolean
     'CommonProgramFiles
     Case "Office"
       If Not cptReferenceExists("Office") Then
-        ProjectGlobal.ThisProject.VBProject.References.AddFromFile Environ("CommonProgramFiles") & "\Microsoft Shared\OFFICE16\MSO.DLL" '<issue61>
+        ThisProject.VBProject.References.AddFromFile Environ("CommonProgramFiles") & "\Microsoft Shared\OFFICE16\MSO.DLL"
       End If
     Case "VBIDE"
       If Not cptReferenceExists("VBIDE") Then
-        ProjectGlobal.ThisProject.VBProject.References.AddFromFile Environ("CommonProgramFiles") & "\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB" '<issue61>
+        ThisProject.VBProject.References.AddFromFile Environ("CommonProgramFiles") & "\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB"
       End If
     Case "VBA"
       If Not cptReferenceExists("VBA") Then
-        ProjectGlobal.ThisProject.VBProject.References.AddFromFile Environ("CommonProgramFiles") & "\Microsoft Shared\VBA\VBA7.1\VBE7.DLL" '<issue61>
+        ThisProject.VBProject.References.AddFromFile Environ("CommonProgramFiles") & "\Microsoft Shared\VBA\VBA7.1\VBE7.DLL"
       End If
     Case "ADODB"
       If Not cptReferenceExists("ADODB") Then
-        ProjectGlobal.ThisProject.VBProject.References.AddFromFile Environ("CommonProgramFiles") & "\System\ado\msado15.dll" '<issue61>
+        ThisProject.VBProject.References.AddFromFile Environ("CommonProgramFiles") & "\System\ado\msado15.dll"
       End If
 
     'Office Applications
     Case "Excel"
       If Not cptReferenceExists("Excel") Then
-        ProjectGlobal.ThisProject.VBProject.References.AddFromFile Application.Path & "\EXCEL.EXE" '<issue61>
+        ThisProject.VBProject.References.AddFromFile Application.Path & "\EXCEL.EXE"
       End If
     Case "Outlook"
       If Not cptReferenceExists("Outlook") Then
-        ProjectGlobal.ThisProject.VBProject.References.AddFromFile Application.Path & "\MSOUTL.OLB" '<issue61>
+        ThisProject.VBProject.References.AddFromFile Application.Path & "\MSOUTL.OLB"
       End If
     Case "PowerPoint"
       If Not cptReferenceExists("PowerPoint") Then
-        ProjectGlobal.ThisProject.VBProject.References.AddFromFile Application.Path & "\MSPPT.OLB" '<issue61>
+        ThisProject.VBProject.References.AddFromFile Application.Path & "\MSPPT.OLB"
       End If
     Case "MSProject"
       If Not cptReferenceExists("MSProject") Then
-        ProjectGlobal.ThisProject.VBProject.References.AddFromFile Application.Path & "\MSPRJ.OLB" '<issue61>
+        ThisProject.VBProject.References.AddFromFile Application.Path & "\MSPRJ.OLB"
       End If
     Case "Word"
       If Not cptReferenceExists("Word") Then
-        ProjectGlobal.ThisProject.VBProject.References.AddFromFile Application.Path & "\MSWORD.OLB (Word)" '<issue61>
+        ThisProject.VBProject.References.AddFromFile Application.Path & "\MSWORD.OLB (Word)"
       End If
 
     'Windows Common
     Case "MSForms"
       If Not cptReferenceExists("MSForms") Then
-        ProjectGlobal.ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\FM20.DLL" '<issue61>
+        ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\FM20.DLL"
       End If
     Case "Scripting"
       If Not cptReferenceExists("Scripting") Then
-        ProjectGlobal.ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\scrrun.dll" '<issue61>
+        ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\scrrun.dll"
       End If
     Case "stdole"
       If Not cptReferenceExists("stdole") Then
-        ProjectGlobal.ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\stdole2.tlb" '<issue61>
+        ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\stdole2.tlb"
       End If
     Case "mscorlib"
       If Not cptReferenceExists("mscorlib") Then
-        ProjectGlobal.ThisProject.VBProject.References.AddFromFile Environ("windir") & "\Microsoft.NET\Framework\v4.0.30319\mscorlib.tlb" '<issue61>
+        ThisProject.VBProject.References.AddFromFile Environ("windir") & "\Microsoft.NET\Framework\v4.0.30319\mscorlib.tlb"
       End If
     Case "MSXML2"
       If Not cptReferenceExists("MSXML2") Then '</issue33>
-        ProjectGlobal.ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\msxml3.dll" '<issue61>
+        ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\msxml3.dll"
       End If
     Case Else
       cptCheckReference = False
@@ -530,7 +530,7 @@ Dim vCol As Variant
   'get installed versions
   Set arrInstalled = CreateObject("System.Collections.SortedList")
   blnUpdatesAreAvailable = False
-  For Each vbComponent In ProjectGlobal.ThisProject.VBProject.VBComponents '<issue61>
+  For Each vbComponent In ThisProject.VBProject.VBComponents
     'is the vbComponent one of ours?
     If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
       strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
@@ -620,52 +620,52 @@ Dim strDir As String
   'CommonProgramFiles
   strDir = Environ("CommonProgramFiles")
   If Not cptReferenceExists("Office") Then
-    ProjectGlobal.ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\OFFICE16\MSO.DLL" '<issue61>
+    ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\OFFICE16\MSO.DLL"
   End If
   If Not cptReferenceExists("VBIDE") Then
-    ProjectGlobal.ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB" '<issue61>
+    ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB"
   End If
   If Not cptReferenceExists("VBA") Then
-    ProjectGlobal.ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA7.1\VBE7.DLL" '<issue61>
+    ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA7.1\VBE7.DLL"
   End If
   If Not cptReferenceExists("ADODB") Then
-    ProjectGlobal.ThisProject.VBProject.References.AddFromFile strDir & "\System\ado\msado15.dll" '<issue61>
+    ThisProject.VBProject.References.AddFromFile strDir & "\System\ado\msado15.dll"
   End If
 
   'office applications
   strDir = Application.Path 'OR cptRegEx(environ("PATH"),"C\:.*Microsoft Office[A-z0-9\\]*;")
   If Not cptReferenceExists("Excel") Then
-    ProjectGlobal.ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE" '<issue61>
+    ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
   End If
   If Not cptReferenceExists("Outlook") Then
-    ProjectGlobal.ThisProject.VBProject.References.AddFromFile strDir & "\MSOUTL.OLB" '<issue61>
+    ThisProject.VBProject.References.AddFromFile strDir & "\MSOUTL.OLB"
   End If
   If Not cptReferenceExists("PowerPoint") Then
-    ProjectGlobal.ThisProject.VBProject.References.AddFromFile strDir & "\MSPPT.OLB" '<issue61>
+    ThisProject.VBProject.References.AddFromFile strDir & "\MSPPT.OLB"
   End If
   If Not cptReferenceExists("MSProject") Then
-    ProjectGlobal.ThisProject.VBProject.References.AddFromFile strDir & "\MSPRJ.OLB" '<issue61>
+    ThisProject.VBProject.References.AddFromFile strDir & "\MSPRJ.OLB"
   End If
   If Not cptReferenceExists("Word") Then
-    ProjectGlobal.ThisProject.VBProject.References.AddFromFile strDir & "\MSWORD.OLB" '<issue61>
+    ThisProject.VBProject.References.AddFromFile strDir & "\MSWORD.OLB"
   End If
 
   'Windows Common
   If Not cptReferenceExists("MSForms") Then
-    ProjectGlobal.ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\SysWOW64\FM20.DLL" '<issue61>
+    ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\SysWOW64\FM20.DLL"
   End If
   If Not cptReferenceExists("Scripting") Then
-    ProjectGlobal.ThisProject.VBProject.References.AddFromFile "C:\Windows\SysWOW64\scrrun.dll" '<issue61>
+    ThisProject.VBProject.References.AddFromFile "C:\Windows\SysWOW64\scrrun.dll"
   End If
   If Not cptReferenceExists("stdole") Then
-    ProjectGlobal.ThisProject.VBProject.References.AddFromFile "C:\Windows\SysWOW64\stdole2.tlb" '<issue61>
+    ThisProject.VBProject.References.AddFromFile "C:\Windows\SysWOW64\stdole2.tlb"
   End If
   If Not cptReferenceExists("mscorlib") Then
-    ProjectGlobal.ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\Microsoft.NET\Framework\v4.0.30319\mscorlib.tlb" '<issue61>
+    ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\Microsoft.NET\Framework\v4.0.30319\mscorlib.tlb"
   End If
   '<issue33> added
   If Not cptReferenceExists("MSXML2") Then
-    ProjectGlobal.ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\SysWOW64\msxml3.dll" '<issue61>
+    ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\SysWOW64\msxml3.dll"
   End If '</issue33>
 
 End Sub

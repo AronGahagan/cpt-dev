@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.7</cpt_version>
+'<cpt_version>v1.3.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -122,16 +122,16 @@ get_frx:
 
       If cptModuleExists(strModule) Then
         '<issue19>
-        Set vbComponent = ProjectGlobal.ThisProject.VBProject.VBComponents(strModule) '<issue61>
+        Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
         vbComponent.Name = vbComponent.Name & "_" & Format(Now, "hhnnss")
         DoEvents
-        ProjectGlobal.ThisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(strModule) '<issue61>
+        ThisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(strModule)
         DoEvents '</issue19>
       End If
-      ProjectGlobal.ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName '<issue61>
+      ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
       
       '<issue24> remove the whitespace added by VBE import/export
-      With ProjectGlobal.ThisProject.VBProject.VBComponents(strModule).CodeModule '<issue61>
+      With ThisProject.VBProject.VBComponents(strModule).CodeModule
         For lngLine = .CountOfDeclarationLines To 1 Step -1
           If Len(.Lines(lngLine, 1)) = 0 Then .DeleteLines lngLine, 1
         Next lngLine
@@ -156,7 +156,7 @@ next_module:     '</issue25>
     'ideally this would prompt user to proceed or rollback...
 
     'clear out existing lines of cpt-related code
-    Set cmThisProject = ProjectGlobal.ThisProject.VBProject.VBComponents("ThisProject").CodeModule '<issue61>
+    Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
     For lngLine = cmThisProject.CountOfLines To 1 Step -1
       'cover both '</cpt_version> and '</cpt>
       If InStr(cmThisProject.Lines(lngLine, 1), "</cpt") > 0 Then
@@ -168,7 +168,7 @@ next_module:     '</issue25>
     'rename file and import it
     strCptFileName = Replace(strFileName, "ThisProject", "cptThisProject")
     Name strFileName As strCptFileName
-    Set cmCptThisProject = ProjectGlobal.ThisProject.VBProject.VBComponents.import(strCptFileName).CodeModule '<issue61>
+    Set cmCptThisProject = ThisProject.VBProject.VBComponents.import(strCptFileName).CodeModule
     'grab and insert the updated version
     strVersion = cptRegEx(cmCptThisProject.Lines(1, cmCptThisProject.CountOfLines), "<cpt_version>.*</cpt_version>")
     cmThisProject.InsertLines 1, "'" & strVersion
@@ -180,7 +180,7 @@ next_module:     '</issue25>
         arrCode.Add CStr(vEvent), .Lines(.ProcStartLine(CStr(vEvent), 0) + 2, .ProcCountLines(CStr(vEvent), 0) - 3) '0 = vbext_pk_Proc
       Next vEvent
     End With
-    ProjectGlobal.ThisProject.VBProject.VBComponents.remove ProjectGlobal.ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name) '<issue61>
+    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
     '<issue19> added
     DoEvents '</issue19>
 
