@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.5.9</cpt_version>
+'<cpt_version>v1.5.10</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -836,12 +836,6 @@ Dim vVersion As Variant
 Dim vLevel As Variant
 'dates
 
-  'for now, assumes semantic version control - see https://semver.org/
-  'useing yy.dd.mm would be easier, would show age of the release
-  'and does it really matter if we 'have the lates' patch if we know we have *the latest*?
-
-  'todo: indicate install, (major upgrade, minor upgrade, patch, downgrade) available
-
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   'clean the versions - include all three levels
@@ -866,7 +860,7 @@ Dim vLevel As Variant
   For Each vLevel In Array(0, 1, 2)
     If aCurrent(vLevel) <> aInstalled(vLevel) Then
       cptVersionStatus = Choose(vLevel + 1, "major", "minor", "patch")
-      If aCurrent(vLevel) > aInstalled(vLevel) Then
+      If CLng(aCurrent(vLevel)) > CLng(aInstalled(vLevel)) Then '<issue62>
         cptVersionStatus = cptVersionStatus & " upgrade"
       Else
         cptVersionStatus = cptVersionStatus & " downgrade"
