@@ -49,4 +49,3 @@ Private Sub Project_Open(ByVal pj As Project)
   Call cptCore_bas.cptSetReferences '</cpt>
 
 End Sub
-
