@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.3.9</cpt_version>
+'<cpt_version>v1.3.10</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -44,7 +44,13 @@ Dim vEvent As Variant
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
+
+  '<issue61> ensure proper installation
+  If Instr(ThisProject.FullName, "Global.MPT") = 0 Then
+    MsgBox "The VBA module 'cptSetup_bas' must be installed in your Global.MPT, not in this project file.", vbCritical + vbOKOnly, "Faulty Installation"
+    GoTo exit_here
+  End If '</issue61>
+
   'prompt user for setup instructions
   strMsg = "NOTE: This procedure should only be run once." & vbCrLf & vbCrLf
   strMsg = strMsg & "Before proceeding:" & vbCrLf
