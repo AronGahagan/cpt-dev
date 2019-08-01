@@ -3,12 +3,12 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Sub ShowFrmPreds()
-  Call ShowPreds
-  frmNetworkBrowser.show False
+Sub cptShowFrmPreds()
+  Call cptShowPreds
+  cptNetworkBrowser_frm.show False
 End Sub
 
-Sub ShowPreds()
+Sub cptShowPreds()
 'objects
 Dim Pred As Object, Succ As Object, Task As Task, Tasks As Tasks
 'strings
@@ -28,7 +28,7 @@ Dim lngTasks As Long
   
   lngTasks = ActiveSelection.Tasks.count
   
-  With frmNetworkBrowser
+  With cptNetworkBrowser_frm
     Select Case lngTasks
       Case Is < 1
         .lboPredecessors.Clear
@@ -50,7 +50,7 @@ Dim lngTasks As Long
   End With
     
   'only 1 is selected
-  With frmNetworkBrowser.lboPredecessors
+  With cptNetworkBrowser_frm.lboPredecessors
     .Clear
     .ColumnCount = 7
     .AddItem
@@ -76,7 +76,7 @@ Dim lngTasks As Long
     Next
   End With
   
-  With frmNetworkBrowser.lboSuccessors
+  With cptNetworkBrowser_frm.lboSuccessors
     .Clear
     .ColumnCount = 7
     .AddItem
@@ -109,7 +109,7 @@ err_here:
   
 End Sub
 
-Sub UnmarkSelected()
+Sub cptUnmarkSelected()
 Dim Task As Task
 
   For Each Task In ActiveSelection.Tasks
@@ -127,7 +127,7 @@ Dim lngTaskID As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  lngTaskID = CLng(Me.lboHistory.Value)
+  lngTaskID = CLng(cptNetworkBrowser_frm.lboHistory.Value)
   WindowActivate TopPane:=True
   If IsNumeric(lngTaskID) Then EditGoTo lngTaskID
 
@@ -135,14 +135,14 @@ exit_here:
   Exit Sub
 err_here:
   If err.Number = 1101 Then
-    Call RemoveFilters(lngTaskID)
+    Call cptRemoveFilters(lngTaskID)
   Else
     Call cptHandleErr("cptNetworkBrowser_bas", "cptHistoryDoubleClick", err, Erl)
   End If
   Resume exit_here
 End Sub
 
-Sub RemoveFilters(lngTaskID As Long)
+Sub cptRemoveFilters(lngTaskID As Long)
 Dim msg As String
   msg = "ID " & lngTaskID & " is not currently visible." & vbCrLf & vbCrLf & "Remove filters and go to " & lngTaskID & "?"
   If MsgBox(msg, vbExclamation + vbYesNo, "Hidden") = vbYes Then

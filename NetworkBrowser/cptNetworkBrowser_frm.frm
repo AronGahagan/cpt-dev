@@ -28,7 +28,7 @@ Private Sub cmdBack_Click()
 
   If Me.lboHistory.ListCount > 0 Then
     Me.lboHistory.ListIndex = Me.lboHistory.ListIndex + 1
-    Call HistoryDoubleClick
+    Call cptHistoryDoubleClick
   End If
 
 exit_here:
@@ -63,7 +63,7 @@ Private Sub cmdFwd_Click()
 
   If Me.lboHistory.ListCount > 0 Then
     Me.lboHistory.ListIndex = Me.lboHistory.ListIndex - 1
-    Call HistoryDoubleClick
+    Call cptHistoryDoubleClick
   End If
 
 exit_here:
@@ -80,6 +80,7 @@ End Sub
 
 Private Sub cmdMark_Click()
 Dim lngID As Long
+Dim i As Long
 
   Application.Calculation = pjManual
   If ActiveSelection.Tasks.count = 1 Then
@@ -120,11 +121,12 @@ exit_here:
 End Sub
 
 Private Sub cmdRefresh_Click()
-  Call ShowPreds
+  Call cptShowPreds
 End Sub
 
 Private Sub cmdUnmark_Click()
 Dim lngID As Long
+Dim i As Long
 
   Application.Calculation = pjManual
   If ActiveSelection.Tasks.count = 1 Then
@@ -179,7 +181,7 @@ Dim Task As Task
 End Sub
 
 Sub lboHistory_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
-  Call HistoryDoubleClick
+  Call cptHistoryDoubleClick
 End Sub
 
 Sub lboPredecessors_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
@@ -196,14 +198,14 @@ Dim lngTaskID As Long
     EditGoTo lngTaskID, ActiveProject.Tasks(lngTaskID).Start
     Me.lboHistory.AddItem lngTaskID, 0
     Me.lboHistory.ListIndex = Me.lboHistory.TopIndex
-    Call ShowPreds
+    Call cptShowPreds
   End If
   
 exit_here:
   Exit Sub
 err_here:
   If err.Number = 1101 Then
-    Call RemoveFilters(lngTaskID)
+    Call cptRemoveFilters(lngTaskID)
     Resume exit_here
   End If
   Call cptHandleErr("cptNetworkBrowser_frm", "lboPredecesors_DblClick", err, Erl)
@@ -227,14 +229,14 @@ Dim lngTaskID As Long, Task As Task
     EditGoTo lngTaskID, ActiveProject.Tasks(lngTaskID).Start
     Me.lboHistory.AddItem lngTaskID, 0
     Me.lboHistory.ListIndex = Me.lboHistory.TopIndex
-    Call ShowPreds
+    Call cptShowPreds
   End If
   
 exit_here:
   Exit Sub
 err_here:
   If err.Number = 1101 Then
-    Call RemoveFilters(lngTaskID)
+    Call cptRemoveFilters(lngTaskID)
     Resume exit_here
   End If
   Call cptHandleErr("cptNetworkBrowser_frm", "lboSuccessors_DblClick", err, Erl)
@@ -257,6 +259,3 @@ Private Sub tglTrace_Click()
   End If
 End Sub
 
-Private Sub UserForm_Initialize()
-
-End Sub
