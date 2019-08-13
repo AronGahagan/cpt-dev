@@ -13,6 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -118,7 +119,7 @@ Dim strGUID As String
   
   'find and update the record
   With CreateObject("ADODB.Recordset")
-    .Open cptDir & "\settings\data-dictionary.adtg"
+    .Open cptDir & "\settings\cpt-data-dictionary.adtg"
     .Filter = "PROJECT_ID='" & strGUID & "' AND FIELD_ID=" & CLng(Me.lboCustomFields.Value)
     If Not .EOF Then
       .Fields("DESCRIPTION") = Me.txtDescription.Text
@@ -141,8 +142,9 @@ End Sub
 
 Private Sub txtFilter_Change()
 'objects
+Dim rst As ADODB.Recordset
 'strings
-Dim strDictionary As String
+Dim strDictionary As String, strFilter As String, strText As String, strGUID As String
 'longs
 Dim lngItem As Long
 'integers
@@ -153,17 +155,24 @@ Dim lngItem As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  strDictionary = cptDir & "\settings\data-dictionary.adtg"
+  strDictionary = cptDir & "\settings\cpt-data-dictionary.adtg"
 
   If Dir(strDictionary) <> vbNullString Then
     Me.lboCustomFields.Clear
     Me.txtDescription = ""
+    strGUID = ActiveProject.GetServerProjectGuid
     With CreateObject("ADODB.Recordset")
       .Open strDictionary
       .Sort = "CUSTOM_NAME"
       If Len(Me.txtFilter.Text) > 0 Then
-        .Filter = "CUSTOM_NAME LIKE '*" & cptRemoveIllegalCharacters(Me.txtFilter.Text) & "*' OR FIELD_NAME LIKE '*" & cptRemoveIllegalCharacters(Me.txtFilter.Text) & "*'"
+        strText = cptRemoveIllegalCharacters(Me.txtFilter.Text)
+        strFilter = "(CUSTOM_NAME LIKE '*" & strText & "*' AND PROJECT_ID='" & strGUID & "') "
+        strFilter = strFilter & "OR "
+        strFilter = strFilter & "(FIELD_NAME LIKE '*" & strText & "*' AND PROJECT_ID='" & strGUID & "') "
+      Else
+        strFilter = "PROJECT_ID='" & strGUID & "' "
       End If
+      .Filter = strFilter
       If Not .EOF Then .MoveFirst
       lngItem = 0
       Do While Not .EOF
@@ -185,6 +194,7 @@ Dim lngItem As Long
 
 exit_here:
   On Error Resume Next
+  Set rst = Nothing
 
   Exit Sub
 err_here:

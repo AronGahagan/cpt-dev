@@ -72,11 +72,11 @@ Dim vFieldScope As Variant
 
   cptDataDictionary_frm.lblStatus.Caption = "Exporting local custom fields..."
   
-  blnExists = Dir(cptDir & "\settings\data-dictionary.adtg") <> vbNullString
+  blnExists = Dir(cptDir & "\settings\cpt-data-dictionary.adtg") <> vbNullString
 
   If blnExists Then
     Set rst = CreateObject("ADODB.Recordset")
-    rst.Open cptDir & "\settings\data-dictionary.adtg"
+    rst.Open cptDir & "\settings\cpt-data-dictionary.adtg"
   End If
   
   lngItems = 260 + (188778000 - 188776000)
@@ -213,9 +213,10 @@ Sub ShowFrmCptDataDictionary()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
+  cptDataDictionary_frm.lboCustomFields.Clear
   Call cptRefreshDictionary
   cptDataDictionary_frm.txtFilter.SetFocus
-  cptDataDictionary_frm.Show
+  cptDataDictionary_frm.show
   
 exit_here:
   On Error Resume Next
@@ -266,7 +267,7 @@ Dim vFieldScope As Variant
   'if data file exists then use it else create it
   Set rst = CreateObject("ADODB.Recordset")
   With rst
-    If Dir(cptDir & "\settings\data-dictionary.adtg") = vbNullString Then
+    If Dir(cptDir & "\settings\cpt-data-dictionary.adtg") = vbNullString Then
       blnCreate = True
       .Fields.Append "PROJECT_ID", 200, 50 'adVarChar
       .Fields.Append "FIELD_ID", 3 'adInteger = Long
@@ -276,7 +277,8 @@ Dim vFieldScope As Variant
       .Open
     Else
       blnCreate = False
-      .Open cptDir & "\settings\data-dictionary.adtg"
+      .Open cptDir & "\settings\cpt-data-dictionary.adtg"
+      .Filter = "PROJECT_ID='" & strGUID & "'"
     End If
     
     'get local custom fields
@@ -336,10 +338,11 @@ Dim vFieldScope As Variant
     Next lngField
     
     'save the data
-    .Save cptDir & "\settings\data-dictionary.adtg"
+    .Save cptDir & "\settings\cpt-data-dictionary.adtg"
     
     'populate the list
     If Not .EOF Then
+      .Filter = "PROJECT_ID='" & strGUID & "'"
       .Sort = "CUSTOM_NAME"
       .MoveFirst
       lngItem = 0
