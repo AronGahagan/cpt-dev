@@ -1,33 +1,41 @@
 Attribute VB_Name = "cptResourceDemand_bas"
 '<cpt_version>v1.1.7</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 
 Sub cptExportResourceDemand(Optional lngTaskCount As Long)
 'objects
-Dim Task As Task, Resource As Resource, Assignment As Assignment
-Dim TSV As TimeScaleValue
-Dim TSVS_WORK As TimeScaleValues, TSVS_ACTUAL As TimeScaleValues
+Dim Task As Task, resource As resource, Assignment As Assignment
+Dim TSV As TimeScaleValue, TSVS_BCWS As TimeScaleValues
+Dim TSVS_WORK As TimeScaleValues, TSVS_AW As TimeScaleValues
+Dim TSVS_COST As TimeScaleValues, TSVS_AC As TimeScaleValues
 Dim xlApp As Excel.Application, Worksheet As Worksheet, Workbook As Workbook
 Dim rng As Excel.Range
 Dim PivotTable As PivotTable, ListObject As ListObject
 'dates
-Dim dtStart As Date, dtMin As Date, dtMax As Date
+Dim dtStart As Date, dtFinish As Date, dtMin As Date, dtMax As Date
 'doubles
 Dim dblWork As Double
 'strings
+Dim strTask As String
 Dim strMsg As String
 Dim strView As String
 Dim strFile As String, strRange As String
 Dim strTitle As String, strHeaders As String
 Dim strRecord As String, strFileName As String
 'longs
+Dim lgCol As Long
+Dim lngOriginalRateSet As Long
 Dim lgFile As Long, lgTasks As Long, lgTask As Long
-Dim lgCol As Long, lgExport As Long, lgField As Long
+Dim lgWeekCol As Long, lgExport As Long, lgField As Long
+Dim lngRateSet As Long
 'variants
+Dim vRateSet As Variant
 Dim aUserFields() As Variant
+'booleans
+Dim blnIncludeCosts As Boolean
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -64,11 +72,27 @@ Dim aUserFields() As Variant
   If Dir(strFile) <> vbNullString Then Kill strFile
 
   Open strFile For Output As #lgFile
-  strHeaders = "PROJECT,[UID] TASK,RESOURCE_NAME,HOURS,WEEK"
-  For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
-    lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
-    strHeaders = strHeaders & "," & CustomFieldGetName(lgField)
-  Next lgExport
+  strHeaders = "PROJECT,[UID] TASK,RESOURCE_NAME,"
+  '<issue42> get selected rate sets
+  With cptResourceDemand_frm
+    If .chkBaseline Then
+      strHeaders = strHeaders & "BL HOURS,BL COST,"
+    End If
+    strHeaders = strHeaders & "HOURS,"
+    'get rate sets
+    If .chkA Then strHeaders = strHeaders & "RATE_A,COST_A,"
+    If .chkB Then strHeaders = strHeaders & "RATE_B,COST_B,"
+    If .chkC Then strHeaders = strHeaders & "RATE_C,COST_C,"
+    If .chkD Then strHeaders = strHeaders & "RATE_D,COST_D,"
+    If .chkE Then strHeaders = strHeaders & "RATE_E,COST_E,"
+    'get custom fields
+    'todo: notify if fields no longer exist
+    For lgExport = 0 To .lboExport.ListCount - 1
+      lgField = .lboExport.List(lgExport, 0)
+      strHeaders = strHeaders & CustomFieldGetName(lgField) & ","
+    Next lgExport
+    strHeaders = strHeaders & "WEEK"
+  End With '</issue42>
   Print #lgFile, strHeaders
 
   If ActiveProject.Subprojects.count = 0 Then
@@ -89,34 +113,120 @@ Dim aUserFields() As Variant
   End If
 
   'iterate over tasks
+  'todo: include costs for all rate tables
+  'todo: include material and cost resources
+  'todo: include baseline, forecast [no actuals]
+  Set xlApp = CreateObject("Excel.Application")
   For Each Task In ActiveProject.Tasks
     If Not Task Is Nothing Then 'skip blank lines
       If Task.ExternalTask Then GoTo next_task 'skip external tasks
       If Not Task.Summary And Task.RemainingDuration > 0 And Task.Active Then 'skip summary, complete tasks/milestones, and inactive
-        If Task.Start > ActiveProject.StatusDate Then dtStart = Task.Start Else dtStart = ActiveProject.StatusDate
-        If dtStart > Task.Finish Then GoTo next_task '<issue39>
+        
+        'get earliest start and latest finish
+        dtStart = xlApp.WorksheetFunction.Min(Task.Start, Task.BaselineStart)
+        dtFinish = xlApp.WorksheetFunction.Max(Task.Finish, Task.BaselineFinish)
+        
+        'capture task data common to all assignments
+        strTask = Task.Project & "," & Chr(34) & "[" & Task.UniqueID & "] " & Replace(Task.Name, Chr(34), Chr(39)) & Chr(34) & ","
+        
         'examine every assignment on the task
         For Each Assignment In Task.Assignments
-          'limit export to labor resources only
-          If Assignment.ResourceType = pjResourceTypeWork Then
-            'capture timephased work (ETC)
-            Set TSVS_WORK = Assignment.TimeScaleData(DateAdd("d", -7, dtStart), Task.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks, 1)
-            For Each TSV In TSVS_WORK
-              'capture (and subtract) actual work, leaving ETC/Remaining Work
-              Set TSVS_ACTUAL = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleWeeks, 1)
-              dblWork = Val(TSV.Value) - Val(TSVS_ACTUAL(1))
-              'write a record to the CSV
-              '<issue14-15>strRecord = Task.Project & ",[" & Task.UniqueID & "] " & Replace(Task.Name, ",", "") & "," & Assignment.ResourceName & "," & dblWork / 60 & "," & DateAdd("d", 1, TSV.startDate) - removed </issue14-15>
-              '<issue14-15> added
-              strRecord = Task.Project & "," & Chr(34) & "[" & Task.UniqueID & "] " & Replace(Task.Name, Chr(34), Chr(39)) & Chr(34) & "," & Assignment.ResourceName & "," & dblWork / 60 & "," & DateAdd("d", 1, TSV.StartDate)
-              '</issue14-15>
-              For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
-                lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
-                strRecord = strRecord & "," & Task.GetField(lgField)
-              Next lgExport
-              Print #lgFile, strRecord
-            Next TSV
-          End If 'Assignment.ResourceType = pjResourceTypeWork
+          
+          'capture timephased work
+          Set TSVS_WORK = Assignment.TimeScaleData(dtStart, dtFinish, pjAssignmentTimescaledWork, pjTimescaleWeeks, 1)
+          For Each TSV In TSVS_WORK
+            
+            'capture common assignment data
+            strRecord = strTask & Assignment.ResourceName & ","
+            
+            'optionally capture baseline work and cost
+            If cptResourceDemand_frm.chkBaseline Then
+              Set TSVS_BCWS = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks, 1)
+              If Assignment.ResourceType = pjResourceTypeWork Then
+                strRecord = strRecord & Val(TSVS_BCWS(1).Value) / 60 & ","
+              Else
+                strRecord = strRecord & "0," 'Val(TSVS_BCWS(1).Value) & ","
+              End If
+              Set TSVS_BCWS = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledBaselineCost, pjTimescaleWeeks, 1)
+              strRecord = strRecord & Val(TSVS_BCWS(1).Value) & ","
+            End If
+            'capture (and subtract) actual work, leaving ETC/Remaining Work
+            Set TSVS_AW = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleWeeks, 1)
+            dblWork = Val(TSV.Value) - Val(TSVS_AW(1))
+            If Assignment.ResourceType = pjResourceTypeWork Then
+              strRecord = strRecord & dblWork / 60 & ","
+            Else
+              strRecord = strRecord & "0,"
+            End If
+            If cptResourceDemand_frm.chkA Then strRecord = strRecord & "0,0,"
+            If cptResourceDemand_frm.chkB Then strRecord = strRecord & "0,0,"
+            If cptResourceDemand_frm.chkC Then strRecord = strRecord & "0,0,"
+            If cptResourceDemand_frm.chkD Then strRecord = strRecord & "0,0,"
+            If cptResourceDemand_frm.chkE Then strRecord = strRecord & "0,0,"
+            'get custom field values
+            For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
+              lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
+              strRecord = strRecord & Task.GetField(lgField) & ","
+            Next lgExport
+            strRecord = strRecord & DateAdd("d", 1, TSV.StartDate) & "," 'week
+            Debug.Print strRecord
+            Print #lgFile, strRecord
+            'todo: options for week beginning/ending and what day
+            'todo: real estate - convert all custom field export listboxes to checkbox lists with +/- show all / show selected
+          Next TSV
+          
+          'get rate set and cost
+          lngOriginalRateSet = Assignment.CostRateTable
+          If cptResourceDemand_frm.chkBaseline Then strRecord = strRecord & "0,0," 'BL HOURS, BL COST
+          For lngRateSet = 0 To 4
+            'need msproj to calculate the cost
+            'reset assignment cost table
+            If cptResourceDemand_frm.Controls(Choose(lngRateSet + 1, "chkA", "chkB", "chkC", "chkD", "chkE")).Value = True Then
+              Application.StatusBar = "Exporting Rate Set " & Replace(Choose(lngRateSet + 1, "chkA", "chkB", "chkC", "chkD", "chkE"), "chk", "") & "..."
+              If Assignment.CostRateTable <> lngRateSet Then Assignment.CostRateTable = lngRateSet 'recalculation not needed
+              'extract timephased date
+              'get work
+              Set TSVS_WORK = Assignment.TimeScaleData(dtStart, dtFinish, pjAssignmentTimescaledWork, pjTimescaleWeeks, 1)
+              For Each TSV In TSVS_WORK
+                strRecord = Task.Project & "," & Chr(34) & "[" & Task.UniqueID & "] " & Replace(Task.Name, Chr(34), Chr(39)) & Chr(34) & ","
+                strRecord = strRecord & Assignment.ResourceName & ",0,"
+                If cptResourceDemand_frm.chkBaseline Then strRecord = strRecord & "0,0," 'baseline placeholder
+                'get actual work
+                Set TSVS_AW = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleWeeks, 1)
+                'subtract actual work from work to get remaining work
+                dblWork = Val(TSV.Value) - Val(TSVS_AW(1))
+                'get cost
+                Set TSVS_COST = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledCost, pjTimescaleWeeks, 1)
+                'get actual cost
+                Set TSVS_AC = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledActualCost, pjTimescaleWeeks, 1)
+                'subtract actual cost from cost to get remaining cost
+                dblCost = Val(TSVS_COST(1).Value) - Val(TSVS_AC(1))
+                'only capture if remaining cost > 0
+                If dblCost > 0 Then
+                  If Assignment.ResourceType = pjResourceTypeWork Then
+                    strAssignment = strAssignment & dblCost / (dblWork / 60) & "," & dblCost & ","
+                  Else
+                    strAssignment = strAssignment & dblCost / dblWork & "," & dblCost & ","
+                  End If
+                Else
+                  strAssignment = strAssignment & "0,0,"
+                End If
+                'todo:if costs are getting pulled then pull rate table, rate, and cost
+                'todo:add comment on rate set header that this is the currently applied rate table
+                
+                'get custom field values
+                For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
+                  lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
+                  strRecord = strRecord & Task.GetField(lgField) & ","
+                Next lgExport
+                strRecord = strRecord & DateAdd("d", 1, TSV.StartDate) & "," 'week
+                Debug.Print strRecord
+                Print #lgFile, strRecord
+              Next TSV
+            End If
+          Next lngRateSet
+          If Assignment.CostRateTable <> lngOriginalRateSet Then Assignment.CostRateTable = lngOriginalRateSet
+
 next_assignment:
         Next Assignment
       End If 'skip external tasks
@@ -178,46 +288,18 @@ next_task:
   Set Worksheet = Workbook.Sheets(1)
   'rename the worksheet
   Worksheet.Name = "SourceData"
-  lgCol = Worksheet.Rows(1).Find(what:="WEEK").Column
-  dtMin = xlApp.WorksheetFunction.Min(Worksheet.Columns(lgCol))
-  dtMax = xlApp.WorksheetFunction.Max(Worksheet.Columns(lgCol))
-
-  'import fiscal weeks
-'  Set Worksheet = Workbook.Sheets.Add(After:=Workbook.Sheets("SourceData"))
-'  Worksheet.Name = "Fiscal Weeks"
-'  strSQL = "SELECT WEEK_ENDING,LEFT(MONTH_LABEL,3),2000+cast(RIGHT(MONTH_LABEL,2) as int) FROM FISCAL_WEEKS "
-'  strSQL = strSQL & "WHERE WEEK_ENDING>='" & Format(dtMin, "yyyy-mm-dd") & "' "
-'  strSQL = strSQL & "AND WEEK_ENDING<='" & Format(DateAdd("d", 7, dtMax), "yyyy-mm-dd") & "' "
-'  strSQL = strSQL & "ORDER BY WEEK_ENDING"
-'  Set rst = New ADODB.Recordset
-'  rst.Open strSQL, STR_CON, adOpenKeyset
-'  Worksheet.[A1].Value = "WEEK_ENDING"
-'  Worksheet.[B1].Value = "MONTH_LABEL"
-'  Worksheet.[C1].Value = "YEAR_LABEL"
-'  Worksheet.[A2].CopyFromRecordset rst
-'  Worksheet.Columns(1).Replace "-", "/"
-'  xlApp.ActiveWindow.Zoom = 85
-'  Worksheet.Cells.EntireColumn.AutoFit
-'  Set rng = Worksheet.Range(Worksheet.[A1].End(xlDown), Worksheet.[A1].End(xlToRight))
-'  Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, rng, , xlYes)
-'  ListObject.Name = "FISCAL_WEEKS"
-'  ListObject.TableStyle = ""
-
+  lgWeekCol = Worksheet.Rows(1).Find(what:="WEEK").Column
+  dtMin = xlApp.WorksheetFunction.Min(Worksheet.Columns(lgWeekCol))
+  dtMax = xlApp.WorksheetFunction.Max(Worksheet.Columns(lgWeekCol))
+  
   Set Worksheet = Workbook.Sheets("SourceData")
-  'Worksheet.Activate
-'  'add fiscal year calc
-'  lgCol = Worksheet.Rows(1).Find(what:="FISCAL_YEAR").Column
-'  Set rng = Worksheet.Range(Worksheet.Cells(2, lgCol), Worksheet.Cells(2, lgCol - 1).End(xlDown).Offset(0, 1))
-'  rng.FormulaR1C1 = "=IFERROR(VLOOKUP(RC[-1]+4,FISCAL_WEEKS,3,FALSE),""<n/a>"")"
-'  rng.Copy
-'  rng.PasteSpecial xlPasteValues
-'  'add fiscal month labels
-'  lgCol = Worksheet.Rows(1).Find(what:="FISCAL_MONTH").Column
-'  Set rng = Worksheet.Range(Worksheet.Cells(2, lgCol), Worksheet.Cells(2, lgCol - 1).End(xlDown).Offset(0, 1))
-'  rng.FormulaR1C1 = "=IFERROR(LEFT(VLOOKUP(RC[-2]+4,FISCAL_WEEKS,2,FALSE),3),""<n/a>"")"
-'  rng.Copy
-'  rng.PasteSpecial xlPasteValues
-
+  
+  'format currencies
+  For lgCol = 1 To lgWeekCol
+    If InStr(Worksheet.Cells(1, lgCol), "COST") > 0 Then Worksheet.Columns(lgCol).Style = "Currency"
+    If InStr(Worksheet.Cells(1, lgCol), "RATE") > 0 Then Worksheet.Columns(lgCol).Style = "Currency"
+  Next lgCol
+  
   'capture the range of data to feed as variable to PivotTable
   Set rng = Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown))
   strRange = Worksheet.Name & "!" & Replace(rng.Address, "$", "")
@@ -239,9 +321,6 @@ next_task:
   PivotTable.AddDataField PivotTable.PivotFields("HOURS"), "HOURS ", -4157
   'format the PivotTable
   PivotTable.PivotFields("RESOURCE_NAME").ShowDetail = False
-  'PivotTable.PivotFields("FISCAL_MONTH").ShowDetail = False
-  'PivotTable.PivotFields("FISCAL_MONTH").Subtotals = Array(False, False, False, False, False, False, False, False, False, False, False, False)
-  'PivotTable.PivotFields("FISCAL_YEAR").Subtotals = Array(False, False, False, False, False, False, False, False, False, False, False, False)
   PivotTable.TableStyle2 = "PivotStyleMedium2"
   PivotTable.PivotSelect "", xlDataOnly, True
   xlApp.Selection.Style = "Comma"
@@ -257,16 +336,10 @@ next_task:
   Worksheet.[A1].Font.Italic = True
   Worksheet.[A1].Font.Size = 14
   Worksheet.[A1:F1].Merge
-'  If blnReturn Then
-'    Worksheet.[A2] = "Status Date: " & FormatDateTime(DateAdd("d", -7, dtStart), vbShortDate)
-'  Else
-'  End If
-  Worksheet.[B2] = "Weeks Beginning" '"Fiscal Years / Fiscal Months / Weeks Beginning"
+  'todo: revise this according to user options
+  Worksheet.[B2] = "Weeks Beginning Monday"
   Worksheet.[B4].Select
-  'group the weeks into years/months and collapse
-  'xlApp.Selection.Group Start:=True, End:=True, Periods:=Array(False, False, False, True, True, False, True)
   Worksheet.[B5].Select
-  'PivotTable.PivotFields("Months").ShowDetail = False
 
   'make it nice
   xlApp.ActiveWindow.Zoom = 85
@@ -293,7 +366,6 @@ next_task:
   Set rng = Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown))
   xlApp.ActiveChart.SetSourceData Source:=rng
   Workbook.ShowPivotChartActiveFields = True
-  'xlApp.ActiveChart.ChartType = xlColumnClustered
   xlApp.ActiveChart.ChartType = xlAreaStacked
   With xlApp.ActiveChart.PivotLayout.PivotTable.PivotFields("WEEK")
     .Orientation = xlRowField
@@ -305,27 +377,17 @@ next_task:
     .Orientation = xlColumnField
     .Position = 1
   End With
-
-'  With xlApp.ActiveChart.PivotLayout.PivotTable.PivotFields("FISCAL_YEAR")
-'    .Orientation = xlRowField
-'    .Position = 2
-'  End With
   With xlApp.ActiveChart.PivotLayout.PivotTable.PivotFields("WEEK")
     .Orientation = xlRowField
     .Position = 1
   End With
-  xlApp.ActiveSheet.PivotTables("PivotTable1").PivotFields("WEEK").PivotFilters.Add _
+  If Not cptResourceDemand_frm.chkBaseline Then xlApp.ActiveSheet.PivotTables("PivotTable1").PivotFields("WEEK").PivotFilters.Add _
         Type:=xlAfter, Value1:=ActiveProject.StatusDate
   xlApp.ActiveChart.ClearToMatchStyle
   xlApp.ActiveChart.ChartStyle = 34
   xlApp.ActiveChart.ClearToMatchStyle
   xlApp.ActiveChart.SetElement (msoElementChartTitleAboveChart)
   xlApp.ActiveSheet.ChartObjects(1).Activate
-'  If blnReturn Then
-'    strTitle = Replace(ActiveProject.Name, ".mpp", "") & " - Resource Demand" & Chr(13) & "As of WE " & FormatDateTime(DateAdd("d", -7, dtStart), vbShortDate)
-'  Else
-    strTitle = Replace(ActiveProject.Name, ".mpp", "") & " - Resource Demand" & Chr(13) & "As of WE " & FormatDateTime(ActiveProject.StatusDate, vbShortDate)
-'  End If
   xlApp.ActiveChart.ChartTitle.Text = strTitle
   xlApp.ActiveChart.Location xlLocationAsNewSheet, "PivotChart"
   Set Worksheet = Workbook.Sheets("PivotChart_Source")
@@ -339,11 +401,6 @@ next_task:
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
 
   'save the file
-  '<issue14-15> dtStart = ActiveProject.StatusDate - removed
-  'strFile = Environ("USERPROFILE") & "\Deskop\" & Replace(strFile, ".csv", ".xlsx") - removed
-  'strFile = Replace(strFile, ".xlsx", "_" & Format(dtStart, "yyyy-mm-dd") & ".xlsx") - removed
-file_save:
-  'If Dir(strFile) <> vbNullString Then Kill strFile - removed </issue14-15>
   '<issue49> - file exists in location
   strFile = Environ("USERPROFILE") & "\Desktop\" & Replace(Workbook.Name, ".xlsx", "_" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".xlsx") '<issue49>
   If Dir(strFile) <> vbNullString Then '<issue49>
@@ -371,7 +428,7 @@ exit_here:
   Next lgFile
   cptSpeed False
   Set Task = Nothing
-  Set Resource = Nothing
+  Set resource = Nothing
   Set Assignment = Nothing
   Set xlApp = Nothing
   Set PivotTable = Nothing
@@ -417,20 +474,6 @@ Dim vFieldType As Variant
     GoTo exit_here
   Else
     cptSpeed True
-    GoTo option_2 'delay is better than a flicker
-option_1:
-    strActiveView = ActiveWindow.TopPane.View.Name
-    ViewApply "Resource Sheet"
-    SelectAll
-    lngResourceCount = ActiveSelection.Resources.count
-    ViewApply strActiveView
-    cptSpeed False
-    If lngResourceCount = 0 Then
-      MsgBox "This project has no resources to export.", vbExclamation + vbOKOnly, "No Resources"
-      GoTo exit_here
-    End If
-option_2:
-    'option 2
     lngResourceCount = ActiveProject.ResourceCount
     Set arrResources = CreateObject("System.Collections.SortedList")
     For lngItem = 1 To ActiveProject.Subprojects.count
@@ -523,8 +566,8 @@ next_field:
       .Close
     End With
   End If
-
-  cptResourceDemand_frm.Show False
+  
+  cptResourceDemand_frm.show False
 
 exit_here:
   On Error Resume Next
