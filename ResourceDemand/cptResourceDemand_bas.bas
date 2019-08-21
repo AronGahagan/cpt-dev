@@ -17,6 +17,7 @@ Dim xlApp As Excel.Application, Worksheet As Worksheet, Workbook As Workbook
 Dim rng As Excel.Range
 Dim PivotTable As PivotTable
 'dates
+Dim dtWeek As Date
 Dim dtStart As Date, dtFinish As Date, dtMin As Date, dtMax As Date
 'doubles
 Dim dblWork As Double, dblCost As Double
@@ -53,7 +54,7 @@ Dim blnIncludeCosts As Boolean
     GoTo exit_here
   End If
 
-  'save settings
+  'todo:save settings
   strFileName = Environ("tmp") & "\cpt-export-resource-userfields.adtg."
   aUserFields = cptResourceDemand_frm.lboExport.List()
   With CreateObject("ADODB.Recordset")
@@ -142,8 +143,13 @@ Dim blnIncludeCosts As Boolean
       If Not Task.Summary And Task.RemainingDuration > 0 And Task.Active Then 'skip summary, complete tasks/milestones, and inactive
         
         'get earliest start and latest finish
-        dtStart = xlApp.WorksheetFunction.Min(Task.Start, Task.BaselineStart)
-        dtFinish = xlApp.WorksheetFunction.Max(Task.Finish, Task.BaselineFinish)
+        If cptResourceDemand_frm.chkBaseline Then
+          dtStart = xlApp.WorksheetFunction.Min(Task.Start, Task.BaselineStart)
+          dtFinish = xlApp.WorksheetFunction.Max(Task.Finish, Task.BaselineFinish)
+        Else
+          dtStart = xlApp.WorksheetFunction.Max(ActiveProject.StatusDate, Task.Start)
+          dtFinish = Task.Finish
+        End If
         
         'capture task data common to all assignments
         strTask = Task.Project & "," & Chr(34) & "[" & Task.UniqueID & "] " & Replace(Task.Name, Chr(34), Chr(39)) & Chr(34) & ","
@@ -216,14 +222,29 @@ Dim blnIncludeCosts As Boolean
               lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
               strRecord = strRecord & Task.GetField(lgField) & ","
             Next lgExport
-            strRecord = strRecord & DateAdd("d", 1, TSV.StartDate) & "," 'week
+            'todo: adjust for user settings
+            With cptResourceDemand_frm
+              If .cboWeeks = "Beginning" Then
+                dtWeek = TSV.StartDate
+                If .cboWeekday = "Monday" Then
+                  dtWeek = DateAdd("d", 1, dtWeek)
+                End If
+              ElseIf .cboWeeks = "Ending" Then
+                dtWeek = TSV.EndDate
+                If .cboWeekday = "Friday" Then
+                  dtWeek = DateAdd("d", -2, dtWeek)
+                ElseIf .cboWeekday = "Saturday" Then
+                  dtWeek = DateAdd("d", -1, dtWeek)
+                End If
+              End If
+            End With
+            strRecord = strRecord & Format(dtWeek, "mm/dd/yyyy") & "," 'week
             Print #lgFile, strRecord
-            'todo: options for week beginning/ending and what day
-            'todo: real estate - convert all custom field export listboxes to checkbox lists with +/- show all / show selected
           Next TSV
           
           'get rate set and cost
           lngOriginalRateSet = Assignment.CostRateTable
+          'todo: only include baseline cost if both baseline and costs are checked
           If cptResourceDemand_frm.chkBaseline Then strRecord = strRecord & "0,0," 'BL HOURS, BL COST
           For lngRateSet = 0 To 4
             'need msproj to calculate the cost
@@ -247,6 +268,8 @@ Dim blnIncludeCosts As Boolean
                 Set TSVS_AC = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledActualCost, pjTimescaleWeeks, 1)
                 'subtract actual cost from cost to get remaining cost
                 dblCost = Val(TSVS_COST(1).Value) - Val(TSVS_AC(1))
+                'hacky way of figuring out how many zeroes to include
+                'and how to replace the right one with the dblCost
                 With cptResourceDemand_frm
                   If .chkA Then strCost = "[0],"
                   If .chkB Then strCost = strCost & "[1],"
@@ -271,7 +294,23 @@ Dim blnIncludeCosts As Boolean
                   lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
                   strRecord = strRecord & Task.GetField(lgField) & ","
                 Next lgExport
-                strRecord = strRecord & DateAdd("d", 1, TSV.StartDate) & "," 'week
+                'todo: adjust for user settings
+                With cptResourceDemand_frm
+                  If .cboWeeks = "Beginning" Then
+                    dtWeek = TSV.StartDate
+                    If .cboWeekday = "Monday" Then
+                      dtWeek = DateAdd("d", 1, dtWeek)
+                    End If
+                  ElseIf .cboWeeks = "Ending" Then
+                    dtWeek = TSV.EndDate
+                    If .cboWeekday = "Friday" Then
+                      dtWeek = DateAdd("d", -2, dtWeek)
+                    ElseIf .cboWeekday = "Saturday" Then
+                      dtWeek = DateAdd("d", -1, dtWeek)
+                    End If
+                  End If
+                End With
+                strRecord = strRecord & Format(dtWeek, "mm/dd/yyyy") & "," 'week
                 Print #lgFile, strRecord
               Next TSV
             End If
@@ -352,8 +391,10 @@ next_task:
   Next lgCol
   
   'add note on CostRateTable column
-  lngCol = Worksheet.Rows(1).Find("RATE_TABLE", lookat:=xlWhole).Column
-  Worksheet.Cells(1, lngCol).AddComment "Rate Table Applied in the Project"
+  If blnIncludeCosts Then
+    lngCol = Worksheet.Rows(1).Find("RATE_TABLE", lookat:=xlWhole).Column
+    Worksheet.Cells(1, lngCol).AddComment "Rate Table Applied in the Project"
+  End If
   
   'capture the range of data to feed as variable to PivotTable
   Set rng = Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown))
@@ -392,7 +433,7 @@ next_task:
   Worksheet.[A1].Font.Size = 14
   Worksheet.[A1:F1].Merge
   'todo: revise this according to user options
-  Worksheet.[B2] = "Weeks Beginning Monday"
+  Worksheet.[B2] = "Weeks " & cptResourceDemand_frm.cboWeeks.Value & " " & cptResourceDemand_frm.cboWeekday.Value
   Worksheet.[B4].Select
   Worksheet.[B5].Select
 
@@ -451,12 +492,11 @@ next_task:
   'add legend
   xlApp.ActiveChart.SetElement (msoElementPrimaryValueAxisTitleRotated)
   xlApp.ActiveChart.Axes(xlValue, xlPrimary).AxisTitle.Text = "Hours"
-
-  Application.StatusBar = "Saving the Workbook..."
-  cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
   
   'export selected cost rate tables to worksheet
   If blnIncludeCosts Then
+    Application.StatusBar = "Exporting Cost Rate Tables..."
+    cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
     Set Worksheet = Workbook.Sheets.Add(After:=Workbook.Sheets("SourceData"))
     Worksheet.Name = "Cost Rate Tables"
     Worksheet.[A1:I1].Value = Array("PROJECT", "RESOURCE_NAME", "RESOURCE_TYPE", "ENTERPRISE", "RATE_TABLE", "EFFECTIVE_DATE", "STANDARD_RATE", "OVERTIME_RATE", "PER_USE_COST")
@@ -505,19 +545,24 @@ next_task:
         Next Resource
       Next SubProject
     End If
-  End If
   
-  'make it a ListObject
-  Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown)).Address, , xlYes)
-  ListObject.Name = "CostRateTables"
-  ListObject.TableStyle = ""
-  xlApp.ActiveWindow.Zoom = 85
-  Worksheet.[A2].Select
-  xlApp.ActiveWindow.FreezePanes = True
-  Worksheet.Columns.AutoFit
+    'make it a ListObject
+    Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown)).Address, , xlYes)
+    ListObject.Name = "CostRateTables"
+    ListObject.TableStyle = ""
+    xlApp.ActiveWindow.Zoom = 85
+    Worksheet.[A2].Select
+    xlApp.ActiveWindow.FreezePanes = True
+    Worksheet.Columns.AutoFit
+    
+  End If
     
   'PivotTable worksheet active by default
   Workbook.Sheets("ResourceDemand").Activate
+  
+  'provide user feedback
+  Application.StatusBar = "Saving the Workbook..."
+  cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
   
   'save the file
   '<issue49> - file exists in location
@@ -647,7 +692,7 @@ next_field:
     cptResourceDemand_frm.lboFields.AddItem
     'column 0 = field constant = arrFields col1
     'column 1 = custom field name = arrFields col0
-    cptResourceDemand_frm.lboFields.List(lngItem, 0) = arrFields.getValueList()(lngItem) 'FieldNameToFieldConstant(arrFields.getKey(lngItem))
+    cptResourceDemand_frm.lboFields.List(lngItem, 0) = arrFields.getValueList()(lngItem)
     If FieldNameToFieldConstant(arrFields.getKey(lngItem)) >= 188776000 Then
       cptResourceDemand_frm.lboFields.List(lngItem, 1) = arrFields.getKey(lngItem) & " (Enterprise)"
     Else
@@ -695,6 +740,14 @@ next_saved_field:
       .Close
     End With
   End If
+  
+  With cptResourceDemand_frm
+    .cboWeeks.AddItem "Beginning"
+    .cboWeeks.AddItem "Ending"
+    'todo: use saved settings
+    .cboWeeks.Value = "Beginning"
+    .chkCosts.Value = False
+  End With
   
   cptResourceDemand_frm.show False
 

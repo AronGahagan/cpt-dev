@@ -19,6 +19,28 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 
+Private Sub cboWeeks_Change()
+  Me.cboWeekday.Clear
+  Select Case Me.cboWeeks
+    Case "Beginning"
+      Me.cboWeekday.AddItem "Sunday"
+      Me.cboWeekday.AddItem "Monday"
+      Me.cboWeekday.Value = "Monday"
+    Case "Ending"
+      Me.cboWeekday.AddItem "Friday"
+      Me.cboWeekday.AddItem "Saturday"
+      Me.cboWeekday.Value = "Friday"
+  End Select
+End Sub
+
+Private Sub chkCosts_AfterUpdate()
+  Me.chkA.Enabled = Me.chkCosts
+  Me.chkB.Enabled = Me.chkCosts
+  Me.chkC.Enabled = Me.chkCosts
+  Me.chkD.Enabled = Me.chkCosts
+  Me.chkE.Enabled = Me.chkCosts
+End Sub
+
 Private Sub cmdAdd_Click()
 Dim lgField As Long, lgExport As Long, lgExists As Long
 Dim blnExists As Boolean
