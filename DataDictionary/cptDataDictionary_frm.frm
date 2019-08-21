@@ -13,11 +13,31 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+Private Sub cboOpenWorkbooks_Change()
+  If Not Me.cboOpenWorkbooks.Visible Then Exit Sub
+  Select Case Me.cboOpenWorkbooks
+    Case "Cancel"
+      Me.cmdImport.SetFocus
+      Me.cboOpenWorkbooks.Visible = False
+    Case "Open another workbook..."
+      Me.cmdImport.SetFocus
+      Me.cboOpenWorkbooks.Visible = False
+      Call cptImportDataDictionary
+    Case "------------"
+      Me.cmdImport.SetFocus
+      Me.cboOpenWorkbooks.Visible = False
+    Case Else
+      Me.cmdImport.SetFocus
+      Me.cboOpenWorkbooks.Visible = False
+      Call cptImportDataDictionary(Me.cboOpenWorkbooks.Value)
+  End Select
+
+End Sub
 
 Private Sub cmdClose_Click()
   Unload Me
@@ -71,6 +91,50 @@ Private Sub cmdFormShrink_Click()
   Me.imgLogo.Visible = False
   Me.Height = 65
   Me.Width = 50
+End Sub
+
+Private Sub cmdImport_Click()
+'objects
+Dim xlApp As Excel.Application
+Dim Workbook As Workbook
+Dim Worksheet As Worksheet
+'strings
+'longs
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  On Error Resume Next
+  Set xlApp = GetObject(, "Excel.Application")
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If Not xlApp Is Nothing Then
+    Me.cboOpenWorkbooks.Clear
+    For lngItem = 1 To xlApp.Workbooks.count
+      Me.cboOpenWorkbooks.AddItem xlApp.Workbooks(lngItem).Name
+    Next
+    Me.cboOpenWorkbooks.AddItem "------------"
+    Me.cboOpenWorkbooks.AddItem "Open another workbook..."
+    Me.cboOpenWorkbooks.AddItem "Cancel"
+    
+    Me.cboOpenWorkbooks.Visible = True
+    Me.cboOpenWorkbooks.DropDown
+  Else
+    Call cptImportDataDictionary
+  End If
+
+exit_here:
+  On Error Resume Next
+  Set Worksheet = Nothing
+  Set Workbook = Nothing
+  Set xlApp = Nothing
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptDataDictionary_frm", "cmdImport_Click", err, Erl)
+  Resume exit_here
+  
 End Sub
 
 Private Sub lblURL_Click()

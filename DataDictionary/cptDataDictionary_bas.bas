@@ -6,8 +6,11 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
 
 Sub cptExportDataDictionary()
 'objects
-Dim rst As Object
-Dim xlApp As Excel.Application, Workbook As Workbook, Worksheet As Worksheet, rng As Range
+Dim rst As Object 'ADODB.Recordset
+Dim xlApp As Object 'Excel.Application
+Dim Workbook As Object 'Workbook
+Dim Worksheet As Object 'Worksheet
+Dim rng As Object 'Excel.Range
 'strings
 Dim strGUID As String
 Dim strAttributes As String
@@ -254,7 +257,8 @@ Dim vFieldScope As Variant
   'clear the form if it's visible
   If cptDataDictionary_frm.Visible Then
     cptDataDictionary_frm.lboCustomFields.Clear
-    cptDataDictionary_frm.txtDescription.Value = ""
+    cptDataDictionary_frm.txtFilter.Text = ""
+    'cptDataDictionary_frm.txtDescription.Value = "" 'won't this erase an existing entry?
   End If
   
   'get unique id of the current project
@@ -370,5 +374,214 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptDataDictionary_bas", "cptRefreshDictionary", err)
+  Resume exit_here
+End Sub
+
+Sub cptImportDataDictionary(Optional strFile As String)
+'objects
+Dim rst As ADODB.Recordset 'Object
+Dim xlApp As Excel.Application, Workbook As Workbook, Worksheet As Worksheet, rng As Range, ListObject As ListObject
+'strings
+Dim strMsg As String
+Dim strNewDescription As String
+Dim strCustomName As String
+Dim strFieldsNotFound As String
+Dim strGUID As String
+Dim strSavedSettings As String
+'longs
+Dim lngNotFound As Long
+Dim lngNew As Long
+Dim lngTooLong As Long
+Dim lngLastCol As Long
+Dim lngRow As Long
+Dim lngField As Long
+Dim lngLastRow As Long
+Dim lngDescriptionCol As Long
+Dim lngNameCol As Long
+Dim lngHeaderRow As Long
+'integers
+'doubles
+'booleans
+Dim blnClose As Boolean
+'variants
+Dim vFile As Variant
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  'prompt user to select a file
+  On Error Resume Next
+  Set xlApp = GetObject(, "Excel.Application")
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If xlApp Is Nothing Then
+    Set xlApp = CreateObject("Excel.Application")
+    blnClose = True
+  Else
+    'xlApp.WindowState = xlMaximized
+    'Application.ActivateMicrosoftApp pjMicrosoftExcel
+    blnClose = False
+  End If
+  If Len(strFile) > 0 Then
+    vFile = strFile
+    GoTo skip_that
+  Else
+    vFile = xlApp.GetOpenFilename(FileFilter:="Microsoft Excel *.xls* (*.xls*),", _
+                                  Title:="Select a Populated IMS Data Dictionary:", _
+                                  ButtonText:="Import", MultiSelect:=False)
+    If vFile = False Then GoTo exit_here
+  End If
+  xlApp.ActivateMicrosoftApp xlMicrosoftProject
+  
+skip_that:
+  
+  'get project uid
+  If Application.Version < 12 Then
+    strGUID = ActiveProject.DatabaseProjectUniqueID
+  Else
+    strGUID = ActiveProject.GetServerProjectGuid
+  End If
+  
+  'validate the file by its headers
+  On Error Resume Next
+  xlApp.ScreenUpdating = False
+  Set Workbook = xlApp.Workbooks(vFile)
+  If Workbook Is Nothing Then Set Workbook = xlApp.Workbooks.Open(vFile)
+  Set Worksheet = Workbook.Sheets("Data Dictionary")
+  If Worksheet Is Nothing Then
+    MsgBox strFile & " does not appear to be a valid IMS Data Dictionary workbook. The wheet named 'Data Dictionary' not found.", vbExclamation + vbOKOnly, "Invalid Workbook"
+    GoTo exit_here
+  End If
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  lngHeaderRow = Worksheet.Columns(1).Find("Enterprise", lookat:=xlWhole).Row
+  lngLastRow = Worksheet.Cells(lngHeaderRow, 1).End(xlDown).Row
+  lngNameCol = Worksheet.Rows(lngHeaderRow).Find("Custom Name", lookat:=xlWhole).Column
+  lngLastCol = Worksheet.Rows(lngHeaderRow).End(xlToRight).Column
+  lngDescriptionCol = Worksheet.Rows(lngHeaderRow).Find("Description", lookat:=xlWhole).Column
+  
+  'todo: character limitation notification on txtDescription update
+  
+  'get saved dictionary settings
+  strSavedSettings = cptDir & "\settings\cpt-data-dictionary.adtg"
+  If Dir(strSavedSettings) = vbNullString Then Call cptRefreshDictionary
+  
+  Set rst = CreateObject("ADODB.Recordset")
+  With rst
+    .Open strSavedSettings
+    .Filter = "PROJECT_ID='" & strGUID & "'"
+    .MoveFirst
+    For lngRow = lngHeaderRow + 1 To lngLastRow
+      'reset validation on description cell
+      Worksheet.Cells(lngRow, lngDescriptionCol).Style = "Normal"
+      Worksheet.Cells(lngRow, lngDescriptionCol).HorizontalAlignment = xlCenter
+      strCustomName = Worksheet.Cells(lngRow, lngNameCol).Value
+      strNewDescription = Worksheet.Cells(lngRow, lngDescriptionCol).Value
+      If Len(Worksheet.Cells(lngRow, lngDescriptionCol).Value) > 500 Then
+        lngTooLong = lngTooLong + 1
+        Worksheet.Cells(lngRow, lngDescriptionCol).Style = "Neutral"
+      End If
+      If strNewDescription = "<missing>" Then GoTo next_row
+      .Find "CUSTOM_NAME='" & strCustomName & "'", , 1 'adSearchForward
+      If Not .EOF Then
+        If rst("DESCRIPTION").Value <> strNewDescription Then
+          Worksheet.Cells(lngRow, lngDescriptionCol).Style = "Good"
+          lngNew = lngNew + 1
+        End If
+      Else
+        Worksheet.Cells(lngRow, lngDescriptionCol).Style = "Bad"
+        Worksheet.Cells(lngRow, lngLastCol + 1).Value = "NOT FOUND"
+        Worksheet.Cells(lngRow, lngLastCol + 1).Style = "Bad"
+        lngNotFound = lngNotFound + 1
+      End If
+next_row:
+    Next lngRow
+    
+    'show the selected file
+    If Not xlApp.Visible Then xlApp.Visible = True
+    xlApp.ScreenUpdating = True
+    xlApp.WindowState = xlMinimized
+    
+    'notify of missing custom fields
+    If lngNotFound > 0 Then
+      strMsg = Format(lngNotFound, "#,##0") & " fields were found in the selected Excel Workbook but were not found in this Project File." & vbCrLf
+      strMsg = strMsg & "These have been marked with cell style 'Bad'." & vbCrLf
+      strMsg = strMsg & "Please correct the Excel workbook before importing if necessary. Otherwise, click 'Yes' to proceed." & vbCrLf & vbCrLf
+      strMsg = strMsg & "Do you wish to proceed?"
+      If MsgBox(strMsg, vbExclamation + vbYesNo, "Missing Custom Fields!") = vbNo Then GoTo exit_here
+    End If
+    
+    'notify if character limit is exceeded
+    If lngTooLong > 0 Then
+      strMsg = Format(lngTooLong, "#,##0") & " descriptions exceed the 500 character limit; these have been marked with cell style 'Neutral'." & vbCrLf
+      strMsg = strMsg & "If you proceed without correcting them, they will be concatenanted (though your spreadsheet will remain unchanged." & vbCrLf & vbCrLf
+      strMsg = strMsg & "Do you wish to proceed?"
+      If MsgBox(strMsg, vbExclamation + vbYesNo, "Character Limitation Exceeded") = vbNo Then GoTo exit_here
+    End If
+    
+    'confirm updates
+    If lngNew > 0 Then
+      strMsg = Format(lngNew, "#,##0") & " updated IMS Data Dictionary entries found." & vbCrLf
+      strMsg = strMsg & "Please take a moment to indicate unwanted changes in the Excel workbook by marking the cell style as 'Bad.'" & vbCrLf
+      strMsg = strMsg & "When new entries have been validated, click 'Yes' below, or hit 'No' to cancel this import." & vbCrLf & vbCrLf
+      strMsg = strMsg & "Do you wish to proceed?"
+    Else
+      MsgBox "No updated entries found.", vbInformation + vbOKOnly, "Import Skipped"
+      'Workbook.Close False
+      GoTo exit_here
+    End If
+    
+    If MsgBox(strMsg, vbQuestion + vbYesNo, "Confirm Import") = vbNo Then
+      'Workbook.Close True
+      GoTo exit_here
+    Else
+      lngNew = 0 'reset the counter
+      .MoveFirst
+      For lngRow = lngHeaderRow + 1 To lngLastRow
+        If Worksheet.Cells(lngRow, lngDescriptionCol).Style <> "Bad" Then
+          strCustomName = Worksheet.Cells(lngRow, lngNameCol).Value
+          strNewDescription = Worksheet.Cells(lngRow, lngDescriptionCol).Value
+          If strNewDescription = "<missing>" Then GoTo next_row2
+          .Find "CUSTOM_NAME='" & strCustomName & "'", , 1 'adSearchForward
+          If Not .EOF Then
+            If rst("DESCRIPTION").Value <> strNewDescription Then
+              If rst("DESCRIPTION") <> "<missing>" Then
+                Worksheet.Cells(lngRow, lngLastCol + 1).Value = "DESCRIPTION WAS: " & rst("DESCRIPTION").Value
+              End If
+              rst("DESCRIPTION").Value = strNewDescription
+              .Update
+              lngNew = lngNew + 1
+            End If
+          End If
+        Else
+          Worksheet.Cells(lngRow, lngLastCol + 1).Value = Worksheet.Cells(lngRow, lngLastCol + 1).Value & " - SKIPPED"
+        End If
+next_row2:
+      Next
+    End If
+    .Filter = 0
+    .Save strSavedSettings, adPersistADTG
+    .Close
+  End With
+  
+  If lngNew > 0 Then
+    Call cptRefreshDictionary
+    MsgBox Format(lngNew, "#,##0") & " entries updated.", vbInformation + vbOKOnly, "Import Complete"
+  Else
+    MsgBox "No updates found.", vbInformation + vbOKOnly, "Import Skipped"
+  End If
+  
+exit_here:
+  On Error Resume Next
+  Set rst = Nothing
+  If rst.State Then rst.Close
+  Set rng = Nothing
+  Set ListObject = Nothing
+  Set Worksheet = Nothing
+  Set Workbook = Nothing
+  If Not xlApp.Visible Then xlApp.Visible = True
+  xlApp.ScreenUpdating = True
+  Set xlApp = Nothing
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptDataDictionary_bas", "cptImportDataDictionary", err, Erl)
   Resume exit_here
 End Sub
