@@ -7,10 +7,11 @@ Private Const adVarChar As Long = 200
 
 Sub cptExportResourceDemand(Optional lngTaskCount As Long)
 'objects
-Dim Task As Task, resource As resource, Assignment As Assignment
+Dim Task As Task, Resource As Resource, Assignment As Assignment
 Dim TSV As TimeScaleValue, TSVS_BCWS As TimeScaleValues
 Dim TSVS_WORK As TimeScaleValues, TSVS_AW As TimeScaleValues
 Dim TSVS_COST As TimeScaleValues, TSVS_AC As TimeScaleValues
+Dim CostRateTable As CostRateTable, PayRate As PayRate
 Dim xlApp As Excel.Application, Worksheet As Worksheet, Workbook As Workbook
 Dim rng As Excel.Range
 Dim PivotTable As PivotTable, ListObject As ListObject
@@ -26,6 +27,8 @@ Dim strFile As String, strRange As String
 Dim strTitle As String, strHeaders As String
 Dim strRecord As String, strFileName As String
 'longs
+Dim lngOffset As Long
+Dim lngRateSets As Long
 Dim lgCol As Long
 Dim lngOriginalRateSet As Long
 Dim lgFile As Long, lgTasks As Long, lgTask As Long
@@ -70,21 +73,38 @@ Dim blnIncludeCosts As Boolean
   strFile = Environ("USERPROFILE") & "\Desktop\" & Replace(Replace(ActiveProject.Name, ".mpp", ""), " ", "_") & "_ResourceDemand.csv"
 
   If Dir(strFile) <> vbNullString Then Kill strFile
-
+  
   Open strFile For Output As #lgFile
   strHeaders = "PROJECT,[UID] TASK,RESOURCE_NAME,"
   '<issue42> get selected rate sets
   With cptResourceDemand_frm
     If .chkBaseline Then
-      strHeaders = strHeaders & "BL HOURS,BL COST,"
+      strHeaders = strHeaders & "BL_HOURS,BL_COST,"
     End If
     strHeaders = strHeaders & "HOURS,"
     'get rate sets
-    If .chkA Then strHeaders = strHeaders & "RATE_A,COST_A,"
-    If .chkB Then strHeaders = strHeaders & "RATE_B,COST_B,"
-    If .chkC Then strHeaders = strHeaders & "RATE_C,COST_C,"
-    If .chkD Then strHeaders = strHeaders & "RATE_D,COST_D,"
-    If .chkE Then strHeaders = strHeaders & "RATE_E,COST_E,"
+    blnIncludeCosts = .chkA Or .chkB Or .chkC Or .chkD Or .chkE
+    If blnIncludeCosts Then strHeaders = strHeaders & "RATE_TABLE,COST,"
+    If .chkA Then
+      strHeaders = strHeaders & "COST_A,"
+      lngRateSets = lngRateSets + 1
+    End If
+    If .chkB Then
+      strHeaders = strHeaders & "COST_B,"
+      lngRateSets = lngRateSets + 1
+    End If
+    If .chkC Then
+      strHeaders = strHeaders & "COST_C,"
+      lngRateSets = lngRateSets + 1
+    End If
+    If .chkD Then
+      strHeaders = strHeaders & "COST_D,"
+      lngRateSets = lngRateSets + 1
+    End If
+    If .chkE Then
+      strHeaders = strHeaders & "COST_E,"
+      lngRateSets = lngRateSets + 1
+    End If
     'get custom fields
     'todo: notify if fields no longer exist
     For lgExport = 0 To .lboExport.ListCount - 1
@@ -158,11 +178,40 @@ Dim blnIncludeCosts As Boolean
             Else
               strRecord = strRecord & "0,"
             End If
-            If cptResourceDemand_frm.chkA Then strRecord = strRecord & "0,0,"
-            If cptResourceDemand_frm.chkB Then strRecord = strRecord & "0,0,"
-            If cptResourceDemand_frm.chkC Then strRecord = strRecord & "0,0,"
-            If cptResourceDemand_frm.chkD Then strRecord = strRecord & "0,0,"
-            If cptResourceDemand_frm.chkE Then strRecord = strRecord & "0,0,"
+            'get costs
+            If blnIncludeCosts Then
+              'rate set
+              strRecord = strRecord & Choose(Assignment.CostRateTable + 1, "A", "B", "C", "D", "E") & ","
+              Set TSVS_COST = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledCost, pjTimescaleWeeks, 1)
+              'get actual cost
+              Set TSVS_AC = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledActualCost, pjTimescaleWeeks, 1)
+              'subtract actual cost from cost to get remaining cost
+              dblCost = Val(TSVS_COST(1).Value) - Val(TSVS_AC(1))
+              'get cost
+              If dblWork > 0 Or dblCost > 0 Then 'there is remaining work or cost
+                strRecord = strRecord & dblCost & ","
+              Else
+                strRecord = strRecord & "0,"
+              End If
+            End If
+            
+            'if default rate set is included then include it
+            If cptResourceDemand_frm.chkA Then
+              strRecord = strRecord & IIf(Assignment.CostRateTable = 0, dblCost, 0) & ","
+            End If
+            If cptResourceDemand_frm.chkB Then
+              strRecord = strRecord & IIf(Assignment.CostRateTable = 1, dblCost, 0) & ","
+            End If
+            If cptResourceDemand_frm.chkC Then
+              strRecord = strRecord & IIf(Assignment.CostRateTable = 2, dblCost, 0) & ","
+            End If
+            If cptResourceDemand_frm.chkD Then
+              strRecord = strRecord & IIf(Assignment.CostRateTable = 3, dblCost, 0) & ","
+            End If
+            If cptResourceDemand_frm.chkE Then
+              strRecord = strRecord & IIf(Assignment.CostRateTable = 4, dblCost, 0) & ","
+            End If
+            
             'get custom field values
             For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
               lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
@@ -180,8 +229,8 @@ Dim blnIncludeCosts As Boolean
           If cptResourceDemand_frm.chkBaseline Then strRecord = strRecord & "0,0," 'BL HOURS, BL COST
           For lngRateSet = 0 To 4
             'need msproj to calculate the cost
-            'reset assignment cost table
             If cptResourceDemand_frm.Controls(Choose(lngRateSet + 1, "chkA", "chkB", "chkC", "chkD", "chkE")).Value = True Then
+              If lngRateSet = lngOriginalRateSet Then GoTo next_rate_set
               Application.StatusBar = "Exporting Rate Set " & Replace(Choose(lngRateSet + 1, "chkA", "chkB", "chkC", "chkD", "chkE"), "chk", "") & "..."
               If Assignment.CostRateTable <> lngRateSet Then Assignment.CostRateTable = lngRateSet 'recalculation not needed
               'extract timephased date
@@ -189,28 +238,36 @@ Dim blnIncludeCosts As Boolean
               Set TSVS_WORK = Assignment.TimeScaleData(dtStart, dtFinish, pjAssignmentTimescaledWork, pjTimescaleWeeks, 1)
               For Each TSV In TSVS_WORK
                 strRecord = Task.Project & "," & Chr(34) & "[" & Task.UniqueID & "] " & Replace(Task.Name, Chr(34), Chr(39)) & Chr(34) & ","
-                strRecord = strRecord & Assignment.ResourceName & ",0,"
+                strRecord = strRecord & Assignment.ResourceName & ","
                 If cptResourceDemand_frm.chkBaseline Then strRecord = strRecord & "0,0," 'baseline placeholder
-                'get actual work
-                Set TSVS_AW = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleWeeks, 1)
-                'subtract actual work from work to get remaining work
-                dblWork = Val(TSV.Value) - Val(TSVS_AW(1))
+                strRecord = strRecord & "0," 'hours
+                strRecord = strRecord & Choose(lngOriginalRateSet + 1, "A", "B", "C", "D", "E") & ","
+                strRecord = strRecord & "0," 'cost
                 'get cost
                 Set TSVS_COST = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledCost, pjTimescaleWeeks, 1)
                 'get actual cost
                 Set TSVS_AC = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledActualCost, pjTimescaleWeeks, 1)
                 'subtract actual cost from cost to get remaining cost
                 dblCost = Val(TSVS_COST(1).Value) - Val(TSVS_AC(1))
-                'only capture if remaining cost > 0
+                With cptResourceDemand_frm
+                  If .chkA Then strCost = "[0],"
+                  If .chkB Then strCost = strCost & "[1],"
+                  If .chkC Then strCost = strCost & "[2],"
+                  If .chkD Then strCost = strCost & "[3],"
+                  If .chkE Then strCost = strCost & "[4],"
+                End With
                 If dblCost > 0 Then
-                  If Assignment.ResourceType = pjResourceTypeWork Then
-                    strAssignment = strAssignment & dblCost / (dblWork / 60) & "," & dblCost & ","
-                  Else
-                    strAssignment = strAssignment & dblCost / dblWork & "," & dblCost & ","
-                  End If
+                  strCost = Replace(strCost, "[" & lngRateSet & "]", dblCost)
+                  strCost = Replace(strCost, "[0]", "0")
+                  strCost = Replace(strCost, "[1]", "0")
+                  strCost = Replace(strCost, "[2]", "0")
+                  strCost = Replace(strCost, "[3]", "0")
+                  strCost = Replace(strCost, "[4]", "0")
+                  strRecord = strRecord & strCost
                 Else
-                  strAssignment = strAssignment & "0,0,"
+                  strRecord = strRecord & Replace(String(lngRateSets, "0"), "0", "0,")
                 End If
+                
                 'todo:if costs are getting pulled then pull rate table, rate, and cost
                 'todo:add comment on rate set header that this is the currently applied rate table
                 
@@ -224,6 +281,7 @@ Dim blnIncludeCosts As Boolean
                 Print #lgFile, strRecord
               Next TSV
             End If
+next_rate_set:
           Next lngRateSet
           If Assignment.CostRateTable <> lngOriginalRateSet Then Assignment.CostRateTable = lngOriginalRateSet
 
@@ -297,7 +355,6 @@ next_task:
   'format currencies
   For lgCol = 1 To lgWeekCol
     If InStr(Worksheet.Cells(1, lgCol), "COST") > 0 Then Worksheet.Columns(lgCol).Style = "Currency"
-    If InStr(Worksheet.Cells(1, lgCol), "RATE") > 0 Then Worksheet.Columns(lgCol).Style = "Currency"
   Next lgCol
   
   'capture the range of data to feed as variable to PivotTable
@@ -399,7 +456,39 @@ next_task:
 
   Application.StatusBar = "Saving the Workbook..."
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
-
+  
+  'todo: export selected cost rate tables to worksheet
+  If blnIncludeCosts Then
+    Set Worksheet = Workbook.Sheets.Add(After:=Workbook.Sheets("SourceData"))
+    Worksheet.Name = "Cost Rate Tables"
+    Worksheet.[A1:F1].Value = Array("RESOURCE_NAME", "RATE_TABLE", "EFFECTIVE_DATE", "STANDARD_RATE", "OVERTIME_RATE", "PER_USE_COST")
+    lngRow = 2
+	'todo: make compatible with master-sub projects
+    For Each Resource In ActiveProject.Resources
+      Worksheet.Cells(lngRow, 1) = Resource.Name
+      For Each CostRateTable In Resource.CostRateTables
+        If cptResourceDemand_frm.Controls(Choose(CostRateTable.Index, "chkA", "chkB", "chkC", "chkD", "chkE")).Value = True Then
+          For Each PayRate In CostRateTable.PayRates
+            Worksheet.Cells(lngRow, 1) = Resource.Name
+            Worksheet.Cells(lngRow, 2) = CostRateTable.Name
+            Worksheet.Cells(lngRow, 3) = Format(PayRate.EffectiveDate, "mm/dd/yyyy")
+            Worksheet.Cells(lngRow, 4) = Replace(PayRate.StandardRate, "/h", "")
+            Worksheet.Cells(lngRow, 5) = Replace(PayRate.OvertimeRate, "/h", "")
+            Worksheet.Cells(lngRow, 6) = PayRate.CostPerUse
+            lngRow = lngRow + 1
+          Next PayRate
+        End If
+      Next CostRateTable
+    Next Resource
+  End If
+  xlApp.ActiveWindow.Zoom = 85
+  Worksheet.[A1].AutoFilter
+  Worksheet.[A2].Select
+  xlApp.ActiveWindow.FreezePanes = True
+  Worksheet.Columns.AutoFit
+  
+  Workbook.Sheets("ResourceDemand").Activate
+  
   'save the file
   '<issue49> - file exists in location
   strFile = Environ("USERPROFILE") & "\Desktop\" & Replace(Workbook.Name, ".xlsx", "_" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".xlsx") '<issue49>
@@ -428,7 +517,7 @@ exit_here:
   Next lgFile
   cptSpeed False
   Set Task = Nothing
-  Set resource = Nothing
+  Set Resource = Nothing
   Set Assignment = Nothing
   Set xlApp = Nothing
   Set PivotTable = Nothing
