@@ -22,6 +22,7 @@ Dim dtStart As Date, dtFinish As Date, dtMin As Date, dtMax As Date
 'doubles
 Dim dblWork As Double, dblCost As Double
 'strings
+Dim strSettings As String
 Dim strTask As String
 Dim strMsg As String
 Dim strView As String
@@ -39,6 +40,7 @@ Dim lgWeekCol As Long, lgExport As Long, lgField As Long
 Dim lngRateSet As Long
 Dim lngRow As Long
 'variants
+Dim vChk As Variant
 Dim vRateSet As Variant
 Dim aUserFields() As Variant
 'booleans
@@ -55,12 +57,23 @@ Dim blnIncludeCosts As Boolean
   End If
 
   'todo:save settings
-  strFileName = Environ("tmp") & "\cpt-export-resource-userfields.adtg."
+  strFileName = Environ("USERPROFILE") & "\cpt-backup\settings\cpt-export-resource-userfields.adtg."
   aUserFields = cptResourceDemand_frm.lboExport.List()
   With CreateObject("ADODB.Recordset")
     .Fields.Append "Field Constant", adVarChar, 255
     .Fields.Append "Custom Field Name", adVarChar, 255
     .Open
+    'save settings
+    strSettings = "Week=" & cptResourceDemand_frm.cboWeeks & ";"
+    strSettings = strSettings & "Weekday=" & cptResourceDemand_frm.cboWeekday & ";"
+    strSettings = strSettings & "Costs=" & cptResourceDemand_frm.chkCosts & ";"
+    strSettings = strSettings & "Baseline=" & cptResourceDemand_frm.chkBaseline & ";"
+    strSettings = strSettings & "RateSets="
+    For Each vChk In Array("A", "B", "C", "D", "E")
+      strSettings = strSettings & IIf(cptResourceDemand_frm.Controls("chk" & vChk), vChk & ",", "")
+    Next vChk
+    .AddNew Array(0, 1), Array("settings", strSettings)
+    'save userfields
     For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
       .AddNew Array(0, 1), Array(aUserFields(lgExport, 0), aUserFields(lgExport, 1))
     Next lgExport
@@ -170,7 +183,7 @@ Dim blnIncludeCosts As Boolean
               If Assignment.ResourceType = pjResourceTypeWork Then
                 strRecord = strRecord & Val(TSVS_BCWS(1).Value) / 60 & ","
               Else
-                strRecord = strRecord & "0," 'Val(TSVS_BCWS(1).Value) & ","
+                strRecord = strRecord & "0,"
               End If
               Set TSVS_BCWS = Assignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledBaselineCost, pjTimescaleWeeks, 1)
               strRecord = strRecord & Val(TSVS_BCWS(1).Value) & ","
@@ -222,7 +235,8 @@ Dim blnIncludeCosts As Boolean
               lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
               strRecord = strRecord & Task.GetField(lgField) & ","
             Next lgExport
-            'todo: adjust for user settings
+            
+            'apply user settings for week identification
             With cptResourceDemand_frm
               If .cboWeeks = "Beginning" Then
                 dtWeek = TSV.StartDate
@@ -294,7 +308,8 @@ Dim blnIncludeCosts As Boolean
                   lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
                   strRecord = strRecord & Task.GetField(lgField) & ","
                 Next lgExport
-                'todo: adjust for user settings
+                
+                'apply user settings for week identification
                 With cptResourceDemand_frm
                   If .cboWeeks = "Beginning" Then
                     dtWeek = TSV.StartDate
@@ -700,54 +715,69 @@ next_field:
     End If
   Next lngItem
 
-  'save the fields to a file
+  'save the fields to a file for fast searching
   If arrFields.count > 0 Then
-  strFileName = Environ("tmp") & "\cpt-resource-demand-search.adtg"
-  If Dir(strFileName) <> vbNullString Then Kill strFileName
-  With CreateObject("ADODB.Recordset")
-    .Fields.Append "Field Constant", adVarChar, 100
-    .Fields.Append "Custom Field Name", adVarChar, 100
-    .Open
-    For lngItem = 0 To arrFields.count - 1 'cptResourceDemand_frm.lboFields.ListCount - 1
-      'col0 = constant = arrFields col1
-      'col1 = field name = arrFields col0
-      .AddNew Array(0, 1), Array(arrFields.getValueList()(lngItem), arrFields.getKey(lngItem)) 'Array(cptResourceDemand_frm.lboFields.List(lngItem, 0), cptResourceDemand_frm.lboFields.List(lngItem, 1))
-    Next lngItem
-    .Save strFileName
-    .Close
-  End With
+    strFileName = Environ("tmp") & "\cpt-resource-demand-search.adtg"
+    If Dir(strFileName) <> vbNullString Then Kill strFileName
+    With CreateObject("ADODB.Recordset")
+      .Fields.Append "Field Constant", adVarChar, 100
+      .Fields.Append "Custom Field Name", adVarChar, 100
+      .Open
+      For lngItem = 0 To arrFields.count - 1 'cptResourceDemand_frm.lboFields.ListCount - 1
+        'col0 = constant = arrFields col1
+        'col1 = field name = arrFields col0
+        .AddNew Array(0, 1), Array(arrFields.getValueList()(lngItem), arrFields.getKey(lngItem))
+      Next lngItem
+      .Save strFileName
+      .Close
+    End With
   End If
   
+  'populate options and set defaults
+  With cptResourceDemand_frm
+    .cboWeeks.AddItem "Beginning"
+    .cboWeeks.AddItem "Ending"
+    'todo: use saved settings
+    .cboWeeks.Value = "Beginning"
+    .cboWeekday = "Monday"
+    .chkCosts.Value = True
+    .chkCosts.Value = False
+    .chkBaseline = False
+  End With
+  
   'import saved fields if exists
-  strFileName = Environ("tmp") & "\cpt-export-resource-userfields.adtg"
+  strFileName = Environ("USERPROFILE") & "\cpt-backup\settings\cpt-export-resource-userfields.adtg"
   If Dir(strFileName) <> vbNullString Then
     With CreateObject("ADODB.Recordset")
       .Open strFileName
       .MoveFirst
       lngItem = 0
       Do While Not .EOF
-        If FieldConstantToFieldName(.Fields(0)) <> Replace(.Fields(1), cptRegEx(.Fields(1), " \([A-z0-9]*\)$"), "") Then
-          strMissing = strMissing & "- " & .Fields(1) & vbCrLf
-          GoTo next_saved_field
+        If .Fields(0) = "settings" Then
+          cptResourceDemand_frm.cboWeeks.Value = Replace(Replace(cptRegEx(.Fields(1), "Week\=[A-z]*;"), "Week=", ""), ";", "")
+          cptResourceDemand_frm.cboWeekday = Replace(Replace(cptRegEx(.Fields(1), "Weekday\=[A-z]*;"), "Weekday=", ""), ";", "")
+          cptResourceDemand_frm.chkCosts = Replace(Replace(cptRegEx(.Fields(1), "Costs\=[A-z]*;"), "Costs=", ""), ";", "")
+          cptResourceDemand_frm.chkCosts = Replace(Replace(cptRegEx(.Fields(1), "Baseline\=[A-z]*;"), "Baseline=", ""), ";", "")
+          vCostSets = Split(Replace(cptRegEx(.Fields(1), "RateSets\=[A-z\,]*"), "RateSets=", ""), ",")
+          For vCostSet = 0 To UBound(vCostSets) - 1
+            cptResourceDemand_frm.Controls("chk" & vCostSets(vCostSet)).Value = True
+          Next vCostSet
+        Else
+          If FieldConstantToFieldName(.Fields(0)) <> Replace(.Fields(1), cptRegEx(.Fields(1), " \([A-z0-9]*\)$"), "") Then
+            strMissing = strMissing & "- " & .Fields(1) & vbCrLf
+            GoTo next_saved_field
+          End If
+          cptResourceDemand_frm.lboExport.AddItem
+          cptResourceDemand_frm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
+          cptResourceDemand_frm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
+          lngItem = lngItem + 1
         End If
-        cptResourceDemand_frm.lboExport.AddItem
-        cptResourceDemand_frm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
-        cptResourceDemand_frm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
-        lngItem = lngItem + 1
 next_saved_field:
         .MoveNext
       Loop
       .Close
     End With
   End If
-  
-  With cptResourceDemand_frm
-    .cboWeeks.AddItem "Beginning"
-    .cboWeeks.AddItem "Ending"
-    'todo: use saved settings
-    .cboWeeks.Value = "Beginning"
-    .chkCosts.Value = False
-  End With
   
   cptResourceDemand_frm.show False
 
