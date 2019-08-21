@@ -458,8 +458,6 @@ skip_that:
   lngLastCol = Worksheet.Rows(lngHeaderRow).End(xlToRight).Column
   lngDescriptionCol = Worksheet.Rows(lngHeaderRow).Find("Description", lookat:=xlWhole).Column
   
-  'todo: character limitation notification on txtDescription update
-  
   'get saved dictionary settings
   strSavedSettings = cptDir & "\settings\cpt-data-dictionary.adtg"
   If Dir(strSavedSettings) = vbNullString Then Call cptRefreshDictionary

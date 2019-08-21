@@ -204,6 +204,18 @@ err_here:
   Resume exit_here
 End Sub
 
+Private Sub txtDescription_Change()
+  Me.lblCharacterCount = 500 - Len(Me.txtDescription.Text)
+End Sub
+
+Private Sub txtDescription_Enter()
+  Me.lblCharacterCount.Visible = True
+End Sub
+
+Private Sub txtDescription_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+  Me.lblCharacterCount.Visible = False
+End Sub
+
 Private Sub txtFilter_Change()
 'objects
 Dim rst As ADODB.Recordset

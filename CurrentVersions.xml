@@ -64,6 +64,13 @@
 		<Directory>DataDictionary</Directory>
 	</Module>
 	<Module>
+		<Name>cptDataDictionary_frm</Name>
+		<FileName>cptDataDictionary_frm.frm</FileName>
+		<Version>v1.0.0</Version>
+		<Type>3</Type>
+		<Directory>DataDictionary</Directory>
+	</Module>
+	<Module>
 		<Name>cptDynamicFilter_bas</Name>
 		<FileName>cptDynamicFilter_bas.bas</FileName>
 		<Version>v1.2.2</Version>
