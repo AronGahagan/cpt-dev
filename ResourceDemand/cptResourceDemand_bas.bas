@@ -6,6 +6,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 
 Sub cptExportResourceDemand(Optional lngTaskCount As Long)
 'objects
+Dim ListObject As Object
 Dim SubProject As Object
 Dim Task As Task, Resource As Resource, Assignment As Assignment
 Dim TSV As TimeScaleValue, TSVS_BCWS As TimeScaleValues
@@ -14,7 +15,7 @@ Dim TSVS_COST As TimeScaleValues, TSVS_AC As TimeScaleValues
 Dim CostRateTable As CostRateTable, PayRate As PayRate
 Dim xlApp As Excel.Application, Worksheet As Worksheet, Workbook As Workbook
 Dim rng As Excel.Range
-Dim PivotTable As PivotTable, ListObject As ListObject
+Dim PivotTable As PivotTable
 'dates
 Dim dtStart As Date, dtFinish As Date, dtMin As Date, dtMax As Date
 'doubles
@@ -216,7 +217,6 @@ Dim blnIncludeCosts As Boolean
               strRecord = strRecord & Task.GetField(lgField) & ","
             Next lgExport
             strRecord = strRecord & DateAdd("d", 1, TSV.StartDate) & "," 'week
-            Debug.Print strRecord
             Print #lgFile, strRecord
             'todo: options for week beginning/ending and what day
             'todo: real estate - convert all custom field export listboxes to checkbox lists with +/- show all / show selected
@@ -266,16 +266,12 @@ Dim blnIncludeCosts As Boolean
                   strRecord = strRecord & Replace(String(lngRateSets, "0"), "0", "0,")
                 End If
                 
-                'todo:if costs are getting pulled then pull rate table, rate, and cost
-                'todo:add comment on rate set header that this is the currently applied rate table
-                
                 'get custom field values
                 For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
                   lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
                   strRecord = strRecord & Task.GetField(lgField) & ","
                 Next lgExport
                 strRecord = strRecord & DateAdd("d", 1, TSV.StartDate) & "," 'week
-                Debug.Print strRecord
                 Print #lgFile, strRecord
               Next TSV
             End If
@@ -354,6 +350,10 @@ next_task:
   For lgCol = 1 To lgWeekCol
     If InStr(Worksheet.Cells(1, lgCol), "COST") > 0 Then Worksheet.Columns(lgCol).Style = "Currency"
   Next lgCol
+  
+  'add note on CostRateTable column
+  lngCol = Worksheet.Rows(1).Find("RATE_TABLE", lookat:=xlWhole).Column
+  Worksheet.Cells(1, lngCol).AddComment "Rate Table Applied in the Project"
   
   'capture the range of data to feed as variable to PivotTable
   Set rng = Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown))
@@ -455,25 +455,28 @@ next_task:
   Application.StatusBar = "Saving the Workbook..."
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
   
-  'todo: export selected cost rate tables to worksheet
+  'export selected cost rate tables to worksheet
   If blnIncludeCosts Then
     Set Worksheet = Workbook.Sheets.Add(After:=Workbook.Sheets("SourceData"))
     Worksheet.Name = "Cost Rate Tables"
-    Worksheet.[A1:F1].Value = Array("RESOURCE_NAME", "RATE_TABLE", "EFFECTIVE_DATE", "STANDARD_RATE", "OVERTIME_RATE", "PER_USE_COST")
+    Worksheet.[A1:I1].Value = Array("PROJECT", "RESOURCE_NAME", "RESOURCE_TYPE", "ENTERPRISE", "RATE_TABLE", "EFFECTIVE_DATE", "STANDARD_RATE", "OVERTIME_RATE", "PER_USE_COST")
     lngRow = 2
-    'todo: make compatible with master/sub projects
+    'make compatible with master/sub projects
     If ActiveProject.ResourceCount > 0 Then
       For Each Resource In ActiveProject.Resources
         Worksheet.Cells(lngRow, 1) = Resource.Name
         For Each CostRateTable In Resource.CostRateTables
           If cptResourceDemand_frm.Controls(Choose(CostRateTable.Index, "chkA", "chkB", "chkC", "chkD", "chkE")).Value = True Then
             For Each PayRate In CostRateTable.PayRates
-              Worksheet.Cells(lngRow, 1) = Resource.Name
-              Worksheet.Cells(lngRow, 2) = CostRateTable.Name
-              Worksheet.Cells(lngRow, 3) = Format(PayRate.EffectiveDate, "mm/dd/yyyy")
-              Worksheet.Cells(lngRow, 4) = Replace(PayRate.StandardRate, "/h", "")
-              Worksheet.Cells(lngRow, 5) = Replace(PayRate.OvertimeRate, "/h", "")
-              Worksheet.Cells(lngRow, 6) = PayRate.CostPerUse
+              Worksheet.Cells(lngRow, 1) = Project.Name
+              Worksheet.Cells(lngRow, 2) = Resource.Name
+              Worksheet.Cells(lngRow, 3) = Choose(Resource.Type + 1, "Work", "Material", "Cost")
+              Worksheet.Cells(lngRow, 4) = Resource.Enterprise
+              Worksheet.Cells(lngRow, 5) = CostRateTable.Name
+              Worksheet.Cells(lngRow, 6) = Format(PayRate.EffectiveDate, "mm/dd/yyyy")
+              Worksheet.Cells(lngRow, 7) = Replace(PayRate.StandardRate, "/h", "")
+              Worksheet.Cells(lngRow, 8) = Replace(PayRate.OvertimeRate, "/h", "")
+              Worksheet.Cells(lngRow, 9) = PayRate.CostPerUse
               lngRow = Worksheet.Cells(Worksheet.Rows.count, 1).End(xlUp).Row + 1
             Next PayRate
           End If
@@ -481,17 +484,20 @@ next_task:
       Next Resource
     ElseIf ActiveProject.Subprojects.count > 0 Then
       For Each SubProject In ActiveProject.Subprojects
-        For Each Resource In SubProject.Resources
+        For Each Resource In SubProject.SourceProject.Resources
           Worksheet.Cells(lngRow, 1) = Resource.Name
           For Each CostRateTable In Resource.CostRateTables
             If cptResourceDemand_frm.Controls(Choose(CostRateTable.Index, "chkA", "chkB", "chkC", "chkD", "chkE")).Value = True Then
               For Each PayRate In CostRateTable.PayRates
-                Worksheet.Cells(lngRow, 1) = Resource.Name
-                Worksheet.Cells(lngRow, 2) = CostRateTable.Name
-                Worksheet.Cells(lngRow, 3) = Format(PayRate.EffectiveDate, "mm/dd/yyyy")
-                Worksheet.Cells(lngRow, 4) = Replace(PayRate.StandardRate, "/h", "")
-                Worksheet.Cells(lngRow, 5) = Replace(PayRate.OvertimeRate, "/h", "")
-                Worksheet.Cells(lngRow, 6) = PayRate.CostPerUse
+                Worksheet.Cells(lngRow, 1) = SubProject.SourceProject.Name
+                Worksheet.Cells(lngRow, 2) = Resource.Name
+                Worksheet.Cells(lngRow, 3) = Choose(Resource.Type + 1, "Work", "Material", "Cost")
+                Worksheet.Cells(lngRow, 4) = Resource.Enterprise
+                Worksheet.Cells(lngRow, 5) = CostRateTable.Name
+                Worksheet.Cells(lngRow, 6) = Format(PayRate.EffectiveDate, "mm/dd/yyyy")
+                Worksheet.Cells(lngRow, 7) = Replace(PayRate.StandardRate, "/h", "")
+                Worksheet.Cells(lngRow, 8) = Replace(PayRate.OvertimeRate, "/h", "")
+                Worksheet.Cells(lngRow, 9) = PayRate.CostPerUse
                 lngRow = Worksheet.Cells(Worksheet.Rows.count, 1).End(xlUp).Row + 1
               Next PayRate
             End If
@@ -501,14 +507,16 @@ next_task:
     End If
   End If
   
-  'identify duplicates
-  
+  'make it a ListObject
+  Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown)).Address, , xlYes)
+  ListObject.Name = "CostRateTables"
+  ListObject.TableStyle = ""
   xlApp.ActiveWindow.Zoom = 85
-  Worksheet.[A1].AutoFilter
   Worksheet.[A2].Select
   xlApp.ActiveWindow.FreezePanes = True
   Worksheet.Columns.AutoFit
-  
+    
+  'PivotTable worksheet active by default
   Workbook.Sheets("ResourceDemand").Activate
   
   'save the file
@@ -531,6 +539,7 @@ next_task:
 
 exit_here:
   On Error Resume Next
+  Set ListObject = Nothing
   Set SubProject = Nothing
   If Not xlApp Is Nothing Then xlApp.Visible = True
   Application.StatusBar = ""
