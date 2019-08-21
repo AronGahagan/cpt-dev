@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.1.7</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptExportResourceDemand(Optional lngTaskCount As Long)
@@ -33,7 +33,7 @@ Dim strCost As String
 'longs
 Dim lngOffset As Long
 Dim lngRateSets As Long
-Dim lgCol As Long
+Dim lngCol As Long
 Dim lngOriginalRateSet As Long
 Dim lgFile As Long, lgTasks As Long, lgTask As Long
 Dim lgWeekCol As Long, lgExport As Long, lgField As Long
@@ -56,14 +56,13 @@ Dim blnIncludeCosts As Boolean
     GoTo exit_here
   End If
 
-  'todo:save settings
+  'save settings
   strFileName = Environ("USERPROFILE") & "\cpt-backup\settings\cpt-export-resource-userfields.adtg."
   aUserFields = cptResourceDemand_frm.lboExport.List()
   With CreateObject("ADODB.Recordset")
     .Fields.Append "Field Constant", adVarChar, 255
     .Fields.Append "Custom Field Name", adVarChar, 255
     .Open
-    'save settings
     strSettings = "Week=" & cptResourceDemand_frm.cboWeeks & ";"
     strSettings = strSettings & "Weekday=" & cptResourceDemand_frm.cboWeekday & ";"
     strSettings = strSettings & "Costs=" & cptResourceDemand_frm.chkCosts & ";"
@@ -401,9 +400,9 @@ next_task:
   Set Worksheet = Workbook.Sheets("SourceData")
   
   'format currencies
-  For lgCol = 1 To lgWeekCol
-    If InStr(Worksheet.Cells(1, lgCol), "COST") > 0 Then Worksheet.Columns(lgCol).Style = "Currency"
-  Next lgCol
+  For lngCol = 1 To lgWeekCol
+    If InStr(Worksheet.Cells(1, lngCol), "COST") > 0 Then Worksheet.Columns(lngCol).Style = "Currency"
+  Next lngCol
   
   'add note on CostRateTable column
   If blnIncludeCosts Then
@@ -447,7 +446,7 @@ next_task:
   Worksheet.[A1].Font.Italic = True
   Worksheet.[A1].Font.Size = 14
   Worksheet.[A1:F1].Merge
-  'todo: revise this according to user options
+  'revise according to user options
   Worksheet.[B2] = "Weeks " & cptResourceDemand_frm.cboWeeks.Value & " " & cptResourceDemand_frm.cboWeekday.Value
   Worksheet.[B4].Select
   Worksheet.[B5].Select
@@ -523,7 +522,7 @@ next_task:
         For Each CostRateTable In Resource.CostRateTables
           If cptResourceDemand_frm.Controls(Choose(CostRateTable.Index, "chkA", "chkB", "chkC", "chkD", "chkE")).Value = True Then
             For Each PayRate In CostRateTable.PayRates
-              Worksheet.Cells(lngRow, 1) = Project.Name
+              Worksheet.Cells(lngRow, 1) = ActiveProject.Name
               Worksheet.Cells(lngRow, 2) = Resource.Name
               Worksheet.Cells(lngRow, 3) = Choose(Resource.Type + 1, "Work", "Material", "Cost")
               Worksheet.Cells(lngRow, 4) = Resource.Enterprise
@@ -641,6 +640,8 @@ Dim lngField As Long, lngItem As Long
 'integers
 'booleans
 'variants
+Dim vCostSet As Variant
+Dim vCostSets As Variant
 Dim vFieldType As Variant
 'dates
 
@@ -737,7 +738,6 @@ next_field:
   With cptResourceDemand_frm
     .cboWeeks.AddItem "Beginning"
     .cboWeeks.AddItem "Ending"
-    'todo: use saved settings
     .cboWeeks.Value = "Beginning"
     .cboWeekday = "Monday"
     .chkCosts.Value = True
