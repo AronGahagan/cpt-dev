@@ -261,8 +261,9 @@ Dim strDirectory As String
     'Integration
     Case "IMSCobraExport"
       strDirectory = "Integration"
-    Case "Graphics"
-      strDirectory = "Metrics"
+	'Metrics
+	Case "Graphics"
+	  strDirectory = "Metrics"
     'TextTools
     Case "DynamicFilter"
       strDirectory = "Text"
