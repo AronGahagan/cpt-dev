@@ -34,6 +34,9 @@ End Sub
 
 Sub cptGetCharts()
 'objects
+Dim rst3 As ADODB.Recordset
+Dim rst2 As ADODB.Recordset
+Dim rst1 As ADODB.Recordset
 Dim ChartObject As ChartObject
 Dim PivotTable As PivotTable
 Dim SubProject As Project
@@ -49,6 +52,7 @@ Dim c As Excel.Range
 Dim Task As MSProject.Task
 Dim TaskDependency As TaskDependency
 'strings
+Dim strMethod As String
 Dim strFileName As String
 Dim strRange As String
 'longs
@@ -81,12 +85,45 @@ Dim vSheet As Variant
   wsDataSet3.Name = "DataSet3"
   
   'todo: include custom fields for user to filter out LOE, PP, etcs.
+  strMethod = "ADODB"
   
   'set up headers
   wsDataSet1.[A1:C1] = Array("UID", "DURATION", "TOTAL_SLACK")
   wsDataSet2.[A1:E1] = Array("UID", "BL FINISH", "ACTUAL_FINISH", "FINISH", "WEEK_ENDING")
   wsDataSet3.[A1:J1] = Array("FROM_PROJECT", "FROM_ID", "FROM_UID", "FROM_TASK", "TYPE", "LAG", "TO_PROJECT", "TO_ID", "TO_UID", "TO_TASK")
-  'would an exported map be faster? would it work with master/subs?
+  
+  If strMethod = "ADODB" Then
+    Set rst1 = CreateObject("ADODB.Recordset")
+    With rst1
+      .Fields.Append "UID", adInteger
+      .Fields.Append "DURATION", adInteger
+      .Fields.Append "TOTAL_SLACK", adInteger
+      .Open
+    End With
+    Set rst2 = CreateObject("ADODB.Recordset")
+    With rst2
+      .Fields.Append "UID", adBigInt
+      .Fields.Append "BL FINISH", adInteger
+      .Fields.Append "ACTUAL_FINISH", adInteger
+      .Fields.Append "FINISH", adInteger
+      .Fields.Append "WEEK_ENDING", adDBDate
+      .Open
+    End With
+    Set rst3 = CreateObject("ADODB.Recordset")
+    With rst3
+      .Fields.Append "FROM_PROJECT", adVarChar, 255
+      .Fields.Append "FROM_ID", adInteger
+      .Fields.Append "FROM_UID", adInteger
+      .Fields.Append "FROM_TASK", adVarChar, 255
+      .Fields.Append "TYPE", adVarChar, 2
+      .Fields.Append "LAG", adInteger
+      .Fields.Append "TO_PROJECT", adVarChar, 255
+      .Fields.Append "TO_ID", adInteger
+      .Fields.Append "TO_UID", adInteger
+      .Fields.Append "TO_TASK", adVarChar, 255
+      .Open
+    End With
+  End If
   
   'get task count
   If ActiveProject.Subprojects.Count > 0 Then
@@ -105,48 +142,85 @@ Dim vSheet As Variant
       If Task.Summary Then GoTo next_task
       If Task.BaselineWork > 0 Or Task.BaselineCost > 0 Then 'pmb task
         'dataset 1 - incomplete tasks only
-        lngRow = wsDataSet1.Cells(wsDataSet1.Rows.Count, 1).End(xlUp).Row + 1
-        wsDataSet1.Cells(lngRow, 1) = Task.UniqueID
-        wsDataSet1.Cells(lngRow, 2) = Task.Duration / (60 * 8)
-        wsDataSet1.Cells(lngRow, 3) = Task.TotalSlack / (60 * 8)
+        If strMethod = "Excel" Then
+          lngRow = wsDataSet1.Cells(wsDataSet1.Rows.Count, 1).End(xlUp).Row + 1
+          wsDataSet1.Cells(lngRow, 1) = Task.UniqueID
+          wsDataSet1.Cells(lngRow, 2) = Task.Duration / (60 * 8)
+          wsDataSet1.Cells(lngRow, 3) = Task.TotalSlack / (60 * 8)
+        Else
+          rst1.AddNew Array(0, 1, 2), Array(Task.UniqueID, Task.Duration / (60 * 8), Task.TotalSlack / (60 * 8))
+          rst1.Update
+        End If
         'dataset 2
         If Task.BaselineFinish <> "NA" Then
-          lngRow = wsDataSet2.Cells(wsDataSet2.Rows.Count, 1).End(xlUp).Row + 1
-          wsDataSet2.Cells(lngRow, 1) = Task.UniqueID
-          wsDataSet2.Cells(lngRow, 2) = 1 'baseline
-          wsDataSet2.Cells(lngRow, 3) = 0 'actual
-          wsDataSet2.Cells(lngRow, 3) = 0 'forecast
-          wsDataSet2.Cells(lngRow, 5) = DateAdd("d", 6 - Weekday(Task.BaselineFinish), Task.BaselineFinish)
+          If strMethod = "Excel" Then
+            lngRow = wsDataSet2.Cells(wsDataSet2.Rows.Count, 1).End(xlUp).Row + 1
+            wsDataSet2.Cells(lngRow, 1) = Task.UniqueID
+            wsDataSet2.Cells(lngRow, 2) = 1 'baseline
+            wsDataSet2.Cells(lngRow, 3) = 0 'actual
+            wsDataSet2.Cells(lngRow, 3) = 0 'forecast
+            wsDataSet2.Cells(lngRow, 5) = DateAdd("d", 6 - Weekday(Task.BaselineFinish), Task.BaselineFinish)
+          Else
+            rst2.AddNew Array(0, 1, 4), Array(Task.UniqueID, 1, DateAdd("d", 6 - Weekday(Task.BaselineFinish), Task.BaselineFinish))
+            rst2.Update
+          End If
         End If
         If Task.ActualFinish <> "NA" Then
+          If strMethod = "Excel" Then
+            lngRow = wsDataSet2.Cells(wsDataSet2.Rows.Count, 1).End(xlUp).Row + 1
+            wsDataSet2.Cells(lngRow, 1) = Task.UniqueID
+            wsDataSet2.Cells(lngRow, 2) = 0 'baseline
+            wsDataSet2.Cells(lngRow, 3) = 1
+            wsDataSet2.Cells(lngRow, 4) = 0 'forecast
+            wsDataSet2.Cells(lngRow, 5) = DateAdd("d", 6 - Weekday(Task.ActualFinish), Task.ActualFinish)
+          Else
+            rst2.AddNew Array(0, 2, 4), Array(Task.UniqueID, 1, DateAdd("d", 6 - Weekday(Task.ActualFinish), Task.ActualFinish))
+            rst2.Update
+          End If
+        End If
+        If strMethod = "Excel" Then
           lngRow = wsDataSet2.Cells(wsDataSet2.Rows.Count, 1).End(xlUp).Row + 1
           wsDataSet2.Cells(lngRow, 1) = Task.UniqueID
           wsDataSet2.Cells(lngRow, 2) = 0 'baseline
-          wsDataSet2.Cells(lngRow, 3) = IIf(Task.ActualFinish = "NA", 0, 1) 'actual
-          wsDataSet2.Cells(lngRow, 4) = 0 'forecast
-          wsDataSet2.Cells(lngRow, 5) = DateAdd("d", 6 - Weekday(Task.ActualFinish), Task.ActualFinish)
+          wsDataSet2.Cells(lngRow, 3) = 0 'actual
+          wsDataSet2.Cells(lngRow, 4) = 1 'forecast
+          wsDataSet2.Cells(lngRow, 5) = DateAdd("d", 6 - Weekday(Task.Finish), Task.Finish)
+        Else
+          rst2.AddNew Array(0, 3, 4), Array(Task.UniqueID, 1, DateAdd("d", 6 - Weekday(Task.Finish), Task.Finish))
+          rst2.Update
         End If
-        lngRow = wsDataSet2.Cells(wsDataSet2.Rows.Count, 1).End(xlUp).Row + 1
-        wsDataSet2.Cells(lngRow, 1) = Task.UniqueID
-        wsDataSet2.Cells(lngRow, 2) = 0 'baseline
-        wsDataSet2.Cells(lngRow, 3) = 0 'actual
-        wsDataSet2.Cells(lngRow, 4) = 1 'forecast
-        wsDataSet2.Cells(lngRow, 5) = DateAdd("d", 6 - Weekday(Task.Finish), Task.Finish)
         'dataset 3
         For Each TaskDependency In Task.TaskDependencies
-          lngRow = wsDataSet3.Cells(wsDataSet3.Rows.Count, 1).End(xlUp).Row + 1
-          'this next bit gets tricky in master/sub
-          If Task.Guid = TaskDependency.To.Guid Then 'use guid for master/sub
-            wsDataSet3.Cells(lngRow, 1) = TaskDependency.From.Project
-            wsDataSet3.Cells(lngRow, 2) = TaskDependency.From.ID
-            wsDataSet3.Cells(lngRow, 3) = TaskDependency.From.UniqueID
-            wsDataSet3.Cells(lngRow, 4) = TaskDependency.From.Name
-            wsDataSet3.Cells(lngRow, 5) = Choose(TaskDependency.Type + 1, "FF", "FS", "SF", "SS")
-            wsDataSet3.Cells(lngRow, 6) = TaskDependency.Lag / 60
-            wsDataSet3.Cells(lngRow, 7) = TaskDependency.To.Project
-            wsDataSet3.Cells(lngRow, 8) = TaskDependency.To.ID
-            wsDataSet3.Cells(lngRow, 9) = TaskDependency.To.UniqueID
-            wsDataSet3.Cells(lngRow, 10) = TaskDependency.To.Name
+          If strMethod = "Excel" Then
+            lngRow = wsDataSet3.Cells(wsDataSet3.Rows.Count, 1).End(xlUp).Row + 1
+            'this next bit gets tricky in master/sub
+            If Task.Guid = TaskDependency.To.Guid Then 'use guid for master/sub
+              wsDataSet3.Cells(lngRow, 1) = TaskDependency.From.Project
+              wsDataSet3.Cells(lngRow, 2) = TaskDependency.From.ID
+              wsDataSet3.Cells(lngRow, 3) = TaskDependency.From.UniqueID
+              wsDataSet3.Cells(lngRow, 4) = TaskDependency.From.Name
+              wsDataSet3.Cells(lngRow, 5) = Choose(TaskDependency.Type + 1, "FF", "FS", "SF", "SS")
+              wsDataSet3.Cells(lngRow, 6) = TaskDependency.Lag / (60 * 8)
+              wsDataSet3.Cells(lngRow, 7) = TaskDependency.To.Project
+              wsDataSet3.Cells(lngRow, 8) = TaskDependency.To.ID
+              wsDataSet3.Cells(lngRow, 9) = TaskDependency.To.UniqueID
+              wsDataSet3.Cells(lngRow, 10) = TaskDependency.To.Name
+            End If
+          Else
+            If Task.Guid = TaskDependency.To.Guid Then 'use guid for master/sub
+              With TaskDependency.From
+                rst3.AddNew Array(0, 1, 2, 3), Array(.Project, .ID, .UniqueID, .Name)
+              End With
+              rst3.Fields(4) = Choose(TaskDependency.Type + 1, "FF", "FS", "SF", "SS")
+              rst3.Fields(5) = TaskDependency.Lag / (60 * 8)
+              With TaskDependency.To
+                rst3.Fields(6) = .Project
+                rst3.Fields(7) = .ID
+                rst3.Fields(8) = .UniqueID
+                rst3.Fields(9) = .Name
+              End With
+              rst3.Update
+            End If
           End If
         Next TaskDependency
       End If
@@ -160,19 +234,6 @@ next_task:
   Next Task
   cptGraphics_frm.lblProgress.Width = cptGraphics_frm.lblStatus.Width
   
-  'make visible for debug
-  xlApp.Visible = True
-  xlApp.Calculation = xlCalculationAutomatic
-  xlApp.ScreenUpdating = True
-  
-  'save xlsx to cpt-backup temporarily
-  cptGraphics_frm.lblStatus = "Saving Source Data..."
-  strFileName = cptDir & "\metrics\"
-  If Dir(strFileName, vbDirectory) = vbNullString Then MkDir strFileName
-  strFileName = strFileName & Replace(Replace(ActiveProject.Name, ".mpp", ""), " ", "_") & "_Metrics_" & Format(Now, "yyyy-mm-dd-hh-nn-ss") & ".xlsx"
-  Workbook.SaveAs strFileName, 51
-  'create charts and export jpg files
-  
   'make presentable
   For Each vSheet In Array(wsDataSet1, wsDataSet2, wsDataSet3)
     Set Worksheet = vSheet
@@ -182,6 +243,27 @@ next_task:
     ListObject.TableStyle = ""
     Worksheet.Columns.AutoFit
   Next
+  
+  'copy in data
+  If strMethod = "ADODB" Then
+    wsDataSet1.[A2].CopyFromRecordset rst1
+    wsDataSet2.[A2].CopyFromRecordset rst2
+    wsDataSet2.ListObjects("Table2").ListColumns("WEEK_ENDING").Range.NumberFormat = "m/d/yyyy"
+    wsDataSet3.[A2].CopyFromRecordset rst3
+    rst1.Close
+    rst2.Close
+    rst3.Close
+  End If
+  
+  xlApp.Calculation = xlCalculationAutomatic
+  
+  'save xlsx to cpt-backup temporarily
+  cptGraphics_frm.lblStatus = "Saving Source Data..."
+  strFileName = cptDir & "\metrics\"
+  If Dir(strFileName, vbDirectory) = vbNullString Then MkDir strFileName
+  strFileName = strFileName & Replace(Replace(ActiveProject.Name, ".mpp", ""), " ", "_") & "_Metrics_" & Format(Now, "yyyy-mm-dd-hh-nn-ss") & ".xlsx"
+  Workbook.SaveAs strFileName, 51
+  'create charts and export jpg files
   
   'bow wave
   Application.StatusBar = "Creating Bow Wave..."
@@ -232,8 +314,7 @@ next_task:
       .MissingItemsLimit = -1 'xlMissingItemsDefault
   End With
   PivotTable.RepeatAllLabels 2 'xlRepeatLabels
-  'Worksheet.Shapes.AddChart2(201, 51).Select '51 = xlColumnClustered
-  Worksheet.Shapes.AddChart2(201, 51).Select
+  Worksheet.Shapes.AddChart2(201, 51).Select '51 = xlColumnClustered
   Set ChartObject = Worksheet.ChartObjects(1)
   ChartObject.Chart.SetSourceData Source:=Worksheet.Range("DataSet2_Graphs!$A$1:$C$18")
   Worksheet.Shapes("Chart 1").IncrementLeft 192
@@ -263,6 +344,8 @@ next_task:
   Worksheet.ChartObjects(1).Chart.Export cptDir & "\metrics\bow_wave.jpg", filtername:="JPG"
   
   'get DCMA14 Relationship Types
+  Application.StatusBar = "Analyzing DCMA14-04 Relationship Types..."
+  cptGraphics_frm.lblStatus = Application.StatusBar
   Set Worksheet = xlApp.Sheets.Add
   Worksheet.Name = "DataSet2_Graph"
   Workbook.PivotCaches.Create(SourceType:=xlDatabase, _
@@ -336,11 +419,16 @@ next_task:
   ChartObject.Chart.ShowAllFieldButtons = False
   PivotTable.PivotFields("TYPE").AutoSort xlDescending, "Count of TYPE"
   ChartObject.Chart.Export cptDir & "\metrics\dcma14-04.jpg", filtername:="JPG"
-
   
+  'create each one
+  'create a nice one-pager
+  'copy/paste each chart pic into the workbook
   
 exit_here:
   On Error Resume Next
+  Set rst3 = Nothing
+  Set rst2 = Nothing
+  Set rst1 = Nothing
   Set ChartObject = Nothing
   Set PivotTable = Nothing
   Application.StatusBar = ""
@@ -357,6 +445,9 @@ exit_here:
   Set ListObject = Nothing
   Set Worksheet = Nothing
   Set Workbook = Nothing
+  xlApp.Visible = True
+  xlApp.ScreenUpdating = True
+  xlApp.Calculation = xlCalculationAutomatic
   Set xlApp = Nothing
   Set Task = Nothing
   Exit Sub
