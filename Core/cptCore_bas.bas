@@ -624,7 +624,7 @@ Dim strDir As String
   End If
   If Not cptReferenceExists("VBIDE") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB"
-    'need win64 file path '<issue53>
+	'todo: need win64 file path '<issue53>
     'C:\Program Files\Common Files\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB?
   End If
   If Not cptReferenceExists("VBA") Then
