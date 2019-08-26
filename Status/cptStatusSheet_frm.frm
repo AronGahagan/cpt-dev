@@ -13,7 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.5</cpt_version>
+
+'<cpt_version>v1.1.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -278,16 +279,18 @@ Dim strFileName As String
     Me.lblCostTool.ForeColor = 192 'Red
     blnError = True
   End If
+  If Len(Me.cboCostTool.Value) <> "<none>" Then
+    If Len(Me.cboEVT.Value) = 0 Then
+      Me.lblEVT.ForeColor = 192 'Red
+      blnError = True
+    End If
+  End If
   'hide complete before must be earlier than status date
   If IsDate(Me.txtStatusDate.Value) And IsDate(Me.txtHideCompleteBefore.Value) Then
     If CDate(Me.txtHideCompleteBefore.Value) >= CDate(Me.txtStatusDate.Value) Then
       Me.chkHide.ForeColor = 192
       blnError = True
     End If
-  End If
-  If Len(Me.cboEVT.Value) = 0 Then
-    Me.lblEVT.ForeColor = 192 'Red
-    blnError = True
   End If
   If Len(Me.cboEVP.Value) = 0 Then
     Me.lblEVP.ForeColor = 192 'Red

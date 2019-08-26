@@ -154,7 +154,7 @@ next_field:
 
   dtStatus = CDate(cptStatusSheet_frm.txtStatusDate.Value)
   cptStatusSheet_frm.txtHideCompleteBefore.Value = DateAdd("d", -(Day(dtStatus) - 1), dtStatus)
-  cptStatusSheet_frm.show False
+  cptStatusSheet_frm.Show False
 
 exit_here:
   On Error Resume Next
@@ -307,9 +307,11 @@ Dim blnSpace As Boolean
   If blnPerformanceTest Then t = GetTickCount
 
   'get selected fields for two non-standard fields
-  strEVT = cptStatusSheet_frm.cboEVT.Value
-  strEVP = cptStatusSheet_frm.cboEVP.Value
-
+  With cptStatusSheet_frm
+    If .cboCostTool.Value <> "<none>" Then strEVT = .cboEVT.Value Else strEVT = "SKIP" '<issue64>
+    strEVP = .cboEVP.Value
+  End With
+  
   'set up header
   Set aHeaders = CreateObject("System.Collections.ArrayList")
 
@@ -344,7 +346,7 @@ Dim blnSpace As Boolean
     Else
       lngColumnWidth = 10 'default
     End If
-    aHeaders.Add Array(FieldNameToFieldConstant(vCol), vCol, lngColumnWidth)
+    If CStr(vCol) <> "SKIP" Then aHeaders.Add Array(FieldNameToFieldConstant(vCol), vCol, lngColumnWidth) '<issue64>
   Next vCol
 
   'save fields to adtg file
