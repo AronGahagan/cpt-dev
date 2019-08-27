@@ -1163,18 +1163,20 @@ revised_etc:
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
 evt_vs_evp:
-  'evt vs evp checks
-  If cptStatusSheet_frm.cboCostTool = "COBRA" Then
-    'EVT = E 50/50
-    'EVT = F 0/100
-  ElseIf cptStatusSheet_frm.cboCostTool.Value = "MPM" Then
-    'EVT =1 AND EVP NOT 0 OR 100
-    'EVT =4
-      'AS AND EVP NOT 50
-      'AF AND EVP NOT 100
-  Else
-    'skip it - too many variables
-  End If
+  If cptStatusSheet_frm.cboCostTool <> "<none>" Then '<issue64>
+    'evt vs evp checks
+    If cptStatusSheet_frm.cboCostTool = "COBRA" Then
+      'EVT = E 50/50
+      'EVT = F 0/100
+    ElseIf cptStatusSheet_frm.cboCostTool.Value = "MPM" Then
+      'EVT =1 AND EVP NOT 0 OR 100
+      'EVT =4
+        'AS AND EVP NOT 50
+        'AF AND EVP NOT 100
+    Else
+      'skip it - too many variables
+    End If
+  End If '</issue64>
   If blnPerformanceTest Then Debug.Print "apply conditional formatting " & (GetTickCount - t) / 1000
 
   Debug.Print lngFormatCondition & " format conditions applied."
