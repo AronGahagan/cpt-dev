@@ -498,8 +498,8 @@ next_field:
 
           aTaskRow.Add Assignment.ResourceName
           xlCells(lngRow, lngNameCol).IndentLevel = Task.OutlineLevel + 2
-          xlCells(lngRow, lngBaselineWorkCol).Value = Assignment.BaselineWork / 60
-          xlCells(lngRow, lngRemainingWorkCol).Value = Assignment.RemainingWork / 60
+          xlCells(lngRow, lngBaselineWorkCol).Value = Val(Assignment.BaselineWork) / 60 	'Val() function prevents error when
+		  xlCells(lngRow, lngRemainingWorkCol).Value = Val(Assignment.RemainingWork) / 60 	'values are null or "" which is read as text
           'revised etc = same as above
           xlCells(lngRow, 1).Resize(, aTaskRow.Count).Value = aTaskRow.ToArray()
           aTaskRow.Clear
