@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.0.9</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -21,6 +21,7 @@ Dim lngField As Long, lngItem As Long
 'integers
 Dim intField As Integer
 'strings
+Dim strFieldNamesChanged As String
 Dim strFieldName As String, strFileName As String
 'dates
 Dim dtStatus As Date
@@ -34,6 +35,7 @@ Dim vFieldType As Variant
   'requires scripting (cptRegEx)
   If Not cptCheckReference("Scripting") Then GoTo exit_here
 
+  'reset options
   With cptStatusSheet_frm
     .lboFields.Clear
     .lboExport.Clear
@@ -44,8 +46,15 @@ Dim vFieldType As Variant
     .cboCostTool.AddItem "COBRA"
     .cboCostTool.AddItem "MPM"
     .cboCostTool.AddItem "<none>"
+    .cboCreate.AddItem
+    For lngItem = 0 To 2
+      .cboCreate.AddItem
+      .cboCreate.List(lngItem, 0) = lngItem
+      .cboCreate.List(lngItem, 1) = Choose(lngItem + 1, "A Single Workbook", "A Worksheet for each", "A Workbook for each")
+    Next lngItem
   End With
 
+  'set up arrays to capture values
   Set arrFields = CreateObject("System.Collections.SortedList")
   Set arrEVT = CreateObject("System.Collections.SortedList")
   Set arrEVP = CreateObject("System.Collections.SortedList")
@@ -81,14 +90,14 @@ next_field:
   'col1 = name
   For intField = 0 To arrFields.Count - 1
     cptStatusSheet_frm.lboFields.AddItem
-    cptStatusSheet_frm.lboFields.List(intField, 0) = arrFields.getByIndex(intField)
-    cptStatusSheet_frm.lboFields.List(intField, 1) = arrFields.getKey(intField)
-    If FieldNameToFieldConstant(arrFields.getKey(intField)) >= 188776000 Then
+    cptStatusSheet_frm.lboFields.List(intField, 0) = arrFields.GetByIndex(intField)
+    cptStatusSheet_frm.lboFields.List(intField, 1) = arrFields.GetKey(intField)
+    If FieldNameToFieldConstant(arrFields.GetKey(intField)) >= 188776000 Then
       cptStatusSheet_frm.lboFields.List(intField, 2) = "Enterprise"
     Else
-      cptStatusSheet_frm.lboFields.List(intField, 2) = FieldConstantToFieldName(arrFields.getByIndex(intField))
+      cptStatusSheet_frm.lboFields.List(intField, 2) = FieldConstantToFieldName(arrFields.GetByIndex(intField))
     End If
-    cptStatusSheet_frm.cboEach.AddItem arrFields.getKey(intField)
+    cptStatusSheet_frm.cboEach.AddItem arrFields.GetKey(intField)
   Next
   'add EVT values
   For intField = 0 To arrEVT.Count - 1
@@ -108,9 +117,7 @@ next_field:
       On Error Resume Next
       cptStatusSheet_frm.cboEVT.Value = .Fields(0) 'cboEVT
       cptStatusSheet_frm.cboEVP.Value = .Fields(1) 'cboEVP
-      cptStatusSheet_frm.optWorkbook = .Fields(2) = 1 'chkOutput
-      cptStatusSheet_frm.optWorksheets = .Fields(2) = 2 'chkOutput
-      cptStatusSheet_frm.optWorkbooks = .Fields(2) = 3 'chkOutput
+      cptStatusSheet_frm.cboCreate = .Fields(2) - 1
       cptStatusSheet_frm.chkHide = .Fields(3) = 1 'chkHide
       If .Fields.Count >= 5 Then
         If Not IsNull(.Fields(4)) Then cptStatusSheet_frm.cboCostTool.Value = .Fields(4) 'cboCostTool
@@ -134,12 +141,26 @@ next_field:
         cptStatusSheet_frm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
         cptStatusSheet_frm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
         cptStatusSheet_frm.lboExport.List(lngItem, 2) = .Fields(2) 'Local Field Name
+        If CustomFieldGetName(.Fields(0)) <> CStr(.Fields(1)) Then
+          strFieldNamesChanged = strFieldNamesChanged & .Fields(2) & " '" & .Fields(1) & "' is now "
+          If Len(CustomFieldGetName(.Fields(0))) > 0 Then
+            strFieldNamesChanged = strFieldNamesChanged & "'" & CustomFieldGetName(.Fields(0)) & "'" & vbCrLf
+          Else
+            strFieldNamesChanged = strFieldNamesChanged & "<unnamed>" & vbCrLf
+          End If
+        End If
         lngItem = lngItem + 1
         .MoveNext
       Loop
       .Close
     End With
   End If
+
+  'reset the view
+  Call cptRefreshStatusTable
+  FilterClear
+  OptionsViewEx displaysummarytasks:=True
+  OutlineShowAllTasks
 
   'set the status date / hide complete
   If ActiveProject.StatusDate = "NA" Then
@@ -154,7 +175,20 @@ next_field:
 
   dtStatus = CDate(cptStatusSheet_frm.txtStatusDate.Value)
   cptStatusSheet_frm.txtHideCompleteBefore.Value = DateAdd("d", -(Day(dtStatus) - 1), dtStatus)
+
+  'set up the view/table/filter
   cptStatusSheet_frm.Show False
+  cptRefreshStatusTable
+  FilterClear
+  OptionsViewEx displaysummarytasks:=True
+  OutlineShowAllTasks
+
+
+  If Len(strFieldNamesChanged) > 0 Then
+    strFieldNamesChanged = "The following saved export field names have changed:" & vbCrLf & vbCrLf & strFieldNamesChanged
+    strFieldNamesChanged = strFieldNamesChanged & vbCrLf & vbCrLf & "You may wish to remove them from the export list."
+    MsgBox strFieldNamesChanged, vbInformation + vbOKOnly, "Saved Settings - Mismatches"
+  End If
 
 exit_here:
   On Error Resume Next
@@ -178,17 +212,21 @@ Sub cptCreateStatusSheet()
 'objects
 Dim rCompleted As Object
 Dim aCompleted As Object
+Dim aGroups As Object
+Dim rngKeep As Object
 Dim Tasks As Tasks, Task As Task, Resource As Resource, Assignment As Assignment
 'early binding:
 'Dim xlApp As Excel.Application, Workbook As Workbook, Worksheet As Worksheet, rng As Excel.Range
 'Dim rSummaryTasks As Excel.Range, rMilestones As Excel.Range, rNormal As Excel.Range, rAssignments As Excel.Range, rLockedCells As Excel.Range
 'Dim rDates As Excel.Range, rWork As Excel.Range, rMedium As Excel.Range, rCentered As Excel.Range, rEntry As Excel.Range
 'Dim xlCells As Excel.Range, rngAll As Excel.Range
+'Dim olApp As Outlook.Application, MailItem As MailItem, objWord As Word.Application, objSel As Word.Selection, objETemp As Word.Template
 'late binding:
 Dim xlApp As Object, Workbook As Object, Worksheet As Object, rng As Object
 Dim rSummaryTasks As Object, rMilestones As Object, rNormal As Object, rAssignments As Object, rLockedCells As Object
 Dim rDates As Object, rWork As Object, rMedium As Object, rCentered As Object, rEntry As Object
 Dim xlCells As Object, rngAll As Object
+Dim olApp As Object, MailItem As Object, objDoc As Object, objWord As Object, objSel As Object, objETemp As Object
 Dim aSummaries As Object, aMilestones As Object, aNormal As Object, aAssignments As Object
 Dim aEach As Object, aTaskRow As Object, aHeaders As Object
 Dim aOddBalls As Object, aCentered As Object, aEntryHeaders As Object
@@ -199,6 +237,8 @@ Dim lngDayLabelDisplay As Long
 Dim lngTaskRow As Long
 Dim lngLastRow As Long
 Dim lngDateFormat As Long
+Dim lngGroups As Long
+Dim lngLastCol As Long
 Dim lngTaskCount As Long, lngTask As Long, lngHeaderRow As Long
 Dim lngRow As Long, lngCol As Long, lngField As Long
 Dim lngNameCol As Long, lngBaselineWorkCol As Long, lngRemainingWorkCol As Long, lngEach As Long
@@ -209,11 +249,15 @@ Dim lngASCol As Long, lngAFCol As Long, lngETCCol As Long, lngEVPCol As Long
 #Else '<issue53>
 	Dim t As Long, tTotal As Long '<issue53>
 #End If '<issue53>
+Dim lngItem As Long, lngLastRow As Long
 'strings
 Dim strStatusDate As String
+Dim strCriteria As String
+Dim strFieldName As String
 Dim strMsg As String
 Dim strEVT As String, strEVP As String, strDir As String, strFileName As String
 Dim strFirstCell As String
+Dim strItem As String
 'dates
 Dim dtStatus As Date
 'variants
@@ -221,9 +265,11 @@ Dim vCol As Variant, aUserFields As Variant
 'booleans
 Dim blnPerformanceTest As Boolean
 Dim blnSpace As Boolean
+Dim blnEmail As Boolean
 
   'check reference
   If Not cptCheckReference("Excel") Then GoTo exit_here
+  If Not cptCheckReference("Outlook") Then GoTo exit_here '<issue50>
 
   'ensure required module exists
   If Not cptModuleExists("cptCore_bas") Then
@@ -249,6 +295,8 @@ Dim blnSpace As Boolean
   Application.StatusBar = "Analyzing project..."
   'get task count
   If blnPerformanceTest Then t = GetTickCount
+  SelectAll
+  Set Tasks = ActiveSelection.Tasks
   For Each Task In Tasks
     lngTaskCount = lngTaskCount + 1
   Next Task
@@ -311,7 +359,7 @@ Dim blnSpace As Boolean
     If .cboCostTool.Value <> "<none>" Then strEVT = .cboEVT.Value Else strEVT = "SKIP" '<issue64>
     strEVP = .cboEVP.Value
   End With
-  
+
   'set up header
   Set aHeaders = CreateObject("System.Collections.ArrayList")
 
@@ -341,7 +389,7 @@ Dim blnSpace As Boolean
                     "Baseline Start", _
                     "Baseline Finish", _
                     "Notes")
-    If aOddBalls.contains(vCol) Then
+    If aOddBalls.Contains(vCol) Then
       lngColumnWidth = aOddBalls.Item(vCol)
     Else
       lngColumnWidth = 10 'default
@@ -405,7 +453,7 @@ next_field:
   If blnPerformanceTest Then Debug.Print "set up header: " & (GetTickCount - t) / 1000
 
   'prepare to capture each
-  If cptStatusSheet_frm.optWorkbook = False Then
+  If cptStatusSheet_frm.cboCreate.Value <> "0" Then
     Set aEach = CreateObject("System.Collections.SortedList")
     lngEach = FieldNameToFieldConstant(cptStatusSheet_frm.cboEach.Value)
   End If
@@ -429,7 +477,22 @@ next_field:
   'capture task data
   If blnPerformanceTest Then t = GetTickCount
   lngRow = lngHeaderRow
-  For Each Task In Tasks
+  SelectAll
+  Set Tasks = ActiveSelection.Tasks
+
+  SelectBeginning
+  Set aGroups = CreateObject("System.Collections.SortedList")
+  Do
+    On Error Resume Next
+    Set Task = ActiveCell.Task
+    If err.Number > 0 Then
+      err.Number = 0
+      err.Clear
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      Exit Do
+    End If
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
     If Task Is Nothing Then GoTo next_task
     If Task.OutlineLevel = 0 Then GoTo next_task
     If Task.ExternalTask Then GoTo next_task
@@ -440,11 +503,24 @@ next_field:
 
     lngRow = lngRow + 1
 
-    If cptStatusSheet_frm.optWorkbook = False Then
-      aEach.Add Task.GetField(lngEach), Task.GetField(lngEach)
+    'retain-grouping
+    If Task.GroupBySummary Then
+      aSummaries.Add lngRow 'capture for formatting
+      aGroups.Add Task.Name, Task.UniqueID
+      xlCells(lngRow, lngNameCol).IndentLevel = Task.OutlineLevel - 1
+      xlCells(lngRow, 1).Value = Task.UniqueID
+      xlCells(lngRow, lngNameCol).Value = Task.Name
+      lngTaskCount = lngTaskCount + 1
+      GoTo next_task
     End If
 
-    'get common data: UID,{userFields},Task Name
+    If cptStatusSheet_frm.cboCreate.Value <> "0" Then
+      If Not aEach.Contains(Task.GetField(lngEach)) Then
+        If Len(Task.GetField(lngEach)) > 0 Then aEach.Add Task.GetField(lngEach), Task.GetField(lngEach)
+      End If
+    End If
+
+    'get common data
     For lngCol = 1 To lngNameCol
       aTaskRow.Add Task.GetField(aHeaders(lngCol - 1)(0))
     Next lngCol
@@ -514,10 +590,12 @@ next_field:
 
 next_task:
     lngTask = lngTask + 1
+    If lngTask > lngTaskCount Then lngTaskCount = lngTask
     Application.StatusBar = "Exporting..." & Format(lngTask, "#,##0") & " / " & Format(lngTaskCount, "#,##0") & " (" & Format(lngTask / lngTaskCount, "0%") & ")"
     cptStatusSheet_frm.lblStatus.Caption = " Exporting..." & Format(lngTask, "#,##0") & " / " & Format(lngTaskCount, "#,##0") & " (" & Format(lngTask / lngTaskCount, "0%") & ")"
     cptStatusSheet_frm.lblProgress.Width = (lngTask / (lngTaskCount)) * cptStatusSheet_frm.lblStatus.Width
-  Next Task
+    SelectCellDown
+  Loop
 
   If blnPerformanceTest Then Debug.Print "capture task data: " & (GetTickCount - t) / 1000 & " >> " & Format(((GetTickCount - t) / 1000) / (lngRow - lngHeaderRow), "#0.00000") & " per task"
 
@@ -670,7 +748,7 @@ next_task:
       End If
     End If
     'format centered
-    If aCentered.contains(aHeaders(lngCol)(1)) Then
+    If aCentered.Contains(aHeaders(lngCol)(1)) Then
       If rCentered Is Nothing Then
         Set rCentered = xlCells(lngHeaderRow + 1, lngCol + 1).Resize(rowsize:=lngRow - lngHeaderRow)
       Else
@@ -1191,52 +1269,153 @@ evt_vs_evp:
   'prettify the task name column
   Worksheet.Columns(lngNameCol).AutoFit
 
+  'optionallly set reference to Outlook and prepare to email
+  blnEmail = cptStatusSheet_frm.chkSendEmails = True
+  If blnEmail Then
+    On Error Resume Next
+    Set olApp = GetObject(, "Outlook.Application")
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If olApp Is Nothing Then Set olApp = CreateObject("Outlook.Application")
+  End If
+
   If blnPerformanceTest Then t = GetTickCount
-  cptStatusSheet_frm.lblStatus.Caption = "Saving Workbook" & IIf(cptStatusSheet_frm.optWorkbooks, "s", "") & "..."
+  cptStatusSheet_frm.lblStatus.Caption = "Saving Workbook" & IIf(cptStatusSheet_frm.cboCreate.Value = "1", "s", "") & "..."
   Application.StatusBar = "Saving Workbook" & IIf(cptStatusSheet_frm.optWorkbooks, "s", "") & "..."
-  'todo:save the workbook, worksheets, or workbooks
   strDir = Environ("USERPROFILE") & "\Desktop\CP_Status_Sheets\"
+  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
   'get clean project name
-  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
-  strDir = strDir & Format(dtStatus, "yyyy-mm-dd")
-  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
   strFileName = cptRemoveIllegalCharacters(ActiveProject.Name)
   strFileName = Replace(strFileName, ".mpp", "")
-  'create folder on desktop for project(?)
-  'create folder on desktop for status date
-  xlApp.Calculation = xlAutomatic
-  If cptStatusSheet_frm.optWorkbook Then
+  'create project status folder
+  strDir = strDir & Replace(strFileName, " ", "") & "\"
+  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
+  'create project status date folder
+  strDir = strDir & Format(dtStatus, "yyyy-mm-dd") & "\"
+  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
+  strFileName = "SS_" & strFileName & "_" & Format(dtStatus, "yyyy-mm-dd") & ".xlsx"
+  strFileName = Replace(strFileName, " ", "")
+  Worksheet.[B1].Select
+  If cptStatusSheet_frm.cboCreate.Value = "0" Then
+    Worksheet.[B1].Select
     'protect the sheet
     Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
     Worksheet.EnableSelection = xlNoRestrictions
     'save to desktop in folder for status date
     strFileName = strFileName & "_StatusSheet_" & Format(dtStatus, "yyyy-mm-dd") & ".xlsx"
     On Error Resume Next
-    If Dir(strDir & "\" & strFileName) <> vbNullString Then Kill strDir & "\" & strFileName
+    If Dir(strDir & strFileName) <> vbNullString Then Kill strDir & strFileName
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     'account for if the file exists and is open in the background
-    If Dir(strDir & "\" & strFileName) <> vbNullString Then 'delete failed, rename with timestamp
+    If Dir(strDir & strFileName) <> vbNullString Then  'delete failed, rename with timestamp
       strMsg = "'" & strFileName & "' already exists, and is likely open." & vbCrLf
       strFileName = Replace(strFileName, ".xlsx", "_" & Format(Now, "-hh-nn-ss") & ".xlsx")
       strMsg = strMsg & "The file you are now creating will be named '" & strFileName & "'"
       MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
-      Workbook.SaveAs strDir & "\" & strFileName, 51
+      Workbook.SaveAs strDir & strFileName, 51
     Else
-      Workbook.SaveAs strDir & "\" & strFileName, 51
+      Workbook.SaveAs strDir & strFileName, 51
+    End If
+    If blnEmail Then
+      Set MailItem = olApp.CreateItem(olMailItem)
+      MailItem.Attachments.Add strDir & strFileName
+      MailItem.Subject = "Status Request - " & Format(dtStatus, "yyyy-mm-dd")
+      MailItem.Display False
     End If
   Else
-    'rename master, apply autofilter
     'cycle through each option and create sheet
-    Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
-    Worksheet.EnableSelection = xlNoRestrictions
-    If cptStatusSheet_frm.optWorksheets Then
-      'save to desktop in folder for status date
-    ElseIf cptStatusSheet_frm.optWorkbooks Then
-      'cycle through each worksheet and create workbook
+    For lngItem = aEach.count - 1 To 0 Step -1
+      Workbook.Sheets(1).Copy After:=Workbook.Sheets(1)
+      Set Worksheet = Workbook.Sheets("Status Sheet (2)")
+      Worksheet.Name = aEach.GetKey(lngItem)
+      SetAutoFilter FieldName:=cptStatusSheet_frm.cboEach, FilterType:=pjAutoFilterIn, Criteria1:=aEach.GetKey(lngItem)
+      'get array of task and assignment unique ids
+      Worksheet.Cells(lngRow + 2, 1).Value = "KEEP"
+      'get group by summaries
+      SelectBeginning
+      Do
+        On Error Resume Next
+        Set Task = ActiveCell.Task
+        If err.Number > 0 Then
+          err.Number = 0
+          err.Clear
+          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          Exit Do
+        End If
+        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        If Task.GroupBySummary Then
+          Worksheet.Cells(Worksheet.Rows.count, 1).End(xlUp).Offset(1, 0) = aGroups.getvaluelist()(aGroups.indexofkey(Task.Name))
+        End If
+        SelectCellDown
+      Loop
+      SelectAll
+      For Each Task In ActiveSelection.Tasks
+        Worksheet.Cells(Worksheet.Rows.count, 1).End(xlUp).Offset(1, 0) = Task.UniqueID
+        For Each Assignment In Task.Assignments
+          Worksheet.Cells(Worksheet.Rows.count, 1).End(xlUp).Offset(1, 0) = Assignment.UniqueID
+        Next Assignment
+      Next Task
+      'name the range
+      Set rngKeep = Worksheet.Cells(lngRow + 2, 1)
+      Set rngKeep = Worksheet.Range(rngKeep, rngKeep.End(xlDown))
+      Workbook.Names.Add Name:="KEEP", RefersToR1C1:="=" & aEach.GetKey(lngItem) & "!" & rngKeep.Address(True, True, xlR1C1)
+      lngLastCol = Worksheet.Cells(lngHeaderRow, 1).End(xlToRight).Offset(1, 1).Column
+      Set rngKeep = Worksheet.Range(Worksheet.Cells(lngHeaderRow + 1, lngLastCol), Worksheet.Cells(lngRow, lngLastCol))
+      rngKeep(1).Offset(-1, 0).Value = "KEEP"
+      rngKeep.Formula = "=IFERROR(VLOOKUP(A" & lngHeaderRow + 1 & ",KEEP,1,FALSE),""DELETE"")"
+      xlApp.Calculate
+      Worksheet.Cells(lngHeaderRow, 1).AutoFilter
+      Worksheet.Range(Worksheet.Cells(lngHeaderRow - 1, 1), Worksheet.Cells(lngRow, lngLastCol)).AutoFilter Field:=lngLastCol, Criteria1:="DELETE"
+      'if there are results from the filter, then delete them
+      If Worksheet.AutoFilter.Range.Columns(1).SpecialCells(xlCellTypeVisible).Cells.count - 1 > 0 Then
+        Worksheet.Rows(CStr(lngHeaderRow + 1 & ":" & lngRow)).Delete Shift:=xlUp
+      End If
+      Worksheet.Cells(lngHeaderRow, 1).AutoFilter
+      Worksheet.Columns(lngLastCol).Delete
+      Worksheet.Range("KEEP").Clear
+      Workbook.Names("KEEP").Delete
+      Worksheet.[B1].Select
       Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
       Worksheet.EnableSelection = xlNoRestrictions
-      'save to desktop in folder for status date
+      'todo:retain user's applied group
+    Next
+
+    xlApp.Visible = True
+    xlApp.ScreenUpdating = True
+    xlApp.Calculation = True
+
+    'handle workbook for each
+    If cptStatusSheet_frm.cboCreate = "1" Then 'worksheet for each
+      Workbook.SaveAs strDir & strFileName, 51
+      If blnEmail Then
+        Set MailItem = olApp.CreateItem(olMailItem)
+        MailItem.Attachments.Add strDir & strFileName
+        MailItem.Subject = "Status Request - " & Format(dtStatus, "yyyy-mm-dd")
+        MailItem.Display False
+      End If
+    ElseIf cptStatusSheet_frm.cboCreate.Value = "2" Then 'workbook for each
+      For lngItem = aEach.count - 1 To 0 Step -1
+        Workbook.Sheets(aEach.GetKey(lngItem)).Copy
+        If Dir(strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx")) <> vbNullString Then Kill strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx")
+        xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx"), 51
+        If blnEmail Then
+          Set MailItem = olApp.CreateItem(olMailItem)
+          MailItem.Attachments.Add strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx")
+          MailItem.Subject = "Status Request [" & aEach.GetKey(lngItem) & "] " & Format(dtStatus, "yyyy-mm-dd")
+          MailItem.Display False
+        End If
+      Next lngItem
+      Workbook.Close False
     End If
+
+    'reset autofilter
+    strFieldName = cptStatusSheet_frm.cboEach.Value
+    For lngItem = 0 To aEach.count - 1
+      strCriteria = strCriteria & aEach.GetKey(lngItem) & Chr$(9)
+    Next
+    strCriteria = Left(strCriteria, Len(strCriteria) - 1)
+    SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
+    SelectBeginning
+
   End If
   If blnPerformanceTest Then Debug.Print "save workbook: " & (GetTickCount - t) / 1000
   If blnPerformanceTest Then Debug.Print "</=====PERFORMANCE TEST=====>"
@@ -1256,6 +1435,8 @@ exit_here:
   xlApp.EnableEvents = False
   Set rCompleted = Nothing
   Set aCompleted = Nothing
+  Set aGroups = Nothing
+  Set rngKeep = Nothing
   Application.StatusBar = ""
   cptSpeed False
   Set Tasks = Nothing
@@ -1283,6 +1464,12 @@ exit_here:
   Set aCentered = Nothing
   Set aEntryHeaders = Nothing
   Set xlCells = Nothing
+  Set olApp = Nothing
+  Set MailItem = Nothing
+  Set objDoc = Nothing
+  Set objWord = Nothing
+  Set objSel = Nothing
+  Set objETemp = Nothing
   Exit Sub
 
 err_here:
@@ -1293,4 +1480,65 @@ err_here:
   End If
   Resume exit_here
 
+End Sub
+
+Sub cptRefreshStatusTable()
+'objects
+'strings
+'longs
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If Not cptStatusSheet_frm.Visible Then GoTo exit_here
+
+  cptSpeed True
+
+  'reset the table
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Unique ID", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  lngItem = 0
+  If cptStatusSheet_frm.lboExport.ListCount > 0 Then
+    For lngItem = 0 To cptStatusSheet_frm.lboExport.ListCount - 1
+      TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=FieldConstantToFieldName(cptStatusSheet_frm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+    Next lngItem
+  End If
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Name", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Duration", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Actual Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Actual Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Total Slack", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  If cptStatusSheet_frm.cboEVT <> 0 Then
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVT.Value, Title:="", Width:=5, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  End If
+  If cptStatusSheet_frm.cboEVP <> 0 Then
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVP.Value, Title:="EV%", Width:=5, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  End If
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False, ShowAddNewColumn:=False
+  TableApply Name:="cptStatusSheet Table"
+
+  'reset the filter
+  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
+  If cptStatusSheet_frm.chkHide And IsDate(cptStatusSheet_frm.txtHideCompleteBefore) Then
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
+  End If
+  FilterApply "cptStatusSheet Filter"
+
+exit_here:
+  On Error Resume Next
+  cptSpeed False
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptRefreshStatusView", err, Erl)
+  err.Clear
+  Resume exit_here
 End Sub
