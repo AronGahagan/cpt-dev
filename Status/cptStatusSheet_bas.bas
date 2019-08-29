@@ -249,7 +249,7 @@ Dim lngASCol As Long, lngAFCol As Long, lngETCCol As Long, lngEVPCol As Long
 #Else '<issue53>
 	Dim t As Long, tTotal As Long '<issue53>
 #End If '<issue53>
-Dim lngItem As Long, lngLastRow As Long
+Dim lngItem As Long
 'strings
 Dim strStatusDate As String
 Dim strCriteria As String
@@ -574,8 +574,8 @@ next_field:
 
           aTaskRow.Add Assignment.ResourceName
           xlCells(lngRow, lngNameCol).IndentLevel = Task.OutlineLevel + 2
-          xlCells(lngRow, lngBaselineWorkCol).Value = Val(Assignment.BaselineWork) / 60 	'Val() function prevents error when
-		  xlCells(lngRow, lngRemainingWorkCol).Value = Val(Assignment.RemainingWork) / 60 	'values are null or "" which is read as text
+          xlCells(lngRow, lngBaselineWorkCol).Value = Val(Assignment.BaselineWork) / 60         'Val() function prevents error when
+                  xlCells(lngRow, lngRemainingWorkCol).Value = Val(Assignment.RemainingWork) / 60       'values are null or "" which is read as text
           'revised etc = same as above
           xlCells(lngRow, 1).Resize(, aTaskRow.Count).Value = aTaskRow.ToArray()
           aTaskRow.Clear
@@ -756,7 +756,7 @@ next_task:
       End If
     End If
     'format entry headers and columns
-    If aEntryHeaders.contains(aHeaders(lngCol)(1)) Then 'if the column we're working on is included in the list of entry headers, then...
+    If aEntryHeaders.Contains(aHeaders(lngCol)(1)) Then 'if the column we're working on is included in the list of entry headers, then...
       If rEntry Is Nothing Then 'first iteration sets range
         Set rEntry = xlCells(lngHeaderRow, lngCol + 1)
         Set rMedium = xlCells(lngHeaderRow + 1, lngCol + 1).Resize(rowsize:=lngRow - lngHeaderRow) 'medium = border thickness
@@ -1073,8 +1073,8 @@ ev_percent:
   cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (2/7)"
   cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
 
-  '-->condition 2: New Finish < Status Date (complete) and EV%<100 > invalid '=IF(AND($H48>0,$H48<=$B$1,$L48<1),TRUE,FALSE)
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & rng(1).Offset(0, -4).Address(False, True) & ">0," & rng(1).Offset(0, -4).Address(False, True) & "<=" & strStatusDate & "," & strFirstCell & "<1),TRUE,FALSE)"
+  '-->condition 2: New Finish < Status Date (complete) and EV%<100 > invalid '=IF(AND($G48>0,$H48<=$B$1,$L48<1),TRUE,FALSE)
+  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & rng(1).Offset(0, -4).Address(False, True) & ">0," & rng(1).Offset(0, -3).Address(False, True) & ">1," & rng(1).Offset(0, -3).Address(False, True) & "<=" & strStatusDate & "," & strFirstCell & "<1),TRUE,FALSE)"
   With rng.FormatConditions(rng.FormatConditions.Count).Font
     .Color = -16383844
     .TintAndShade = 0
@@ -1280,8 +1280,8 @@ evt_vs_evp:
 
   If blnPerformanceTest Then t = GetTickCount
   cptStatusSheet_frm.lblStatus.Caption = "Saving Workbook" & IIf(cptStatusSheet_frm.cboCreate.Value = "1", "s", "") & "..."
-  Application.StatusBar = "Saving Workbook" & IIf(cptStatusSheet_frm.optWorkbooks, "s", "") & "..."
-  strDir = Environ("USERPROFILE") & "\Desktop\CP_Status_Sheets\"
+  Application.StatusBar = "Saving Workbook" & IIf(cptStatusSheet_frm.cboCreate.Value = "1", "s", "") & "..."
+  strDir = Environ("USERPROFILE") & "\CP_Status_Sheets\"
   If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
   'get clean project name
   strFileName = cptRemoveIllegalCharacters(ActiveProject.Name)
@@ -1323,7 +1323,7 @@ evt_vs_evp:
     End If
   Else
     'cycle through each option and create sheet
-    For lngItem = aEach.count - 1 To 0 Step -1
+    For lngItem = aEach.Count - 1 To 0 Step -1
       Workbook.Sheets(1).Copy After:=Workbook.Sheets(1)
       Set Worksheet = Workbook.Sheets("Status Sheet (2)")
       Worksheet.Name = aEach.GetKey(lngItem)
@@ -1343,15 +1343,15 @@ evt_vs_evp:
         End If
         If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
         If Task.GroupBySummary Then
-          Worksheet.Cells(Worksheet.Rows.count, 1).End(xlUp).Offset(1, 0) = aGroups.getvaluelist()(aGroups.indexofkey(Task.Name))
+          Worksheet.Cells(Worksheet.Rows.Count, 1).End(xlUp).Offset(1, 0) = aGroups.getvaluelist()(aGroups.indexofkey(Task.Name))
         End If
         SelectCellDown
       Loop
       SelectAll
       For Each Task In ActiveSelection.Tasks
-        Worksheet.Cells(Worksheet.Rows.count, 1).End(xlUp).Offset(1, 0) = Task.UniqueID
+        Worksheet.Cells(Worksheet.Rows.Count, 1).End(xlUp).Offset(1, 0) = Task.UniqueID
         For Each Assignment In Task.Assignments
-          Worksheet.Cells(Worksheet.Rows.count, 1).End(xlUp).Offset(1, 0) = Assignment.UniqueID
+          Worksheet.Cells(Worksheet.Rows.Count, 1).End(xlUp).Offset(1, 0) = Assignment.UniqueID
         Next Assignment
       Next Task
       'name the range
@@ -1366,7 +1366,7 @@ evt_vs_evp:
       Worksheet.Cells(lngHeaderRow, 1).AutoFilter
       Worksheet.Range(Worksheet.Cells(lngHeaderRow - 1, 1), Worksheet.Cells(lngRow, lngLastCol)).AutoFilter Field:=lngLastCol, Criteria1:="DELETE"
       'if there are results from the filter, then delete them
-      If Worksheet.AutoFilter.Range.Columns(1).SpecialCells(xlCellTypeVisible).Cells.count - 1 > 0 Then
+      If Worksheet.AutoFilter.Range.Columns(1).SpecialCells(xlCellTypeVisible).Cells.Count - 1 > 0 Then
         Worksheet.Rows(CStr(lngHeaderRow + 1 & ":" & lngRow)).Delete Shift:=xlUp
       End If
       Worksheet.Cells(lngHeaderRow, 1).AutoFilter
@@ -1393,7 +1393,7 @@ evt_vs_evp:
         MailItem.Display False
       End If
     ElseIf cptStatusSheet_frm.cboCreate.Value = "2" Then 'workbook for each
-      For lngItem = aEach.count - 1 To 0 Step -1
+      For lngItem = aEach.Count - 1 To 0 Step -1
         Workbook.Sheets(aEach.GetKey(lngItem)).Copy
         If Dir(strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx")) <> vbNullString Then Kill strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx")
         xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx"), 51
@@ -1409,7 +1409,7 @@ evt_vs_evp:
 
     'reset autofilter
     strFieldName = cptStatusSheet_frm.cboEach.Value
-    For lngItem = 0 To aEach.count - 1
+    For lngItem = 0 To aEach.Count - 1
       strCriteria = strCriteria & aEach.GetKey(lngItem) & Chr$(9)
     Next
     strCriteria = Left(strCriteria, Len(strCriteria) - 1)
