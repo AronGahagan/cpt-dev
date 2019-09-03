@@ -16,7 +16,7 @@ Attribute VB_Exposed = False
 
 '<cpt_version>v1.2.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 Private Const adInteger As Long = 3
