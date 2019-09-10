@@ -1,14 +1,22 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.3.10</cpt_version>
+'<cpt_version>v1.3.11</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
-Private Declare Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As Long, _
+#If Win64 And VBA7 Then
+  Private Declare PtrSafe Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As LongPtr, _
+                                                                        ByVal lpszConnectionName As String, _
+                                                                        ByVal dwNameLen As Integer, _
+                                                                        ByVal dwReserved As LongPtr) As LongPtr
+
+#Else
+  Private Declare Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As Long, _
                                                                         ByVal lpszConnectionName As String, _
                                                                         ByVal dwNameLen As Integer, _
                                                                         ByVal dwReserved As Long) As Long
+#End If
 
 Sub cptSetup()
 'setup only needs to be run once
