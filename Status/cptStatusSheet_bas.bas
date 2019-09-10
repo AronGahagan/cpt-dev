@@ -1,7 +1,11 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.0.7</cpt_version>
+'<cpt_version>v1.0.8</cpt_version>
 Option Explicit
-Declare Function GetTickCount Lib "kernel32" () As Long
+#If Win64 And VBA7 Then '<issue53>
+  Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
+#Else '<issue53>
+  Declare Function GetTickCount Lib "kernel32" () As Long
+#End If '<issue53>
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
