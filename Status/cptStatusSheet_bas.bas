@@ -196,11 +196,10 @@ Dim lngRow As Long, lngCol As Long, lngField As Long
 Dim lngNameCol As Long, lngBaselineWorkCol As Long, lngRemainingWorkCol As Long, lngEach As Long
 Dim lngNotesCol As Long, lngColumnWidth As Long
 Dim lngASCol As Long, lngAFCol As Long, lngETCCol As Long, lngEVPCol As Long
-Dim t As Long 
 #If Win64 and VBA7 Then '<issue53>
-	Dim tTotal As LongPtr '<issue53>
+	Dim t As LongPtr, tTotal As LongPtr '<issue53>
 #Else '<issue53>
-	Dim tTotal As Long '<issue53>
+	Dim t As Long, tTotal As Long '<issue53>
 #End If '<issue53>
 'strings
 Dim strMsg As String
