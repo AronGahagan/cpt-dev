@@ -53,6 +53,9 @@ Dim vCol As Variant
   xmlDoc.SetProperty "SelectionLanguage", "XPath"
   xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
   strURL = strGitHub & "CurrentVersions.xml"
+  If Me.cboBranches.Value <> "master" Then
+    strURL = Replace(strURL, "master", Me.cboBranches.Value)
+  End If
   If Not xmlDoc.Load(strURL) Then
     MsgBox xmlDoc.parseError.ErrorCode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
     GoTo exit_here
@@ -75,15 +78,6 @@ Dim vCol As Variant
     End If
   Next vbComponent
   Set vbComponent = Nothing
-
-'  '<issue31> if cptUpgrade_frm is updated, install it automatically
-'  If arrInstalled.Contains("cptUpgrades_frm") And arrCurrent.Contains("cptUpgrades_frm") Then
-'    If cptVersionStatus(arrInstalled("cptUpgrades_frm"), arrCurrent("cptUpgrades_frm")) <> "ok" Then
-'      Call cptUpgrade(arrDirectories("cptUpgrades_frm") & "/cptUpgrades_frm.frm") 'uri slash
-'      'update the version number in the array
-'      arrInstalled.Item("cptUpgrades_frm") = arrCurrent("cptUpgrades_frm")
-'    End If
-'  End If '</issue31>
 
   'populate the listbox header
   lngItem = 0
