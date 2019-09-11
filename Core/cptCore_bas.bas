@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.5.11</cpt_version>
+'<cpt_version>v1.6.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -292,7 +292,7 @@ Sub cptGetReferences()
 Dim Ref As Object
 
   For Each Ref In ThisProject.VBProject.References
-    Debug.Print Ref.Name & " (" & Ref.Description & ") " & Ref.FullPath
+    Debug.Print Ref.Name & " (" & Ref.Description & ")" & Ref.FullPath
   Next Ref
 
 End Sub
@@ -477,6 +477,11 @@ End Sub
 
 Sub ShowCptUpgrades_frm()
 'objects
+Dim REMatch As Object
+Dim REMatches As Object
+Dim RE As Object
+Dim oStream As Object
+Dim xmlHttpDoc As Object
 Dim arrDirectories As Object
 Dim vbComponent As Object
 Dim arrCurrent As Object, arrInstalled As Object
@@ -486,6 +491,8 @@ Dim FindRecord As Object
 'long
 Dim lngItem As Long
 'strings
+Dim strBranch As String
+Dim strFileName As String
 Dim strInstVer As String
 Dim strCurVer As String
 Dim strURL As String
@@ -497,7 +504,7 @@ Dim vCol As Variant
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  'user should still be able to check currently installed versions
+  'todo:user should still be able to check currently installed versions
   If Not cptInternetIsConnected Then
     MsgBox "You must be connected to the internet to perform updates.", vbInformation + vbOKOnly, "No Connection"
     GoTo exit_here
@@ -541,7 +548,7 @@ Dim vCol As Variant
   Set vbComponent = Nothing
 
   '<issue31> if cptUpgrade_frm is updated, install it automatically
-  If arrInstalled.contains("cptUpgrades_frm") And arrCurrent.contains("cptUpgrades_frm") Then
+  If arrInstalled.Contains("cptUpgrades_frm") And arrCurrent.Contains("cptUpgrades_frm") Then
     If cptVersionStatus(arrInstalled("cptUpgrades_frm"), arrCurrent("cptUpgrades_frm")) <> "ok" Then
       Call cptUpgrade(arrDirectories("cptUpgrades_frm") & "/cptUpgrades_frm.frm") 'uri slash
       'update the version number in the array
@@ -560,19 +567,19 @@ Dim vCol As Variant
 
   'populate the listbox
   cptUpgrades_frm.lboModules.Clear
-  For lngItem = 0 To arrCurrent.count - 1
+  For lngItem = 0 To arrCurrent.Count - 1
     'If arrCurrent.getKey(lngItem) = "ThisProject" Then GoTo next_lngItem '</issue25'
-    strCurVer = arrCurrent.getValueList()(lngItem)
-    If arrInstalled.contains(arrCurrent.getKey(lngItem)) Then
-      strInstVer = arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.getKey(lngItem)))
+    strCurVer = arrCurrent.getvaluelist()(lngItem)
+    If arrInstalled.Contains(arrCurrent.GetKey(lngItem)) Then
+      strInstVer = arrInstalled.getvaluelist()(arrInstalled.indexofkey(arrCurrent.GetKey(lngItem)))
     Else
       strInstVer = "<not installed>"
     End If
     cptUpgrades_frm.lboModules.AddItem
-    cptUpgrades_frm.lboModules.List(lngItem, 0) = arrCurrent.getKey(lngItem) 'module name
-    cptUpgrades_frm.lboModules.List(lngItem, 1) = arrDirectories.getValueList()(lngItem) 'directory
+    cptUpgrades_frm.lboModules.List(lngItem, 0) = arrCurrent.GetKey(lngItem) 'module name
+    cptUpgrades_frm.lboModules.List(lngItem, 1) = arrDirectories.getvaluelist()(lngItem) 'directory
     cptUpgrades_frm.lboModules.List(lngItem, 2) = strCurVer 'arrCurrent.getValueList()(lngItem) 'current version
-    If arrInstalled.contains(arrCurrent.getKey(lngItem)) Then 'installed version
+    If arrInstalled.Contains(arrCurrent.GetKey(lngItem)) Then 'installed version
       cptUpgrades_frm.lboModules.List(lngItem, 3) = strInstVer 'arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.getKey(lngItem)))
     Else
       cptUpgrades_frm.lboModules.List(lngItem, 3) = "<not installed>"
@@ -591,11 +598,42 @@ Dim vCol As Variant
     cptUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
 next_lngItem:
   Next lngItem
-
+  
+  'populate branches
+  Set xmlHttpDoc = CreateObject("MSXML2.XMLHTTP.6.0")
+  strURL = "https://api.github.com/repos/AronGahagan/cpt-dev/branches"
+  xmlHttpDoc.Open "GET", strURL, False
+  xmlHttpDoc.setRequestHeader "Content-Type", "application/json"
+  xmlHttpDoc.setRequestHeader "Accept", "application/json"
+  xmlHttpDoc.Send
+  If xmlHttpDoc.Status = 200 And xmlHttpDoc.readyState = 4 Then
+    Set RE = CreateObject("vbscript.regexp")
+    With RE
+      .MultiLine = False
+      .Global = True
+      .ignorecase = True
+      .Pattern = Chr(34) & "name" & Chr(34) & ":" & Chr(34) & "[A-z0-9\-]*"
+    End With
+    Set REMatches = RE.Execute(xmlHttpDoc.responseText)
+    cptUpgrades_frm.cboBranches.Clear
+    For Each REMatch In REMatches
+      cptUpgrades_frm.cboBranches.AddItem Replace(REMatch, Chr(34) & "name" & Chr(34) & ":" & Chr(34), "")
+    Next
+    cptUpgrades_frm.cboBranches.Value = "master"
+  Else
+    cptUpgrades_frm.cboBranches.Clear
+    cptUpgrades_frm.cboBranches.AddItem "<unavailable>"
+  End If
+  
   cptUpgrades_frm.Show
 
 exit_here:
   On Error Resume Next
+  Set REMatch = Nothing
+  Set REMatches = Nothing
+  Set RE = Nothing
+  Set oStream = Nothing
+  Set xmlHttpDoc = Nothing
   Application.StatusBar = ""
   Set arrDirectories = Nothing
   Set vbComponent = Nothing
@@ -606,7 +644,7 @@ exit_here:
   Set FindRecord = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "UpdatesAreAvailable", err, Erl)
+  Call cptHandleErr("cptCore_bas", "ShowCptUpgrades_frm", err, Erl)
   Resume exit_here
 
 End Sub
@@ -624,8 +662,6 @@ Dim strDir As String
   End If
   If Not cptReferenceExists("VBIDE") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB"
-	'todo: need win64 file path '<issue53>
-    'C:\Program Files\Common Files\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB?
   End If
   If Not cptReferenceExists("VBA") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA7.1\VBE7.DLL"
