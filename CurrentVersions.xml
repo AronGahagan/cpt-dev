@@ -122,7 +122,7 @@
 	<Module>
 		<Name>cptStatusSheet_bas</Name>
 		<FileName>cptStatusSheet_bas.bas</FileName>
-		<Version>v1.0.8</Version>
+		<Version>v1.0.9</Version>
 		<Type>1</Type>
 		<Directory>Status</Directory>
 	</Module>
