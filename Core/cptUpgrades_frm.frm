@@ -212,7 +212,11 @@ Dim vEvent As Variant
       strFileName = strModule & arrTypes.Item(CInt(cptUpgrades_frm.lboModules.List(lngItem, 5)))
       strDirectory = cptUpgrades_frm.lboModules.List(lngItem, 1)
 get_frx:
-      strURL = strGitHub & strDirectory & "/" & strFileName
+      strURL = strGitHub
+      If Me.cboBranches <> "master" Then
+        strURL = Replace(strURL, "master", Me.cboBranches.Value)
+      End If
+      strURL = strURL & strDirectory & "/" & strFileName
       xmlHttpDoc.Open "GET", strURL, False
       xmlHttpDoc.Send
       
