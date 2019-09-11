@@ -547,14 +547,14 @@ Dim vCol As Variant
   Next vbComponent
   Set vbComponent = Nothing
 
-  '<issue31> if cptUpgrade_frm is updated, install it automatically
-  If arrInstalled.Contains("cptUpgrades_frm") And arrCurrent.Contains("cptUpgrades_frm") Then
-    If cptVersionStatus(arrInstalled("cptUpgrades_frm"), arrCurrent("cptUpgrades_frm")) <> "ok" Then
-      Call cptUpgrade(arrDirectories("cptUpgrades_frm") & "/cptUpgrades_frm.frm") 'uri slash
-      'update the version number in the array
-      arrInstalled.Item("cptUpgrades_frm") = arrCurrent("cptUpgrades_frm")
-    End If
-  End If '</issue31>
+'  '<issue31> if cptUpgrade_frm is updated, install it automatically
+'  If arrInstalled.Contains("cptUpgrades_frm") And arrCurrent.Contains("cptUpgrades_frm") Then
+'    If cptVersionStatus(arrInstalled("cptUpgrades_frm"), arrCurrent("cptUpgrades_frm")) <> "ok" Then
+'      Call cptUpgrade(arrDirectories("cptUpgrades_frm") & "/cptUpgrades_frm.frm") 'uri slash
+'      'update the version number in the array
+'      arrInstalled.Item("cptUpgrades_frm") = arrCurrent("cptUpgrades_frm")
+'    End If
+'  End If '</issue31>
 
   'populate the listbox header
   lngItem = 0
@@ -612,7 +612,8 @@ next_lngItem:
       .MultiLine = False
       .Global = True
       .ignorecase = True
-      .Pattern = Chr(34) & "name" & Chr(34) & ":" & Chr(34) & "[A-z0-9\-]*"
+      '.Pattern = Chr(34) & "name" & Chr(34) & ":" & Chr(34) & "[A-z0-9\-]*"
+      .Pattern = Chr(34) & "name" & Chr(34) & ":" & Chr(34) & "[A-z0-9-.]*"
     End With
     Set REMatches = RE.Execute(xmlHttpDoc.responseText)
     cptUpgrades_frm.cboBranches.Clear
