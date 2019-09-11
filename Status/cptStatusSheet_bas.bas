@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.0.8</cpt_version>
+'<cpt_version>v1.0.9</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -196,7 +196,12 @@ Dim lngRow As Long, lngCol As Long, lngField As Long
 Dim lngNameCol As Long, lngBaselineWorkCol As Long, lngRemainingWorkCol As Long, lngEach As Long
 Dim lngNotesCol As Long, lngColumnWidth As Long
 Dim lngASCol As Long, lngAFCol As Long, lngETCCol As Long, lngEVPCol As Long
-Dim t As Long, tTotal As Long
+Dim t As Long, 
+#If Win64 and VBA7 Then '<issue53>
+	Dim tTotal As LongPtr '<issue53>
+#Else '<issue53>
+	Dim tTotal As Long '<issue53>
+#End If '<issue53>
 'strings
 Dim strMsg As String
 Dim strEVT As String, strEVP As String, strDir As String, strFileName As String
