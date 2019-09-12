@@ -13,10 +13,130 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.6</cpt_version>
+'<cpt_version>v1.4.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+Private Sub cboBranches_Change()
+'objects
+Dim FindRecord As Object
+Dim vbComponent As Object
+Dim arrInstalled As Object
+Dim xmlNode As Object
+Dim xmlDoc As Object
+Dim arrDirectories As Object
+Dim arrCurrent As Object
+'strings
+Dim strInstVer As String
+Dim strCurVer As String
+Dim strVersion As String
+Dim strURL As String
+'longs
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+Dim blnUpdatesAreAvailable As Boolean
+'variants
+Dim vCol As Variant
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  'get current versions
+  Set arrCurrent = CreateObject("System.Collections.SortedList")
+  Set arrDirectories = CreateObject("System.Collections.SortedList")
+  Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
+  xmlDoc.async = False
+  xmlDoc.validateOnParse = False
+  xmlDoc.SetProperty "SelectionLanguage", "XPath"
+  xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
+  strURL = strGitHub & "CurrentVersions.xml"
+  If Me.cboBranches.Value <> "master" Then
+    strURL = Replace(strURL, "master", Me.cboBranches.Value)
+  End If
+  If Not xmlDoc.Load(strURL) Then
+    MsgBox xmlDoc.parseError.ErrorCode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
+    GoTo exit_here
+  Else
+    For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
+      arrCurrent.Add xmlNode.SelectSingleNode("Name").Text, xmlNode.SelectSingleNode("Version").Text
+      arrDirectories.Add xmlNode.SelectSingleNode("Name").Text, xmlNode.SelectSingleNode("Directory").Text
+    Next
+  End If
+
+  'get installed versions
+  Set arrInstalled = CreateObject("System.Collections.SortedList")
+  blnUpdatesAreAvailable = False
+  For Each vbComponent In ThisProject.VBProject.VBComponents
+    'is the vbComponent one of ours?
+    If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
+      strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
+      strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
+      arrInstalled.Add vbComponent.Name, strVersion
+    End If
+  Next vbComponent
+  Set vbComponent = Nothing
+
+  'populate the listbox header
+  lngItem = 0
+  Me.lboHeader.AddItem
+  For Each vCol In Array("Module", "Directory", "Current", "Installed", "Status", "Type")
+    Me.lboHeader.List(0, lngItem) = vCol
+    lngItem = lngItem + 1
+  Next vCol
+  Me.lboHeader.Height = 16
+
+  'populate the listbox
+  Me.lboModules.Clear
+  For lngItem = 0 To arrCurrent.Count - 1
+    'If arrCurrent.getKey(lngItem) = "ThisProject" Then GoTo next_lngItem '</issue25'
+    strCurVer = arrCurrent.getvaluelist()(lngItem)
+    If arrInstalled.Contains(arrCurrent.GetKey(lngItem)) Then
+      strInstVer = arrInstalled.getvaluelist()(arrInstalled.indexofkey(arrCurrent.GetKey(lngItem)))
+    Else
+      strInstVer = "<not installed>"
+    End If
+    Me.lboModules.AddItem
+    Me.lboModules.List(lngItem, 0) = arrCurrent.GetKey(lngItem) 'module name
+    Me.lboModules.List(lngItem, 1) = arrDirectories.getvaluelist()(lngItem) 'directory
+    Me.lboModules.List(lngItem, 2) = strCurVer 'arrCurrent.getValueList()(lngItem) 'current version
+    If arrInstalled.Contains(arrCurrent.GetKey(lngItem)) Then 'installed version
+      Me.lboModules.List(lngItem, 3) = strInstVer 'arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.getKey(lngItem)))
+    Else
+      Me.lboModules.List(lngItem, 3) = "<not installed>"
+    End If
+
+    Select Case strInstVer 'cptUpgrades_frm.lboModules.List(lngItem, 3)
+      Case Is = strCurVer 'cptUpgrades_frm.lboModules.List(lngItem, 2)
+        Me.lboModules.List(lngItem, 4) = "< ok >"
+      Case Is = "<not installed>"
+        Me.lboModules.List(lngItem, 4) = "< install >"
+      Case Is <> strCurVer 'cptUpgrades_frm.lboModules.List(lngItem, 2)
+        Me.lboModules.List(lngItem, 4) = "< " & cptVersionStatus(strInstVer, strCurVer) & " >"
+    End Select
+    'capture the type while we're at it - could have just pulled the FileName
+    Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + Me.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
+    Me.lboModules.List(lngItem, 5) = FindRecord.Text
+next_lngItem:
+  Next lngItem
+
+exit_here:
+  On Error Resume Next
+  Set FindRecord = Nothing
+  Set vbComponent = Nothing
+  Set arrInstalled = Nothing
+  Set xmlNode = Nothing
+  Set xmlDoc = Nothing
+  Set arrDirectories = Nothing
+  Set arrCurrent = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptUpgrades_frm", "cboBranches_Change", err, Erl)
+  Resume exit_here
+End Sub
 
 Private Sub cmdCancel_Click()
   Unload Me
@@ -92,7 +212,11 @@ Dim vEvent As Variant
       strFileName = strModule & arrTypes.Item(CInt(cptUpgrades_frm.lboModules.List(lngItem, 5)))
       strDirectory = cptUpgrades_frm.lboModules.List(lngItem, 1)
 get_frx:
-      strURL = strGitHub & strDirectory & "/" & strFileName
+      strURL = strGitHub
+      If Me.cboBranches <> "master" Then
+        strURL = Replace(strURL, "master", Me.cboBranches.Value)
+      End If
+      strURL = strURL & strDirectory & "/" & strFileName
       xmlHttpDoc.Open "GET", strURL, False
       xmlHttpDoc.Send
       
@@ -252,6 +376,18 @@ err_here:
   Me.lboModules.List(lngItem - 1, 3) = "<error>" '</issue25>
   Resume exit_here
 
+End Sub
+
+Private Sub lblTitle_Click()
+  Me.txtDevMode = Val(Me.txtDevMode) + 1
+  If Val(Me.txtDevMode) > 5 Then
+    Me.txtDevMode = 0
+    Me.cboBranches.Visible = False
+  ElseIf Val(Me.txtDevMode) = 5 Then
+    Me.cboBranches.Visible = True
+  Else
+    Me.cboBranches.Visible = False
+  End If
 End Sub
 
 Private Sub lblURL_Click()
