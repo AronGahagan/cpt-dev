@@ -292,7 +292,7 @@ Sub cptGetReferences()
 Dim Ref As Object
 
   For Each Ref In ThisProject.VBProject.References
-    Debug.Print Ref.Name & " (" & Ref.Description & ")" & Ref.FullPath
+	  Debug.Print Ref.Name & " (" & Ref.Description & ") " & Ref.FullPath
   Next Ref
 
 End Sub
@@ -569,18 +569,18 @@ Dim vCol As Variant
   cptUpgrades_frm.lboModules.Clear
   For lngItem = 0 To arrCurrent.Count - 1
     'If arrCurrent.getKey(lngItem) = "ThisProject" Then GoTo next_lngItem '</issue25'
-    strCurVer = arrCurrent.getvaluelist()(lngItem)
-    If arrInstalled.Contains(arrCurrent.GetKey(lngItem)) Then
-      strInstVer = arrInstalled.getvaluelist()(arrInstalled.indexofkey(arrCurrent.GetKey(lngItem)))
+    strCurVer = arrCurrent.getValueList()(lngItem)
+    If arrInstalled.Contains(arrCurrent.getKey(lngItem)) Then
+      strInstVer = arrInstalled.getValueList()(arrInstalled.indexOfKey(arrCurrent.getKey(lngItem)))
     Else
       strInstVer = "<not installed>"
     End If
     cptUpgrades_frm.lboModules.AddItem
-    cptUpgrades_frm.lboModules.List(lngItem, 0) = arrCurrent.GetKey(lngItem) 'module name
-    cptUpgrades_frm.lboModules.List(lngItem, 1) = arrDirectories.getvaluelist()(lngItem) 'directory
+    cptUpgrades_frm.lboModules.List(lngItem, 0) = arrCurrent.getKey(lngItem) 'module name
+    cptUpgrades_frm.lboModules.List(lngItem, 1) = arrDirectories.getValueList()(lngItem) 'directory
     cptUpgrades_frm.lboModules.List(lngItem, 2) = strCurVer 'arrCurrent.getValueList()(lngItem) 'current version
-    If arrInstalled.Contains(arrCurrent.GetKey(lngItem)) Then 'installed version
-      cptUpgrades_frm.lboModules.List(lngItem, 3) = strInstVer 'arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.getKey(lngItem)))
+    If arrInstalled.Contains(arrCurrent.getKey(lngItem)) Then 'installed version
+      cptUpgrades_frm.lboModules.List(lngItem, 3) = strInstVer 'arrInstalled.getValueList()(arrInstalled.indexOfKey(arrCurrent.getKey(lngItem)))
     Else
       cptUpgrades_frm.lboModules.List(lngItem, 3) = "<not installed>"
     End If
