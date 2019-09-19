@@ -13,7 +13,6 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 '<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -89,17 +88,22 @@ Dim lngField As Long
   Me.lboItems.ForeColor = -2147483630
   FilterClear
   
+  On Error Resume Next
   lngField = FieldNameToFieldConstant(Me.cboEach)
-  With CreateObject("System.Collections.SortedList")
-    For Each Task In ActiveProject.Tasks
-      If Len(Task.GetField(lngField)) > 0 Then
-        If Not .Contains(Task.GetField(lngField)) Then .Add Task.GetField(lngField), Task.GetField(lngField)
-      End If
-    Next Task
-    For lngItem = 0 To .Count - 1
-      Me.lboItems.AddItem .GetByIndex(lngItem)
-    Next lngItem
-  End With
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If lngField > 0 Then
+    With CreateObject("System.Collections.SortedList")
+      For Each Task In ActiveProject.Tasks
+        If Len(Task.GetField(lngField)) > 0 Then
+          If Not .Contains(Task.GetField(lngField)) Then .Add Task.GetField(lngField), Task.GetField(lngField)
+        End If
+      Next Task
+      For lngItem = 0 To .Count - 1
+        Me.lboItems.AddItem .GetByIndex(lngItem)
+      Next lngItem
+    End With
+  End If 'lngField > 0
   
 exit_here:
   On Error Resume Next
@@ -559,7 +563,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub lboItems_MouseUp(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+Private Sub lboItems_MouseUp(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal y As Single)
 'objects
 'strings
 Dim strCriteria As String
