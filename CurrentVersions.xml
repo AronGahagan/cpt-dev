@@ -92,8 +92,8 @@
 		<Directory>Backbone</Directory>
 	</Module>
 	<Module>
-		<Name>cptOutlineCode_frm</Name>
-		<FileName>cptOutlineCode_frm.frm</FileName>
+		<Name>cptOutlineCodes_frm</Name>
+		<FileName>cptOutlineCodes_frm.frm</FileName>
 		<Version>v1.0.0</Version>
 		<Type>3</Type>
 		<Directory>Backbone</Directory>

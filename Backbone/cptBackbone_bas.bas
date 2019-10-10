@@ -1,4 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
+'<cpt_version>v1.0.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -147,7 +148,7 @@ Dim blnOutlineCode As Boolean
   SetRowHeight 1, "all"
   
   Set TaskTable = ActiveProject.TaskTables(ActiveProject.CurrentTable)
-  For lngField = 1 To TaskTable.TableFields.count
+  For lngField = 1 To TaskTable.TableFields.Count
     If FieldConstantToFieldName(TaskTable.TableFields(lngField).Field) = "Name" Then Exit For
   Next lngField
   ColumnBestFit lngField
@@ -168,8 +169,129 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptCreateOutlineCode()
 
+Sub cptExportOutlineCode()
+'objects
+Dim xlApp As Object 'Excel.Application
+Dim Workbook As Object 'Workbook
+Dim Worksheet As Object 'Worksheet
+Dim ListObject As Object 'ListObject
+Dim OutlineCode As Object 'OutlineCode
+'strings
+Dim strOutlineCode As String
+'longs
+Dim lngLastRow As Long
+Dim lngLookupItems As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  '====== UPDATE FIELD NAME =======
+  strOutlineCode = "CWBS v2-2"
+  '================================
+  
+  Application.StatusBar = "Exporting Outline Code '" & strOutlineCode & "'..."
+  
+  'get excel
+  Application.StatusBar = "Setting up Excel..."
+  Set xlApp = CreateObject("Excel.Application")
+  Set Workbook = xlApp.Workbooks.Add
+  xlApp.Calculation = -4135 'xlCalculationManual
+  xlApp.ScreenUpdating = False
+  Set Worksheet = Workbook.Sheets(1)
+  Worksheet.[A1:C1] = Array("CODE", "LEVEL", "DESCRIPTION")
+  
+  'export the codes
+  Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+  For lngLookupItems = 1 To OutlineCode.LookupTable.Count
+    lngLastRow = Worksheet.Cells(Worksheet.Rows.Count, 1).End(xlUp).Row + 1
+    Worksheet.Cells(lngLastRow, 1).Value = "'" & OutlineCode.LookupTable.Item(lngLookupItems).FullName
+    Worksheet.Cells(lngLastRow, 2).Value = OutlineCode.LookupTable.Item(lngLookupItems).Level
+    Worksheet.Cells(lngLastRow, 3).Value = OutlineCode.LookupTable.Item(lngLookupItems).Description
+    Worksheet.Cells(lngLastRow, 3).IndentLevel = OutlineCode.LookupTable.Item(lngLookupItems).Level - 1
+    Application.StatusBar = "Exporting Outline Code '" & strOutlineCode & "'...(" & Format((lngLastRow - 1) / lngLookupItems, "0%") & ")"
+  Next lngLookupItems
+  
+  Application.StatusBar = "Formatting Worksheet..."
+  
+  'format the table
+  xlApp.ActiveWindow.Zoom = 85
+  'Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown)), , xlYes)
+  Set ListObject = Worksheet.ListObjects.Add(1, Worksheet.Range(Worksheet.[A1].End(-4161), Worksheet.[A1].End(-4121)), , 1)
+  ListObject.Name = strOutlineCode
+  ListObject.TableStyle = ""
+  ListObject.HeaderRowRange.Font.Bold = True
+  ListObject.Range.Borders(xlDiagonalDown).LineStyle = -4142 'xlNone
+  ListObject.Range.Borders(xlDiagonalUp).LineStyle = -4142 'xlNone
+  With ListObject.Range.Borders(7) 'xlEdgeLeft
+    .LineStyle = 1 'xlContinuous
+    .ThemeColor = 1
+    .TintAndShade = -0.499984740745262
+    .Weight = 2 'xlThin
+  End With
+  With ListObject.Range.Borders(8) 'xlEdgeTop
+    .LineStyle = 1 'xlContinuous
+    .ThemeColor = 1
+    .TintAndShade = -0.499984740745262
+    .Weight = 2 'xlThin
+  End With
+  With ListObject.Range.Borders(9) 'xlEdgeBottom
+    .LineStyle = 1 'xlContinuous
+    .ThemeColor = 1
+    .TintAndShade = -0.499984740745262
+    .Weight = 2 'xlThin
+  End With
+  With ListObject.Range.Borders(10) 'xlEdgeRight
+    .LineStyle = 1 'xlContinuous
+    .ThemeColor = 1
+    .TintAndShade = -0.499984740745262
+    .Weight = 2 'xlThin
+  End With
+  With ListObject.Range.Borders(11) 'xlInsideVertical
+    .LineStyle = 1 'xlContinuous
+    .ThemeColor = 1
+    .TintAndShade = -0.249946592608417
+    .Weight = 2 'xlThin
+  End With
+  With ListObject.Range.Borders(12) 'xlInsideHorizontal
+    .LineStyle = 1 'xlContinuous
+    .ThemeColor = 1
+    .TintAndShade = -0.249946592608417
+    .Weight = 2 'xlThin
+  End With
+    With ListObject.HeaderRowRange.Interior
+      .Pattern = 1 'xlSolid
+      .PatternColorIndex = -4105 'xlAutomatic
+      .ThemeColor = 1 'xlThemeColorDark1
+      .TintAndShade = -0.149998474074526
+      .PatternTintAndShade = 0
+    End With
+    Worksheet.[A2].Select
+    xlApp.ActiveWindow.FreezePanes = True
+    Worksheet.Columns.AutoFit
+    
+exit_here:
+  On Error Resume Next
+  Application.StatusBar = ""
+  xlApp.Visible = True
+  xlApp.ScreenUpdating = True
+  xlApp.Calculation = xlCalculationAutomatic
+  Set ListObject = Nothing
+  Set Worksheet = Nothing
+  Set Workbook = Nothing
+  Set xlApp = Nothing
+  Set OutlineCode = Nothing
+
+  Exit Sub
+  
+err_here:
+  Call cptHandleErr("cptOutlineCodes", "ExportOutlineCode", err, Erl)
+  Resume exit_here
+  
 End Sub
 
 Sub cptCreate81334D()

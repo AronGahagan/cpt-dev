@@ -1,8 +1,47 @@
-Attribute VB_Name = "basOutlineCodes"
+Attribute VB_Name = "cptOutlineCodes_bas"
+'<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
+'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Sub CreateCode(lngOutlineCode As Long, strOutlineCodeName As String)
+Sub ShowCptOutlineCode_frms()
+'longs
+Dim lngCode As Long, lngOutlineCode As Long
+'strings
+Dim strOutlineCode As String, strOutlineCodeName As String
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  cptOutlineCode_frm.cboOutlineCodes.Clear
+
+  For lngCode = 1 To 10
+    strOutlineCode = "Outline Code" & lngCode
+    lngOutlineCode = Application.FieldNameToFieldConstant(strOutlineCode)
+    strOutlineCodeName = Application.CustomFieldGetName(lngOutlineCode)
+    cptOutlineCode_frm.cboOutlineCodes.AddItem
+    If Len(strOutlineCodeName) > 0 Then
+      strOutlineCode = strOutlineCode & " (" & strOutlineCodeName & ")"
+      'cptOutlineCode_frm.cboOutlineCodes.Column(1, lngCode - 1) = "(" & strOutlineCodeName & ")"
+    End If
+    cptOutlineCode_frm.cboOutlineCodes.Column(0, lngCode - 1) = strOutlineCode
+  Next lngCode
+  
+  cptOutlineCode_frm.txtNameIt = ""
+  cptOutlineCode_frm.cmdCancel.Caption = "Cancel"
+  cptOutlineCode_frm.cboOutlineCodes.Value = cptOutlineCode_frm.cboOutlineCodes.List(0)
+  cptOutlineCode_frm.Show False
+  cptOutlineCode_frm.cboOutlineCodes.SetFocus
+
+exit_here:
+  On Error Resume Next
+  
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptOutlineCodes_bas", "ShowcptOutlineCode_frms", err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptCreateCode(lngOutlineCode As Long, strOutlineCodeName As String)
 'objects
 Dim objOutlineCode As OutlineCode, objLookupTable As LookupTable, objLookupTableEntry As LookupTableEntry
 Dim Task As Task, xlApp As Excel.Application
@@ -18,7 +57,7 @@ Dim aOutlineCode As Variant, tmr As Date
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   'ensure name doesn't already exist - trust form formatting
-  If frmOutlineCode.txtNameIt.BorderColor = 255 Then GoTo exit_here
+  If cptOutlineCode_frm.txtNameIt.BorderColor = 255 Then GoTo exit_here
 
   'first name the field and create the code mask
   Application.CustomFieldRename lngOutlineCode, strOutlineCodeName
@@ -39,13 +78,13 @@ Dim aOutlineCode As Variant, tmr As Date
     End If
     Task.SetField lngOutlineCode, Task.WBS
     objLookupTable.Item(lngTask).Description = Task.Name
-    frmOutlineCode.lblProgress.Width = ((lngTask - 1) / lngTasks) * frmOutlineCode.lblStatus.Width
-    frmOutlineCode.lblStatus.Caption = Format(lngTask - 1, "#,##0") & " / " & Format(lngTasks, "#,##0") & " (" & Format((lngTask - 1) / lngTasks, "0%") & ") [" & Format(Now - tmr, "hh:nn:ss") & "]"
+    cptOutlineCode_frm.lblProgress.Width = ((lngTask - 1) / lngTasks) * cptOutlineCode_frm.lblStatus.Width
+    cptOutlineCode_frm.lblStatus.Caption = Format(lngTask - 1, "#,##0") & " / " & Format(lngTasks, "#,##0") & " (" & Format((lngTask - 1) / lngTasks, "0%") & ") [" & Format(Now - tmr, "hh:nn:ss") & "]"
   Next Task
   CustomOutlineCodeEditEx lngOutlineCode, OnlyLeaves:=True, OnlyLookUpTableCodes:=True
-  frmOutlineCode.lblStatus.Caption = "Complete."
+  cptOutlineCode_frm.lblStatus.Caption = "Complete."
   Application.StatusBar = "Complete."
-  frmOutlineCode.cmdCancel.Caption = "Done"
+  cptOutlineCode_frm.cmdCancel.Caption = "Done"
   
 exit_here:
   On Error Resume Next
@@ -60,43 +99,6 @@ exit_here:
   Exit Sub
 err_here:
   MsgBox err.Number & ": " & err.Description, vbExclamation + vbOKOnly, "Error"
-  Resume exit_here
-End Sub
-
-Sub ShowFrmOutlineCodes()
-'longs
-Dim lngCode As Long, lngOutlineCode As Long
-'strings
-Dim strOutlineCode As String, strOutlineCodeName As String
-
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
-  frmOutlineCode.cboOutlineCodes.Clear
-
-  For lngCode = 1 To 10
-    strOutlineCode = "Outline Code" & lngCode
-    lngOutlineCode = Application.FieldNameToFieldConstant(strOutlineCode)
-    strOutlineCodeName = Application.CustomFieldGetName(lngOutlineCode)
-    frmOutlineCode.cboOutlineCodes.AddItem
-    If Len(strOutlineCodeName) > 0 Then
-      strOutlineCode = strOutlineCode & " (" & strOutlineCodeName & ")"
-      'frmOutlineCode.cboOutlineCodes.Column(1, lngCode - 1) = "(" & strOutlineCodeName & ")"
-    End If
-    frmOutlineCode.cboOutlineCodes.Column(0, lngCode - 1) = strOutlineCode
-  Next lngCode
-  
-  frmOutlineCode.txtNameIt = ""
-  frmOutlineCode.cmdCancel.Caption = "Cancel"
-  frmOutlineCode.cboOutlineCodes.Value = frmOutlineCode.cboOutlineCodes.List(0)
-  frmOutlineCode.Show False
-  frmOutlineCode.cboOutlineCodes.SetFocus
-
-exit_here:
-  On Error Resume Next
-  
-  Exit Sub
-err_here:
-  Call HandleErr("basOutlineCodes", "ShowFrmOutlineCodes", err)
   Resume exit_here
 End Sub
 
@@ -125,6 +127,6 @@ exit_here:
   Set LookupTable = Nothing
   Exit Sub
 err_here:
-  Call HandleErr("basOutlineCodes", "RenameInsideOutlineCode", err)
+  Call cptHandleErr("cptOutlineCodes", "RenameInsideOutlineCode", err, Erl)
   Resume exit_here
 End Sub
