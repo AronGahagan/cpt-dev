@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.3.16</cpt_version>
+'<cpt_version>v1.3.15</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -68,7 +68,7 @@ Dim vEvent As Variant
   strMsg = strMsg & "Have you completed the above steps?" & vbCrLf & vbCrLf
   strMsg = strMsg & "(Yes = Proceed; No = Cancel and Close)"
   If MsgBox(strMsg, vbQuestion + vbYesNo, "Before you proceed...") = vbNo Then GoTo exit_here
-
+  
   'capture list of files to download
   On Error Resume Next
   Set arrCore = CreateObject("System.Collections.SortedList")
@@ -140,7 +140,7 @@ frx:
           strError = strError & "- " & strFileName & vbCrLf
           GoTo next_xmlNode
         End If
-
+        
         'remove if exists
         strModule = Left(strFileName, InStr(strFileName, ".") - 1)
         If strModule = "ThisProject" Then GoTo next_xmlNode
@@ -152,12 +152,12 @@ frx:
             '<issue19> revised
             vbComponent.Name = vbComponent.Name & "_" & Format(Now, "hhnnss")
             DoEvents
-            ThisProject.VBProject.VBComponents.Remove vbComponent 'ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
+            ThisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
             DoEvents '</issue19>
             Exit For
           End If
         Next vbComponent
-
+        
         'import the module - skip ThisProject which needs special handling
         If strModule <> "ThisProject" Then
           Application.StatusBar = "Importing " & strFileName & "..."
@@ -165,25 +165,25 @@ frx:
           ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
           '<issue19> added
           DoEvents '</issue19>
-
+          
           '<issue24>remove the whitespace added by VBE import/export
           With ThisProject.VBProject.VBComponents(strModule).CodeModule
             For lngLine = .CountOfDeclarationLines To 1 Step -1
               If Len(.Lines(lngLine, 1)) = 0 Then .DeleteLines lngLine, 1
             Next lngLine
           End With '</issue24>
-
+          
         End If
-
+        
       End If
 next_xmlNode:
     Next xmlNode
   End If
-
+  
   Application.StatusBar = "CPT Modules imported."
-
+  
 this_project:
-
+  
   '<issue35>
   'update user's ThisProject - if it downloaded correctly, or was copied in correctly
   strFileName = cptDir & "\ThisProject.cls"
@@ -194,7 +194,7 @@ this_project:
     Name strFileName As strCptFileName
     'import the module
     If cptModuleExists("cptThisProject_cls") Then
-      ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents("cptThisProject_cls")
+      ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents("cptThisProject_cls")
       DoEvents
     End If
     Set cmCptThisProject = ThisProject.VBProject.VBComponents.import(strCptFileName).CodeModule
@@ -203,7 +203,7 @@ this_project:
   Else 'ThisProject not imported or downloaded, so skip
     GoTo skip_import
   End If '</issue35>
-
+  
   'avoid messy overwrites of ThisProject
   Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
   '<issue10> revised
@@ -223,7 +223,7 @@ this_project:
       GoTo skip_import
     End If
   End If
-
+  
   'grab the imported code
   '<issue35>
   If Len(strVersion) = 0 Then 'grab the version
@@ -236,14 +236,14 @@ this_project:
       arrCode.Add CStr(vEvent), .Lines(.ProcStartLine(CStr(vEvent), 0) + 2, .ProcCountLines(CStr(vEvent), 0) - 3) '0 = vbext_pk_Proc
     Next
   End With
-  ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
+  ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
   '<issue19> added
   DoEvents '</issue19>
 
   'add the events, or insert new text
   'three cases: empty or not empty (code exists or not)
   For Each vEvent In Array("Project_Activate", "Project_Open")
-
+    
     'if event exists then insert code else create new event handler
     With cmThisProject
       If .CountOfLines > .CountOfDeclarationLines Then 'complications
@@ -269,7 +269,7 @@ this_project:
         .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
       End If 'lines exist
     End With 'thisproject.codemodule
-
+    
     'add version if not exists
     With cmThisProject
       If .Find("<cpt_version>", 1, 1, .CountOfLines, 1000) = False Then
@@ -277,12 +277,12 @@ this_project:
       End If
     End With
   Next vEvent
-
+  
   'leave no trace
   'If Dir(strCptFileName, vbNormal) <> vbNullString Then Kill strCptFileName
-
+    
 skip_import:
-
+      
   If Len(strError) > 0 Then
     strError = "The following modules did not download correctly:" & vbCrLf & strError & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for assistance."
     MsgBox strError, vbCritical + vbOKOnly, "Unknown Error"
@@ -319,7 +319,7 @@ exit_here:
   Set arrCore = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptSetup", Err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptSetup", err, Erl)
   Resume exit_here
 End Sub
 
@@ -357,10 +357,11 @@ Dim lngCleanUp As Long
   If cptModuleExists("cptText_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gTextTools"" label=""Text"" visible=""true"" >"
     If cptModuleExists("cptDynamicFilter_bas") And cptModuleExists("cptDynamicFilter_frm") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDynamicFilter"" label=""Dynamic Filter"" imageMso=""FilterBySelection"" onAction=""ShowcptDynamicFilter_frm"" visible=""true"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDynamicFilter"" label=""Dynamic Filter"" imageMso=""FilterBySelection"" onAction=""ShowcptDynamicFilter_frm"" visible=""true"" size=""large"" />"
     End If
     If cptModuleExists("cptText_frm") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbText"" >"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbText"" size=""large"" >"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdvancedTextTools"" label=""Advanced"" imageMso=""AdvancedFilterDialog"" onAction=""ShowcptText_frm"" />" 'visible=""true""
       ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mText"">"
       ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Utilities"" />"
@@ -376,7 +377,7 @@ Dim lngCleanUp As Long
       ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
       ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
     Else
-      ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTextTools"" label=""Tools"" imageMso=""TextBoxInsert"" visible=""true"" >"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTextTools"" label=""Tools"" imageMso=""TextBoxInsert"" visible=""true"" size=""large"" >"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPrepend"" label=""Bulk Prepend"" imageMso=""RightArrow2"" onAction=""cptBulkPrepend"" visible=""true""/>"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAppend"" label=""Bulk Append"" imageMso=""LeftArrow2"" onAction=""cptBulkAppend"" visible=""true""/>"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMyReplace"" label=""MyReplace"" imageMso=""ReplaceDialog"" onAction=""cptMyReplace"" visible=""true""/>"
@@ -386,9 +387,6 @@ Dim lngCleanUp As Long
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""cptFindDuplicateTaskNames"" visible=""true""/>"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetRowHeight"" label=""Reset Row Height"" imageMso=""RowHeight"" onAction=""cptResetRowHeight"" visible=""true""/>"
       ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
-    End If
-    If cptModuleExists("cptFilterByClipboard_bas") And cptModuleExists("cptFilterByClipboard_frm") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bClipboard"" label=""Filter by Clipboard"" imageMso=""PasteOption"" onAction=""cptShowFilterByClipboardFrm"" visible=""true""/>"
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
@@ -415,7 +413,7 @@ Dim lngCleanUp As Long
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
-
+  
   'status
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Status"" visible=""true"" >"
   If cptModuleExists("cptStatusSheet_bas") And cptModuleExists("cptStatusSheet_frm") Then
@@ -525,7 +523,7 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
 Dim strMsg As String
 
     strMsg = "Uh oh!" & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
-    strMsg = strMsg & "Error " & Err.Number & ": " & Err.Description & vbCrLf
+    strMsg = strMsg & "Error " & err.Number & ": " & err.Description & vbCrLf
     strMsg = strMsg & "Source: " & strModule & "." & strProcedure
     If lngErl > 0 Then
       strMsg = strMsg & vbCrLf & "Line: " & lngErl
@@ -540,9 +538,9 @@ Function cptIncrement(ByRef lgCleanUp As Long) As Long
 End Function
 
 Public Function cptInternetIsConnected() As Boolean
-
+ 
     cptInternetIsConnected = InternetGetConnectedStateEx(0, "", 254, 0)
-
+ 
 End Function
 
 Function cptRegEx(strText As String, strRegEx As String) As String
@@ -572,21 +570,21 @@ exit_here:
     Set REMatches = Nothing
     Exit Function
 err_here:
-  If Err.Number = 5 Then
+  If err.Number = 5 Then
     cptRegEx = ""
-    Err.Clear
+    err.Clear
   End If
   Resume exit_here
 End Function
 
 Function cptDir() As String
 Dim strPath As String
-
+  
   'confirm existence of cpt settings and backup modules file
-
+  
   'strPath = ThisProject.FullName
   'strPath = Left(strPath, InStrRev(strPath, "MS Project\") - 1 + Len("MS Project\"))
-
+  
   strPath = Environ("USERPROFILE")
   strPath = strPath & "\cpt-backup"
   If Dir(strPath, vbDirectory) = vbNullString Then
@@ -599,7 +597,7 @@ Dim strPath As String
     MkDir strPath & "\modules"
   End If
   cptDir = strPath
-
+  
 End Function
 
 Function cptModuleExists(strModule As String)
@@ -609,20 +607,20 @@ Dim vbComponent As Object
 Dim blnExists As Boolean
 'strings
 Dim strError As String
-
+  
   On Error Resume Next
   'Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
   cptModuleExists = Not ThisProject.VBProject.VBComponents(strModule) Is Nothing
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   GoTo exit_here
-
+  
   For Each vbComponent In ThisProject.VBProject.VBComponents
     If UCase(vbComponent.Name) = UCase(strModule) Then
       blnExists = True
       Exit For
     End If
   Next vbComponent
-
+  
   cptModuleExists = blnExists
 
 exit_here:
@@ -630,9 +628,9 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptModuleExists", Err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptModuleExists", err, Erl)
   Resume exit_here
-
+  
 End Function
 
 Sub cptUninstall()
@@ -687,10 +685,10 @@ Dim lngLine As Long
       End If
     Next lngLine
   End With
-
+  
   'reset the toolbar
   ActiveProject.SetCustomUI "<mso:customUI xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui""><mso:ribbon></mso:ribbon></mso:customUI>"
-
+  
   'remove all cpt modules
   For Each vbComponent In ThisProject.VBProject.VBComponents
     If Left(vbComponent.Name, 3) = "cpt" And vbComponent.Name <> "cptSetup_bas" Then
@@ -698,13 +696,13 @@ Dim lngLine As Long
       Application.StatusBar = "Purging module " & vbComponent.Name & "..."
       If Dir(cptDir & "\modules\", vbDirectory) = vbNullString Then MkDir cptDir & "\modules"
       vbComponent.Export cptDir & "\modules\" & vbComponent.Name
-      ThisProject.VBProject.VBComponents.Remove vbComponent
+      ThisProject.VBProject.VBComponents.remove vbComponent
     End If
 next_component:
   Next vbComponent
-
+  
   MsgBox "Thank you for using the ClearPlan Toolbar.", vbInformation + vbOKOnly, "Uninstall Complete"
-
+  
 exit_here:
   On Error Resume Next
   Application.StatusBar = ""
@@ -714,6 +712,6 @@ exit_here:
   Set cmThisProject = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptUninstall", Err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptUninstall", err, Erl)
   Resume exit_here
 End Sub
