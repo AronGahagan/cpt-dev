@@ -4,6 +4,34 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+Sub cptImportCWBSFromExcel()
+'objects
+'strings
+'longs
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If MsgBox("Epected fields/column headers, in range [A1:C1], are CODE, TITLE." & vbCrLf & vbCrLf & "Proceed?", vbQuestion + vbYesNo, "Confirm CWBS Import") = vbNo Then
+    'export a sample template
+    
+  Else
+    'allow user to select excel file and import it to chosen
+  End If
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptOutlineCodes_bas", "cptImportCWBSFromExcel", err, Erl)
+  Resume exit_here
+End Sub
+
 Sub cptImportAppendixB()
 'objects
 Dim TaskTable As Object
@@ -169,8 +197,7 @@ err_here:
   Resume exit_here
 End Sub
 
-
-Sub cptExportOutlineCode()
+Sub cptExportOutlineCode(lngOutlineCode As Long)
 'objects
 Dim xlApp As Object 'Excel.Application
 Dim Workbook As Object 'Workbook
@@ -203,7 +230,7 @@ Dim lngLookupItems As Long
   xlApp.Calculation = -4135 'xlCalculationManual
   xlApp.ScreenUpdating = False
   Set Worksheet = Workbook.Sheets(1)
-  Worksheet.[A1:C1] = Array("CODE", "LEVEL", "DESCRIPTION")
+  Worksheet.[A1:C1] = Array("CODE", "LEVEL", "TITLE")
   
   'export the codes
   Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
@@ -296,4 +323,232 @@ End Sub
 
 Sub cptCreate81334D()
 
+End Sub
+
+Sub cptExportTemplate()
+'objects
+Dim Worksheet As Object
+Dim Workbook As Object
+Dim xlApp As Object
+'strings
+Dim strMsg As String
+'longs
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  strMsg = "Instructions:" & vbCrLf
+  strMsg = strMsg & "1. Do not add, edit, move, or remove columns." & vbCrLf
+  strMsg = strMsg & "2. No empty rows from row 2 to the end of your CWBS Code." & vbCrLf
+  strMsg = strMsg & "3. SUGGESTION: Include down to Control Account levels." & vbCrLf
+  strMsg = strMsg & "4. Save and import when done." & vbCrLf & vbCrLf
+  strMsg = strMsg & "Proceed?"
+  If MsgBox(strMsg, vbInformation + vbYesNo, "Instructions:") = vbYes Then
+    Set xlApp = CreateObject("Excel.Application")
+    Set Workbook = xlApp.Workbooks.Add
+    Set Worksheet = Workbook.Sheets(1)
+    Worksheet.Name = "CWBS"
+    Worksheet.[A1:C1] = Array("CODE", "LEVEL", "TITLE")
+    Worksheet.[A2].Select
+    xlApp.ActiveWindow.FreezePanes = True
+    xlApp.ActiveWindow.Zoom = 85
+    xlApp.Visible = True
+  End If
+  
+exit_here:
+  On Error Resume Next
+  Set Worksheet = Nothing
+  Set Workbook = Nothing
+  Set xlApp = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptOutlineCodes_bas", "cptExportTemplate", err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptShowcptOutlineCodes_frm()
+'longs
+Dim lngCode As Long, lngOutlineCode As Long
+'strings
+Dim strOutlineCode As String, strOutlineCodeName As String
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  cptOutlineCodes_frm.cboOutlineCodes.Clear
+  
+  'populate the listbox/combobox
+  For lngCode = 1 To 10
+    strOutlineCode = "Outline Code" & lngCode
+    lngOutlineCode = Application.FieldNameToFieldConstant(strOutlineCode)
+    strOutlineCodeName = Application.CustomFieldGetName(lngOutlineCode)
+    cptOutlineCodes_frm.cboOutlineCodes.AddItem
+    If Len(strOutlineCodeName) > 0 Then
+      strOutlineCode = strOutlineCode & " (" & strOutlineCodeName & ")"
+    End If
+    cptOutlineCodes_frm.cboOutlineCodes.Column(0, lngCode - 1) = strOutlineCode
+  Next lngCode
+  
+  'add Import Actions
+  cptOutlineCodes_frm.cboImport.Clear
+  cptOutlineCodes_frm.cboImport.AddItem "From Excel Workbook"
+  cptOutlineCodes_frm.cboImport.AddItem "From MIL-STD-881D Appendix B"
+  cptOutlineCodes_frm.cboImport.AddItem "From Existing Tasks"
+  
+  'add Export Actions
+  cptOutlineCodes_frm.cboExport.Clear
+  cptOutlineCodes_frm.cboExport.AddItem "To Excel Workbook"
+  cptOutlineCodes_frm.cboExport.AddItem "To CSV for MPM"
+  cptOutlineCodes_frm.cboExport.AddItem "To CSV for COBRA"
+  cptOutlineCodes_frm.cboExport.AddItem "To DI-MGMT-81334D Template"
+  
+  'pre-select Outline Code 1
+  cptOutlineCodes_frm.txtNameIt = ""
+  cptOutlineCodes_frm.cmdCancel.Caption = "Cancel"
+  cptOutlineCodes_frm.cboOutlineCodes.Value = cptOutlineCodes_frm.cboOutlineCodes.List(0)
+  cptOutlineCodes_frm.Show False
+  cptOutlineCodes_frm.cboOutlineCodes.SetFocus
+
+exit_here:
+  On Error Resume Next
+  
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptOutlineCodes_bas", "cptShowcptOutlineCodes_frm", err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptCreateCode(lngOutlineCode As Long, strOutlineCodeName As String)
+'objects
+Dim objOutlineCode As OutlineCode, objLookupTable As LookupTable, objLookupTableEntry As LookupTableEntry
+Dim Task As Task, xlApp As Excel.Application
+'strings
+Dim strWBS As String, strParent As String, strChild As String
+'longs
+Dim lngUID As Long, lngTasks As Long, lngTask As Long, lngLevel As Long
+'variants
+Dim aOutlineCode As Variant, tmr As Date
+
+  tmr = Now
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  'ensure name doesn't already exist - trust form formatting
+  If cptOutlineCodes_frm.txtNameIt.BorderColor = 255 Then GoTo exit_here
+
+  'first name the field and create the code mask
+  Application.CustomFieldRename lngOutlineCode, strOutlineCodeName
+  For lngLevel = 1 To 10
+    CustomOutlineCodeEditEx lngOutlineCode, Level:=lngLevel, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+  Next lngLevel
+  CustomOutlineCodeEditEx lngOutlineCode, OnlyLookUpTableCodes:=False, OnlyLeaves:=False, LookupDefault:=False, SortOrder:=0
+  Set objOutlineCode = ActiveProject.OutlineCodes("CWBS")
+  Set objLookupTable = objOutlineCode.LookupTable
+  
+  lngTasks = ActiveProject.Tasks.Count
+  
+  For Each Task In ActiveProject.Tasks
+    lngTask = lngTask + 1
+    If Task.OutlineLevel = 1 Then
+      Set objLookupTableEntry = objLookupTable.AddChild(Task.WBS)
+      objLookupTableEntry.Description = Task.Name
+    End If
+    Task.SetField lngOutlineCode, Task.WBS
+    objLookupTable.Item(lngTask).Description = Task.Name
+    cptOutlineCodes_frm.lblProgress.Width = ((lngTask - 1) / lngTasks) * cptOutlineCodes_frm.lblStatus.Width
+    cptOutlineCodes_frm.lblStatus.Caption = Format(lngTask - 1, "#,##0") & " / " & Format(lngTasks, "#,##0") & " (" & Format((lngTask - 1) / lngTasks, "0%") & ") [" & Format(Now - tmr, "hh:nn:ss") & "]"
+  Next Task
+  CustomOutlineCodeEditEx lngOutlineCode, OnlyLeaves:=True, OnlyLookUpTableCodes:=True
+  cptOutlineCodes_frm.lblStatus.Caption = "Complete."
+  Application.StatusBar = "Complete."
+  cptOutlineCodes_frm.cmdCancel.Caption = "Done"
+  
+exit_here:
+  On Error Resume Next
+  Application.StatusBar = ""
+  SpeedOFF
+  Set objOutlineCode = Nothing
+  Set objLookupTable = Nothing
+  Set objLookupTableEntry = Nothing
+  Set Task = Nothing
+  xlApp.Quit
+  Set xlApp = Nothing
+  Exit Sub
+err_here:
+  MsgBox err.Number & ": " & err.Description, vbExclamation + vbOKOnly, "Error"
+  Resume exit_here
+End Sub
+
+Sub cptRenameInsideOutlineCode(strOutlineCode As String, strFind As String, strReplace As String)
+'usage: Call RenameOutlineCode("CWBS","BOSS","IBRS")
+'objects
+Dim OutlineCode As OutlineCode, LookupTable As LookupTable, LookupTableEntry As LookupTableEntry
+'longs
+Dim lngEntry As Long
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+  Set LookupTable = OutlineCode.LookupTable
+  For lngEntry = 1 To LookupTable.Count
+    If InStr(LookupTable(lngEntry).Description, strFind) > 0 Then
+      Debug.Print LookupTable(lngEntry).Description
+      LookupTable(lngEntry).Description = Replace(LookupTable(lngEntry).Description, strFind, strReplace)
+      Debug.Print LookupTable(lngEntry).Description
+    End If
+  Next lngEntry
+  
+exit_here:
+  On Error Resume Next
+  Set OutlineCode = Nothing
+  Set LookupTable = Nothing
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptOutlineCodes_bas", "cptRenameInsideOutlineCode", err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptRefreshOutlineCodePreview(strOutlineCode As String)
+'objects
+Dim OutlineCode As OutlineCode, LookupTable As LookupTable, LookupTableEntry As LookupTableEntry
+Dim N As Node
+'strings
+'longs
+Dim lngEntry As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  strOutlineCode = Replace(Replace(strOutlineCode, cptRegEx(strOutlineCode, "Outline Code[1-10]") & " (", ""), ")", "")
+  Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+  On Error Resume Next
+  Set LookupTable = OutlineCode.LookupTable
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If LookupTable.Count > 0 Then
+    For lngEntry = 1 To LookupTable.Count
+      If LookupTable(lngEntry).Level = 1 Then 'add top level
+        Set N = cptOutlineCodes_frm.TreeView1.Nodes.Add(, relationship:=tvwFirst, key:="uid" & LookupTable(lngEntry).UniqueID, Text:=LookupTable(lngEntry).FullName & " - " & LookupTable(lngEntry).Description)
+        N.Expanded = True
+      Else
+        Set N = cptOutlineCodes_frm.TreeView1.Nodes.Add("uid" & LookupTable(lngEntry).ParentEntry.UniqueID, tvwChild, "uid" & LookupTable(lngEntry).UniqueID, LookupTable(lngEntry).FullName & " - " & LookupTable(lngEntry).Description)
+        N.Expanded = True
+      End If
+    Next lngEntry
+  End If
+  
+exit_here:
+  On Error Resume Next
+  Set OutlineCode = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptBackbone_bas", "cptRefreshOutlineCodePreview", err, Erl)
+  Resume exit_here
 End Sub

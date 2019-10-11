@@ -10,7 +10,6 @@ Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/
                                                                         ByVal lpszConnectionName As String, _
                                                                         ByVal dwNameLen As Integer, _
                                                                         ByVal dwReserved As LongPtr) As LongPtr
-
 #Else
   Private Declare Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As Long, _
                                                                         ByVal lpszConnectionName As String, _
@@ -54,7 +53,7 @@ Dim vEvent As Variant
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   '<issue61> ensure proper installation
-  If Instr(ThisProject.FullName, "Global.MPT") = 0 Then
+  If InStr(ThisProject.FullName, "Global.MPT") = 0 Then
     MsgBox "The VBA module 'cptSetup_bas' must be installed in your Global.MPT, not in this project file.", vbCritical + vbOKOnly, "Faulty Installation"
     GoTo exit_here
   End If '</issue61>
@@ -69,7 +68,7 @@ Dim vEvent As Variant
   strMsg = strMsg & "Have you completed the above steps?" & vbCrLf & vbCrLf
   strMsg = strMsg & "(Yes = Proceed; No = Cancel and Close)"
   If MsgBox(strMsg, vbQuestion + vbYesNo, "Before you proceed...") = vbNo Then GoTo exit_here
-
+  
   'capture list of files to download
   Set arrCore = CreateObject("System.Collections.SortedList")
   Application.StatusBar = "Identifying latest core CPT modules..."
@@ -135,7 +134,7 @@ frx:
           strError = strError & "- " & strFileName & vbCrLf
           GoTo next_xmlNode
         End If
-
+        
         'remove if exists
         strModule = Left(strFileName, InStr(strFileName, ".") - 1)
         If strModule = "ThisProject" Then GoTo next_xmlNode
@@ -152,7 +151,7 @@ frx:
             Exit For
           End If
         Next vbComponent
-
+        
         'import the module - skip ThisProject which needs special handling
         If strModule <> "ThisProject" Then
           Application.StatusBar = "Importing " & strFileName & "..."
@@ -160,25 +159,25 @@ frx:
           ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
           '<issue19> added
           DoEvents '</issue19>
-
+          
           '<issue24>remove the whitespace added by VBE import/export
           With ThisProject.VBProject.VBComponents(strModule).CodeModule
             For lngLine = .CountOfDeclarationLines To 1 Step -1
               If Len(.Lines(lngLine, 1)) = 0 Then .DeleteLines lngLine, 1
             Next lngLine
           End With '</issue24>
-
+          
         End If
-
+        
       End If
 next_xmlNode:
     Next xmlNode
   End If
-
+  
   Application.StatusBar = "CPT Modules imported."
-
+  
 this_project:
-
+  
   '<issue35>
   'update user's ThisProject - if it downloaded correctly, or was copied in correctly
   strFileName = cptDir & "\ThisProject.cls"
@@ -198,7 +197,7 @@ this_project:
   Else 'ThisProject not imported or downloaded, so skip
     GoTo skip_import
   End If '</issue35>
-
+  
   'avoid messy overwrites of ThisProject
   Set cmThisProject = ThisProject.VBProject.VBComponents("ThisProject").CodeModule
   '<issue10> revised
@@ -218,7 +217,7 @@ this_project:
       GoTo skip_import
     End If
   End If
-
+  
   'grab the imported code
   '<issue35>
   If Len(strVersion) = 0 Then 'grab the version
@@ -238,7 +237,7 @@ this_project:
   'add the events, or insert new text
   'three cases: empty or not empty (code exists or not)
   For Each vEvent In Array("Project_Activate", "Project_Open")
-
+    
     'if event exists then insert code else create new event handler
     With cmThisProject
       If .CountOfLines > .CountOfDeclarationLines Then 'complications
@@ -264,7 +263,7 @@ this_project:
         .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
       End If 'lines exist
     End With 'thisproject.codemodule
-
+    
     'add version if not exists
     With cmThisProject
       If .Find("<cpt_version>", 1, 1, .CountOfLines, 1000) = False Then
@@ -272,12 +271,12 @@ this_project:
       End If
     End With
   Next vEvent
-
+  
   'leave no trace
   'If Dir(strCptFileName, vbNormal) <> vbNullString Then Kill strCptFileName
-
+    
 skip_import:
-
+      
   If Len(strError) > 0 Then
     strError = "The following modules did not download correctly:" & vbCrLf & strError & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for assistance."
     MsgBox strError, vbCritical + vbOKOnly, "Unknown Error"
@@ -349,24 +348,25 @@ Dim lngCleanUp As Long
   End If
 
   'wbs
-  If cptModuleExists("cptBackbone_bas") Then
+  If cptModuleExists("cptOutlineCodes_frm") And cptModuleExists("cptBackbone_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gWBS"" label=""Backbone"" visible=""true"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mCWBS"" label=""CWBS"" imageMso=""WbsMenu"" visible=""true"" size=""large"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Import"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportCWBSExcel"" imageMso=""ImportExcel"" label=""Import CWBS from Excel"" onAction=""cptImportAppendixB"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportCWBS"" imageMso=""WbsMenu"" label=""Import MIL-STD-881D (Appendix B)"" onAction=""cptImportAppendixB"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Create"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCreateCWBS"" imageMso=""WbsMenu"" label=""Create CWBS"" onAction=""cptCreateOutlineCode"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Export"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCreate81334D"" imageMso=""ExportExcel"" label=""Create DI-MGMT-81334D"" onAction=""cptCreate81334D"" />"
-    ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mIMP"" label=""IMP"" imageMso=""WbsMenu"" visible=""true"" size=""large"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Import"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportIMPExcel"" imageMso=""ImportExcel"" label=""Import IMP from Excel"" onAction=""cptImportAppendixB"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportIMP"" imageMso=""ImportExcel"" label=""Import Generic IMP"" onAction=""cptCreate81334D"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Export"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExportIMP"" imageMso=""ExportExcel"" label=""Export IMP to Excel"" onAction=""cptCreate81334D"" />"
-    ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBackbone"" label=""Outline Codes"" imageMso=""WbsMenu"" onAction=""cptShowcptOutlineCodes_frm"" visible=""true"" size=""large"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mCWBS"" label=""CWBS"" imageMso=""WbsMenu"" visible=""true"" size=""large"" >"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Import"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportCWBSExcel"" imageMso=""ImportExcel"" label=""Import CWBS from Excel"" onAction=""cptImportCWBSFromExcel"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportCWBS"" imageMso=""WbsMenu"" label=""Import MIL-STD-881D (Appendix B)"" onAction=""cptImportAppendixB"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Create"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCreateCWBS"" imageMso=""WbsMenu"" label=""Create CWBS"" onAction=""cptCreateOutlineCode"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Export"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCreate81334D"" imageMso=""ExportExcel"" label=""Create DI-MGMT-81334D"" onAction=""cptCreate81334D"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mIMP"" label=""IMP"" imageMso=""WbsMenu"" visible=""true"" size=""large"" >"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Import"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportIMPExcel"" imageMso=""ImportExcel"" label=""Import IMP from Excel"" onAction=""cptImportAppendixB"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportIMP"" imageMso=""ImportExcel"" label=""Import Generic IMP"" onAction=""cptCreate81334D"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Export"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExportIMP"" imageMso=""ExportExcel"" label=""Export IMP to Excel"" onAction=""cptCreate81334D"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
 
@@ -429,11 +429,12 @@ Dim lngCleanUp As Long
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
-
+  
   'status
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Status"" visible=""true"" >"
   If cptModuleExists("cptStatusSheet_bas") And cptModuleExists("cptStatusSheet_frm") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheet"" label=""Create Status Sheet"" imageMso=""DateAndTimeInsertOneNote"" onAction=""ShowcptStatusSheet_frm"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheet"" label=""Create Status Sheet(s)"" imageMso=""ExportExcel"" onAction=""ShowcptStatusSheet_frm"" visible=""true""/>" 'DateAndTimeInsertOneNote
+    'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheetImport"" label=""Import Status Sheet(s)"" imageMso=""ImportExcel"" onAction=""ShowcptStatusSheetImport_frm"" visible=""true""/>"
   End If
   If cptModuleExists("cptSmartDuration_frm") And cptModuleExists("cptSmartDuration_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSmartDuration"" label=""Smart Duration"" imageMso=""CalendarToolSelectDate"" onAction=""SmartDuration"" visible=""true""/>"
@@ -449,7 +450,7 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
 
-  'scenarios
+  'allocation scenarios
 
   'compare
 
@@ -509,9 +510,9 @@ Function cptIncrement(ByRef lgCleanUp As Long) As Long
 End Function
 
 Public Function cptInternetIsConnected() As Boolean
-
+ 
     cptInternetIsConnected = InternetGetConnectedStateEx(0, "", 254, 0)
-
+ 
 End Function
 
 Function cptRegEx(strText As String, strRegEx As String) As String
@@ -524,7 +525,7 @@ Dim strMatch As String
     With RE
         .MultiLine = False
         .Global = True
-        .IgnoreCase = True
+        .ignorecase = True
         .Pattern = strRegEx
     End With
 
@@ -550,12 +551,12 @@ End Function
 
 Function cptDir() As String
 Dim strPath As String
-
+  
   'confirm existence of cpt settings and backup modules file
-
+  
   'strPath = ThisProject.FullName
   'strPath = Left(strPath, InStrRev(strPath, "MS Project\") - 1 + Len("MS Project\"))
-
+  
   strPath = Environ("USERPROFILE")
   strPath = strPath & "\cpt-backup"
   If Dir(strPath, vbDirectory) = vbNullString Then
@@ -568,7 +569,7 @@ Dim strPath As String
     MkDir strPath & "\modules"
   End If
   cptDir = strPath
-
+  
 End Function
 
 Function cptModuleExists(strModule As String)
@@ -578,20 +579,20 @@ Dim vbComponent As Object
 Dim blnExists As Boolean
 'strings
 Dim strError As String
-
+  
   On Error Resume Next
   'Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
   cptModuleExists = Not ThisProject.VBProject.VBComponents(strModule) Is Nothing
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   GoTo exit_here
-
+  
   For Each vbComponent In ThisProject.VBProject.VBComponents
     If UCase(vbComponent.Name) = UCase(strModule) Then
       blnExists = True
       Exit For
     End If
   Next vbComponent
-
+  
   cptModuleExists = blnExists
 
 exit_here:
@@ -601,7 +602,7 @@ exit_here:
 err_here:
   Call cptHandleErr("cptSetup_bas", "cptModuleExists", err, Erl)
   Resume exit_here
-
+  
 End Function
 
 Sub cptUninstall()
@@ -656,10 +657,10 @@ Dim lngLine As Long
       End If
     Next lngLine
   End With
-
+  
   'reset the toolbar
   ActiveProject.SetCustomUI "<mso:customUI xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui""><mso:ribbon></mso:ribbon></mso:customUI>"
-
+  
   'remove all cpt modules
   For Each vbComponent In ThisProject.VBProject.VBComponents
     If Left(vbComponent.Name, 3) = "cpt" And vbComponent.Name <> "cptSetup_bas" Then
@@ -671,9 +672,9 @@ Dim lngLine As Long
     End If
 next_component:
   Next vbComponent
-
+  
   MsgBox "Thank you for using the ClearPlan Toolbar.", vbInformation + vbOKOnly, "Uninstall Complete"
-
+  
 exit_here:
   On Error Resume Next
   Application.StatusBar = ""
