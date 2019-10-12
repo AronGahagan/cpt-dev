@@ -23,21 +23,28 @@ Private Sub cboExport_Change()
   Select Case Me.cboExport
     Case "To Excel Workbook"
       'include header
+      Me.chkIncludeHeaders = True
+      Me.chkIncludeHeaders.Enabled = False
     Case "To CSV for MPM"
       'include header
+      Me.chkIncludeHeaders = False
+      Me.chkIncludeHeaders.Enabled = True
     Case "To CSV for COBRA"
       'include header
+      
     Case "To DI-MGMT-81334D"
       'hide include header
+      Me.chkIncludeHeaders = True
+      Me.chkIncludeHeaders.Enabled = False
       'get template?
   End Select
-
+  Me.cmdExport.SetFocus
+  
 End Sub
 
 Private Sub cboImport_Change()
 
   Me.cmdExportTemplate.Visible = False
-  Me.chkAlsoCreateTasks.Visible = False
   Me.lblNote.Caption = ""
   Select Case Me.cboImport
     Case "From Excel Workbook"
@@ -47,11 +54,15 @@ Private Sub cboImport_Change()
       Me.lblNote.Caption = "Import .xlsx: Headers CODE,LEVEL,TITLE in [A1:C1]"
     Case "From MIL-STD-881D Appendix B"
       Me.cmdImport.Caption = "Load"
+      Me.chkAlsoCreateTasks.Visible = True
+      Me.chkAlsoCreateTasks = True
+      Me.chkAlsoCreateTasks.Enabled = False
       Me.lblNote.Caption = "Import generic CWBS as starting point."
     Case "From Existing Tasks"
       Me.cmdImport.Caption = "Create"
       Me.lblNote.Caption = "Replicate current task structure into " & Me.cboOutlineCodes.Value & "."
   End Select
+  Me.txtNameIt.SetFocus
   
 End Sub
 
@@ -59,13 +70,48 @@ Private Sub cboOutlineCodes_Change()
   Me.TreeView1.Nodes.Clear
   Me.txtReplace.Text = ""
   Me.txtReplacement.Text = ""
-  If InStr(Me.cboOutlineCodes.Value, "(") > 0 Then
-    Call cptRefreshOutlineCodePreview(CStr(Me.cboOutlineCodes.Value))
+  If Not IsNull(Me.cboOutlineCodes.Value) Then
+    If Len(CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))) > 0 Then
+      Call cptRefreshOutlineCodePreview(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 1))
+    End If
   End If
 End Sub
 
 Private Sub cmdCancel_Click()
   Me.Hide
+End Sub
+
+Private Sub cmdExport_Click()
+'objects
+'strings
+'longs
+Dim lngOutlineCode As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  lngOutlineCode = Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0)
+  Select Case Me.cboExport
+    Case "To Excel Workbook"
+      Call cptExportOutlineCodeToExcel(lngOutlineCode)
+    Case "To CSV for MPM"
+      Call cptExportOutlineCodeForMPM(lngOutlineCode)
+    Case "To CSV for COBRA"
+      
+    Case "To DI-MGMT-81334D Template"
+      
+  End Select
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptOutlineCodes_frm", "cmdExport_Click", err, Erl)
+  Resume exit_here
 End Sub
 
 Private Sub cmdExportTemplate_Click()
@@ -86,20 +132,13 @@ Dim lngOutlineCode As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  'only fields with custom names have a left parenthesis
-  If InStr(Me.cboOutlineCodes.Value, "(") > 0 Then
-    strOutlineCode = Left(Me.cboOutlineCodes.Value, InStr(Me.cboOutlineCodes.Value, " (") - 1)
-  Else
-    strOutlineCode = Me.cboOutlineCodes.Value
-  End If
-  lngOutlineCode = Application.FieldNameToFieldConstant(strOutlineCode)
   If Len(Me.txtNameIt.Value) = 0 Then
     MsgBox "Please provide a name.", vbExclamation + vbOKOnly, "No Name"
     GoTo exit_here
   Else
     strOutlineCode = Me.txtNameIt
   End If
-  
+  lngOutlineCode = Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0)
   CustomFieldRename lngOutlineCode, strOutlineCode
   'ActiveProject.OutlineCodes.Add lngOutlineCode, strOutlineCode
   Select Case Me.cboImport
@@ -110,7 +149,7 @@ Dim lngOutlineCode As Long
       Call cptImportAppendixB(lngOutlineCode)
       
     Case "From Existing Tasks"
-      Call cptCreateCode(lngOutlineCode, strOutlineCode)
+      Call cptCreateCode(lngOutlineCode)
   
   End Select
   
@@ -141,8 +180,23 @@ err_here:
 
 End Sub
 
+Private Sub optExport_Click()
+  Call cptBackboneHideControls
+  Me.cboExport.DropDown
+End Sub
+
 Private Sub optImport_Click()
-  Me.optExport.Value = Not Me.optImport.Value
+  Call cptBackboneHideControls
+  Me.cboImport.DropDown
+End Sub
+
+Private Sub optOutlineCode_Click()
+  Call cptBackboneHideControls
+End Sub
+
+Private Sub optReplace_Click()
+  Call cptBackboneHideControls
+  Me.txtReplace.SetFocus
 End Sub
 
 Private Sub txtReplace_Change()
@@ -163,7 +217,8 @@ End Sub
 
 Private Sub txtReplacement_Change()
 'objects
-Dim OutlineCode As OutlineCode, LookupTable As LookupTable
+Dim OutlineCode As Object 'OutlineCode
+Dim LookupTable As Object 'LookupTable
 'strings
 Dim strOutlineCode As String
 'long
@@ -176,7 +231,7 @@ Dim lngEntry As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  strOutlineCode = Replace(Replace(Me.cboOutlineCodes.Value, cptRegEx(Me.cboOutlineCodes.Value, "Outline Code[1-10] \("), ""), ")", "")
+  strOutlineCode = CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))
   Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
   Set LookupTable = OutlineCode.LookupTable
@@ -222,7 +277,7 @@ Dim lngField As Long
   If lngField <> 0 Then 'exists
     Me.txtNameIt.BorderColor = 255
     Me.txtNameIt.ForeColor = 255
-    Me.lblStatus.Caption = FieldConstantToFieldName(FieldNameToFieldConstant(Me.txtNameIt.Text)) & " is already named '" & Me.txtNameIt.Text & "!"
+    Me.lblStatus.Caption = FieldConstantToFieldName(FieldNameToFieldConstant(Me.txtNameIt.Text)) & " is already named '" & Me.txtNameIt.Text & "'!"
   End If
   
 exit_here:
@@ -237,12 +292,15 @@ End Sub
 
 Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
 'objects
+Dim OutlineCode As Object 'OutlineCode
+Dim LookupTable As Object 'LookupTable
 'strings
 Dim strNewName As String
 Dim strCustomName As String
 Dim strOutlineCode As String
 'longs
 Dim lngItem As Long
+Dim lngOutlineCode As Long
 Dim lngSelected As Long
 'integers
 'doubles
@@ -252,31 +310,52 @@ Dim lngSelected As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  'has anything changed?
+  'have any outline codes been updated? update cbo options
   lngSelected = Me.cboOutlineCodes.ListIndex
   For lngItem = 0 To 9
     With cptOutlineCodes_frm.cboOutlineCodes
-      strOutlineCode = .List(lngItem, 0)
+      lngOutlineCode = .List(lngItem, 0)
+      strOutlineCode = .List(lngItem, 1)
       If InStr(strOutlineCode, "(") > 0 Then
         strOutlineCode = cptRegEx(strOutlineCode, "Outline Code[0-9]{1,2}")
-        strCustomName = Replace(Replace(.List(lngItem, 0), strOutlineCode & " (", ""), ")", "")
+        strCustomName = Replace(Replace(.List(lngItem, 1), strOutlineCode & " (", ""), ")", "")
       Else
         strCustomName = ""
       End If
       strNewName = CustomFieldGetName(FieldNameToFieldConstant(strOutlineCode))
       If strNewName <> strCustomName Then
+        MsgBox "name changed"
         If Len(strNewName) > 0 Then
-          .List(lngItem, 0) = strOutlineCode & " (" & strNewName & ")"
+          .List(lngItem, 1) = strOutlineCode & " (" & strNewName & ")"
         Else
-          .List(lngItem, 0) = strOutlineCode
+          .List(lngItem, 1) = strOutlineCode
         End If
-        'cptRefreshOutlineCodePreview
+        'the above triggers cboOutlineCodes_Change() so skip
+        GoTo exit_here
       End If
     End With
   Next
+  'has the currently selected outline code been edited?
+  strOutlineCode = CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))
+  Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+  On Error Resume Next
+  Set LookupTable = OutlineCode.LookupTable
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If Not LookupTable Is Nothing Then
+    For lngItem = 1 To LookupTable.Count
+      If Me.TreeView1.Nodes(lngItem).Text <> LookupTable.Item(lngItem).FullName & " - " & LookupTable.Item(lngItem).Description Then
+        MsgBox "lookuptable changed"
+        Me.TreeView1.Nodes.Clear
+        Call cptRefreshOutlineCodePreview(strOutlineCode)
+        Exit For
+      End If
+    Next lngItem
+  End If
 
 exit_here:
   On Error Resume Next
+  Set OutlineCode = Nothing
+  Set LookupTable = Nothing
 
   Exit Sub
 err_here:
