@@ -783,6 +783,7 @@ Sub cptBackboneHideControls()
     'Export
     .cboExport.Enabled = .optExport
     .chkIncludeHeaders.Enabled = .optExport
+    .chkIncludeThresholds.Enabled = .optExport
     .cmdExport.Enabled = .optExport
   End With
 
@@ -865,7 +866,7 @@ Dim lngFile As Long
 
   Close #lngFile
   
-  'todo: add option to open in Excel
+  'todo: add option to open in Excel instead
   Shell "C:\Windows\notepad.exe '" & strFile & "'", vbNormalFocus
 
 exit_here:

@@ -20,6 +20,8 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 
 Private Sub cboExport_Change()
 
+  Me.chkIncludeThresholds.Enabled = False
+
   Select Case Me.cboExport
     Case "To Excel Workbook"
       'include header
@@ -33,6 +35,7 @@ Private Sub cboExport_Change()
       'include header
       Me.chkIncludeHeaders = True
       Me.chkIncludeHeaders.Enabled = False
+      Me.chkIncludeThresholds.Enabled = True
     Case "To DI-MGMT-81334D Template"
       'hide include header
       Me.chkIncludeHeaders = True
@@ -79,7 +82,7 @@ Private Sub cboOutlineCodes_Change()
 End Sub
 
 Private Sub cmdCancel_Click()
-  Me.Hide
+  Unload Me
 End Sub
 
 Private Sub cmdExport_Click()
@@ -183,16 +186,20 @@ End Sub
 
 Private Sub optExport_Click()
   Call cptBackboneHideControls
+  Me.cboExport.SetFocus
   Me.cboExport.DropDown
 End Sub
 
 Private Sub optImport_Click()
   Call cptBackboneHideControls
+  Me.cboImport.SetFocus
   Me.cboImport.DropDown
 End Sub
 
 Private Sub optOutlineCode_Click()
   Call cptBackboneHideControls
+  Me.cboOutlineCodes.SetFocus
+  Me.cboOutlineCodes.DropDown
 End Sub
 
 Private Sub optReplace_Click()
@@ -325,7 +332,6 @@ Dim lngSelected As Long
       End If
       strNewName = CustomFieldGetName(FieldNameToFieldConstant(strOutlineCode))
       If strNewName <> strCustomName Then
-        MsgBox "name changed"
         If Len(strNewName) > 0 Then
           .List(lngItem, 1) = strOutlineCode & " (" & strNewName & ")"
         Else
@@ -345,7 +351,6 @@ Dim lngSelected As Long
   If Not LookupTable Is Nothing Then
     For lngItem = 1 To LookupTable.Count
       If Me.TreeView1.Nodes(lngItem).Text <> LookupTable.Item(lngItem).FullName & " - " & LookupTable.Item(lngItem).Description Then
-        MsgBox "lookuptable changed"
         Me.TreeView1.Nodes.Clear
         Call cptRefreshOutlineCodePreview(strOutlineCode)
         Exit For
