@@ -234,3 +234,53 @@ err_here:
   Resume exit_here
   
 End Sub
+
+Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+'objects
+'strings
+Dim strNewName As String
+Dim strCustomName As String
+Dim strOutlineCode As String
+'longs
+Dim lngItem As Long
+Dim lngSelected As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'has anything changed?
+  lngSelected = Me.cboOutlineCodes.ListIndex
+  For lngItem = 0 To 9
+    With cptOutlineCodes_frm.cboOutlineCodes
+      strOutlineCode = .List(lngItem, 0)
+      If InStr(strOutlineCode, "(") > 0 Then
+        strOutlineCode = cptRegEx(strOutlineCode, "Outline Code[0-9]{1,2}")
+        strCustomName = Replace(Replace(.List(lngItem, 0), strOutlineCode & " (", ""), ")", "")
+      Else
+        strCustomName = ""
+      End If
+      strNewName = CustomFieldGetName(FieldNameToFieldConstant(strOutlineCode))
+      If strNewName <> strCustomName Then
+        If Len(strNewName) > 0 Then
+          .List(lngItem, 0) = strOutlineCode & " (" & strNewName & ")"
+        Else
+          .List(lngItem, 0) = strOutlineCode
+        End If
+        'cptRefreshOutlineCodePreview
+      End If
+    End With
+  Next
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptUpgrades_frm", "UserForm_MouseMove", err, Erl)
+  Resume exit_here
+
+End Sub
