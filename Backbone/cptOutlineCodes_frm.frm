@@ -37,25 +37,28 @@ End Sub
 Private Sub cboImport_Change()
 
   Me.cmdExportTemplate.Visible = False
-  Me.chkAlsoCreateTasks1.Visible = False
-  
+  Me.chkAlsoCreateTasks.Visible = False
+  Me.lblNote.Caption = ""
   Select Case Me.cboImport
     Case "From Excel Workbook"
-      Me.cmdGo.Caption = "Import..."
+      Me.cmdImport.Caption = "Import..."
       Me.cmdExportTemplate.Visible = True
-      Me.chkAlsoCreateTasks1.Visible = True
+      Me.chkAlsoCreateTasks.Visible = True
+      Me.lblNote.Caption = "Import .xlsx: Headers CODE,LEVEL,TITLE in [A1:C1]"
     Case "From MIL-STD-881D Appendix B"
-      Me.cmdGo.Caption = "Load"
+      Me.cmdImport.Caption = "Load"
+      Me.lblNote.Caption = "Import generic CWBS as starting point."
     Case "From Existing Tasks"
-      Me.cmdGo.Caption = "Create"
+      Me.cmdImport.Caption = "Create"
+      Me.lblNote.Caption = "Replicate current task structure into " & Me.cboOutlineCodes.Value & "."
   End Select
   
 End Sub
 
 Private Sub cboOutlineCodes_Change()
   Me.TreeView1.Nodes.Clear
-  Me.TextBox1.Text = ""
-  Me.TextBox2.Text = ""
+  Me.txtReplace.Text = ""
+  Me.txtReplacement.Text = ""
   If InStr(Me.cboOutlineCodes.Value, "(") > 0 Then
     Call cptRefreshOutlineCodePreview(CStr(Me.cboOutlineCodes.Value))
   End If
@@ -69,11 +72,17 @@ Private Sub cmdExportTemplate_Click()
   Call cptExportTemplate
 End Sub
 
-Private Sub cmdGo_Click()
+Private Sub cmdImport_Click()
+'objects
 'strings
 Dim strOutlineCode As String
 'longs
 Dim lngOutlineCode As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -87,8 +96,23 @@ Dim lngOutlineCode As Long
   If Len(Me.txtNameIt.Value) = 0 Then
     MsgBox "Please provide a name.", vbExclamation + vbOKOnly, "No Name"
     GoTo exit_here
+  Else
+    strOutlineCode = Me.txtNameIt
   End If
-  Call cptCreateCode(lngOutlineCode, Me.txtNameIt.Value)
+  
+  CustomFieldRename lngOutlineCode, strOutlineCode
+  'ActiveProject.OutlineCodes.Add lngOutlineCode, strOutlineCode
+  Select Case Me.cboImport
+    Case "From Excel Workbook"
+      Call cptImportCWBSFromExcel(lngOutlineCode)
+      
+    Case "From MIL-STD-881D Appendix B"
+      Call cptImportAppendixB(lngOutlineCode)
+      
+    Case "From Existing Tasks"
+      Call cptCreateCode(lngOutlineCode, strOutlineCode)
+  
+  End Select
   
 exit_here:
   On Error Resume Next
@@ -121,28 +145,34 @@ Private Sub optImport_Click()
   Me.optExport.Value = Not Me.optImport.Value
 End Sub
 
-Private Sub TextBox1_Change()
+Private Sub txtReplace_Change()
 Dim lngEntry As Long
   
   For lngEntry = 1 To Me.TreeView1.Nodes.Count
     Me.TreeView1.Nodes(lngEntry).Checked = False
-    If Len(Me.TextBox1.Text) > 0 And InStr(Me.TreeView1.Nodes(lngEntry).Text, Me.TextBox1.Text) > 0 Then
+    If Len(Me.txtReplace.Text) > 0 And InStr(Me.TreeView1.Nodes(lngEntry).Text, Me.txtReplace.Text) > 0 Then
       Me.TreeView1.Nodes(lngEntry).Checked = True
     End If
   Next lngEntry
   
 End Sub
 
-Private Sub TextBox1_Enter()
+Private Sub txtReplace_Enter()
   Me.TreeView1.Checkboxes = True
 End Sub
 
-Private Sub TextBox2_Change()
+Private Sub txtReplacement_Change()
 'objects
 Dim OutlineCode As OutlineCode, LookupTable As LookupTable
+'strings
+Dim strOutlineCode As String
 'long
 Dim lngEntry As Long
-
+'integers
+'doubles
+'booleans
+'variants
+'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -152,10 +182,10 @@ Dim lngEntry As Long
   Set LookupTable = OutlineCode.LookupTable
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If LookupTable Is Nothing Then GoTo exit_here
-  If Len(Me.TextBox1.Text) > 0 Then
-    If Len(Me.TextBox2.Text) > 0 Then
+  If Len(Me.txtReplace.Text) > 0 Then
+    If Len(Me.txtReplacement.Text) > 0 Then
       For lngEntry = 1 To Me.TreeView1.Nodes.Count
-        Me.TreeView1.Nodes(lngEntry).Text = Replace(LookupTable.Item(lngEntry).Description, Me.TextBox1.Text, Me.TextBox2.Text)
+        Me.TreeView1.Nodes(lngEntry).Text = Replace(LookupTable.Item(lngEntry).Description, Me.txtReplace.Text, Me.txtReplacement.Text)
       Next lngEntry
     Else
       For lngEntry = 1 To Me.TreeView1.Nodes.Count
@@ -169,7 +199,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptOutlineCodes_frm", "TextBox2_Change", err, Erl)
+  Call cptHandleErr("cptOutlineCodes_frm", "txtReplacement_Change", err, Erl)
   Resume exit_here
 End Sub
 
