@@ -31,12 +31,13 @@ Private Sub cboExport_Change()
       Me.chkIncludeHeaders.Enabled = True
     Case "To CSV for COBRA"
       'include header
-      
-    Case "To DI-MGMT-81334D"
+      Me.chkIncludeHeaders = True
+      Me.chkIncludeHeaders.Enabled = False
+    Case "To DI-MGMT-81334D Template"
       'hide include header
       Me.chkIncludeHeaders = True
       Me.chkIncludeHeaders.Enabled = False
-      'get template?
+      'get template
   End Select
   Me.cmdExport.SetFocus
   
@@ -51,7 +52,7 @@ Private Sub cboImport_Change()
       Me.cmdImport.Caption = "Import..."
       Me.cmdExportTemplate.Visible = True
       Me.chkAlsoCreateTasks.Visible = True
-      Me.lblNote.Caption = "Import .xlsx: Headers CODE,LEVEL,TITLE in [A1:C1]"
+      Me.lblNote.Caption = "Import *.xlsx: Header CODE,LEVEL,TITLE in [A1:C1]"
     Case "From MIL-STD-881D Appendix B"
       Me.cmdImport.Caption = "Load"
       Me.chkAlsoCreateTasks.Visible = True
@@ -60,7 +61,7 @@ Private Sub cboImport_Change()
       Me.lblNote.Caption = "Import generic CWBS as starting point."
     Case "From Existing Tasks"
       Me.cmdImport.Caption = "Create"
-      Me.lblNote.Caption = "Replicate current task structure into " & Me.cboOutlineCodes.Value & "."
+      Me.lblNote.Caption = "Replicate current task structure into " & Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 1) & "."
   End Select
   Me.txtNameIt.SetFocus
   
@@ -100,7 +101,7 @@ Dim lngOutlineCode As Long
     Case "To CSV for MPM"
       Call cptExportOutlineCodeForMPM(lngOutlineCode)
     Case "To CSV for COBRA"
-      
+      Call cptExportOutlineCodeForCOBRA(lngOutlineCode)
     Case "To DI-MGMT-81334D Template"
       
   End Select

@@ -509,6 +509,8 @@ Dim strOutlineCode As String, strOutlineCodeName As String
   cptOutlineCodes_frm.Show False
   cptOutlineCodes_frm.cboOutlineCodes.SetFocus
 
+  Call cptBackboneHideControls
+
 exit_here:
   On Error Resume Next
   
@@ -759,8 +761,8 @@ kill_file:
   Resume exit_here
   
 err_here:
-  MsgBox err.Number & ": " & err.Description, vbExclamation + vbOKOnly, "Error"
-    Resume exit_here
+  Call cptHandleErr("cptBackbone_bas", "cptExportOutlineCodeForMPM", err, Erl)
+  Resume exit_here
 
 End Sub
 
@@ -784,4 +786,103 @@ Sub cptBackboneHideControls()
     .cmdExport.Enabled = .optExport
   End With
 
+End Sub
+
+Sub cptExportOutlineCodeForCOBRA(lngOutlineCode)
+'objects
+Dim LookupTable As LookupTable
+Dim OutlineCode As OutlineCode
+'strings
+Dim strDescription As String
+Dim strCode As String
+Dim strFile As String
+Dim strHeader As String
+'longs
+Dim lngItem As Long
+Dim lngFile As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'confirm lookuptable exists
+  Set OutlineCode = ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode))
+  On Error Resume Next
+  Set LookupTable = OutlineCode.LookupTable
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If LookupTable Is Nothing Then
+    MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & " (" & CustomFieldGetName(lngOutlineCode) & ")", vbExclamation + vbOKOnly, "No LookupTable"
+    GoTo exit_here
+  End If
+  
+  'setup the export file
+  strFile = Environ("TEMP") & "\CODE_FILE_WBS.csv"
+  If Dir(strFile) <> vbNullString Then Kill strFile
+  lngFile = FreeFile
+  Open strFile For Output As #lngFile
+  
+  'export header
+  strHeader = "Code,"
+  strHeader = strHeader & "Description,"
+  If cptOutlineCodes_frm.chkIncludeThresholds Then
+    strHeader = strHeader & "Threshold SV Value Current Period Favorable,"
+    strHeader = strHeader & "Threshold SV Value Current Period Unfavorable,"
+    strHeader = strHeader & "Threshold SV % Current Period Favorable,"
+    strHeader = strHeader & "Threshold SV % Current Period Unfavorable,"
+    strHeader = strHeader & "Threshold SV Value Cumulative Favorable,"
+    strHeader = strHeader & "Threshold SV Value Cumulative Unfavorable,"
+    strHeader = strHeader & "Threshold SV % Cumulative Favorable,"
+    strHeader = strHeader & "Threshold SV % Cumulative Unfavorable,"
+    strHeader = strHeader & "Threshold CV Value Current Period Favorable,"
+    strHeader = strHeader & "Threshold CV Value Current Period Unfavorable,"
+    strHeader = strHeader & "Threshold CV % Current Period Favorable,"
+    strHeader = strHeader & "Threshold CV % Current Period Unfavorable,"
+    strHeader = strHeader & "Threshold CV Value Cumulative Favorable,"
+    strHeader = strHeader & "Threshold CV Value Cumulative Unfavorable,"
+    strHeader = strHeader & "Threshold CV % Cumulative Favorable,"
+    strHeader = strHeader & "Threshold CV % Cumulative Unfavorable,"
+    strHeader = strHeader & "Threshold At Complete Value Favorable,"
+    strHeader = strHeader & "Threshold At Complete Value Unfavorable,"
+    strHeader = strHeader & "Threshold At Complete % Favorable,"
+    strHeader = strHeader & "Threshold At Complete % Unfavorable,"
+  End If
+  
+  Print #lngFile, strHeader
+  
+  'export outline code
+  For lngItem = 1 To LookupTable.Count
+    strCode = LookupTable(lngItem).FullName
+    strDescription = LookupTable(lngItem).Description
+    If Not LookupTable(lngItem).IsValid Then
+      MsgBox "Invalid Code Found! See " & strCode & " : " & strDescription, vbCritical + vbOKOnly, "Error"
+      GoTo kill_file
+    End If
+    Print #lngFile, strCode & "," & Chr(34) & strDescription & Chr(34) & ","
+  Next lngItem
+
+  Close #lngFile
+  
+  'todo: add option to open in Excel
+  Shell "C:\Windows\notepad.exe '" & strFile & "'", vbNormalFocus
+
+exit_here:
+  On Error Resume Next
+  Set LookupTable = Nothing
+  Set OutlineCode = Nothing
+  For lngFile = 1 To FreeFile: Close #lngFile: Next lngFile
+  Exit Sub
+  
+kill_file:
+  On Error Resume Next
+  Close #lngFile
+  Kill strFile
+  Resume exit_here
+  
+err_here:
+  Call cptHandleErr("cptBackbone_bas", "cptExportOutlineCodeForCOBRA", err, Erl)
+  Resume exit_here
+  
 End Sub
