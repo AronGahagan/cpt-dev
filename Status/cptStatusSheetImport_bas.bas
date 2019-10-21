@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub ShowCptStatusSheetImport_frm()
@@ -157,6 +157,7 @@ End Sub
 
 Sub cptStatusSheetImport()
 'objects
+Dim SubProject As Object
 Dim Task As Task
 Dim Resource As Resource
 Dim Assignment As Assignment
@@ -317,7 +318,13 @@ Dim dtStatus As Date
   'clear existing values from selected import fields -- but not Task.ActualStart or Task.ActualFinish
   cptStatusSheetImport_frm.lblStatus = "Clearing existing values..."
   cptSpeed True
-  lngTasks = ActiveProject.Tasks.Count
+  If ActiveProject.Subprojects.Count > 0 Then
+    For Each SubProject In ActiveProject.Subprojects
+      lngTasks = lngTasks + SubProject.SourceProject.Tasks.Count
+    Next
+  Else
+    lngTasks = ActiveProject.Tasks.Count
+  End If
   For Each Task In ActiveProject.Tasks
     lngTask = lngTask + 1
     If Task Is Nothing Then GoTo next_task
@@ -326,7 +333,12 @@ Dim dtStatus As Date
     If Not Task.Active Then GoTo next_task
     'clear dates
     For Each vField In Array(lngAS, lngAF, lngFS, lngFF)
-      Task.SetField vField, ""
+      If vField = 188743721 Then GoTo next_field 'DO NOT clear out Actual Start
+      If vField = 188743722 Then GoTo next_field 'DO NOT clear out Actual Finish
+      If Not Task.GetField(vField) = "NA" Then
+        Task.SetField vField, ""
+      End If
+next_field:
     Next vField
     'clear EV
     Task.SetField lngEV, CStr(0)
@@ -358,7 +370,7 @@ next_task:
     cptStatusSheetImport_frm.lblProgress.Width = (lngTask / lngTasks) * cptStatusSheetImport_frm.lblStatus.Width
     DoEvents
   Next Task
-  
+    
   'set up excel
   Set xlApp = CreateObject("Excel.Application")
   With cptStatusSheetImport_frm
@@ -417,19 +429,23 @@ next_task:
           End If
           If blnTask Then
             'new start date
-            dtNewDate = CDate(Worksheet.Cells(lngRow, lngASCol))
-            'determine actual or forecast
-            If dtNewDate <= dtStatus Then 'actual start
-              Task.SetField lngAS, dtNewDate
-            ElseIf dtNewDate > dtStatus Then 'forecast start
-              Task.SetField lngFS, dtNewDate
+            If Worksheet.Cells(lngRow, lngASCol).Value > 0 And Not Worksheet.Cells(lngRow, lngASCol).Locked Then
+              dtNewDate = CDate(Worksheet.Cells(lngRow, lngASCol).Value)
+              'determine actual or forecast
+              If dtNewDate <= dtStatus Then 'actual start
+                Task.SetField lngAS, dtNewDate
+              ElseIf dtNewDate > dtStatus Then 'forecast start
+                Task.SetField lngFS, dtNewDate
+              End If
             End If
             'new finish date
-            dtNewDate = CDate(Worksheet.Cells(lngRow, lngAFCol))
-            If dtNewDate <= dtStatus Then 'actual finish
-              Task.SetField lngAF, CDate(Worksheet.Cells(lngRow, lngAFCol))
-            ElseIf dtNewDate > dtStatus Then 'forecast finish
-              Task.SetField lngFF, CDate(Worksheet.Cells(lngRow, lngAFCol))
+            If Worksheet.Cells(lngRow, lngAFCol).Value > 0 And Not Worksheet.Cells(lngRow, lngAFCol).Locked Then
+              dtNewDate = CDate(Worksheet.Cells(lngRow, lngAFCol))
+              If dtNewDate <= dtStatus Then 'actual finish
+                Task.SetField lngAF, CDate(Worksheet.Cells(lngRow, lngAFCol))
+              ElseIf dtNewDate > dtStatus Then 'forecast finish
+                Task.SetField lngFF, CDate(Worksheet.Cells(lngRow, lngAFCol))
+              End If
             End If
             'ev
             If (Worksheet.Cells(lngRow, lngEVCol) * 100) <> Task.GetField(lngEV) Then
@@ -485,6 +501,7 @@ next_file:
   
 exit_here:
   On Error Resume Next
+  Set SubProject = Nothing
   cptStatusSheetImport_frm.lblStatus.Caption = "Import Complete."
   cptStatusSheetImport_frm.lblProgress.Width = cptStatusSheetImport_frm.lblStatus.Width
   DoEvents
