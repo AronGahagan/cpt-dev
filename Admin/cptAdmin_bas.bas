@@ -269,8 +269,6 @@ Dim strDirectory As String
       strDirectory = "Status"
     Case "StatusSheet"
       strDirectory = "Status"
-    Case "StatusSheetImport"
-      strDirectory = "Status"
     'Trace
     Case "CriticalPath"
       strDirectory = "Trace"
