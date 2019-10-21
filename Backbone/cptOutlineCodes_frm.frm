@@ -106,7 +106,7 @@ Dim lngOutlineCode As Long
     Case "To CSV for COBRA"
       Call cptExportOutlineCodeForCOBRA(lngOutlineCode)
     Case "To DI-MGMT-81334D Template"
-      
+      Call cptExport81334D(lngOutlineCode)
   End Select
 
 exit_here:

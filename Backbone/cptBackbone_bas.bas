@@ -410,8 +410,165 @@ err_here:
   
 End Sub
 
-Sub cptExport81334D()
+Sub cptExport81334D(lngOutlineCode As Long)
+'objects
+Dim LookupTable As LookupTable
+Dim OutlineCode As OutlineCode
+Dim wsDictionary As Worksheet 'OBject
+Dim wsIndex As Worksheet 'Object
+Dim Workbook As Object 'Workbok
+Dim xlApp As Object 'Excel.Application
+Dim oStream As Object 'ADODB.Stream
+Dim xmlHttpDoc As Object
+Dim objShell As Object
+'strings
+Dim strOutlineCode As String
+Dim strURL As String
+Dim strTemplateDir As String
+Dim strTemplate As String
+'longs
+Dim lngBorder As Long
+Dim lngRow As Long
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
 
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'first determine if user has the template installed
+  Set objShell = CreateObject("WScript.Shell")
+  strTemplateDir = objShell.SpecialFolders("Templates")
+  strTemplate = "81334D_CWBS_TEMPLATE.xltm"
+  
+  If Dir(strTemplateDir & "\" & strTemplate) = vbNullString Then
+    'provide user feedback
+    cptOutlineCodes_frm.lblStatus.Caption = "Downloading template..."
+    Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
+    strURL = strGitHub & "Templates/" & strTemplate
+    '===DEBUG===
+    strURL = Replace(strURL, "master", "issue28-outlineCodes")
+    '===DEBUG===
+    xmlHttpDoc.Open "GET", strURL, False
+    xmlHttpDoc.Send
+    If xmlHttpDoc.Status = 200 And xmlHttpDoc.readyState = 4 Then
+      'success: save it to templates directory
+      Set oStream = CreateObject("ADODB.Stream")
+      oStream.Open
+      oStream.Type = 1 'adTypeBinary
+      oStream.Write xmlHttpDoc.responseBody
+      oStream.SaveToFile strTemplateDir & "\" & strTemplate
+      oStream.Close
+    Else
+      cptOutlineCodes_frm.lblStatus.Caption = "Download failed."
+      'fail: prompt to request by email
+      If MsgBox("Unable to download template. Request via email?", vbExclamation + vbYesNo, "No Connection") = vbYes Then
+        'create email
+      End If
+      GoTo exit_here
+    End If
+    
+  End If
+
+  'get outline code name and export it
+  cptOutlineCodes_frm.lblStatus.Caption = "Exporting..."
+  strOutlineCode = CustomFieldGetName(lngOutlineCode)
+  Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+  On Error Resume Next
+  Set LookupTable = OutlineCode.LookupTable
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If LookupTable Is Nothing Then
+    MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbCritical + vbOKOnly, "No Code Defined"
+    GoTo exit_here
+  Else
+    'open excel and create template
+    Set xlApp = CreateObject("Excel.Application")
+    Set Workbook = xlApp.Workbooks.Add(strTemplateDir & "\" & strTemplate)
+    xlApp.Calculation = -4135 'xlManual
+    xlApp.ScreenUpdating = False
+    Set wsIndex = Workbook.Sheets("CWBS Index")
+    wsIndex.Outline.SummaryRow = 0 'xlSummaryAbove
+    Set wsDictionary = Workbook.Sheets("CWBS Dictionary")
+    wsDictionary.Outline.SummaryRow = 0 'xlSummaryAbove
+    lngRow = 7
+    For lngItem = 1 To LookupTable.Count
+      'index: code=col1; name=col9
+      wsIndex.Cells(lngRow, 1).Value = "'" & LookupTable.Item(lngItem).FullName
+      wsIndex.Cells(lngRow, 10).Value = LookupTable.Item(lngItem).Description
+      wsIndex.Cells(lngRow, 10).HorizontalAlignment = -4131 'xlLeft
+      wsIndex.Cells(lngRow, 10).IndentLevel = Len(CStr(LookupTable.Item(lngItem).FullName)) - Len(Replace(CStr(LookupTable.Item(lngItem).FullName), ".", ""))
+      wsIndex.Rows(lngRow).OutlineLevel = Len(CStr(LookupTable.Item(lngItem).FullName)) - Len(Replace(CStr(LookupTable.Item(lngItem).FullName), ".", "")) + 1
+      If lngRow >= 8 Then
+        wsIndex.Range(wsIndex.Cells(lngRow, 10), wsIndex.Cells(lngRow, 19)).Merge
+      End If
+      'dictionary: code=col1; name=col2
+      wsDictionary.Cells(lngRow, 1).Value = "'" & LookupTable.Item(lngItem).FullName
+      wsDictionary.Cells(lngRow, 2).Value = LookupTable.Item(lngItem).Description
+      wsDictionary.Cells(lngRow, 2).HorizontalAlignment = -4131 'xlLeft
+      wsDictionary.Cells(lngRow, 2).IndentLevel = wsIndex.Cells(lngRow, 10).IndentLevel
+      wsDictionary.Rows(lngRow).OutlineLevel = wsIndex.Rows(lngRow).OutlineLevel
+      If lngRow >= 8 Then
+        wsDictionary.Range(wsDictionary.Cells(lngRow, 2), wsDictionary.Cells(lngRow, 3)).Merge
+        wsDictionary.Range(wsDictionary.Cells(lngRow, 4), wsDictionary.Cells(lngRow, 11)).Merge
+      End If
+      cptOutlineCodes_frm.lblStatus.Caption = "Exporting...(" & Format((lngRow - 6) / LookupTable.Count, "0%") & ")"
+      cptOutlineCodes_frm.lblProgress.Width = ((lngRow - 6) / LookupTable.Count) * cptOutlineCodes_frm.lblStatus.Width
+      lngRow = lngRow + 1
+    Next
+  End If
+  
+  'format it
+  '-4121=xlDown; -4161=xlToRight; 1=xlContinuous; 2=xlThin; -4105=xlColorIndexAutomatic
+  wsIndex.[B8:I8].AutoFill Destination:=wsIndex.Range(wsIndex.Cells(8, 2), wsIndex.Cells(7 + LookupTable.Count - 1, 9))
+  For lngBorder = 7 To 12 'left,top,bottom,right,insidevertical,insidehorizontal
+    With wsIndex.Range(wsIndex.[A7].End(-4121), wsIndex.Cells(7, 19)).Borders(lngBorder)
+      .LineStyle = 1
+      .Weight = 2
+      .ColorIndex = -4105
+    End With
+    With wsDictionary.Range(wsDictionary.[A7].End(-4121), wsDictionary.Cells(7, 11)).Borders(lngBorder)
+      .LineStyle = 1
+      .Weight = 2
+      .ColorIndex = -4105
+    End With
+  Next lngBorder
+  wsDictionary.Range(wsDictionary.[A7].End(-4121), wsDictionary.[A7].End(-4161)).BorderAround 1, 2, -4105
+  
+  'freeze panes
+  wsDictionary.Activate
+  wsDictionary.[A7].Select
+  xlApp.ActiveWindow.FreezePanes = True
+  wsIndex.Activate
+  wsIndex.[A7].Select
+  xlApp.ActiveWindow.FreezePanes = True
+  xlApp.Visible = True
+  'todo: grouping?
+  
+  'provide user feedback
+  cptOutlineCodes_frm.lblStatus.Caption = "Complete."
+  
+exit_here:
+  On Error Resume Next
+  cptOutlineCodes_frm.lblStatus.Caption = "Ready..."
+  cptOutlineCodes_frm.lblProgress.Width = cptOutlineCodes_frm.lblProgress.Width
+  Set LookupTable = Nothing
+  Set OutlineCode = Nothing
+  Set wsDictionary = Nothing
+  Set wsIndex = Nothing
+  Set Workbook = Nothing
+  xlApp.Calculation = -4105 'xlAutomatic
+  xlApp.ScreenUpdating = True
+  Set xlApp = Nothing
+  Set oStream = Nothing
+  Set xmlHttpDoc = Nothing
+  Set objShell = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptBackbone_bas", "cptExport81334D", err, Erl)
+  Resume exit_here
 End Sub
 
 Sub cptExportTemplate()
@@ -504,7 +661,6 @@ Dim strOutlineCode As String, strOutlineCodeName As String
   
   'pre-select Outline Code 1
   cptOutlineCodes_frm.txtNameIt = ""
-  cptOutlineCodes_frm.cmdCancel.Caption = "Cancel"
   cptOutlineCodes_frm.cboOutlineCodes.ListIndex = 0
   cptOutlineCodes_frm.Show False
   cptOutlineCodes_frm.cboOutlineCodes.SetFocus
@@ -794,6 +950,7 @@ Sub cptExportOutlineCodeForCOBRA(lngOutlineCode)
 Dim LookupTable As LookupTable
 Dim OutlineCode As OutlineCode
 'strings
+Dim strOutlineCode As String
 Dim strDescription As String
 Dim strCode As String
 Dim strFile As String
@@ -815,7 +972,8 @@ Dim lngFile As Long
   Set LookupTable = OutlineCode.LookupTable
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If LookupTable Is Nothing Then
-    MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & " (" & CustomFieldGetName(lngOutlineCode) & ")", vbExclamation + vbOKOnly, "No LookupTable"
+    strOutlineCode = CustomFieldGetName(lngOutlineCode)
+    MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbExclamation + vbOKOnly, "No LookupTable"
     GoTo exit_here
   End If
   
