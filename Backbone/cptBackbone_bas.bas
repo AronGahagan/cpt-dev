@@ -288,6 +288,7 @@ Dim xlApp As Object 'Excel.Application
 Dim Workbook As Object 'Workbook
 Dim Worksheet As Object 'Worksheet
 Dim ListObject As Object 'ListObject
+Dim LookupTable As LookupTable
 Dim OutlineCode As OutlineCode
 'strings
 Dim strOutlineCode As String
@@ -303,7 +304,15 @@ Dim lngLookupItems As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   strOutlineCode = CustomFieldGetName(lngOutlineCode)
+  Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+  On Error Resume Next
+  Set LookupTable = OutlineCode.LookupTable
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
+  If LookupTable Is Nothing Then
+    MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbCritical + vbOKOnly, "No Code Defined"
+    GoTo exit_here
+  End If
   Application.StatusBar = "Exporting Outline Code '" & strOutlineCode & "'..."
   cptBackbone_frm.lblStatus.Caption = Application.StatusBar
   
@@ -315,20 +324,19 @@ Dim lngLookupItems As Long
   xlApp.Calculation = -4135 'xlCalculationManual
   xlApp.ScreenUpdating = False
   Set Worksheet = Workbook.Sheets(1)
-  Worksheet.Outline.SummaryRow = 0 'xlSummaryAbove
+  Worksheet.outline.SummaryRow = 0 'xlSummaryAbove
   Worksheet.[A1:C1] = Array("CODE", "LEVEL", "TITLE")
   
   'export the codes
-  Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
-  For lngLookupItems = 1 To OutlineCode.LookupTable.Count
+  For lngLookupItems = 1 To LookupTable.Count
     lngLastRow = Worksheet.Cells(Worksheet.Rows.Count, 1).End(xlUp).Row + 1
-    Worksheet.Cells(lngLastRow, 1).Value = "'" & OutlineCode.LookupTable.Item(lngLookupItems).FullName
-    Worksheet.Cells(lngLastRow, 2).Value = OutlineCode.LookupTable.Item(lngLookupItems).Level
-    Worksheet.Cells(lngLastRow, 3).Value = OutlineCode.LookupTable.Item(lngLookupItems).Description
-    Worksheet.Cells(lngLastRow, 3).IndentLevel = OutlineCode.LookupTable.Item(lngLookupItems).Level - 1
-    Worksheet.Rows(lngLastRow).OutlineLevel = OutlineCode.LookupTable.Item(lngLookupItems).Level
-    Application.StatusBar = "Exporting Outline Code '" & strOutlineCode & "'...(" & Format((lngLastRow - 1) / lngLookupItems, "0%") & ")"
-    cptBackbone_frm.lblStatus.Caption = Application.StatusBar
+    Worksheet.Cells(lngLastRow, 1).Value = "'" & LookupTable.Item(lngLookupItems).FullName
+    Worksheet.Cells(lngLastRow, 2).Value = LookupTable.Item(lngLookupItems).Level
+    Worksheet.Cells(lngLastRow, 3).Value = LookupTable.Item(lngLookupItems).Description
+    Worksheet.Cells(lngLastRow, 3).IndentLevel = LookupTable.Item(lngLookupItems).Level - 1
+    Worksheet.Rows(lngLastRow).OutlineLevel = LookupTable.Item(lngLookupItems).Level
+    cptBackbone_frm.lblProgress.Width = (lngLookupItems / LookupTable.Count) * cptBackbone_frm.lblStatus.Width
+    cptBackbone_frm.lblStatus.Caption = "Exporting Outline Code '" & strOutlineCode & "'...(" & Format((lngLastRow - 1) / lngLookupItems, "0%") & ")"
   Next lngLookupItems
   
   Application.StatusBar = "Formatting Worksheet..."
@@ -393,8 +401,10 @@ Dim lngLookupItems As Long
     
 exit_here:
   On Error Resume Next
-  Application.StatusBar = ""
+  Set LookupTable = Nothing
+  Application.StatusBar = "Ready..."
   cptBackbone_frm.lblStatus.Caption = Application.StatusBar
+  cptBackbone_frm.lblProgress.Width = cptBackbone_frm.lblStatus.Width
   xlApp.Visible = True
   xlApp.ScreenUpdating = True
   xlApp.Calculation = xlCalculationAutomatic
@@ -505,9 +515,9 @@ Dim lngItem As Long
     xlApp.Calculation = -4135 'xlManual
     xlApp.ScreenUpdating = False
     Set wsIndex = Workbook.Sheets("CWBS Index")
-    wsIndex.Outline.SummaryRow = 0 'xlSummaryAbove
+    wsIndex.outline.SummaryRow = 0 'xlSummaryAbove
     Set wsDictionary = Workbook.Sheets("CWBS Dictionary")
-    wsDictionary.Outline.SummaryRow = 0 'xlSummaryAbove
+    wsDictionary.outline.SummaryRow = 0 'xlSummaryAbove
     lngRow = 7
     For lngItem = 1 To LookupTable.Count
       'index: code=col1; name=col9
@@ -569,7 +579,7 @@ exit_here:
   Set MailItem = Nothing
   Set olApp = Nothing
   cptBackbone_frm.lblStatus.Caption = "Ready..."
-  cptBackbone_frm.lblProgress.Width = cptBackbone_frm.lblProgress.Width
+  cptBackbone_frm.lblProgress.Width = cptBackbone_frm.lblStatus.Width
   Set LookupTable = Nothing
   Set OutlineCode = Nothing
   Set wsDictionary = Nothing
@@ -843,7 +853,7 @@ Dim lngItem As Long, lngFile As Long
 Dim strHeader As String
 Dim strMsg As String
 Dim strCode As String, strDescription As String, strParent As String
-Dim strDir As String, strFile As String
+Dim strDir As String, strFile As String, strOutlineCode As String
 'booleans
 Dim blnCA As Boolean
 
@@ -855,7 +865,8 @@ Dim blnCA As Boolean
   Set LookupTable = OutlineCode.LookupTable
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If LookupTable Is Nothing Then
-    MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & " (" & CustomFieldGetName(lngOutlineCode) & ")", vbExclamation + vbOKOnly, "No LookupTable"
+    strOutlineCode = CustomFieldGetName(lngOutlineCode)
+    MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbExclamation + vbOKOnly, "No LookupTable"
     GoTo exit_here
   End If
   
