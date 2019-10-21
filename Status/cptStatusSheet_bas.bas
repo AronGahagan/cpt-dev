@@ -91,13 +91,13 @@ next_field:
   For intField = 0 To arrFields.Count - 1
     cptStatusSheet_frm.lboFields.AddItem
     cptStatusSheet_frm.lboFields.List(intField, 0) = arrFields.GetByIndex(intField)
-    cptStatusSheet_frm.lboFields.List(intField, 1) = arrFields.GetKey(intField)
-    If FieldNameToFieldConstant(arrFields.GetKey(intField)) >= 188776000 Then
+    cptStatusSheet_frm.lboFields.List(intField, 1) = arrFields.getKey(intField)
+    If FieldNameToFieldConstant(arrFields.getKey(intField)) >= 188776000 Then
       cptStatusSheet_frm.lboFields.List(intField, 2) = "Enterprise"
     Else
       cptStatusSheet_frm.lboFields.List(intField, 2) = FieldConstantToFieldName(arrFields.GetByIndex(intField))
     End If
-    cptStatusSheet_frm.cboEach.AddItem arrFields.GetKey(intField)
+    cptStatusSheet_frm.cboEach.AddItem arrFields.getKey(intField)
   Next
   'add EVT values
   For intField = 0 To arrEVT.Count - 1
@@ -244,10 +244,10 @@ Dim lngRow As Long, lngCol As Long, lngField As Long
 Dim lngNameCol As Long, lngBaselineWorkCol As Long, lngRemainingWorkCol As Long, lngEach As Long
 Dim lngNotesCol As Long, lngColumnWidth As Long
 Dim lngASCol As Long, lngAFCol As Long, lngETCCol As Long, lngEVPCol As Long
-#If Win64 and VBA7 Then '<issue53>
-	Dim t As LongPtr, tTotal As LongPtr '<issue53>
+#If Win64 And VBA7 Then '<issue53>
+        Dim t As LongPtr, tTotal As LongPtr '<issue53>
 #Else '<issue53>
-	Dim t As Long, tTotal As Long '<issue53>
+        Dim t As Long, tTotal As Long '<issue53>
 #End If '<issue53>
 Dim lngItem As Long
 'strings
@@ -497,7 +497,7 @@ next_field:
     If Task.OutlineLevel = 0 Then GoTo next_task
     If Task.ExternalTask Then GoTo next_task
     If Not Task.Active Then GoTo next_task
-    If cptStatusSheet_frm.chkHide = True Then
+    If cptStatusSheet_frm.chkHide = True And Not Task.GroupBySummary And Not Task.Summary Then
       If Task.ActualFinish <= CDate(cptStatusSheet_frm.txtHideCompleteBefore) Then GoTo next_task
     End If
 
@@ -1326,8 +1326,8 @@ evt_vs_evp:
     For lngItem = aEach.Count - 1 To 0 Step -1
       Workbook.Sheets(1).Copy After:=Workbook.Sheets(1)
       Set Worksheet = Workbook.Sheets("Status Sheet (2)")
-      Worksheet.Name = aEach.GetKey(lngItem)
-      SetAutoFilter FieldName:=cptStatusSheet_frm.cboEach, FilterType:=pjAutoFilterIn, Criteria1:=aEach.GetKey(lngItem)
+      Worksheet.Name = aEach.getKey(lngItem)
+      SetAutoFilter FieldName:=cptStatusSheet_frm.cboEach, FilterType:=pjAutoFilterIn, Criteria1:=aEach.getKey(lngItem)
       'get array of task and assignment unique ids
       Worksheet.Cells(lngRow + 2, 1).Value = "KEEP"
       'get group by summaries
@@ -1357,7 +1357,7 @@ evt_vs_evp:
       'name the range
       Set rngKeep = Worksheet.Cells(lngRow + 2, 1)
       Set rngKeep = Worksheet.Range(rngKeep, rngKeep.End(xlDown))
-      Workbook.Names.Add Name:="KEEP", RefersToR1C1:="=" & aEach.GetKey(lngItem) & "!" & rngKeep.Address(True, True, xlR1C1)
+      Workbook.Names.Add Name:="KEEP", RefersToR1C1:="=" & aEach.getKey(lngItem) & "!" & rngKeep.Address(True, True, xlR1C1)
       lngLastCol = Worksheet.Cells(lngHeaderRow, 1).End(xlToRight).Offset(1, 1).Column
       Set rngKeep = Worksheet.Range(Worksheet.Cells(lngHeaderRow + 1, lngLastCol), Worksheet.Cells(lngRow, lngLastCol))
       rngKeep(1).Offset(-1, 0).Value = "KEEP"
@@ -1394,13 +1394,13 @@ evt_vs_evp:
       End If
     ElseIf cptStatusSheet_frm.cboCreate.Value = "2" Then 'workbook for each
       For lngItem = aEach.Count - 1 To 0 Step -1
-        Workbook.Sheets(aEach.GetKey(lngItem)).Copy
-        If Dir(strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx")) <> vbNullString Then Kill strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx")
-        xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx"), 51
+        Workbook.Sheets(aEach.getKey(lngItem)).Copy
+        If Dir(strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")) <> vbNullString Then Kill strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")
+        xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51
         If blnEmail Then
           Set MailItem = olApp.CreateItem(olMailItem)
-          MailItem.Attachments.Add strDir & Replace(strFileName, ".xlsx", "_" & aEach.GetKey(lngItem) & ".xlsx")
-          MailItem.Subject = "Status Request [" & aEach.GetKey(lngItem) & "] " & Format(dtStatus, "yyyy-mm-dd")
+          MailItem.Attachments.Add strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")
+          MailItem.Subject = "Status Request [" & aEach.getKey(lngItem) & "] " & Format(dtStatus, "yyyy-mm-dd")
           MailItem.Display False
         End If
       Next lngItem
@@ -1410,7 +1410,7 @@ evt_vs_evp:
     'reset autofilter
     strFieldName = cptStatusSheet_frm.cboEach.Value
     For lngItem = 0 To aEach.Count - 1
-      strCriteria = strCriteria & aEach.GetKey(lngItem) & Chr$(9)
+      strCriteria = strCriteria & aEach.getKey(lngItem) & Chr$(9)
     Next
     strCriteria = Left(strCriteria, Len(strCriteria) - 1)
     SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
@@ -1527,9 +1527,9 @@ Dim lngItem As Long
   TableApply Name:="cptStatusSheet Table"
 
   'reset the filter
-  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
+  FilterEdit Name:="cptStatusSheet Filter", Taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
   If cptStatusSheet_frm.chkHide And IsDate(cptStatusSheet_frm.txtHideCompleteBefore) Then
-    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
+    FilterEdit Name:="cptStatusSheet Filter", Taskfilter:=True, FieldName:="", NewFieldName:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, operation:="Or", ShowSummaryTasks:=True
   End If
   FilterApply "cptStatusSheet Filter"
 
