@@ -15,6 +15,13 @@
 		<Directory>Backbone</Directory>
 	</Module>
 	<Module>
+		<Name>cptBackbone_frm</Name>
+		<FileName>cptBackbone_frm.frm</FileName>
+		<Version>v1.0.0</Version>
+		<Type>3</Type>
+		<Directory>Backbone</Directory>
+	</Module>
+	<Module>
 		<Name>cptBrowseFolder_bas</Name>
 		<FileName>cptBrowseFolder_bas.bas</FileName>
 		<Version>v1.0.2</Version>
@@ -83,13 +90,6 @@
 		<Version>v3.1.5</Version>
 		<Type>3</Type>
 		<Directory>Integration</Directory>
-	</Module>
-	<Module>
-		<Name>cptOutlineCodes_frm</Name>
-		<FileName>cptOutlineCodes_frm.frm</FileName>
-		<Version>v1.0.0</Version>
-		<Type>3</Type>
-		<Directory>Backbone</Directory>
 	</Module>
 	<Module>
 		<Name>cptPatch_bas</Name>
