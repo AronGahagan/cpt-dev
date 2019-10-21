@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.3.11</cpt_version>
+'<cpt_version>v1.3.12</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -10,7 +10,6 @@ Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/
                                                                         ByVal lpszConnectionName As String, _
                                                                         ByVal dwNameLen As Integer, _
                                                                         ByVal dwReserved As LongPtr) As LongPtr
-
 #Else
   Private Declare Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As Long, _
                                                                         ByVal lpszConnectionName As String, _
@@ -54,7 +53,7 @@ Dim vEvent As Variant
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   '<issue61> ensure proper installation
-  If Instr(ThisProject.FullName, "Global.MPT") = 0 Then
+  If InStr(ThisProject.FullName, "Global.MPT") = 0 Then
     MsgBox "The VBA module 'cptSetup_bas' must be installed in your Global.MPT, not in this project file.", vbCritical + vbOKOnly, "Faulty Installation"
     GoTo exit_here
   End If '</issue61>
@@ -348,6 +347,13 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
 
+  'outline codes
+  If cptModuleExists("cptBackbone_frm") And cptModuleExists("cptBackbone_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gWBS"" label=""Backbone"" visible=""true"" >"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBackbone"" label=""Outline Codes"" imageMso=""WbsMenu"" onAction=""cptShowcptBackbone_frm"" visible=""true"" size=""large"" />"
+    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  End If
+    
   'text tools
   If cptModuleExists("cptText_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gTextTools"" label=""Text"" visible=""true"" >"
@@ -411,7 +417,7 @@ Dim lngCleanUp As Long
   'status
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Status"" visible=""true"" >"
   If cptModuleExists("cptStatusSheet_bas") And cptModuleExists("cptStatusSheet_frm") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheet"" label=""Create Status Sheet"" imageMso=""DateAndTimeInsertOneNote"" onAction=""ShowcptStatusSheet_frm"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheet"" label=""Create Status Sheet(s)"" imageMso=""ExportExcel"" onAction=""ShowcptStatusSheet_frm"" visible=""true""/>" 'DateAndTimeInsertOneNote
   End If
   If cptModuleExists("cptSmartDuration_frm") And cptModuleExists("cptSmartDuration_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSmartDuration"" label=""Smart Duration"" imageMso=""CalendarToolSelectDate"" onAction=""SmartDuration"" visible=""true""/>"
@@ -427,7 +433,7 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
 
-  'scenarios
+  'allocation scenarios
 
   'compare
 
@@ -502,7 +508,7 @@ Dim strMatch As String
     With RE
         .MultiLine = False
         .Global = True
-        .IgnoreCase = True
+        .ignorecase = True
         .Pattern = strRegEx
     End With
 

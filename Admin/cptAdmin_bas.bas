@@ -75,7 +75,7 @@ next_vbComponent:
   '  If vbComponent.Name = "cptAdmin_bas" Then GoTo next_vbComponent - removed
   '  If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then - removed
   '</issue18>
-  For lngItem = 0 To arrModules.count - 1
+  For lngItem = 0 To arrModules.Count - 1
     Set vbComponent = ThisProject.VBProject.VBComponents(arrModules.getKey(lngItem))
     Debug.Print arrModules.getKey(lngItem)
     strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
@@ -290,3 +290,65 @@ err_here:
   Resume exit_here
 
 End Function
+
+Sub cptSQL(strFile As String, Optional strFilter As String)
+'objects
+Dim cn As ADODB.Connection, rst As ADODB.Recordset
+'strings
+Dim strRecord As String
+Dim strFields As String
+Dim strCon As String, strDir As String, strSQL As String
+'longs
+Dim lngField As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  'cpt-export-resource-userfields.adtg
+  'cpt-status-sheet.adtg
+  'cpt-status-sheet-userfields.adtg
+  'cpt-data-dictionary.adtg
+  'git-vba-repo.adtg
+  'vba-backup-modules.adtg
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  strFile = Environ("USERPROFILE") & "\cpt-backup\settings\" & strFile
+
+  If Dir(strFile) = vbNullString Then
+    Debug.Print "Invalid file: " & strFile
+    GoTo exit_here
+  End If
+    
+  With CreateObject("ADODB.Recordset")
+    .Open strFile
+    'get field names
+    For lngField = 0 To .Fields.Count - 1
+      strFields = strFields & .Fields(lngField).Name & " | "
+    Next lngField
+    Debug.Print strFields
+    'get records
+    If Not .EOF Then .MoveFirst
+    Do While Not .EOF
+      strRecord = ""
+      For lngField = 0 To .Fields.Count - 1
+        strRecord = strRecord & .Fields(lngField) & " | "
+      Next lngField
+      Debug.Print strRecord
+      .MoveNext
+    Loop
+  End With
+  
+exit_here:
+  On Error Resume Next
+  If rst.State Then rst.Close
+  Set rst = Nothing
+  If cn.State Then cn.Close
+  Set cn = Nothing
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptAdmin_bas", "cptSQL", err, Erl)
+  Resume exit_here
+End Sub
