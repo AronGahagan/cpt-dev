@@ -348,28 +348,12 @@ Dim lngCleanUp As Long
   End If
 
   'wbs
-  If cptModuleExists("cptOutlineCodes_frm") And cptModuleExists("cptBackbone_bas") Then
+  If cptModuleExists("cptBackbone_frm") And cptModuleExists("cptBackbone_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gWBS"" label=""Backbone"" visible=""true"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBackbone"" label=""Outline Codes"" imageMso=""WbsMenu"" onAction=""cptShowcptOutlineCodes_frm"" visible=""true"" size=""large"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mCWBS"" label=""CWBS"" imageMso=""WbsMenu"" visible=""true"" size=""large"" >"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Import"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportCWBSExcel"" imageMso=""ImportExcel"" label=""Import CWBS from Excel"" onAction=""cptImportCWBSFromExcel"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportCWBS"" imageMso=""WbsMenu"" label=""Import MIL-STD-881D (Appendix B)"" onAction=""cptImportAppendixB"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Create"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCreateCWBS"" imageMso=""WbsMenu"" label=""Create CWBS"" onAction=""cptCreateOutlineCode"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Export"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCreate81334D"" imageMso=""ExportExcel"" label=""Create DI-MGMT-81334D"" onAction=""cptCreate81334D"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mIMP"" label=""IMP"" imageMso=""WbsMenu"" visible=""true"" size=""large"" >"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Import"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportIMPExcel"" imageMso=""ImportExcel"" label=""Import IMP from Excel"" onAction=""cptImportAppendixB"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportIMP"" imageMso=""ImportExcel"" label=""Import Generic IMP"" onAction=""cptCreate81334D"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Export"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExportIMP"" imageMso=""ExportExcel"" label=""Export IMP to Excel"" onAction=""cptCreate81334D"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBackbone"" label=""Outline Codes"" imageMso=""WbsMenu"" onAction=""cptShowcptBackbone_frm"" visible=""true"" size=""large"" />"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
-
+    
   'text tools
   If cptModuleExists("cptText_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gTextTools"" label=""Text"" visible=""true"" >"
@@ -462,6 +446,11 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCOBRA"" label=""COBRA Export Tool"" imageMso=""Export"" onAction=""Export_IMS"" visible=""true""/>"
   End If
   'mpm
+  'fiscal calendar
+  If cptModuleExists("cptFiscal_frm") And cptModuleExists("cptFiscal_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFiscal"" label=""Fiscal Calendar"" imageMso=""CalendarInsert"" onAction=""cptShowCptFiscal_frm"" visible=""true"" />"
+  End If
+
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
   'bcr
