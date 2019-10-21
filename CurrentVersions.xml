@@ -204,9 +204,3 @@
 		<Directory>Core</Directory>
 	</Module>
 </Modules>
-<Templates>
-	<Template>
-		<FileName>Templates\81334D_CWBS_TEMPLATE.xltm</FileName>
-		<Version>v1.0.0</Version>
-	</Template>
-</Templates>
