@@ -349,13 +349,17 @@ Dim lngSelected As Long
   Set LookupTable = OutlineCode.LookupTable
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If Not LookupTable Is Nothing Then
-    For lngItem = 1 To LookupTable.Count
-      If Me.TreeView1.Nodes(lngItem).Text <> LookupTable.Item(lngItem).FullName & " - " & LookupTable.Item(lngItem).Description Then
-        Me.TreeView1.Nodes.Clear
-        Call cptRefreshOutlineCodePreview(strOutlineCode)
-        Exit For
-      End If
-    Next lngItem
+    If Me.TreeView1.Nodes.Count = 0 Then
+      Call cptRefreshOutlineCodePreview(strOutlineCode)
+    Else
+      For lngItem = 1 To LookupTable.Count
+        If Me.TreeView1.Nodes(lngItem).Text <> LookupTable.Item(lngItem).FullName & " - " & LookupTable.Item(lngItem).Description Then
+          Me.TreeView1.Nodes.Clear
+          Call cptRefreshOutlineCodePreview(strOutlineCode)
+          Exit For
+        End If
+      Next lngItem
+    End If
   End If
 
 exit_here:

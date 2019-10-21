@@ -315,6 +315,7 @@ Dim lngLookupItems As Long
   xlApp.Calculation = -4135 'xlCalculationManual
   xlApp.ScreenUpdating = False
   Set Worksheet = Workbook.Sheets(1)
+  Worksheet.Outline.SummaryRow = 0 'xlSummaryAbove
   Worksheet.[A1:C1] = Array("CODE", "LEVEL", "TITLE")
   
   'export the codes
@@ -325,6 +326,7 @@ Dim lngLookupItems As Long
     Worksheet.Cells(lngLastRow, 2).Value = OutlineCode.LookupTable.Item(lngLookupItems).Level
     Worksheet.Cells(lngLastRow, 3).Value = OutlineCode.LookupTable.Item(lngLookupItems).Description
     Worksheet.Cells(lngLastRow, 3).IndentLevel = OutlineCode.LookupTable.Item(lngLookupItems).Level - 1
+    Worksheet.Rows(lngLastRow).OutlineLevel = OutlineCode.LookupTable.Item(lngLookupItems).Level
     Application.StatusBar = "Exporting Outline Code '" & strOutlineCode & "'...(" & Format((lngLastRow - 1) / lngLookupItems, "0%") & ")"
     cptOutlineCodes_frm.lblStatus.Caption = Application.StatusBar
   Next lngLookupItems
@@ -414,8 +416,8 @@ Sub cptExport81334D(lngOutlineCode As Long)
 'objects
 Dim LookupTable As LookupTable
 Dim OutlineCode As OutlineCode
-Dim wsDictionary As Worksheet 'OBject
-Dim wsIndex As Worksheet 'Object
+Dim wsDictionary As Object 'Worksheet
+Dim wsIndex As Object 'Worksheet
 Dim Workbook As Object 'Workbok
 Dim xlApp As Object 'Excel.Application
 Dim oStream As Object 'ADODB.Stream
@@ -438,40 +440,6 @@ Dim lngItem As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  'first determine if user has the template installed
-  Set objShell = CreateObject("WScript.Shell")
-  strTemplateDir = objShell.SpecialFolders("Templates")
-  strTemplate = "81334D_CWBS_TEMPLATE.xltm"
-  
-  If Dir(strTemplateDir & "\" & strTemplate) = vbNullString Then
-    'provide user feedback
-    cptOutlineCodes_frm.lblStatus.Caption = "Downloading template..."
-    Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
-    strURL = strGitHub & "Templates/" & strTemplate
-    '===DEBUG===
-    strURL = Replace(strURL, "master", "issue28-outlineCodes")
-    '===DEBUG===
-    xmlHttpDoc.Open "GET", strURL, False
-    xmlHttpDoc.Send
-    If xmlHttpDoc.Status = 200 And xmlHttpDoc.readyState = 4 Then
-      'success: save it to templates directory
-      Set oStream = CreateObject("ADODB.Stream")
-      oStream.Open
-      oStream.Type = 1 'adTypeBinary
-      oStream.Write xmlHttpDoc.responseBody
-      oStream.SaveToFile strTemplateDir & "\" & strTemplate
-      oStream.Close
-    Else
-      cptOutlineCodes_frm.lblStatus.Caption = "Download failed."
-      'fail: prompt to request by email
-      If MsgBox("Unable to download template. Request via email?", vbExclamation + vbYesNo, "No Connection") = vbYes Then
-        'create email
-      End If
-      GoTo exit_here
-    End If
-    
-  End If
-
   'get outline code name and export it
   cptOutlineCodes_frm.lblStatus.Caption = "Exporting..."
   strOutlineCode = CustomFieldGetName(lngOutlineCode)
@@ -483,6 +451,41 @@ Dim lngItem As Long
     MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbCritical + vbOKOnly, "No Code Defined"
     GoTo exit_here
   Else
+  
+    'first determine if user has the template installed
+    Set objShell = CreateObject("WScript.Shell")
+    strTemplateDir = objShell.SpecialFolders("Templates")
+    strTemplate = "81334D_CWBS_TEMPLATE.xltm"
+    
+    If Dir(strTemplateDir & "\" & strTemplate) = vbNullString Then
+      'provide user feedback
+      cptOutlineCodes_frm.lblStatus.Caption = "Downloading template..."
+      Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
+      strURL = strGitHub & "Templates/" & strTemplate
+      '===DEBUG===
+      strURL = Replace(strURL, "master", "issue28-outlineCodes")
+      '===DEBUG===
+      xmlHttpDoc.Open "GET", strURL, False
+      xmlHttpDoc.Send
+      If xmlHttpDoc.Status = 200 And xmlHttpDoc.readyState = 4 Then
+        'success: save it to templates directory
+        Set oStream = CreateObject("ADODB.Stream")
+        oStream.Open
+        oStream.Type = 1 'adTypeBinary
+        oStream.Write xmlHttpDoc.responseBody
+        oStream.SaveToFile strTemplateDir & "\" & strTemplate
+        oStream.Close
+      Else
+        cptOutlineCodes_frm.lblStatus.Caption = "Download failed."
+        'fail: prompt to request by email
+        If MsgBox("Unable to download template. Request via email?", vbExclamation + vbYesNo, "No Connection") = vbYes Then
+          'create email
+        End If
+        GoTo exit_here
+      End If
+      
+    End If
+  
     'open excel and create template
     Set xlApp = CreateObject("Excel.Application")
     Set Workbook = xlApp.Workbooks.Add(strTemplateDir & "\" & strTemplate)
