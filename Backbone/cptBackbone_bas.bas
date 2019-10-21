@@ -866,7 +866,6 @@ Dim lngFile As Long
 
   Close #lngFile
   
-  'todo: add option to open in Excel instead
   Shell "C:\Windows\notepad.exe '" & strFile & "'", vbNormalFocus
 
 exit_here:
