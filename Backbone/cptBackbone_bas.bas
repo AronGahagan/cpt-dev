@@ -414,6 +414,8 @@ End Sub
 
 Sub cptExport81334D(lngOutlineCode As Long)
 'objects
+Dim MailItem As Object 'MailItem
+Dim olApp As Object 'Outlook.Application
 Dim LookupTable As LookupTable
 Dim OutlineCode As OutlineCode
 Dim wsDictionary As Object 'Worksheet
@@ -462,8 +464,9 @@ Dim lngItem As Long
       cptOutlineCodes_frm.lblStatus.Caption = "Downloading template..."
       Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
       strURL = strGitHub & "Templates/" & strTemplate
+      'todo: remove this
       '===DEBUG===
-      strURL = Replace(strURL, "master", "issue28-outlineCodes")
+      'strURL = Replace(strURL, "master", "issue28-outlineCodes")
       '===DEBUG===
       xmlHttpDoc.Open "GET", strURL, False
       xmlHttpDoc.Send
@@ -479,7 +482,17 @@ Dim lngItem As Long
         cptOutlineCodes_frm.lblStatus.Caption = "Download failed."
         'fail: prompt to request by email
         If MsgBox("Unable to download template. Request via email?", vbExclamation + vbYesNo, "No Connection") = vbYes Then
-          'create email
+          On Error Resume Next
+          Set olApp = GetObject(, "Outlook.Application")
+          If olApp Is Nothing Then
+            Set olApp = CreateObject("Outlook.Application")
+          End If
+          Set MailItem = olApp.CreateItem(olMailItem)
+          MailItem.To = "cpt@ClearPlanConsulting.com"
+          MailItem.Importance = 2 'olImportanceHigh
+          MailItem.Subject = "Template Request: " & strTemplate
+          MailItem.HTMLBody = "Please forward the subject-referenced template. Thank you." & MailItem.HTMLBody
+          MailItem.Display False
         End If
         GoTo exit_here
       End If
@@ -547,13 +560,14 @@ Dim lngItem As Long
   wsIndex.[A7].Select
   xlApp.ActiveWindow.FreezePanes = True
   xlApp.Visible = True
-  'todo: grouping?
   
   'provide user feedback
   cptOutlineCodes_frm.lblStatus.Caption = "Complete."
   
 exit_here:
   On Error Resume Next
+  Set MailItem = Nothing
+  Set olApp = Nothing
   cptOutlineCodes_frm.lblStatus.Caption = "Ready..."
   cptOutlineCodes_frm.lblProgress.Width = cptOutlineCodes_frm.lblProgress.Width
   Set LookupTable = Nothing

@@ -138,6 +138,7 @@ Dim lngOutlineCode As Long
   
   If Len(Me.txtNameIt.Value) = 0 Then
     MsgBox "Please provide a name.", vbExclamation + vbOKOnly, "No Name"
+    Me.txtNameIt.SetFocus
     GoTo exit_here
   Else
     strOutlineCode = Me.txtNameIt
@@ -317,6 +318,8 @@ Dim lngSelected As Long
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If Me.optReplace Then GoTo exit_here
   
   'have any outline codes been updated? update cbo options
   lngSelected = Me.cboOutlineCodes.ListIndex
