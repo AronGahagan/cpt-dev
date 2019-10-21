@@ -117,7 +117,7 @@ exit_here:
   Set xlApp = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptOutlineCodes_bas", "cptImportCWBSFromExcel", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "cptImportCWBSFromExcel", err, Erl)
   Resume exit_here
 End Sub
 
@@ -407,7 +407,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptOutlineCodes", "ExportOutlineCode", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "ExportOutlineCode", err, Erl)
   Resume exit_here
   
 End Sub
@@ -636,7 +636,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptOutlineCodes_bas", "cptExportTemplate", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "cptExportTemplate", err, Erl)
   Resume exit_here
 End Sub
 
@@ -689,7 +689,7 @@ exit_here:
   
   Exit Sub
 err_here:
-  Call cptHandleErr("cptOutlineCodes_bas", "cptShowcptBackbone_frm", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "cptShowcptBackbone_frm", err, Erl)
   Resume exit_here
 End Sub
 
@@ -783,7 +783,7 @@ exit_here:
   Set LookupTable = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptOutlineCodes_bas", "cptRenameInsideOutlineCode", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "cptRenameInsideOutlineCode", err, Erl)
   Resume exit_here
 End Sub
 
