@@ -116,7 +116,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptOutlineCodes_frm", "cmdExport_Click", err, Erl)
+  Call cptHandleErr("cptBackbone_frm", "cmdExport_Click", err, Erl)
   Resume exit_here
 End Sub
 
@@ -265,7 +265,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptOutlineCodes_frm", "txtReplacement_Change", err, Erl)
+  Call cptHandleErr("cptBackbone_frm", "txtReplacement_Change", err, Erl)
   Resume exit_here
 End Sub
 
@@ -296,7 +296,7 @@ exit_here:
   
   Exit Sub
 err_here:
-  Call cptHandleErr("cptOutlineCodes_frm", "txtNameIt_Change", err, Erl)
+  Call cptHandleErr("cptBackbone_frm", "txtNameIt_Change", err, Erl)
   Resume exit_here
   
 End Sub
@@ -326,7 +326,7 @@ Dim lngSelected As Long
   'have any outline codes been updated? update cbo options
   lngSelected = Me.cboOutlineCodes.ListIndex
   For lngItem = 0 To 9
-    With cptOutlineCodes_frm.cboOutlineCodes
+    With Me.cboOutlineCodes
       lngOutlineCode = .List(lngItem, 0)
       strOutlineCode = .List(lngItem, 1)
       If InStr(strOutlineCode, "(") > 0 Then
@@ -374,7 +374,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptUpgrades_frm", "UserForm_MouseMove", err, Erl)
+  Call cptHandleErr("cptBackbone_frm", "UserForm_MouseMove", err, Erl)
   Resume exit_here
 
 End Sub
