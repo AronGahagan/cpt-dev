@@ -261,8 +261,6 @@ Dim strDirectory As String
     'Integration
     Case "IMSCobraExport"
       strDirectory = "Integration"
-    Case "Graphics"
-      strDirectory = "Metrics"
     'TextTools
     Case "DynamicFilter"
       strDirectory = "Text"
@@ -278,9 +276,6 @@ Dim strDirectory As String
       strDirectory = "Trace"
     Case "CriticalPathTools"
       strDirectory = "Trace"
-    'Backbone
-    Case "OutlineCodes"
-      strDirectory = "Backbone"
     Case Else
       
         
