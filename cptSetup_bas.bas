@@ -347,13 +347,6 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
 
-  'outline codes
-  If cptModuleExists("cptBackbone_frm") And cptModuleExists("cptBackbone_bas") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gWBS"" label=""Backbone"" visible=""true"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBackbone"" label=""Outline Codes"" imageMso=""WbsMenu"" onAction=""cptShowcptBackbone_frm"" visible=""true"" size=""large"" />"
-    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
-  End If
-
   'text tools
   If cptModuleExists("cptText_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gTextTools"" label=""Text"" visible=""true"" >"
@@ -389,13 +382,6 @@ Dim lngCleanUp As Long
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetRowHeight"" label=""Reset Row Height"" imageMso=""RowHeight"" onAction=""cptResetRowHeight"" visible=""true""/>"
       ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
     End If
-    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
-  End If
-
-  'data dictionary
-  If cptModuleExists("cptDataDictionary_frm") And cptModuleExists("cptDataDictionary_bas") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gDataDictionary"" label=""Dictionary"" visible=""true"">"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDataDictionary"" imageMso=""ReadingMode"" label=""IMS Data Dictionary"" onAction=""ShowFrmCptDataDictionary"" size=""large"" />"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
 
@@ -448,7 +434,14 @@ Dim lngCleanUp As Long
   'compare
 
   'metrics
-
+  
+  'outline codes
+  If cptModuleExists("cptBackbone_frm") And cptModuleExists("cptBackbone_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gWBS"" label=""Backbone"" visible=""true"" >"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBackbone"" label=""Outline Codes"" imageMso=""WbsMenu"" onAction=""cptShowcptBackbone_frm"" visible=""true"" size=""large"" />"
+    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  End If
+  
   'integration
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gIntegration"" label=""Integration"" visible=""true"" >"
   If cptModuleExists("cptIMSCobraExport_bas") And cptModuleExists("cptIMSCobraExport_frm") Then
@@ -459,6 +452,13 @@ Dim lngCleanUp As Long
 
   'bcr
 
+  'data dictionary
+  If cptModuleExists("cptDataDictionary_frm") And cptModuleExists("cptDataDictionary_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gDataDictionary"" label=""Dictionary"" visible=""true"">"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDataDictionary"" imageMso=""ReadingMode"" label=""IMS Data Dictionary"" onAction=""ShowFrmCptDataDictionary"" size=""large"" />"
+    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  End If
+  
   'about
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gHelp"" label=""Help"" visible=""true"" >"
   If cptInternetIsConnected Then
