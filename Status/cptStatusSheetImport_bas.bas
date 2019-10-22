@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub ShowCptStatusSheetImport_frm()
@@ -80,7 +80,6 @@ Dim vField As Variant
     Next vField
     
     'todo: add enterprise custom fields?
-    'todo: alphabetize by custom field name?
     
     'get project guid
     If Application.Version < 12 Then
@@ -115,6 +114,8 @@ Dim vField As Variant
     .Show False
 
   End With
+
+  Call cptRefreshStatusImportTable
 
 exit_here:
   On Error Resume Next
@@ -537,3 +538,145 @@ err_here:
   Call cptHandleErr("cptStatusSheetImport_bas", "cptStatusSheetImport", err, Erl)
   Resume exit_here
 End Sub
+
+Sub cptRefreshStatusImportTable()
+'objects
+Dim rst As ADODB.Recordset 'Object
+'strings
+Dim strEVP As String
+Dim strSettings As String
+Dim strGUID As String
+'longs
+Dim lngETC As Long
+Dim lngEVP As Long
+Dim lngNewEVP As Long
+Dim lngFF As Long
+Dim lngAF As Long
+Dim lngFS As Long
+Dim lngAS As Long
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If Not cptStatusSheetImport_frm.Visible Then GoTo exit_here
+
+  cptSpeed True
+  
+  'get saved settings
+  'get project guid
+  If Application.Version < 12 Then
+    strGUID = ActiveProject.DatabaseProjectUniqueID
+  Else
+    strGUID = ActiveProject.GetServerProjectGuid
+  End If
+  
+  'get EVP
+  strSettings = cptDir & "\settings\cpt-status-sheet.adtg"
+  If Dir(strSettings) <> vbNullString Then
+    Set rst = CreateObject("ADODB.Recordset")
+    rst.Open strSettings
+    If Not rst.EOF Then
+      'does field name still match?
+      strEVP = rst("cboEVP")
+    End If
+    rst.Close
+  End If
+  
+  'reset the table
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  
+  'import user fields
+  strSettings = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
+  If Dir(strSettings) <> vbNullString Then
+    'import user settings
+    Set rst = CreateObject("ADODB.Recordset")
+    rst.Open strSettings
+    If Not rst.EOF Then
+      rst.MoveFirst
+      Do While Not rst.EOF
+        'does field name still match?
+        If CustomFieldGetName(rst(0)) = rst(1) Then
+          TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=rst(1), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+        End If
+        rst.MoveNext
+      Loop
+    End If
+    rst.Close
+  End If
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Name", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Remaining Duration", Title:="", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Total Slack", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Start", Title:="", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Actual Start", Title:="", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  If Not IsNull(cptStatusSheetImport_frm.cboAS.Value) Then
+    lngAS = cptStatusSheetImport_frm.cboAS.Value
+    If lngAS <> FieldNameToFieldConstant("Actual Start") Then
+      TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngAS), Title:="New Actual Start", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    End If
+  End If
+  If Not IsNull(cptStatusSheetImport_frm.cboFS.Value) Then
+    lngFS = cptStatusSheetImport_frm.cboFS.Value
+    TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngFS), Title:="New Forecast Start", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  End If
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Finish", Title:="", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Actual Finish", Title:="", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  If Not IsNull(cptStatusSheetImport_frm.cboAF.Value) Then
+    lngAF = cptStatusSheetImport_frm.cboAF.Value
+    If lngAF <> FieldNameToFieldConstant("Actual Finish") Then
+      TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngAF), Title:="New Actual Finish", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    End If
+  End If
+  If Not IsNull(cptStatusSheetImport_frm.cboFF.Value) Then
+    lngFF = cptStatusSheetImport_frm.cboFF.Value
+    TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngFF), Title:="New Forecast Finish", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  End If
+  'existing EV%
+  If Len(strEVP) > 0 Then
+    'does field still exist?
+    On Error Resume Next
+    lngEVP = FieldNameToFieldConstant(strEVP)
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If lngEVP > 0 Then
+      TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=strEVP, Title:="EV%", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    End If
+  End If
+  'imported EV
+  If Not IsNull(cptStatusSheetImport_frm.cboEV.Value) Then
+    lngNewEVP = cptStatusSheetImport_frm.cboEV.Value
+    TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngNewEVP), Title:="New EV%", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  End If
+  'existing ETC (remaining work)
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="ETC", Width:=20, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  'imported ETC
+  If Not IsNull(cptStatusSheetImport_frm.cboETC.Value) Then
+    lngETC = cptStatusSheetImport_frm.cboETC.Value
+    TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngETC), Title:="New ETC", Width:=20, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  End If
+  ActiveWindow.TopPane.Activate
+  TableApply Name:="Entry"
+  TableApply Name:="cptStatusSheetImport Table"
+
+  'reset the filter
+'  FilterEdit Name:="cptStatusSheetImport Filter", Taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
+'  If cptStatusSheetImport_frm.chkHide And IsDate(cptStatusSheetImport_frm.txtHideCompleteBefore) Then
+'    FilterEdit Name:="cptStatusSheetImport Filter", Taskfilter:=True, FieldName:="", newfieldname:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheetImport_frm.txtHideCompleteBefore, operation:="Or", ShowSummaryTasks:=True
+'  End If
+'  FilterApply "cptStatusSheetImport Filter"
+
+exit_here:
+  On Error Resume Next
+  If rst.State = 1 Then rst.Close
+  Set rst = Nothing
+  cptSpeed False
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheetImport_bas", "cptRefreshStatusImportTable", err, Erl)
+  err.Clear
+  Resume exit_here
+End Sub
+

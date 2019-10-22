@@ -15,8 +15,32 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+Private Sub cboAF_Change()
+  Call cptRefreshStatusImportTable
+End Sub
+
+Private Sub cboAS_Change()
+  Call cptRefreshStatusImportTable
+End Sub
+
+Private Sub cboETC_Change()
+  Call cptRefreshStatusImportTable
+End Sub
+
+Private Sub cboEV_Change()
+  Call cptRefreshStatusImportTable
+End Sub
+
+Private Sub cboFF_Change()
+  Call cptRefreshStatusImportTable
+End Sub
+
+Private Sub cboFS_Change()
+  Call cptRefreshStatusImportTable
+End Sub
 
 Private Sub chkAppend_Click()
     Me.cboAppendTo.Enabled = Me.chkAppend
