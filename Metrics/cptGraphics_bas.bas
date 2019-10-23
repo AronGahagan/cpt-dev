@@ -452,6 +452,6 @@ exit_here:
   Set Task = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("basGraphics_bas", "GetChart", err, Erl)
+  Call cptHandleErr("cptGraphics_bas", "cptGetChart", err, Erl)
   Resume exit_here
 End Sub
