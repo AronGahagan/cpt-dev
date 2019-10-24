@@ -460,8 +460,8 @@ Sub cptResetAll()
   GroupClear
   OptionsViewEx displaynameindent:=True, displaysummarytasks:=True, displayoutlinesymbols:=True
   SelectAll 'needed for master/sub projects
-  OutlineShowAllTasks
   Sort "ID"
+  OutlineShowAllTasks
   SelectBeginning
 
 exit_here:
