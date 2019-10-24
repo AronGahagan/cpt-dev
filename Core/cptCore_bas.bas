@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.0</cpt_version>
+'<cpt_version>v1.6.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -460,8 +460,8 @@ Sub cptResetAll()
   GroupClear
   OptionsViewEx displaynameindent:=True, displaysummarytasks:=True, displayoutlinesymbols:=True
   SelectAll 'needed for master/sub projects
-  OutlineShowAllTasks
   Sort "ID"
+  OutlineShowAllTasks
   SelectBeginning
 
 exit_here:
