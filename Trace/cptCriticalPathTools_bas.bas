@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCriticalPathTools_bas"
-'<cpt_version>v1.0.2</cpt_version>
+'<cpt_version>v1.0.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -96,7 +96,7 @@ Dim vPath As Variant
     If Tasks Is Nothing Then GoTo next_path
     'account for when task count exceeds easily visible range
     'on powerpoint slide
-    lgTasks = Tasks.count
+    lgTasks = Tasks.Count
     lgSlide = 0
     lgTask = 0
     Do While lgTask <= lgTasks
@@ -106,15 +106,15 @@ Dim vPath As Variant
       SelectTaskField Row:=lgTask - 20, Column:="Name", Height:=20, Extend:=False
       EditCopyPicture object:=False, ForPrinter:=0, SelectedRows:=1, FromDate:=Format(dtFrom, "mm/dd/yy hh:nn AMPM"), ToDate:=Format(dtTo, "m/d/yy hh:mm ampm"), ScaleOption:=pjCopyPictureTimescale, MaxImageHeight:=-1#, MaxImageWidth:=-1#, MeasurementUnits:=2  'pjCopyPictureShowOptions
       'paste the picture
-      Presentation.Slides.Add Presentation.Slides.count + 1, ppLayoutCustom
-      Set Slide = Presentation.Slides(Presentation.Slides.count)
+      Presentation.Slides.Add Presentation.Slides.Count + 1, ppLayoutCustom
+      Set Slide = Presentation.Slides(Presentation.Slides.Count)
       Slide.Layout = ppLayoutChart
       Slide.Shapes(1).TextFrame.TextRange.Text = Choose(vPath, "Primary", "Secondary", "Tertiary") & " Critical Path" & IIf(lgSlide > 1, " (cont'd)", "")
       Slide.Shapes(2).Delete
       Slide.Shapes.Paste
-      Slide.Shapes(Slide.Shapes.count).Width = Slide.Master.Width * 0.9
-      Slide.Shapes(Slide.Shapes.count).Left = (Slide.Master.Width / 2) - (Slide.Shapes(Slide.Shapes.count).Width / 2)
-      If Slide.Shapes(Slide.Shapes.count).Top <> 108 Then Slide.Shapes(Slide.Shapes.count).Top = 108
+      Slide.Shapes(Slide.Shapes.Count).Width = Slide.Master.Width * 0.9
+      Slide.Shapes(Slide.Shapes.Count).Left = (Slide.Master.Width / 2) - (Slide.Shapes(Slide.Shapes.Count).Width / 2)
+      If Slide.Shapes(Slide.Shapes.Count).Top <> 108 Then Slide.Shapes(Slide.Shapes.Count).Top = 108
     Loop
     Presentation.Save
 next_path:
@@ -145,6 +145,7 @@ err_here:
 End Sub
 
 Sub cptExportCriticalPathSelected()
+'objects
 Dim TargetTask As Task
 
   On Error GoTo err_here
@@ -163,5 +164,21 @@ err_here:
   Else
     Call cptHandleErr("cptCriticalPathTools_bas", "cptExportCriticalPathSelected", err, Erl)
   End If
+  Resume exit_here
+End Sub
+
+Sub cptDrivingPath()
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  singlePath = True
+  Call DrivingPaths
+
+exit_here:
+  On Error Resume Next
+  singlePath = False
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCriticalPathTools_bas", "cptDrivingPath", err, Erl)
   Resume exit_here
 End Sub

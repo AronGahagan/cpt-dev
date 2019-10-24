@@ -45,14 +45,14 @@
 	<Module>
 		<Name>cptCriticalPath_bas</Name>
 		<FileName>cptCriticalPath_bas.bas</FileName>
-		<Version>v2.8</Version>
+		<Version>v2.8.1</Version>
 		<Type>1</Type>
 		<Directory>Trace</Directory>
 	</Module>
 	<Module>
 		<Name>cptCriticalPathTools_bas</Name>
 		<FileName>cptCriticalPathTools_bas.bas</FileName>
-		<Version>v1.0.2</Version>
+		<Version>v1.0.3</Version>
 		<Type>1</Type>
 		<Directory>Trace</Directory>
 	</Module>
