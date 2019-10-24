@@ -57,6 +57,10 @@ Sub cptGetCEI()
   Call cptGET("CEI")
 End Sub
 
+Sub cptGetSV()
+  Call cptGET("SV")
+End Sub
+
 Sub cptGetCPLI()
 'objects
 Dim Pred As Task
@@ -74,7 +78,7 @@ Dim lngCPL As Long
 'booleans
 'variants
 'dates
-Dim dtStart As Date
+Dim dtStart As Date, dtFinish As Date
 Dim dtConstraintDate As Date
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -88,7 +92,7 @@ Dim dtConstraintDate As Date
   End If
   
   Set Task = ActiveSelection.Tasks(1)
-
+  
   'use MFO or MSO constraint
   If Task.ConstraintType <> pjMFO And Task.ConstraintType <> pjMSO Then
     strMsg = "No MSO/MFO constraint found; temporarily using Deadline..." & vbCrLf
@@ -125,16 +129,14 @@ Dim dtConstraintDate As Date
     lngTS = Task.TotalSlack
     dtFinish = Task.Finish
   End If
-  
-  'todo: negative total slack and positive schedule margin
-  'todo: in-progress tasks
-  'todo: convert to days
-  'todo: ts>=0 and no hard constraint
-    
+      
   'use status date if exists
   If IsDate(ActiveProject.StatusDate) Then dtStart = ActiveProject.StatusDate
   
-  'todo: use earliest start date
+  'use earliest start date
+  'NOTE: cannot account for schedule margin due to possibility
+  'of dual paths, one with and one without, a particular SM task
+  
   If Task Is Nothing Then GoTo exit_here
   If Task.Summary Then GoTo exit_here
   If Not Task.Active Then GoTo exit_here
@@ -154,9 +156,12 @@ Dim dtConstraintDate As Date
   lngTS = lngTS / 480
   'notify user
   strMsg = strMsg & vbCrLf & "CPL = Critical Path Length" & vbCrLf
+'  strMsg = strMsg & "CPL = Target Finish - Timenow (or CP start)" & vbCrLf
+'  strMsg = strMsg & "CPL = " & FormatDateTime(dtFinish, vbShortDate) & " - " & FormatDateTime(dtStart, vbShortDate) & vbCrLf
+'  strMsg = strMsg & "CPL = " & lngCPL & vbCrLf
   strMsg = strMsg & "TS = Total Slack" & vbCrLf & vbCrLf
-  strMsg = strMsg & "CPLI = (CPL + TS) / CPL" & vbCrLf
-  strMsg = strMsg & "CPLI = (" & lngCPL & " + " & lngTS & ") / " & lngCPL & vbCrLf & vbCrLf
+  strMsg = strMsg & "CPLI = ( CPL + TS ) / CPL" & vbCrLf
+  strMsg = strMsg & "CPLI = ( " & lngCPL & " + " & lngTS & " ) / " & lngCPL & vbCrLf & vbCrLf
   strMsg = strMsg & "CPLI = " & Round((lngCPL + lngTS) / lngCPL, 3) & vbCrLf & vbCrLf
   strMsg = strMsg & "Note: schedule margin tasks are not considered."
   
@@ -200,15 +205,6 @@ Dim dblResult As Double
   End If
 
   Select Case strWhat
-    Case "SPI"
-      dblBCWP = cptGetMetric("bcwp")
-      dblBCWS = cptGetMetric("bcws")
-      strMsg = "SPI = BCWP / BCWS" & vbCrLf
-      strMsg = strMsg & "SPI = " & Format(dblBCWP, "#,##0h") & " / " & Format(dblBCWS, "#,##0h") & vbCrLf & vbCrLf
-      strMsg = strMsg & "SPI = ~" & Round(dblBCWP / dblBCWS, 2)
-      MsgBox strMsg, vbInformation + vbOKOnly, "SPI (Hours)"
-      GoTo exit_here
-      
     Case "BEI"
       lngBEI_BF = CLng(cptGetMetric("bei_bf"))
       If lngBEI_BF = 0 Then
@@ -223,7 +219,29 @@ Dim dblResult As Double
       
     Case "CEI"
       'todo: need to track previous week's plan
-
+      
+    Case "SPI"
+      dblBCWP = cptGetMetric("bcwp")
+      dblBCWS = cptGetMetric("bcws")
+      strMsg = "SPI = BCWP / BCWS" & vbCrLf
+      strMsg = strMsg & "SPI = " & Format(dblBCWP, "#,##0h") & " / " & Format(dblBCWS, "#,##0h") & vbCrLf & vbCrLf
+      strMsg = strMsg & "SPI = ~" & Round(dblBCWP / dblBCWS, 2)
+      MsgBox strMsg, vbInformation + vbOKOnly, "Schedule Performance Index (SPI) - Hours"
+      
+    Case "SV"
+      dblBCWP = cptGetMetric("bcwp")
+      dblBCWS = cptGetMetric("bcws")
+      strMsg = strMsg & "Schedule Variance (SV)" & vbCrLf
+      strMsg = strMsg & "SV = BCWP - BCWS" & vbCrLf
+      strMsg = strMsg & "SV = " & Format(dblBCWP, "#,##0h") & " - " & Format(dblBCWS, "#,##0h") & vbCrLf
+      strMsg = strMsg & "SV = ~" & Format(dblBCWP - dblBCWS, "#,##0.0h") & vbCrLf & vbCrLf
+      strMsg = strMsg & "Schedule Variance % (SV%)" & vbCrLf
+      strMsg = strMsg & "SV% = ( SV / BCWS ) * 100" & vbCrLf
+      strMsg = strMsg & "SV% = ( " & Format((dblBCWP - dblBCWS), "#,##0.0h") & " / " & Format(dblBCWS, "#,##0.0h") & " ) * 100" & vbCrLf
+      strMsg = strMsg & "SV% = " & Format(((dblBCWP - dblBCWS) / dblBCWS), "0.00%")
+      
+      MsgBox strMsg, vbInformation + vbOKOnly, "Schedule Variance (SV) - Hours"
+      
     Case "es" 'earned schedule
           'todo: earned schedule
     
@@ -236,6 +254,68 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptMerics_Bas", "cptGet", err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptGetHitTask()
+'objects
+Dim Task As Task
+'strings
+Dim strMsg As String
+'longs
+Dim lngAF As Long
+Dim lngBLF As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+Dim dtStatus As Date
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'confirm status date
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
+  Else
+    dtStatus = ActiveProject.StatusDate
+  End If
+  
+  'find it
+  For Each Task In ActiveProject.Tasks
+    If Not Task Is Nothing Then
+      If Task.Summary Then GoTo next_task
+      If Not Task.Active Then GoTo next_task
+      If IsDate(Task.BaselineFinish) Then
+        'was task baselined to finish before status date?
+        If Task.BaselineFinish <= dtStatus Then
+          lngBLF = lngBLF + 1
+          'did it?
+          If IsDate(Task.ActualFinish) Then
+            If Task.ActualFinish <= Task.BaselineFinish Then
+              lngAF = lngAF + 1
+            End If
+          End If
+        End If
+      End If
+    End If
+next_task:
+  Next
+
+  strMsg = "BF = # Tasks Baselined to Finish ON or before Status Date" & vbCrLf
+  strMsg = strMsg & "AF = # BF that Actually Finished ON or before Baseline Finish" & vbCrLf & vbCrLf
+  strMsg = strMsg & "Hit Task % = (AF / BF) / 100" & vbCrLf
+  strMsg = strMsg & "Hit Task % = (" & Format(lngAF, "#,##0") & " / " & Format(lngBLF, "#,##0") & ") / 100" & vbCrLf & vbCrLf
+  strMsg = strMsg & "Hit Task % = " & Format((lngAF / lngBLF), "0%")
+  MsgBox strMsg, vbInformation + vbOKOnly, "Hit Task %"
+
+exit_here:
+  On Error Resume Next
+  Set Task = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptMetrics_bas", "cptGetHitTask", err, Erl)
   Resume exit_here
 End Sub
 
