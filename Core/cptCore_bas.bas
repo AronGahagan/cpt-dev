@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.0</cpt_version>
+'<cpt_version>v1.6.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -51,7 +51,7 @@ err_here:
   Resume exit_here
 End Function
 
-Function cptGetControl(ByRef cptForm_frm As UserForm, strControlName As String) As control
+Function cptGetControl(ByRef cptForm_frm As UserForm, strControlName As String) As Control
 'NOTE: this only works for loaded forms
 
   Set cptGetControl = cptForm_frm.Controls(strControlName)
@@ -243,7 +243,9 @@ Dim strAbout As String
   'show/hide
 '  Set ctl = cptGetControl(frmAbout, "lblScoreboard") '<issue19>
 '  ctl.Visible = IIf(Now < #10/24/2019#, False, True) '<issue19>
-  cptAbout_frm.lblScoreBoard.Visible = IIf(Now < #10/24/2019#, False, True) '<issue19>
+  cptAbout_frm.lblScoreBoard.Visible = IIf(Now <= #10/25/2019#, False, True) '<issue19>
+  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b2" MSY > EWR
+  cptAbout_frm.lblScoreBoard.Caption = "t0 : b3" 'EWR > SAN
   cptAbout_frm.Show '<issue19>
 '  frmAbout.Show '<issue19>
 
@@ -292,7 +294,7 @@ Sub cptGetReferences()
 Dim Ref As Object
 
   For Each Ref In ThisProject.VBProject.References
-	  Debug.Print Ref.Name & " (" & Ref.Description & ") " & Ref.FullPath
+          Debug.Print Ref.Name & " (" & Ref.Description & ") " & Ref.FullPath
   Next Ref
 
 End Sub
@@ -663,7 +665,7 @@ Dim strDir As String
   End If
   If Not cptReferenceExists("VBIDE") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB"
-	'todo: need win64 file path '<issue53>
+        'todo: need win64 file path '<issue53>
     'C:\Program Files\Common Files\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB?
   End If
   If Not cptReferenceExists("VBA") Then
