@@ -169,6 +169,15 @@ err_here:
   
 End Sub
 
+Private Sub cmdReplace_Click()
+Dim strOutlineCode As String
+
+  If Len(Me.txtReplace) > 0 And Len(Me.txtReplacement) > 0 Then
+    strOutlineCode = CustomFieldGetName(Me.cboOutlineCodes.Column(0))
+    Call cptRenameInsideOutlineCode(strOutlineCode, Me.txtReplace, Me.txtReplacement)
+  End If
+End Sub
+
 Private Sub lblURL_Click()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
