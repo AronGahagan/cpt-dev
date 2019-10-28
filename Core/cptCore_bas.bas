@@ -223,37 +223,28 @@ Dim strAbout As String
   'contact and license
   strAbout = vbCrLf & "The ClearPlan Toolbar" & vbCrLf
   strAbout = strAbout & "by ClearPlan Consulting, LLC" & vbCrLf & vbCrLf
-  'strAbout = strAbout & "http://ClearPlanConsulting.com" & vbCrLf & vbCrLf
   strAbout = strAbout & "This software is provided free of charge," & vbCrLf
   strAbout = strAbout & "AS IS and without warranty." & vbCrLf
   strAbout = strAbout & "It is free to use, free to distribute with prior written consent from the developers/copyright holders and without modification." & vbCrLf & vbCrLf
   strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright 2019, ClearPlanConsulting, LLC"
-'  Set frmAbout = cptGetUserForm("cptAbout_frm") '<issue19>
-'  Set ctl = cptGetControl(frmAbout, "txtAbout") '<issue19>
-'  ctl.Value = strAbout
   cptAbout_frm.txtAbout.Value = strAbout  '<issue19>
 
   'follow the project
   strAbout = vbCrLf & vbCrLf & "Follow the Project:" & vbCrLf & vbCrLf
   strAbout = strAbout & "http://GitHub.com/ClearPlan/cpt" & vbCrLf & vbCrLf
-'  Set ctl = cptGetControl(frmAbout, "txtGitHub") '<issue19>
-'  ctl.Value = strAbout
   cptAbout_frm.txtGitHub.Value = strAbout '<issue19>
 
   'show/hide
-'  Set ctl = cptGetControl(frmAbout, "lblScoreboard") '<issue19>
-'  ctl.Visible = IIf(Now < #10/24/2019#, False, True) '<issue19>
   cptAbout_frm.lblScoreBoard.Visible = IIf(Now <= #10/25/2019#, False, True) '<issue19>
+  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b1" EWR > MSY
   'cptAbout_frm.lblScoreBoard.Caption = "t0 : b2" MSY > EWR
-  cptAbout_frm.lblScoreBoard.Caption = "t0 : b3" 'EWR > SAN
+  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b3" 'EWR > SAN
+  cptAbout_frm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR
   cptAbout_frm.Show '<issue19>
-'  frmAbout.Show '<issue19>
 
-  '<issue19> added error handling
 exit_here:
   On Error Resume Next
-'  Set ctl = Nothing
-'  Set frmAbout = Nothing
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptCore_bas", "ShowCptAbout_frm", err, Erl)
