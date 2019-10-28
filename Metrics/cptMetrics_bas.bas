@@ -282,6 +282,7 @@ Dim dtStatus As Date
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
     MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
+	GoTo exit_here
   Else
     dtStatus = ActiveProject.StatusDate
   End If
