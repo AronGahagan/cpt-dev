@@ -13,11 +13,33 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.5</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
+
+Private Sub cboWeeks_Change()
+  Me.cboWeekday.Clear
+  Select Case Me.cboWeeks
+    Case "Beginning"
+      Me.cboWeekday.AddItem "Sunday"
+      Me.cboWeekday.AddItem "Monday"
+      Me.cboWeekday.Value = "Monday"
+    Case "Ending"
+      Me.cboWeekday.AddItem "Friday"
+      Me.cboWeekday.AddItem "Saturday"
+      Me.cboWeekday.Value = "Friday"
+  End Select
+End Sub
+
+Private Sub chkCosts_AfterUpdate()
+  Me.chkA.Enabled = Me.chkCosts
+  Me.chkB.Enabled = Me.chkCosts
+  Me.chkC.Enabled = Me.chkCosts
+  Me.chkD.Enabled = Me.chkCosts
+  Me.chkE.Enabled = Me.chkCosts
+End Sub
 
 Private Sub cmdAdd_Click()
 Dim lgField As Long, lgExport As Long, lgExists As Long

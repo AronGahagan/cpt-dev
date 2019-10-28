@@ -8,6 +8,20 @@
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
+		<Name>cptBackbone_bas</Name>
+		<FileName>cptBackbone_bas.bas</FileName>
+		<Version>v1.0.0</Version>
+		<Type>1</Type>
+		<Directory>Backbone</Directory>
+	</Module>
+	<Module>
+		<Name>cptBackbone_frm</Name>
+		<FileName>cptBackbone_frm.frm</FileName>
+		<Version>v1.0.0</Version>
+		<Type>3</Type>
+		<Directory>Backbone</Directory>
+	</Module>
+	<Module>
 		<Name>cptBrowseFolder_bas</Name>
 		<FileName>cptBrowseFolder_bas.bas</FileName>
 		<Version>v1.0.2</Version>
@@ -17,7 +31,7 @@
 	<Module>
 		<Name>cptCore_bas</Name>
 		<FileName>cptCore_bas.bas</FileName>
-		<Version>v1.6.1</Version>
+		<Version>v1.6.2</Version>
 		<Type>1</Type>
 		<Directory>Core</Directory>
 	</Module>
@@ -31,16 +45,30 @@
 	<Module>
 		<Name>cptCriticalPath_bas</Name>
 		<FileName>cptCriticalPath_bas.bas</FileName>
-		<Version>v2.8</Version>
+		<Version>v2.8.1</Version>
 		<Type>1</Type>
 		<Directory>Trace</Directory>
 	</Module>
 	<Module>
 		<Name>cptCriticalPathTools_bas</Name>
 		<FileName>cptCriticalPathTools_bas.bas</FileName>
-		<Version>v1.0.2</Version>
+		<Version>v1.0.3</Version>
 		<Type>1</Type>
 		<Directory>Trace</Directory>
+	</Module>
+	<Module>
+		<Name>cptDataDictionary_bas</Name>
+		<FileName>cptDataDictionary_bas.bas</FileName>
+		<Version>v1.0.0</Version>
+		<Type>1</Type>
+		<Directory>DataDictionary</Directory>
+	</Module>
+	<Module>
+		<Name>cptDataDictionary_frm</Name>
+		<FileName>cptDataDictionary_frm.frm</FileName>
+		<Version>v1.0.0</Version>
+		<Type>3</Type>
+		<Directory>DataDictionary</Directory>
 	</Module>
 	<Module>
 		<Name>cptDynamicFilter_bas</Name>
@@ -87,21 +115,21 @@
 	<Module>
 		<Name>cptResourceDemand_bas</Name>
 		<FileName>cptResourceDemand_bas.bas</FileName>
-		<Version>v1.1.7</Version>
+		<Version>v1.2.0</Version>
 		<Type>1</Type>
 		<Directory>ResourceDemand</Directory>
 	</Module>
 	<Module>
 		<Name>cptResourceDemand_frm</Name>
 		<FileName>cptResourceDemand_frm.frm</FileName>
-		<Version>v1.0.5</Version>
+		<Version>v1.2.0</Version>
 		<Type>3</Type>
 		<Directory>ResourceDemand</Directory>
 	</Module>
 	<Module>
 		<Name>cptSetup_bas</Name>
 		<FileName>cptSetup_bas.bas</FileName>
-		<Version>v1.3.11</Version>
+		<Version>v1.3.12</Version>
 		<Type>1</Type>
 		<Directory></Directory>
 	</Module>
@@ -122,14 +150,28 @@
 	<Module>
 		<Name>cptStatusSheet_bas</Name>
 		<FileName>cptStatusSheet_bas.bas</FileName>
-		<Version>v1.0.9</Version>
+		<Version>v1.2.0</Version>
 		<Type>1</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptStatusSheet_frm</Name>
 		<FileName>cptStatusSheet_frm.frm</FileName>
-		<Version>v1.1.5</Version>
+		<Version>v1.2.0</Version>
+		<Type>3</Type>
+		<Directory>Status</Directory>
+	</Module>
+	<Module>
+		<Name>cptStatusSheetImport_bas</Name>
+		<FileName>cptStatusSheetImport_bas.bas</FileName>
+		<Version>v1.0.0</Version>
+		<Type>1</Type>
+		<Directory>Status</Directory>
+	</Module>
+	<Module>
+		<Name>cptStatusSheetImport_frm</Name>
+		<FileName>cptStatusSheetImport_frm.frm</FileName>
+		<Version>v1.0.0</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>

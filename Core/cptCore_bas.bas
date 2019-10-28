@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.1</cpt_version>
+'<cpt_version>v1.6.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -51,7 +51,7 @@ err_here:
   Resume exit_here
 End Function
 
-Function cptGetControl(ByRef cptForm_frm As UserForm, strControlName As String) As control
+Function cptGetControl(ByRef cptForm_frm As UserForm, strControlName As String) As Control
 'NOTE: this only works for loaded forms
 
   Set cptGetControl = cptForm_frm.Controls(strControlName)
@@ -179,7 +179,7 @@ frx:
   Application.StatusBar = "Importing " & strFileName & "..."
   ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
   DoEvents
-  
+
   '<issue24> remove the whitespace added by VBE import/export
   With ThisProject.VBProject.VBComponents(strModule).CodeModule
     For lngLine = .CountOfDeclarationLines To 1 Step -1
@@ -223,35 +223,28 @@ Dim strAbout As String
   'contact and license
   strAbout = vbCrLf & "The ClearPlan Toolbar" & vbCrLf
   strAbout = strAbout & "by ClearPlan Consulting, LLC" & vbCrLf & vbCrLf
-  'strAbout = strAbout & "http://ClearPlanConsulting.com" & vbCrLf & vbCrLf
   strAbout = strAbout & "This software is provided free of charge," & vbCrLf
   strAbout = strAbout & "AS IS and without warranty." & vbCrLf
   strAbout = strAbout & "It is free to use, free to distribute with prior written consent from the developers/copyright holders and without modification." & vbCrLf & vbCrLf
   strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright 2019, ClearPlanConsulting, LLC"
-'  Set frmAbout = cptGetUserForm("cptAbout_frm") '<issue19>
-'  Set ctl = cptGetControl(frmAbout, "txtAbout") '<issue19>
-'  ctl.Value = strAbout
   cptAbout_frm.txtAbout.Value = strAbout  '<issue19>
 
   'follow the project
   strAbout = vbCrLf & vbCrLf & "Follow the Project:" & vbCrLf & vbCrLf
   strAbout = strAbout & "http://GitHub.com/ClearPlan/cpt" & vbCrLf & vbCrLf
-'  Set ctl = cptGetControl(frmAbout, "txtGitHub") '<issue19>
-'  ctl.Value = strAbout
   cptAbout_frm.txtGitHub.Value = strAbout '<issue19>
 
   'show/hide
-'  Set ctl = cptGetControl(frmAbout, "lblScoreboard") '<issue19>
-'  ctl.Visible = IIf(Now < #10/24/2019#, False, True) '<issue19>
-  cptAbout_frm.lblScoreBoard.Visible = IIf(Now < #10/24/2019#, False, True) '<issue19>
+  cptAbout_frm.lblScoreBoard.Visible = IIf(Now <= #10/25/2019#, False, True) '<issue19>
+  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b1" EWR > MSY
+  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b2" MSY > EWR
+  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b3" 'EWR > SAN
+  cptAbout_frm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR
   cptAbout_frm.Show '<issue19>
-'  frmAbout.Show '<issue19>
 
-  '<issue19> added error handling
 exit_here:
   On Error Resume Next
-'  Set ctl = Nothing
-'  Set frmAbout = Nothing
+
   Exit Sub
 err_here:
   Call cptHandleErr("cptCore_bas", "ShowCptAbout_frm", err, Erl)
@@ -292,7 +285,7 @@ Sub cptGetReferences()
 Dim Ref As Object
 
   For Each Ref In ThisProject.VBProject.References
-	  Debug.Print Ref.Name & " (" & Ref.Description & ") " & Ref.FullPath
+          Debug.Print Ref.Name & " (" & Ref.Description & ") " & Ref.FullPath
   Next Ref
 
 End Sub
@@ -598,7 +591,7 @@ Dim vCol As Variant
     cptUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
 next_lngItem:
   Next lngItem
-  
+
   'populate branches
   Set xmlHttpDoc = CreateObject("MSXML2.XMLHTTP.6.0")
   strURL = "https://api.github.com/repos/AronGahagan/cpt-dev/branches"
@@ -625,7 +618,7 @@ next_lngItem:
     cptUpgrades_frm.cboBranches.Clear
     cptUpgrades_frm.cboBranches.AddItem "<unavailable>"
   End If
-  
+
   cptUpgrades_frm.Show
 
 exit_here:
@@ -663,7 +656,7 @@ Dim strDir As String
   End If
   If Not cptReferenceExists("VBIDE") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB"
-	'todo: need win64 file path '<issue53>
+        'todo: need win64 file path '<issue53>
     'C:\Program Files\Common Files\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB?
   End If
   If Not cptReferenceExists("VBA") Then
@@ -770,20 +763,20 @@ Dim strURL As String
       strHTML = strHTML & "<h3>Please Include Screenshot(s):</h3><p>Please include any screenshot(s) of any error messages or anything else that might help us troubleshoot this issue for you.<p><p>"
       strHTML = strHTML & "<i>Thank you for helping us improve the ClearPlan Toolbar!</i>"
       MailItem.HTMLBody = strHTML & MailItem.HTMLBody
-      
+
     Case "Request"
       MailItem.Subject = "Feature Request: <enter brief description of the feature>"
       strHTML = "<h3>Please Describe the Feature you are Requesting:</h3><p>&nbsp;<p>&nbsp;"
       strHTML = strHTML & "<i>Thank you for contributing to the ClearPlan Toolbar project!</i>"
       MailItem.HTMLBody = strHTML & MailItem.HTMLBody
-      
+
     Case "Feedback"
       MailItem.Subject = "Feedback: <enter summary of feedback>"
       strHTML = "<h3>Feedback:</h3><p>&nbsp;<p>&nbsp;<i>We sincerely appreciate any and all constructive feedback. Thank you for contributing!</i>"
       MailItem.HTMLBody = strHTML & MailItem.HTMLBody
-      
+
   End Select
-  
+
 exit_here:
   On Error Resume Next
   Set objOutlook = Nothing
