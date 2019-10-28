@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCriticalPath_bas"
-'<cpt_version>v2.8</cpt_version>
+'<cpt_version>v2.8.1</cpt_version>
 Option Explicit
 Private CritField As String 'Stores comma seperated values for each task showing which paths they are a part of
 Private GroupField As String 'Stores a single value - used to group/sort tasks in final CP view
@@ -24,8 +24,9 @@ Type DrivingTask
     tFloat As Double
 End Type
 Private DrivingTasks() As DrivingTask 'var to store DrivingTask type
-Private drivingTasksCount As Integer 'coung of DrivingTasks
-Public export_to_PPT As Boolean 'cpt ToolBar controlled var for controlling user notification of completed analysis
+Private drivingTasksCount As Integer 'count of DrivingTasks
+Public singlePath As Boolean 'cpt controlled var for limited results to a single path
+Public export_to_PPT As Boolean 'cpt controlled var for controlling user notification of completed analysis
 
 Sub DrivingPaths()
 'Primary analysis module that controls analysis
@@ -62,7 +63,7 @@ Sub DrivingPaths()
     End If
     
     'Exit if multiple tasks are selected
-    If curproj.Application.ActiveSelection.Tasks.count > 1 Then
+    If curproj.Application.ActiveSelection.Tasks.Count > 1 Then
         MsgBox "Select a single activity only."
         curproj = Nothing
         Exit Sub
@@ -151,6 +152,9 @@ Sub DrivingPaths()
         evaluateTaskDependencies tdp, t, curproj, AnalyzedTasks
         
     Next tdp 'Next user selected analysis task dependency
+    
+    '<---cpt:exit here for single driving path--->
+    If singlePath Then GoTo ShowAndTell
     
     'Clear variables for re-use in evaluating secondary driver
     Set tdps = Nothing
@@ -278,6 +282,8 @@ Sub DrivingPaths()
         
     End If
     
+ShowAndTell:
+    
     'Create and Apply the "ClearPlan Driving Path" Table, View, Group, and Filter
     SetupCPView GroupField, curproj, analysisTaskUID
     
@@ -355,13 +361,13 @@ Private Sub SetupCPView(ByVal GroupField As String, ByVal curproj As Project, By
     curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, Create:=True, ShowAddNewColumn:=True, OverwriteExisting:=True, FieldName:="ID", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, LockFirstColumn:=True, ColumnPosition:=0
     
     'Add fields to CP Driving Path Table
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Unique ID", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1, LockFirstColumn:=True
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:=GroupField, Title:="Driving Path", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Name", Width:=45, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=2
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Duration", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=3
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Start", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=4
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Finish", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=5
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Total Slack", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=6
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Unique ID", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1, LockFirstColumn:=True
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:=GroupField, Title:="Driving Path", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Name", Width:=45, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=2
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Duration", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=3
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Start", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=4
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Finish", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=5
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Total Slack", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=6
 
     'Create CP Driving Path Filter
     curproj.Application.FilterEdit Name:="*ClearPlan Driving Path Filter", Taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=GroupField, test:="is greater than", Value:="0", ShowInMenu:=False, ShowSummaryTasks:=False

@@ -25,7 +25,7 @@ Dim lngFile As Long
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
+
   'confirm repo selected
   If Len(frmGitVBA.cboRepo.Value) = 0 Or Dir(frmGitVBA.cboRepo.Value & "\.git\", vbDirectory) = vbNullString Then
     MsgBox "Please select a valid git repo.", vbExclamation + vbOKOnly, "Nope"
@@ -55,7 +55,7 @@ Dim lngFile As Long
   arrTypes.Add 2, ".cls"
   arrTypes.Add 3, ".frm"
   arrTypes.Add 100, ".cls"
-  
+
   '<issue18> sort the list to limit merge conflicts - added
   Set arrModules = CreateObject("System.Collections.SortedList")
   For Each vbComponent In ThisProject.VBProject.VBComponents
@@ -66,7 +66,7 @@ Dim lngFile As Long
 next_vbComponent:
   Next vbComponent
   '</issue18>
-  
+
   'write xml
   strXML = "<?xml version=""1.0"" encoding=""utf-8"" ?>" & vbCrLf
   strXML = strXML & "<Modules>" & vbCrLf
@@ -75,7 +75,7 @@ next_vbComponent:
   '  If vbComponent.Name = "cptAdmin_bas" Then GoTo next_vbComponent - removed
   '  If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then - removed
   '</issue18>
-  For lngItem = 0 To arrModules.count - 1
+  For lngItem = 0 To arrModules.Count - 1
     Set vbComponent = ThisProject.VBProject.VBComponents(arrModules.getKey(lngItem))
     Debug.Print arrModules.getKey(lngItem)
     strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
@@ -95,11 +95,11 @@ next_vbComponent:
   'Next vbComponent - removed
   '</issue18>
   strXML = strXML & "</Modules>" & vbCrLf
-  
+
   'ensure correct branch is active
   frmGitVBA.txtNotes.Value = frmGitVBA.txtNotes.Value & vbCrLf & String(53, "-") & vbCrLf & Redirect("git", "-C " & strRepo & " checkout " & Replace(Replace(frmGitVBA.cboBranch.Value, Chr(32), ""), "*", ""))
   Call gitScrollDown
-  
+
   'write to the file
   Set oStream = CreateObject("ADODB.Stream")
   oStream.Type = 2 'adTypeText
@@ -110,10 +110,10 @@ next_vbComponent:
   oStream.SaveToFile strFileName, 2 'adSaveCreateOverWrite
   oStream.Close
   Set oStream = Nothing
-  
+
   frmGitVBA.txtNotes.Value = frmGitVBA.txtNotes.Value & vbCrLf & String(53, "-") & vbCrLf & Redirect("git", "-C " & strRepo & " add CurrentVersions.xml")
   Call gitScrollDown
-  
+
 exit_here:
   On Error Resume Next
   Set arrModules = Nothing
@@ -122,7 +122,7 @@ exit_here:
   If oStream.State <> adStateClosed Then oStream.Close
   Set oStream = Nothing
   Exit Sub
-  
+
 err_here:
   Call cptHandleErr("cptAdmin_bas", "CreateCurrentVersionXML", err)
   Resume exit_here
@@ -155,18 +155,18 @@ Dim arrHeader As Variant
   xlApp.Visible = True
   Set Workbook = xlApp.Workbooks.Add
   Set Worksheet = Workbook.Sheets(1)
-  
+
   xlApp.ActiveWindow.Zoom = 85
   Worksheet.[A2].Select
   xlApp.ActiveWindow.FreezePanes = True
-  
+
   'set the header
   arrHeader = Array("Ribbon Group", "Module", "SLOC", "Procedure", "SLOC", "Directory", "HelpDoc", "Author")
   Worksheet.Range(Worksheet.[A1], Worksheet.[A1].Offset(0, UBound(arrHeader))) = arrHeader
   Worksheet.Columns.AutoFit
-  
+
   lngRow = 2
-  
+
   For Each vbComponent In ThisProject.VBProject.VBComponents
     strModule = vbComponent.Name
     Debug.Print "working on " & strModule & "..."
@@ -198,11 +198,11 @@ Dim arrHeader As Variant
       If lngRow > 10 Then xlApp.ActiveWindow.ScrollRow = lngRow - 10
     End If
   Next vbComponent
-  
+
   xlApp.ActiveWindow.ScrollRow = 2
-  
+
   MsgBox "Documented." & vbCrLf & vbCrLf & "(" & Format(lngSLOC, "#,##0") & " SLOC)", vbInformation + vbOKOnly, "Documenter"
-  
+
 exit_here:
   On Error Resume Next
   Set vbComponent = Nothing
@@ -225,15 +225,15 @@ Dim vbComponent As vbComponent
     End If
   Next vbComponent
   Set vbComponent = Nothing
-  
+
 End Sub
 
 Function cptSetDirectory(strComponentName As String) As String
 'strings
 Dim strDirectory As String
-      
+
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
+
   'remove the prefix
   strDirectory = Replace(strComponentName, "cpt", "")
   'remove the suffix
@@ -261,6 +261,8 @@ Dim strDirectory As String
     'Integration
     Case "IMSCobraExport"
       strDirectory = "Integration"
+    Case "Graphics"
+      strDirectory = "Metrics"
     'TextTools
     Case "DynamicFilter"
       strDirectory = "Text"
@@ -269,18 +271,20 @@ Dim strDirectory As String
       strDirectory = "Status"
     Case "StatusSheet"
       strDirectory = "Status"
+    Case "StatusSheetImport"
+      strDirectory = "Status"
     'Trace
     Case "CriticalPath"
       strDirectory = "Trace"
     Case "CriticalPathTools"
       strDirectory = "Trace"
     Case Else
-      
-        
+
+
   End Select
-  
+
   cptSetDirectory = strDirectory & "\"
-  
+
 exit_here:
   On Error Resume Next
 
@@ -290,3 +294,65 @@ err_here:
   Resume exit_here
 
 End Function
+
+Sub cptSQL(strFile As String, Optional strFilter As String)
+'objects
+Dim cn As ADODB.Connection, rst As ADODB.Recordset
+'strings
+Dim strRecord As String
+Dim strFields As String
+Dim strCon As String, strDir As String, strSQL As String
+'longs
+Dim lngField As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  'cpt-export-resource-userfields.adtg
+  'cpt-status-sheet.adtg
+  'cpt-status-sheet-userfields.adtg
+  'cpt-data-dictionary.adtg
+  'git-vba-repo.adtg
+  'vba-backup-modules.adtg
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  strFile = Environ("USERPROFILE") & "\cpt-backup\settings\" & strFile
+
+  If Dir(strFile) = vbNullString Then
+    Debug.Print "Invalid file: " & strFile
+    GoTo exit_here
+  End If
+
+  With CreateObject("ADODB.Recordset")
+    .Open strFile
+    'get field names
+    For lngField = 0 To .Fields.Count - 1
+      strFields = strFields & .Fields(lngField).Name & " | "
+    Next lngField
+    Debug.Print strFields
+    'get records
+    If Not .EOF Then .MoveFirst
+    Do While Not .EOF
+      strRecord = ""
+      For lngField = 0 To .Fields.Count - 1
+        strRecord = strRecord & .Fields(lngField) & " | "
+      Next lngField
+      Debug.Print strRecord
+      .MoveNext
+    Loop
+  End With
+
+exit_here:
+  On Error Resume Next
+  If rst.State Then rst.Close
+  Set rst = Nothing
+  If cn.State Then cn.Close
+  Set cn = Nothing
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptAdmin_bas", "cptSQL", err, Erl)
+  Resume exit_here
+End Sub

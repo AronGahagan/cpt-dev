@@ -13,12 +13,107 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.5</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 Private Const adInteger As Long = 3
+
+Private Sub cboCreate_Change()
+'objects
+'strings
+'longs
+Dim lngField As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  Select Case Me.cboCreate
+    Case 0 'A single workbook
+      Me.lboItems.ForeColor = -2147483630
+      Me.chkSendEmails.Caption = "Create Email"
+      Me.lblForEach.Visible = False
+      Me.cboEach.Enabled = False
+      Me.lboItems.Enabled = False
+      FilterClear
+
+    Case 1 'A worksheet for each
+      Me.lboItems.ForeColor = -2147483630
+      Me.chkSendEmails.Caption = "Create Email"
+      Me.lblForEach.Visible = True
+      Me.cboEach.Enabled = True
+      Me.lboItems.Enabled = True
+      If Me.Visible Then Me.cboEach.DropDown
+
+    Case 2 'A workbook for each
+      Me.lboItems.ForeColor = -2147483630
+      Me.chkSendEmails.Caption = "Create Email(s)"
+      Me.lblForEach.Visible = True
+      Me.cboEach.Enabled = True
+      Me.lboItems.Enabled = True
+      If Me.Visible Then Me.cboEach.DropDown
+
+    End Select
+        
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_frm", "cboCreate_Change", err, Erl)
+  Resume exit_here
+End Sub
+
+Private Sub cboEach_Change()
+'objects
+Dim Task As Object
+'strings
+'longs
+Dim lngItem As Long
+Dim lngField As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  Me.lboItems.Clear
+  Me.lboItems.ForeColor = -2147483630
+  FilterClear
+  
+  On Error Resume Next
+  lngField = FieldNameToFieldConstant(Me.cboEach)
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If lngField > 0 Then
+    With CreateObject("System.Collections.SortedList")
+      For Each Task In ActiveProject.Tasks
+        If Len(Task.GetField(lngField)) > 0 Then
+          If Not .Contains(Task.GetField(lngField)) Then .Add Task.GetField(lngField), Task.GetField(lngField)
+        End If
+      Next Task
+      For lngItem = 0 To .Count - 1
+        Me.lboItems.AddItem .GetByIndex(lngItem)
+      Next lngItem
+    End With
+  End If 'lngField > 0
+  
+exit_here:
+  On Error Resume Next
+  Set Task = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cboEach_Change", "cboEach_Change", err, Erl)
+  Resume exit_here
+End Sub
 
 Private Sub cboEVP_AfterUpdate()
   
@@ -35,6 +130,21 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptStatusSheet_frm", "cboEVP_AfterUpdate", err, Erl)
+  Resume exit_here
+End Sub
+
+Private Sub cboEVP_Change()
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If cptStatusSheet_frm.Visible Then Call cptRefreshStatusTable
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_frm", "cboEVP_Change", err, Erl)
   Resume exit_here
 End Sub
 
@@ -57,23 +167,39 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub chkHide_Click()
+Private Sub cboEVT_Change()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  Me.txtHideCompleteBefore.Enabled = Me.chkHide
+  If cptStatusSheet_frm.Visible Then Call cptRefreshStatusTable
 
 exit_here:
   On Error Resume Next
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "chkHide_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cboEVT_Change", err, Erl)
+  Resume exit_here
+End Sub
+
+Private Sub chkHide_Click()
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  Me.txtHideCompleteBefore.Enabled = Me.chkHide
+  If Me.Visible Then Call cptRefreshStatusTable
+  
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("chkHide_Click", "chkHide_Click", err, Erl)
   Resume exit_here
   
 End Sub
 
-Private Sub cmdAdd_Click()
+Sub cmdAdd_Click()
 Dim lgField As Long, lgExport As Long, lgExists As Long
 Dim blnExists As Boolean
 
@@ -96,6 +222,8 @@ Dim blnExists As Boolean
     End If
 next_item:
   Next lgField
+
+  Call cptRefreshStatusTable
 
 exit_here:
   On Error Resume Next
@@ -128,6 +256,8 @@ Dim blnExists As Boolean
     Me.lboExport.List(lgExport, 2) = Me.lboFields.List(lgField, 2)
 next_item:
   Next lgField
+
+  Call cptRefreshStatusTable
 
 exit_here:
   On Error Resume Next
@@ -184,12 +314,14 @@ Dim lgField As Long, strField As String, strField2 As String
     End If
   Next lgExport
 
+  Call cptRefreshStatusTable
+
 exit_here:
   On Error Resume Next
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdDown_Click", err, Erl)
+  Call cptHandleErr("frmStatusSeet", "cmdDown_Click", err, Erl)
   Resume exit_here
 
 End Sub
@@ -204,6 +336,8 @@ Dim lgExport As Long
       Me.lboExport.RemoveItem lgExport
     End If
   Next lgExport
+
+  Call cptRefreshStatusTable
 
 exit_here:
   On Error Resume Next
@@ -224,6 +358,8 @@ Dim lgExport As Long
     Me.lboExport.RemoveItem lgExport
   Next lgExport
 
+  Call cptRefreshStatusTable
+
 exit_here:
   On Error Resume Next
 
@@ -235,6 +371,18 @@ err_here:
 End Sub
 
 Private Sub cmdRun_Click()
+'objects
+'strings
+'longs
+Dim lngSelectedItems As Long
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+Dim blnIncluded As Boolean
+'variants
+'dates
+
 Dim blnError As Boolean, intOutput As Integer, intHide As Integer
 Dim strFileName As String
 
@@ -248,10 +396,9 @@ Dim strFileName As String
   Me.lblEVP.ForeColor = -2147483630
   Me.chkHide.ForeColor = -2147483630
   Me.lblStatus.ForeColor = -2147483630
-  Me.optWorkbook.ForeColor = -2147483630
-  Me.optWorksheets.ForeColor = -2147483630
-  Me.optWorkbooks.ForeColor = -2147483630
   Me.cboCostTool.ForeColor = -2147483630
+  Me.cboCreate.ForeColor = -2147483630
+  Me.cboEach.BorderColor = -2147483642
   
   'validation
   If Not IsDate(Me.txtStatusDate.Value) Then
@@ -293,11 +440,33 @@ Dim strFileName As String
     Me.lblEVP.ForeColor = 192 'Red
     blnError = True
   End If
-  If Not Me.optWorkbook Then
-    If Len(Me.cboEach.Value) = 0 Then
-      If Me.optWorkbook Then Me.optWorkbook.ForeColor = 192
-      If Me.optWorksheets Then Me.optWorksheets.ForeColor = 192
+  If Me.cboCreate.Value <> "0" Then
+    'a limiting field must be selected
+    If Me.cboEach.Value = 0 Then
+      Me.cboEach.BorderColor = 192
       blnError = True
+    End If
+    'at least one item selected
+    For lngItem = 0 To Me.lboItems.ListCount - 1
+      If Me.lboItems.Selected(lngItem) Then lngSelectedItems = lngSelectedItems + 1
+    Next lngItem
+    If lngSelectedItems = 0 Then
+      Me.lboItems.Selected(0) = True
+      'Me.lboItems.ForeColor = 92
+      blnError = True
+    End If
+    'the limiting field should be included in the export list
+    blnIncluded = False
+    For lngItem = 0 To Me.lboExport.ListCount - 1
+      If Me.lboExport.List(lngItem, 1) = Me.cboEach Then blnIncluded = True
+    Next lngItem
+    If Not blnIncluded Then
+      If MsgBox("The For Each field '" & Me.cboEach & "' is not included in the export list." & vbCrLf & vbCrLf & "Include it?", vbYesNo + vbQuestion, "Include For Each Field?") = vbYes Then
+        For lngItem = 0 To Me.lboFields.ListCount - 1
+          Me.lboFields.Selected(lngItem) = Me.lboFields.List(lngItem, 1) = Me.cboEach
+        Next lngItem
+        Me.cmdAdd_Click
+      End If
     End If
   End If
   If blnError Then
@@ -315,9 +484,7 @@ Dim strFileName As String
       .Fields.Append "cboEach", adVarChar, 100
       .Open
       If Me.chkHide Then intHide = 1 Else intHide = 0
-      If Me.optWorkbook Then intOutput = 1
-      If Me.optWorksheets Then intOutput = 2
-      If Me.optWorkbooks Then intOutput = 3
+      intOutput = Me.cboCreate.Value + 1
       .AddNew Array(0, 1, 2, 3, 4), Array(Me.cboEVT.Value, Me.cboEVP.Value, intOutput, intHide, Me.cboCostTool.Value)
       .Update
       .MoveFirst
@@ -368,6 +535,8 @@ Dim lgField As Long, strField As String, strField2 As String
       End If
     End If
   Next lgExport
+  
+  Call cptRefreshStatusTable
 
 exit_here:
   On Error Resume Next
@@ -394,70 +563,51 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub optWorkbook_Click()
+Private Sub lboItems_MouseUp(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal y As Single)
+'objects
+'strings
+Dim strCriteria As String
+Dim strFieldName As String
+'longs
+Dim lngSelectedItems As Long
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  cptSpeed True
+  
+  strFieldName = Me.cboEach.Value
 
-  Me.optWorksheets = False
-  Me.optWorkbooks = False
-  Me.optWorksheets.ForeColor = -2147483630
-  Me.optWorkbooks.ForeColor = -2147483630
-  Me.chkSendEmails.Caption = "Create Email"
-  Me.cboEach.Enabled = False
-  Me.cboEach.Visible = False
-
+  For lngItem = 0 To Me.lboItems.ListCount - 1
+    If Me.lboItems.Selected(lngItem) Then
+      strCriteria = strCriteria & Me.lboItems.List(lngItem) & Chr$(9)
+      lngSelectedItems = lngSelectedItems + 1
+    End If
+  Next lngItem
+  
+  strCriteria = Left(strCriteria, Len(strCriteria) - 1)
+  
+  If lngSelectedItems < Me.lboItems.ListCount Then
+    SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
+  Else
+    FilterClear
+  End If
+  
+  ActiveWindow.TopPane.Activate
+  SelectBeginning
+  
 exit_here:
   On Error Resume Next
-
+  cptSpeed False
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "optWorkbook_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "lboItems_AfterUpdate", err, Erl)
   Resume exit_here
-End Sub
-
-Private Sub optWorksheets_Click()
-
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  Me.optWorkbook = False
-  Me.optWorkbooks = False
-  Me.optWorkbooks.ForeColor = -2147483630
-  Me.chkSendEmails.Caption = "Create Email"
-  Me.cboEach.Enabled = True
-  Me.cboEach.Visible = True
-  If Me.Visible Then Me.cboEach.DropDown
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "optWorksheets_Click", err, Erl)
-  Resume exit_here
-  
-End Sub
-
-Private Sub optWorkbooks_Click()
-  
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
-  Me.optWorkbook = False
-  Me.optWorksheets = False
-  Me.optWorksheets.ForeColor = -2147483630
-  Me.chkSendEmails.Caption = "Create Email(s)"
-  Me.cboEach.Enabled = True
-  Me.cboEach.Visible = True
-  If Me.Visible Then Me.cboEach.DropDown
-
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "optWorkbooks_Click", err, Erl)
-  Resume exit_here
-  
 End Sub
 
 Private Sub stxtSearch_Change()
