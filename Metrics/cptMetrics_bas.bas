@@ -276,6 +276,10 @@ Dim dblResult As Double
     Case "SPI"
       dblBCWP = cptGetMetric("bcwp")
       dblBCWS = cptGetMetric("bcws")
+      If dblBCWS = 0 Then
+        MsgBox "No BCWS found.", vbExclamation + vbOKOnly, "Schedule Performance Index (SPI) - Hours"
+        GoTo exit_here
+      End If
       strMsg = "SPI = BCWP / BCWS" & vbCrLf
       strMsg = strMsg & "SPI = " & Format(dblBCWP, "#,##0h") & " / " & Format(dblBCWS, "#,##0h") & vbCrLf & vbCrLf
       strMsg = strMsg & "SPI = ~" & Round(dblBCWP / dblBCWS, 2)
