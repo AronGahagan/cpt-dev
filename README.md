@@ -55,7 +55,7 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
     ![installation-02](https://github.com/AronGahagan/cpt-dev/blob/develop/images/installation-02.PNG?raw=true)
     1. Click **OK** a couple of times to close the dialogs
     1. Completely exit, and then restart, Microsoft Project (this makes the settings above 'stick')
-1. Download and open [cpt.mpp](https://github.com/AronGahagan/cpt-dev/releases/download/1.3.2/cpt_v1.3.2.mpp)
+1. Download and open [cpt.mpp](https://github.com/AronGahagan/cpt-dev/releases/download/1.5.0/cpt_v1.5.0.mpp)
 1. Open the **Organizer** and select the **Modules** tab:
     1. **If you have an internet connection:** copy the `cptSetup_bas` module into your Global.MPT
     1. **If you do not have an internet connection:** copy **all** modules prefixed with `cpt` into your Global.MPT
