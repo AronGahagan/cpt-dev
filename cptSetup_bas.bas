@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.3.13</cpt_version>
+'<cpt_version>v1.3.14</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -491,9 +491,9 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Export"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExportMetrics"" label="">> Excel"" imageMso=""ExportExcel"" onAction=""cptExportMetricsExcel"" visible=""true""/>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
-    If cptModuleExists("cptGraphics_bas") And cptModuleExists("cptGraphics_frm") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bGraphics"" label=""Quick Look"" imageMso=""PivotChartInsert"" onAction=""cptShowFrmGraphics"" visible=""true"" size=""large"" />"
-    End If
+'    If cptModuleExists("cptGraphics_bas") And cptModuleExists("cptGraphics_frm") Then
+'      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bGraphics"" label=""Quick Look"" imageMso=""PivotChartInsert"" onAction=""cptShowFrmGraphics"" visible=""true"" size=""large"" />"
+'    End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
   

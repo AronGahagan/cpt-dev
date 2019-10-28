@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.0.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -131,7 +131,11 @@ Dim dtConstraintDate As Date
   End If
       
   'use status date if exists
-  If IsDate(ActiveProject.StatusDate) Then dtStart = ActiveProject.StatusDate
+  If IsDate(ActiveProject.StatusDate) Then
+    dtStart = ActiveProject.StatusDate
+  Else
+    dtStart = FormatDateTime(Now(), vbShortDate) & " 08:00 AM"
+  End If
   
   'use earliest start date
   'NOTE: cannot account for schedule margin due to possibility
@@ -140,6 +144,7 @@ Dim dtConstraintDate As Date
   If Task Is Nothing Then GoTo exit_here
   If Task.Summary Then GoTo exit_here
   If Not Task.Active Then GoTo exit_here
+  HighlightDrivingPredecessors Set:=True
   For Each Pred In ActiveProject.Tasks
     If Pred.PathDrivingPredecessor Then
       If IsDate(Pred.ActualStart) Then
