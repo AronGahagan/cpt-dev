@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.0.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -38,27 +38,75 @@ Sub cptGetETC()
 End Sub
 
 Sub cptGetBCWS()
-  MsgBox Format(cptGetMetric("bcws"), "#,##0.00"), vbInformation + vbOKOnly, "Budgeted Cost of Work Scheduled (BCWS) - hours"
+
+  'confirm status date
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
+    Exit Sub
+  Else
+    MsgBox Format(cptGetMetric("bcws"), "#,##0.00"), vbInformation + vbOKOnly, "Budgeted Cost of Work Scheduled (BCWS) - hours"
+  End If
+
 End Sub
 
 Sub cptGetBCWP()
-  MsgBox Format(cptGetMetric("bcwp"), "#,##0.00"), vbInformation + vbOKOnly, "Budgeted Cost of Work Performed (BCWP) - hours"
+  
+  'confirm status date
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
+    Exit Sub
+  Else
+    MsgBox Format(cptGetMetric("bcwp"), "#,##0.00"), vbInformation + vbOKOnly, "Budgeted Cost of Work Performed (BCWP) - hours"
+  End If
+  
 End Sub
 
 Sub cptGetSPI()
-  Call cptGET("SPI")
+  
+  'confirm status date
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
+    Exit Sub
+  Else
+    Call cptGET("SPI")
+  End If
+  
 End Sub
 
 Sub cptGetBEI()
-  Call cptGET("BEI")
+
+  'confirm status date
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
+    Exit Sub
+  Else
+    Call cptGET("BEI")
+  End If
+  
 End Sub
 
 Sub cptGetCEI()
-  Call cptGET("CEI")
+  
+  'confirm status date
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
+    Exit Sub
+  Else
+    Call cptGET("CEI")
+  End If
+  
 End Sub
 
 Sub cptGetSV()
-  Call cptGET("SV")
+    
+  'confirm status date
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
+    Exit Sub
+  Else
+    Call cptGET("SV")
+  End If
+
 End Sub
 
 Sub cptGetCPLI()
@@ -282,7 +330,7 @@ Dim dtStatus As Date
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
     MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
-	GoTo exit_here
+    GoTo exit_here
   Else
     dtStatus = ActiveProject.StatusDate
   End If
@@ -350,6 +398,7 @@ Dim dtStatus As Date
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
     MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
+    GoTo exit_here
   Else
     dtStatus = ActiveProject.StatusDate
   End If
