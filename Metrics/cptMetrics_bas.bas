@@ -56,7 +56,7 @@ Sub cptGetBCWP()
     MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
     Exit Sub
   Else
-    MsgBox Format(cptGetMetric("bcwp"), "#,##0.00"), vbInformation + vbOKOnly, "Budgeted Cost of Work Performed (BCWP) - hours"
+    MsgBox Format(cptGetMetric("bcwp"), "#,##0.00") & vbCrLf & vbCrLf & "(Assumes EV% in Physical % Complete.)", vbInformation + vbOKOnly, "Budgeted Cost of Work Performed (BCWP) - hours"
   End If
   
 End Sub
@@ -284,6 +284,10 @@ Dim dblResult As Double
     Case "SV"
       dblBCWP = cptGetMetric("bcwp")
       dblBCWS = cptGetMetric("bcws")
+      If dblBCWS = 0 Then
+        MsgBox "No BCWS found.", vbExclamation + vbOKOnly, "Schedule Variance (SV) - Hours"
+        GoTo exit_here
+      End If
       strMsg = strMsg & "Schedule Variance (SV)" & vbCrLf
       strMsg = strMsg & "SV = BCWP - BCWS" & vbCrLf
       strMsg = strMsg & "SV = " & Format(dblBCWP, "#,##0h") & " - " & Format(dblBCWS, "#,##0h") & vbCrLf
@@ -412,7 +416,8 @@ Dim dtStatus As Date
       If Task.ExternalTask Then GoTo next_task
       If Task.Summary Then GoTo next_task
       If Not Task.Active Then GoTo next_task
-      If Task.BaselineWork > 0 Then
+      If Task.BaselineWork > 0 Then 'idea here was to limit tasksk to PMB tasks only
+                                    'but won't work for non-resource loaded schedules
         Select Case strGet
           Case "bac"
             dblResult = dblResult + (Task.BaselineWork / 60)
@@ -429,19 +434,20 @@ Dim dtStatus As Date
             End If
             
           Case "bcwp"
-            'todo: user has not identified where ev% is kept
+            'todo: user has not identified where ev% is kept - indicate in msgbox
             dblResult = dblResult + ((Task.BaselineWork / 60) * (Task.PhysicalPercentComplete / 100))
-            
-          Case "bei_bf"
-            dblResult = dblResult + IIf(Task.BaselineFinish <= dtStatus, 1, 0)
-            If Task.BaselineFinish <= dtStatus Then Task.Text23 = "BF"
-            
-          Case "bei_af"
-            dblResult = dblResult + IIf(Task.ActualFinish <= dtStatus, 1, 0)
-            If Task.ActualFinish <= dtStatus Then Task.Text24 = "AF"
-            
+                        
         End Select
       End If 'bac>0
+      Select Case strGet
+      
+        Case "bei_bf"
+          dblResult = dblResult + IIf(Task.BaselineFinish <= dtStatus, 1, 0)
+            
+        Case "bei_af"
+          dblResult = dblResult + IIf(Task.ActualFinish <= dtStatus, 1, 0)
+
+      End Select
     End If 'not nothing
 next_task:
     Application.StatusBar = "Calculating " & UCase(strGet) & "..."
