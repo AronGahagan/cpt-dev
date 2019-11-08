@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.2</cpt_version>
+'<cpt_version>v1.6.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -47,7 +47,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "GetModule()", err, Erl)
+  Call cptHandleErr("cptCore_bas", "GetModule()", Err, Erl)
   Resume exit_here
 End Function
 
@@ -79,7 +79,7 @@ exit_here:
   Set objIndName = Nothing
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptGetUserFullName", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptGetUserFullName", Err, Erl)
   Resume exit_here
 
 End Function
@@ -104,7 +104,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptGetVersions", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptGetVersions", Err, Erl)
   Resume exit_here
 
 End Function
@@ -179,7 +179,7 @@ frx:
   Application.StatusBar = "Importing " & strFileName & "..."
   ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
   DoEvents
-
+  
   '<issue24> remove the whitespace added by VBE import/export
   With ThisProject.VBProject.VBComponents(strModule).CodeModule
     For lngLine = .CountOfDeclarationLines To 1 Step -1
@@ -196,7 +196,7 @@ exit_here:
   Application.StatusBar = ""
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptUpgrade", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptUpgrade", Err, Erl)
   Resume exit_here
 
 End Sub '<issue31>
@@ -244,10 +244,10 @@ Dim strAbout As String
 
 exit_here:
   On Error Resume Next
-
+  
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "ShowCptAbout_frm", err, Erl)
+  Call cptHandleErr("cptCore_bas", "ShowCptAbout_frm", Err, Erl)
   Resume exit_here '</issue19>
 
 End Sub
@@ -274,7 +274,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptReferenceExists", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptReferenceExists", Err, Erl)
   Resume exit_here
 End Function
 
@@ -330,7 +330,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptGetDirectory()", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptGetDirectory()", Err, Erl)
   Resume exit_here
 End Function
 
@@ -463,7 +463,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptResetAll", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptResetAll", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -500,10 +500,6 @@ Dim vCol As Variant
   'todo:user should still be able to check currently installed versions
   If Not cptInternetIsConnected Then
     MsgBox "You must be connected to the internet to perform updates.", vbInformation + vbOKOnly, "No Connection"
-    GoTo exit_here
-  End If
-
-  If Not cptCheckReference("VBA") Or Not cptCheckReference("VBIDE") Then
     GoTo exit_here
   End If
 
@@ -591,7 +587,7 @@ Dim vCol As Variant
     cptUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
 next_lngItem:
   Next lngItem
-
+  
   'populate branches
   Set xmlHttpDoc = CreateObject("MSXML2.XMLHTTP.6.0")
   strURL = "https://api.github.com/repos/AronGahagan/cpt-dev/branches"
@@ -618,7 +614,7 @@ next_lngItem:
     cptUpgrades_frm.cboBranches.Clear
     cptUpgrades_frm.cboBranches.AddItem "<unavailable>"
   End If
-
+  
   cptUpgrades_frm.Show
 
 exit_here:
@@ -638,7 +634,7 @@ exit_here:
   Set FindRecord = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "ShowCptUpgrades_frm", err, Erl)
+  Call cptHandleErr("cptCore_bas", "ShowCptUpgrades_frm", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -763,27 +759,27 @@ Dim strURL As String
       strHTML = strHTML & "<h3>Please Include Screenshot(s):</h3><p>Please include any screenshot(s) of any error messages or anything else that might help us troubleshoot this issue for you.<p><p>"
       strHTML = strHTML & "<i>Thank you for helping us improve the ClearPlan Toolbar!</i>"
       MailItem.HTMLBody = strHTML & MailItem.HTMLBody
-
+      
     Case "Request"
       MailItem.Subject = "Feature Request: <enter brief description of the feature>"
       strHTML = "<h3>Please Describe the Feature you are Requesting:</h3><p>&nbsp;<p>&nbsp;"
       strHTML = strHTML & "<i>Thank you for contributing to the ClearPlan Toolbar project!</i>"
       MailItem.HTMLBody = strHTML & MailItem.HTMLBody
-
+      
     Case "Feedback"
       MailItem.Subject = "Feedback: <enter summary of feedback>"
       strHTML = "<h3>Feedback:</h3><p>&nbsp;<p>&nbsp;<i>We sincerely appreciate any and all constructive feedback. Thank you for contributing!</i>"
       MailItem.HTMLBody = strHTML & MailItem.HTMLBody
-
+      
   End Select
-
+  
 exit_here:
   On Error Resume Next
   Set objOutlook = Nothing
   Set MailItem = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptSendMail", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptSendMail", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -852,7 +848,7 @@ exit_here:
 '  GoTo exit_here
 
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptWrapItUp", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptWrapItUp", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -914,7 +910,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptVersionStatus", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptVersionStatus", Err, Erl)
   Resume exit_here
 
 End Function
