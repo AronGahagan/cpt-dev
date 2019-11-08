@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.0.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -117,7 +117,7 @@ exit_here:
   Set xlApp = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptBackbone_bas", "cptImportCWBSFromExcel", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "cptImportCWBSFromExcel", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -278,7 +278,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptBackbone_bas", "cptImportAppendixB", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "cptImportAppendixB", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -417,7 +417,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptBackbone_bas", "ExportOutlineCode", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "ExportOutlineCode", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -594,7 +594,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptBackbone_bas", "cptExport81334D", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "cptExport81334D", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -646,7 +646,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptBackbone_bas", "cptExportTemplate", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "cptExportTemplate", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -699,7 +699,7 @@ exit_here:
   
   Exit Sub
 err_here:
-  Call cptHandleErr("cptBackbone_bas", "cptShowcptBackbone_frm", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "cptShowcptBackbone_frm", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -764,7 +764,7 @@ exit_here:
   Set xlApp = Nothing
   Exit Sub
 err_here:
-  MsgBox err.Number & ": " & err.Description, vbExclamation + vbOKOnly, "Error"
+  MsgBox Err.Number & ": " & Err.Description, vbExclamation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
 
@@ -793,14 +793,14 @@ exit_here:
   Set LookupTable = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptBackbone_bas", "cptRenameInsideOutlineCode", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "cptRenameInsideOutlineCode", Err, Erl)
   Resume exit_here
 End Sub
 
 Sub cptRefreshOutlineCodePreview(strOutlineCode As String)
 'objects
 Dim OutlineCode As OutlineCode, LookupTable As LookupTable, LookupTableEntry As LookupTableEntry
-Dim N As Node
+Dim N As Object 'Node
 'strings
 'longs
 Dim lngEntry As Long
@@ -820,10 +820,12 @@ Dim lngEntry As Long
     If LookupTable.Count > 0 Then
       For lngEntry = 1 To LookupTable.Count
         If LookupTable(lngEntry).Level = 1 Then 'add top level
-          Set N = cptBackbone_frm.TreeView1.Nodes.Add(, relationship:=tvwFirst, key:="uid" & LookupTable(lngEntry).UniqueID, Text:=LookupTable(lngEntry).FullName & " - " & LookupTable(lngEntry).Description)
+          '0 = tvwFirst
+          Set N = cptBackbone_frm.TreeView1.Nodes.Add(, relationship:=0, key:="uid" & LookupTable(lngEntry).UniqueID, Text:=LookupTable(lngEntry).FullName & " - " & LookupTable(lngEntry).Description)
           N.Expanded = True
         Else
-          Set N = cptBackbone_frm.TreeView1.Nodes.Add("uid" & LookupTable(lngEntry).ParentEntry.UniqueID, tvwChild, "uid" & LookupTable(lngEntry).UniqueID, LookupTable(lngEntry).FullName & " - " & LookupTable(lngEntry).Description)
+          '4 = tvwChild
+          Set N = cptBackbone_frm.TreeView1.Nodes.Add("uid" & LookupTable(lngEntry).ParentEntry.UniqueID, 4, "uid" & LookupTable(lngEntry).UniqueID, LookupTable(lngEntry).FullName & " - " & LookupTable(lngEntry).Description)
           N.Expanded = True
         End If
       Next lngEntry
@@ -837,7 +839,7 @@ exit_here:
   
   Exit Sub
 err_here:
-  Call cptHandleErr("cptBackbone_bas", "cptRefreshOutlineCodePreview", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "cptRefreshOutlineCodePreview", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -945,7 +947,7 @@ kill_file:
   Resume exit_here
   
 err_here:
-  Call cptHandleErr("cptBackbone_bas", "cptExportOutlineCodeForMPM", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "cptExportOutlineCodeForMPM", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -1068,7 +1070,7 @@ kill_file:
   Resume exit_here
   
 err_here:
-  Call cptHandleErr("cptBackbone_bas", "cptExportOutlineCodeForCOBRA", err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "cptExportOutlineCodeForCOBRA", Err, Erl)
   Resume exit_here
   
 End Sub
