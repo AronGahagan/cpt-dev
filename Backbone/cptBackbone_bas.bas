@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.0.1</cpt_version>
+'<cpt_version>v1.0.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -140,7 +140,6 @@ Dim lngOutlineLevel As Long
   
   Application.OpenUndoTransaction "Import Appendix B"
   
-  Application.CustomFieldRename lngOutlineCode, cptBackbone_frm.txtNameIt
   CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=2, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
   CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=3, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
   CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=4, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
@@ -243,8 +242,6 @@ Dim lngOutlineLevel As Long
     Do While Not .EOF
       lngItem = lngItem + 1
       Set Task = ActiveProject.Tasks.Add(.Fields(1).Value)
-      EditGoTo Task.ID
-      'Task.WBS = .Fields(0).Value
       Task.SetField lngOutlineCode, .Fields(0)
       ActiveProject.OutlineCodes("CWBS").LookupTable.Item(lngItem).Description = .Fields(1).Value
 
@@ -257,14 +254,19 @@ Dim lngOutlineLevel As Long
     Loop
     .Close
   End With
-  SelectBeginning
-  SetRowHeight 1, "all"
   
-  Set TaskTable = ActiveProject.TaskTables(ActiveProject.CurrentTable)
-  For lngField = 1 To TaskTable.TableFields.Count
-    If FieldConstantToFieldName(TaskTable.TableFields(lngField).Field) = "Name" Then Exit For
-  Next lngField
-  ColumnBestFit lngField
+  'pretty up the task table
+  If Len(ActiveProject.CurrentTable) > 0 Then
+    SelectBeginning
+    SetRowHeight 1, "all"
+    Set TaskTable = ActiveProject.TaskTables(ActiveProject.CurrentTable)
+    For lngField = 1 To TaskTable.TableFields.Count
+      If FieldConstantToFieldName(TaskTable.TableFields(lngField).Field) = "Name" Then
+        ColumnBestFit lngField
+        Exit For
+      End If
+    Next lngField
+  End If
   
   'reset outline code to disallow new entries
   CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=True, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
