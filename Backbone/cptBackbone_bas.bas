@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.0.2</cpt_version>
+'<cpt_version>v1.0.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -243,7 +243,7 @@ Dim lngOutlineLevel As Long
       lngItem = lngItem + 1
       Set Task = ActiveProject.Tasks.Add(.Fields(1).Value)
       Task.SetField lngOutlineCode, .Fields(0)
-      ActiveProject.OutlineCodes("CWBS").LookupTable.Item(lngItem).Description = .Fields(1).Value
+      ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode)).LookupTable.Item(lngItem).Description = .Fields(1).Value
 
       lngOutlineLevel = Len(.Fields(0).Value) - Len(Replace(.Fields(0).Value, ".", ""))
       If lngOutlineLevel > 0 Then
