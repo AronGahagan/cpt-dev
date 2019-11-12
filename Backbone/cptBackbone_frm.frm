@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.0.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -114,7 +114,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptBackbone_frm", "cmdExport_Click", err, Erl)
+  Call cptHandleErr("cptBackbone_frm", "cmdExport_Click", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -144,8 +144,19 @@ Dim lngOutlineCode As Long
     strOutlineCode = Me.txtNameIt
   End If
   lngOutlineCode = Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0)
+  
+  'ensure toppane is selected
+  If Not ActiveWindow.BottomPane Is Nothing Then WindowActivate TopPane:=True
+  'ensure a task view
+  If ActiveWindow.TopPane.View.Type <> pjTaskItem Then
+    ViewApply Application.DefaultView
+  End If
+  'if calendar is selected then change it
+  If ActiveWindow.ActivePane.View.Screen = 13 Then
+    ViewApply Application.DefaultView
+  End If
+  'create the new outline code
   CustomFieldRename lngOutlineCode, strOutlineCode
-  'ActiveProject.OutlineCodes.Add lngOutlineCode, strOutlineCode
   Select Case Me.cboImport
     Case "From Excel Workbook"
       Call cptImportCWBSFromExcel(lngOutlineCode)
@@ -164,7 +175,7 @@ exit_here:
   Exit Sub
 
 err_here:
-  Call cptHandleErr("cptOutlineCodes_bas", "cmdGo_Click", err, Erl)
+  Call cptHandleErr("cptOutlineCodes_bas", "cmdGo_Click", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -176,6 +187,7 @@ Dim strOutlineCode As String
     strOutlineCode = CustomFieldGetName(Me.cboOutlineCodes.Column(0))
     Call cptRenameInsideOutlineCode(strOutlineCode, Me.txtReplace, Me.txtReplacement)
   End If
+
 End Sub
 
 Private Sub lblURL_Click()
@@ -189,7 +201,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptBackbone_frm", "lblURL_Click", err, Erl)
+  Call cptHandleErr("cptBackbone_frm", "lblURL_Click", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -272,7 +284,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptBackbone_frm", "txtReplacement_Change", err, Erl)
+  Call cptHandleErr("cptBackbone_frm", "txtReplacement_Change", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -303,7 +315,7 @@ exit_here:
   
   Exit Sub
 err_here:
-  Call cptHandleErr("cptBackbone_frm", "txtNameIt_Change", err, Erl)
+  Call cptHandleErr("cptBackbone_frm", "txtNameIt_Change", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -381,7 +393,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptBackbone_frm", "UserForm_MouseMove", err, Erl)
+  Call cptHandleErr("cptBackbone_frm", "UserForm_MouseMove", Err, Erl)
   Resume exit_here
 
 End Sub
