@@ -30,6 +30,7 @@ Dim lngItem As Long
 Dim dblP As Double
 Dim dblCDF_ML As Double
 'booleans
+Dim blnFail As Boolean
 'variants
 'dates
 
@@ -64,11 +65,17 @@ next_task0:
   For lngIteration = 1 To lngIterations
     'simulate project
     For Each Task In ActiveProject.Tasks
-      'todo: if NOT min < ml < max
       If Task.RemainingDuration = 0 Then GoTo next_task1
       lngMinDur = cptRegEx(Task.GetField(lngMin), "[0-9].") * 480
       lngMaxDur = cptRegEx(Task.GetField(lngMax), "[0-9].") * 480
       lngMLDur = arrDurations.Item(Task.UniqueID)
+      'todo: if NOT min < ml < max
+      blnFail = False
+      If Not (lngMinDur < lngMLDur) And (lngMLDur < lngMaxDur) Then
+        MsgBox "Task UID '" & Task.Name & "' has invalid three point estimates.", vbCritical + vbOKOnly, "Error"
+        blnFail = True
+        GoTo restore_durations
+      End If
       'determine CDF of ML value
       dblCDF_ML = (lngMLDur - lngMinDur) / (lngMaxDur - lngMLDur)
       'get random probability
@@ -100,6 +107,7 @@ next_task2:
     DoEvents
   Next lngIteration
   
+restore_durations:
   'restore most likely durations
   For lngItem = 0 To arrDurations.Count - 1
     Set Task = ActiveProject.Tasks.UniqueID(arrDurations.getKey(lngItem))
@@ -107,6 +115,8 @@ next_task2:
   Next
   
   cptSpeed False
+  
+  If blnFail Then GoTo exit_here
   
   MsgBox "Simluation Complete", vbInformation + vbOKOnly, "QuickMonte"
   
@@ -125,10 +135,7 @@ next_task2:
   Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown)))
   ListObject.Name = "QuickMonte"
   
-  'todo: add task name
-  
-  'create chart
-    
+  'todo: create chart - lock everything except the two input cells
     
   Application.StatusBar = "Complete"
   
