@@ -16,6 +16,7 @@ Dim arrDurations As SortedList 'Object
 Dim Task As Task
 'strings
 'longs
+Dim lngX As Long
 Dim lngMLDur As Long
 Dim lngMaxDur As Long
 Dim lngMinDur As Long
@@ -26,15 +27,15 @@ Dim lngIterations As Long
 Dim lngItem As Long
 'integers
 'doubles
-Dim dblStDev As Double
-Dim dblMean As Double
+Dim dblP As Double
+Dim dblCDF_ML As Double
 'booleans
 'variants
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  lngIterations = 100
+  lngIterations = 500
   
   cptSpeed True
   
@@ -53,6 +54,7 @@ next_task0:
   Set rst = CreateObject("ADODB.Recordset")
   rst.Fields.Append "ITERATION", adInteger
   rst.Fields.Append "UID", adInteger
+  rst.Fields.Append "R_DUR", adInteger
   rst.Fields.Append "FINISH", adDate
   rst.Open
   
@@ -66,28 +68,33 @@ next_task0:
       If Task.RemainingDuration = 0 Then GoTo next_task1
       lngMinDur = cptRegEx(Task.GetField(lngMin), "[0-9].") * 480
       lngMaxDur = cptRegEx(Task.GetField(lngMax), "[0-9].") * 480
-      'calculate mean using PERT todo: use triangular instead?
-      dblMean = (lngMinDur + (Task.RemainingDuration * 4) + lngMaxDur) / 6
-      dblStDev = WorksheetFunction.StDev_P(lngMinDur, arrDurations.Item(Task.UniqueID), lngMaxDur)
+      lngMLDur = arrDurations.Item(Task.UniqueID)
+      'determine CDF of ML value
+      dblCDF_ML = (lngMLDur - lngMinDur) / (lngMaxDur - lngMLDur)
+      'get random probability
       dblP = Math.Rnd
-      'todo: use triangular https://www.drdawnwright.com/easy-excel-inverse-triangular-distribution-for-monte-carlo-simulations/
-      lngMLDur = WorksheetFunction.Norm_Inv(dblP, dblMean, dblStDev)
-      If lngMLDur > 0 Then Task.RemainingDuration = lngMLDur
+      If dblP <= dblCDF_ML Then
+        'min+sqrt(dblP*(max-min)*(ml-min))
+        lngX = lngMinDur + Math.Sqr(dblP * (lngMaxDur - lngMinDur) * (lngMLDur - lngMinDur))
+      Else
+        'max-sqrt((1-dblP)*(max-min)*(-ml+max)))
+        lngX = lngMaxDur - Math.Sqr((1 - dblP) * (lngMaxDur - lngMinDur) * (-lngMLDur + lngMaxDur))
+      End If
+      Task.RemainingDuration = lngX
 next_task1:
     Next Task
     
     'todo: create array of [iterations]
-    'avoid
     
     'calculate project
-    'Application.StatusBar = "Calculating..."
     CalculateProject
-    'ScreenUpdating = True
     
     'capture simulation
     For Each Task In ActiveProject.Tasks
-      rst.AddNew Array(0, 1, 2), Array(lngIteration, Task.UniqueID, Task.Finish)
+      If Task Is Nothing Then GoTo next_task2
+      rst.AddNew Array(0, 1, 2, 3), Array(lngIteration, Task.UniqueID, Task.RemainingDuration, Task.Finish)
       rst.Update
+next_task2:
     Next Task
     Application.StatusBar = "Running Simulation " & lngIteration & " of " & lngIterations & "...(" & Format(lngIteration / lngIterations, "0%") & ")"
     DoEvents
@@ -98,17 +105,18 @@ next_task1:
     Set Task = ActiveProject.Tasks.UniqueID(arrDurations.getKey(lngItem))
     Task.RemainingDuration = arrDurations.getValueList()(lngItem)
   Next
-  CalculateProject
   
   cptSpeed False
+  
+  MsgBox "Simluation Complete", vbInformation + vbOKOnly, "QuickMonte"
   
   'export results
   Application.StatusBar = "Creating Report..."
   Set xlApp = CreateObject("Excel.Application")
   Set Workbook = xlApp.Workbooks.Add
   Set Worksheet = Workbook.Sheets(1)
-  Worksheet.Name = "cptQuickMonte Data"
-  Worksheet.[A1:C1] = Array("ITERATION", "UID", "FINISH")
+  Worksheet.Name = "cptQuickMonte_DATA"
+  Worksheet.[A1:D1] = Array("ITERATION", "UID", "REMAINING DURATION", "FINISH")
   Worksheet.[A2].CopyFromRecordset rst
   rst.Close
   xlApp.Visible = True
@@ -119,74 +127,8 @@ next_task1:
   
   'todo: add task name
   
-'  'create chart
-'  strRange = Worksheet.Name & "!" & Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown)).Address(False, False, xlR1C1)
-'  'todo: must create on new worksheet, then move it
-'  Set Worksheet = Workbook.Sheets.Add
-'  Worksheet.Name = "Chart"
-'  Workbook.PivotCaches.Create(SourceType:=xlDatabase, SourceData:= _
-'        strRange, Version:=6).CreatePivotTable TableDestination:= _
-'        "Chart!R1C5", TableName:="PivotTable1", DefaultVersion:=6
-'  Set PivotTable = Worksheet.PivotTables("PivotTable1")
-'  With PivotTable
-'      .ColumnGrand = True
-'      .HasAutoFormat = True
-'      .DisplayErrorString = False
-'      .DisplayNullString = True
-'      .EnableDrilldown = True
-'      .ErrorString = ""
-'      .MergeLabels = False
-'      .NullString = ""
-'      .PageFieldOrder = 2
-'      .PageFieldWrapCount = 0
-'      .PreserveFormatting = True
-'      .RowGrand = True
-'      .SaveData = True
-'      .PrintTitles = False
-'      .RepeatItemsOnEachPrintedPage = True
-'      .TotalsAnnotation = False
-'      .CompactRowIndent = 1
-'      .InGridDropZones = False
-'      .DisplayFieldCaptions = True
-'      .DisplayMemberPropertyTooltips = False
-'      .DisplayContextTooltips = True
-'      .ShowDrillIndicators = True
-'      .PrintDrillIndicators = False
-'      .AllowMultipleFilters = False
-'      .SortUsingCustomLists = True
-'      .FieldListSortAscending = False
-'      .ShowValuesRow = False
-'      .CalculatedMembersInFilters = False
-'      .RowAxisLayout xlCompactRow
-'  End With
-'  With PivotTablePivotCache
-''      .RefreshOnFileOpen = False
-''      .MissingItemsLimit = xlMissingItemsDefault
-'  End With
-'  PivotTable.RepeatAllLabels xlRepeatLabels
-'  Worksheet.[A1].Select
-'  Worksheet.Shapes.AddChart2.Select
-'
-'  Set PivotChart = Worksheet.Shapes.AddChart2(201, xlColumnClustered)
-'  Chart.SetSourceData Source:=Worksheet.Range("'cptQuickMonte Data'!$E$1:$G$18")
-'  With Chart.PivotLayout.PivotTable.PivotFields("UID")
-'      .Orientation = xlPageField
-'      .Position = 1
-'  End With
-'  With Chart.PivotLayout.PivotTable.PivotFields("FINISH")
-'      .Orientation = xlRowField
-'      .Position = 1
-'  End With
-'  Chart.PivotLayout.PivotTable.PivotFields("FINISH").AutoGroup
-'  Worksheet.Range("E5").Group Start:=True, End:=True, By:=1, Periods:=Array(False, _
-'      False, False, True, False, False, False)
-'  PivotTable.AddDataField PivotTable.PivotFields("FINISH"), "Count of FINISH", xlCount
-'  PivotTable.PivotFields("UID").ClearAllFilters
-'  PivotTable.PivotFields("UID").CurrentPage = "16"
-  
-  'copy charts into each task
+  'create chart
     
-  MsgBox "Simluation Complete", vbInformation + vbOKOnly, "QuickMonte"
     
   Application.StatusBar = "Complete"
   
