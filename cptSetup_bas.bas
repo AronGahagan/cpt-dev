@@ -618,7 +618,7 @@ Dim lngCleanUp As Long
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
-  
+
   'about
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gHelp"" label=""Help"" visible=""true"" >"
   If cptInternetIsConnected Then
