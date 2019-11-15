@@ -32,11 +32,21 @@ Dim dblCDF_ML As Double
 'booleans
 Dim blnFail As Boolean
 'variants
+Dim vbResponse As Variant
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
-  lngIterations = 500
+  vbResponse = InputBox("How many iterations?", "QuickMonte", 1000)
+  If StrPtr(vbResponse) = 0 Then
+    'user hit cancel
+    GoTo exit_here
+  ElseIf vbResponse = vbNullString Then
+    'user entered null value
+    GoTo exit_here
+  Else
+    lngIterations = cptRegEx(CStr(vbResponse), "[0-9].*")
+    If lngIterations = 0 Then GoTo exit_here
+  End If
   
   cptSpeed True
   
@@ -118,24 +128,26 @@ restore_durations:
   
   If blnFail Then GoTo exit_here
   
-  MsgBox "Simluation Complete", vbInformation + vbOKOnly, "QuickMonte"
+  If MsgBox("Simluation Complete" & vbCrLf & vbCrLf & "Create Report?", vbInformation + vbOKOnly, "QuickMonte") = vbYes Then
   
-  'export results
-  Application.StatusBar = "Creating Report..."
-  Set xlApp = CreateObject("Excel.Application")
-  Set Workbook = xlApp.Workbooks.Add
-  Set Worksheet = Workbook.Sheets(1)
-  Worksheet.Name = "cptQuickMonte_DATA"
-  Worksheet.[A1:D1] = Array("ITERATION", "UID", "REMAINING DURATION", "FINISH")
-  Worksheet.[A2].CopyFromRecordset rst
-  rst.Close
-  xlApp.Visible = True
-  xlApp.ActiveWindow.Zoom = 85
-  Worksheet.Columns.AutoFit
-  Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown)))
-  ListObject.Name = "QuickMonte"
-  
-  'todo: create chart - lock everything except the two input cells
+    'export results
+    Application.StatusBar = "Creating Report..."
+    Set xlApp = CreateObject("Excel.Application")
+    Set Workbook = xlApp.Workbooks.Add
+    Set Worksheet = Workbook.Sheets(1)
+    Worksheet.Name = "cptQuickMonte_DATA"
+    Worksheet.[A1:D1] = Array("ITERATION", "UID", "REMAINING DURATION", "FINISH")
+    Worksheet.[A2].CopyFromRecordset rst
+    rst.Close
+    xlApp.Visible = True
+    xlApp.ActiveWindow.Zoom = 85
+    Worksheet.Columns.AutoFit
+    Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown)))
+    ListObject.Name = "QuickMonte"
+    
+    'todo: create chart - lock everything except the two input cells
+    
+  End If
     
   Application.StatusBar = "Complete"
   
