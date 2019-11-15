@@ -206,6 +206,7 @@ restore_durations:
     'export results
     Application.StatusBar = "Creating Report..."
     Set xlApp = CreateObject("Excel.Application")
+    xlApp.Visible = True 'todo: debug only
     Set Workbook = xlApp.Workbooks.Add
     Set Worksheet = Workbook.Sheets(1)
     Worksheet.Name = "cptQuickMonte_DATA"
@@ -267,6 +268,8 @@ restore_durations:
     Worksheet.[F15:F42].NumberFormat = "mm/dd/yy"
     Worksheet.[G15:G41].FormulaR1C1 = "=R[1]C[-1]-0.0001"
     Worksheet.[H15:H41].FormulaR1C1 = "=ROUND(RC[-1],0)"
+    'credit for the filtered frequency formula goes to ExcelJet:
+    'https://exceljet.net/formula/count-unique-text-values-with-criteria
     Worksheet.[I15:I41].FormulaArray = "=FREQUENCY(IF(QuickMonte[UID]=$G$1,QuickMonte[FINISH]),$G$15:$G$41)"
     Worksheet.[J15].FormulaR1C1 = "=RC[-1]"
     Worksheet.[J16:J41].FormulaR1C1 = "=R[-1]C+RC[-1]"
@@ -283,14 +286,49 @@ restore_durations:
     Worksheet.Range(Worksheet.[F14].End(xlToRight), Worksheet.[F14].End(xlDown)).HorizontalAlignment = xlCenter
     
     'create the chart
+    Worksheet.Range("H14:H41", "I14:I41").Select
+    Set Chart = Worksheet.Shapes.AddChart2(, xlColumnClustered, Worksheet.[M14].Left + 15, 197.735122680664, 525.44125984252, 318.735433070866).Chart
+    'add title
+    Chart.SetElement msoElementChartTitleAboveChart
+    Chart.ChartTitle.Text = "QuickMonte - " & FormatDateTime(Now(), vbShortDate)
+    Chart.ChartTitle.Format.TextFrame2.TextRange.Font.Size = 20
+    Chart.ChartTitle.Format.TextFrame2.TextRange.Font.Bold = msoCTrue
+    'add primary axis label
+    Chart.Axes(xlCategory).CategoryType = xlCategoryScale
+    Chart.SetElement (msoElementPrimaryCategoryAxisTitleAdjacentToAxis)
+    Chart.SetElement (msoElementSecondaryValueAxisTitleAdjacentToAxis)
+    'todo: Chart.SetElement (msoElementPrimaryValueAxisTitleAdjacentToAxis)
+    'todo: Chart.Axes(xlValue).AxisTitle.Caption = "Count"
+    Chart.Axes(xlValue, xlSecondary).AxisTitle.Caption = "Cumulative Disribution"
+    Chart.Axes(xlCategory).AxisTitle.Caption = "Upper Bound"
     
+    'todo: allow for earlier versions of excel v14
+    'todo: make columns fat
+    Chart.ChartGroups(1).GapWidth = 0
+    'add black border
+    With Chart.FullSeriesCollection(1).Format.line
+      .Visible = msoTrue
+      .ForeColor.ObjectThemeColor = msoThemeColorText1
+      .ForeColor.TintAndShade = 0
+      .ForeColor.Brightness = 0
+      .Transparency = 0
+    End With
+    'add cumulative distrbution line
+    Chart.SeriesCollection.NewSeries
+    Chart.FullSeriesCollection(2).Name = "=cptQuickMonte_DATA!$L$14"
+    Chart.FullSeriesCollection(2).Values = "=cptQuickMonte_DATA!$L$15:$L$41"
+    Chart.FullSeriesCollection(2).ChartType = xlLineStacked
+    Chart.FullSeriesCollection(2).AxisGroup = 2
+    Chart.Axes(xlValue, xlSecondary).MaximumScale = 1
+    Chart.Axes(xlValue, xlSecondary).TickLabels.NumberFormat = "0%"
     
+    'todo: data validation on UID
+    'todo: UID finish date lookup
     'todo: lock everything except the two input cells
-    
-    'credit for the filtered frequency formula goes to ExcelJet:
-    'https://exceljet.net/formula/count-unique-text-values-with-criteria
-    
+        
     'todo: allow inspection in the form - read from excel in background
+    
+    'todo: draw probabilty extrapolation line
     
     xlApp.Visible = True
     
@@ -304,6 +342,7 @@ restore_durations:
   
 exit_here:
   On Error Resume Next
+  Set Chart = Nothing
   Set CE = Nothing
   Set rst3p = Nothing
   Set Chart = Nothing
