@@ -5,6 +5,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 
 Sub cptQuickMonte()
 'objects
+Dim rng As Excel.Range
 Dim CE As MSProject.Exception
 Dim Chart As Excel.Chart
 Dim ListObject As ListObject
@@ -16,6 +17,7 @@ Dim rstSim As ADODB.Recordset
 Dim Task As Task
 'strings
 'longs
+Dim lngUID As Long
 Dim lngDays As Long
 Dim lngX As Long
 Dim lngMLDur As Long
@@ -36,6 +38,7 @@ Dim blnFail As Boolean
 'variants
 Dim vbResponse As Variant
 'dates
+Dim dtDeterministicFinish As Date
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -54,13 +57,21 @@ Dim vbResponse As Variant
     If lngIterations = 0 Then GoTo exit_here
   End If
   
+  'capture selected
+  On Error Resume Next
+  lngUID = ActiveSelection.Tasks(1).UniqueID
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  'select last task by default if no task selected
+  'todo: put note on button hover to select the target task
+  If lngUID = 0 Then lngUID = ActiveProject.Tasks(ActiveProject.Tasks.Count).UniqueID
+  
   'speed up processing and prevent screen flicker
   cptSpeed True
   
   'get three-point fields
   'todo: user must set these
-  lngMin = FieldNameToFieldConstant("MinDuration")
-  lngMax = FieldNameToFieldConstant("MaxDuration")
+  lngMin = FieldNameToFieldConstant("Minimum Duration")
+  lngMax = FieldNameToFieldConstant("Maximum Duration")
   
   'todo: capture, remove, restore deadlines and constraints?
   
@@ -112,6 +123,8 @@ next_task0:
   
   'in case schedule margin was removed:
   CalculateProject 'once
+  'get deterministic finish of target tasks after margin removal
+  dtDeterministicFinish = ActiveProject.Tasks.UniqueID(lngUID).Finish
   
   'prepare to capture simulation results
   Application.StatusBar = "Preparing to run simulations..."
@@ -178,7 +191,6 @@ next_task2:
     Application.StatusBar = "Running Simulation " & lngIteration & " of " & lngIterations & "...(" & Format(lngIteration / lngIterations, "0%") & ")"
     DoEvents
   Next lngIteration
-  'rstSim.Update 'not sure we need this
   
 restore_durations:
   Application.StatusBar = "Restoring remaining durations..."
@@ -206,66 +218,79 @@ restore_durations:
     'export results
     Application.StatusBar = "Creating Report..."
     Set xlApp = CreateObject("Excel.Application")
-    xlApp.Visible = True 'todo: debug only
+    xlApp.WindowState = xlMaximized
     Set Workbook = xlApp.Workbooks.Add
     Set Worksheet = Workbook.Sheets(1)
+    xlApp.ActiveWindow.DisplayGridlines = False
+    xlApp.Visible = True 'todo: debug only
     Worksheet.Name = "cptQuickMonte_DATA"
-    Worksheet.[A1:D1] = Array("ITERATION", "UID", "REMAINING DURATION", "FINISH")
-    Worksheet.[A2].CopyFromRecordset rstSim
+    xlApp.ScreenUpdating = False
+    Worksheet.[A1:D1].Merge
+    Worksheet.[A1:D1].Value = "SIMULATION RESULTS"
+    Worksheet.[A1:D1].HorizontalAlignment = xlCenter
+    Worksheet.[A2:D2] = Array("ITERATION", "UID", "REMAINING DURATION", "FINISH")
+    Worksheet.[A3].CopyFromRecordset rstSim
     rstSim.Close
     xlApp.ActiveWindow.Zoom = 85
     Worksheet.Columns.AutoFit
-    Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown)))
+    Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[A2].End(xlToRight), Worksheet.[A2].End(xlDown)))
     ListObject.Name = "QuickMonte"
+    xlApp.ScreenUpdating = True
     
     'add informational column
-    Worksheet.[F1:F12] = WorksheetFunction.Transpose(Array("UID", "Deterministic:", "Iterations:", "Confidence:", "Confidence Date:", "Margin Rec.:", "Min:", "Max:", "Mean:", "Range:", "Bin Count:", "Bin Size:"))
+    xlApp.ScreenUpdating = False
+    Worksheet.[F1:F12] = WorksheetFunction.Transpose(Array("UID:", "Deterministic:", "Iterations:", "Confidence:", "Confidence Date:", "Margin Rec.:", "Min:", "Max:", "Mean:", "Range:", "Bin Count:", "Bin Size:"))
     Worksheet.[F1:F12].Font.Bold = True
     Worksheet.Columns("F:F").AutoFit
+    
     'add freq chart titles
-    Worksheet.[F14:L14] = Array("LL", "UL", "UL TITLE", "Freq", "Cum Freq", "Freq %", "Cum %")
-    Worksheet.[F14:L14].Font.Bold = True
     Worksheet.[G1:G12].HorizontalAlignment = xlCenter
-    Worksheet.[G1:G4].Style = "Input"
+    Worksheet.[G1].Style = "Input"
+    Worksheet.[G2:G3].Style = "Calculation"
+    Worksheet.[G4].Style = "Input"
     Worksheet.[G5:G6].Style = "Calculation"
-    Worksheet.[G1].Value = 14 'todo: select a uid
-    Worksheet.[G2].Value = ActiveProject.Tasks.UniqueID(14).Finish  'todo: get deterministic finish of selected uid
+    Worksheet.[G1].Value = lngUID
     Worksheet.[G2].NumberFormat = "mm/dd/yy"
+    Worksheet.[G2].Value = dtDeterministicFinish
     Worksheet.[G3].Value = lngIterations
     Worksheet.[G4].Value = 0.9 'todo: get this value from user form
+    Worksheet.[G7].NumberFormat = "mm/dd/yy"
     Worksheet.[G7].FormulaR1C1 = "=ROUND(MINIFS(QuickMonte[FINISH],QuickMonte[UID],R1C7),0)"
-    Worksheet.[H7].FormulaR1C1 = "=RC[-1]"
-    Worksheet.[H7].NumberFormat = "mm/dd/yy"
+    Worksheet.[G8].NumberFormat = "mm/dd/yy"
     Worksheet.[G8].FormulaR1C1 = "=ROUND(MAXIFS(QuickMonte[FINISH],QuickMonte[UID],R1C7),0)"
-    Worksheet.[H8].FormulaR1C1 = "=RC[-1]"
-    Worksheet.[H8].NumberFormat = "mm/dd/yy"
+    Worksheet.[G9].NumberFormat = "mm/dd/yy"
     Worksheet.[G9].FormulaR1C1 = "=ROUND(AVERAGEIFS(QuickMonte[FINISH],QuickMonte[UID],R[-8]C),0)"
-    Worksheet.[H9].FormulaR1C1 = "=RC[-1]"
-    Worksheet.[H9].NumberFormat = "mm/dd/yy"
     Worksheet.[G10].FormulaR1C1 = "=DAYS(R[-2]C,R[-3]C)"
     Worksheet.[G11].Value = 25
     Worksheet.[G12].FormulaR1C1 = "=R10C7/R11C7"
+    xlApp.ScreenUpdating = True
     
-    'capture exceptions in [Q2]
-    Worksheet.[Q1:R1].Merge
-    Worksheet.[Q1].Value2 = "EXCEPTIONS"
-    Worksheet.[Q1].HorizontalAlignment = xlCenter
-    Worksheet.[Q2:R2] = Array("NAME", "DATE")
+    'capture exceptions in [Y14]
+    xlApp.ScreenUpdating = False
+    Worksheet.[Y13:Z13].Merge
+    Worksheet.[Y13].HorizontalAlignment = xlCenter
+    Worksheet.[Y13].Value2 = "CALENDAR EXCEPTIONS"
+    Worksheet.[Y14:Z14] = Array("NAME", "DATE")
     For Each CE In ActiveProject.Calendar.Exceptions
       For lngDays = 0 To CE.Occurrences - 1
-        Worksheet.Cells(Worksheet.[Q1].End(xlDown).Row + 1, 17) = CE.Name
-        Worksheet.Cells(Worksheet.[Q1].End(xlDown).Row, 18) = DateAdd("d", lngDays, CE.Start)
+        Worksheet.Cells(Worksheet.[Y13].End(xlDown).Row + 1, 25) = CE.Name
+        Worksheet.Cells(Worksheet.[Y13].End(xlDown).Row, 26) = DateAdd("d", lngDays, CE.Start)
       Next lngDays
     Next CE
-    Worksheet.Range(Worksheet.[R3], Worksheet.[R3].End(xlDown)).NumberFormat = "mm/dd/yyyy"
-    Worksheet.Columns("Q:R").AutoFit
-    Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[Q2].End(xlToRight), Worksheet.[Q2].End(xlDown)))
+    Worksheet.Range(Worksheet.[Z14], Worksheet.[Z14].End(xlDown)).NumberFormat = "mm/dd/yyyy"
+    Worksheet.[Z14].NumberFormat = "General"
+    Worksheet.Columns("Y:Z").AutoFit
+    Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[Y14].End(xlToRight), Worksheet.[Y14].End(xlDown)))
     ListObject.Name = "HOLIDAYS"
+    xlApp.ScreenUpdating = True
     
     'create frequency distribution chart
+    xlApp.ScreenUpdating = False
+    Worksheet.[F14:L14].Font.Bold = True
+    Worksheet.[F14:L14] = Array("LL", "UL", "UL TITLE", "Freq", "Cum Freq", "Freq %", "Cum %")
     Worksheet.[F15].FormulaR1C1 = "=R[-8]C[1]-R12C7"
-    Worksheet.[F16:F42].FormulaR1C1 = "=R[-1]C+R12C7"
     Worksheet.[F15:F42].NumberFormat = "mm/dd/yy"
+    Worksheet.[F16:F42].FormulaR1C1 = "=R[-1]C+R12C7"
     Worksheet.[G15:G41].FormulaR1C1 = "=R[1]C[-1]-0.0001"
     Worksheet.[H15:H41].FormulaR1C1 = "=ROUND(RC[-1],0)"
     'credit for the filtered frequency formula goes to ExcelJet:
@@ -276,35 +301,123 @@ restore_durations:
     Worksheet.[K15:K41].FormulaR1C1 = "=RC[-2]/R3C7"
     Worksheet.[L15].FormulaR1C1 = "=RC[-1]"
     Worksheet.[L16:L41].FormulaR1C1 = "=R[-1]C+RC[-1]"
-    
-    'now add formulae dependent on the freq
-    Worksheet.[G5].FormulaR1C1 = "=INDEX(R15C6:R41C12,MATCH(R4C7,R15C12:R41C12,1)+1,MATCH(""UL TITLE"",R14C6:R14C12,0))"
-    Worksheet.[G5].NumberFormat = "mm/dd/yy"
-    Worksheet.[G6].FormulaR1C1 = "=IF(R[-1]C>R[-4]C,NETWORKDAYS(R[-4]C,R[-1]C,HOLIDAYS[DATE]))"
-
     'center the distribution table
     Worksheet.Range(Worksheet.[F14].End(xlToRight), Worksheet.[F14].End(xlDown)).HorizontalAlignment = xlCenter
-    
+    'now add formulae dependent on the freq
+    Worksheet.[H4].NumberFormat = "mm/dd/yy"
+    Worksheet.[H4].Font.ThemeColor = xlThemeColorDark1
+    Worksheet.[H4].Font.TintAndShade = -0.249977111117893
+    Worksheet.[H4].FormatConditions.Add Type:=xlExpression, Formula1:="=AND(WEEKDAY(H4)<>1,WEEKDAY(H3)<>7)"
+    Worksheet.[H4].FormatConditions(Worksheet.[H4].FormatConditions.Count).SetFirstPriority
+    With Worksheet.[H4].FormatConditions(1).Font
+        .ThemeColor = xlThemeColorDark1
+        .TintAndShade = 0
+    End With
+    Worksheet.[H4].FormatConditions(1).StopIfTrue = False
+    Worksheet.[H4].FormulaR1C1 = "=INDEX(R15C6:R41C12,MATCH(R4C7,R15C12:R41C12,1)+1,MATCH(""UL TITLE"",R14C6:R14C12,0))"
+    Worksheet.[G5].NumberFormat = "mm/dd/yy"
+    Worksheet.[G5].FormulaR1C1 = "=IF(WEEKDAY(R4C8)=1,R4C8+1,IF(WEEKDAY(R4C8)=7,R[-1]C[1]+2,R4C8))"
+    Worksheet.[H5].FormulaR1C1 = "=IF(OR(WEEKDAY(R[-1]C)=1,WEEKDAY(R[-1]C)=7),""(Adjusted to next working day)"","""")"
+    'gray out the note
+    Worksheet.[H5].Font.ThemeColor = xlThemeColorDark1
+    Worksheet.[H5].Font.TintAndShade = -0.249977111117893
+    Worksheet.[G6].FormulaR1C1 = "=IF(R[-1]C>R[-4]C,NETWORKDAYS(R[-4]C,R[-1]C,HOLIDAYS[DATE])-1)"
+    'format the table
+    Set rng = Worksheet.[F14:L14]
+    rng.Borders(xlDiagonalDown).LineStyle = xlNone
+    rng.Borders(xlDiagonalUp).LineStyle = xlNone
+    With rng.Borders(xlEdgeLeft)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.499984740745262
+        .Weight = xlThin
+    End With
+    With rng.Borders(xlEdgeTop)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.499984740745262
+        .Weight = xlThin
+    End With
+    With rng.Borders(xlEdgeBottom)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.499984740745262
+        .Weight = xlThin
+    End With
+    With rng.Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.499984740745262
+        .Weight = xlThin
+    End With
+    With rng.Borders(xlInsideVertical)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.249946592608417
+        .Weight = xlThin
+    End With
+    rng.Borders(xlInsideHorizontal).LineStyle = xlNone
+    Set rng = Worksheet.[F15:L41]
+    rng.Borders(xlDiagonalDown).LineStyle = xlNone
+    rng.Borders(xlDiagonalUp).LineStyle = xlNone
+    With rng.Borders(xlEdgeLeft)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.499984740745262
+        .Weight = xlThin
+    End With
+    With rng.Borders(xlEdgeTop)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.499984740745262
+        .Weight = xlThin
+    End With
+    With rng.Borders(xlEdgeBottom)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.499984740745262
+        .Weight = xlThin
+    End With
+    With rng.Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.499984740745262
+        .Weight = xlThin
+    End With
+    With rng.Borders(xlInsideVertical)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.249946592608417
+        .Weight = xlThin
+    End With
+    With rng.Borders(xlInsideHorizontal)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.249946592608417
+        .Weight = xlThin
+    End With
+    With Worksheet.[F42].Font
+        .ThemeColor = xlThemeColorDark1
+        .TintAndShade = -0.149998474074526
+    End With
+    xlApp.ScreenUpdating = True
+
     'create the chart
+    xlApp.ScreenUpdating = False
     Worksheet.Range("H14:H41", "I14:I41").Select
-    Set Chart = Worksheet.Shapes.AddChart2(, xlColumnClustered, Worksheet.[M14].Left + 15, 197.735122680664, 525.44125984252, 318.735433070866).Chart
+    Set Chart = Worksheet.Shapes.AddChart2(, xlColumnClustered, Worksheet.[M14].Left + 10, Worksheet.[F14].Top, 525.44125984252, 318.735433070866).Chart
     'add title
     Chart.SetElement msoElementChartTitleAboveChart
-    Chart.ChartTitle.Text = "QuickMonte - " & FormatDateTime(Now(), vbShortDate)
     Chart.ChartTitle.Format.TextFrame2.TextRange.Font.Size = 20
+    Chart.ChartTitle.Text = "QuickMonte - " & FormatDateTime(Now(), vbShortDate)
     Chart.ChartTitle.Format.TextFrame2.TextRange.Font.Bold = msoCTrue
-    'add primary axis label
     Chart.Axes(xlCategory).CategoryType = xlCategoryScale
+    'add axis titles
     Chart.SetElement (msoElementPrimaryCategoryAxisTitleAdjacentToAxis)
-    Chart.SetElement (msoElementSecondaryValueAxisTitleAdjacentToAxis)
-    'todo: Chart.SetElement (msoElementPrimaryValueAxisTitleAdjacentToAxis)
-    'todo: Chart.Axes(xlValue).AxisTitle.Caption = "Count"
-    Chart.Axes(xlValue, xlSecondary).AxisTitle.Caption = "Cumulative Disribution"
     Chart.Axes(xlCategory).AxisTitle.Caption = "Upper Bound"
-    
+    Chart.SetElement (msoElementPrimaryValueAxisTitleRotated)
+    Chart.Axes(xlValue, xlPrimary).AxisTitle.Caption = "Count"
     'todo: allow for earlier versions of excel v14
-    'todo: make columns fat
-    Chart.ChartGroups(1).GapWidth = 0
     'add black border
     With Chart.FullSeriesCollection(1).Format.line
       .Visible = msoTrue
@@ -313,22 +426,27 @@ restore_durations:
       .ForeColor.Brightness = 0
       .Transparency = 0
     End With
+    
     'add cumulative distrbution line
     Chart.SeriesCollection.NewSeries
     Chart.FullSeriesCollection(2).Name = "=cptQuickMonte_DATA!$L$14"
     Chart.FullSeriesCollection(2).Values = "=cptQuickMonte_DATA!$L$15:$L$41"
     Chart.FullSeriesCollection(2).ChartType = xlLineStacked
+    'make columns fat (here to avoid the flicker from adding a second series)
+    Chart.ChartGroups(1).GapWidth = 0
     Chart.FullSeriesCollection(2).AxisGroup = 2
     Chart.Axes(xlValue, xlSecondary).MaximumScale = 1
     Chart.Axes(xlValue, xlSecondary).TickLabels.NumberFormat = "0%"
-    
-    'todo: data validation on UID
-    'todo: UID finish date lookup
+    Chart.SetElement (msoElementSecondaryValueAxisTitleAdjacentToAxis)
+    Chart.Axes(xlValue, xlSecondary).AxisTitle.Caption = "Cumulative Disribution"
+    xlApp.ScreenUpdating = True
+    'todo?: data validation on UID
     'todo: lock everything except the two input cells
-        
     'todo: allow inspection in the form - read from excel in background
-    
     'todo: draw probabilty extrapolation line
+    'todo: add macro to workbook to redraw extrapolation line after changes?
+    
+    Worksheet.[G5].Select
     
     xlApp.Visible = True
     
@@ -342,6 +460,7 @@ restore_durations:
   
 exit_here:
   On Error Resume Next
+  Set rng = Nothing
   Set Chart = Nothing
   Set CE = Nothing
   Set rst3p = Nothing
