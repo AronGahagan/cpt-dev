@@ -172,7 +172,11 @@ Dim lngItem As Long
     Do While Not .EOF
       Me.lboFields.AddItem
       Me.lboFields.List(lngItem, 0) = .Fields(0)
-      Me.lboFields.List(lngItem, 1) = .Fields(1)
+      If .Fields(0) >= 188776000 Then 'enterprise
+        Me.lboFields.List(lngItem, 1) = .Fields(1) & " (Enterprise)"
+      Else
+        Me.lboFields.List(lngItem, 1) = .Fields(1) & " (" & FieldConstantToFieldName(.Fields(0)) & ")"
+      End If
       .MoveNext
       lngItem = lngItem + 1
     Loop
