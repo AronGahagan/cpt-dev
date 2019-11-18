@@ -69,7 +69,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptResourceDemand_frm", "cmdAdd_Click", err, Erl)
+  Call cptHandleErr("cptResourceDemand_frm", "cmdAdd_Click", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -88,7 +88,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptResourceDemand_frm", "cmdCancel_Click", err, Erl)
+  Call cptHandleErr("cptResourceDemand_frm", "cmdCancel_Click", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -103,7 +103,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptResourceDemand_frm", "cmdExport_Click", err, Erl)
+  Call cptHandleErr("cptResourceDemand_frm", "cmdExport_Click", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -124,7 +124,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptResourceDemand_frm", "cmdRemove_Click", err, Erl)
+  Call cptHandleErr("cptResourceDemand_frm", "cmdRemove_Click", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -139,7 +139,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptResourceDemand_frm", "lblURL_Click", err, Erl)
+  Call cptHandleErr("cptResourceDemand_frm", "lblURL_Click", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -185,7 +185,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptResourceDemand_frm", "stxtSearch_Change", err, Erl)
+  Call cptHandleErr("cptResourceDemand_frm", "stxtSearch_Change", Err, Erl)
   Resume exit_here
   
 End Sub
