@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.2.0</cpt_version>
+'<cpt_version>v1.2.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -500,9 +500,9 @@ next_task:
   xlApp.ActiveChart.ClearToMatchStyle
   xlApp.ActiveChart.ChartStyle = 34
   xlApp.ActiveChart.ClearToMatchStyle
-  xlApp.ActiveChart.SetElement (msoElementChartTitleAboveChart)
   xlApp.ActiveSheet.ChartObjects(1).Activate
-  xlApp.ActiveChart.ChartTitle.Text = strTitle
+  xlApp.ActiveChart.SetElement (msoElementChartTitleAboveChart)
+  xlApp.ActiveChart.ChartTitle.Text = "Resource Demand"
   xlApp.ActiveChart.Location xlLocationAsNewSheet, "PivotChart"
   Set Worksheet = Workbook.Sheets("PivotChart_Source")
   Worksheet.Visible = False
