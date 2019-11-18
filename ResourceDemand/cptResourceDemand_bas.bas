@@ -130,8 +130,8 @@ Dim blnIncludeCosts As Boolean
   End With '</issue42>
   Print #lgFile, strHeaders
 
-  If ActiveProject.Subprojects.count = 0 Then
-    lgTasks = ActiveProject.Tasks.count
+  If ActiveProject.Subprojects.Count = 0 Then
+    lgTasks = ActiveProject.Tasks.Count
   Else
     cptSpeed True
     strView = ActiveWindow.TopPane.View.Name
@@ -142,7 +142,7 @@ Dim blnIncludeCosts As Boolean
     OptionsViewEx displaysummarytasks:=True
     OutlineShowAllTasks
     SelectAll
-    lgTasks = ActiveSelection.Tasks.count
+    lgTasks = ActiveSelection.Tasks.Count
     ViewApply strView
     cptSpeed False
   End If
@@ -531,12 +531,12 @@ next_task:
               Worksheet.Cells(lngRow, 7) = Replace(PayRate.StandardRate, "/h", "")
               Worksheet.Cells(lngRow, 8) = Replace(PayRate.OvertimeRate, "/h", "")
               Worksheet.Cells(lngRow, 9) = PayRate.CostPerUse
-              lngRow = Worksheet.Cells(Worksheet.Rows.count, 1).End(xlUp).Row + 1
+              lngRow = Worksheet.Cells(Worksheet.Rows.Count, 1).End(xlUp).Row + 1
             Next PayRate
           End If
         Next CostRateTable
       Next Resource
-    ElseIf ActiveProject.Subprojects.count > 0 Then
+    ElseIf ActiveProject.Subprojects.Count > 0 Then
       For Each SubProject In ActiveProject.Subprojects
         For Each Resource In SubProject.SourceProject.Resources
           Worksheet.Cells(lngRow, 1) = Resource.Name
@@ -552,7 +552,7 @@ next_task:
                 Worksheet.Cells(lngRow, 7) = Replace(PayRate.StandardRate, "/h", "")
                 Worksheet.Cells(lngRow, 8) = Replace(PayRate.OvertimeRate, "/h", "")
                 Worksheet.Cells(lngRow, 9) = PayRate.CostPerUse
-                lngRow = Worksheet.Cells(Worksheet.Rows.count, 1).End(xlUp).Row + 1
+                lngRow = Worksheet.Cells(Worksheet.Rows.Count, 1).End(xlUp).Row + 1
               Next PayRate
             End If
           Next CostRateTable
@@ -619,7 +619,7 @@ exit_here:
   If Not xlApp Is Nothing Then xlApp.Quit
   Exit Sub
 err_here:
-  Call cptHandleErr("cptResourceDemand_bas", "cptExportResourceDemand", err, Erl)
+  Call cptHandleErr("cptResourceDemand_bas", "cptExportResourceDemand", Err, Erl)
   On Error Resume Next
   Resume exit_here
 
@@ -627,6 +627,7 @@ End Sub
 
 Sub ShowFrmExportResourceDemand()
 'objects
+Dim rst As Object
 Dim arrResources As Object
 Dim objProject As Object
 Dim arrFields As Object
@@ -652,19 +653,19 @@ Dim vFieldType As Variant
     MsgBox "This feature requires MS Excel.", vbCritical + vbOKOnly, "Resource Demand"
     GoTo exit_here
   End If
-  If ActiveProject.Subprojects.count = 0 And ActiveProject.ResourceCount = 0 Then
+  If ActiveProject.Subprojects.Count = 0 And ActiveProject.ResourceCount = 0 Then
     MsgBox "This project has no resources to export.", vbExclamation + vbOKOnly, "No Resources"
     GoTo exit_here
   Else
     cptSpeed True
     lngResourceCount = ActiveProject.ResourceCount
     Set arrResources = CreateObject("System.Collections.SortedList")
-    For lngItem = 1 To ActiveProject.Subprojects.count
+    For lngItem = 1 To ActiveProject.Subprojects.Count
       Set objProject = ActiveProject.Subprojects(lngItem).SourceProject
       Application.StatusBar = "Loading " & objProject.Name & "..."
-      For lngResource = 1 To objProject.Resources.count
+      For lngResource = 1 To objProject.Resources.Count
         With arrResources
-          If Not .contains(objProject.Resources(lngResource).Name) Then
+          If Not .Contains(objProject.Resources(lngResource).Name) Then
             .Add objProject.Resources(lngResource).Name, objProject.Resources(lngResource).Name
             lngResourceCount = lngResourceCount + 1
           End If
@@ -690,7 +691,7 @@ Dim vFieldType As Variant
       lngField = FieldNameToFieldConstant(vFieldType & lngItem) ',lngFieldType)
       strFieldName = CustomFieldGetName(lngField)
       If Len(strFieldName) > 0 Then
-        If Not arrFields.contains(strFieldName) Then arrFields.Add strFieldName, lngField
+        If Not arrFields.Contains(strFieldName) Then arrFields.Add strFieldName, lngField
       End If
 next_field:
     Next lngItem
@@ -699,12 +700,19 @@ next_field:
   'get enterprise custom fields
   For lngField = 188776000 To 188778000
     If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
-      arrFields.Add Application.FieldConstantToFieldName(lngField), lngField
+      strFieldName = Application.FieldConstantToFieldName(lngField)
+      If arrFields.Contains(strFieldName) Then
+        MsgBox "An Enterprise Field named '" & strFieldName & "' conflicts with a local custom field of the same name.", vbExclamation + vbOKOnly, "Conflict"
+        GoTo next_field1
+      Else
+        arrFields.Add Application.FieldConstantToFieldName(lngField), lngField
+      End If
     End If
+next_field1:
   Next lngField
 
   'add fields to listbox
-  For lngItem = 0 To arrFields.count - 1
+  For lngItem = 0 To arrFields.Count - 1
     cptResourceDemand_frm.lboFields.AddItem
     'column 0 = field constant = arrFields col1
     'column 1 = custom field name = arrFields col0
@@ -717,14 +725,14 @@ next_field:
   Next lngItem
 
   'save the fields to a file for fast searching
-  If arrFields.count > 0 Then
+  If arrFields.Count > 0 Then
     strFileName = Environ("tmp") & "\cpt-resource-demand-search.adtg"
     If Dir(strFileName) <> vbNullString Then Kill strFileName
     With CreateObject("ADODB.Recordset")
       .Fields.Append "Field Constant", adVarChar, 100
       .Fields.Append "Custom Field Name", adVarChar, 100
       .Open
-      For lngItem = 0 To arrFields.count - 1 'cptResourceDemand_frm.lboFields.ListCount - 1
+      For lngItem = 0 To arrFields.Count - 1 'cptResourceDemand_frm.lboFields.ListCount - 1
         'col0 = constant = arrFields col1
         'col1 = field name = arrFields col0
         .AddNew Array(0, 1), Array(arrFields.getValueList()(lngItem), arrFields.getKey(lngItem))
@@ -748,7 +756,8 @@ next_field:
   'import saved fields if exists
   strFileName = Environ("USERPROFILE") & "\cpt-backup\settings\cpt-export-resource-userfields.adtg"
   If Dir(strFileName) <> vbNullString Then
-    With CreateObject("ADODB.Recordset")
+    Set rst = CreateObject("ADODB.Recordset")
+    With rst
       .Open strFileName
       .MoveFirst
       lngItem = 0
@@ -763,10 +772,18 @@ next_field:
             cptResourceDemand_frm.Controls("chk" & vCostSets(vCostSet)).Value = True
           Next vCostSet
         Else
-          If FieldConstantToFieldName(.Fields(0)) <> Replace(.Fields(1), cptRegEx(.Fields(1), " \([A-z0-9]*\)$"), "") Then
-            strMissing = strMissing & "- " & .Fields(1) & vbCrLf
-            GoTo next_saved_field
+          If .Fields(0) >= 188776000 Then 'check enterprise field
+            If FieldConstantToFieldName(.Fields(0)) <> Replace(.Fields(1), cptRegEx(.Fields(1), " \([A-z0-9]*\)$"), "") Then
+              strMissing = strMissing & "- " & .Fields(1) & vbCrLf
+              GoTo next_saved_field
+            End If
+          Else 'check local field
+            If CustomFieldGetName(.Fields(0)) <> Replace(.Fields(1), cptRegEx(.Fields(1), " \([A-z0-9]*\)$"), "") Then
+              strMissing = strMissing & "- " & .Fields(1) & vbCrLf
+              GoTo next_saved_field
+            End If
           End If
+
           cptResourceDemand_frm.lboExport.AddItem
           cptResourceDemand_frm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
           cptResourceDemand_frm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
@@ -779,7 +796,7 @@ next_saved_field:
     End With
   End If
   
-  cptResourceDemand_frm.show False
+  cptResourceDemand_frm.Show False
 
   If Len(strMissing) > 0 Then
     MsgBox "The following saved fields do not exist in this project:" & vbCrLf & strMissing, vbInformation + vbOKOnly, "Saved Settings"
@@ -787,17 +804,18 @@ next_saved_field:
 
 exit_here:
   On Error Resume Next
+  Set rst = Nothing
   Set arrResources = Nothing
   Set objProject = Nothing
   Set arrFields = Nothing
   Exit Sub
 
 err_here:
-  If err.Number = 1101 Or err.Number = 1004 Then
-    err.Clear
+  If Err.Number = 1101 Or Err.Number = 1004 Then
+    Err.Clear
     Resume next_field
   Else
-    Call cptHandleErr("cptResourceDemand_bas", "ShowCptResourceDemand_frm", err, Erl)
+    Call cptHandleErr("cptResourceDemand_bas", "ShowCptResourceDemand_frm", Err, Erl)
     Resume exit_here
   End If
 
