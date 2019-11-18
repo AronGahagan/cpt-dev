@@ -156,10 +156,14 @@ Dim blnIncludeCosts As Boolean
         
         'get earliest start and latest finish
         If cptResourceDemand_frm.chkBaseline Then
-          dtStart = xlApp.WorksheetFunction.Min(Task.Start, Task.BaselineStart)
-          dtFinish = xlApp.WorksheetFunction.Max(Task.Finish, Task.BaselineFinish)
+          dtStart = xlApp.WorksheetFunction.Min(Task.Start, Task.BaselineStart) 'works with forecast, actual, and baseline start
+          dtFinish = xlApp.WorksheetFunction.Max(Task.Finish, Task.BaselineFinish) 'works with forecast, actual, and baseline finish
         Else
-          dtStart = xlApp.WorksheetFunction.Max(ActiveProject.StatusDate, Task.Start)
+          If IsDate(Task.Stop) Then 'capture the unstatused / remaining portion
+            dtStart = Task.Stop
+          Else 'capture the entire unstarted task
+            dtStart = Task.Start
+          End If
           dtFinish = Task.Finish
         End If
         
