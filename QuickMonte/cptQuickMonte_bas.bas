@@ -484,8 +484,9 @@ End Sub
 Function cptGetLngFromDurText(strDuration As String)
 'objects
 'strings
+Dim strUnit As String
 'longs
-Dim lngFactor As Long
+Dim lngValue As Long
 'integers
 'doubles
 'booleans
@@ -494,23 +495,28 @@ Dim lngFactor As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
+  'regex once
+  lngValue = cptRegEx(strDuration, "[0-9]*")
+  strUnit = cptRegEx(strDuration, "[A-z]*")
+  
+  'then select case with instr?
+  
   'determine format
-  If Len(cptRegEx(strDuration, "y|yr|year")) > 0 Then
-    'not sure this is even possible...
-  ElseIf Len(cptRegEx(strDuration, "mo|mon|month")) > 0 Then
+  If InStr(strUnit, "mo") > 0 Then
     'multiply by days/mo * hrs/day * 60
-    cptGetLngFromDurText = cptRegEx(strDuration, "[0-9]*") * ActiveProject.DaysPerMonth * ActiveProject.HoursPerDay * 60
-  ElseIf Len(cptRegEx(strDuration, "w|wk|week")) > 0 Then
+    cptGetLngFromDurText = lngValue * ActiveProject.DaysPerMonth * ActiveProject.HoursPerDay * 60
+  ElseIf InStr(strUnit, "w") > 0 Then
     'multiply by hrs/wk * 60 = minutes
-    cptGetLngFromDurText = cptRegEx(strDuration, "[0-9]*") * ActiveProject.HoursPerWeek * 60
-  ElseIf Len(cptRegEx(strDuration, "h|hr|hour")) > 0 Then
+    cptGetLngFromDurText = lngValue * ActiveProject.HoursPerWeek * 60
+  ElseIf InStr(strUnit, "h") > 0 Then
     'multiply hours by 60 min/hr = minutes
-    cptGetLngFromDurText = cptRegEx(strDuration, "[0-9]*") * 60
-  ElseIf Len(cptRegEx(strDuration, "m|min|minute")) > 0 Then
+    cptGetLngFromDurText = lngValue * 60
+  ElseIf InStr(strUnit, "d") > 0 Then
+    cptGetLngFromDurText = lngValue * ActiveProject.HoursPerDay * 60
+  ElseIf InStr(strUnit, "m") > 0 Then
     'no conversion necessary = minutes
-    cptGetLngFromDurText = cptRegEx(strDuration, "[0-9]*")
+    cptGetLngFromDurText = lngValue
   End If
-  'todo: use activeproject.hoursperday instead of 480
   
 exit_here:
   On Error Resume Next
@@ -520,3 +526,224 @@ err_here:
   Call cptHandleErr("cptQuickMonte_bas", "cptGetLngFromDurText", Err, Err)
   Resume exit_here
 End Function
+
+Sub cptShowQuickMonte()
+'objects
+'strings
+Dim strFieldName As String
+'longs
+Dim lngField As Long
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  'update form options
+  With cptQuickMonte_frm
+    For lngItem = 1 To 10
+      lngField = FieldNameToFieldConstant("Duration" & lngItem, pjTask)
+      .cboMin.AddItem
+      .cboMin.List(lngItem - 1, 0) = lngField
+      If Len(CustomFieldGetName(lngField)) > 0 Then
+        strFieldName = "Duration" & lngItem & " (" & CustomFieldGetName(lngField) & ")"
+      Else
+        strFieldName = "Duration" & lngItem
+      End If
+      .cboMin.List(lngItem - 1, 1) = strFieldName
+      .cboMax.AddItem
+      .cboMax.List(lngItem - 1, 0) = lngField
+      If Len(CustomFieldGetName(lngField)) > 0 Then
+        strFieldName = "Duration" & lngItem & " (" & CustomFieldGetName(lngField) & ")"
+      Else
+        strFieldName = "Duration" & lngItem
+      End If
+      .cboMax.List(lngItem - 1, 1) = strFieldName
+    Next lngItem
+    .cboML.AddItem
+    .cboML.List(0, 0) = FieldNameToFieldConstant("Remaining Duration")
+    .cboML.List(0, 1) = "Remaining Duration"
+    
+    'import saved settings if any  exist
+    If Dir(cptDir & "settings\cpt-quickMonte-settings.adtg") <> vbNullString Then
+      'todo: import saved settings
+    End If
+    
+    .Show False
+    
+  End With
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptQuickMonte_bas", "cptShowQuickMonte", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub quickSet()
+Dim Task As Task
+  For Each Task In ActiveProject.Tasks
+    If Not Task Is Nothing Then
+      If Task.Summary Then GoTo next_task
+      If Task.ExternalTask Then GoTo next_task
+      If Not Task.Active Then GoTo next_task
+      If Task.RemainingDuration > 0 Then
+        'task.SetField fieldnametofieldconstant("Duration1"),cstr(
+      End If
+    End If
+next_task:
+  Next Task
+End Sub
+
+Sub cptQuickPERT_test()
+  Call cptQuickPERT(ActiveSelection.Tasks(1).UniqueID)
+End Sub
+
+Sub cptQuickPERT(lngTargetTaskUID As Long)
+'objects
+Dim Worksheet As Object
+Dim Workbook As Object
+Dim xlApp As Object
+Dim rst As ADODB.Recordset
+Dim Task As Task
+'strings
+Dim strMsg As String
+'longs
+Dim lngTask As Long
+Dim lngTasks As Long
+Dim lngPERT As Long
+Dim lngML As Long
+Dim lngMax As Long
+Dim lngMin As Long
+'integers
+'doubles
+'booleans
+Dim blnDirty As Boolean
+'variants
+'dates
+Dim dtPERT As Date
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'I feel the need for speed
+  cptSpeed True
+  
+  'capture task count
+  FilterClear
+  GroupClear
+  OptionsViewEx displaysummarytasks:=True, projectsummary:=False
+  OutlineShowAllTasks
+  SelectAll
+  lngTasks = ActiveSelection.Tasks.Count
+  
+  'prepare to capture existing values
+  'todo: capture/zero/restore LOE and SM
+  Set rst = CreateObject("ADODB.Recordset")
+  rst.Fields.Append "UID", adBigInt
+  rst.Fields.Append "MIN", adBigInt
+  rst.Fields.Append "MAX", adBigInt
+  rst.Fields.Append "ML", adBigInt
+  rst.Fields.Append "PERT", adBigInt
+  rst.Open
+  
+  'capture current remaining duration, set PERT duration
+  For Each Task In ActiveProject.Tasks
+    If Not Task Is Nothing Then
+      If Task.Summary Then GoTo next_task
+      If Task.ExternalTask Then GoTo next_task
+      If Not Task.Active Then GoTo next_task
+      If Task.GetField(FieldNameToFieldConstant("EVT")) = "N/A" Then GoTo next_task
+      If Task.GetField(FieldNameToFieldConstant("EVT")) = "A" Then GoTo next_task
+      'todo: ignore tasks based on userform criteria e.g., LOE, Schedule Margin
+      If Task.RemainingDuration > 0 Then
+        lngMin = cptGetLngFromDurText(Task.GetField(cptQuickMonte_frm.cboMin.Value))
+        lngML = Task.RemainingDuration
+        lngMax = cptGetLngFromDurText(Task.GetField(cptQuickMonte_frm.cboMax.Value))
+        lngPERT = (lngMin + (4 * lngML) + lngMax) / 6
+        rst.AddNew Array(0, 1, 2, 3, 4), Array(Task.UniqueID, lngMin, lngMax, lngML, lngPERT)
+        Task.RemainingDuration = lngPERT
+        blnDirty = True
+      End If
+    End If
+next_task:
+    lngTask = lngTask + 1
+    Application.StatusBar = "Calculating PERT durations...(" & Format(lngTask / lngTasks, "0%") & ")"
+    'DoEvents
+  Next Task
+
+  'calculate new network
+  Application.StatusBar = "Recalculating..."
+  CalculateProject
+  
+  'capture PERT finish
+  dtPERT = ActiveProject.Tasks.UniqueID(lngTargetTaskUID).Finish
+  
+  'restore settings
+  Application.StatusBar = "Restoring durations..."
+  rst.MoveFirst
+  lngTask = 0
+  lngTasks = rst.RecordCount
+  Do While Not rst.EOF
+    ActiveProject.Tasks.UniqueID(rst(0)).RemainingDuration = CLng(rst("ML"))
+    rst.MoveNext
+    lngTask = lngTask + 1
+    Application.StatusBar = "Restoring durations...(" & Format(lngTask / lngTasks, "0%") & ")"
+    'DoEvents
+  Loop
+  
+  cptSpeed False
+  
+  'if we made it to this point then
+  'original remaining durations have been restored
+  blnDirty = False
+  
+  Application.StatusBar = "Returning PERT result..."
+  Set Task = ActiveProject.Tasks.UniqueID(lngTargetTaskUID)
+  strMsg = "UID " & lngTargetTaskUID & ": " & Task.Name & vbCrLf & vbCrLf
+  strMsg = strMsg & "Deterministic Finish: " & FormatDateTime(Task.Finish, vbShortDate) & vbCrLf
+  strMsg = strMsg & "Estimated using PERT: " & FormatDateTime(dtPERT, vbShortDate) & vbCrLf & vbCrLf
+  strMsg = strMsg & "Recommended Margin: " & Application.DateDifference(Task.Finish, dtPERT, ActiveProject.Calendar) / (60 * ActiveProject.HoursPerDay) & " days" & vbCrLf & vbCrLf
+  strMsg = strMsg & "Would you like to review the durations used?"
+  If MsgBox(strMsg, vbInformation + vbYesNo, "PERT Estimate") = vbYes Then
+    Application.StatusBar = "Creating Excel Workbook..."
+    Set xlApp = CreateObject("Excel.Application")
+    Set Workbook = xlApp.Workbooks.Add
+    Set Worksheet = Workbook.Sheets(1)
+    Worksheet.Name = "PERT"
+    Worksheet.[A1:E1] = Array("UID", "MIN", "MAX", "ML", "PERT")
+    Worksheet.[A2].CopyFromRecordset rst
+    xlApp.ActiveWindow.Zoom = 85
+    Worksheet.[A2].AutoFilter
+    Worksheet.Columns.AutoFit
+    Worksheet.[A2].Select
+    xlApp.ActiveWindow.FreezePanes = True
+    xlApp.Visible = True
+  End If
+
+  Application.StatusBar = "QuickPERT Complete"
+
+exit_here:
+  On Error Resume Next
+  Application.StatusBar = ""
+  Set Worksheet = Nothing
+  Set Workbook = Nothing
+  Set xlApp = Nothing
+  If blnDirty Then
+    MsgBox "Durations not restored! Close without saving to avoid loss of information.", vbCritical + vbOKOnly, "Restore Process Failed"
+  End If
+  cptSpeed False
+  If rst.State Then rst.Close
+  Set rst = Nothing
+  Set Task = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptQuickMonte_bas", "cptQuickPERT", Err, Erl)
+  If blnDirty Then MsgBox "Durations not restored! Close without saving to avoid loss of information.", vbCritical + vbOKOnly, "Restore Process Failed"
+  Resume exit_here
+End Sub
