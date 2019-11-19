@@ -706,11 +706,10 @@ next_field:
     If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
       strFieldName = Application.FieldConstantToFieldName(lngField)
       If arrFields.Contains(strFieldName) Then
-        MsgBox "An Enterprise Field named '" & strFieldName & "' conflicts with a local custom field of the same name.", vbExclamation + vbOKOnly, "Conflict"
-        GoTo next_field1
-      Else
-        arrFields.Add Application.FieldConstantToFieldName(lngField), lngField
+        MsgBox "An Enterprise Field named '" & strFieldName & "' conflicts with a local custom field of the same name. The local field will be ignored.", vbExclamation + vbOKOnly, "Conflict"
+        arrFields.Remove Application.FieldConstantToFieldName(lngField)
       End If
+      arrFields.Add Application.FieldConstantToFieldName(lngField), lngField
     End If
 next_field1:
   Next lngField
@@ -752,7 +751,11 @@ next_field1:
     .cboWeeks.AddItem "Ending"
     .cboWeeks.Value = "Beginning"
     .cboWeekday = "Monday"
-    .chkCosts.Value = True
+    .chkA.Value = False
+    .chkB.Value = False
+    .chkC.Value = False
+    .chkD.Value = False
+    .chkE.Value = False
     .chkCosts.Value = False
     .chkBaseline = False
   End With
@@ -770,11 +773,18 @@ next_field1:
           cptResourceDemand_frm.cboWeeks.Value = Replace(Replace(cptRegEx(.Fields(1), "Week\=[A-z]*;"), "Week=", ""), ";", "")
           cptResourceDemand_frm.cboWeekday = Replace(Replace(cptRegEx(.Fields(1), "Weekday\=[A-z]*;"), "Weekday=", ""), ";", "")
           cptResourceDemand_frm.chkCosts = Replace(Replace(cptRegEx(.Fields(1), "Costs\=[A-z]*;"), "Costs=", ""), ";", "")
-          cptResourceDemand_frm.chkCosts = Replace(Replace(cptRegEx(.Fields(1), "Baseline\=[A-z]*;"), "Baseline=", ""), ";", "")
+          cptResourceDemand_frm.chkBaseline = Replace(Replace(cptRegEx(.Fields(1), "Baseline\=[A-z]*;"), "Baseline=", ""), ";", "")
           vCostSets = Split(Replace(cptRegEx(.Fields(1), "RateSets\=[A-z\,]*"), "RateSets=", ""), ",")
-          For vCostSet = 0 To UBound(vCostSets) - 1
-            cptResourceDemand_frm.Controls("chk" & vCostSets(vCostSet)).Value = True
-          Next vCostSet
+          If cptResourceDemand_frm.chkCosts Then
+            For vCostSet = 0 To UBound(vCostSets) - 1
+              cptResourceDemand_frm.Controls("chk" & vCostSets(vCostSet)).Value = True
+            Next vCostSet
+          Else
+            For Each vCostSet In Array("A", "B", "C", "D", "E")
+            cptResourceDemand_frm.Controls("chk" & vCostSet) = False
+            cptResourceDemand_frm.Controls("chk" & vCostSet).Enabled = False
+            Next vCostSet
+          End If
         Else
           If .Fields(0) >= 188776000 Then 'check enterprise field
             If FieldConstantToFieldName(.Fields(0)) <> Replace(.Fields(1), cptRegEx(.Fields(1), " \([A-z0-9]*\)$"), "") Then
