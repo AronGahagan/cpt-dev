@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.2.0</cpt_version>
+'<cpt_version>v1.2.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -69,7 +69,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptResourceDemand_frm", "cmdAdd_Click", err, Erl)
+  Call cptHandleErr("cptResourceDemand_frm", "cmdAdd_Click", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -88,7 +88,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptResourceDemand_frm", "cmdCancel_Click", err, Erl)
+  Call cptHandleErr("cptResourceDemand_frm", "cmdCancel_Click", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -103,7 +103,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptResourceDemand_frm", "cmdExport_Click", err, Erl)
+  Call cptHandleErr("cptResourceDemand_frm", "cmdExport_Click", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -124,7 +124,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptResourceDemand_frm", "cmdRemove_Click", err, Erl)
+  Call cptHandleErr("cptResourceDemand_frm", "cmdRemove_Click", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -139,7 +139,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptResourceDemand_frm", "lblURL_Click", err, Erl)
+  Call cptHandleErr("cptResourceDemand_frm", "lblURL_Click", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -172,7 +172,11 @@ Dim lngItem As Long
     Do While Not .EOF
       Me.lboFields.AddItem
       Me.lboFields.List(lngItem, 0) = .Fields(0)
-      Me.lboFields.List(lngItem, 1) = .Fields(1)
+      If .Fields(0) >= 188776000 Then 'enterprise
+        Me.lboFields.List(lngItem, 1) = .Fields(1) & " (Enterprise)"
+      Else
+        Me.lboFields.List(lngItem, 1) = .Fields(1) & " (" & FieldConstantToFieldName(.Fields(0)) & ")"
+      End If
       .MoveNext
       lngItem = lngItem + 1
     Loop
@@ -185,7 +189,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptResourceDemand_frm", "stxtSearch_Change", err, Erl)
+  Call cptHandleErr("cptResourceDemand_frm", "stxtSearch_Change", Err, Erl)
   Resume exit_here
   
 End Sub
