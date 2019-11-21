@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.3</cpt_version>
+'<cpt_version>v1.6.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -15,8 +15,8 @@ End Sub
 
 Sub cptSpeed(blnOn As Boolean)
 
-  Application.ScreenUpdating = Not blnOn
   Application.Calculation = pjAutomatic = Not blnOn
+  Application.ScreenUpdating = Not blnOn
 
 End Sub
 
@@ -170,7 +170,7 @@ frx:
     strNewFileName = strModule & "_" & Format(Now, "hhnnss")
     ThisProject.VBProject.VBComponents(strModule).Name = strNewFileName
     DoEvents
-    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(strNewFileName)
+    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(strNewFileName)
     cptCore_bas.cptStartEvents
     DoEvents
   End If
@@ -497,6 +497,9 @@ Dim vCol As Variant
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+  'update references needed before downloading updates
+  Call cptSetReferences
+
   'todo:user should still be able to check currently installed versions
   If Not cptInternetIsConnected Then
     MsgBox "You must be connected to the internet to perform updates.", vbInformation + vbOKOnly, "No Connection"
@@ -693,10 +696,12 @@ Dim strDir As String
   If Not cptReferenceExists("mscorlib") Then
     ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\Microsoft.NET\Framework\v4.0.30319\mscorlib.tlb"
   End If
-  '<issue33> added
+  If Not cptReferenceExists("MSComctlLib") Then
+    ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\SysWOW64\MSCOMCTL.OCX"
+  End If
   If Not cptReferenceExists("MSXML2") Then
     ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\SysWOW64\msxml3.dll"
-  End If '</issue33>
+  End If
 
 End Sub
 
