@@ -600,11 +600,7 @@ next_task:
   Next Task
 End Sub
 
-Sub cptQuickPERT_test()
-  Call cptQuickPERT(ActiveSelection.Tasks(1).UniqueID)
-End Sub
-
-Sub cptQuickPERT(lngTargetTaskUID As Long)
+Sub cptQuickPERT(lngMinField As Long, lngMaxField As Long, lngTargetTaskUID As Long)
 'objects
 Dim Worksheet As Object
 Dim Workbook As Object
@@ -614,6 +610,7 @@ Dim Task As Task
 'strings
 Dim strMsg As String
 'longs
+Dim lngEVT As Long
 Dim lngTask As Long
 Dim lngTasks As Long
 Dim lngPERT As Long
@@ -651,19 +648,23 @@ Dim dtPERT As Date
   rst.Fields.Append "PERT", adBigInt
   rst.Open
   
+  'todo: user must set this
+  lngEVT = FieldNameToFieldConstant("EVT")
+  
   'capture current remaining duration, set PERT duration
   For Each Task In ActiveProject.Tasks
     If Not Task Is Nothing Then
       If Task.Summary Then GoTo next_task
       If Task.ExternalTask Then GoTo next_task
       If Not Task.Active Then GoTo next_task
-      If Task.GetField(FieldNameToFieldConstant("EVT")) = "N/A" Then GoTo next_task
-      If Task.GetField(FieldNameToFieldConstant("EVT")) = "A" Then GoTo next_task
+      'todo: user must set these
+      If Task.GetField(lngEVT) = "N/A" Then GoTo next_task
+      If Task.GetField(lngEVT) = "A" Then GoTo next_task
       'todo: ignore tasks based on userform criteria e.g., LOE, Schedule Margin
       If Task.RemainingDuration > 0 Then
-        lngMin = cptGetLngFromDurText(Task.GetField(cptQuickMonte_frm.cboMin.Value))
+        lngMin = cptGetDuration(Task, lngMinField)
         lngML = Task.RemainingDuration
-        lngMax = cptGetLngFromDurText(Task.GetField(cptQuickMonte_frm.cboMax.Value))
+        lngMax = cptGetDuration(Task, lngMaxField)
         lngPERT = (lngMin + (4 * lngML) + lngMax) / 6
         rst.AddNew Array(0, 1, 2, 3, 4), Array(Task.UniqueID, lngMin, lngMax, lngML, lngPERT)
         Task.RemainingDuration = lngPERT
@@ -672,8 +673,8 @@ Dim dtPERT As Date
     End If
 next_task:
     lngTask = lngTask + 1
+    'todo: add status/progress
     Application.StatusBar = "Calculating PERT durations...(" & Format(lngTask / lngTasks, "0%") & ")"
-    'DoEvents
   Next Task
 
   'calculate new network
@@ -693,7 +694,6 @@ next_task:
     rst.MoveNext
     lngTask = lngTask + 1
     Application.StatusBar = "Restoring durations...(" & Format(lngTask / lngTasks, "0%") & ")"
-    'DoEvents
   Loop
   
   cptSpeed False
@@ -707,7 +707,7 @@ next_task:
   strMsg = "UID " & lngTargetTaskUID & ": " & Task.Name & vbCrLf & vbCrLf
   strMsg = strMsg & "Deterministic Finish: " & FormatDateTime(Task.Finish, vbShortDate) & vbCrLf
   strMsg = strMsg & "Estimated using PERT: " & FormatDateTime(dtPERT, vbShortDate) & vbCrLf & vbCrLf
-  strMsg = strMsg & "Recommended Margin: " & Application.DateDifference(Task.Finish, dtPERT, ActiveProject.Calendar) / (60 * ActiveProject.HoursPerDay) & " days" & vbCrLf & vbCrLf
+  strMsg = strMsg & "Recommended Margin: " & Round(Application.DateDifference(Task.Finish, dtPERT, ActiveProject.Calendar) / (60 * ActiveProject.HoursPerDay), 0) & " days" & vbCrLf & vbCrLf
   strMsg = strMsg & "Would you like to review the durations used?"
   If MsgBox(strMsg, vbInformation + vbYesNo, "PERT Estimate") = vbYes Then
     Application.StatusBar = "Creating Excel Workbook..."
@@ -747,3 +747,28 @@ err_here:
   If blnDirty Then MsgBox "Durations not restored! Close without saving to avoid loss of information.", vbCritical + vbOKOnly, "Restore Process Failed"
   Resume exit_here
 End Sub
+
+Function cptGetDuration(ByRef Task As Task, lngField As Long) As Long
+  Select Case lngField
+    Case pjTaskDuration1
+      cptGetDuration = Task.Duration1
+    Case pjTaskDuration2
+      cptGetDuration = Task.Duration2
+    Case pjTaskDuration3
+      cptGetDuration = Task.Duration3
+    Case pjTaskDuration4
+      cptGetDuration = Task.Duration4
+    Case pjTaskDuration5
+      cptGetDuration = Task.Duration5
+    Case pjTaskDuration6
+      cptGetDuration = Task.Duration6
+    Case pjTaskDuration7
+      cptGetDuration = Task.Duration7
+    Case pjTaskDuration8
+      cptGetDuration = Task.Duration8
+    Case pjTaskDuration9
+      cptGetDuration = Task.Duration9
+    Case pjTaskDuration10
+      cptGetDuration = Task.Duration10
+  End Select
+End Function
