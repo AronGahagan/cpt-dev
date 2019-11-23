@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.0.3</cpt_version>
+'<cpt_version>v1.0.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -757,7 +757,7 @@ Dim aOutlineCode As Variant, tmr As Date
 exit_here:
   On Error Resume Next
   Application.StatusBar = ""
-  SpeedOFF
+  cptSpeed False
   Set objOutlineCode = Nothing
   Set objLookupTable = Nothing
   Set objLookupTableEntry = Nothing
