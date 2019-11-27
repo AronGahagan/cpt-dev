@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.2.0</cpt_version>
+'<cpt_version>v1.2.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -65,7 +65,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cboCreate_Change", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cboCreate_Change", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -73,6 +73,7 @@ Private Sub cboEach_Change()
 'objects
 Dim Task As Object
 'strings
+Dim strFieldName As String
 'longs
 Dim lngItem As Long
 Dim lngField As Long
@@ -99,9 +100,19 @@ Dim lngField As Long
           If Not .Contains(Task.GetField(lngField)) Then .Add Task.GetField(lngField), Task.GetField(lngField)
         End If
       Next Task
-      For lngItem = 0 To .Count - 1
-        Me.lboItems.AddItem .GetByIndex(lngItem)
-      Next lngItem
+      'validate field has items
+      If .Count = 0 Then
+        If Len(CustomFieldGetName(lngField)) > 0 Then
+          strFieldName = CustomFieldGetName(lngField)
+        Else
+          strFieldName = FieldConstantToFieldName(lngField)
+        End If
+        MsgBox "The field '" & strFieldName & "' contains no values.", vbExclamation + vbOKOnly, "Invalid Selection"
+      Else
+        For lngItem = 0 To .Count - 1
+          Me.lboItems.AddItem .GetByIndex(lngItem)
+        Next lngItem
+      End If
     End With
   End If 'lngField > 0
   
@@ -111,7 +122,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cboEach_Change", "cboEach_Change", err, Erl)
+  Call cptHandleErr("cboEach_Change", "cboEach_Change", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -129,7 +140,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cboEVP_AfterUpdate", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cboEVP_AfterUpdate", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -144,7 +155,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cboEVP_Change", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cboEVP_Change", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -163,7 +174,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cboEVT_AfterUpdate", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cboEVT_AfterUpdate", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -178,7 +189,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cboEVT_Change", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cboEVT_Change", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -194,7 +205,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("chkHide_Click", "chkHide_Click", err, Erl)
+  Call cptHandleErr("chkHide_Click", "chkHide_Click", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -230,7 +241,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdAdd_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdAdd_Click", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -264,7 +275,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdAddAll_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdAddAll_Click", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -283,7 +294,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdCancel_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdCancel_Click", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -321,7 +332,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("frmStatusSeet", "cmdDown_Click", err, Erl)
+  Call cptHandleErr("frmStatusSeet", "cmdDown_Click", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -344,7 +355,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdRemove_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdRemove_Click", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -365,7 +376,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdRemoveAll_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdRemoveAll_Click", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -505,7 +516,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdRun_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdRun_Click", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -543,7 +554,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdUp_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdUp_Click", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -559,7 +570,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "lblURL", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "lblURL", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -606,7 +617,7 @@ exit_here:
   cptSpeed False
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "lboItems_AfterUpdate", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "lboItems_AfterUpdate", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -641,7 +652,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "stxtSearch_Change", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "stxtSearch_Change", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -670,7 +681,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "stxtSearch_Enter", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "stxtSearch_Enter", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -698,7 +709,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "txtHideCompleteBefore", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "txtHideCompleteBefore", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -726,7 +737,7 @@ exit_here:
   On Error Resume Next
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "txtStatusDate_Change", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "txtStatusDate_Change", Err, Erl)
   Resume exit_here
   
 End Sub
