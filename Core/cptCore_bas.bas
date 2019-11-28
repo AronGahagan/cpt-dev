@@ -691,6 +691,7 @@ End Sub
 
 Sub cptShowUpgrades_frm()
 'objects
+Dim rst As Object
 Dim REMatch As Object
 Dim REMatches As Object
 Dim RE As Object
@@ -704,6 +705,7 @@ Dim FindRecord As Object
 'long
 Dim lngItem As Long
 'strings
+Dim strSettingsFile As String
 Dim strBranch As String
 Dim strFileName As String
 Dim strInstVer As String
@@ -734,6 +736,18 @@ Dim vCol As Variant
   rstStatus.Fields.Append "Installed", 200, 200
   rstStatus.Fields.Append "Status", 200, 200
   rstStatus.Open
+  
+  'get stored setting
+  strSettingsFile = cptDir & "\settings\cpt-settings.adtg"
+  If Dir(strSettingsFile) <> vbNullString Then
+    Set rst = CreateObject("ADODB.Recordset")
+    rst.Open strSettingsFile, , adOpenKeyset
+    rst.MoveFirst
+    rst.Find "OPTION='Updates'"
+    cptUpgrades_frm.cmdUpgradeAll.Enabled = CBool(rst(1))
+    cptUpgrades_frm.cmdUpgradeSelected.Enabled = CBool(rst(1))
+    rst.Close
+  End If
   
   'get current versions
   Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
@@ -882,6 +896,7 @@ exit_here:
   On Error Resume Next
   If rstStatus.State Then rstStatus.Close
   Set rstStatus = Nothing
+  Set rst = Nothing
   Set REMatch = Nothing
   Set REMatches = Nothing
   Set RE = Nothing

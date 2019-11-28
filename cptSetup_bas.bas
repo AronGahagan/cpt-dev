@@ -537,14 +537,14 @@ Dim lngCleanUp As Long
 '    End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
-  
+
   'outline codes
   If cptModuleExists("cptBackbone_frm") And cptModuleExists("cptBackbone_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gWBS"" label=""Backbone"" visible=""true"" >"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBackbone"" label=""Outline Codes"" imageMso=""WbsMenu"" onAction=""cptShowBackbone_frm"" visible=""true"" size=""large"" supertip=""Quickly create or edit Outline Codes (CWBS, IMP, etc.); import and/or export; create DI-MGMT-81334D, etc."" />"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
-  
+
   'integration
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gIntegration"" label=""Integration"" visible=""true"" >"
   If cptModuleExists("cptIMSCobraExport_bas") And cptModuleExists("cptIMSCobraExport_frm") Then
@@ -573,6 +573,8 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
   
+
+  
   'about
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gHelp"" label=""Help"" visible=""true"" >"
   If cptInternetIsConnected Then
@@ -586,6 +588,10 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Remove"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUninstall"" label=""Uninstall ClearPlan Toolbar"" imageMso=""TasksUnlink"" onAction=""cptUninstall"" visible=""true"" />"
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+  End If
+  'settings
+  If cptModuleExists("cptSettings_frm") And cptModuleExists("cptSettings_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSettings"" imageMso=""AnimationCustomActionVerbDialog"" label=""Settings"" onAction=""cptShowSettingsFrm"" size=""large"" />"
   End If
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAbout"" onAction=""cptShowAbout_frm""  size=""large"" visible=""true""  label=""About"" imageMso=""Info"" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
