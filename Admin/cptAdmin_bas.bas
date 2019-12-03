@@ -126,7 +126,7 @@ exit_here:
   Exit Sub
 
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "cptCreateCurrentVersionXML", err)
+  Call cptHandleErr("cptAdmin_bas", "cptCreateCurrentVersionXML", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -214,7 +214,7 @@ exit_here:
   Set xlApp = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "Document", err)
+  Call cptHandleErr("cptAdmin_bas", "Document", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -307,7 +307,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "cptSetDirectory()", err)
+  Call cptHandleErr("cptAdmin_bas", "cptSetDirectory()", Err, Erl)
   Resume exit_here
 
 End Function
