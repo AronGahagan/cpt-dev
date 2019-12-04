@@ -24,12 +24,14 @@ Dim strFileName As String
 Dim strResource As String
 Dim strWPCN As String
 'longs
+Dim lngTaskType As Long
 Dim lngFile As Long
 'integers
 'doubles
 Dim dblMatl As Double
 Dim dblHours As Double
 'booleans
+Dim blnEffortDriven As Boolean
 'variants
 'dates
 Dim dtWeek As Date
@@ -80,9 +82,14 @@ Dim dtStart As Date
               If Task Is Nothing Then
                 Set Task = ActiveProject.Tasks.Add(strWPCN & " - ACTUALS")
               End If
-              'todo: capture/reset type, effortdriven
-              If Task.Type <> pjFixedDuration Then Task.Type = pjFixedDuration
-              If Task.EffortDriven Then Task.EffortDriven = False
+              If Task.Type <> pjFixedDuration Then
+                lngTaskType = Task.Type
+                Task.Type = pjFixedDuration
+              End If
+              If Task.EffortDriven Then
+                blnEffortDriven = Task.EffortDriven
+                Task.EffortDriven = False
+              End If
               If Task.Estimated Then Task.Estimated = False
               If Task.RemainingWork > 0 Then Task.RemainingWork = 0
               
@@ -132,6 +139,10 @@ Dim dtStart As Date
                 Set TSVS = Assignment.TimeScaleData(dtWeek, dtWeek, pjAssignmentTimescaledActualWork, pjTimescaleWeeks, 1)
                 TSVS(1).Value = dblMatl
               End If
+              
+              'reset task attributes
+              Task.Type = lngTaskType
+              Task.EffortDriven = blnEffortDriven
               
               'todo: flag it somehow?
               'todo: optionally import into second file and use master to export reports?
@@ -218,9 +229,7 @@ Dim lngField As Long
       If Task.Summary Then GoTo next_task 'todo: skip summaries?
       If Not Task.Active Then GoTo next_task
       If Task.ExternalTask Then GoTo next_task
-      
-      'todo: also save to adtg for quicker filtering
-      
+            
       .cboTask.AddItem
       .cboTask.List(lngItem, 0) = Task.UniqueID
       .cboTask.List(lngItem, 1) = Task.Name
@@ -407,6 +416,7 @@ Dim rst As ADODB.Recordset 'Object
   Set rst = CreateObject("ADODB.Recordset")
 
   With cptImportActuals_frm
+    .txtUID.Value = ""
     .cboTask.Clear
     rst.Open cptDir & "\settings\cpt-actuals-map.adtg"
     If Len(strText) > 0 Then
@@ -431,5 +441,39 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptImportActuals_bas", "cptUpdateTaskMapList", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptClearMappedTasks(Optional blnClearAll As Boolean = True)
+'objects
+'strings
+'longs
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  With cptImportActuals_frm.lboMap
+    For lngItem = 0 To .ListCount - 1
+      If .Selected(lngItem) And Not blnClearAll Then
+        .List(lngItem, 2) = ""
+        .List(lngItem, 3) = ""
+      ElseIf blnClearAll Then
+        .List(lngItem, 2) = ""
+        .List(lngItem, 3) = ""
+      End If
+    Next lngItem
+  End With
+  
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptImportActuals_bas", "cptClearMappedTasks", Err, Erl)
   Resume exit_here
 End Sub
