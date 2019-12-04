@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptMetrics_bas"
 '<cpt_version>v1.0.7</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 'add disclaimer: unburdened hours - not meant to be precise - generally within +/- 1%
@@ -649,3 +649,334 @@ err_here:
   Call cptHandleErr("cptMetrics_bas", "cptMetricsSettingsExist", Err, Erl)
   Resume exit_here
 End Function
+Sub cptEarnedSchedule()
+'objects
+Dim rng As Excel.Range 'Object
+Dim Task As Task
+Dim TSVS_ACTUAL As TimeScaleValues
+Dim TSVS_WORK As TimeScaleValues
+Dim TSV As TimeScaleValue
+Dim TSVS As TimeScaleValues
+Dim Worksheet As Excel.Worksheet 'object
+Dim Workbook As Excel.Workbook 'object
+Dim xlApp As Excel.Application 'Object
+'strings
+'longs
+Dim lngBAC As Long
+Dim lngLastRow As Long
+Dim lngES As Long
+Dim lngAD As Long
+Dim lngEVP As Long
+Dim lngCurrentRow As Long
+Dim lngEVT As Long
+'integers
+'doubles
+Dim dblBCWP As Double
+'booleans
+'variants
+'dates
+Dim dtETC As Date
+Dim dtStatus As Date
+Dim dtEnd As Date
+Dim dtStart As Date
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'validate has tasks, baseline, status date
+  If ActiveProject.Tasks.Count = 0 Then
+    MsgBox "This project has no tasks.", vbExclamation + vbOKOnly, "Earned Schedule"
+    GoTo exit_here
+  End If
+  If Not IsDate(ActiveProject.ProjectSummaryTask.BaselineStart) Then
+    MsgBox "This project has not been properly baselined.", vbExclamation + vbOKOnly, "Earned Schedule"
+    GoTo exit_here
+  End If
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "This project has no status date.", vbExclamation + vbOKOnly, "Earned Schedule"
+    GoTo exit_here
+  End If
+  
+  cptSpeed True
+  
+  'set up the workbook
+  Set xlApp = CreateObject("Excel.Application")
+  Set Workbook = xlApp.Workbooks.Add
+  xlApp.ScreenUpdating = False
+  xlApp.Calculation = xlCalculationManual
+  Set Worksheet = Workbook.Sheets(1)
+  xlApp.ActiveWindow.Zoom = 85
+  Worksheet.Name = "Earned Schedule"
+  Worksheet.[A1:D1] = Array("WEEK", "BCWS", "BCWP", "ETC")
+  Worksheet.[A2].Select
+  xlApp.ActiveWindow.FreezePanes = True
+  
+  lngEVT = FieldNameToFieldConstant("EVT")
+  
+  'get week-over-week BCWS
+  dtStart = xlApp.WorksheetFunction.Min(ActiveProject.ProjectSummaryTask.Start, ActiveProject.ProjectSummaryTask.BaselineStart)
+  dtEnd = xlApp.WorksheetFunction.Max(ActiveProject.ProjectSummaryTask.Finish, ActiveProject.ProjectSummaryTask.BaselineFinish)
+  
+  Set TSVS = ActiveProject.ProjectSummaryTask.TimeScaleData(dtStart, dtEnd, pjTaskTimescaledBaselineWork, pjTimescaleWeeks, 1)
+  For Each TSV In TSVS
+    Worksheet.Cells(TSV.Index + 1, 1) = DateAdd("d", 5, TSV.StartDate) 'ensure Friday
+    Worksheet.Cells(TSV.Index + 1, 2) = Val(TSV.Value) / 60
+    Worksheet.Columns("A:B").AutoFit
+    'get work
+    Set TSVS_WORK = ActiveProject.ProjectSummaryTask.TimeScaleData(TSV.StartDate, TSV.EndDate, pjTaskTimescaledWork, pjTimescaleWeeks, 1)
+    'get actual work (per msp)
+    Set TSVS_ACTUAL = ActiveProject.ProjectSummaryTask.TimeScaleData(TSV.StartDate, TSV.EndDate, pjTaskTimescaledActualWork, pjTimescaleWeeks, 1)
+    'return remaining work (= work - actual work)
+    Worksheet.Cells(TSV.Index + 1, 4) = (Val(TSVS_WORK(1)) - Val(TSVS_ACTUAL(1))) / 60
+  Next TSV
+  
+  'convert BCWS to cumulative
+  Worksheet.[E2].FormulaR1C1 = "=RC[-3]"
+  Worksheet.[E3].FormulaR1C1 = "=R[-1]C+RC[-3]"
+  Worksheet.Range(Worksheet.[E3], Worksheet.[A1048576].End(xlUp).Offset(0, 4)).FillDown
+  Worksheet.Calculate
+  Worksheet.Range(Worksheet.[E2], Worksheet.[E2].End(xlDown)).Copy
+  Worksheet.[B2].PasteSpecial xlValues
+  Worksheet.Range(Worksheet.[E2], Worksheet.[E2].End(xlDown)).Clear
+  
+  'todo: convert ETC to cumulative?
+  
+  'format the ranges
+  Worksheet.Range(Worksheet.[D2], Worksheet.[A1048576].End(xlUp).Offset(0, 1)).NumberFormat = "#,##0.00"
+  
+  'add borders
+  Set rng = Worksheet.Range(Worksheet.[A1], Worksheet.[A1].End(xlDown).Offset(0, 3))
+  rng.Borders(xlDiagonalDown).LineStyle = xlNone
+  rng.Borders(xlDiagonalUp).LineStyle = xlNone
+  With rng.Borders(xlEdgeLeft)
+    .LineStyle = xlContinuous
+    .ColorIndex = xlAutomatic
+    .TintAndShade = 0
+    .Weight = xlThin
+  End With
+  With rng.Borders(xlEdgeTop)
+    .LineStyle = xlContinuous
+    .ColorIndex = xlAutomatic
+    .TintAndShade = 0
+    .Weight = xlThin
+  End With
+  With rng.Borders(xlEdgeBottom)
+    .LineStyle = xlContinuous
+    .ColorIndex = xlAutomatic
+    .TintAndShade = 0
+    .Weight = xlThin
+  End With
+  With rng.Borders(xlEdgeRight)
+    .LineStyle = xlContinuous
+    .ColorIndex = xlAutomatic
+    .TintAndShade = 0
+    .Weight = xlThin
+  End With
+  With rng.Borders(xlInsideVertical)
+    .LineStyle = xlContinuous
+    .ThemeColor = 1
+    .TintAndShade = -0.249946594869248
+    .Weight = xlThin
+  End With
+  With rng.Borders(xlInsideHorizontal)
+    .LineStyle = xlContinuous
+    .ThemeColor = 1
+    .TintAndShade = -0.249946594869248
+    .Weight = xlThin
+  End With
+  Set rng = Worksheet.Range("A1:D1")
+  rng.HorizontalAlignment = xlCenter
+  rng.Font.Bold = True
+  With rng
+    .HorizontalAlignment = xlCenter
+    .VerticalAlignment = xlBottom
+    .WrapText = False
+    .Orientation = 0
+    .AddIndent = False
+    .IndentLevel = 0
+    .ShrinkToFit = False
+    .ReadingOrder = xlContext
+    .MergeCells = False
+  End With
+  With rng.Interior
+    .Pattern = xlSolid
+    .PatternColorIndex = xlAutomatic
+    .ThemeColor = xlThemeColorDark1
+    .TintAndShade = -0.149998478032896
+    .PatternTintAndShade = 0
+  End With
+  
+  'get current BCWP
+  lngEVP = FieldNameToFieldConstant("Physical % Complete")
+  For Each Task In ActiveProject.Tasks
+    If Task Is Nothing Then GoTo next_task
+    If Task.ExternalTask Then GoTo next_task
+    If Task.Summary Then GoTo next_task
+    If Not Task.Active Then GoTo next_task
+    If Task.BaselineWork > 0 Then
+      dblBCWP = dblBCWP + ((Task.BaselineWork * Val(Task.GetField(lngEVP)) / 100) / 60)
+    End If
+next_task:
+  Next Task
+  dtStatus = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
+  If Weekday(ActiveProject.StatusDate) <> 6 Then
+    'todo: adjust status date to Friday
+  End If
+  lngCurrentRow = Worksheet.Columns(1).Find(dtStatus, lookat:=xlWhole).Row
+  Worksheet.Cells(lngCurrentRow, 3).Value = dblBCWP
+  
+  'highlight BCWP
+  With Worksheet.Cells(lngCurrentRow, 3).Interior
+    .Pattern = xlSolid
+    .PatternColorIndex = xlAutomatic
+    .Color = 65535
+    .TintAndShade = 0
+    .PatternTintAndShade = 0
+  End With
+  
+  'get actual duration (in weeks)
+  lngAD = lngCurrentRow - 1
+  
+  'get earned schedule (in weeks)
+  If dblBCWP < xlApp.WorksheetFunction.Min(Worksheet.Range(Worksheet.[B2], Worksheet.[B2].End(xlDown))) Then
+    lngES = 1
+  Else
+    lngES = xlApp.WorksheetFunction.Match(dblBCWP, Worksheet.Range(Worksheet.[B2], Worksheet.[B2].End(xlDown)), 1)
+  End If
+  xlApp.ActiveWindow.ScrollRow = xlApp.WorksheetFunction.Min(lngES, lngAD)
+  'highlight it
+  With Worksheet.Cells(lngES + 1, 2).Interior
+    .Pattern = xlSolid
+    .PatternColorIndex = xlAutomatic
+    .Color = 65535
+    .TintAndShade = 0
+    .PatternTintAndShade = 0
+  End With
+  
+  'add ES
+  Worksheet.Cells(lngES + 1, 6).Value = "Earned Schedule:"
+  Worksheet.Cells(lngES + 1, 6).HorizontalAlignment = xlRight
+  Worksheet.Cells(lngES + 1, 7).FormulaR1C1 = "=COUNTA(R2C1:R" & lngES + 1 & "C1)"
+  Workbook.Names.Add "ES", Worksheet.Cells(lngES + 1, 7)
+  Worksheet.Cells(lngES + 1, 8).Value = "wks"
+    
+  'add AD
+  Worksheet.Cells(lngAD + 1, 6).Value = "Actual Duration:"
+  Worksheet.Cells(lngAD + 1, 6).HorizontalAlignment = xlRight
+  Worksheet.Cells(lngAD + 1, 7).FormulaR1C1 = "=COUNTA(R2C1:R" & lngAD + 1 & "C1)"
+  Workbook.Names.Add "AD", Worksheet.Cells(lngAD + 1, 7)
+  Worksheet.Cells(lngAD + 1, 8).Value = "wks"
+  
+  'add SPI(t)
+  Worksheet.Cells(lngAD + 3, 6).Value = "SPI(t):"
+  Worksheet.Cells(lngAD + 3, 6).HorizontalAlignment = xlRight
+  Worksheet.Cells(lngAD + 3, 7).FormulaR1C1 = "=ES/AD"
+  Workbook.Names.Add "SPIt", Worksheet.Cells(lngAD + 3, 7)
+  Worksheet.Cells(lngAD + 3, 7).NumberFormat = "_(* #,##0.00_);_(* (#,##0.00);_(* "" - ""??_);_(@_)"
+  
+  'add PDWR
+  'todo: do we remove schedule margin from this calc?
+  lngLastRow = Worksheet.[F1048546].End(xlUp).Row + 2
+  Worksheet.Cells(lngLastRow, 6).Value = "Planned Duration of Work Remaining:"
+  Worksheet.Cells(lngLastRow, 6).HorizontalAlignment = xlRight
+  lngBAC = xlApp.WorksheetFunction.Match(Worksheet.[B1048576].End(xlUp).Value, Worksheet.Range(Worksheet.[B2], Worksheet.[B2].End(xlDown)), 0) + 1
+  Worksheet.Cells(lngLastRow, 7).FormulaR1C1 = "=COUNTA(R" & lngES + 2 & "C2:R" & lngBAC & "C2)"
+  Workbook.Names.Add "PDWR", Worksheet.Cells(lngLastRow, 7)
+  Worksheet.Cells(lngLastRow, 8).Value = "wks"
+  
+  'add RD
+  dtETC = Worksheet.[A1048576].End(xlUp)
+  'todo: what if current schedule is early? use same method as with bcws instead
+  lngLastRow = Worksheet.[F1048546].End(xlUp).Row + 2
+  Worksheet.Rows.Replace "-", "/"
+  Worksheet.Cells(lngLastRow, 6).Value = "Remaining Duration:"
+  Worksheet.Cells(lngLastRow, 6).HorizontalAlignment = xlRight
+  Worksheet.Cells(lngLastRow - 1, 9) = "Estimated Completion Date:"
+  Worksheet.Cells(lngLastRow - 1, 9).HorizontalAlignment = xlCenter
+  Worksheet.Cells(lngLastRow, 9) = dtETC
+  Workbook.Names.Add "ECD", Worksheet.Cells(lngLastRow, 9)
+  Worksheet.Cells(lngLastRow, 9).NumberFormat = "mm/dd/yyyy"
+  Workbook.Names.Add "SD", Worksheet.Cells(lngAD + 1, 1)
+  Worksheet.Cells(lngLastRow, 7).FormulaR1C1 = "=NETWORKDAYS(SD+1,ECD)/5"
+  Workbook.Names.Add "RD", Worksheet.Cells(lngLastRow, 7)
+  Worksheet.Cells(lngLastRow, 8).Value = "wks"
+  
+  'add TSPI(ed)
+  lngLastRow = Worksheet.[F1048546].End(xlUp).Row + 2
+  Worksheet.Cells(lngLastRow, 6).Value = "TSPI(ed):"
+  Worksheet.Cells(lngLastRow, 6).HorizontalAlignment = xlRight
+  Worksheet.Cells(lngLastRow, 7).FormulaR1C1 = "=PDWR/RD"
+  Workbook.Names.Add "TSPIed", Worksheet.Cells(lngLastRow, 7)
+  Worksheet.Cells(lngLastRow, 7).NumberFormat = "_(* #,##0.00_);_(* (#,##0.00);_(* ""-""??_);_(@_)"
+  
+  'add threshold
+  lngLastRow = Worksheet.[F1048546].End(xlUp).Row + 2
+  Worksheet.Cells(lngLastRow, 6).Value = "'|SPI(t)-TSPI(ed)|:"
+  Worksheet.Cells(lngLastRow, 6).HorizontalAlignment = xlRight
+  Worksheet.Cells(lngLastRow, 7).FormulaR1C1 = "=ABS(SPIt-TSPIed)"
+  Worksheet.Cells(lngLastRow, 7).NumberFormat = "_(* #,##0.00_);_(* (#,##0.00);_(* ""-""??_);_(@_)"
+  'add interpretation
+  Worksheet.Cells(lngLastRow, 8).FormulaR1C1 = "=IF(RC[-1]>0.1,""OUT OF RANGE"",""IN RANGE"")"
+  
+  'add threshold
+  lngLastRow = Worksheet.[F1048546].End(xlUp).Row + 2
+  Worksheet.Cells(lngLastRow, 6).Value = "SPI(t)-TSPI(ed):"
+  Worksheet.Cells(lngLastRow, 6).HorizontalAlignment = xlRight
+  Worksheet.Cells(lngLastRow, 7).FormulaR1C1 = "=SPIt-TSPIed"
+  Worksheet.Cells(lngLastRow, 7).NumberFormat = "_(* #,##0.00_);_(* (#,##0.00);_(* ""-""??_);_(@_)"
+  'add interpretation
+  Worksheet.Cells(lngLastRow, 8).FormulaR1C1 = "=IF(RC[-1]<0.1,""OPTIMISTIC"",IF(RC[-1]>0.1,""PESSIMISTIC"",""REASONABLE""))"
+  
+  'add IECD(es)
+  lngLastRow = Worksheet.[F1048546].End(xlUp).Row + 2
+  Worksheet.Cells(lngLastRow, 6).Value = "IECD(es):"
+  Worksheet.Cells(lngLastRow, 6).HorizontalAlignment = xlRight
+  Worksheet.Cells(lngLastRow, 7).FormulaR1C1 = "=SD+((PDWR*5)/SPIt)"
+  Workbook.Names.Add "IECDes", Worksheet.Cells(lngLastRow, 7)
+  Worksheet.Cells(lngLastRow, 7).NumberFormat = "m/d/yyyy"
+  Worksheet.Cells(lngLastRow, 8).Value = "DELTA:"
+  Worksheet.Cells(lngLastRow, 8).HorizontalAlignment = xlRight
+  Worksheet.Cells(lngLastRow, 9).FormulaR1C1 = "=NETWORKDAYS(IECDes,ECD)"
+  Worksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlCenter
+  Worksheet.Cells(lngLastRow, 9).NumberFormat = "#,##0_);[Red](#,##0)"
+  
+  'add indicator
+  Worksheet.Cells(lngLastRow + 1, 8).Value = "Predicted Growth:"
+  Worksheet.Cells(lngLastRow + 1, 8).HorizontalAlignment = xlRight
+  Worksheet.Cells(lngLastRow + 1, 9).FormulaR1C1 = "=ABS(R[-1]C)/((RD*5)+ABS(R[-1]C))"
+  Worksheet.Cells(lngLastRow + 1, 9).NumberFormat = "0%"
+  Worksheet.Cells(lngLastRow + 1, 9).HorizontalAlignment = xlCenter
+  Worksheet.Cells(lngLastRow + 2, 8).Value = "IMS IS:"
+  Worksheet.Cells(lngLastRow + 2, 8).HorizontalAlignment = xlRight
+  'todo: fix this formula
+  Worksheet.Cells(lngLastRow + 2, 9).FormulaR1C1 = "=IF(R[-1]C>0.05,""OPTIMISTIC"",IF(R[-1]C<0.05,""PESSIMISTIC"",""REASONABLE""))"
+  Worksheet.Cells(lngLastRow + 2, 9).HorizontalAlignment = xlCenter
+  
+  'adjust columns
+  Worksheet.Columns(5).ColumnWidth = 2
+  Worksheet.Columns.AutoFit
+  
+  'select the IECD(es)
+  Worksheet.Cells(lngLastRow, 7).Select
+  
+  xlApp.Visible = True
+  
+exit_here:
+  On Error Resume Next
+  Set rng = Nothing
+  Set Task = Nothing
+  Set TSVS_ACTUAL = Nothing
+  Set TSVS_WORK = Nothing
+  Set TSV = Nothing
+  Set TSVS = Nothing
+  Set Worksheet = Nothing
+  xlApp.ScreenUpdating = True
+  xlApp.Calculation = xlCalculationAutomatic
+  cptSpeed False
+  Set Workbook = Nothing
+  Set xlApp = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptMetrics_bas", "cptEarnedSchedule", Err, Erl)
+  Resume exit_here
+End Sub
