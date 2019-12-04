@@ -733,12 +733,24 @@ Dim dtStart As Date
   Worksheet.[E2].FormulaR1C1 = "=RC[-3]"
   Worksheet.[E3].FormulaR1C1 = "=R[-1]C+RC[-3]"
   Worksheet.Range(Worksheet.[E3], Worksheet.[A1048576].End(xlUp).Offset(0, 4)).FillDown
+  
+  'convert ETC to cumulative?
+  Worksheet.[F2].FormulaR1C1 = "=RC[-2]"
+  Worksheet.[F3].FormulaR1C1 = "=R[-1]C+RC[-2]"
+  Worksheet.Range(Worksheet.[F3], Worksheet.[A1048576].End(xlUp).Offset(0, 5)).FillDown
+  
+  'calculate once
   Worksheet.Calculate
+  
+  'paste bcws values
   Worksheet.Range(Worksheet.[E2], Worksheet.[E2].End(xlDown)).Copy
   Worksheet.[B2].PasteSpecial xlValues
   Worksheet.Range(Worksheet.[E2], Worksheet.[E2].End(xlDown)).Clear
   
-  'todo: convert ETC to cumulative?
+  'paste etc values
+  Worksheet.Range(Worksheet.[F2], Worksheet.[F2].End(xlDown)).Copy
+  Worksheet.[D2].PasteSpecial xlValues
+  Worksheet.Range(Worksheet.[F2], Worksheet.[F2].End(xlDown)).Clear
   
   'format the ranges
   Worksheet.Range(Worksheet.[D2], Worksheet.[A1048576].End(xlUp).Offset(0, 1)).NumberFormat = "#,##0.00"
@@ -852,6 +864,9 @@ next_task:
     .PatternTintAndShade = 0
   End With
   
+  'todo: get rd using same method as above
+  'todo: how to account for schedule margin?
+  
   'add ES
   Worksheet.Cells(lngES + 1, 6).Value = "Earned Schedule:"
   Worksheet.Cells(lngES + 1, 6).HorizontalAlignment = xlRight
@@ -875,9 +890,11 @@ next_task:
   
   'add PDWR
   'todo: do we remove schedule margin from this calc?
+  'todo: if yes then base it on earliest date of BAC; if not base on baseline finish (assumes that schedule margin is included in roll-up)
   lngLastRow = Worksheet.[F1048546].End(xlUp).Row + 2
   Worksheet.Cells(lngLastRow, 6).Value = "Planned Duration of Work Remaining:"
   Worksheet.Cells(lngLastRow, 6).HorizontalAlignment = xlRight
+  'ignoring schedule margin
   lngBAC = xlApp.WorksheetFunction.Match(Worksheet.[B1048576].End(xlUp).Value, Worksheet.Range(Worksheet.[B2], Worksheet.[B2].End(xlDown)), 0) + 1
   Worksheet.Cells(lngLastRow, 7).FormulaR1C1 = "=COUNTA(R" & lngES + 2 & "C2:R" & lngBAC & "C2)"
   Workbook.Names.Add "PDWR", Worksheet.Cells(lngLastRow, 7)
@@ -885,20 +902,26 @@ next_task:
   
   'add RD
   dtETC = Worksheet.[A1048576].End(xlUp)
-  'todo: what if current schedule is early? use same method as with bcws instead
   lngLastRow = Worksheet.[F1048546].End(xlUp).Row + 2
   Worksheet.Rows.Replace "-", "/"
   Worksheet.Cells(lngLastRow, 6).Value = "Remaining Duration:"
   Worksheet.Cells(lngLastRow, 6).HorizontalAlignment = xlRight
-  Worksheet.Cells(lngLastRow - 1, 9) = "Estimated Completion Date:"
-  Worksheet.Cells(lngLastRow - 1, 9).HorizontalAlignment = xlCenter
-  Worksheet.Cells(lngLastRow, 9) = dtETC
-  Workbook.Names.Add "ECD", Worksheet.Cells(lngLastRow, 9)
-  Worksheet.Cells(lngLastRow, 9).NumberFormat = "mm/dd/yyyy"
+  lngETC = xlApp.WorksheetFunction.Match(Worksheet.[D1048576].End(xlUp).Value, Worksheet.Range(Worksheet.[D2], Worksheet.[D2].End(xlDown)), 0) + 1
+  lngLastRow = Worksheet.[F1048546].End(xlUp).Row + 2
+  'todo: do we include schedule margin? if yes, then use latest week; if no then use earliest week of BAC
+  Worksheet.Cells(lngLastRow, 6) = "Estimated Completion Date:"
+  Worksheet.Cells(lngLastRow, 6).HorizontalAlignment = xlRight
+  'ignoring schedule margin:
+  Worksheet.Cells(lngLastRow, 7).FormulaR1C1 = "=" & Worksheet.Cells(lngETC, 1).Address(True, True, xlR1C1) 'dtETC
+  'considering schedule margin:
+  'Worksheet.Cells(lngLastRow, 7).FormulaR1C1 = "=" & Worksheet.[A1048576].end(xlup).Address(True, True, xlR1C1) 'dtETC
+  Workbook.Names.Add "ECD", Worksheet.Cells(lngLastRow, 7)
+  Worksheet.Cells(lngLastRow, 7).NumberFormat = "mm/dd/yyyy"
+  lngLastRow = Worksheet.[F1048546].End(xlUp).Row + 2
   Workbook.Names.Add "SD", Worksheet.Cells(lngAD + 1, 1)
-  Worksheet.Cells(lngLastRow, 7).FormulaR1C1 = "=NETWORKDAYS(SD+1,ECD)/5"
-  Workbook.Names.Add "RD", Worksheet.Cells(lngLastRow, 7)
-  Worksheet.Cells(lngLastRow, 8).Value = "wks"
+  Worksheet.Cells(lngLastRow - 4, 7).FormulaR1C1 = "=NETWORKDAYS(SD+1,ECD)/5"
+  Workbook.Names.Add "RD", Worksheet.Cells(lngLastRow - 4, 7)
+  Worksheet.Cells(lngLastRow - 4, 8).Value = "wks"
   
   'add TSPI(ed)
   lngLastRow = Worksheet.[F1048546].End(xlUp).Row + 2
@@ -933,23 +956,26 @@ next_task:
   Worksheet.Cells(lngLastRow, 7).FormulaR1C1 = "=SD+((PDWR*5)/SPIt)"
   Workbook.Names.Add "IECDes", Worksheet.Cells(lngLastRow, 7)
   Worksheet.Cells(lngLastRow, 7).NumberFormat = "m/d/yyyy"
-  Worksheet.Cells(lngLastRow, 8).Value = "DELTA:"
-  Worksheet.Cells(lngLastRow, 8).HorizontalAlignment = xlRight
-  Worksheet.Cells(lngLastRow, 9).FormulaR1C1 = "=NETWORKDAYS(IECDes,ECD)"
-  Worksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlCenter
-  Worksheet.Cells(lngLastRow, 9).NumberFormat = "#,##0_);[Red](#,##0)"
+  lngLastRow = Worksheet.[F1048546].End(xlUp).Row + 2
+  Worksheet.Cells(lngLastRow, 6).Value = "DELTA:"
+  Worksheet.Cells(lngLastRow, 6).HorizontalAlignment = xlRight
+  Worksheet.Cells(lngLastRow, 7).FormulaR1C1 = "=NETWORKDAYS(IECDes,ECD)"
+  Worksheet.Cells(lngLastRow, 7).HorizontalAlignment = xlCenter
+  Worksheet.Cells(lngLastRow, 7).NumberFormat = "#,##0_);[Red](#,##0)"
+  Worksheet.Cells(lngLastRow, 8).Value = "work days"
   
   'add indicator
-  Worksheet.Cells(lngLastRow + 1, 8).Value = "Predicted Growth:"
-  Worksheet.Cells(lngLastRow + 1, 8).HorizontalAlignment = xlRight
-  Worksheet.Cells(lngLastRow + 1, 9).FormulaR1C1 = "=ABS(R[-1]C)/((RD*5)+ABS(R[-1]C))"
-  Worksheet.Cells(lngLastRow + 1, 9).NumberFormat = "0%"
-  Worksheet.Cells(lngLastRow + 1, 9).HorizontalAlignment = xlCenter
-  Worksheet.Cells(lngLastRow + 2, 8).Value = "IMS IS:"
-  Worksheet.Cells(lngLastRow + 2, 8).HorizontalAlignment = xlRight
+'  Worksheet.Cells(lngLastRow + 1, 8).Value = "Predicted Growth:"
+'  Worksheet.Cells(lngLastRow + 1, 8).HorizontalAlignment = xlRight
+'  Worksheet.Cells(lngLastRow + 1, 9).FormulaR1C1 = "=ABS(R[-1]C)/((RD*5)+ABS(R[-1]C))"
+'  Worksheet.Cells(lngLastRow + 1, 9).NumberFormat = "0%"
+'  Worksheet.Cells(lngLastRow + 1, 9).HorizontalAlignment = xlCenter
+  lngLastRow = Worksheet.[F1048546].End(xlUp).Row + 2
+  Worksheet.Cells(lngLastRow, 6).Value = "IMS IS:"
+  Worksheet.Cells(lngLastRow, 6).HorizontalAlignment = xlRight
   'todo: fix this formula
-  Worksheet.Cells(lngLastRow + 2, 9).FormulaR1C1 = "=IF(R[-1]C>0.05,""OPTIMISTIC"",IF(R[-1]C<0.05,""PESSIMISTIC"",""REASONABLE""))"
-  Worksheet.Cells(lngLastRow + 2, 9).HorizontalAlignment = xlCenter
+  Worksheet.Cells(lngLastRow, 7).FormulaR1C1 = "=IF(ABS(R[-2]C)<=5,""REASONABLE"",IF(R[-2]C<5,""OPTIMISTIC"",""PESSIMISTIC""))"
+  Worksheet.Cells(lngLastRow, 7).HorizontalAlignment = xlCenter
   
   'adjust columns
   Worksheet.Columns(5).ColumnWidth = 2
