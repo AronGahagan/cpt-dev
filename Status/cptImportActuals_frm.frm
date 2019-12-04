@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptImportActuals_frm 
    Caption         =   "Import Actuals"
-   ClientHeight    =   6390
+   ClientHeight    =   6285
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   6300
+   ClientWidth     =   10875
    OleObjectBlob   =   "cptImportActuals_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -74,6 +74,22 @@ End Sub
 
 Private Sub cmdClearSelected_Click()
   Call cptClearMappedTasks(False)
+End Sub
+
+Private Sub lblURL_Click()
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_frm", "lblURL", Err, Erl)
+  Resume exit_here
+
 End Sub
 
 Private Sub optExistingTasks_Click()
