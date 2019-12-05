@@ -3,8 +3,9 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Sub cptQuickMonte()
+Sub cptQuickMonte(lngMin As Long, lngMax As Long)
 'objects
+Dim sProject As SubProject
 Dim rng As Excel.Range
 Dim CE As MSProject.Exception
 Dim Chart As Excel.Chart
@@ -17,14 +18,15 @@ Dim rstSim As ADODB.Recordset
 Dim Task As Task
 'strings
 'longs
+Dim lngTasks As Long
+Dim lngItems As Long
+Dim lngTask As Long
 Dim lngUID As Long
 Dim lngDays As Long
 Dim lngX As Long
 Dim lngMLDur As Long
 Dim lngMaxDur As Long
 Dim lngMinDur As Long
-Dim lngMax As Long
-Dim lngMin As Long
 Dim lngIteration As Long
 Dim lngIterations As Long
 Dim lngItem As Long
@@ -68,15 +70,20 @@ Dim dtDeterministicFinish As Date
   'speed up processing and prevent screen flicker
   cptSpeed True
   
-  'get three-point fields
-  'todo: user must set these
-  lngMin = FieldNameToFieldConstant("Minimum Duration")
-  lngMax = FieldNameToFieldConstant("Maximum Duration")
+  'get task count
+  lngTasks = 0
+  If ActiveProject.Subprojects.Count = 0 Then
+    For Each sProject In ActiveProject.Subprojects
+      lngTasks = lngTasks + sProject.SourceProject.Tasks.Count
+    Next sProject
+  Else
+    lngTasks = ActiveProject.Tasks.Count
+  End If
   
   'todo: capture, remove, restore deadlines and constraints?
   
   'capture three points
-  Application.StatusBar = "Capturing three points..."
+  cptQuickMonte_frm.lblStatus.Caption = "Capturing three points..."
   Set rst3p = CreateObject("ADODB.Recordset")
   rst3p.Fields.Append "UID", adBigInt
   rst3p.Fields.Append "MIN", adBigInt
@@ -84,12 +91,17 @@ Dim dtDeterministicFinish As Date
   rst3p.Fields.Append "MAX", adBigInt
   rst3p.Fields.Append "SM", adBoolean
   rst3p.Open
+  lngTask = 0
   For Each Task In ActiveProject.Tasks
     If Task Is Nothing Then GoTo next_task0
+    If Task.Summary Then GoTo next_task0
+    If Task.ExternalTask Then GoTo next_task0
+    If Not Task.Active Then GoTo next_task0
+    If Task.RemainingDuration = 0 Then GoTo next_task0
     'catch and ignore schedule margin > 0
     If InStr(Task.Name, "SCHEDULE MARGIN") > 0 Then
       If Task.RemainingDuration > 0 Then
-        Application.StatusBar = "SCHEDULE MARGIN FOUND"
+        cptQuickMonte_frm.lblStatus.Caption = "SCHEDULE MARGIN FOUND"
         'prompt user
         MsgBox "Task UID " & Task.UniqueID & " '" & Task.Name & "' will be ignored for the simulations.", vbInformation + vbOKOnly, "SCHEDULE MARGIN FOUND"
         'save it
@@ -100,26 +112,30 @@ Dim dtDeterministicFinish As Date
       Else
         'ignore zero-duration schedule margin
       End If
+    'capture and ignore LOE
+    ElseIf Task.GetField(FieldNameToFieldConstant("EVT2")) = "A" Then 'todo: user must set this
+      GoTo next_task0
+    ElseIf Task.GetField(FieldNameToFieldConstant("EVT2")) = "N/A" Then 'todo: user must set this
+      GoTo next_task0
+    ElseIf Task.GetField(FieldNameToFieldConstant("EVT2")) = "" Then 'todo: user must set this
+      GoTo next_task0
+      'todo: use a sortedlist to capture exceptions
     Else
-      Application.StatusBar = "Capturing three points..."
       'todo: what if user selects a text or number field?
-      'convert custom duration text to long
-      If InStr(Task.GetField(lngMin), "d") = 0 Then
-        lngMinDur = cptGetLngFromDurText(Task.GetField(lngMin))
-      Else
-        lngMinDur = cptRegEx(Task.GetField(lngMin), "[0-9]*") * ActiveProject.HoursPerDay * 60
-      End If
-      'convert custom duration text to long
-      If InStr(Task.GetField(lngMax), "d") = 0 Then
-        lngMaxDur = cptGetLngFromDurText(Task.GetField(lngMax))
-      Else
-        lngMaxDur = cptRegEx(Task.GetField(lngMax), "[0-9]*") * ActiveProject.HoursPerDay * 60
-      End If
+      lngMinDur = cptGetDuration(Task, lngMin)
+      lngMaxDur = cptGetDuration(Task, lngMax)
       lngMLDur = Task.RemainingDuration
       rst3p.AddNew Array(0, 1, 2, 3, 4), Array(Task.UniqueID, lngMinDur, lngMLDur, lngMaxDur, False)
     End If
 next_task0:
+    lngTask = lngTask + 1
+    cptQuickMonte_frm.lblStatus.Caption = "Capturing three points...(" & Format(lngTask / lngTasks, 0) & ")"
+    cptQuickMonte_frm.lblProgress.Width = (lngTask / lngTasks) * cptQuickMonte_frm.lblStatus.Width
   Next Task
+  
+  'clean it up
+  cptQuickMonte_frm.lblStatus.Caption = "Capturing three points...(100%)"
+  cptQuickMonte_frm.lblProgress.Width = cptQuickMonte_frm.lblStatus.Width
   
   'in case schedule margin was removed:
   CalculateProject 'once
@@ -140,11 +156,9 @@ next_task0:
   'run iterations and export to adtg
   For lngIteration = 1 To lngIterations
     'simulate project
-    For Each Task In ActiveProject.Tasks
-      If Task.RemainingDuration = 0 Then GoTo next_task1
       rst3p.MoveFirst
-      rst3p.Find "UID=" & Task.UniqueID, , adSearchForward
-      If Not rst3p.EOF Then
+      Do While Not rst3p.EOF
+        Set Task = ActiveProject.Tasks.UniqueID(rst3p("UID"))
         'skip schedule margin tasks
         If rst3p("SM") = True Then GoTo next_task1
         lngMinDur = rst3p("MIN")
@@ -153,7 +167,7 @@ next_task0:
         blnFail = False
         'validate three points
         If lngMinDur >= lngMLDur Or lngMLDur >= lngMaxDur Then
-          MsgBox "Task UID '" & Task.Name & "' has invalid three point estimates.", vbCritical + vbOKOnly, "Error"
+          MsgBox "Task UID " & Task.UniqueID & " '" & Task.Name & "' has invalid three point estimates.", vbCritical + vbOKOnly, "Error"
           blnFail = True
           'todo: editgoto? mark it then filter?
           GoTo restore_durations
@@ -172,13 +186,9 @@ next_task0:
           lngX = lngMaxDur - Math.Sqr((1 - dblP) * (lngMaxDur - lngMinDur) * (-lngMLDur + lngMaxDur))
         End If
         Task.RemainingDuration = lngX
-      Else
-        MsgBox "Task information not found for UID " & Task.UniqueID & "!" & vbCrLf & vbCrLf & "Process will terminate.", vbCritical + vbOKOnly, "ERROR"
-        blnFail = True
-        GoTo restore_durations
-      End If
 next_task1:
-    Next Task
+      rst3p.MoveNext
+    Loop
         
     CalculateProject
     
@@ -188,17 +198,36 @@ next_task1:
       rstSim.AddNew Array(0, 1, 2, 3), Array(lngIteration, Task.UniqueID, Task.RemainingDuration, Task.Finish)
 next_task2:
     Next Task
-    Application.StatusBar = "Running Simulation " & lngIteration & " of " & lngIterations & "...(" & Format(lngIteration / lngIterations, "0%") & ")"
+    cptQuickMonte_frm.lblStatus.Caption = "Running Simulation " & lngIteration & " of " & lngIterations & "...(" & Format(lngIteration / lngIterations, "0%") & ")"
+    cptQuickMonte_frm.lblProgress.Width = (lngIteration / lngIterations) * cptQuickMonte_frm.lblStatus.Width
     DoEvents
   Next lngIteration
   
+  'clean it up
+  cptQuickMonte_frm.lblStatus.Caption = "Running Simulation " & lngIteration & " of " & lngIterations & "...(100%)"
+  cptQuickMonte_frm.lblProgress.Width = cptQuickMonte_frm.lblStatus.Width
+  
 restore_durations:
-  Application.StatusBar = "Restoring remaining durations..."
+  cptQuickMonte_frm.lblStatus.Caption = "Restoring remaining durations..."
   rst3p.MoveFirst
+  lngItem = 0
+  lngItems = rst3p.RecordCount
   Do While Not rst3p.EOF
-    ActiveProject.Tasks.UniqueID(rst3p("UID")).RemainingDuration = CLng(rst3p("ML"))
+    Set Task = ActiveProject.Tasks.UniqueID(rst3p("UID"))
+'    If Task.Summary Then GoTo next_task3
+'    If Task.ExternalTask Then GoTo next_task3
+'    If Not Task.Active Then GoTo next_task3
+    Task.RemainingDuration = CLng(rst3p("ML"))
+next_task3:
+    lngItem = lngItem + 1
+    cptQuickMonte_frm.lblStatus.Caption = "Restoring remaining durations...(" & Format(lngItem / lngItems, "0%") & ")"
+    cptQuickMonte_frm.lblProgress.Width = (lngItem / lngItems) * cptQuickMonte_frm.lblStatus.Width
     rst3p.MoveNext
   Loop
+  
+  'clean it up
+  cptQuickMonte_frm.lblStatus.Caption = "Restoring remaining durations...(100%)"
+  cptQuickMonte_frm.lblProgress.Width = cptQuickMonte_frm.lblStatus.Width
   
   'capture enable highlighting setting and turn off
   blnChangeHighlighting = Application.EnableChangeHighlighting
@@ -209,14 +238,14 @@ restore_durations:
   cptSpeed False
   'restore highlighting settings
   Application.EnableChangeHighlighting = blnChangeHighlighting
-  Application.StatusBar = "Complete"
+  cptQuickMonte_frm.lblStatus.Caption = "Complete"
   DoEvents
   If blnFail Then GoTo exit_here
   
   If MsgBox("Simluation Complete" & vbCrLf & vbCrLf & "Create Report?", vbInformation + vbYesNo, "QuickMonte") = vbYes Then
   
     'export results
-    Application.StatusBar = "Creating Report..."
+    cptQuickMonte_frm.lblStatus.Caption = "Creating Report..."
     Set xlApp = CreateObject("Excel.Application")
     xlApp.WindowState = xlMaximized
     Set Workbook = xlApp.Workbooks.Add
@@ -456,16 +485,16 @@ restore_durations:
   'todo: use number to capture percents? adjust for fixed dur/work;
   'todo: include option to output csv for mpm/propicer at confidence level
   
-  Application.StatusBar = "Complete"
+  cptQuickMonte_frm.lblStatus.Caption = "Complete"
   
 exit_here:
   On Error Resume Next
+  Set sProject = Nothing
   Set rng = Nothing
   Set Chart = Nothing
   Set CE = Nothing
   Set rst3p = Nothing
   Set Chart = Nothing
-  Application.StatusBar = ""
   Set ListObject = Nothing
   If Not xlApp Is Nothing Then xlApp.Visible = True
   If Application.ScreenUpdating = False Or Application.Calculation <> pjAutomatic Then cptSpeed False
@@ -481,53 +510,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Function cptGetLngFromDurText(strDuration As String)
-'objects
-'strings
-Dim strUnit As String
-'longs
-Dim lngValue As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
-
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
-  'regex once
-  lngValue = cptRegEx(strDuration, "[0-9]*")
-  strUnit = cptRegEx(strDuration, "[A-z]*")
-  
-  'then select case with instr?
-  
-  'determine format
-  If InStr(strUnit, "mo") > 0 Then
-    'multiply by days/mo * hrs/day * 60
-    cptGetLngFromDurText = lngValue * ActiveProject.DaysPerMonth * ActiveProject.HoursPerDay * 60
-  ElseIf InStr(strUnit, "w") > 0 Then
-    'multiply by hrs/wk * 60 = minutes
-    cptGetLngFromDurText = lngValue * ActiveProject.HoursPerWeek * 60
-  ElseIf InStr(strUnit, "h") > 0 Then
-    'multiply hours by 60 min/hr = minutes
-    cptGetLngFromDurText = lngValue * 60
-  ElseIf InStr(strUnit, "d") > 0 Then
-    cptGetLngFromDurText = lngValue * ActiveProject.HoursPerDay * 60
-  ElseIf InStr(strUnit, "m") > 0 Then
-    'no conversion necessary = minutes
-    cptGetLngFromDurText = lngValue
-  End If
-  
-exit_here:
-  On Error Resume Next
-
-  Exit Function
-err_here:
-  Call cptHandleErr("cptQuickMonte_bas", "cptGetLngFromDurText", Err, Err)
-  Resume exit_here
-End Function
-
-Sub cptShowQuickMonte()
+Sub cptShowQuickMonteFrm()
 'objects
 'strings
 Dim strFieldName As String
@@ -566,6 +549,13 @@ Dim lngItem As Long
     .cboML.AddItem
     .cboML.List(0, 0) = FieldNameToFieldConstant("Remaining Duration")
     .cboML.List(0, 1) = "Remaining Duration"
+    .cboML.Value = FieldNameToFieldConstant("Remaining Duration")
+    .cboML.Enabled = False
+    
+    .cboDistribution.AddItem
+    .cboDistribution.List(0, 0) = "Triangular"
+    .cboDistribution.Value = "Triangular"
+    .cboDistribution.Enabled = False
     
     'import saved settings if any  exist
     If Dir(cptDir & "settings\cpt-quickMonte-settings.adtg") <> vbNullString Then
@@ -602,6 +592,7 @@ End Sub
 
 Sub cptQuickPERT(lngMinField As Long, lngMaxField As Long, lngTargetTaskUID As Long)
 'objects
+Dim sProject As SubProject
 Dim Worksheet As Object
 Dim Workbook As Object
 Dim xlApp As Object
@@ -631,12 +622,13 @@ Dim dtPERT As Date
   cptSpeed True
   
   'capture task count
-  FilterClear
-  GroupClear
-  OptionsViewEx displaysummarytasks:=True, projectsummary:=False
-  OutlineShowAllTasks
-  SelectAll
-  lngTasks = ActiveSelection.Tasks.Count
+  If ActiveProject.Subprojects.Count = 0 Then
+    lngTasks = ActiveProject.Tasks.Count
+  Else
+    For Each sProject In ActiveProject.Subprojects
+      lngTasks = lngTasks + sProject.SourceProject.Tasks.Count
+    Next
+  End If
   
   'prepare to capture existing values
   'todo: capture/zero/restore LOE and SM
@@ -649,6 +641,7 @@ Dim dtPERT As Date
   rst.Open
   
   'todo: user must set this
+  'todo: why do we need this? LOE should be zero'd out
   lngEVT = FieldNameToFieldConstant("EVT")
   
   'capture current remaining duration, set PERT duration
@@ -673,19 +666,23 @@ Dim dtPERT As Date
     End If
 next_task:
     lngTask = lngTask + 1
-    'todo: add status/progress
-    Application.StatusBar = "Calculating PERT durations...(" & Format(lngTask / lngTasks, "0%") & ")"
+    cptQuickMonte_frm.lblStatus.Caption = "Calculating PERT durations...(" & Format(lngTask / lngTasks, "0%") & ")"
+    cptQuickMonte_frm.lblProgress.Width = (lngTask / lngTasks) * cptQuickMonte_frm.lblStatus.Width
   Next Task
 
+  'cleanup
+  cptQuickMonte_frm.lblStatus.Caption = "Calculating PERT durations...(100%)"
+  cptQuickMonte_frm.lblProgress.Width = cptQuickMonte_frm.lblStatus.Width
+
   'calculate new network
-  Application.StatusBar = "Recalculating..."
+  cptQuickMonte_frm.lblStatus.Caption = "Recalculating..."
   CalculateProject
   
   'capture PERT finish
   dtPERT = ActiveProject.Tasks.UniqueID(lngTargetTaskUID).Finish
   
   'restore settings
-  Application.StatusBar = "Restoring durations..."
+  cptQuickMonte_frm.lblStatus.Caption = "Restoring durations..."
   rst.MoveFirst
   lngTask = 0
   lngTasks = rst.RecordCount
@@ -693,16 +690,21 @@ next_task:
     ActiveProject.Tasks.UniqueID(rst(0)).RemainingDuration = CLng(rst("ML"))
     rst.MoveNext
     lngTask = lngTask + 1
-    Application.StatusBar = "Restoring durations...(" & Format(lngTask / lngTasks, "0%") & ")"
+    cptQuickMonte_frm.lblStatus.Caption = "Restoring durations...(" & Format(lngTask / lngTasks, "0%") & ")"
+    cptQuickMonte_frm.lblProgress.Width = (lngTask / lngTasks) * cptQuickMonte_frm.lblStatus.Width
   Loop
   
+  'cleanup
+  cptQuickMonte_frm.lblStatus.Caption = "Restoring durations...(100%)"
+  cptQuickMonte_frm.lblProgress.Width = cptQuickMonte_frm.lblStatus.Width
+    
   cptSpeed False
   
   'if we made it to this point then
   'original remaining durations have been restored
   blnDirty = False
   
-  Application.StatusBar = "Returning PERT result..."
+  cptQuickMonte_frm.lblStatus.Caption = "Returning PERT result..."
   Set Task = ActiveProject.Tasks.UniqueID(lngTargetTaskUID)
   strMsg = "UID " & lngTargetTaskUID & ": " & Task.Name & vbCrLf & vbCrLf
   strMsg = strMsg & "Deterministic Finish: " & FormatDateTime(Task.Finish, vbShortDate) & vbCrLf
@@ -725,11 +727,12 @@ next_task:
     xlApp.Visible = True
   End If
 
-  Application.StatusBar = "QuickPERT Complete"
+  cptQuickMonte_frm.lblStatus.Caption = "QuickPERT Complete"
 
 exit_here:
   On Error Resume Next
-  Application.StatusBar = ""
+  Set sProject = Nothing
+  cptQuickMonte_frm.lblStatus.Caption = "Ready"
   Set Worksheet = Nothing
   Set Workbook = Nothing
   Set xlApp = Nothing

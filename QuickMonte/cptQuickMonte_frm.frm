@@ -13,15 +13,24 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+Private Sub cmdQuickMonte_Click()
+  If IsNull(Me.cboMin) Or IsNull(Me.cboMax) Then
+    MsgBox "Nope. Try again.", vbCritical + vbOKCancel, "ya mope"
+    Exit Sub
+  End If
+  Call cptQuickMonte(Me.cboMin.Value, Me.cboMax.Value)
+End Sub
 
 Private Sub cmdQuickPERT_Click()
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  Call cptQuickPERT(ActiveSelection.Tasks(1).UniqueID)
+  Call cptQuickPERT(Me.cboMin.Value, Me.cboMax.Value, Me.txtTargetTaskUID.Value)
 
 exit_here:
   On Error Resume Next
