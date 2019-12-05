@@ -154,42 +154,45 @@ next_task0:
   Randomize
   
   'run iterations and export to adtg
+  cptQuickMonte_frm.lblStatus.Caption = "Running Simulation " & 1 & " of " & lngIterations & "...(" & Format(1 / lngIterations, "0%") & ")"
+  cptQuickMonte_frm.lblProgress.Width = (lngIteration / lngIterations) * cptQuickMonte_frm.lblStatus.Width
   For lngIteration = 1 To lngIterations
     'simulate project
-      rst3p.MoveFirst
-      Do While Not rst3p.EOF
-        Set Task = ActiveProject.Tasks.UniqueID(rst3p("UID"))
-        'skip schedule margin tasks
-        If rst3p("SM") = True Then GoTo next_task1
-        lngMinDur = rst3p("MIN")
-        lngMLDur = rst3p("ML")
-        lngMaxDur = rst3p("MAX")
-        blnFail = False
-        'validate three points
-        If lngMinDur >= lngMLDur Or lngMLDur >= lngMaxDur Then
-          MsgBox "Task UID " & Task.UniqueID & " '" & Task.Name & "' has invalid three point estimates.", vbCritical + vbOKOnly, "Error"
-          blnFail = True
-          'todo: editgoto? mark it then filter?
-          GoTo restore_durations
-        End If
-        'determine CDF of ML value
-        dblCDF_ML = (lngMLDur - lngMinDur) / (lngMaxDur - lngMLDur)
-        'get random probability
-        dblP = Math.Rnd
-        'credit for the following goes the discussion on this website:
-        'https://www.drdawnwright.com/easy-excel-inverse-triangular-distribution-for-monte-carlo-simulations/
-        If dblP <= dblCDF_ML Then
-          'min+sqrt(dblP*(max-min)*(ml-min))
-          lngX = lngMinDur + Math.Sqr(dblP * (lngMaxDur - lngMinDur) * (lngMLDur - lngMinDur))
-        Else
-          'max-sqrt((1-dblP)*(max-min)*(-ml+max)))
-          lngX = lngMaxDur - Math.Sqr((1 - dblP) * (lngMaxDur - lngMinDur) * (-lngMLDur + lngMaxDur))
-        End If
-        Task.RemainingDuration = lngX
+    rst3p.MoveFirst
+    Do While Not rst3p.EOF
+      Set Task = ActiveProject.Tasks.UniqueID(rst3p("UID"))
+      'skip schedule margin tasks
+      If rst3p("SM") = True Then GoTo next_task1
+      lngMinDur = rst3p("MIN")
+      lngMLDur = rst3p("ML")
+      lngMaxDur = rst3p("MAX")
+      blnFail = False
+      'validate three points
+      If lngMinDur >= lngMLDur Or lngMLDur >= lngMaxDur Then
+        MsgBox "Task UID " & Task.UniqueID & " '" & Task.Name & "' has invalid three point estimates.", vbCritical + vbOKOnly, "Error"
+        blnFail = True
+        'todo: editgoto? mark it then filter?
+        GoTo restore_durations
+      End If
+      'determine CDF of ML value
+      dblCDF_ML = (lngMLDur - lngMinDur) / (lngMaxDur - lngMLDur)
+      'get random probability
+      dblP = Math.Rnd
+      'credit for the following goes the discussion on this website:
+      'https://www.drdawnwright.com/easy-excel-inverse-triangular-distribution-for-monte-carlo-simulations/
+      If dblP <= dblCDF_ML Then
+        'min+sqrt(dblP*(max-min)*(ml-min))
+        lngX = lngMinDur + Math.Sqr(dblP * (lngMaxDur - lngMinDur) * (lngMLDur - lngMinDur))
+      Else
+        'max-sqrt((1-dblP)*(max-min)*(-ml+max)))
+        lngX = lngMaxDur - Math.Sqr((1 - dblP) * (lngMaxDur - lngMinDur) * (-lngMLDur + lngMaxDur))
+      End If
+      'Application.Find "Unique ID", "equals", rst3p("UID")
+      Task.RemainingDuration = lngX
 next_task1:
       rst3p.MoveNext
     Loop
-        
+    
     CalculateProject
     
     'capture simulation
@@ -599,8 +602,13 @@ Dim xlApp As Object
 Dim rst As ADODB.Recordset
 Dim Task As Task
 'strings
+Dim strProjectName As String
+Dim strHeader As String
+Dim strCSV As String
 Dim strMsg As String
 'longs
+Dim lngItem As Long
+Dim lngFile As Long
 Dim lngEVT As Long
 Dim lngTask As Long
 Dim lngTasks As Long
@@ -655,13 +663,13 @@ Dim dtPERT As Date
       If Task.GetField(lngEVT) = "A" Then GoTo next_task
       'todo: ignore tasks based on userform criteria e.g., LOE, Schedule Margin
       If Task.RemainingDuration > 0 Then
-        lngMin = cptGetDuration(Task, lngMinField)
-        lngML = Task.RemainingDuration
-        lngMax = cptGetDuration(Task, lngMaxField)
-        lngPERT = (lngMin + (4 * lngML) + lngMax) / 6
+        lngMin = cptGetDuration(Task, lngMinField) / 60
+        lngML = Task.RemainingDuration / 60
+        lngMax = cptGetDuration(Task, lngMaxField) / 60
+        lngPERT = (lngMin + (4 * lngML) + lngMax)
         rst.AddNew Array(0, 1, 2, 3, 4), Array(Task.UniqueID, lngMin, lngMax, lngML, lngPERT)
-        Task.RemainingDuration = lngPERT
-        blnDirty = True
+        'Task.RemainingDuration = lngPERT
+        'blnDirty = True
       End If
     End If
 next_task:
@@ -673,13 +681,44 @@ next_task:
   'cleanup
   cptQuickMonte_frm.lblStatus.Caption = "Calculating PERT durations...(100%)"
   cptQuickMonte_frm.lblProgress.Width = cptQuickMonte_frm.lblStatus.Width
+  
+  'create csv
+  strCSV = Environ("temp") & "\quickPERT.csv"
+  If Dir(strCSV) <> vbNullString Then Kill strCSV
+  lngFile = FreeFile
+  Open strCSV For Output As #lngFile
+  rst.MoveFirst
+  For lngItem = 0 To rst.Fields.Count - 1
+    strHeader = strHeader & rst.Fields(lngItem).Name & ","
+  Next
+  strHeader = Left(strHeader, Len(strHeader) - 1)
+  Print #lngFile, strHeader
+  Print #lngFile, rst.GetString(adClipString, , ",", vbCrLf, vbNullString)
+  Close #lngFile
 
+  'create map and import
+  strProjectName = ActiveProject.FullName
+  MapEdit Name:="QuickPERT", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="UID", ExportFilter:="All Tasks", ImportMethod:=2, MergeKey:="Unique ID", headerRow:=True, AssignmentData:=False, TextDelimiter:=",", TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
+  MapEdit Name:="QuickPERT", DataCategory:=0, FieldName:="Remaining Duration", ExternalFieldName:="PERT"
+  FileOpenEx Name:=strCSV, ReadOnly:=True, Merge:=1, FormatID:="MSProject.CSV", Map:="QuickMonte"
+  
   'calculate new network
   cptQuickMonte_frm.lblStatus.Caption = "Recalculating..."
   CalculateProject
   
   'capture PERT finish
   dtPERT = ActiveProject.Tasks.UniqueID(lngTargetTaskUID).Finish
+  
+  FileCloseEx pjDoNotSave
+  
+  FileOpenEx strProjectName
+  
+  'create map and import
+  MapEdit Name:="QuickPERT", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="UID", ExportFilter:="All Tasks", ImportMethod:=2, MergeKey:="Unique ID", headerRow:=True, AssignmentData:=False, TextDelimiter:=",", TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
+  MapEdit Name:="QuickPERT", DataCategory:=0, FieldName:="Remaining Duration", ExternalFieldName:="ML"
+  FileOpenEx Name:=strCSV, ReadOnly:=True, Merge:=1, FormatID:="MSProject.CSV", Map:="QuickMonte"
+
+  GoTo skip_to_here
   
   'restore settings
   cptQuickMonte_frm.lblStatus.Caption = "Restoring durations..."
@@ -697,7 +736,8 @@ next_task:
   'cleanup
   cptQuickMonte_frm.lblStatus.Caption = "Restoring durations...(100%)"
   cptQuickMonte_frm.lblProgress.Width = cptQuickMonte_frm.lblStatus.Width
-    
+  
+skip_to_here:
   cptSpeed False
   
   'if we made it to this point then
@@ -775,3 +815,7 @@ Function cptGetDuration(ByRef Task As Task, lngField As Long) As Long
       cptGetDuration = Task.Duration10
   End Select
 End Function
+
+Sub cptTestImport()
+  
+End Sub
