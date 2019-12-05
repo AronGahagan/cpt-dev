@@ -612,12 +612,12 @@ Dim lngFile As Long
 Dim lngEVT As Long
 Dim lngTask As Long
 Dim lngTasks As Long
-Dim lngPERT As Long
 Dim lngML As Long
 Dim lngMax As Long
 Dim lngMin As Long
 'integers
 'doubles
+Dim dblPERT As Double
 'booleans
 Dim blnDirty As Boolean
 'variants
@@ -627,7 +627,7 @@ Dim dtPERT As Date
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   'I feel the need for speed
-  cptSpeed True
+  'cptSpeed True
   
   'capture task count
   If ActiveProject.Subprojects.Count = 0 Then
@@ -663,13 +663,14 @@ Dim dtPERT As Date
       If Task.GetField(lngEVT) = "A" Then GoTo next_task
       'todo: ignore tasks based on userform criteria e.g., LOE, Schedule Margin
       If Task.RemainingDuration > 0 Then
-        lngMin = cptGetDuration(Task, lngMinField) / 60
-        lngML = Task.RemainingDuration / 60
-        lngMax = cptGetDuration(Task, lngMaxField) / 60
-        lngPERT = (lngMin + (4 * lngML) + lngMax)
-        rst.AddNew Array(0, 1, 2, 3, 4), Array(Task.UniqueID, lngMin, lngMax, lngML, lngPERT)
-        'Task.RemainingDuration = lngPERT
-        'blnDirty = True
+        lngMin = cptGetDuration(Task, lngMinField) / 480
+        lngML = Task.RemainingDuration / 480
+        lngMax = cptGetDuration(Task, lngMaxField) / 480
+        dblPERT = (lngMin + (4 * lngML) + lngMax) / 6
+        rst.AddNew Array(0, 1, 2, 3, 4), Array(Task.UniqueID, lngMin, lngMax, lngML, dblPERT)
+        'Task.RemainingDuration = dblPERT
+        Task.SetField pjTaskRemainingDuration, CStr(dblPERT)
+        blnDirty = True
       End If
     End If
 next_task:
@@ -697,10 +698,10 @@ next_task:
   Close #lngFile
 
   'create map and import
-  strProjectName = ActiveProject.FullName
-  MapEdit Name:="QuickPERT", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="UID", ExportFilter:="All Tasks", ImportMethod:=2, MergeKey:="Unique ID", headerRow:=True, AssignmentData:=False, TextDelimiter:=",", TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
-  MapEdit Name:="QuickPERT", DataCategory:=0, FieldName:="Remaining Duration", ExternalFieldName:="PERT"
-  FileOpenEx Name:=strCSV, ReadOnly:=True, Merge:=1, FormatID:="MSProject.CSV", Map:="QuickMonte"
+'  strProjectName = ActiveProject.FullName
+'  MapEdit Name:="QuickPERT", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="UID", ExportFilter:="All Tasks", ImportMethod:=2, MergeKey:="Unique ID", headerRow:=True, AssignmentData:=False, TextDelimiter:=",", TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
+'  MapEdit Name:="QuickPERT", DataCategory:=0, FieldName:="Remaining Duration", ExternalFieldName:="PERT"
+'  FileOpenEx Name:=strCSV, ReadOnly:=True, Merge:=1, FormatID:="MSProject.CSV", Map:="QuickMonte"
   
   'calculate new network
   cptQuickMonte_frm.lblStatus.Caption = "Recalculating..."
@@ -708,17 +709,17 @@ next_task:
   
   'capture PERT finish
   dtPERT = ActiveProject.Tasks.UniqueID(lngTargetTaskUID).Finish
-  
-  FileCloseEx pjDoNotSave
-  
-  FileOpenEx strProjectName
-  
-  'create map and import
-  MapEdit Name:="QuickPERT", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="UID", ExportFilter:="All Tasks", ImportMethod:=2, MergeKey:="Unique ID", headerRow:=True, AssignmentData:=False, TextDelimiter:=",", TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
-  MapEdit Name:="QuickPERT", DataCategory:=0, FieldName:="Remaining Duration", ExternalFieldName:="ML"
-  FileOpenEx Name:=strCSV, ReadOnly:=True, Merge:=1, FormatID:="MSProject.CSV", Map:="QuickMonte"
-
-  GoTo skip_to_here
+'
+'  FileCloseEx pjDoNotSave
+'
+'  FileOpenEx strProjectName
+'
+'  'create map and import
+'  MapEdit Name:="QuickPERT", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="UID", ExportFilter:="All Tasks", ImportMethod:=2, MergeKey:="Unique ID", headerRow:=True, AssignmentData:=False, TextDelimiter:=",", TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
+'  MapEdit Name:="QuickPERT", DataCategory:=0, FieldName:="Remaining Duration", ExternalFieldName:="ML"
+'  FileOpenEx Name:=strCSV, ReadOnly:=True, Merge:=1, FormatID:="MSProject.CSV", Map:="QuickMonte"
+'
+'  GoTo skip_to_here
   
   'restore settings
   cptQuickMonte_frm.lblStatus.Caption = "Restoring durations..."
@@ -726,7 +727,7 @@ next_task:
   lngTask = 0
   lngTasks = rst.RecordCount
   Do While Not rst.EOF
-    ActiveProject.Tasks.UniqueID(rst(0)).RemainingDuration = CLng(rst("ML"))
+    ActiveProject.Tasks.UniqueID(rst(0)).SetField pjTaskRemainingDuration, rst("ML")
     rst.MoveNext
     lngTask = lngTask + 1
     cptQuickMonte_frm.lblStatus.Caption = "Restoring durations...(" & Format(lngTask / lngTasks, "0%") & ")"
