@@ -718,6 +718,7 @@ End Sub
 
 Sub cptShowUpgrades_frm()
 'objects
+Dim rst As Object
 Dim REMatch As Object
 Dim REMatches As Object
 Dim RE As Object
@@ -731,6 +732,7 @@ Dim FindRecord As Object
 'long
 Dim lngItem As Long
 'strings
+Dim strSettingsFile As String
 Dim strBranch As String
 Dim strFileName As String
 Dim strInstVer As String
@@ -765,6 +767,18 @@ Dim vCol As Variant
   rstStatus.Fields.Append "Installed", 200, 200
   rstStatus.Fields.Append "Status", 200, 200
   rstStatus.Open
+  
+  'get stored setting
+  strSettingsFile = cptDir & "\settings\cpt-settings.adtg"
+  If Dir(strSettingsFile) <> vbNullString Then
+    Set rst = CreateObject("ADODB.Recordset")
+    rst.Open strSettingsFile, , adOpenKeyset
+    rst.MoveFirst
+    rst.Find "OPTION='Updates'"
+    cptUpgrades_frm.cmdUpgradeAll.Enabled = CBool(rst(1))
+    cptUpgrades_frm.cmdUpgradeSelected.Enabled = CBool(rst(1))
+    rst.Close
+  End If
   
   'get current versions
   Application.StatusBar = "Fetching latest versions..."
@@ -924,6 +938,7 @@ exit_here:
   Application.StatusBar = ""
   If rstStatus.State Then rstStatus.Close
   Set rstStatus = Nothing
+  Set rst = Nothing
   Set REMatch = Nothing
   Set REMatches = Nothing
   Set RE = Nothing
@@ -1639,3 +1654,117 @@ err_here:
   Resume exit_here
 
 End Function
+Sub cptCheckUpgrades()
+'objects
+Dim vbComponent As Object
+Dim xmlNode As Object
+Dim arrCurrent As Object
+Dim arrDirectories As Object
+Dim xmlDoc As Object
+Dim arrInstalled As Object
+'strings
+Dim strInstVer As String
+Dim strCurVer As String
+Dim strVersion As String
+Dim strURL As String
+Dim strMsg As String
+'longs
+Dim lngItem As Long
+Dim lngNewFeatures As Long
+Dim lngUpgradesAvailable As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If cptInternetIsConnected Then
+    Set arrCurrent = CreateObject("System.Collections.SortedList")
+    Set arrDirectories = CreateObject("System.Collections.SortedList")
+    Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
+    xmlDoc.async = False
+    xmlDoc.validateOnParse = False
+    xmlDoc.SetProperty "SelectionLanguage", "XPath"
+    xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
+    strURL = strGitHub & "CurrentVersions.xml"
+    If Not xmlDoc.Load(strURL) Then
+      Application.StatusBar = "CPT: Check Upgrades (failed): " & xmlDoc.parseError.ErrorCode & ": " & xmlDoc.parseError.reason
+      GoTo exit_here
+    Else
+      For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
+        arrCurrent.Add xmlNode.SelectSingleNode("Name").Text, xmlNode.SelectSingleNode("Version").Text
+        arrDirectories.Add xmlNode.SelectSingleNode("Name").Text, xmlNode.SelectSingleNode("Directory").Text
+      Next
+    End If
+  
+    'get installed versions
+    Set arrInstalled = CreateObject("System.Collections.SortedList")
+    For Each vbComponent In ThisProject.VBProject.VBComponents
+      'is the vbComponent one of ours?
+      If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
+        strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
+        strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
+        arrInstalled.Add vbComponent.Name, strVersion
+      End If
+    Next vbComponent
+    Set vbComponent = Nothing
+    
+    'determine if upgrades are availble and if so, how many
+    lngUpgradesAvailable = 0
+    lngNewFeatures = 0
+    For lngItem = 0 To arrCurrent.Count - 1
+      strCurVer = arrCurrent.getValuelist()(lngItem)
+      If arrInstalled.Contains(arrCurrent.getKey(lngItem)) Then
+        strInstVer = arrInstalled.getValuelist()(arrInstalled.indexofkey(arrCurrent.getKey(lngItem)))
+      Else
+        strInstVer = "< not installed >"
+      End If
+  
+      Select Case strInstVer 'cptUpgrades_frm.lboModules.List(lngItem, 3)
+        Case Is = strCurVer 'cptUpgrades_frm.lboModules.List(lngItem, 2)
+          'no action
+        Case Is = "<not installed>"
+          lngNewFeatures = lngNewFeatures + 1
+        Case Is <> strCurVer 'cptUpgrades_frm.lboModules.List(lngItem, 2)
+          lngUpgradesAvailable = lngUpgradesAvailable + 1
+      End Select
+next_lngItem:
+    Next lngItem
+    
+    If lngUpgradesAvailable > 0 Or lngNewFeatures > 0 Then
+      strMsg = "There are "
+      If lngUpgradesAvailable > 0 Then
+        strMsg = strMsg & lngUpgradesAvailable & " updates"
+      End If
+      If lngUpgradesAvailable > 0 And lngNewFeatures > 0 Then
+        strMsg = strMsg & " and "
+      End If
+      If lngNewFeatures > 0 Then
+        strMsg = strMsg & lngNewFeatures & " new features"
+      End If
+      strMsg = strMsg & " available." & vbCrLf & vbCrLf & "Update now?"
+      If MsgBox(strMsg, vbQuestion + vbYesNo, "CPT Updates Available") = vbYes Then
+        Call ShowCptUpgrades_frm
+      End If
+      
+    End If
+  
+  End If
+  
+exit_here:
+  On Error Resume Next
+  Set xmlNode = Nothing
+  Application.StatusBar = ""
+  Set arrDirectories = Nothing
+  Set vbComponent = Nothing
+  Set arrCurrent = Nothing
+  Set arrInstalled = Nothing
+  Set xmlDoc = Nothing
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptCheckUpgrades", Err, Erl)
+  Resume exit_here
+  
+End Sub
