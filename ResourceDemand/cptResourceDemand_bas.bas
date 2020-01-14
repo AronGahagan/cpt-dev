@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -156,8 +156,8 @@ Dim blnIncludeCosts As Boolean
         
         'get earliest start and latest finish
         If cptResourceDemand_frm.chkBaseline Then
-          dtStart = xlApp.WorksheetFunction.Min(Task.Start, Task.BaselineStart) 'works with forecast, actual, and baseline start
-          dtFinish = xlApp.WorksheetFunction.Max(Task.Finish, Task.BaselineFinish) 'works with forecast, actual, and baseline finish
+          dtStart = xlApp.WorksheetFunction.Min(Task.Start, IIf(Task.BaselineStart = "NA", Task.Start, Task.BaselineStart)) 'works with forecast, actual, and baseline start
+          dtFinish = xlApp.WorksheetFunction.Max(Task.Finish, IIf(Task.BaselineFinish = "NA", Task.Finish, Task.BaselineFinish)) 'works with forecast, actual, and baseline finish
         Else
           If IsDate(Task.Stop) Then 'capture the unstatused / remaining portion
             dtStart = Task.Stop
