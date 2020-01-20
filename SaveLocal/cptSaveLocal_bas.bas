@@ -3,6 +3,11 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+'todo: create automap feature
+'todo: create view ECF:Local;ECF:Local;ECF:Local;
+'todo: determine ECF field type and auto-change cboTypes upon s
+'todo: handle resource and project custom fields
+
 Sub cptShowSaveLocalForm()
 'objects
 Dim aTypes As Object
@@ -52,15 +57,13 @@ Dim vType As Variant
     Loop
     
     Set aTypes = CreateObject("System.Collections.SortedList")
-    aTypes.Add "Cost", 10
-    aTypes.Add "Date", 10
-    aTypes.Add "Duration", 10
-    aTypes.Add "Finish", 10
+    'record: field type, number of available custom fields
+    For Each vType In Array("Cost", "Date", "Duration", "Finish", "Start", "Outline Code")
+      aTypes.Add vType, 10
+    Next
     aTypes.Add "Flag", 20
     aTypes.Add "Number", 20
-    aTypes.Add "Start", 10
     aTypes.Add "Text", 30
-    aTypes.Add "Outline Code", 10
     
     'populate field types
     .cboFieldTypes.Clear
@@ -79,6 +82,7 @@ Dim vType As Variant
 
 exit_here:
   On Error Resume Next
+  Set vType = Nothing
   Set aTypes = Nothing
   Set rst = Nothing
 
@@ -109,17 +113,20 @@ Dim lngMap As Long
       If .lboMap.List(lngMap, 2) > 0 Then
         lngECF = .lboMap.List(lngMap, 0)
         lngLocal = .lboMap.List(lngMap, 2)
-        'rename the local field
-        CustomFieldRename CLng(lngLocal), .lboMap.List(lngMap, 1) & " (" & .lboMap.List(lngMap, 3) & ")"
         'populate the fields
         For Each Task In ActiveProject.Tasks
+          On Error Resume Next
           Task.SetField lngLocal, CStr(Task.GetField(lngECF))
+          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If Task.GetField(lngLocal) <> CStr(Task.GetField(lngECF)) Then
+            MsgBox "There was an error copying from ECF " & CustomFieldGetName(lngECF) & " to LCF " & CustomFieldGetName(lngLocal) & "." & vbCrLf & vbCrLf & "Please validate data types.", vbExclamation + vbOKOnly, "Fail"
+            GoTo next_mapping
+          End If
         Next Task
       End If
+next_mapping:
     Next lngMap
   End With
-
-  'todo: what about using setfield with number and/or date fields, non-flags to flags, etc.
 
   MsgBox "Enteprise Custom Fields saved locally.", vbInformation + vbOKOnly, "Complete"
 
@@ -132,3 +139,31 @@ err_here:
   Call cptHandleErr("cptSaveLocal_bas", "cptSaveLocal", Err, Erl)
   Resume exit_here
 End Sub
+
+Function GetECFType()
+'objects
+'strings
+'longs
+Dim lngGOC As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'todo: use this to at least capture which ECFs are Outline Codes
+  For lngGOC = 1 To Application.GlobalOutlineCodes.Count
+    Debug.Print Application.GlobalOutlineCodes(lngGOC).Name
+  Next lngGOC
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  'Call HandleErr("foo", "bar", Err)
+  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Resume exit_here
+End Function

@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptSaveLocal_frm 
-   Caption         =   "Save Local"
+   Caption         =   "Save ECF to LCF"
    ClientHeight    =   4140
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   6795
+   ClientWidth     =   7410
    OleObjectBlob   =   "cptSaveLocal_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -14,13 +14,15 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboFieldTypes_Change()
 'objects
 'strings
+Dim strFieldName As String
 'longs
+Dim lngFieldID As Long
 Dim lngFields As Long
 Dim lngField As Long
 'integers
@@ -34,7 +36,17 @@ Dim lngField As Long
   Me.lboLocalFields.Clear
   lngFields = Me.cboFieldTypes.Column(1)
   For lngField = 1 To lngFields
-    Me.lboLocalFields.AddItem Me.cboFieldTypes.Column(0) & lngField
+    strFieldName = Me.cboFieldTypes.Column(0) & lngField
+    lngFieldID = FieldNameToFieldConstant(strFieldName)
+    If Len(CustomFieldGetName(FieldNameToFieldConstant(Me.cboFieldTypes.Column(0) & lngField))) > 0 Then
+      Me.lboLocalFields.AddItem
+      Me.lboLocalFields.List(Me.lboLocalFields.ListCount - 1, 0) = lngFieldID
+      Me.lboLocalFields.List(Me.lboLocalFields.ListCount - 1, 1) = strFieldName & " (" & CustomFieldGetName(lngFieldID) & ")" 'Me.lboLocalFields.List(Me.lboLocalFields.ListCount - 1, 0) = CustomFieldGetName(FieldNameToFieldConstant(Me.cboFieldTypes.Column(0) & lngField))
+    Else
+      Me.lboLocalFields.AddItem
+      Me.lboLocalFields.List(Me.lboLocalFields.ListCount - 1, 0) = lngFieldID
+      Me.lboLocalFields.List(Me.lboLocalFields.ListCount - 1, 1) = strFieldName
+    End If
   Next
 
 exit_here:
@@ -67,7 +79,7 @@ Dim lngMap As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not IsNull(Me.lboMap) And Not IsNull(Me.lboLocalFields) Then
-    lngField = FieldNameToFieldConstant(Me.lboLocalFields.List(Me.lboLocalFields.ListIndex))
+    lngField = Me.lboLocalFields.List(Me.lboLocalFields.ListIndex)
     'if already mapped then prompt with ECF name and ask to remap
     For lngMap = 0 To Me.lboMap.ListCount - 1
       If Me.lboMap.List(lngMap, 2) = lngField Then
@@ -79,6 +91,7 @@ Dim lngMap As Long
         End If
       End If
     Next lngMap
+    'capture outline code
     If InStr(FieldConstantToFieldName(lngField), "Outline") > 0 Then
       MsgBox "If copying down an Outline Code, please use the 'Import Field' function of the Custom Fields dialog before clicking Save Local.", vbInformation + vbOKOnly, "Nota Bene"
       VBA.SendKeys "%r", True
@@ -98,8 +111,22 @@ Dim lngMap As Long
       VBA.SendKeys "%{DOWN}", True
       VBA.SendKeys Left(FieldConstantToFieldName(Me.lboMap.List(Me.lboMap.ListIndex, 0)), 1), True
     End If
-    Me.lboMap.List(Me.lboMap.ListIndex, 3) = Me.lboLocalFields.List(Me.lboLocalFields.ListIndex)
-    Me.lboMap.List(Me.lboMap.ListIndex, 2) = FieldNameToFieldConstant(Me.lboLocalFields.List(Me.lboLocalFields.ListIndex))
+    'capture rename
+    If Len(CustomFieldGetName(Me.lboLocalFields)) > 0 Then
+      If MsgBox("Rename " & FieldConstantToFieldName(Me.lboLocalFields) & " to " & FieldConstantToFieldName(Me.lboMap) & "?", vbQuestion + vbYesNo, "Please confirm") = vbYes Then
+        'rename it
+        CustomFieldRename CLng(Me.lboLocalFields), Me.lboMap.List(Me.lboMap.ListIndex, 1) & " (" & FieldConstantToFieldName(Me.lboLocalFields) & ")"
+        'rename in lboLocalFields
+        Me.lboLocalFields.List(Me.lboLocalFields.ListIndex, 1) = FieldConstantToFieldName(Me.lboLocalFields) & " (" & CustomFieldGetName(Me.lboLocalFields) & ")"
+      Else
+        GoTo exit_here
+      End If
+    Else
+      CustomFieldRename CLng(Me.lboLocalFields), Me.lboMap.List(Me.lboMap.ListIndex, 1) & " (" & FieldConstantToFieldName(Me.lboLocalFields) & ")"
+      Me.lboLocalFields.List(Me.lboLocalFields.ListIndex, 1) = FieldConstantToFieldName(Me.lboLocalFields) & " (" & CustomFieldGetName(Me.lboLocalFields) & ")"
+    End If
+    Me.lboMap.List(Me.lboMap.ListIndex, 2) = Me.lboLocalFields
+    Me.lboMap.List(Me.lboMap.ListIndex, 3) = CustomFieldGetName(Me.lboLocalFields)
   End If
 
 exit_here:
