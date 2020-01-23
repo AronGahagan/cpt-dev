@@ -1,4 +1,5 @@
 Attribute VB_Name = "cptSaveLocal_bas"
+'<cpt_version>v1.0.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
