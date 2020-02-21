@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.0.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -127,34 +127,34 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptAddFiles(ByRef Data As MSComctlLib.DataObject)
-'objects
-'strings
-'longs
-Dim lngFile As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
-
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  For lngFile = 1 To Data.Files.Count
-    With cptStatusSheetImport_frm
-      'todo: validate the file before adding it to the list
-      .TreeView1.Nodes.Add Text:=Data.Files(lngFile)
-    End With
-  Next lngFile
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptStatusSheetImport_bas", "cptAddFiles", err, Erl)
-  Resume exit_here
-End Sub
+'Sub cptAddFiles(ByRef Data As MSComctlLib.DataObject)
+''objects
+''strings
+''longs
+'Dim lngFile As Long
+''integers
+''doubles
+''booleans
+''variants
+''dates
+'
+'  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+'
+'  For lngFile = 1 To Data.Files.Count
+'    With cptStatusSheetImport_frm
+'      'todo: validate the file before adding it to the list
+'      .TreeView1.Nodes.Add Text:=Data.Files(lngFile)
+'    End With
+'  Next lngFile
+'
+'exit_here:
+'  On Error Resume Next
+'
+'  Exit Sub
+'err_here:
+'  Call cptHandleErr("cptStatusSheetImport_bas", "cptAddFiles", err, Erl)
+'  Resume exit_here
+'End Sub
 
 Sub cptStatusSheetImport()
 'objects
