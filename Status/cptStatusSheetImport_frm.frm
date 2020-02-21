@@ -4,7 +4,7 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptStatusSheetImport_frm
    ClientHeight    =   5835
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   9810
+   ClientWidth     =   9810.001
    OleObjectBlob   =   "cptStatusSheetImport_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.0.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -58,6 +58,51 @@ Private Sub cmdImport_Click()
   Call cptStatusSheetImport
 End Sub
 
+Private Sub cmdSelectFiles_Click()
+'objects
+Dim FileDialog As FileDialog
+Dim xlApp As Excel.Application
+'strings
+'longs
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  Set xlApp = CreateObject("Excel.Application")
+  Set FileDialog = xlApp.FileDialog(msoFileDialogFilePicker)
+  With FileDialog
+    .AllowMultiSelect = True
+    .ButtonName = "Import"
+    .InitialView = msoFileDialogViewDetails
+    .InitialFileName = Environ("USERPROFILE") & "\"
+    .Title = "Select Returned Status Sheet(s):"
+    .Filters.Add "Microsoft Excel Workbook (xlsx)", "*.xlsx"
+    
+    If .Show = -1 Then
+      If .SelectedItems.Count > 0 Then
+        For lngItem = 1 To .SelectedItems.Count
+          cptStatusSheetImport_frm.TreeView1.Nodes.Add Text:=.SelectedItems(lngItem)
+        Next lngItem
+      End If
+    End If
+  End With
+
+exit_here:
+  On Error Resume Next
+  Set FileDialog = Nothing
+  Set xlApp = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheetImport_frm", "cmdSelectFiles_Click", err, Erl)
+  Resume exit_here
+End Sub
+
 Private Sub lblURL_Click()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -73,15 +118,15 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub TreeView1_OLEDragDrop(Data As MSComctlLib.DataObject, _
-                                  Effect As Long, _
-                                  Button As Integer, _
-                                  Shift As Integer, _
-                                  x As Single, _
-                                  y As Single)
-  Call cptAddFiles(Data)
-End Sub
+'Private Sub TreeView1_OLEDragDrop(Data As MSComctlLib.DataObject, _
+'                                  Effect As Long, _
+'                                  Button As Integer, _
+'                                  Shift As Integer, _
+'                                  x As Single, _
+'                                  y As Single)
+'  Call cptAddFiles(Data)
+'End Sub
 
 Private Sub UserForm_Initialize()
-  Me.TreeView1.OLEDropMode = ccOLEDropManual
+  'Me.TreeView1.OLEDropMode = ccOLEDropManual
 End Sub
