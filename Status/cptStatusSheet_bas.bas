@@ -1277,6 +1277,7 @@ evt_vs_evp:
   Debug.Print lngFormatCondition & " format conditions applied."
 
   xlApp.Visible = True
+  xlApp.WindowState = xlMaximized
   xlApp.ScreenUpdating = True
 
   Worksheet.ShowAllData
