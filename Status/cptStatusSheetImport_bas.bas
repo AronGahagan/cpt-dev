@@ -114,7 +114,9 @@ Dim vField As Variant
     .Show False
 
   End With
-
+  
+  ActiveWindow.TopPane.Activate
+  ViewApply "Task Usage"
   Call cptRefreshStatusImportTable
 
 exit_here:
