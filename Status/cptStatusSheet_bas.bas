@@ -1329,14 +1329,13 @@ evt_vs_evp:
     Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
     Worksheet.EnableSelection = xlNoRestrictions
     'save to desktop in folder for status date
-    strFileName = strFileName & "_StatusSheet_" & Format(dtStatus, "yyyy-mm-dd") & ".xlsx"
     On Error Resume Next
     If Dir(strDir & strFileName) <> vbNullString Then Kill strDir & strFileName
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     'account for if the file exists and is open in the background
     If Dir(strDir & strFileName) <> vbNullString Then  'delete failed, rename with timestamp
       strMsg = "'" & strFileName & "' already exists, and is likely open." & vbCrLf
-      strFileName = Replace(strFileName, ".xlsx", "_" & Format(Now, "-hh-nn-ss") & ".xlsx")
+      strFileName = Replace(strFileName, ".xlsx", "_" & Format(Now, "hh-nn-ss") & ".xlsx")
       strMsg = strMsg & "The file you are now creating will be named '" & strFileName & "'"
       MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
       Workbook.SaveAs strDir & strFileName, 51
