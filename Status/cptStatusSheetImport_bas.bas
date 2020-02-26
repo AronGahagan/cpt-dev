@@ -129,35 +129,6 @@ err_here:
   Resume exit_here
 End Sub
 
-'Sub cptAddFiles(ByRef Data As MSComctlLib.DataObject)
-''objects
-''strings
-''longs
-'Dim lngFile As Long
-''integers
-''doubles
-''booleans
-''variants
-''dates
-'
-'  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-'
-'  For lngFile = 1 To Data.Files.Count
-'    With cptStatusSheetImport_frm
-'      'todo: validate the file before adding it to the list
-'      .TreeView1.Nodes.Add Text:=Data.Files(lngFile)
-'    End With
-'  Next lngFile
-'
-'exit_here:
-'  On Error Resume Next
-'
-'  Exit Sub
-'err_here:
-'  Call cptHandleErr("cptStatusSheetImport_bas", "cptAddFiles", err, Erl)
-'  Resume exit_here
-'End Sub
-
 Sub cptStatusSheetImport()
 'objects
 Dim SubProject As Object
@@ -211,6 +182,10 @@ Dim dtNewDate As Date
 Dim dtStatus As Date
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'todo: save current dates to selected fields
+  'todo: age the dates X periods - carry back names
+  'todo: view should be gantt on top and task usage below (but with custom table having only UID,{user fields},Task/Resource Name, Remaining Work, New ETC
   
   'validate choices for all
   With cptStatusSheetImport_frm
@@ -462,6 +437,13 @@ next_task:
                 Task.AppendNotes String(25, "-") & vbCrLf & Format(Now, "mm/dd/yyyy") & " - " & Worksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
               End If
             End If
+            'if user is importing to AS and AF then mark task on track
+'            'todo: decide if this is a good idea
+'            If lngAS = FieldNameToFieldConstant("Actual Start") And lngAF = FieldNameToFieldConstant("Actual Finish") Then
+'              'todo: what if user has it filtered? or collapsed?
+'              EditGoTo Task.ID
+'              UpdateProject All:=False, UpdateDate:=CStr(dtStatus & " 5 PM"), Action:=1
+'            End If
           ElseIf Not blnTask Then 'it's an assignment
             On Error Resume Next
             Set Assignment = Task.Assignments.UniqueID(Worksheet.Cells(lngRow, lngUIDCol))
@@ -501,6 +483,11 @@ next_file:
       Workbook.Close False
     Next lngFiles
   End With 'cptStatusSheetImport_frm
+  
+  'reset view
+  ActiveWindow.TopPane.Activate
+  ViewApply "Task Usage"
+  Call cptRefreshStatusImportTable
   
 exit_here:
   On Error Resume Next
