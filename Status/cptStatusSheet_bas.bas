@@ -175,6 +175,13 @@ next_field:
   End If
 
   'reset the view
+  If InStr(ActiveWindow.TopPane.View, "Gantt") = 0 Then
+    If MsgBox("Current view must be changed for successful export.", vbInformation + vbOKCancel, "Incompatible View") = vbOK Then
+      ViewApply "Gantt Chart"
+    Else
+      GoTo exit_here
+    End If
+  End If
   Call cptRefreshStatusTable
   FilterClear
   OptionsViewEx displaysummarytasks:=True
@@ -312,6 +319,7 @@ Dim blnEmail As Boolean
   Application.StatusBar = "Analyzing project..."
   'get task count
   If blnPerformanceTest Then t = GetTickCount
+  
   SelectAll
   Set Tasks = ActiveSelection.Tasks
   For Each Task In Tasks
@@ -417,22 +425,24 @@ Dim blnEmail As Boolean
   'save fields to adtg file
   strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
   aUserFields = cptStatusSheet_frm.lboExport.List()
-  With CreateObject("ADODB.Recordset")
-    .Fields.Append "Field Constant", adVarChar, 255
-    .Fields.Append "Custom Field Name", adVarChar, 255
-    .Fields.Append "Local Field Name", adVarChar, 255
-    .Open
-    For lngField = 0 To UBound(aUserFields)
-      .AddNew Array(0, 1, 2), Array(aUserFields(lngField, 0), aUserFields(lngField, 1), aUserFields(lngField, 2))
-    Next lngField
-    '<issue43> capture case when no custom fields are selected
-    If cptStatusSheet_frm.lboExport.ListCount > 0 Then
-      .Update
-     If Dir(strFileName) <> vbNullString Then Kill strFileName
-     .Save strFileName
-    End If '</issue43>
-    .Close
-  End With
+  '<issue43> capture case when no custom fields are selected
+  If cptStatusSheet_frm.lboExport.ListCount > 0 Then
+    With CreateObject("ADODB.Recordset")
+      .Fields.Append "Field Constant", adVarChar, 255
+      .Fields.Append "Custom Field Name", adVarChar, 255
+      .Fields.Append "Local Field Name", adVarChar, 255
+      .Open
+      For lngField = 0 To UBound(aUserFields)
+        .AddNew Array(0, 1, 2), Array(aUserFields(lngField, 0), aUserFields(lngField, 1), aUserFields(lngField, 2))
+      Next lngField
+        .Update
+       If Dir(strFileName) <> vbNullString Then Kill strFileName
+       .Save strFileName
+      .Close
+    End With
+  Else
+    If Dir(strFileName) <> vbNullString Then Kill strFileName
+  End If '</issue43>
 
   'get user fields
   For lngField = UBound(aUserFields) To 0 Step -1
