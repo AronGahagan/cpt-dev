@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.2.0</cpt_version>
+'<cpt_version>v1.2.1</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -114,16 +114,34 @@ next_field:
     With CreateObject("ADODB.Recordset")
       .Open strFileName
       .MoveFirst
+      
       On Error Resume Next
-      cptStatusSheet_frm.cboEVT.Value = .Fields(0) 'cboEVT
-      cptStatusSheet_frm.cboEVP.Value = .Fields(1) 'cboEVP
-      cptStatusSheet_frm.cboCreate = .Fields(2) - 1
+      lngField = FieldNameToFieldConstant(.Fields(0))
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If lngField > 0 Then cptStatusSheet_frm.cboEVT.Value = .Fields(0) 'cboEVT
+      lngField = 0
+      
+      On Error Resume Next
+      lngField = FieldNameToFieldConstant(.Fields(1))
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If lngField > 0 Then cptStatusSheet_frm.cboEVP.Value = .Fields(1) 'cboEVP
+      lngField = 0
+      
+      cptStatusSheet_frm.cboCreate = .Fields(2) - 1 'cboCreate
+      
       cptStatusSheet_frm.chkHide = .Fields(3) = 1 'chkHide
+      
       If .Fields.Count >= 5 Then
         If Not IsNull(.Fields(4)) Then cptStatusSheet_frm.cboCostTool.Value = .Fields(4) 'cboCostTool
       End If
       If .Fields.Count >= 6 Then
-        If Not IsNull(.Fields(5)) Then cptStatusSheet_frm.cboEach.Value = .Fields(5) 'cboEach
+        If Not IsNull(.Fields(5)) Then
+          On Error Resume Next
+          lngField = FieldNameToFieldConstant(.Fields(5))
+          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If lngField > 0 Then cptStatusSheet_frm.cboEach.Value = .Fields(5) 'cboEach
+          lngField = 0
+        End If
       End If
       .Close
     End With
@@ -182,7 +200,6 @@ next_field:
   FilterClear
   OptionsViewEx displaysummarytasks:=True
   OutlineShowAllTasks
-
 
   If Len(strFieldNamesChanged) > 0 Then
     strFieldNamesChanged = "The following saved export field names have changed:" & vbCrLf & vbCrLf & strFieldNamesChanged
@@ -1260,6 +1277,7 @@ evt_vs_evp:
   Debug.Print lngFormatCondition & " format conditions applied."
 
   xlApp.Visible = True
+  xlApp.WindowState = xlMaximized
   xlApp.ScreenUpdating = True
 
   Worksheet.ShowAllData
