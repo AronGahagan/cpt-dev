@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.1</cpt_version>
+'<cpt_version>v1.0.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -27,11 +27,33 @@ Private Sub cboAS_Change()
 End Sub
 
 Private Sub cboETC_Change()
-  Call cptRefreshStatusImportTable
+  
+  'ensure user didn't select the same field for New EVP and New ETC
+  '-2147483630 = Black
+  Me.lblEV.ForeColor = -2147483630
+  Me.lblETC.ForeColor = -2147483630
+  If Me.cboEV.Value = Me.cboETC.Value Then
+    Me.lblEV.ForeColor = 192
+    Me.lblETC.ForeColor = 192
+  Else
+    Call cptRefreshStatusImportTable
+  End If
+  
 End Sub
 
 Private Sub cboEV_Change()
-  Call cptRefreshStatusImportTable
+
+  'ensure user didn't select the same field for New EVP and New ETC
+  '-2147483630 = Black
+  Me.lblEV.ForeColor = -2147483630
+  Me.lblETC.ForeColor = -2147483630
+  If Me.cboEV.Value = Me.cboETC.Value Then
+    Me.lblEV.ForeColor = 192
+    Me.lblETC.ForeColor = 192
+  Else
+    Call cptRefreshStatusImportTable
+  End If
+  
 End Sub
 
 Private Sub cboFF_Change()
@@ -55,7 +77,19 @@ Private Sub cmdDone_Click()
 End Sub
 
 Private Sub cmdImport_Click()
-  Call cptStatusSheetImport
+  
+  'ensure user didn't select the same field for New EVP and New ETC
+  '-2147483630 = Black
+  Me.lblEV.ForeColor = -2147483630
+  Me.lblETC.ForeColor = -2147483630
+  If Me.cboEV.Value = Me.cboETC.Value Then
+    Me.lblEV.ForeColor = 192
+    Me.lblETC.ForeColor = 192
+    MsgBox "Cannot import EVP and ETC to the same field.", vbExclamation + vbOKOnly, "Invalid Selections"
+  Else
+    Call cptStatusSheetImport
+  End If
+  
 End Sub
 
 Private Sub cmdSelectFiles_Click()
