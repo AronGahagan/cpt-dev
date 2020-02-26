@@ -286,7 +286,7 @@ Dim dtStatus As Date
   rst.Close
   
   'set up import log file
-  strImportLog = Environ("USERPROFILE") & "\Desktop\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
+  strImportLog = Environ("USERPROFILE") & "\CP_Status_Sheets\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
   lngFile = FreeFile
   Open strImportLog For Output As #lngFile
 
