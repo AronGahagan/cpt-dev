@@ -373,26 +373,31 @@ Dim strDir As String
       End If
 
     'Office Applications
-    strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
+    strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "") 'todo: why isn't this 'sticking'?
     Case "Excel"
       If Not cptReferenceExists("Excel") Then
+        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
         ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
       End If
     Case "Outlook"
       If Not cptReferenceExists("Outlook") Then
+        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
         ThisProject.VBProject.References.AddFromFile strDir & "\MSOUTL.OLB"
       End If
     Case "PowerPoint"
       If Not cptReferenceExists("PowerPoint") Then
+        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
         ThisProject.VBProject.References.AddFromFile strDir & "\MSPPT.OLB"
       End If
     Case "MSProject"
       If Not cptReferenceExists("MSProject") Then
+        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
         ThisProject.VBProject.References.AddFromFile strDir & "\MSPRJ.OLB"
       End If
     Case "Word"
       If Not cptReferenceExists("Word") Then
-        ThisProject.VBProject.References.AddFromFile strDir & "\MSWORD.OLB (Word)"
+        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
+        ThisProject.VBProject.References.AddFromFile strDir & "\MSWORD.OLB"
       End If
 
     'Windows Common
