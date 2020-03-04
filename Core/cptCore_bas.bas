@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.4</cpt_version>
+'<cpt_version>v1.6.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -285,7 +285,7 @@ Sub cptGetReferences()
 Dim Ref As Object
 
   For Each Ref In ThisProject.VBProject.References
-          Debug.Print Ref.Name & " (" & Ref.Description & ") " & Ref.FullPath
+    Debug.Print Ref.Name & " (" & Ref.Description & ") " & Ref.FullPath
   Next Ref
 
 End Sub
@@ -347,6 +347,7 @@ End Sub
 Function cptCheckReference(strReference As String) As Boolean
 'this routine will be called ahead of any subroutine requiring a reference
 'returns boolean and subroutine only proceeds if true
+Dim strDir As String
 
   On Error GoTo err_here
 
@@ -372,25 +373,31 @@ Function cptCheckReference(strReference As String) As Boolean
       End If
 
     'Office Applications
+    strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "") 'todo: why isn't this 'sticking'?
     Case "Excel"
       If Not cptReferenceExists("Excel") Then
-        ThisProject.VBProject.References.AddFromFile Application.Path & "\EXCEL.EXE"
+        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
+        ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
       End If
     Case "Outlook"
       If Not cptReferenceExists("Outlook") Then
-        ThisProject.VBProject.References.AddFromFile Application.Path & "\MSOUTL.OLB"
+        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
+        ThisProject.VBProject.References.AddFromFile strDir & "\MSOUTL.OLB"
       End If
     Case "PowerPoint"
       If Not cptReferenceExists("PowerPoint") Then
-        ThisProject.VBProject.References.AddFromFile Application.Path & "\MSPPT.OLB"
+        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
+        ThisProject.VBProject.References.AddFromFile strDir & "\MSPPT.OLB"
       End If
     Case "MSProject"
       If Not cptReferenceExists("MSProject") Then
-        ThisProject.VBProject.References.AddFromFile Application.Path & "\MSPRJ.OLB"
+        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
+        ThisProject.VBProject.References.AddFromFile strDir & "\MSPRJ.OLB"
       End If
     Case "Word"
       If Not cptReferenceExists("Word") Then
-        ThisProject.VBProject.References.AddFromFile Application.Path & "\MSWORD.OLB (Word)"
+        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
+        ThisProject.VBProject.References.AddFromFile strDir & "\MSWORD.OLB"
       End If
 
     'Windows Common
@@ -413,6 +420,10 @@ Function cptCheckReference(strReference As String) As Boolean
     Case "MSXML2"
       If Not cptReferenceExists("MSXML2") Then '</issue33>
         ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\msxml3.dll"
+      End If
+    Case "MSComctlLib"
+      If Not cptReferenceExists("MSComctlLib") Then
+        ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\MSCOMCTL.OCX"
       End If
     Case Else
       cptCheckReference = False
@@ -654,9 +665,11 @@ Dim strDir As String
     ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\OFFICE16\MSO.DLL"
   End If
   If Not cptReferenceExists("VBIDE") Then
-    ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB"
-        'todo: need win64 file path '<issue53>
-    'C:\Program Files\Common Files\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB?
+    #If Not Win64 Then
+      ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB"
+    #Else
+      ThisProject.VBProject.References.AddFromFile "C:\Program Files (x86)\Common Files\Microsoft Shared\VBA\VBA6\VBE6EXT.OLB"
+    #End If
   End If
   If Not cptReferenceExists("VBA") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\Microsoft Shared\VBA\VBA7.1\VBE7.DLL"
@@ -666,7 +679,7 @@ Dim strDir As String
   End If
 
   'office applications
-  strDir = Application.Path 'OR cptRegEx(environ("PATH"),"C\:.*Microsoft Office[A-z0-9\\]*;")
+  strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "") '<issue99>
   If Not cptReferenceExists("Excel") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
   End If
