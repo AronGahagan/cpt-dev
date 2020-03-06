@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.5</cpt_version>
+'<cpt_version>v1.6.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -348,6 +348,7 @@ Function cptCheckReference(strReference As String) As Boolean
 'this routine will be called ahead of any subroutine requiring a reference
 'returns boolean and subroutine only proceeds if true
 Dim strDir As String
+Dim strRegEx As String
 
   On Error GoTo err_here
 
@@ -373,30 +374,31 @@ Dim strDir As String
       End If
 
     'Office Applications
-    strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "") 'todo: why isn't this 'sticking'?
+    strRegEx = "C\:.*Microsoft Office[A-z0-9\\]*Office[0-9]{2}"
+    strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "") 'todo: why isn't this 'sticking'?
     Case "Excel"
       If Not cptReferenceExists("Excel") Then
-        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
+        strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
         ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
       End If
     Case "Outlook"
       If Not cptReferenceExists("Outlook") Then
-        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
+        strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
         ThisProject.VBProject.References.AddFromFile strDir & "\MSOUTL.OLB"
       End If
     Case "PowerPoint"
       If Not cptReferenceExists("PowerPoint") Then
-        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
+        strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
         ThisProject.VBProject.References.AddFromFile strDir & "\MSPPT.OLB"
       End If
     Case "MSProject"
       If Not cptReferenceExists("MSProject") Then
-        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
+        strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
         ThisProject.VBProject.References.AddFromFile strDir & "\MSPRJ.OLB"
       End If
     Case "Word"
       If Not cptReferenceExists("Word") Then
-        strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "")
+        strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
         ThisProject.VBProject.References.AddFromFile strDir & "\MSWORD.OLB"
       End If
 
@@ -656,6 +658,7 @@ End Sub
 Sub cptSetReferences()
 'this is a one-time shot to set all references currently required by the cp toolbar
 Dim strDir As String
+Dim strRegEx As String
 
   On Error Resume Next
 
@@ -679,20 +682,26 @@ Dim strDir As String
   End If
 
   'office applications
-  strDir = Replace(cptRegEx(Environ("PATH"), "C\:.*Microsoft Office[A-z0-9\\]*;"), ";", "") '<issue99>
+  strRegEx = "C\:.*Microsoft Office[A-z0-9\\]*Office[0-9]{2}"
+  strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "") '<issue99>
   If Not cptReferenceExists("Excel") Then
+    strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
     ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
   End If
   If Not cptReferenceExists("Outlook") Then
+    strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
     ThisProject.VBProject.References.AddFromFile strDir & "\MSOUTL.OLB"
   End If
   If Not cptReferenceExists("PowerPoint") Then
+    strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
     ThisProject.VBProject.References.AddFromFile strDir & "\MSPPT.OLB"
   End If
   If Not cptReferenceExists("MSProject") Then
+    strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
     ThisProject.VBProject.References.AddFromFile strDir & "\MSPRJ.OLB"
   End If
   If Not cptReferenceExists("Word") Then
+    strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
     ThisProject.VBProject.References.AddFromFile strDir & "\MSWORD.OLB"
   End If
 
