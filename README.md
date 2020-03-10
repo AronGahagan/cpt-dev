@@ -230,7 +230,7 @@ This feature helps you set up and manage Outline Codes (e.g., CWBS, IMP).
 ### Integration Tools
 ![integration](/images/integration.png?raw=true)
 
-1. _**Export IMS to COBRA**_ - Creates the CSV-formatted import files for Baseline, Forecast, and Status for upload to COBRA. See the [Help Doc](https://github.com/AronGahagan/cpt-dev/blob/develop/Templates/ClearPlan_IMS_Export_Utility_r3.1.0.docx) for more information.
+1. _**Export IMS to COBRA**_ - Creates the CSV-formatted import files for Baseline, Forecast, and Status for upload to COBRA. See the [Help Doc](https://github.com/AronGahagan/cpt-dev/blob/develop/Trace/ClearPlan_IMS_Export_Utility_r3.1.0.docx) for more information.
 
 [[up]](#use) | [[toc]](#table-of-contents)
 
