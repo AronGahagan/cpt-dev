@@ -181,7 +181,9 @@ _Notes:_ Your import choices will be saved between sessions. These settings are 
 ### Resource Demand
 ![resource](https://github.com/AronGahagan/cpt-dev/blob/develop/images/resource-demand.png?raw=true)
 
-1. _**Resource Demand**_ - Export timephased remaining work to Excel (similar to the Task Usage view), with automatic PivotTable and PivotCharts. Add whatever fields you'd like to the report, and your settings will be saved for next time.
+![resource-form](https:/github.com/AronGahagan/cpt-dev/blob/develop/images/resource-demand-form.png?raw=true)
+
+_**Resource Demand**_ - Export timephased remaining work to Excel (similar to the Task Usage view), with automatic PivotTable and PivotCharts. Add whatever fields you'd like to the report, and your settings will be saved for next time.
 
 [[up]](#use) | [[toc]](#table-of-contents)
 
@@ -208,6 +210,8 @@ _Notes:_ Your import choices will be saved between sessions. These settings are 
 This feature helps you set up and manage Outline Codes (e.g., CWBS, IMP).
 
 ![backbone](https://github.com/AronGahagan/cpt-dev/blob/develop/images/backbone.png?raw=true)
+
+![backbone](https://github.com/AronGahagan/cpt-dev/blob/develop/images/backbone-form.png?raw=true)
 
 1. Select the local custom Outline Code you want to work with. Existing lookup tables will be shown in the TreeView control below. If you make updates to the code while the form is open, the TreeView will refresh automatically.
 1. Select the **Import Code** option and choose an _Import Source_. You can import: 
@@ -236,6 +240,8 @@ This feature helps you set up and manage Outline Codes (e.g., CWBS, IMP).
 Store custom field descriptions and automatically generate an IMS Data Dictionary.
 
 ![data-dictionary](https://github.com/AronGahagan/cpt-dev/blob/develop/images/data-dictionary.png?raw=true)
+
+![data-dictionary](https://github.com/AronGahagan/cpt-dev/blob/develop/images/data-dictionary-form.png?raw=true)
 
 1. Local and Enterprise Custom fields will be listed in the ListBox. Use the yellow search filter to find a specific field.
 1. Enter a Description in the Text Box. 
