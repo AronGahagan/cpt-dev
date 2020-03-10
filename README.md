@@ -139,7 +139,7 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 1. Choose whether to create: A Single Workbook (all tasks on one sheet); A Worksheet For Each (a single workbook, but with separate worksheets for each [CAM, CWBS, IPT, etc.]; or A Workbook For Each [CAM, WBS, IPT], etc.]. If you select one of the 'For Each' options, you can further refine your output by selecting one or more items in the selected custom field. E.g., if you select _A Workbook For Each_ and you designate the _CAM_ custom field, a separate workbook will be created for each selected CAM and that CAM's name will be included in the file name.
 1. Optionally create an email with the created file attached. If you select _A Single Workbook_ or _A Worksheet For Each_ a single email will be created. If you select _A Workbook For Each_ a separate email will be created for each [item] in the selected custom field.
 1. Optionally add custom fields between the UID and Task Name fields in the created workbook(s). Use the yellow search filter to find fields, and the right-arrow button to add it to your Export List. Use the double right-arrow to add all selected fields at once. Similarly, use the single or double left arrows to remove fields from your Export List. Use the plus and minus buttons to reorder the fields in your created workbook(s). Note that as you add/remove/reorder fields to your Export List, the current view will be updated to reflect your options--to provide you with a 'preview' of the created workbook(s). The structure of the tasks (summary levels) in the current view (whether native summary tasks or group by summaries) will be reflected in your created workbook(s).
-1. When you have selected all of the above options, click **Create**. The yellow status bar will notify you of progress. Because we include many conditinal formats to catch invalid data, the export may take a couple of minutes to complete.
+1. When you have selected all of the above options, click **Create**. The yellow status bar will notify you of progress. Because we include many conditional formats to catch invalid data, the export may take a couple of minutes to complete.
 1. Created workbooks will be saved to C:\Users\\[username]\CP_Status_Sheets\\[Project_Name]\\[Status Date]\\. All worksheets are protected; updates will only be permitted in empty _Actual Start/Actual Finish_ fields, _New Forecast Start/New Forecast Finish_ fields, the _New EV%_ field, the _New ETC_ field, and the _Reason / Action / Impact_ field, which are highlighted.
 1. If you have a resource-loaded schedule, the status sheet will include editable Assignment-level cells for Remaining Work for Work (labor) resources, or Remaining Cost for Material resources.
 
@@ -211,13 +211,13 @@ This feature helps you set up and manage Outline Codes (e.g., CWBS, IMP).
 
 1. Select the local custom Outline Code you want to work with. Existing lookup tables will be shown in the TreeView control below. If you make updates to the code while the form is open, the TreeView will refresh automatically.
 1. Select the **Import Code** option and choose an _Import Source_. You can import: 
-    1. A properly formatted Excel Workbook (*.xlsx). Required fields are CODE, LEVEL, and TITLE and must exist in range [A1:C1]. Be sure there are no empty rows of data in your import. To create a template for later import, click **Template**. Optionally, click _Also create task structure to automatically create summary/task structure. If unchecked, the import will only update the selected local custom Outlin Code picklist.
+    1. A properly formatted Excel Workbook (*.xlsx). Required fields are CODE, LEVEL, and TITLE and must exist in range [A1:C1]. Be sure there are no empty rows of data in your import. To create a template for later import, click **Template**. Optionally, click _Also create task structure to automatically create summary/task structure. If unchecked, the import will only update the selected local custom Outline Code picklist.
     1. A generic MIL-STD-881D Appendix B (Electronic Systems). Note: this option will create new summaries and tasks in your active project. If this is not what you want, then run this in an empty *.mpp file, and simply import the resulting Outline Code from your empty *.mpp file into your live *.mpp file using the _Import_ button on MSP's built-in Custom Fields dialog.
     1. The existing summary/task structure in the active project. This will use the native WBS field as the code, and the Task Name as the Description.
     1. If the selected local custom Outline Code is not yet named, provide a name for it (e.g., "CWBS").
     1. Once you have made your selections, click **Import**.
 1. Select the **Export Code** option to export the selected local custom Outline Code into: An Excel Workbook; "WBS Descriptive" CSV file for import to MPM; a CSV Code file for import to COBRA; or import into pre-formatted DI-MGMT-81334D for update. Note: the [DI-MGMT-81334D Template] (link required) is required; install it to your Microsoft Templates directory (usually located at C:\Users\\[username]\AppData\Roaming\Microsoft\Templates\).
-1. Selec the **Find/Replace** option to find and replace multiple instances of a word in the selected local custom Outline Code descriptions.
+1. Select the **Find/Replace** option to find and replace multiple instances of a word in the selected local custom Outline Code descriptions.
 
 [[up]](#use) | [[toc]](#table-of-contents)
 
@@ -239,7 +239,7 @@ Store custom field descriptions and automatically generate an IMS Data Dictionar
 
 1. Local and Enterprise Custom fields will be listed in the ListBox. Use the yellow search filter to find a specific field.
 1. Enter a Description in the Text Box. 
-1. Optionally export the IMS Data Dictionary to an Excel workbook. If desired, update the descriptons and import them. If you wish to share your data dictionary descriptions with others, export your entries and send to another user with the CPT installed, and they can import them. CAVEAT: be sure local custom fields are aligned between your file and theirs.
+1. Optionally export the IMS Data Dictionary to an Excel workbook. If desired, update the descriptions and import them. If you wish to share your data dictionary descriptions with others, export your entries and send to another user with the CPT installed, and they can import them. CAVEAT: be sure local custom fields are aligned between your file and theirs.
 
 _Note:_ Data Dictionary entries are stored _per project file_ and _per user_. 
 
