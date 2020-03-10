@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -118,13 +118,15 @@ next_field:
       On Error Resume Next
       lngField = FieldNameToFieldConstant(.Fields(0))
       If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-      If lngField > 0 Then cptStatusSheet_frm.cboEVT.Value = .Fields(0) 'cboEVT
+      'auto-select if saved setting exists and if saved field exists in the comboBox
+      If lngField > 0 And arrEVT.ContainsValue(.Fields(0)) Then cptStatusSheet_frm.cboEVT.Value = .Fields(0) 'cboEVT
       lngField = 0
       
       On Error Resume Next
       lngField = FieldNameToFieldConstant(.Fields(1))
       If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-      If lngField > 0 Then cptStatusSheet_frm.cboEVP.Value = .Fields(1) 'cboEVP
+      'auto-select if saved setting exists and if saved field exists in the comboBox
+      If lngField > 0 And arrEVP.ContainsValue(.Fields(0)) Then cptStatusSheet_frm.cboEVP.Value = .Fields(1) 'cboEVP
       lngField = 0
       
       cptStatusSheet_frm.cboCreate = .Fields(2) - 1 'cboCreate
@@ -222,11 +224,11 @@ exit_here:
   Exit Sub
 
 err_here:
-  If err.Number = 1101 Or err.Number = 1004 Then
-    err.Clear
+  If Err.Number = 1101 Or Err.Number = 1004 Then
+    Err.Clear
     Resume next_field
   Else
-    Call cptHandleErr("cptStatusSheet_frm", "ShowCptStatusSheet_frm", err, Erl)
+    Call cptHandleErr("cptStatusSheet_frm", "ShowCptStatusSheet_frm", Err, Erl)
     Resume exit_here
   End If
 
@@ -512,9 +514,9 @@ next_field:
   Do
     On Error Resume Next
     Set Task = ActiveCell.Task
-    If err.Number > 0 Then
-      err.Number = 0
-      err.Clear
+    If Err.Number > 0 Then
+      Err.Number = 0
+      Err.Clear
       If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
       Exit Do
     End If
@@ -869,8 +871,8 @@ new_start:
   'add conditions only to blank cells in the column
   On Error Resume Next '<issue52-no cells found>
   Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngASCol), xlCells(lngRow, lngASCol)).SpecialCells(xlCellTypeVisible)
-  If err.Number = 1004 Then 'no cells found
-    err.Clear '<issue52>
+  If Err.Number = 1004 Then 'no cells found
+    Err.Clear '<issue52>
     GoTo new_finish '<issue52>
   End If '<issue52>
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
@@ -966,8 +968,8 @@ new_finish: '<issue52>
   'add conditions only to blank cells in the column
   On Error Resume Next '<issue52>
   Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngAFCol), xlCells(lngRow, lngAFCol)).SpecialCells(xlCellTypeVisible)
-  If err.Number = 1004 Then '<issue52>
-    err.Clear '<issue52>
+  If Err.Number = 1004 Then '<issue52>
+    Err.Clear '<issue52>
     GoTo ev_percent '<issue52>
   End If '<issue52>
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
@@ -1061,8 +1063,8 @@ ev_percent:
   'add conditions only to blank cells in the column
   On Error Resume Next '<issue52-noCellsFound>
   Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngEVPCol), xlCells(lngRow, lngEVPCol)).SpecialCells(xlCellTypeVisible)
-  If err.Number = 1004 Then '<issue52>
-    err.Clear '<issue52>
+  If Err.Number = 1004 Then '<issue52>
+    Err.Clear '<issue52>
     GoTo revised_etc '<issue52>
   End If '<issue52>
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
@@ -1190,8 +1192,8 @@ revised_etc:
   'add conditions only to blank cells in the column
   On Error Resume Next '<issue52>
   Set rng = Worksheet.Range(xlCells(lngHeaderRow + 1, lngETCCol), xlCells(lngRow, lngETCCol)).SpecialCells(xlCellTypeVisible)
-  If err.Number = 1004 Then '<issue52>
-    err.Clear '<issue52>
+  If Err.Number = 1004 Then '<issue52>
+    Err.Clear '<issue52>
     GoTo evt_vs_evp '<issue52>
   End If '<issue52>
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
@@ -1362,9 +1364,9 @@ evt_vs_evp:
       Do
         On Error Resume Next
         Set Task = ActiveCell.Task
-        If err.Number > 0 Then
-          err.Number = 0
-          err.Clear
+        If Err.Number > 0 Then
+          Err.Number = 0
+          Err.Clear
           If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
           Exit Do
         End If
@@ -1500,7 +1502,7 @@ exit_here:
   Exit Sub
 
 err_here:
-  Call cptHandleErr("cptStatusSheet_bas", "cptCreateStatusSheet", err, Erl)
+  Call cptHandleErr("cptStatusSheet_bas", "cptCreateStatusSheet", Err, Erl)
   If Not xlApp Is Nothing Then
     If Not Workbook Is Nothing Then Workbook.Close False
     xlApp.Quit
@@ -1565,7 +1567,7 @@ exit_here:
   cptSpeed False
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_bas", "cptRefreshStatusView", err, Erl)
-  err.Clear
+  Call cptHandleErr("cptStatusSheet_bas", "cptRefreshStatusView", Err, Erl)
+  Err.Clear
   Resume exit_here
 End Sub
