@@ -1,6 +1,6 @@
-![header](https://github.com/AronGahagan/cpt-dev/blob/develop/images/header.png?raw=true)
+![header](/images/header.png?raw=true)
 
-![cpt](https://github.com/AronGahagan/cpt-dev/blob/develop/images/cpt.png?raw=true)
+![cpt](/images/cpt.png?raw=true)
 
 <sub>_License: This software is provided gratis (free of charge), AS IS and without Warranty. It is free to use, and it is free to distribute **with prior written consent from the contributors/copyright holders** provided **no modifications are made**. Contributors retain their patents. All other rights reserved. Copyright &#169; 2019-2020, contributors and ClearPlan Consulting, LLC._</sub>
 
@@ -59,9 +59,9 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 1. Enable Macros
     1. Open Microsoft Project, go to File > Options > Trust Center > Trust Center Settings...
     1. In the **Macro Settings** pane, click **Enable all macros**
-    ![installation-01](https://github.com/AronGahagan/cpt-dev/blob/develop/images/installation-01.PNG?raw=true)
+    ![installation-01](/images/installation-01.PNG?raw=true)
     1. In the **Legacy Formats** pane, click **Allow loading files with legacy or non-default formats** _(this will allow import/export of settings required for various features)_ 
-    ![installation-02](https://github.com/AronGahagan/cpt-dev/blob/develop/images/installation-02.PNG?raw=true)
+    ![installation-02](/images/installation-02.PNG?raw=true)
     1. Click **OK** a couple of times to close the dialogs
     1. Completely exit, and then restart, Microsoft Project (this makes the settings above 'stick')
 1. Download and open [cpt.mpp](https://github.com/AronGahagan/cpt-dev/releases/download/1.5.3/cpt_v1.5.3.mpp)
@@ -82,7 +82,7 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 ---
 
 ### View and Count Tools
-![view](https://github.com/AronGahagan/cpt-dev/blob/develop/images/view.png?raw=true)
+![view](/images/view.png?raw=true)
 
 1. _**Reset All**_ - removes all groups and filters, expands all tasks, and reorders by Task ID.
 1. _**WrapItUp**_ - collapses the currently visible outline (or group) of your project starting from the lowest level up.
@@ -93,7 +93,7 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 ---
 
 ### Text Tools
-![text](https://github.com/AronGahagan/cpt-dev/blob/develop/images/text.png?raw=true)
+![text](/images/text.png?raw=true)
 
 1. _**Advanced Text Tools**_ - a single dialog aggregating the text tools below. Presents a preview of changes and can be applied to any selected tasks. Undo works.
 1. The following utilities are also available standalone in the top portion of the splitButton menu:
@@ -115,10 +115,10 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 ---
 
 ### Trace Tools
-![trace](https://github.com/AronGahagan/cpt-dev/blob/develop/images/trace.png?raw=true)
+![trace](/images/trace.png?raw=true)
 
 1. _**Driving Path**_ - Select any target task, and then click this button. The Primary, Secondary, and Tertiary Driving Path will be displayed. _Note: as of v1.3 "`New Orleans`" this does not yet work with master/subprojects. We are targeting v1.5 "`Coronado`" for upgrade._
-![drivingpath](https://github.com/AronGahagan/cpt-dev/blob/develop/images/driving-path.png?raw=true)
+![drivingpath](/images/driving-path.png?raw=true)
 
 1. _**Export to PowerPoint**_ - _With the target task still selected_, click this button to export this `VBA wizardry` into a PowerPoint slide deck. Each Driving Path (Primary, Secondary, and Tertiary) will start a new set of slides. If the task count is too high, the network will be split over multiple slides to keep it readable (anti-eye-charting). If multiple slides are required, the last task on (e.g.,) slide 1 will be repeated as the first task on the following slide to retain context and presentation flow.
 
@@ -127,11 +127,11 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 ---
 
 ### Status Tools
-![status](https://github.com/AronGahagan/cpt-dev/blob/develop/images/status.png?raw=true)
+![status](/images/status.png?raw=true)
 
 #### Create Status Sheet
 
-![status-sheet-form](https://github.com/AronGahagan/cpt-dev/blob/develop/images/status-form.png?raw=true)
+![status-sheet-form](/images/status-form.png?raw=true)
 
 1. Set a Project Status Date using Project > Project Information, or View > Status Date.
 1. Open the form and select: which field EV% is stored in; which field Earned Value Technique (e.g., LOE, 50/50, etc.).
@@ -146,7 +146,7 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 _Notes:_ Your choices will be saved between sessions. These settings are saved locally, so are not shared between users. If a saved custom field does not exist in the currently active project, you will be prompted to remove it.
 
 #### Update Status Sheet
-![update-status-sheet](https://github.com/AronGahagan/cpt-dev/blob/develop/images/status-update.png?raw=true)
+![update-status-sheet](/images/status-update.png?raw=true)
 
 1. Stakeholders should open the received Status Update workbooks and make changes to the editable fields (AS/AF, FS/FS, New EV%, New ETC, R/A/I). Built-in conditional formatting will catch common entry errors, such as: Actual Finish <> NA and EV% < 100% or ETC > 0; Actual Finish = NA and EV% = 100 or ETC = 0, etc.
 1. Stakeholders may not add or remove tasks or assignments via the Status Sheet--this must (and should) only be done via the Scheduler in the live IMS.
@@ -158,7 +158,7 @@ _Notes:_ Your choices will be saved between sessions. These settings are saved l
 #### Import Status Sheet
 The _Import Status Sheet_ feature allows you to automatically import updates to custom fields in your IMS for further review and analysis before being applied to the IMS. 
 
-![status-import-form](https://github.com/AronGahagan/cpt-dev/blob/develop/images/status-import-form.png?raw=true)
+![status-import-form](/images/status-import-form.png?raw=true)
 
 1. Open the Import Status Sheet Form.
 1. Click _Select Files..._, navigate to the directory where returned status workbooks are stored, and make your selections. They will be listed in the ListBox on the form.
@@ -179,9 +179,9 @@ _Notes:_ Your import choices will be saved between sessions. These settings are 
 ---
 
 ### Resource Demand
-![resource](https://github.com/AronGahagan/cpt-dev/blob/develop/images/resource-demand.png?raw=true)
+![resource](/images/resource-demand.png?raw=true)
 
-![resource-form](https:/github.com/AronGahagan/cpt-dev/blob/develop/images/resource-demand-form.png?raw=true)
+![resource-form](/images/resource-demand-form.png?raw=true)
 
 _**Resource Demand**_ - Export timephased remaining work to Excel (similar to the Task Usage view), with automatic PivotTable and PivotCharts. Add whatever fields you'd like to the report, and your settings will be saved for next time.
 
@@ -190,7 +190,7 @@ _**Resource Demand**_ - Export timephased remaining work to Excel (similar to th
 ---
 
 ### QuickMetrics
-![quick-metrics](https://github.com/AronGahagan/cpt-dev/blob/develop/images/metrics.png?raw=true)
+![quick-metrics](/images/metrics.png?raw=true)
 
 1. _**Schedule Metrics**_
     1. _CPLI_ - select a target task and click this to get a quick CPLI. 
@@ -209,9 +209,9 @@ _**Resource Demand**_ - Export timephased remaining work to Excel (similar to th
 ### Backbone
 This feature helps you set up and manage Outline Codes (e.g., CWBS, IMP).
 
-![backbone](https://github.com/AronGahagan/cpt-dev/blob/develop/images/backbone.png?raw=true)
+![backbone](/images/backbone.png?raw=true)
 
-![backbone](https://github.com/AronGahagan/cpt-dev/blob/develop/images/backbone-form.png?raw=true)
+![backbone-form](/images/backbone-form.png?raw=true)
 
 1. Select the local custom Outline Code you want to work with. Existing lookup tables will be shown in the TreeView control below. If you make updates to the code while the form is open, the TreeView will refresh automatically.
 1. Select the **Import Code** option and choose an _Import Source_. You can import: 
@@ -220,7 +220,7 @@ This feature helps you set up and manage Outline Codes (e.g., CWBS, IMP).
     1. The existing summary/task structure in the active project. This will use the native WBS field as the code, and the Task Name as the Description.
     1. If the selected local custom Outline Code is not yet named, provide a name for it (e.g., "CWBS").
     1. Once you have made your selections, click **Import**.
-1. Select the **Export Code** option to export the selected local custom Outline Code into: An Excel Workbook; "WBS Descriptive" CSV file for import to MPM; a CSV Code file for import to COBRA; or import into pre-formatted DI-MGMT-81334D for update. Note: the [DI-MGMT-81334D Template] (link required) is required; install it to your Microsoft Templates directory (usually located at C:\Users\\[username]\AppData\Roaming\Microsoft\Templates\).
+1. Select the **Export Code** option to export the selected local custom Outline Code into: An Excel Workbook; "WBS Descriptive" CSV file for import to MPM; a CSV Code file for import to COBRA; or import into pre-formatted DI-MGMT-81334D for update. Note: the [DI-MGMT-81334D Template](https://github.com/AronGahagan/cpt-dev/blob/develop/Templates/81334D_CWBS_TEMPLATE.xltm) is required; install it to your Microsoft Templates directory (usually located at C:\Users\\[username]\AppData\Roaming\Microsoft\Templates\).
 1. Select the **Find/Replace** option to find and replace multiple instances of a word in the selected local custom Outline Code descriptions.
 
 [[up]](#use) | [[toc]](#table-of-contents)
@@ -228,9 +228,9 @@ This feature helps you set up and manage Outline Codes (e.g., CWBS, IMP).
 ---
 
 ### Integration Tools
-![integration](https://github.com/AronGahagan/cpt-dev/blob/develop/images/integration.png?raw=true)
+![integration](/images/integration.png?raw=true)
 
-1. _**Export IMS to COBRA**_ - Creates the CSV-formatted import files for Baseline, Forecast, and Status for upload to COBRA. See the [Help Doc] (link needed) for more information.
+1. _**Export IMS to COBRA**_ - Creates the CSV-formatted import files for Baseline, Forecast, and Status for upload to COBRA. See the [Help Doc](https://github.com/AronGahagan/cpt-dev/blob/develop/Templates/ClearPlan_IMS_Export_Utility_r3.1.0.docx) for more information.
 
 [[up]](#use) | [[toc]](#table-of-contents)
 
@@ -239,9 +239,9 @@ This feature helps you set up and manage Outline Codes (e.g., CWBS, IMP).
 ### Data Dictionary
 Store custom field descriptions and automatically generate an IMS Data Dictionary.
 
-![data-dictionary](https://github.com/AronGahagan/cpt-dev/blob/develop/images/data-dictionary.png?raw=true)
+![data-dictionary](/images/data-dictionary.png?raw=true)
 
-![data-dictionary](https://github.com/AronGahagan/cpt-dev/blob/develop/images/data-dictionary-form.png?raw=true)
+![data-dictionary](/images/data-dictionary-form.png?raw=true)
 
 1. Local and Enterprise Custom fields will be listed in the ListBox. Use the yellow search filter to find a specific field.
 1. Enter a Description in the Text Box. 
@@ -254,7 +254,7 @@ _Note:_ Data Dictionary entries are stored _per project file_ and _per user_.
 ---
 
 ## Help
-![help](https://github.com/AronGahagan/cpt-dev/blob/develop/images/help.png?raw=true)
+![help](/images/help.png?raw=true)
 
 1. _**Check for Upgrades**_ - From time to time click _Check for Upgrades_ to get the latest upgrades and hotfixes. _Note: if you do not have an internet connection available from your client computer, download on a non-client asset next time you're in the coffee-shop, then copy the modules over into your Organizer next time you're onsite._
 1. _**Submit an Issue**_ - submit your bugs/issues for quick triage and (depending on availability of our developers who are themselves fully deployed) we'll push fixes ASAP.
