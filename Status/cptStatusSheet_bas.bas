@@ -77,10 +77,10 @@ Dim vFieldType As Variant
 next_field:
     Next intField
   Next vFieldType
-
+  
   'add Physical % Complete
   arrEVP.Add "Physical % Complete", FieldNameToFieldConstant("Physical % Complete")
-
+  
   'get enterprise custom fields
   For lngField = 188776000 To 188778000 '2000 should do it for now
     If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
@@ -117,25 +117,25 @@ next_field:
     With CreateObject("ADODB.Recordset")
       .Open strFileName
       .MoveFirst
-
+      
       On Error Resume Next
       lngField = FieldNameToFieldConstant(.Fields(0))
       If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
       'auto-select if saved setting exists and if saved field exists in the comboBox
       If lngField > 0 And arrEVT.Contains(CStr(.Fields(0))) Then cptStatusSheet_frm.cboEVT.Value = .Fields(0) 'cboEVT
       lngField = 0
-
+      
       On Error Resume Next
       lngField = FieldNameToFieldConstant(.Fields(1))
       If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
       'auto-select if saved setting exists and if saved field exists in the comboBox
       If lngField > 0 And arrEVP.Contains(CStr(.Fields(1))) Then cptStatusSheet_frm.cboEVP.Value = .Fields(1) 'cboEVP
       lngField = 0
-
+      
       cptStatusSheet_frm.cboCreate = .Fields(2) - 1 'cboCreate
-
+      
       cptStatusSheet_frm.chkHide = .Fields(3) = 1 'chkHide
-
+      
       If .Fields.Count >= 5 Then
         If Not IsNull(.Fields(4)) Then cptStatusSheet_frm.cboCostTool.Value = .Fields(4) 'cboCostTool
       End If
@@ -292,6 +292,7 @@ Dim dtStatus As Date
 'variants
 Dim vCol As Variant, aUserFields As Variant
 'booleans
+Dim blnAddConditionalFormats As Boolean
 Dim blnPerformanceTest As Boolean
 Dim blnSpace As Boolean
 Dim blnEmail As Boolean
@@ -324,7 +325,7 @@ Dim blnEmail As Boolean
   Application.StatusBar = "Analyzing project..."
   'get task count
   If blnPerformanceTest Then t = GetTickCount
-
+  
   SelectAll
   Set Tasks = ActiveSelection.Tasks
   For Each Task In Tasks
@@ -852,6 +853,10 @@ next_task:
 '  .Interior.TintAndShade = 0
 
   If blnPerformanceTest Then t = GetTickCount
+  
+  blnAddConditionalFormats = cptStatusSheet_frm.chkAddConditionalFormats = True
+  If Not blnAddConditionalFormats Then GoTo conditional_formatting_skipped
+  
   cptStatusSheet_frm.lblStatus.Caption = " Applying conditional formats..."
   Application.StatusBar = "Applying conditional formats..."
   cptStatusSheet_frm.lblProgress.Width = (1 / 100) * cptStatusSheet_frm.lblStatus.Width
@@ -1291,6 +1296,8 @@ evt_vs_evp:
 
   Debug.Print lngFormatCondition & " format conditions applied."
 
+conditional_formatting_skipped:
+
   'optionallly set reference to Outlook and prepare to email
   blnEmail = cptStatusSheet_frm.chkSendEmails = True
   If blnEmail Then
@@ -1317,11 +1324,11 @@ evt_vs_evp:
   strFileName = "SS_" & strFileName & "_" & Format(dtStatus, "yyyy-mm-dd") & ".xlsx"
   strFileName = Replace(strFileName, " ", "")
   If cptStatusSheet_frm.cboCreate.Value = "0" Then 'single workbook
-
+  
     xlApp.Visible = True '<issue81> - move this below if option = (0|other)
     xlApp.WindowState = xlMaximized
     xlApp.ScreenUpdating = True
-
+  
     Worksheet.ShowAllData
     xlApp.ActiveWindow.ScrollColumn = 1
     xlApp.ActiveWindow.ScrollRow = 1 '<issue54>
@@ -1329,7 +1336,7 @@ evt_vs_evp:
     xlApp.ActiveWindow.FreezePanes = True
     'prettify the task name column
     Worksheet.Columns(lngNameCol).AutoFit
-
+  
     'protect the sheet
     Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
     Worksheet.EnableSelection = xlNoRestrictions
@@ -1354,12 +1361,12 @@ evt_vs_evp:
       MailItem.Display False
     End If
   Else
-
+  
     xlCells(lngHeaderRow + 1, lngNameCol + 1).Select
     xlApp.ActiveWindow.FreezePanes = True
     'prettify the task name column
     Worksheet.Columns(lngNameCol).AutoFit
-
+  
     'cycle through each option and create sheet
     For lngItem = aEach.Count - 1 To 0 Step -1
       Workbook.Sheets(1).Copy After:=Workbook.Sheets(1)
