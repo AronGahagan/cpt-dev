@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.2.2</cpt_version>
+'<cpt_version>v1.2.3</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -1288,11 +1288,12 @@ evt_vs_evp:
 
   Debug.Print lngFormatCondition & " format conditions applied."
 
-  xlApp.Visible = True
+  xlApp.Visible = True '<issue81> - is this necessary?
   xlApp.WindowState = xlMaximized
   xlApp.ScreenUpdating = True
 
   Worksheet.ShowAllData
+  xlApp.ActiveWindow.ScrollColumn = 1
   xlApp.ActiveWindow.ScrollRow = 1 '<issue54>
   xlCells(lngHeaderRow + 1, lngNameCol + 1).Select
   xlApp.ActiveWindow.FreezePanes = True
@@ -1408,13 +1409,27 @@ evt_vs_evp:
       'todo:retain user's applied group
     Next
 
-    xlApp.Visible = True
+    xlApp.Visible = True '<issue81> - is this necessary?
     xlApp.ScreenUpdating = True
     xlApp.Calculation = True
 
     'handle workbook for each
     If cptStatusSheet_frm.cboCreate = "1" Then 'worksheet for each
-      Workbook.SaveAs strDir & strFileName, 51
+      'Workbook.SaveAs strDir & strFileName, 51 '</issue80>
+      'save in folder for status date '<issue80>
+      On Error Resume Next
+      If Dir(strDir & strFileName) <> vbNullString Then Kill strDir & strFileName
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      'account for if the file exists and is open in the background
+      If Dir(strDir & strFileName) <> vbNullString Then  'delete failed, rename with timestamp
+        strMsg = "'" & strFileName & "' already exists, and is likely open." & vbCrLf
+        strFileName = Replace(strFileName, ".xlsx", "_" & Format(Now, "hh-nn-ss") & ".xlsx")
+        strMsg = strMsg & "The file you are now creating will be named '" & strFileName & "'"
+        MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
+        Workbook.SaveAs strDir & strFileName, 51
+      Else
+        Workbook.SaveAs strDir & strFileName, 51
+      End If
       If blnEmail Then
         Set MailItem = olApp.CreateItem(olMailItem)
         MailItem.Attachments.Add strDir & strFileName
@@ -1424,8 +1439,21 @@ evt_vs_evp:
     ElseIf cptStatusSheet_frm.cboCreate.Value = "2" Then 'workbook for each
       For lngItem = aEach.Count - 1 To 0 Step -1
         Workbook.Sheets(aEach.getKey(lngItem)).Copy
+        '<issue80> save in folder for status date
+        On Error Resume Next
         If Dir(strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")) <> vbNullString Then Kill strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")
-        xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51
+        'xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51 '</issue80>
+        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        'account for if the file exists and is open in the background
+        If Dir(strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")) <> vbNullString Then  'delete failed, rename with timestamp
+          strMsg = "'" & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx") & "' already exists, and is likely open." & vbCrLf
+          strFileName = Replace(Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), ".xlsx", "_" & Format(Now, "hh-nn-ss") & ".xlsx")
+          strMsg = strMsg & "The file you are now creating will be named '" & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx") & "'"
+          MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
+          Workbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51
+        Else
+          Workbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51
+        End If
         If blnEmail Then
           Set MailItem = olApp.CreateItem(olMailItem)
           MailItem.Attachments.Add strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")
