@@ -78,6 +78,9 @@ next_field:
     Next intField
   Next vFieldType
 
+  'add Physical % Complete
+  arrEVP.Add "Physical % Complete", FieldNameToFieldConstant("Physical % Complete")
+
   'get enterprise custom fields
   For lngField = 188776000 To 188778000 '2000 should do it for now
     If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
@@ -114,25 +117,25 @@ next_field:
     With CreateObject("ADODB.Recordset")
       .Open strFileName
       .MoveFirst
-      
+
       On Error Resume Next
       lngField = FieldNameToFieldConstant(.Fields(0))
       If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
       'auto-select if saved setting exists and if saved field exists in the comboBox
-      If lngField > 0 And arrEVT.ContainsValue(.Fields(0)) Then cptStatusSheet_frm.cboEVT.Value = .Fields(0) 'cboEVT
+      If lngField > 0 And arrEVT.Contains(CStr(.Fields(0))) Then cptStatusSheet_frm.cboEVT.Value = .Fields(0) 'cboEVT
       lngField = 0
-      
+
       On Error Resume Next
       lngField = FieldNameToFieldConstant(.Fields(1))
       If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
       'auto-select if saved setting exists and if saved field exists in the comboBox
-      If lngField > 0 And arrEVP.ContainsValue(.Fields(0)) Then cptStatusSheet_frm.cboEVP.Value = .Fields(1) 'cboEVP
+      If lngField > 0 And arrEVP.Contains(CStr(.Fields(1))) Then cptStatusSheet_frm.cboEVP.Value = .Fields(1) 'cboEVP
       lngField = 0
-      
+
       cptStatusSheet_frm.cboCreate = .Fields(2) - 1 'cboCreate
-      
+
       cptStatusSheet_frm.chkHide = .Fields(3) = 1 'chkHide
-      
+
       If .Fields.Count >= 5 Then
         If Not IsNull(.Fields(4)) Then cptStatusSheet_frm.cboCostTool.Value = .Fields(4) 'cboCostTool
       End If
@@ -321,7 +324,7 @@ Dim blnEmail As Boolean
   Application.StatusBar = "Analyzing project..."
   'get task count
   If blnPerformanceTest Then t = GetTickCount
-  
+
   SelectAll
   Set Tasks = ActiveSelection.Tasks
   For Each Task In Tasks
@@ -1288,18 +1291,6 @@ evt_vs_evp:
 
   Debug.Print lngFormatCondition & " format conditions applied."
 
-  xlApp.Visible = True '<issue81> - is this necessary?
-  xlApp.WindowState = xlMaximized
-  xlApp.ScreenUpdating = True
-
-  Worksheet.ShowAllData
-  xlApp.ActiveWindow.ScrollColumn = 1
-  xlApp.ActiveWindow.ScrollRow = 1 '<issue54>
-  xlCells(lngHeaderRow + 1, lngNameCol + 1).Select
-  xlApp.ActiveWindow.FreezePanes = True
-  'prettify the task name column
-  Worksheet.Columns(lngNameCol).AutoFit
-
   'optionallly set reference to Outlook and prepare to email
   blnEmail = cptStatusSheet_frm.chkSendEmails = True
   If blnEmail Then
@@ -1325,9 +1316,20 @@ evt_vs_evp:
   If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
   strFileName = "SS_" & strFileName & "_" & Format(dtStatus, "yyyy-mm-dd") & ".xlsx"
   strFileName = Replace(strFileName, " ", "")
-  Worksheet.[B1].Select
-  If cptStatusSheet_frm.cboCreate.Value = "0" Then
-    Worksheet.[B1].Select
+  If cptStatusSheet_frm.cboCreate.Value = "0" Then 'single workbook
+
+    xlApp.Visible = True '<issue81> - move this below if option = (0|other)
+    xlApp.WindowState = xlMaximized
+    xlApp.ScreenUpdating = True
+
+    Worksheet.ShowAllData
+    xlApp.ActiveWindow.ScrollColumn = 1
+    xlApp.ActiveWindow.ScrollRow = 1 '<issue54>
+    xlCells(lngHeaderRow + 1, lngNameCol + 1).Select
+    xlApp.ActiveWindow.FreezePanes = True
+    'prettify the task name column
+    Worksheet.Columns(lngNameCol).AutoFit
+
     'protect the sheet
     Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
     Worksheet.EnableSelection = xlNoRestrictions
@@ -1352,6 +1354,12 @@ evt_vs_evp:
       MailItem.Display False
     End If
   Else
+
+    xlCells(lngHeaderRow + 1, lngNameCol + 1).Select
+    xlApp.ActiveWindow.FreezePanes = True
+    'prettify the task name column
+    Worksheet.Columns(lngNameCol).AutoFit
+
     'cycle through each option and create sheet
     For lngItem = aEach.Count - 1 To 0 Step -1
       Workbook.Sheets(1).Copy After:=Workbook.Sheets(1)
@@ -1409,11 +1417,10 @@ evt_vs_evp:
       'todo:retain user's applied group
     Next
 
-    xlApp.Visible = True '<issue81> - is this necessary?
     xlApp.ScreenUpdating = True
     xlApp.Calculation = True
 
-    'handle workbook for each
+    'handle for each
     If cptStatusSheet_frm.cboCreate = "1" Then 'worksheet for each
       'Workbook.SaveAs strDir & strFileName, 51 '</issue80>
       'save in folder for status date '<issue80>
@@ -1450,9 +1457,9 @@ evt_vs_evp:
           strFileName = Replace(Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), ".xlsx", "_" & Format(Now, "hh-nn-ss") & ".xlsx")
           strMsg = strMsg & "The file you are now creating will be named '" & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx") & "'"
           MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
-          Workbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51
+          xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51
         Else
-          Workbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51
+          xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51
         End If
         If blnEmail Then
           Set MailItem = olApp.CreateItem(olMailItem)
@@ -1489,7 +1496,9 @@ exit_here:
   Application.DefaultDateFormat = lngDateFormat
   ActiveProject.SpaceBeforeTimeLabels = blnSpace
   ActiveProject.DayLabelDisplay = lngDayLabelDisplay
-  xlApp.EnableEvents = False
+  If xlApp.Workbooks.Count > 0 Then xlApp.Calculation = xlAutomatic
+  xlApp.ScreenUpdating = True
+  xlApp.EnableEvents = True
   Set rCompleted = Nothing
   Set aCompleted = Nothing
   Set aGroups = Nothing
