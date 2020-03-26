@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.0.4</cpt_version>
+'<cpt_version>v1.0.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -69,7 +69,7 @@ Dim lngItem As Long
         For Each Worksheet In Workbook.Sheets
           If Worksheet.[A1].Value = "CODE" And Worksheet.[B1].Value = "LEVEL" And Worksheet.[C1].Value = "TITLE" Then
             strOutlineCode = CustomFieldGetName(lngOutlineCode)
-            Set rng = Worksheet.Range(Worksheet.[A2], Worksheet.Cells(Worksheet.Rows.Count, 1).End(xlUp))
+            Set rng = Worksheet.Range(Worksheet.[A2], Worksheet.Cells(Worksheet.Rows.Count, 1).End(-4162)) 'xlUp = -4162
             lngItem = 0
             For Each c In rng.Cells
               lngItem = lngItem + 1
@@ -499,7 +499,7 @@ Dim lngItem As Long
           If olApp Is Nothing Then
             Set olApp = CreateObject("Outlook.Application")
           End If
-          Set MailItem = olApp.CreateItem(olMailItem)
+          Set MailItem = olApp.CreateItem(0) '0 = olMailItem
           MailItem.To = "cpt@ClearPlanConsulting.com"
           MailItem.Importance = 2 'olImportanceHigh
           MailItem.Subject = "Template Request: " & strTemplate

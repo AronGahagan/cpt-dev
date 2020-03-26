@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.2.2</cpt_version>
+'<cpt_version>v1.2.4</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -34,7 +34,7 @@ Dim vFieldType As Variant
   If Not cptCheckReference("Excel") Then GoTo exit_here
   'requires scripting (cptRegEx)
   If Not cptCheckReference("Scripting") Then GoTo exit_here
-
+  
   'reset options
   With cptStatusSheet_frm
     .lboFields.Clear
@@ -52,6 +52,7 @@ Dim vFieldType As Variant
       .cboCreate.List(lngItem, 0) = lngItem
       .cboCreate.List(lngItem, 1) = Choose(lngItem + 1, "A Single Workbook", "A Worksheet for each", "A Workbook for each")
     Next lngItem
+    .chkSendEmails.Enabled = cptCheckReference("Outlook")
   End With
 
   'set up arrays to capture values
@@ -77,7 +78,10 @@ Dim vFieldType As Variant
 next_field:
     Next intField
   Next vFieldType
-
+  
+  'add Physical % Complete
+  arrEVP.Add "Physical % Complete", FieldNameToFieldConstant("Physical % Complete")
+  
   'get enterprise custom fields
   For lngField = 188776000 To 188778000 '2000 should do it for now
     If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
@@ -119,14 +123,14 @@ next_field:
       lngField = FieldNameToFieldConstant(.Fields(0))
       If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
       'auto-select if saved setting exists and if saved field exists in the comboBox
-      If lngField > 0 And arrEVT.ContainsValue(.Fields(0)) Then cptStatusSheet_frm.cboEVT.Value = .Fields(0) 'cboEVT
+      If lngField > 0 And arrEVT.Contains(CStr(.Fields(0))) Then cptStatusSheet_frm.cboEVT.Value = .Fields(0) 'cboEVT
       lngField = 0
       
       On Error Resume Next
       lngField = FieldNameToFieldConstant(.Fields(1))
       If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
       'auto-select if saved setting exists and if saved field exists in the comboBox
-      If lngField > 0 And arrEVP.ContainsValue(.Fields(0)) Then cptStatusSheet_frm.cboEVP.Value = .Fields(1) 'cboEVP
+      If lngField > 0 And arrEVP.Contains(CStr(.Fields(1))) Then cptStatusSheet_frm.cboEVP.Value = .Fields(1) 'cboEVP
       lngField = 0
       
       cptStatusSheet_frm.cboCreate = .Fields(2) - 1 'cboCreate
@@ -289,13 +293,14 @@ Dim dtStatus As Date
 'variants
 Dim vCol As Variant, aUserFields As Variant
 'booleans
+Dim blnAddConditionalFormats As Boolean
 Dim blnPerformanceTest As Boolean
 Dim blnSpace As Boolean
 Dim blnEmail As Boolean
 
   'check reference
   If Not cptCheckReference("Excel") Then GoTo exit_here
-  If Not cptCheckReference("Outlook") Then GoTo exit_here '<issue50>
+  'If Not cptCheckReference("Outlook") Then GoTo exit_here '<issue50>
 
   'ensure required module exists
   If Not cptModuleExists("cptCore_bas") Then
@@ -849,6 +854,10 @@ next_task:
 '  .Interior.TintAndShade = 0
 
   If blnPerformanceTest Then t = GetTickCount
+  
+  blnAddConditionalFormats = cptStatusSheet_frm.chkAddConditionalFormats = True
+  If Not blnAddConditionalFormats Then GoTo conditional_formatting_skipped
+  
   cptStatusSheet_frm.lblStatus.Caption = " Applying conditional formats..."
   Application.StatusBar = "Applying conditional formats..."
   cptStatusSheet_frm.lblProgress.Width = (1 / 100) * cptStatusSheet_frm.lblStatus.Width
@@ -1288,16 +1297,7 @@ evt_vs_evp:
 
   Debug.Print lngFormatCondition & " format conditions applied."
 
-  xlApp.Visible = True
-  xlApp.WindowState = xlMaximized
-  xlApp.ScreenUpdating = True
-
-  Worksheet.ShowAllData
-  xlApp.ActiveWindow.ScrollRow = 1 '<issue54>
-  xlCells(lngHeaderRow + 1, lngNameCol + 1).Select
-  xlApp.ActiveWindow.FreezePanes = True
-  'prettify the task name column
-  Worksheet.Columns(lngNameCol).AutoFit
+conditional_formatting_skipped:
 
   'optionallly set reference to Outlook and prepare to email
   blnEmail = cptStatusSheet_frm.chkSendEmails = True
@@ -1324,9 +1324,20 @@ evt_vs_evp:
   If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
   strFileName = "SS_" & strFileName & "_" & Format(dtStatus, "yyyy-mm-dd") & ".xlsx"
   strFileName = Replace(strFileName, " ", "")
-  Worksheet.[B1].Select
-  If cptStatusSheet_frm.cboCreate.Value = "0" Then
-    Worksheet.[B1].Select
+  If cptStatusSheet_frm.cboCreate.Value = "0" Then 'single workbook
+  
+    xlApp.Visible = True '<issue81> - move this below if option = (0|other)
+    xlApp.WindowState = xlMaximized
+    xlApp.ScreenUpdating = True
+  
+    Worksheet.ShowAllData
+    xlApp.ActiveWindow.ScrollColumn = 1
+    xlApp.ActiveWindow.ScrollRow = 1 '<issue54>
+    xlCells(lngHeaderRow + 1, lngNameCol + 1).Select
+    xlApp.ActiveWindow.FreezePanes = True
+    'prettify the task name column
+    Worksheet.Columns(lngNameCol).AutoFit
+  
     'protect the sheet
     Worksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=True, AllowSorting:=True, AllowFiltering:=True, UserInterfaceOnly:=True
     Worksheet.EnableSelection = xlNoRestrictions
@@ -1345,12 +1356,18 @@ evt_vs_evp:
       Workbook.SaveAs strDir & strFileName, 51
     End If
     If blnEmail Then
-      Set MailItem = olApp.CreateItem(olMailItem)
+      Set MailItem = olApp.CreateItem(0) '0 = olMailItem
       MailItem.Attachments.Add strDir & strFileName
       MailItem.Subject = "Status Request - " & Format(dtStatus, "yyyy-mm-dd")
       MailItem.Display False
     End If
   Else
+  
+    xlCells(lngHeaderRow + 1, lngNameCol + 1).Select
+    xlApp.ActiveWindow.FreezePanes = True
+    'prettify the task name column
+    Worksheet.Columns(lngNameCol).AutoFit
+  
     'cycle through each option and create sheet
     For lngItem = aEach.Count - 1 To 0 Step -1
       Workbook.Sheets(1).Copy After:=Workbook.Sheets(1)
@@ -1408,15 +1425,28 @@ evt_vs_evp:
       'todo:retain user's applied group
     Next
 
-    xlApp.Visible = True
     xlApp.ScreenUpdating = True
     xlApp.Calculation = True
 
-    'handle workbook for each
+    'handle for each
     If cptStatusSheet_frm.cboCreate = "1" Then 'worksheet for each
-      Workbook.SaveAs strDir & strFileName, 51
+      'Workbook.SaveAs strDir & strFileName, 51 '</issue80>
+      'save in folder for status date '<issue80>
+      On Error Resume Next
+      If Dir(strDir & strFileName) <> vbNullString Then Kill strDir & strFileName
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      'account for if the file exists and is open in the background
+      If Dir(strDir & strFileName) <> vbNullString Then  'delete failed, rename with timestamp
+        strMsg = "'" & strFileName & "' already exists, and is likely open." & vbCrLf
+        strFileName = Replace(strFileName, ".xlsx", "_" & Format(Now, "hh-nn-ss") & ".xlsx")
+        strMsg = strMsg & "The file you are now creating will be named '" & strFileName & "'"
+        MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
+        Workbook.SaveAs strDir & strFileName, 51
+      Else
+        Workbook.SaveAs strDir & strFileName, 51
+      End If
       If blnEmail Then
-        Set MailItem = olApp.CreateItem(olMailItem)
+        Set MailItem = olApp.CreateItem(0) '0 = olMailItem
         MailItem.Attachments.Add strDir & strFileName
         MailItem.Subject = "Status Request - " & Format(dtStatus, "yyyy-mm-dd")
         MailItem.Display False
@@ -1424,10 +1454,23 @@ evt_vs_evp:
     ElseIf cptStatusSheet_frm.cboCreate.Value = "2" Then 'workbook for each
       For lngItem = aEach.Count - 1 To 0 Step -1
         Workbook.Sheets(aEach.getKey(lngItem)).Copy
+        '<issue80> save in folder for status date
+        On Error Resume Next
         If Dir(strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")) <> vbNullString Then Kill strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")
-        xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51
+        'xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51 '</issue80>
+        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        'account for if the file exists and is open in the background
+        If Dir(strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")) <> vbNullString Then  'delete failed, rename with timestamp
+          strMsg = "'" & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx") & "' already exists, and is likely open." & vbCrLf
+          strFileName = Replace(Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), ".xlsx", "_" & Format(Now, "hh-nn-ss") & ".xlsx")
+          strMsg = strMsg & "The file you are now creating will be named '" & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx") & "'"
+          MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
+          xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51
+        Else
+          xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51
+        End If
         If blnEmail Then
-          Set MailItem = olApp.CreateItem(olMailItem)
+          Set MailItem = olApp.CreateItem(0) '0 = olMailItem
           MailItem.Attachments.Add strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")
           MailItem.Subject = "Status Request [" & aEach.getKey(lngItem) & "] " & Format(dtStatus, "yyyy-mm-dd")
           MailItem.Display False
@@ -1461,7 +1504,9 @@ exit_here:
   Application.DefaultDateFormat = lngDateFormat
   ActiveProject.SpaceBeforeTimeLabels = blnSpace
   ActiveProject.DayLabelDisplay = lngDayLabelDisplay
-  xlApp.EnableEvents = False
+  If xlApp.Workbooks.Count > 0 Then xlApp.Calculation = xlAutomatic
+  xlApp.ScreenUpdating = True
+  xlApp.EnableEvents = True
   Set rCompleted = Nothing
   Set aCompleted = Nothing
   Set aGroups = Nothing
