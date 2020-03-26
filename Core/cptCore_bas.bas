@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.6</cpt_version>
+'<cpt_version>v1.6.7</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -372,33 +372,30 @@ Dim strRegEx As String
       If Not cptReferenceExists("ADODB") Then
         ThisProject.VBProject.References.AddFromFile Environ("CommonProgramFiles") & "\System\ado\msado15.dll"
       End If
-
-    'Office Applications
-    strRegEx = "C\:.*Microsoft Office[A-z0-9\\]*Office[0-9]{2}"
-    strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "") 'todo: why isn't this 'sticking'?
+  End Select
+    
+  'Office Applications
+  strRegEx = "C\:.*Microsoft Office[A-z0-9\\]*Office[0-9]{2}"
+  strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
+  Select Case strReference
     Case "Excel"
       If Not cptReferenceExists("Excel") Then
-        strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
         ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
       End If
     Case "Outlook"
       If Not cptReferenceExists("Outlook") Then
-        strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
         ThisProject.VBProject.References.AddFromFile strDir & "\MSOUTL.OLB"
       End If
     Case "PowerPoint"
       If Not cptReferenceExists("PowerPoint") Then
-        strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
         ThisProject.VBProject.References.AddFromFile strDir & "\MSPPT.OLB"
       End If
     Case "MSProject"
       If Not cptReferenceExists("MSProject") Then
-        strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
         ThisProject.VBProject.References.AddFromFile strDir & "\MSPRJ.OLB"
       End If
     Case "Word"
       If Not cptReferenceExists("Word") Then
-        strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
         ThisProject.VBProject.References.AddFromFile strDir & "\MSWORD.OLB"
       End If
 

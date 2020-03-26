@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.2.3</cpt_version>
+'<cpt_version>v1.2.4</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -34,7 +34,7 @@ Dim vFieldType As Variant
   If Not cptCheckReference("Excel") Then GoTo exit_here
   'requires scripting (cptRegEx)
   If Not cptCheckReference("Scripting") Then GoTo exit_here
-
+  
   'reset options
   With cptStatusSheet_frm
     .lboFields.Clear
@@ -52,6 +52,7 @@ Dim vFieldType As Variant
       .cboCreate.List(lngItem, 0) = lngItem
       .cboCreate.List(lngItem, 1) = Choose(lngItem + 1, "A Single Workbook", "A Worksheet for each", "A Workbook for each")
     Next lngItem
+    .chkSendEmails.Enabled = cptCheckReference("Outlook")
   End With
 
   'set up arrays to capture values
@@ -299,7 +300,7 @@ Dim blnEmail As Boolean
 
   'check reference
   If Not cptCheckReference("Excel") Then GoTo exit_here
-  If Not cptCheckReference("Outlook") Then GoTo exit_here '<issue50>
+  'If Not cptCheckReference("Outlook") Then GoTo exit_here '<issue50>
 
   'ensure required module exists
   If Not cptModuleExists("cptCore_bas") Then
@@ -1355,7 +1356,7 @@ conditional_formatting_skipped:
       Workbook.SaveAs strDir & strFileName, 51
     End If
     If blnEmail Then
-      Set MailItem = olApp.CreateItem(olMailItem)
+      Set MailItem = olApp.CreateItem(0) '0 = olMailItem
       MailItem.Attachments.Add strDir & strFileName
       MailItem.Subject = "Status Request - " & Format(dtStatus, "yyyy-mm-dd")
       MailItem.Display False
@@ -1445,7 +1446,7 @@ conditional_formatting_skipped:
         Workbook.SaveAs strDir & strFileName, 51
       End If
       If blnEmail Then
-        Set MailItem = olApp.CreateItem(olMailItem)
+        Set MailItem = olApp.CreateItem(0) '0 = olMailItem
         MailItem.Attachments.Add strDir & strFileName
         MailItem.Subject = "Status Request - " & Format(dtStatus, "yyyy-mm-dd")
         MailItem.Display False
@@ -1469,7 +1470,7 @@ conditional_formatting_skipped:
           xlApp.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx"), 51
         End If
         If blnEmail Then
-          Set MailItem = olApp.CreateItem(olMailItem)
+          Set MailItem = olApp.CreateItem(0) '0 = olMailItem
           MailItem.Attachments.Add strDir & Replace(strFileName, ".xlsx", "_" & aEach.getKey(lngItem) & ".xlsx")
           MailItem.Subject = "Status Request [" & aEach.getKey(lngItem) & "] " & Format(dtStatus, "yyyy-mm-dd")
           MailItem.Display False
