@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.2.4</cpt_version>
+'<cpt_version>v1.2.5</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -968,7 +968,7 @@ new_start:
 
 new_finish: '<issue52>
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
-  Worksheet.ShowAllData
+  If Worksheet.AutoFilterMode Then Worksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for task rows [blue font]
   rngAll.AutoFilter Field:=lngNameCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
@@ -1065,7 +1065,7 @@ new_finish: '<issue52>
 
 ev_percent:
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  Worksheet.ShowAllData
+  If Worksheet.AutoFilterMode Then Worksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for task rows [blue font]
   rngAll.AutoFilter Field:=lngNameCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
@@ -1192,7 +1192,7 @@ ev_percent:
 
 revised_etc:
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
-  Worksheet.ShowAllData
+  If Worksheet.AutoFilterMode Then Worksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for Task
   rngAll.AutoFilter Field:=lngETCCol, Operator:=xlFilterAutomaticFontColor
@@ -1329,8 +1329,9 @@ conditional_formatting_skipped:
     xlApp.Visible = True '<issue81> - move this below if option = (0|other)
     xlApp.WindowState = xlMaximized
     xlApp.ScreenUpdating = True
-  
-    Worksheet.ShowAllData
+    
+    If Worksheet.AutoFilterMode Then Worksheet.ShowAllData
+    
     xlApp.ActiveWindow.ScrollColumn = 1
     xlApp.ActiveWindow.ScrollRow = 1 '<issue54>
     xlCells(lngHeaderRow + 1, lngNameCol + 1).Select
@@ -1389,7 +1390,7 @@ conditional_formatting_skipped:
         End If
         If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
         If Task.GroupBySummary Then
-          Worksheet.Cells(Worksheet.Rows.Count, 1).End(xlUp).Offset(1, 0) = aGroups.getvaluelist()(aGroups.indexofkey(Task.Name))
+          Worksheet.Cells(Worksheet.Rows.Count, 1).End(xlUp).Offset(1, 0) = aGroups.getValueList()(aGroups.indexOfKey(Task.Name))
         End If
         SelectCellDown
       Loop
