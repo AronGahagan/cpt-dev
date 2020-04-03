@@ -68,7 +68,7 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
 1. Open the **Organizer** and select the **Modules** tab:
     1. **If you have an internet connection:** copy the `cptSetup_bas` module into your Global.MPT
     1. **If you do not have an internet connection:** copy **all** modules prefixed with `cpt` into your Global.MPT
-1. On the Ribbon, click **View** > **Visual Basic** > **Macro**s > and run the macro `cptSetup()`
+1. On the Ribbon, click **View** > **Macros** > **View Macros** > and run the macro `cptSetup()`
     1. This macro installs necessary core modules if they are not already installed
     1. Changes will be made to your ThisProject module, but if you have existing code it will not be overwritten. cpt-related code will be inserted at the very top of the procedures **Project_Activate** and **Project_Open** and each line is appended with `'</cpt>` for reference.
 1. The ClearPlan Toolbar will be added. Click **ClearPlan** > **Help** > **Help** > **Check for Upgrades** to download the latest hotfixes. If you do not have an internet connection, please contact [cpt@ClearPlanConsulting.com](mailto:cpt@ClearPlanConsulting.com) for the latest hotfixes.
