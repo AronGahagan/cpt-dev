@@ -1,10 +1,11 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.1.5</cpt_version>
+'<cpt_version>v3.2.0</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
 Private BCWPxport As Boolean
 Private ETCxport As Boolean
+Private WhatIfxport As Boolean 'v3.2
 Private ResourceLoaded As Boolean
 Private MasterProject As Boolean
 Private ACTfilename As String
@@ -13,7 +14,7 @@ Private BCR_WP() As String
 Private BCR_ID As String
 Private BCRxport As Boolean
 Private BCR_Error As Boolean
-Private fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fPCNT, fEVT, fCAID2, fCAID2t, fMilestone, fMilestoneWeight, fBCR, fResID As String
+Private fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fPCNT, fEVT, fCAID2, fCAID2t, fMilestone, fMilestoneWeight, fBCR, fWhatIf, fResID As String 'v3.2
 Private CustTextFields() As String
 Private EntFields() As String
 Private CustNumFields() As String
@@ -128,6 +129,7 @@ Sub Export_IMS()
         .caID2Box.AddItem "<None>"
         .caID3Box.AddItem "<None>"
         .bcrBox.AddItem "<None>"
+        .whatifBox.AddItem "<None>" 'v3.2
         .msidBox.AddItem "<None>"
         .mswBox.AddItem "<None>"
         .PercentBox.AddItem "Physical % Complete"
@@ -152,6 +154,7 @@ Sub Export_IMS()
             .msidBox.AddItem EntFields(i)
             .mswBox.AddItem EntFields(i)
             .bcrBox.AddItem EntFields(i)
+            .whatifBox.AddItem EntFields(i) 'v3.2
         Next i
         For i = 1 To UBound(CustTextFields)
             .caID1Box.AddItem CustTextFields(i)
@@ -163,6 +166,7 @@ Sub Export_IMS()
             .msidBox.AddItem CustTextFields(i)
             .mswBox.AddItem CustTextFields(i)
             .bcrBox.AddItem CustTextFields(i)
+            .whatifBox.AddItem CustTextFields(i) 'v3.2
         Next i
         For i = 1 To UBound(CustOLCodeFields)
             .caID1Box.AddItem CustOLCodeFields(i)
@@ -174,6 +178,7 @@ Sub Export_IMS()
             .caID2Box.AddItem CustOLCodeFields(i)
             .msidBox.AddItem CustOLCodeFields(i)
             .bcrBox.AddItem CustOLCodeFields(i)
+            .whatifBox.AddItem CustOLCodeFields(i) 'v3.2
         Next i
 
         On Error GoTo CleanUp
@@ -210,6 +215,7 @@ Sub Export_IMS()
             BCWPxport = .BCWP_Checkbox.Value
             ETCxport = .ETC_Checkbox.Value
             BCRxport = .BcrBtn.Value
+            WhatIfxport = .WhatIf_CheckBox.Value 'v3.2
             BCR_ID = .BCR_ID_TextBox
             ResourceLoaded = .ResExportCheckbox
             TimeScaleExport = .exportTPhaseCheckBox
@@ -1063,6 +1069,9 @@ Private Sub CSV_Export(ByVal curproj As Project)
     If BCRxport = True Then
         fBCR = docProps("fBCR").Value
     End If
+    If WhatIfxport = True Then 'v3.2
+        fWhatIf = docProps("fWhatIf").Value
+    End If
     If CAID3_Used = True Then
         fCAID3 = docProps("fCAID3").Value
         fCAID3t = docProps("fCAID3t").Value
@@ -1122,6 +1131,16 @@ Private Sub CSV_Export(ByVal curproj As Project)
     If BCWPxport = True Then
 
         BCWP_Export curproj
+
+    End If
+    
+    '*******************
+    '**What-if Export***
+    '*******************
+
+    If WhatIfxport = True Then 'v3.2
+
+        WhatIf_Export curproj
 
     End If
 
@@ -1216,7 +1235,7 @@ Private Sub BCWP_Export(ByVal curproj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If EVT = "B" Or EVT = "N" Or EVT = "B Milestone" Or EVT = "N Earning Rules" Then
@@ -1551,7 +1570,7 @@ nrBCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earning Rules" Then
@@ -1930,7 +1949,7 @@ nrBCWP_WP_Match_B:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
@@ -2265,7 +2284,7 @@ BCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
@@ -3573,7 +3592,7 @@ Private Sub BCWS_Export(ByVal curproj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -3716,7 +3735,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -3911,7 +3930,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -4092,7 +4111,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4213,6 +4232,998 @@ WP_Match_B:
 
                                         End Select
 
+                                    End If
+
+                                End If
+
+                            Next tAssign
+
+                        End If
+
+                    End If
+
+                End If
+next_task:
+
+            Next t
+
+        End If
+
+        If ActFound = True Then
+            For i = 1 To UBound(ACTarray)
+
+                If DescExport = True Then
+                    ACTarray(i).Desc = WP_Desc(ACTarray(i).ID)
+                End If
+
+                If CAID3_Used = True And CAID2_Used = True Then
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                End If
+                If CAID3_Used = False And CAID2_Used = True Then
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                End If
+                If CAID3_Used = False And CAID2_Used = False Then
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                End If
+
+            Next i
+        End If
+
+        Close #1
+        Close #2
+
+    End If
+        
+End Sub
+
+Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
+
+    Dim t As Task
+    Dim tAss As Assignments
+    Dim tAssign As Assignment
+    Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT As String
+    Dim Milestone As String
+    Dim subProj As Subproject
+    Dim subProjs As Subprojects
+    Dim curSProj As Project
+    Dim ACTarray() As ACTrowWP
+    Dim WPDescArray() As WP_Descriptions
+    Dim x As Integer
+    Dim i As Integer
+    Dim aStartString As String
+    Dim aFinishString As String
+
+    '*******************
+    '**What-if Export***
+    '*******************
+
+    If DescExport = True Then
+        Get_WP_Descriptions curproj
+    End If
+
+    If ResourceLoaded = False Then
+
+        ACTfilename = destFolder & "\WhatIf ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+
+        Open ACTfilename For Output As #1
+
+        If CAID3_Used = True And CAID2_Used = True Then
+            Print #1, fCAID1t & "," & fCAID3t & "," & fCAID2t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+        End If
+        If CAID3_Used = False And CAID2_Used = True Then
+            Print #1, fCAID1t & "," & fCAID2t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+        End If
+        If CAID3_Used = False And CAID2_Used = False Then
+            Print #1, fCAID1t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+        End If
+
+        x = 1
+        ActFound = False
+
+        If curproj.Subprojects.count > 0 Then
+
+            Set subProjs = curproj.Subprojects
+
+            For Each subProj In subProjs
+
+                FileOpen Name:=subProj.Path, ReadOnly:=True
+                Set curSProj = ActiveProject
+
+                For Each t In curSProj.Tasks
+
+                    If Not t Is Nothing Then
+
+                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+
+                            If t.GetField(FieldNameToFieldConstant(fWP)) <> "" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "D" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "d" Then
+
+                                CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                                If CAID3_Used = True Then
+                                    CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
+                                End If
+                                If CAID2_Used = True Then
+                                    CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
+                                End If
+                                WP = t.GetField(FieldNameToFieldConstant(fWP))
+                                EVT = t.GetField(FieldNameToFieldConstant(fEVT))
+                                CAM = CleanCamName(t.GetField(FieldNameToFieldConstant(fCAM)))
+
+                                If CAID3_Used = True And CAID2_Used = True Then
+                                    ID = CAID1 & "/" & CAID2 & "/" & CAID3 & "/" & WP
+                                End If
+                                If CAID3_Used = False And CAID2_Used = True Then
+                                    ID = CAID1 & "/" & CAID2 & "/" & WP
+                                End If
+                                If CAID3_Used = False And CAID2_Used = False Then
+                                    ID = CAID1 & "/" & WP
+                                End If
+
+                                If Milestones_Used = False Then
+                                    UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                    MSWeight = CleanNumber(t.GetField(FieldNameToFieldConstant(fMilestoneWeight)))
+                                End If
+
+                                If BCRxport = True Then
+                                    If IsInArray(WP, BCR_WP) = False Then
+                                        GoTo Next_nrSProj_Task
+                                    End If
+                                End If
+
+                                If EVT = "B" And Milestones_Used = False Then
+                                    ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
+                                    Err.Raise 1
+                                End If
+
+                                'store ACT info
+                                'WP Data
+                                If x = 1 Then
+
+                                    'create new WP line in ACTarrray
+                                    ReDim ACTarray(1 To x)
+                                    If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                        ACTarray(x).BFinish = t.BaselineFinish
+                                        ACTarray(x).BStart = t.BaselineStart
+                                    Else
+                                        ACTarray(x).BFinish = t.Finish
+                                        ACTarray(x).BStart = t.Start
+                                    End If
+                                    If CAID3_Used = True Then
+                                        ACTarray(x).CAID3 = CAID3
+                                    End If
+                                    If CAID2_Used = True Then
+                                        ACTarray(x).CAID2 = CAID2
+                                    End If
+                                    ACTarray(x).ID = ID
+                                    ACTarray(x).CAM = CAM
+                                    ACTarray(x).CAID1 = CAID1
+                                    ACTarray(x).EVT = EVT
+                                    ACTarray(x).FFinish = t.Finish
+                                    ACTarray(x).FStart = t.Start
+                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(x).WP = WP
+
+                                    x = x + 1
+                                    ActFound = True
+
+                                    GoTo nrWP_Match
+
+                                End If
+
+                                For i = 1 To UBound(ACTarray)
+                                    If ACTarray(i).ID = ID Then
+                                        
+                                        'Found an existing matching WP line
+                                        If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                            If ACTarray(i).BStart > t.BaselineStart Then
+                                                ACTarray(i).BStart = t.BaselineStart
+                                            End If
+                                            If ACTarray(i).BFinish < t.BaselineFinish Then
+                                                ACTarray(i).BFinish = t.BaselineFinish
+                                            End If
+                                            If ACTarray(i).FStart > t.Start Then
+                                                ACTarray(i).FStart = t.Start
+                                            End If
+                                            If ACTarray(i).FFinish < t.Finish Then
+                                                ACTarray(i).FFinish = t.Finish
+                                            End If
+                                        Else
+                                            If ACTarray(i).BStart > t.Start Then
+                                                ACTarray(i).BStart = t.Start
+                                            End If
+                                            If ACTarray(i).BFinish < t.Finish Then
+                                                ACTarray(i).BFinish = t.Finish
+                                            End If
+                                            If ACTarray(i).FStart > t.Start Then
+                                                ACTarray(i).FStart = t.Start
+                                            End If
+                                            If ACTarray(i).FFinish < t.Finish Then
+                                                ACTarray(i).FFinish = t.Finish
+                                            End If
+                                        End If
+                                        GoTo nrWP_Match
+                                    End If
+                                Next i
+
+                                'No match found, create new WP line in ACTarrray
+                                ReDim Preserve ACTarray(1 To x)
+                                If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                    ACTarray(x).BFinish = t.BaselineFinish
+                                    ACTarray(x).BStart = t.BaselineStart
+                                Else
+                                    ACTarray(x).BFinish = t.Finish
+                                    ACTarray(x).BStart = t.Start
+                                End If
+                                If CAID3_Used = True Then
+                                    ACTarray(x).CAID3 = CAID3
+                                End If
+                                If CAID2_Used = True Then
+                                    ACTarray(x).CAID2 = CAID2
+                                End If
+                                ACTarray(x).ID = ID
+                                ACTarray(x).CAM = CAM
+                                ACTarray(x).CAID1 = CAID1
+                                ACTarray(x).EVT = EVT
+                                ACTarray(x).FFinish = t.Finish
+                                ACTarray(x).FStart = t.Start
+                                ACTarray(x).CAID2 = CAID2
+                                ACTarray(x).WP = WP
+
+                                x = x + 1
+                                ActFound = True
+
+                                'Milestone Data
+nrWP_Match:
+
+                                If EVT = "B" Or EVT = "B Milestone" Then
+                                    If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                        If CAID3_Used = True And CAID2_Used = True Then
+                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        End If
+                                        If CAID3_Used = False And CAID2_Used = True Then
+                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        End If
+                                        If CAID3_Used = False And CAID2_Used = False Then
+                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        End If
+                                    Else
+                                        If CAID3_Used = True And CAID2_Used = True Then
+                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                        End If
+                                        If CAID3_Used = False And CAID2_Used = True Then
+                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                        End If
+                                        If CAID3_Used = False And CAID2_Used = False Then
+                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                        End If
+                                    End If
+
+                                End If
+
+                            End If
+
+                        End If
+
+                    End If
+Next_nrSProj_Task:
+
+                Next t
+
+                FileClose pjDoNotSave
+
+            Next subProj
+
+        Else
+
+            For Each t In curproj.Tasks
+
+                If Not t Is Nothing Then
+
+                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.GetField(FieldNameToFieldConstant(fWP)) <> "" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "D" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "d" Then
+
+                            CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                            If CAID3_Used = True Then
+                                CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
+                            End If
+                            WP = t.GetField(FieldNameToFieldConstant(fWP))
+                            EVT = t.GetField(FieldNameToFieldConstant(fEVT))
+
+                            If CAID2_Used = True Then
+                                CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
+                            End If
+                            CAM = CleanCamName(t.GetField(FieldNameToFieldConstant(fCAM)))
+                            If CAID3_Used = True And CAID2_Used = True Then
+                                ID = CAID1 & "/" & CAID2 & "/" & CAID3 & "/" & WP
+                            End If
+                            If CAID3_Used = False And CAID2_Used = True Then
+                                ID = CAID1 & "/" & CAID2 & "/" & WP
+                            End If
+                            If CAID3_Used = False And CAID2_Used = False Then
+                                ID = CAID1 & "/" & WP
+                            End If
+
+                            If Milestones_Used = True Then
+                                UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                MSWeight = CleanNumber(t.GetField(FieldNameToFieldConstant(fMilestoneWeight)))
+                            End If
+
+                            If EVT = "B" And Milestones_Used = False Then
+                                ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
+                                Err.Raise 1
+                            End If
+
+                            If BCRxport = True Then
+                                If IsInArray(WP, BCR_WP) = False Then
+                                    GoTo Next_nrTask
+                                End If
+                            End If
+
+                            'store ACT info
+                            'WP Data
+                            If x = 1 Then
+
+                                'create new WP line in ACTarrray
+                                ReDim ACTarray(1 To x)
+                                If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                    ACTarray(x).BFinish = t.BaselineFinish
+                                    ACTarray(x).BStart = t.BaselineStart
+                                Else
+                                    ACTarray(x).BFinish = t.Finish
+                                    ACTarray(x).BStart = t.Start
+                                End If
+                                If CAID3_Used = True Then
+                                    ACTarray(x).CAID3 = CAID3
+                                End If
+                                If CAID2_Used = True Then
+                                    ACTarray(x).CAID2 = CAID2
+                                End If
+                                ACTarray(x).ID = ID
+                                ACTarray(x).CAM = CAM
+                                ACTarray(x).CAID1 = CAID1
+                                ACTarray(x).EVT = EVT
+                                ACTarray(x).FFinish = t.Finish
+                                ACTarray(x).FStart = t.Start
+                                ACTarray(x).CAID2 = CAID2
+                                ACTarray(x).WP = WP
+
+                                x = x + 1
+                                ActFound = True
+
+                                GoTo nrWP_Match_B
+
+                            End If
+
+                            For i = 1 To UBound(ACTarray)
+                                If ACTarray(i).ID = ID Then
+                                    'Found an existing matching WP line
+                                    If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                        If ACTarray(i).BStart > t.BaselineStart Then
+                                            ACTarray(i).BStart = t.BaselineStart
+                                        End If
+                                        If ACTarray(i).BFinish < t.BaselineFinish Then
+                                            ACTarray(i).BFinish = t.BaselineFinish
+                                        End If
+                                        If ACTarray(i).FStart > t.Start Then
+                                            ACTarray(i).FStart = t.Start
+                                        End If
+                                        If ACTarray(i).FFinish < t.Finish Then
+                                            ACTarray(i).FFinish = t.Finish
+                                        End If
+                                    Else
+                                        If ACTarray(i).BStart > t.Start Then
+                                            ACTarray(i).BStart = t.Start
+                                        End If
+                                        If ACTarray(i).BFinish < t.Finish Then
+                                            ACTarray(i).BFinish = t.Finish
+                                        End If
+                                        If ACTarray(i).FStart > t.Start Then
+                                            ACTarray(i).FStart = t.Start
+                                        End If
+                                        If ACTarray(i).FFinish < t.Finish Then
+                                            ACTarray(i).FFinish = t.Finish
+                                        End If
+                                    End If
+                                    GoTo nrWP_Match_B
+                                End If
+                            Next i
+
+                            'No match found, create new WP line in ACTarrray
+                            ReDim Preserve ACTarray(1 To x)
+                            If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                ACTarray(x).BFinish = t.BaselineFinish
+                                ACTarray(x).BStart = t.BaselineStart
+                            Else
+                                ACTarray(x).BFinish = t.Finish
+                                ACTarray(x).BStart = t.Start
+                            End If
+                            If CAID3_Used = True Then
+                                ACTarray(x).CAID3 = CAID3
+                            End If
+                            If CAID2_Used = True Then
+                                ACTarray(x).CAID2 = CAID2
+                            End If
+                            ACTarray(x).CAM = CAM
+                            ACTarray(x).CAID1 = CAID1
+                            ACTarray(x).EVT = EVT
+                            ACTarray(x).ID = ID
+                            ACTarray(x).FFinish = t.Finish
+                            ACTarray(x).FStart = t.Start
+                            ACTarray(x).CAID2 = CAID2
+                            ACTarray(x).WP = WP
+
+                            x = x + 1
+                            ActFound = True
+
+                            'Milestone Data
+nrWP_Match_B:
+
+                            If EVT = "B" Or EVT = "B Milestone" Then
+                                If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                    If CAID3_Used = True And CAID2_Used = True Then
+                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                    End If
+                                    If CAID3_Used = False And CAID2_Used = True Then
+                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                    End If
+                                    If CAID3_Used = False And CAID2_Used = False Then
+                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                    End If
+                                Else
+                                    If CAID3_Used = True And CAID2_Used = True Then
+                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                    End If
+                                    If CAID3_Used = False And CAID2_Used = True Then
+                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                    End If
+                                    If CAID3_Used = False And CAID2_Used = False Then
+                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                    End If
+                                End If
+                            End If
+
+                        End If
+
+                    End If
+
+                End If
+Next_nrTask:
+
+            Next t
+
+        End If
+
+        If ActFound = True Then
+            For i = 1 To UBound(ACTarray)
+
+                If DescExport = True Then
+                    ACTarray(i).Desc = WP_Desc(ACTarray(i).ID)
+                End If
+
+                If CAID3_Used = True And CAID2_Used = True Then
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                End If
+                If CAID3_Used = False And CAID2_Used = True Then
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                End If
+                If CAID3_Used = False And CAID2_Used = False Then
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                End If
+
+            Next i
+        End If
+
+        Close #1
+
+    Else
+
+        ACTfilename = destFolder & "\WhatIf ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        RESfilename = destFolder & "\WhatIf RES_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+
+        Open ACTfilename For Output As #1
+        Open RESfilename For Output As #2
+
+        If CAID3_Used = True And CAID2_Used = True Then
+            Print #1, fCAID1t & "," & fCAID3t & "," & fCAID2t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+        End If
+        If CAID3_Used = False And CAID2_Used = True Then
+            Print #1, fCAID1t & "," & fCAID2t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+        End If
+        If CAID3_Used = False And CAID2_Used = False Then
+            Print #1, fCAID1t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+        End If
+        Print #2, "Cobra ID,Resource,Amount,From Date,To Date"
+
+        x = 1
+        ActFound = False
+
+        If curproj.Subprojects.count > 0 Then
+
+            Set subProjs = curproj.Subprojects
+
+            For Each subProj In subProjs
+
+                FileOpen Name:=subProj.Path, ReadOnly:=True
+                Set curSProj = ActiveProject
+
+                For Each t In curSProj.Tasks
+
+                    If Not t Is Nothing Then
+
+                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        
+                            If ((t.BaselineWork > 0 Or t.BaselineCost > 0) And _
+                            (t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "d" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "D")) _
+                            Or _
+                            ((t.Work > 0 Or t.Cost > 0) And _
+                            (t.GetField(FieldNameToFieldConstant(fWhatIf)) = "R" Or t.GetField(FieldNameToFieldConstant(fWhatIf)) = "r")) Then
+
+                                CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                                If CAID3_Used = True Then
+                                    CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
+                                End If
+                                WP = t.GetField(FieldNameToFieldConstant(fWP))
+                                EVT = t.GetField(FieldNameToFieldConstant(fEVT))
+
+                                If CAID2_Used = True Then
+                                    CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
+                                End If
+                                CAM = CleanCamName(t.GetField(FieldNameToFieldConstant(fCAM)))
+                                If CAID3_Used = True And CAID2_Used = True Then
+                                    ID = CAID1 & "/" & CAID2 & "/" & CAID3 & "/" & WP
+                                End If
+                                If CAID3_Used = False And CAID2_Used = True Then
+                                    ID = CAID1 & "/" & CAID2 & "/" & WP
+                                End If
+                                If CAID3_Used = False And CAID2_Used = False Then
+                                    ID = CAID1 & "/" & WP
+                                End If
+
+                                If Milestones_Used = True Then
+                                    UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                    MSWeight = CleanNumber(t.GetField(FieldNameToFieldConstant(fMilestoneWeight)))
+                                End If
+
+                                If EVT = "B" And Milestones_Used = False Then
+                                    ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
+                                    Err.Raise 1
+                                End If
+
+                                If BCRxport = True Then
+                                    If IsInArray(WP, BCR_WP) = False Then
+                                        GoTo Next_SProj_Task
+                                    End If
+                                End If
+
+                                'store ACT info
+                                'WP Data
+                                If x = 1 Then
+
+                                    'create new WP line in ACTarrray
+                                    ReDim ACTarray(1 To x)
+                                    If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                        ACTarray(x).BFinish = t.BaselineFinish
+                                        ACTarray(x).BStart = t.BaselineStart
+                                    Else
+                                        ACTarray(x).BFinish = t.Finish
+                                        ACTarray(x).BStart = t.Start
+                                    End If
+                                    If CAID3_Used = True Then
+                                        ACTarray(x).CAID3 = CAID3
+                                    End If
+                                    ACTarray(x).ID = ID
+                                    ACTarray(x).CAM = CAM
+                                    ACTarray(x).CAID1 = CAID1
+                                    ACTarray(x).EVT = EVT
+                                    ACTarray(x).FFinish = t.Finish
+                                    ACTarray(x).FStart = t.Start
+                                    If CAID2_Used = True Then
+                                        ACTarray(x).CAID2 = CAID2
+                                    End If
+                                    ACTarray(x).WP = WP
+
+                                    x = x + 1
+                                    ActFound = True
+
+                                    GoTo WP_Match
+
+                                End If
+
+                                For i = 1 To UBound(ACTarray)
+                                    If ACTarray(i).ID = ID Then
+                                        'Found an existing matching WP line
+                                        If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                            If ACTarray(i).BStart > t.BaselineStart Then
+                                                ACTarray(i).BStart = t.BaselineStart
+                                            End If
+                                            If ACTarray(i).BFinish < t.BaselineFinish Then
+                                                ACTarray(i).BFinish = t.BaselineFinish
+                                            End If
+                                        Else
+                                            If ACTarray(i).BStart > t.Start Then
+                                                ACTarray(i).BStart = t.Start
+                                            End If
+                                            If ACTarray(i).BFinish < t.Finish Then
+                                                ACTarray(i).BFinish = t.Finish
+                                            End If
+
+                                        End If
+                                        If ACTarray(i).FStart > t.Start Then
+                                            ACTarray(i).FStart = t.Start
+                                        End If
+                                        If ACTarray(i).FFinish < t.Finish Then
+                                            ACTarray(i).FFinish = t.Finish
+                                        End If
+
+                                        GoTo WP_Match
+                                    End If
+                                Next i
+
+                                'No match found, create new WP line in ACTarrray
+                                ReDim Preserve ACTarray(1 To x)
+                                If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                    ACTarray(x).BFinish = t.BaselineFinish
+                                    ACTarray(x).BStart = t.BaselineStart
+                                Else
+                                    ACTarray(x).BFinish = t.Finish
+                                    ACTarray(x).BStart = t.Start
+                                End If
+                                If CAID3_Used = True Then
+                                    ACTarray(x).CAID3 = CAID3
+                                End If
+                                ACTarray(x).ID = ID
+                                ACTarray(x).CAM = CAM
+                                ACTarray(x).CAID1 = CAID1
+                                ACTarray(x).EVT = EVT
+                                ACTarray(x).FFinish = t.Finish
+                                ACTarray(x).FStart = t.Start
+                                If CAID2_Used = True Then
+                                    ACTarray(x).CAID2 = CAID2
+                                End If
+                                ACTarray(x).WP = WP
+
+                                x = x + 1
+                                ActFound = True
+
+                                'Milestone Data
+WP_Match:
+
+                                If EVT = "B" Or EVT = "B Milestone" Then
+                                    If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                        
+                                        If CAID3_Used = True And CAID2_Used = True Then
+                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        End If
+                                        If CAID3_Used = False And CAID2_Used = True Then
+                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        End If
+                                        If CAID3_Used = False And CAID2_Used = False Then
+                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        End If
+                                        
+                                    Else
+                                        
+                                        If CAID3_Used = True And CAID2_Used = True Then
+                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                        End If
+                                        If CAID3_Used = False And CAID2_Used = True Then
+                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                        End If
+                                        If CAID3_Used = False And CAID2_Used = False Then
+                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                        End If
+                                        
+                                    End If
+                                End If
+
+                                Set tAss = t.Assignments
+
+                                For Each tAssign In tAss
+
+                                    If (tAssign.BaselineWork <> 0 Or tAssign.BaselineCost <> 0) And _
+                                    (t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R") Then
+
+                                        If TimeScaleExport = True Then
+
+                                            ExportTimeScaleResources ID, t, tAssign, 2, "BCWS"
+
+                                        Else
+
+                                            Select Case tAssign.ResourceType
+
+                                                Case pjResourceTypeWork
+
+                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+
+                                                Case pjResourceTypeCost
+
+                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineCost & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+
+                                                Case pjResourceTypeMaterial
+
+                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+
+                                            End Select
+
+                                        End If
+                                    Else
+                                    
+                                        If (tAssign.Work <> 0 Or tAssign.Cost <> 0) And _
+                                        (t.GetField(FieldNameToFieldConstant(fWhatIf)) = "r" Or t.GetField(FieldNameToFieldConstant(fWhatIf)) = "R") Then
+
+                                            If TimeScaleExport = True Then
+    
+                                                ExportTimeScaleResources ID, t, tAssign, 2, "ETC"
+    
+                                            Else
+    
+                                                Select Case tAssign.ResourceType
+    
+                                                    Case pjResourceTypeWork
+    
+                                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+    
+                                                    Case pjResourceTypeCost
+    
+                                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Cost & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+    
+                                                    Case pjResourceTypeMaterial
+    
+                                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+    
+                                                End Select
+    
+                                            End If
+                                            
+                                        End If
+                                        
+                                    End If
+
+                                Next tAssign
+
+                            End If
+
+                        End If
+
+                    End If
+Next_SProj_Task:
+
+                Next t
+
+                FileClose pjDoNotSave
+
+            Next subProj
+
+        Else
+
+            For Each t In curproj.Tasks
+
+                If Not t Is Nothing Then
+
+                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+
+                        If ((t.BaselineWork > 0 Or t.BaselineCost > 0) And _
+                        (t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "d" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "D")) _
+                        Or _
+                        ((t.Work > 0 Or t.Cost > 0) And _
+                        (t.GetField(FieldNameToFieldConstant(fWhatIf)) = "R" Or t.GetField(FieldNameToFieldConstant(fWhatIf)) = "r")) Then
+
+                            CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                            If CAID3_Used = True Then
+                                CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
+                            End If
+                            WP = t.GetField(FieldNameToFieldConstant(fWP))
+                            EVT = t.GetField(FieldNameToFieldConstant(fEVT))
+
+                            If CAID2_Used = True Then
+                                CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
+                            End If
+                            CAM = CleanCamName(t.GetField(FieldNameToFieldConstant(fCAM)))
+                            If CAID3_Used = True And CAID2_Used = True Then
+                                ID = CAID1 & "/" & CAID2 & "/" & CAID3 & "/" & WP
+                            End If
+                            If CAID3_Used = False And CAID2_Used = True Then
+                                ID = CAID1 & "/" & CAID2 & "/" & WP
+                            End If
+                            If CAID3_Used = False And CAID2_Used = False Then
+                                ID = CAID1 & "/" & WP
+                            End If
+
+                            If Milestones_Used = True Then
+                                UID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                MSWeight = CleanNumber(t.GetField(FieldNameToFieldConstant(fMilestoneWeight)))
+                            End If
+
+                            If EVT = "B" And Milestones_Used = False Then
+                                ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
+                                Err.Raise 1
+                            End If
+
+                            If BCRxport = True Then
+                                If IsInArray(WP, BCR_WP) = False Then
+                                    GoTo next_task
+                                End If
+                            End If
+
+                            'store ACT info
+                            'WP Data
+                            If x = 1 Then
+
+                                'create new WP line in ACTarrray
+                                ReDim ACTarray(1 To x)
+                                If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                    ACTarray(x).BFinish = t.BaselineFinish
+                                    ACTarray(x).BStart = t.BaselineStart
+                                Else
+                                    ACTarray(x).BFinish = t.Finish
+                                    ACTarray(x).BStart = t.Start
+                                End If
+                                If CAID3_Used = True Then
+                                    ACTarray(x).CAID3 = CAID3
+                                End If
+                                ACTarray(x).ID = ID
+                                ACTarray(x).CAM = CAM
+                                ACTarray(x).CAID1 = CAID1
+                                ACTarray(x).EVT = EVT
+                                ACTarray(x).FFinish = t.Finish
+                                ACTarray(x).FStart = t.Start
+                                If CAID2_Used = True Then
+                                    ACTarray(x).CAID2 = CAID2
+                                End If
+                                ACTarray(x).WP = WP
+
+                                x = x + 1
+                                ActFound = True
+
+                                GoTo WP_Match_B
+
+                            End If
+
+                            For i = 1 To UBound(ACTarray)
+                                If ACTarray(i).ID = ID Then
+                                    'Found an existing matching WP line
+                                    If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                        If ACTarray(i).BStart > t.BaselineStart Then
+                                            ACTarray(i).BStart = t.BaselineStart
+                                        End If
+                                        If ACTarray(i).BFinish < t.BaselineFinish Then
+                                            ACTarray(i).BFinish = t.BaselineFinish
+                                        End If
+                                    Else
+                                        If ACTarray(i).BStart > t.Start Then
+                                            ACTarray(i).BStart = t.Start
+                                        End If
+                                        If ACTarray(i).BFinish < t.Finish Then
+                                            ACTarray(i).BFinish = t.Finish
+                                        End If
+
+                                    End If
+                                    If ACTarray(i).FStart > t.Start Then
+                                        ACTarray(i).FStart = t.Start
+                                    End If
+                                    If ACTarray(i).FFinish < t.Finish Then
+                                        ACTarray(i).FFinish = t.Finish
+                                    End If
+                                    GoTo WP_Match_B
+                                End If
+                            Next i
+
+                            'No match found, create new WP line in ACTarrray
+                            ReDim Preserve ACTarray(1 To x)
+                            If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                ACTarray(x).BFinish = t.BaselineFinish
+                                ACTarray(x).BStart = t.BaselineStart
+                            Else
+                                ACTarray(x).BFinish = t.Finish
+                                ACTarray(x).BStart = t.Start
+                            End If
+                            If CAID3_Used = True Then
+                                ACTarray(x).CAID3 = CAID3
+                            End If
+                            ACTarray(x).CAM = CAM
+                            ACTarray(x).CAID1 = CAID1
+                            ACTarray(x).EVT = EVT
+                            ACTarray(x).ID = ID
+                            ACTarray(x).FFinish = t.Finish
+                            ACTarray(x).FStart = t.Start
+                            If CAID2_Used = True Then
+                                ACTarray(x).CAID2 = CAID2
+                            End If
+                            ACTarray(x).WP = WP
+
+                            x = x + 1
+                            ActFound = True
+
+                            'Milestone Data
+WP_Match_B:
+
+                            If EVT = "B" Or EVT = "B Milestone" Then
+                                If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                        
+                                    If CAID3_Used = True And CAID2_Used = True Then
+                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                    End If
+                                    If CAID3_Used = False And CAID2_Used = True Then
+                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                    End If
+                                    If CAID3_Used = False And CAID2_Used = False Then
+                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                    End If
+                                    
+                                Else
+                                    
+                                    If CAID3_Used = True And CAID2_Used = True Then
+                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                    End If
+                                    If CAID3_Used = False And CAID2_Used = True Then
+                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                    End If
+                                    If CAID3_Used = False And CAID2_Used = False Then
+                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                    End If
+                                    
+                                End If
+                            End If
+
+                            Set tAss = t.Assignments
+
+                            For Each tAssign In tAss
+
+                                If (tAssign.BaselineWork <> 0 Or tAssign.BaselineCost <> 0) And _
+                                (t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R") Then
+
+                                    If TimeScaleExport = True Then
+
+                                        ExportTimeScaleResources ID, t, tAssign, 2, "BCWS"
+
+                                    Else
+
+                                        Select Case tAssign.ResourceType
+
+                                            Case pjResourceTypeWork
+
+                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+
+                                            Case pjResourceTypeCost
+
+                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineCost & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+
+                                            Case pjResourceTypeMaterial
+
+                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+
+                                        End Select
+
+                                    End If
+                                    
+                                Else
+                                    
+                                    If (tAssign.Work <> 0 Or tAssign.Cost <> 0) And _
+                                    (t.GetField(FieldNameToFieldConstant(fWhatIf)) = "r" Or t.GetField(FieldNameToFieldConstant(fWhatIf)) = "R") Then
+
+                                        If TimeScaleExport = True Then
+    
+                                            ExportTimeScaleResources ID, t, tAssign, 2, "ETC"
+    
+                                        Else
+    
+                                            Select Case tAssign.ResourceType
+    
+                                                Case pjResourceTypeWork
+    
+                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+    
+                                                Case pjResourceTypeCost
+    
+                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Cost & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+    
+                                                Case pjResourceTypeMaterial
+    
+                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+    
+                                            End Select
+    
+                                        End If
+                                    
                                     End If
 
                                 End If
