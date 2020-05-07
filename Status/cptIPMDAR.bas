@@ -61,7 +61,6 @@ Dim lngFile As Long
     strErr = strErr & "Tasks.json" & vbCrLf
   End If
   'todo: TaskCustomFieldValues
-  'todo: TaskConstraints
   'todo: TaskRelationships
   
   'todo: ResourceCustomFieldDefinitions.json
@@ -444,6 +443,7 @@ End Function
 
 Function cptJSON_Tasks(strDir As String) As Boolean
 'objects
+Dim oTaskDependency As MSProject.TaskDependency
 Dim oSubProject As MSProject.SubProject
 Dim oTask As MSProject.Task
 'strings
@@ -456,12 +456,15 @@ Dim strTaskScheduleDataJSON As String
 Dim strTaskScheduleDataFile As String
 Dim strTaskConstraintsJSON As String
 Dim strTaskConstraintsFile As String
+Dim strTaskRelationshipsFile As String
+Dim strTaskRelationshipsJSON As String
 'longs
 Dim lngOutlineOffset As Long
 Dim lngTasksFile As Long
 Dim lngTaskOutlineStructureFile As Long
 Dim lngTaskScheduleDataFile As Long
 Dim lngTaskConstratinsFile As Long
+Dim lngTaskRelationshipsFile As Long
 'integers
 'doubles
 'booleans
@@ -497,7 +500,8 @@ Dim blnDisplayProjectSummary As Boolean
   strTaskScheduleDataJSON = "["
   
   'todo: TaskCustomFieldValues.json
-  'todo: TaskConstraints.json
+  
+  'TaskConstraints.json
   strTaskConstraintsFile = strDir & "\TaskConstraints.json"
   lngTaskConstraintsFile = FreeFile
   If Dir(strTaskConstraintsFile) <> vbNullString Then Kill strTaskConstraintsFile
@@ -505,15 +509,21 @@ Dim blnDisplayProjectSummary As Boolean
   strTaskConstraintsJSON = "["
   
   'todo: TaskRelationships.json
-  
+  strTaskRelationshipsFile = strDir & "\TaskRelationships.json"
+  lngTaskRelationshipsFile = FreeFile
+  If Dir(strTaskRelationshipsFile) <> vbNullString Then Kill strTaskRelationshipsFile
+  Open strTaskRelationshipsFile For Output As #lngTaskRelationshipsFile
+  strTaskRelationshipsJSON = "["
+   
   'todo: use a single text field to house string array of identification codes?
   
-  'todo: display project summary to force single level 1?
+  'todo: display project summary to force single level 1
   Application.OptionsViewEx projectsummary:=True
   
   'capture project summary task
   Set oTask = ActiveProject.ProjectSummaryTask
   If ActiveProject.Subprojects.Count > 0 Then lngOutlineOffset = 1 Else lngOutlineOffset = 0
+  
   'build TaskOutlineStructure.json
   strTaskOutlineStructureJSON = strTaskOutlineStructureJSON & "{"
   strTaskOutlineStructureJSON = strTaskOutlineStructureJSON & Chr(34) & "Level" & Chr(34) & ": " & Chr(34) & CLng(oTask.OutlineLevel + lngOutlineOffset) & Chr(34) & ","
@@ -643,7 +653,7 @@ Dim blnDisplayProjectSummary As Boolean
         strTaskScheduleDataJSON = Left(strTaskScheduleDataJSON, Len(strTaskScheduleDataJSON) - 1)
         strTaskScheduleDataJSON = strTaskScheduleDataJSON & "},"
         
-        'TaskConstraints.json
+        'build TaskConstraints.json
         If oTask.ConstraintType <> pjASAP Then
           strTaskConstraintsJSON = strTaskConstraintsJSON & "{"
           strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "TaskID" & Chr(34) & ": " & Chr(34) & oTask.UniqueID & Chr(34) & ","
@@ -656,43 +666,111 @@ Dim blnDisplayProjectSummary As Boolean
               strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": null"
   
             Case pjMSO
-              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "MUST_START_ON" & Chr(34) & ","
+              If ActiveProject.HonorConstraints Then
+                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "MUST_START_ON" & Chr(34) & ","
+              Else
+                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "SHOULD_START_ON" & Chr(34) & ","
+              End If
               strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
-              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34) & ""
+              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34)
   
             Case pjMFO
-              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "MUST_FINISH_ON" & Chr(34) & ","
+              If ActiveProject.HonorConstraints Then
+                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "MUST_FINISH_ON" & Chr(34) & ","
+              Else
+                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "SHOULD_FINISH_ON" & Chr(34) & ","
+              End If
               strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
-              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34) & ""
+              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34)
   
             Case pjSNET
               strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "START_NO_EARLIER_THAN" & Chr(34) & ","
               strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
-              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34) & ""
+              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34)
   
             Case pjSNLT
-              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "START_NO_LATER_THAN" & Chr(34) & ","
+              If ActiveProject.HonorConstraints Then
+                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "START_NO_LATER_THAN" & Chr(34) & ","
+              Else
+                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "SHOULD_START_NO_LATER_THAN" & Chr(34) & ","
+              End If
               strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
-              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34) & ""
+              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34)
   
             Case pjFNET
               strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "FINISH_NO_EARLER_THAN" & Chr(34) & ","
               strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
-              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34) & ""
+              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34)
   
             Case pjFNLT
-              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "FINISH_NO_LATER_THAN" & Chr(34) & ","
+              If ActiveProject.HonorConstraints Then
+                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "FINISH_NO_LATER_THAN" & Chr(34) & ","
+              Else
+                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "SHOULD_FINISH_NO_LATER_THAN" & Chr(34) & ","
+              End If
               strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
-              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34) & ""
+              strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34)
             
           End Select
-          'todo: the 'should' things
-          'todo: resource leveling start delay
-          'todo: resource leveling finish delay
-          'todo: deadline
+
           strTaskConstraintsJSON = strTaskConstraintsJSON & "},"
         
         End If 'oTask.ConstraintType <> pjASAP
+        
+        'TaskConstraints.json - resource leveling delay
+        If oTask.LevelingDelay > 0 Then 'new record
+          
+          'resource leveling start delay
+          strTaskConstraintsJSON = strTaskConstraintsJSON & "{"
+          strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "TaskID" & Chr(34) & ": " & Chr(34) & oSubProject.Index & "-" & oTask.UniqueID & Chr(34) & ","
+          strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "RESOURCE_LEVELING_START_DELAY" & Chr(34) & ","
+          strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
+          strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.Start, "yyyy-mm-dd") & Chr(34)
+          strTaskConstraintsJSON = strTaskConstraintsJSON & "},"
+          
+          'resource leveling finish delay
+          strTaskConstraintsJSON = strTaskConstraintsJSON & "{"
+          strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "TaskID" & Chr(34) & ": " & Chr(34) & oSubProject.Index & "-" & oTask.UniqueID & Chr(34) & ","
+          strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "RESOURCE_LEVELING_FINISH_DELAY" & Chr(34) & ","
+          strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
+          strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.Finish, "yyyy-mm-dd") & Chr(34)
+          strTaskConstraintsJSON = strTaskConstraintsJSON & "},"
+          
+        End If 'oTask.LevelingDelay
+        
+        'TaskConstraints.json - deadline
+        If IsDate(oTask.Deadline) Then 'new record
+          strTaskConstraintsJSON = strTaskConstraintsJSON & "{"
+          strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "TaskID" & Chr(34) & ": " & Chr(34) & oTask.UniqueID & Chr(34) & ","
+          strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "DEADLINE" & Chr(34) & ","
+          strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
+          strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.Deadline, "yyyy-mm-dd") & Chr(34)
+          strTaskConstraintsJSON = strTaskConstraintsJSON & "},"
+        End If 'IsDate(oTask.Deadline)
+        
+        'build TaskRelationships.json
+        For Each oTaskDependency In oTask.TaskDependencies
+          strTaskRelationshipsJSON = strTaskRelationshipsJSON & "{"
+          strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "PredecessorTaskID" & Chr(34) & ": " & Chr(34) & oTaskDependency.From.UniqueID & Chr(34) & ","
+          strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "SuccessorTaskID" & Chr(34) & ": " & Chr(34) & oTaskDependency.To.UniqueID & Chr(34) & ","
+          Select Case oTaskDependency.Type
+            Case pjFinishToFinish
+              strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "RelationshipTypeID" & Chr(34) & ": " & Chr(34) & "FINISH_TO_FINISH" & Chr(34) & ","
+            Case pjFinishToStart
+              strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "RelationshipTypeID" & Chr(34) & ": " & Chr(34) & "FINISH_TO_START" & Chr(34) & ","
+            Case pjStartToFinish
+              strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "RelationshipTypeID" & Chr(34) & ": " & Chr(34) & "START_TO_FINISH" & Chr(34) & ","
+            Case pjStartToStart
+              strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "RelationshipTypeID" & Chr(34) & ": " & Chr(34) & "START_TO_START" & Chr(34) & ","
+          End Select
+          strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "LagDuration" & Chr(34) & ": " & Chr(34) & oTaskDependency.Lag / (ActiveProject.HoursPerDay * 60) & Chr(34) & ","
+          If oTaskDependency.To.Calendar <> "None" Then
+            strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "LagCalendarID" & Chr(34) & ": " & Chr(34) & ActiveProject.Calendar.Index & Chr(34)
+          Else
+            strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "LagCalendarID" & Chr(34) & ": " & Chr(34) & oTaskDependency.To.CalendarObject.Index & Chr(34)
+          End If
+          strTaskRelationshipsJSON = strTaskRelationshipsJSON & "},"
+        Next 'oTaskDependency
         
       End If 'Not oTask Is Nothing Then
 next_task:
@@ -757,7 +835,6 @@ next_task:
           Else
             strTaskScheduleDataJSON = strTaskScheduleDataJSON & Chr(34) & "CalendarID" & Chr(34) & ": " & Chr(34) & oTask.CalendarObject.Index & Chr(34) & ","
           End If
-          If oTask.UniqueID = 85 And oTask.Calendar <> "None" Then Stop
           strTaskScheduleDataJSON = strTaskScheduleDataJSON & Chr(34) & "CurrentDuration" & Chr(34) & ": " & Chr(34) & oTask.Duration / (oSubProject.SourceProject.HoursPerDay * 60) & Chr(34) & ","
           strTaskScheduleDataJSON = strTaskScheduleDataJSON & Chr(34) & "CurrentStartDate" & Chr(34) & ": " & Chr(34) & Format(oTask.Start, "yyyy-mm-dd") & Chr(34) & ","
           strTaskScheduleDataJSON = strTaskScheduleDataJSON & Chr(34) & "CurrentFinishDate" & Chr(34) & ": " & Chr(34) & Format(oTask.Finish, "yyyy-mm-dd") & Chr(34) & ","
@@ -797,43 +874,111 @@ next_task:
                 strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": null"
     
               Case pjMSO
-                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "MUST_START_ON" & Chr(34) & ","
+                If oSubProject.SourceProject.HonorConstraints Then
+                  strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "MUST_START_ON" & Chr(34) & ","
+                Else
+                  strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "SHOULD_START_ON" & Chr(34) & ","
+                End If
                 strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
-                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34) & ""
+                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34)
     
               Case pjMFO
-                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "MUST_FINISH_ON" & Chr(34) & ","
+                If oSubProject.SourceProject.HonorConstraints Then
+                  strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "MUST_FINISH_ON" & Chr(34) & ","
+                Else
+                  strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "SHOULD_FINISH_ON" & Chr(34) & ","
+                End If
                 strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
-                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34) & ""
+                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34)
     
               Case pjSNET
                 strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "START_NO_EARLIER_THAN" & Chr(34) & ","
                 strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
-                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34) & ""
+                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34)
     
               Case pjSNLT
-                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "START_NO_LATER_THAN" & Chr(34) & ","
+                If oSubProject.SourceProject.HonorConstraints Then
+                  strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "START_NO_LATER_THAN" & Chr(34) & ","
+                Else
+                  strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "SHOULD_START_NO_LATER_THAN" & Chr(34) & ","
+                End If
                 strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
-                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34) & ""
+                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34)
     
               Case pjFNET
                 strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "FINISH_NO_EARLER_THAN" & Chr(34) & ","
                 strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
-                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34) & ""
+                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34)
     
               Case pjFNLT
-                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "FINISH_NO_LATER_THAN" & Chr(34) & ","
+                If oSubProject.SourceProject.HonorConstraints Then
+                  strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "FINISH_NO_LATER_THAN" & Chr(34) & ","
+                Else
+                  strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "SHOULD_FINISH_NO_LATER_THAN" & Chr(34) & ","
+                End If
                 strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
-                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34) & ""
+                strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.ConstraintDate, "yyyy-mm-dd") & Chr(34)
               
             End Select
-            'todo: the 'should' things
-            'todo: resource leveling start delay
-            'todo: resource leveling finish delay
-            'todo: deadline
+            
             strTaskConstraintsJSON = strTaskConstraintsJSON & "},"
           
           End If 'oTask.ConstraintType <> pjASAP
+          
+          'TaskConstraints.json - resource leveling delay
+          If oTask.LevelingDelay > 0 Then
+            
+            'resource leveling start delay
+            strTaskConstraintsJSON = strTaskConstraintsJSON & "{"
+            strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "TaskID" & Chr(34) & ": " & Chr(34) & oSubProject.Index & "-" & oTask.UniqueID & Chr(34) & ","
+            strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "RESOURCE_LEVELING_START_DELAY" & Chr(34) & ","
+            strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
+            strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.Start, "yyyy-mm-dd") & Chr(34)
+            strTaskConstraintsJSON = strTaskConstraintsJSON & "},"
+            
+            'resource leveling finish delay
+            strTaskConstraintsJSON = strTaskConstraintsJSON & "{"
+            strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "TaskID" & Chr(34) & ": " & Chr(34) & oSubProject.Index & "-" & oTask.UniqueID & Chr(34) & ","
+            strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "RESOURCE_LEVELING_FINISH_DELAY" & Chr(34) & ","
+            strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
+            strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.Finish, "yyyy-mm-dd") & Chr(34)
+            strTaskConstraintsJSON = strTaskConstraintsJSON & "},"
+            
+          End If 'oTask.LevelingDelay
+          
+          'TaskConstraints.json - deadline
+          If IsDate(oTask.Deadline) Then 'new record
+            strTaskConstraintsJSON = strTaskConstraintsJSON & "{"
+            strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "TaskID" & Chr(34) & ": " & Chr(34) & oSubProject.Index & "-" & oTask.UniqueID & Chr(34) & ","
+            strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintTypeID" & Chr(34) & ": " & Chr(34) & "DEADLINE" & Chr(34) & ","
+            strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "OtherConstraintType" & Chr(34) & ": null,"
+            strTaskConstraintsJSON = strTaskConstraintsJSON & Chr(34) & "ConstraintDate" & Chr(34) & ": " & Chr(34) & Format(oTask.Deadline, "yyyy-mm-dd") & Chr(34)
+            strTaskConstraintsJSON = strTaskConstraintsJSON & "},"
+          End If 'IsDate(oTask.Deadline)
+          
+          'build TaskRelationships.json
+          For Each oTaskDependency In oTask.TaskDependencies
+            strTaskRelationshipsJSON = strTaskRelationshipsJSON & "{"
+            strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "PredecessorTaskID" & Chr(34) & ": " & Chr(34) & oSubProject.Index & "-" & oTaskDependency.From.UniqueID & Chr(34) & ","
+            strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "SuccessorTaskID" & Chr(34) & ": " & Chr(34) & oSubProject.Index & "-" & oTaskDependency.To.UniqueID & Chr(34) & ","
+            Select Case oTaskDependency.Type
+              Case pjFinishToFinish
+                strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "RelationshipTypeID" & Chr(34) & ": " & Chr(34) & "FINISH_TO_FINISH" & Chr(34) & ","
+              Case pjFinishToStart
+                strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "RelationshipTypeID" & Chr(34) & ": " & Chr(34) & "FINISH_TO_START" & Chr(34) & ","
+              Case pjStartToFinish
+                strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "RelationshipTypeID" & Chr(34) & ": " & Chr(34) & "START_TO_FINISH" & Chr(34) & ","
+              Case pjStartToStart
+                strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "RelationshipTypeID" & Chr(34) & ": " & Chr(34) & "START_TO_START" & Chr(34) & ","
+            End Select
+            strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "LagDuration" & Chr(34) & ": " & Chr(34) & oTaskDependency.Lag / (oSubProject.SourceProject.HoursPerDay * 60) & Chr(34) & ","
+            If oTaskDependency.To.Calendar <> "None" Then
+              strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "LagCalendarID" & Chr(34) & ": " & Chr(34) & oSubProject.Index & "-" & oTaskDependency.To.CalendarObject.Index & Chr(34)
+            Else
+              strTaskRelationshipsJSON = strTaskRelationshipsJSON & Chr(34) & "LagCalendarID" & Chr(34) & ": " & Chr(34) & oSubProject.Index & "-" & oSubProject.SourceProject.Calendar.Index & Chr(34)
+            End If
+            strTaskRelationshipsJSON = strTaskRelationshipsJSON & "},"
+          Next 'oTaskDependency
           
         End If
       Next 'oTask
@@ -856,17 +1001,22 @@ next_task:
   strTaskConstraintsJSON = Left(strTaskConstraintsJSON, Len(strTaskConstraintsJSON) - 1) & "]"
   Print #lngTaskConstraintsFile, strTaskConstraintsJSON
   
+  'create TaskRelationships.json
+  strTaskRelationshipsJSON = Left(strTaskRelationshipsJSON, Len(strTaskRelationshipsJSON) - 1) & "]"
+  Print #lngTaskRelationshipsFile, strTaskRelationshipsJSON
   
   cptJSON_Tasks = True
 
 exit_here:
   On Error Resume Next
+  Set oTaskDependency = Nothing
   Set oSubProject = Nothing
   Set oTask = Nothing
   Close #lngTasksFile
   Close #lngTaskOutlineStructureFile
   Close #lngTaskScheduleDataFile
   Close #lngTaskConstraintsFile
+  Close #lngTaskRelationshipsFile
   Exit Function
 err_here:
   Call cptHandleErr("cptIPMDAR", "cptJSON_Tasks", Err, Erl)
