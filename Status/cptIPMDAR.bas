@@ -32,7 +32,19 @@ Dim vFile As Variant
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  Debug.Print "Exporting " & ActiveProject.Name & "..."
+  'USER ACTIONS BEFORE RUNNING:
+  '-- Fill out ProjectMetadata on first run
+  '-- Identify Critical Path
+  '-- Identify Driving Path
+  
+  'USER ACTIONS AFTER RUNNING:
+  '-- Use IPMDAR_DATA_REVIEW TO:
+  '--- ensure unique task names
+  '--- ensure unique calendars (CalendarID)
+  '--- ensure unique workshifts (CalendarID + Ordinal)
+  '--- save offline copy of schedule
+  '--- zip files
+
   Set oProject = ActiveProject
   
   'set up directories
@@ -71,7 +83,11 @@ Dim vFile As Variant
   'issue calls for code effeciency
   Set aProjects = CreateObject("System.Collections.ArrayList")
   If oProject.Subprojects.Count > 0 Then
-    'todo: ensure task view
+    'ensure task view
+    If ActiveWindow.TopPane.View.Type <> pjTaskItem Then
+      ActiveWindow.TopPane.Activate
+      ViewApply "Gantt Chart"
+    End If
     SelectAll
     OutlineShowAllTasks
     aProjects.Add oProject
@@ -88,7 +104,8 @@ Dim vFile As Variant
   End If
   'todo: TaskCustomFieldValues
   
-  'todo: kick off each file with a "["
+  'overwrite existing files by default
+  'do this before looping through subprojects
   If Dir(strDir & "\Calendars.json") <> vbNullString Then Kill strDir & "\Calendars.json"
   If Dir(strDir & "\CalendarWorkshifts.json") <> vbNullString Then Kill strDir & "\CalendarWorkshifts.json"
   If Dir(strDir & "\CalendarExceptions.json") <> vbNullString Then Kill strDir & "\CalendarExceptions.json"
@@ -101,19 +118,16 @@ Dim vFile As Variant
     If Not cptJSON_Calendars(oSourceProject, strDir) Then 'includes CalendarWorkshifts, CalendarExceptions
       strErr = strErr & "Calendars.json" & vbCrLf
     End If
-    'todo: ensure unique calendars
-    'todo: ensure unique workshifts
     
     'Resources.json (includes ResourceCustomFieldValues, ResourceAssignments)
     If Not cptJSON_Resources(oSourceProject, strDir) Then
       strErr = "Resources.json" & vbCrLf
     End If
-    'todo: ensure unique resources
     'todo: ResourceCustomFieldValues
   
   Next lngProject
   
-  'todo: clean-up the files
+  'clean-up the files
   For Each vFile In Array("Calendars", "CalendarWorkshifts", "CalendarExceptions", "Resources", "ResourceAssignments")
     lngTemp = FreeFile
     strTemp = ""
@@ -138,21 +152,20 @@ Dim vFile As Variant
   Next
   
   'todo: scrub for character limitations SPD FFS 2.1.6
-  'todo: ensure task name uniqueness
   'todo: create schedule narrative template containing:
-  'todo: create section headers [created with the ClearPlan toolbar
-  'todo: -- create placeholders for all explanations for leads, lags, constraints
-  'todo: -- create placeholders for CWBS, SOW if exist in Outline Code
+  'todo: -- section headers [created with the ClearPlan toolbar
+  'todo: -- placeholders for all explanations for leads, lags, constraints
+  'todo: -- placeholders for CWBS, SOW if exist in Outline Code
   'todo: export IMS Data Dictionary
   'todo: prompt to save server file as .mpp and consolidate?
   'todo: create Validation Workbook w/json queries, highlighted duplicates, in parent directory IPMDAR
   'todo: ensure all tasks with SUMMARY are included in the OutlineStrucure
-  If Dir(Environ("USERPROFILE") & "\IPMDAR\IPMDAR_DATA_REVIEW.xlsx") = vbNullString Then
-    'call create data review workbook
-  End If
   
-  'todo: create zip using DEFLATE method, do not include workbook
-
+  'prompt user
+  If MsgBox("Create IPMDAR Data Review workbook?", vbQuestion + vbYesNo) = vbYes Then
+    Call cptCreateIPMDARWorkbook(strDir)
+  End If
+    
   If Len(strErr) > 0 Then
     MsgBox "The following exports were not created successfully:" & vbCrLf & strErr, vbExclamation + vbOKOnly, "Incomplete"
   Else
@@ -175,7 +188,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Function cptJSON_DatasetMetadata(strDir As String) As Boolean
+Function cptJSON_DatasetMetadata(ByRef oProject As Project, strDir As String) As Boolean
 'objects
 'strings
 Dim strEOC As String
@@ -201,8 +214,32 @@ Dim lngFile As Long
   Open strFile For Output As #lngFile
 
   strJSON = "[{"
-  'todo: get content
-  strJSON = Left(strJSON, Len(strJSON) - 1) & "}]"
+'  SecurityMarking
+'  DistributionStatement
+'  ReportingPeriodEndDate =
+  strJSON = strJSON & Chr(34) & "ReportingPeriodEndDate" & Chr(34) & ": " & Chr(34) & Format(oProject.StatusDate, "yyyy-mm-dd") & Chr(34) & ","
+'  ContractorName
+'  ContractorIDCodeTypeID
+'  ContractorIDCode
+'  ContractorAddress_Street
+'  ContractorAddress_City
+'  ContractorAddress_State
+'  ContractorAddress_Country
+'  ContractorAddress_ZipCode
+'  PointOfContactName
+'  PointOfContactTitle
+'  PointOfContactTelephone
+'  PointOfContactEmail
+'  ContractName
+'  ContractNumber
+'  ContractType
+'  ContractTaskOrEffortName
+'  ProgramName
+'  ProgramPhase
+'  EVMSAccepted
+'  EVMSAcceptanceDate
+  
+  strJSON = strJSON & "}]"
   
   Print #lngFile, strJSON
   cptJSON_DatasetMetadata = True
@@ -358,19 +395,16 @@ Dim dtException As Date
   'Calendars.json
   strCalendarsFile = strDir & "\Calendars.json"
   lngCalendarsFile = FreeFile
-'  If Dir(strCalendarsFile) <> vbNullString Then Kill strCalendarsFile
   Open strCalendarsFile For Append As #lngCalendarsFile
   
   'CalendarWorkshifts.json
   strCalendarWorkshiftsFile = strDir & "\CalendarWorkshifts.json"
   lngCalendarWorkshiftsFile = FreeFile
-'  If Dir(strCalendarWorkshiftsFile) <> vbNullString Then Kill strCalendarWorkshiftsFile
   Open strCalendarWorkshiftsFile For Append As #lngCalendarWorkshiftsFile
   
   'CalendarExceptions.json
   strCalendarExceptionsFile = strDir & "\CalendarExceptions.json"
   lngCalendarExceptionsFile = FreeFile
-'  If Dir(strCalendarExceptionsFile) <> vbNullString Then Kill strCalendarExceptionsFile
   Open strCalendarExceptionsFile For Append As #lngCalendarExceptionsFile
   
   For Each oCalendar In oProject.BaseCalendars
@@ -493,7 +527,6 @@ Dim blnDisplayProjectSummary As Boolean
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  'todo: ensure task name uniqueness
   'todo: identify driving path(s) based on previous month's uid/guid, to either a) next contractor identified event; or b) gov selected event
   'todo: identify critical path(s)
   
@@ -802,13 +835,11 @@ Dim lngResourcesFile As Long
   'Resources.json
   strResourcesFile = strDir & "\Resources.json"
   lngResourcesFile = FreeFile
-'  If Dir(strResourcesFile) <> vbNullString Then Kill strResourcesFile
   Open strResourcesFile For Append As #lngResourcesFile
   
   'ResourceAssignments.json
   strResourceAssignmentsFile = strDir & "\ResourceAssignments.json"
   lngResourceAssignmentsFile = FreeFile
-'  If Dir(strResourceAssignmentsFile) <> vbNullString Then Kill strResourceAssignmentsFile
   Open strResourceAssignmentsFile For Append As #lngResourceAssignmentsFile
   
   'todo: ResourceCustomFieldValues.json
@@ -888,6 +919,12 @@ err_here:
   Resume exit_here
 End Function
 
+Sub cptShowFrmIPMDAR()
+  'load files to listbox
+  'pre-load prior period's options
+  'display form
+End Sub
+
 Function CHARW(CharCode As Variant, Optional Exact_functionality As Boolean = False) As String
 'Use a Leading "U" or "u" to indicate Unicode values
 'Exact_functionality returns the Unicode characters for Ascii(128) to Ascii(159) rather than
@@ -905,3 +942,150 @@ Function CHARW(CharCode As Variant, Optional Exact_functionality As Boolean = Fa
       CHARW = ChrW(CharCode)
    End If
 End Function
+
+Sub cptCreateIPMDARWorkbook(strDir As String)
+'objects
+Dim oFSO As FileSystemObject
+Dim oFolder As Folder
+Dim oFile As File
+Dim xlApp As Excel.Application
+Dim oWorkbook As Workbook
+Dim oWorksheet As Worksheet
+'strings
+Dim strFormula As String
+Dim strSource As String
+'longs
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'set up the workbook
+  Set xlApp = CreateObject("Excel.Application")
+  Set oWorkbook = xlApp.Workbooks.Add
+  
+  Set oFSO = CreateObject("Scripting.FileSystemObject")
+  Set oFolder = oFSO.GetFolder(strDir)
+  For Each oFile In oFolder.Files
+    If LCase(Right(oFile.Path, 5)) = ".json" Then
+      
+      'get source
+      strSource = Replace(oFile.Name, ".json", "")
+      
+      'get formula for source
+      'start with common beginning
+      
+      strFormula = _
+      "let" & Chr(13) & "" & Chr(10) & _
+      "    Source = Json.Document(File.Contents(""C:\Users\arong\IPMDAR\2016-08-26\" & strSource & ".json""))," & Chr(13) & "" & Chr(10) & _
+      "    #""Converted to Table"" = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)," & Chr(13) & "" & Chr(10)
+
+      Select Case strSource
+        Case "CalendarExceptions"
+          strFormula = strFormula & _
+          "    #""Expanded Column1"" = Table.ExpandRecordColumn(#""Converted to Table"", ""Column1"", {""CalendarID"", ""ExceptionDate"", ""WorkHours""}, {""CalendarID"", ""ExceptionDate"", ""WorkHours""})          "
+        
+        Case "Calendars"
+          strFormula = strFormula & _
+          "    #""Expanded Column1"" = Table.ExpandRecordColumn(#""Converted to Table"", ""Column1"", {""ID"", ""Name"", ""Comments""}, {""ID"", ""Name"", ""Comments""})"
+        
+        Case "CalendarWorkshifts"
+          strFormula = strFormula & _
+          "    #""Expanded Column1"" = Table.ExpandRecordColumn(#""Converted to Table"", ""Column1"", {""CalendarID"", ""Ordinal"", ""SundayWorkHours"", ""MondayWorkHours"", ""TuesdayWorkHours"", ""WednesdayWorkHours"", ""ThursdayWorkHours"", ""FridayWorkHours"", ""SaturdayWorkHours""}, {""CalendarID"", ""Ordinal"", ""SundayWorkHours"", ""MondayWorkHours"", ""TuesdayWorkHours"", ""WednesdayWorkHours"", ""ThursdayWorkHours"", ""FridayWorkHours"", ""SaturdayWorkHours""})"
+        
+        Case "ProjectScheduleData"
+          strFormula = strFormula & _
+          "    #""Expanded Column1"" = Table.ExpandRecordColumn(#""Converted to Table"", ""Column1"", {""StatusDate"", ""CurrentStartDate"", ""CurrentFinishDate"", ""BaselineStartDate"", ""BaselineFinishDate"", ""ActualStartDate"", ""ActualFinishDate"", ""DurationUnitsID""}, {""StatusDate"", ""CurrentStartDate"", ""CurrentFinishDate"", ""BaselineStartDate"", ""BaselineFinishDate"", ""ActualStartDate"", ""ActualFinishDate"", ""DurationUnitsID""})"
+          
+        Case "ResourceAssignments"
+          strFormula = strFormula & _
+          "   #""Expanded Column1"" = Table.ExpandRecordColumn(#""Converted to Table"", ""Column1"", {""ResourceID"", ""TaskID"", ""Budget_AtCompletion_Hours"", ""Estimate_ToComplete_Hours"", ""PhysicalPercentComplete""}, {""ResourceID"", ""TaskID"", ""Budget_AtCompletion_Hours"", ""Estimate_ToComplete_Hours"", ""PhysicalPercentComplete""})"
+        
+        Case "Resources"
+          strFormula = strFormula & _
+          "   #""Expanded Column1"" = Table.ExpandRecordColumn(#""Converted to Table"", ""Column1"", {""ID"", ""Name"", ""ElementOfCostId""}, {""ID"", ""Name"", ""ElementOfCostId""})"
+        
+        Case "SourceSoftwareMetadata"
+          strFormula = strFormula & _
+          "   #""Expanded Column1"" = Table.ExpandRecordColumn(#""Converted to Table"", ""Column1"", {""Data_SoftwareName"", ""Data_SoftwareVersion"", ""Data_SoftwareCompanyName"", ""Data_SoftwareComments"", ""Export_SoftwareName"", ""Export_SoftwareVersion"", ""Export_SoftwareCompanyName"", ""Export_SoftwareComments""}, {""Data_SoftwareName"", ""Data_SoftwareVersion"", ""Data_SoftwareCompanyName"", ""Data_SoftwareComments"", ""Export_SoftwareName"", ""Export_SoftwareVersion"", ""Export_SoftwareCompanyName"", ""Export_SoftwareComments""})"
+
+        Case "TaskConstraints"
+          strFormula = strFormula & _
+          "    #""Expanded Column1"" = Table.ExpandRecordColumn(#""Converted to Table"", ""Column1"", {""TaskID"", ""ConstraintTypeID"", ""OtherConstraintType"", ""ConstraintDate""}, {""TaskID"", ""ConstraintTypeID"", ""OtherConstraintType"", ""ConstraintDate""})"
+          
+        Case "TaskOutlineStructure"
+          strFormula = strFormula & _
+          "    #""Expanded Column1"" = Table.ExpandRecordColumn(#""Converted to Table"", ""Column1"", {""Level"", ""TaskID"", ""ParentTaskID""}, {""Level"", ""TaskID"", ""ParentTaskID""})"
+          
+        Case "TaskRelationships"
+          strFormula = strFormula & _
+          "    #""Expanded Column1"" = Table.ExpandRecordColumn(#""Converted to Table"", ""Column1"", {""PredecessorTaskID"", ""SuccessorTaskID"", ""RelationshipTypeID"", ""LagDuration"", ""LagCalendarID""}, {""PredecessorTaskID"", ""SuccessorTaskID"", ""RelationshipTypeID"", ""LagDuration"", ""LagCalendarID""})          "
+        
+        Case "Tasks"
+          strFormula = strFormula & _
+          "    #""Expanded Column1"" = Table.ExpandRecordColumn(#""Converted to Table"", ""Column1"", {""ID"", ""Name"", ""TaskTypeID"", ""SourceSubprojectReference"", ""SourceTaskReference""}, {""ID"", ""Name"", ""TaskTypeID"", ""SourceSubprojectReference"", ""SourceTaskReference""})"
+          
+        Case "TaskScheduleData"
+          strFormula = strFormula & _
+          "    #""Expanded Column1"" = Table.ExpandRecordColumn(#""Converted to Table"", ""Column1"", {""ID"", ""CalendarID"", ""CurrentDuration"", ""CurrentStartDate"", ""CurrentFinishDate"", ""EarlyStartDate"", ""EarlyFinishDate"", ""LateStartDate"", ""LateFinishDate"", ""FreeFloatDuration"", ""TotalFloatDuration"", ""OnCriticalPath"", ""CalculatedPercentComplete"", ""RemainingDuration""}, {""ID"", ""CalendarID"", ""CurrentDuration"", ""CurrentStartDate"", ""CurrentFinishDate"", ""EarlyStartDate"", ""EarlyFinishDate"", ""LateStartDate"", ""LateFinishDate"", ""FreeFloatDuration"", ""TotalFloatDuration"", ""OnCriticalPath"", ""CalculatedPercentComplete"", ""RemainingDuration""})"
+          
+      End Select
+    
+      'formula tail
+      strFormula = strFormula & Chr(13) & "" & Chr(10) & _
+          "in" & Chr(13) & "" & Chr(10) & _
+          "    #""Expanded Column1"""
+
+      'add the queries
+      oWorkbook.Queries.Add strSource, strFormula
+      Set oWorksheet = oWorkbook.Sheets.Add
+        
+      With oWorksheet.ListObjects.Add(SourceType:=0, Source:= _
+        "OLEDB;Provider=Microsoft.Mashup.OleDb.1; Data Source=$Workbook$;Location=" & strSource & ";Extended Properties=""""", Destination:=oWorksheet.Range("$A$1")).QueryTable
+        .CommandType = xlCmdSql
+        .CommandText = Array("SELECT * FROM [" & strSource & "]")
+        .RowNumbers = False
+        .FillAdjacentFormulas = False
+        .PreserveFormatting = True
+        .RefreshOnFileOpen = False
+        .BackgroundQuery = True
+        .RefreshStyle = xlInsertDeleteCells
+        .SavePassword = False
+        .SaveData = True
+        .AdjustColumnWidth = True
+        .RefreshPeriod = 0
+        .PreserveColumnInfo = True
+        .ListObject.DisplayName = strSource
+        .Refresh BackgroundQuery:=False
+      End With
+      oWorksheet.Name = strSource
+    End If
+  Next 'oFile In oFolder.Files
+
+  'todo: add conditional formatting
+
+  xlApp.Visible = True
+  If Dir(strDir & "IPMDAR_DATA_REVIEW.xlsx") <> vbNullString Then
+    If MsgBox("IPMDAR Data Review Workbook already exists in this location." & vbCrLf & vbCrLf & "Overwrite?", vbQuestion + vbYesNo, "Confirm Overwrite") = vbYes Then
+      oWorkbook.SaveAs strDir & "IPMDAR_DATA_REVIEW.xlsx", 51
+    End If
+  End If
+
+exit_here:
+  On Error Resume Next
+  Set oFSO = Nothing
+  Set oFolder = Nothing
+  Set oFile = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set xlApp = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptIPMDAR", "cptCreateIPMDARWorkbook", Err, Erl)
+  Resume exit_here
+End Sub
+
