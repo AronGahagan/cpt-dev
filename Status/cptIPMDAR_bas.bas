@@ -1,4 +1,4 @@
-Attribute VB_Name = "cptIPMDAR"
+Attribute VB_Name = "cptIPMDAR_bas"
 '<cpt_version>0.0.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
@@ -46,6 +46,12 @@ Dim vFile As Variant
   '--- zip files
 
   Set oProject = ActiveProject
+  
+  'ensure status date
+  If Not IsDate(oProject.StatusDate) Then
+    MsgBox "Please provide a status date.", vbExclamation + vbOKOnly, "Invalid Status Date"
+    GoTo exit_here
+  End If
   
   'set up directories
   If Dir(Environ("USERPROFILE") & "\IPMDAR", vbDirectory) = vbNullString Then MkDir Environ("USERPROFILE") & "\IPMDAR\"
@@ -152,14 +158,21 @@ Dim vFile As Variant
   Next
   
   'todo: scrub for character limitations SPD FFS 2.1.6
+    'cycle through the json files
+    'if tripped then
+      'split into array
+      'check each line and highlight it somehow
+      'or simply remove it
+    'end if
+  'todo: ensure all string values are trimmed
+  'todo: remove all instances of more than one space
+  'todo: remove tab characters
   'todo: create schedule narrative template containing:
   'todo: -- section headers [created with the ClearPlan toolbar
   'todo: -- placeholders for all explanations for leads, lags, constraints
   'todo: -- placeholders for CWBS, SOW if exist in Outline Code
   'todo: export IMS Data Dictionary
   'todo: prompt to save server file as .mpp and consolidate?
-  'todo: create Validation Workbook w/json queries, highlighted duplicates, in parent directory IPMDAR
-  'todo: ensure all tasks with SUMMARY are included in the OutlineStrucure
   
   'prompt user
   If MsgBox("Create IPMDAR Data Review workbook?", vbQuestion + vbYesNo) = vbYes Then
@@ -983,7 +996,7 @@ Dim strSource As String
       "    Source = Json.Document(File.Contents(""C:\Users\arong\IPMDAR\2016-08-26\" & strSource & ".json""))," & Chr(13) & "" & Chr(10) & _
       "    #""Converted to Table"" = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error)," & Chr(13) & "" & Chr(10)
 
-      Select Case strSource
+      Select Case strSource 'todo: remaining .json files
         Case "CalendarExceptions"
           strFormula = strFormula & _
           "    #""Expanded Column1"" = Table.ExpandRecordColumn(#""Converted to Table"", ""Column1"", {""CalendarID"", ""ExceptionDate"", ""WorkHours""}, {""CalendarID"", ""ExceptionDate"", ""WorkHours""})          "
@@ -1065,7 +1078,10 @@ Dim strSource As String
     End If
   Next 'oFile In oFolder.Files
 
-  'todo: add conditional formatting
+  'todo: add conditional formatting for duplicate task names
+  'todo: ensure all tasks with SUMMARY are included in the OutlineStrucure
+  'todo: ensure all outlinelevel=1 have null parent
+  'todo: ensure uniqueness based on Primary Keys
 
   xlApp.Visible = True
   If Dir(strDir & "IPMDAR_DATA_REVIEW.xlsx") <> vbNullString Then
