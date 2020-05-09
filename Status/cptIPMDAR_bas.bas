@@ -1330,6 +1330,8 @@ Dim vData As Variant
         For lngItem = 1 To .SelectedItems.Count
           strFile = .SelectedItems(lngItem)
         Next lngItem
+      Else
+        GoTo exit_here
       End If
     End If
   End With
@@ -1341,31 +1343,79 @@ Dim vData As Variant
   vData = Split(strData, ",")
   With cptIPMDAR_frm
     .txtSecurityMarking = vData(0)
+    strJSON = strJSON & Chr(34) & Replace(.txtSecurityMarking.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(0) & Chr(34) & ","
+    
     .txtDistributionStatement = vData(1)
+    strJSON = strJSON & Chr(34) & Replace(.txtDistributionStatement.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(1) & Chr(34) & ","
+    
     .txtReportingPeriodEndDate = vData(2)
+    strJSON = strJSON & Chr(34) & Replace(.txtReportingPeriodEndDate.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(2) & Chr(34) & ","
+    
     .txtContractorName = vData(3)
+    strJSON = strJSON & Chr(34) & Replace(.txtContractorName.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(3) & Chr(34) & ","
+    
     .cboContractorIDCodeTypeID = vData(4) 'COBRA enum matches SPD FFS enum
+    strJSON = strJSON & Chr(34) & Replace(.cboContractorIDCodeTypeID.Name, "cbo", "") & Chr(34) & ": " & Chr(34) & vData(4) & Chr(34) & ","
+    
     .txtContractorIDCode = vData(5)
+    strJSON = strJSON & Chr(34) & Replace(.txtContractorIDCode.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(5) & Chr(34) & ","
+    
     .txtContractorAddress_Street = vData(6)
+    strJSON = strJSON & Chr(34) & Replace(.txtContractorAddress_Street.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(6) & Chr(34) & ","
+    
     .txtContractorAddress_City = vData(7)
+    strJSON = strJSON & Chr(34) & Replace(.txtContractorAddress_City.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(7) & Chr(34) & ","
+    
     .txtContractorAddress_State = vData(8)
+    strJSON = strJSON & Chr(34) & Replace(.txtContractorAddress_State.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(8) & Chr(34) & ","
+    
     .txtContractorAddress_Country = vData(9)
+    strJSON = strJSON & Chr(34) & Replace(.txtContractorAddress_Country.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(9) & Chr(34) & ","
+    
     .txtContractorAddress_ZipCode = vData(10)
+    strJSON = strJSON & Chr(34) & Replace(.txtContractorAddress_ZipCode.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(10) & Chr(34) & ","
+    
     .txtPointOfContactName = vData(11)
+    strJSON = strJSON & Chr(34) & Replace(.txtPointOfContactName.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(11) & Chr(34) & ","
+    
     .txtPointOfContactTitle = vData(12)
+    strJSON = strJSON & Chr(34) & Replace(.txtPointOfContactTitle.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(12) & Chr(34) & ","
+    
     .txtPointOfContactTelephone = vData(13)
+    strJSON = strJSON & Chr(34) & Replace(.txtPointOfContactTelephone.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(13) & Chr(34) & ","
+    
     .txtPointOfContactEmail = vData(14)
+    strJSON = strJSON & Chr(34) & Replace(.txtPointOfContactEmail.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(14) & Chr(34) & ","
+    
     .txtContractName = vData(15)
+    strJSON = strJSON & Chr(34) & Replace(.txtContractName.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(15) & Chr(34) & ","
+    
     .txtContractNumber = vData(16)
+    strJSON = strJSON & Chr(34) & Replace(.txtContractNumber.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(16) & Chr(34) & ","
+    
     .txtContractType = vData(17)
+    strJSON = strJSON & Chr(34) & Replace(.txtContractType.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(17) & Chr(34) & ","
+    
     .txtContractTaskOrEffortName = vData(18)
+    strJSON = strJSON & Chr(34) & Replace(.txtContractTaskOrEffortName.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(18) & Chr(34) & ","
+    
     .txtProgramName = vData(19)
+    strJSON = strJSON & Chr(34) & Replace(.txtProgramName.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(19) & Chr(34) & ","
+    
     .txtProgramPhase = vData(20)
+    strJSON = strJSON & Chr(34) & Replace(.txtProgramPhase.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(20) & Chr(34) & ","
+    
     .optEVTrue = CBool(vData(21))
+    strJSON = strJSON & Chr(34) & Replace(.optEVTrue.Name, "opt", "") & Chr(34) & ": " & Chr(34) & vData(21) & Chr(34)
+    
     If UBound(vData) > 21 Then
       .txtEVMSAcceptanceDate = vData(22)
+      strJSON = strJSON & "," & Chr(34) & Replace(.txtEVMSAcceptanceDate.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(22) & Chr(34)
     End If
   End With
+  
+  MsgBox "[{" & strJSON & "}]" 'todo: save as DatasetMetadata.json file and store it
+  
 exit_here:
   On Error Resume Next
   Set FileDialog = Nothing
