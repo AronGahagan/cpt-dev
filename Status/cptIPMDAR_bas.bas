@@ -3,6 +3,7 @@ Attribute VB_Name = "cptIPMDAR_bas"
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+'for x = 0 to cptIPMDAR_frm.lboFiles.ListCount-1 : debug.Print (x+1) & " - " & cptIPMDAR_frm.lboFiles.List(x,0) : next x
 
 Sub cptJSON_Main()
 'objects
@@ -933,9 +934,191 @@ err_here:
 End Function
 
 Sub cptShowFrmIPMDAR()
-  'load files to listbox
-  'pre-load prior period's options
-  'display form
+'objects
+'strings
+'longs
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  'load listbox
+  With cptIPMDAR_frm.lboFiles
+    .Clear
+    .AddItem "FileType.txt"
+    .AddItem "DatasetMetadata.json"
+    .AddItem "SourceSoftwareMetadata.json"
+    .AddItem "ProjectScheduleData.json"
+    .AddItem "ProjectCustomFieldDefinitions.json"
+    .AddItem "ProjectCustomFieldValues.json"
+    .AddItem "Calendars.json"
+    .AddItem "CalendarWorkshifts.json"
+    .AddItem "CalendarExceptions.json"
+    .AddItem "Tasks.json"
+    .AddItem "TaskScheduleData.json"
+    .AddItem "TaskCustomFieldDefinitions.json"
+    .AddItem "TaskCustomFieldValues.json"
+    .AddItem "TaskConstraints.json"
+    .AddItem "TaskRelationships.json"
+    .AddItem "TaskOutlineStructure.json"
+    .AddItem "Resources.json"
+    .AddItem "ResourceCustomFieldDefinitions.json"
+    .AddItem "ResourceCustomFieldValues.json"
+    .AddItem "ResourceAssignments.json"
+  End With
+  
+  'File.txt
+  cptIPMDAR_frm.txtSchema = "IPMDAR_SCHEDULE_PERFORMANCE_DATASET/1.0"
+  cptIPMDAR_frm.lboFiles.ListIndex = 0
+  
+  'DataSetMetadata
+  With cptIPMDAR_frm
+    If IsDate(ActiveProject.StatusDate) Then
+      .txtReportingPeriodEndDate = Format(ActiveProject.StatusDate, "yyyy-mm-dd")
+    Else
+      .txtReportingPeriodEndDate = "INVALID"
+    End If
+    With .cboContractorIDCodeTypeID
+      .Clear
+      .AddItem "DUNS"
+      .AddItem "DUNS_PLUS_4"
+      .AddItem "CAGE"
+    End With
+    .txtContractorIDCode.Enabled = False
+    'todo: enable code on cboCode not null
+    .optEVFalse = True
+    .txtEVMSAcceptanceDate.Enabled = False
+  End With
+  
+  'SourceSoftwareMetadata
+  With cptIPMDAR_frm
+    .txtData_SoftwareName = Application.Name
+    .txtData_SoftwareVersion = Application.Version
+    .txtData_SoftwareCompanyName = "Microsoft Corporation"
+    .txtData_SoftwareComments = Application.Name & " " & Application.Build & " on " & Application.OperatingSystem
+    .txtExport_SoftwareName = "ClearPlan Toolbar"
+    .txtExport_SoftwareVersion = Replace(Replace(cptRegEx(ThisProject.VBProject.VBComponents("cptIPMDAR_bas").CodeModule.Lines(1, 3), "<.*>"), "<cpt_version>", ""), "</cpt_version>", "")
+    .txtExport_SoftwareCompanyName = "ClearPlan Consulting, LLC"
+    .txtExport_SoftwareComments = "www.ClearPlanConsulting.com"
+  End With
+  
+  'ProjectScheduleData
+  With cptIPMDAR_frm
+    If IsDate(ActiveProject.StatusDate) Then
+      .txtStatusDate = Format(ActiveProject.StatusDate, "yyyy-mm-dd")
+    Else
+      .txtStatusDate = "INVALID"
+      'todo: color it
+    End If
+    .txtCurrentStartDate = Format(ActiveProject.ProjectStart, "yyyy-mm-dd")
+    .txtCurrentFinishDate = Format(ActiveProject.ProjectFinish, "yyyy-mm-dd")
+    If IsDate(ActiveProject.ProjectSummaryTask.BaselineStart) Then
+      .txtBaselineStartDate = Format(ActiveProject.ProjectSummaryTask.BaselineStart, "yyyy-mm-dd")
+    End If
+    If IsDate(ActiveProject.ProjectSummaryTask.BaselineFinish) Then
+      .txtBaselineFinishDate = Format(ActiveProject.ProjectSummaryTask.BaselineFinish, "yyyy-mm-dd")
+    End If
+    If IsDate(ActiveProject.ProjectSummaryTask.ActualStart) Then
+      .txtActualStartDate = Format(ActiveProject.ProjectSummaryTask.ActualStart, "yyyy-mm-dd")
+    End If
+    If IsDate(ActiveProject.ProjectSummaryTask.ActualFinish) Then
+      .txtActualFinishDate = Format(ActiveProject.ProjectSummaryTask.ActualFinish, "yyyy-mm-dd")
+    End If
+    .cboDurationUnitsID.Clear
+    .cboDurationUnitsID.AddItem "DAYS"
+    .cboDurationUnitsID.AddItem "HOURS"
+    .cboDurationUnitsID.Value = "DAYS"
+  End With
+  
+  'Tasks
+  With cptIPMDAR_frm
+    .cboTaskID.Clear
+    .cboTaskID.AddItem "Unique ID"
+    .cboTaskID.AddItem "GUID"
+    .cboTaskID.AddItem "<< others >>"
+    .txtName = "[Task]Name"
+    With .cboSourceSubprojectReference
+      .Clear
+      .AddItem "[Task]Project"
+      .Value = "[Task]Project"
+    End With
+    With .cboSourceTaskReference
+      .Clear
+      .AddItem "[Task]UniqueID"
+      .Value = "[Task]UniqueID"
+    End With
+    With .cboComments
+      .Clear
+      .AddItem "[Task]Notes"
+      For lngItem = 1 To 30
+        .AddItem "Text" & lngItem
+      Next lngItem
+    End With
+  End With
+  
+  'TaskScheduleData
+  With cptIPMDAR_frm
+    .cboPhysicalPercentComplete.Clear
+    .cboPhysicalPercentComplete.AddItem "Physical % Complete" 'todo: lngField | name
+    'todo: add only numbers...what about enterprise?
+  End With
+  
+  'TaskOutlineStructure
+  With cptIPMDAR_frm
+    .optSummaryTasks.Value = True
+    '.optOutlineCode.Value = False
+    .cboOutlineCode.Clear
+    For lngItem = 1 To 10
+      .cboOutlineCode.AddItem "Outline Code" & lngItem
+    Next lngItem
+    'todo: add ECFs?
+  End With
+  
+  'Resources
+  With cptIPMDAR_frm
+    .cboResourceID.Clear
+    .cboResourceID.AddItem "Unique ID"
+    .cboResourceID.AddItem "GUID"
+    .cboResourceID.AddItem "<< others >>"
+  End With
+  
+  'ResourceAssignments
+  With cptIPMDAR_frm
+    'todo: update A_ResourceID with cboResourceID
+    'todo: update A_TaskID with cboTaskID
+    .txtA_Budget_AtCompletion_Dollars.Value = "[Resource]BaselineCost"
+    .txtA_Budget_AtCompletion_Hours.Value = "[Resource]BaselineWork"
+    .txtA_Estimate_ToComplete_Dollars.Value = "[Resource]RemainingCost"
+    .txtA_Estimate_ToComplete_Hours.Value = "[Resource]RemainingWork"
+    .txtA_Actual_ToDate_Dollars.Value = "null"
+    .txtA_Actual_ToDate_Hours.Value = "null"
+    'todo: update A_PhysicalPercentComplete with Task
+  End With
+  
+  'load existing settings
+  cptIPMDAR_frm.Show False
+  cptIPMDAR_frm.lboFiles.SetFocus
+  
+  'todo: for enumerated values, show list of required values
+  'todo: for enumerated values, provide auto-generation
+  'todo: provide peak for selected project/task?
+  'todo: source | sample | json
+  'todo: checkbox create review workbook
+  'todo: add null as a value in all nullable fields
+  'todo: tab order
+  
+  'todo: create script with prompt > email to finance > receive xlsx > import > convert to json
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptIPMDAR_bas", "cptShowFrmCptIPMDAR", Err, Erl)
+  Resume exit_here
 End Sub
 
 Function CHARW(CharCode As Variant, Optional Exact_functionality As Boolean = False) As String
@@ -1105,3 +1288,91 @@ err_here:
   Resume exit_here
 End Sub
 
+Sub cptRequestCOBRAData()
+'todo: generate *.sql file
+'todo: create email
+'todo: include script in email body
+'todo: attach *.sql to email
+End Sub
+
+Sub cptLoadCOBRAData()
+'objects
+Dim FileDialog As FileDialog
+Dim xlApp As Excel.Application
+'strings
+Dim strData As String
+Dim strFile As String
+'longs
+Dim lngFile As Long
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+Dim vItem As Variant
+Dim vData As Variant
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  Set xlApp = CreateObject("Excel.Application")
+  Set FileDialog = xlApp.FileDialog(msoFileDialogFilePicker)
+  With FileDialog
+    .AllowMultiSelect = False
+    .ButtonName = "Load"
+    .InitialView = msoFileDialogViewDetails
+    .InitialFileName = Environ("USERPROFILE") & "\"
+    .Title = "Select COBRA Data File:"
+    .Filters.Add "Comma Separated Values (csv)", "*.csv"
+    
+    If .Show = -1 Then
+      If .SelectedItems.Count > 0 Then
+        For lngItem = 1 To .SelectedItems.Count
+          strFile = .SelectedItems(lngItem)
+        Next lngItem
+      End If
+    End If
+  End With
+
+  lngFile = FreeFile
+  Open strFile For Input As #lngFile
+  Line Input #lngFile, strData
+  Close #lngFile
+  vData = Split(strData, ",")
+  With cptIPMDAR_frm
+    .txtSecurityMarking = vData(0)
+    .txtDistributionStatement = vData(1)
+    .txtReportingPeriodEndDate = vData(2)
+    .txtContractorName = vData(3)
+    .cboContractorIDCodeTypeID = vData(4) 'COBRA enum matches SPD FFS enum
+    .txtContractorIDCode = vData(5)
+    .txtContractorAddress_Street = vData(6)
+    .txtContractorAddress_City = vData(7)
+    .txtContractorAddress_State = vData(8)
+    .txtContractorAddress_Country = vData(9)
+    .txtContractorAddress_ZipCode = vData(10)
+    .txtPointOfContactName = vData(11)
+    .txtPointOfContactTitle = vData(12)
+    .txtPointOfContactTelephone = vData(13)
+    .txtPointOfContactEmail = vData(14)
+    .txtContractName = vData(15)
+    .txtContractNumber = vData(16)
+    .txtContractType = vData(17)
+    .txtContractTaskOrEffortName = vData(18)
+    .txtProgramName = vData(19)
+    .txtProgramPhase = vData(20)
+    .optEVTrue = CBool(vData(21))
+    If UBound(vData) > 21 Then
+      .txtEVMSAcceptanceDate = vData(22)
+    End If
+  End With
+exit_here:
+  On Error Resume Next
+  Set FileDialog = Nothing
+  Set xlApp = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptIPMDAR_bas", "cptLoadCOBRAData", Err, Erl)
+  Resume exit_here
+End Sub
