@@ -1121,6 +1121,57 @@ err_here:
   Resume exit_here
 End Sub
 
+Sub cptShowFrmCptTaskTypeMap()
+'objects
+'strings
+'longs
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  With cptTaskTypeMapping_frm
+    With .cboFieldToMap
+      .Clear
+      .AddItem "* TaskTypeID"
+      .AddItem "TaskSubTypeID"
+    End With
+    With .cboWhereField
+      .Clear
+      .AddItem
+      .List(.ListCount - 1, 0) = FieldNameToFieldConstant("Name", pjTask)
+      .List(.ListCount - 1, 1) = "Task Name"
+    End With
+    With .cboOperator
+      .Clear
+      .AddItem "equals"
+      .AddItem "contains"
+      .AddItem "begins with"
+      .AddItem "does not equal"
+      .AddItem "does not contain"
+    End With
+    With .cboTaskType
+      .Clear
+      .AddItem "ACTIVITY"
+      .AddItem "MILESTONE"
+      .AddItem "SUMMARY"
+      .AddItem "HAMMOCK"
+    End With
+    
+    .Show False
+    
+  End With
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptIPMDAR_Bas", "cptShowFrmCptTaskTypeMap", Err, Erl)
+  Resume exit_here
+End Sub
+
 Function CHARW(CharCode As Variant, Optional Exact_functionality As Boolean = False) As String
 'Use a Leading "U" or "u" to indicate Unicode values
 'Exact_functionality returns the Unicode characters for Ascii(128) to Ascii(159) rather than
