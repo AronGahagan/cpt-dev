@@ -36,9 +36,9 @@ Dim vFile As Variant
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   'USER ACTIONS BEFORE RUNNING:
-  '-- Fill out ProjectMetadata on first run
   '-- Identify Critical Path
-  '-- Identify Driving Path
+  '-- Identify Driving Path(s)
+  '-- Add custom field descriptions using Data Dictionary feature
   
   'USER ACTIONS AFTER RUNNING:
   '-- Use IPMDAR_DATA_REVIEW TO:
@@ -59,9 +59,12 @@ Dim vFile As Variant
   End If
   
   'set up directories
-  If Dir(Environ("USERPROFILE") & "\IPMDAR", vbDirectory) = vbNullString Then MkDir Environ("USERPROFILE") & "\IPMDAR\"
-  strDir = Environ("USERPROFILE") & "\IPMDAR\" & Format(oProject.StatusDate, "yyyy-mm-dd")
-  If Dir(strDir, vbDirectory) = vbNullString Then MkDir Environ("USERPROFILE") & "\IPMDAR\" & Format(oProject.StatusDate, "yyyy-mm-dd") & "\"
+  strDir = Environ("USERPROFILE") & "\IPMDAR"
+  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
+  strDir = strDir & "\" & cptIPMDAR_frm.cboContract.Value
+  If Dir(strDir) = vbNullString Then MkDir
+  strDir = strDir & "\" & Format(oProject.StatusDate, "yyyy-mm-dd")
+  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
 
   'create the FileType.txt
   lngFile = FreeFile
@@ -941,6 +944,7 @@ End Function
 
 Sub cptShowFrmIPMDAR()
 'objects
+Dim aContracts As Object
 Dim oRootDir As Object
 Dim oSubDir As Object
 Dim oFSO As Object
@@ -954,6 +958,7 @@ Dim strCalendarComments As String
 Dim strDir As String
 Dim strExisting As String
 'longs
+Dim lngContracts As Long
 Dim lngCalendar As Long
 Dim lngItem As Long
 'integers
@@ -970,6 +975,59 @@ Dim dtStatus As Date
     MsgBox "Please provide a Project Status Date.", vbExclamation + vbOKOnly, "Invalid Status Date"
   Else
     dtStatus = ActiveProject.StatusDate
+  End If
+  
+  'confirm IPMDAR directory exists
+  strDir = Environ("USERPROFILE") & "\IPMDAR\"
+  If Dir(strDir, vbDirectory) = vbNullString Then
+    MkDir strDir
+  End If
+  
+  'todo: load contracts in directory
+  Set aContracts = CreateObject("System.Collections.SortedList")
+  Set oFSO = CreateObject("Scripting.FileSystemObject")
+  Set oRootDir = oFSO.GetFolder(strDir)
+  For Each oSubDir In oRootDir.SubFolders
+    aContracts.Add Replace(oSubDir.Path, strDir, ""), Replace(oSubDir.Path, strDir, "")
+  Next
+  'list the contracts
+  cptIPMDAR_frm.cboContract.Clear
+  For lngContracts = aContracts.Count To 1 Step -1
+    cptIPMDAR_frm.cboContract.AddItem aContracts.getByIndex(lngContracts - 1)
+  Next lngContracts
+  
+  'todo: button to add new contract
+  'todo: cboContract_Change >> update docprops >> refresh cboPeriods >> [lots of fields updated]
+  
+  'confirm contract
+  On Error Resume Next
+  strDir = ActiveProject.CustomDocumentProperties("cptSPD_DIR").Value
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If Len(strDir) = 0 Then
+    'todo: replace this with form controls
+    vbResponse = InputBox("(We recommend matching the contract name in COBRA)." & vbCrLf & "Contract Name:", "Directory Name Needed")
+    If StrPtr(vbResponse) = 0 Then 'user hit cancel
+      GoTo exit_here
+    ElseIf Len(vbResponse) = 0 Then 'user entered zero-length string
+      GoTo exit_here
+    Else
+      strContract = CStr(vbResponse)
+    End If
+    'todo: trap zero value, cancel
+    strDir = Environ("USERPROFILE") & "\IPMDAR\" & strContract
+    If Dir(Environ("USERPROFILE") & "\IPMDAR\" & strContract, vbDirectory) = vbNullString Then
+      MkDir Environ("USERPROFILE") & "\IPMDAR\" & strContract
+    End If
+    ActiveProject.CustomDocumentProperties.Add Name:="cptSPD_DIR", LinkToContent:=False, Type:=4, Value:=strDir
+  End If
+  cptIPMDAR_frm.cboContract.Value = Mid(strDir, InStrRev(strDir, "\") + 1)
+  'todo: on COBRA Load, match Contract to Directory Name and save to document properties
+  
+  'generate a directory with current status date
+  'todo: should this really be automatic on form load?
+  strPeriod = strDir & "\" & Format(dtStatus, "yyyy-mm-dd")
+  If Dir(strPeriod, vbDirectory) = vbNullString Then
+    MkDir strPeriod
   End If
   
   'load listbox
@@ -996,33 +1054,7 @@ Dim dtStatus As Date
     .AddItem "ResourceCustomFieldValues.json"
     .AddItem "ResourceAssignments.json"
   End With
-  
-  'load cboPrevDirectories
-  'todo: limit to current project
-  strDir = Environ("USERPROFILE") & "\IPMDAR"
-  If Dir(strDir, vbDirectory) = vbNullString Then
-    MkDir strDir
-  End If
-  'get list of directories
-  Set aSubmittals = CreateObject("System.Collections.SortedList")
-  Set oFSO = CreateObject("Scripting.FileSystemObject")
-  Set oRootDir = oFSO.GetFolder(strDir)
-  For Each oSubDir In oRootDir.SubFolders
-    'todo: sort prev dir by datecreated or alphabetically? user chooses?
-    If Mid(oSubDir.Path, InStrRev(oSubDir.Path, "\") + 1) <> Format(dtStatus, "yyyy-mm-dd") Then 'todo: exclude current period dir
-      aSubmittals.Add oSubDir.DateCreated, Mid(oSubDir.Path, InStrRev(oSubDir.Path, "\") + 1)
-    End If
-    'todo: what if future periods exist for project?
-  Next
-  For lngCalendar = aSubmittals.Count To 1 Step -1
-    cptIPMDAR_frm.cboPrevDir.AddItem aSubmittals.getByIndex(lngCalendar - 1)
-  Next lngCalendar
-  If aSubmittals.Count > 0 Then 'default to most previous
-    cptIPMDAR_frm.cboPrevDir.Value = aSubmittals.getByIndex(aSubmittals.Count - 1)
-  Else
-    'todo: no prior periods exist yet
-  End If
-  
+    
   'File.txt
   cptIPMDAR_frm.txtSchema = "IPMDAR_SCHEDULE_PERFORMANCE_DATASET/1.0"
   cptIPMDAR_frm.lboFiles.ListIndex = 0
@@ -1049,7 +1081,7 @@ Dim dtStatus As Date
     .txtData_SoftwareCompanyName = "Microsoft Corporation"
     .txtData_SoftwareComments = Application.Name & " " & Application.Build & " on " & Application.OperatingSystem
     .txtExport_SoftwareName = "ClearPlan Toolbar"
-    .txtExport_SoftwareVersion = Replace(Replace(cptRegEx(ThisProject.VBProject.VBComponents("cptIPMDAR_bas").CodeModule.Lines(1, 3), "<.*>"), "<cpt_version>", ""), "</cpt_version>", "")
+    .txtExport_SoftwareVersion = Replace(Replace(cptRegEx(ThisProject.VBProject.VBComponents("cptIPMDAR_bas").CodeModule.Lines(1, 3), "<cpt_version>.*<\/cpt_version>"), "<cpt_version>", ""), "</cpt_version>", "")
     .txtExport_SoftwareCompanyName = "ClearPlan Consulting, LLC"
     .txtExport_SoftwareComments = "www.ClearPlanConsulting.com"
   End With
@@ -1266,6 +1298,7 @@ Dim dtStatus As Date
   
 exit_here:
   On Error Resume Next
+  Set aContracts = Nothing
   Set oRootDir = Nothing
   Set oSubDir = Nothing
   Set oFSO = Nothing
@@ -1699,6 +1732,7 @@ Dim vData As Variant
     
     .txtContractName = vData(15)
     strJSON = strJSON & Chr(34) & Replace(.txtContractName.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(15) & Chr(34) & ","
+    'todo: if <> cptSPD_DIR then: rename directory, update docprop, reset cboContract
     
     .txtContractNumber = vData(16)
     strJSON = strJSON & Chr(34) & Replace(.txtContractNumber.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(16) & Chr(34) & ","
@@ -1731,6 +1765,7 @@ Dim vData As Variant
   End With
   
   'create DatasetMetadata.json
+  'todo: capture file exists
   lngFile = FreeFile
   Open strDir & "\DatasetMetadata.json" For Output As #lngFile
   Print #lngFile, "[{" & strJSON & "}]"

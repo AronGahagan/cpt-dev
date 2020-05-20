@@ -18,6 +18,60 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+Private Sub cboContract_Change()
+'objects
+Dim oSubDir As Object
+Dim oRootDir As Object
+Dim oFSO As Object
+Dim aSubmittals As Object
+'strings
+'longs
+Dim lngPeriod As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  'load cboPrevDirectories
+  'get list of directories
+  Set aSubmittals = CreateObject("System.Collections.SortedList")
+  Set oFSO = CreateObject("Scripting.FileSystemObject")
+  Set oRootDir = oFSO.GetFolder(Environ("USERPROFILE") & "\IPMDAR\" & Me.cboContract.Value)
+  For Each oSubDir In oRootDir.SubFolders
+    'todo: sort prev dir by datecreated or alphabetically? user chooses?
+    If Mid(oSubDir.Path, InStrRev(oSubDir.Path, "\") + 1) <> Format(ActiveProject.StatusDate, "yyyy-mm-dd") Then  'todo: exclude current period dir
+      aSubmittals.Add oSubDir.DateCreated, Mid(oSubDir.Path, InStrRev(oSubDir.Path, "\") + 1)
+    End If
+    'todo: what if future periods exist for project? A: let the user be smart about this
+  Next
+  'list the previous periods in descending order
+  cptIPMDAR_frm.cboPrevDir.Clear
+  For lngPeriod = aSubmittals.Count To 1 Step -1
+    cptIPMDAR_frm.cboPrevDir.AddItem aSubmittals.getByIndex(lngPeriod - 1)
+  Next lngPeriod
+  If aSubmittals.Count > 0 Then 'default to most previous
+    cptIPMDAR_frm.cboPrevDir.Value = aSubmittals.getByIndex(aSubmittals.Count - 1)
+  Else
+    'todo: no prior periods exist yet
+  End If
+  Me.cboPrevDir.ControlTipText = "Matches subdirectories in C:\Users\[username]\IPMDAR\" & Me.cboContract.Value & "\"
+exit_here:
+  On Error Resume Next
+  Set oSubDir = Nothing
+  Set oRootDir = Nothing
+  Set oFSO = Nothing
+  Set aSubmittals = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptIPMDAR_frm", "cboContract_Change", Err, Erl)
+  
+  Resume exit_here
+End Sub
+
 Private Sub cboPhysicalPercentComplete_Change()
   Me.txtA_PhysicalPercentComplete.Value = Me.cboPhysicalPercentComplete.Value
 End Sub
