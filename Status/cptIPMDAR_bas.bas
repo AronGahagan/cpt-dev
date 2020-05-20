@@ -4,6 +4,8 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 'for x = 0 to cptIPMDAR_frm.lboFiles.ListCount-1 : debug.Print (x+1) & " - " & cptIPMDAR_frm.lboFiles.List(x,0) : next x
+'todo: handle multiple project directories - use COBRA Contract Name
+'todo: if COBRA contract name <> subdirectory then prompt to synchronize
 
 Sub cptJSON_Main()
 'objects
@@ -47,7 +49,9 @@ Dim vFile As Variant
   '--- zip files
 
   Set oProject = ActiveProject
-  
+    
+  'todo: determine contract ( = directory name) and save to project custom field
+    
   'ensure status date
   If Not IsDate(oProject.StatusDate) Then
     MsgBox "Please provide a status date.", vbExclamation + vbOKOnly, "Invalid Status Date"
@@ -67,10 +71,10 @@ Dim vFile As Variant
   
   'create the exports
 
-  'todo: DatasetMetadata.json
-'  If Not cptJSON_DatasetMetadata(strDir) Then
-'    strErr = "DatasetMetadata.json" & vbCrLf
-'  End If
+  'DatasetMetadata.json is created on COBRA data load
+  If Dir(strDir & "\DatasetMetadata.json") = vbNullString Then
+    strErr = "DatasetMetadata.json" & vbCrLf
+  End If
 
   'SourceSoftwareMetadata.json
   If Not cptJSON_SourceSoftwareMetadata(strDir) Then
@@ -131,6 +135,8 @@ Dim vFile As Variant
       strErr = "Resources.json" & vbCrLf
     End If
     'todo: ResourceCustomFieldValues
+    
+    'todo: provide means to add calendar comments
   
   Next lngProject
   
@@ -421,8 +427,8 @@ Dim dtException As Date
   lngCalendarExceptionsFile = FreeFile
   Open strCalendarExceptionsFile For Append As #lngCalendarExceptionsFile
   
-  For Each oCalendar In oProject.BaseCalendars
-    'todo: what about resource calendars?
+  For Each oCalendar In oProject.BaseCalendars 'todo: only used calendars
+    'todo: what about resource calendars? all exceptions or only exceptions to base calendar?
   
     'Calendars.json
     strCalendarsJSON = strCalendarsJSON & "{"
@@ -935,17 +941,37 @@ End Function
 
 Sub cptShowFrmIPMDAR()
 'objects
+Dim oRootDir As Object
+Dim oSubDir As Object
+Dim oFSO As Object
+Dim aSubmittals As Object
+Dim oSubProject As Object
+Dim oResource As Resource
+Dim oTask As Task
 'strings
+Dim strFile As String
+Dim strCalendarComments As String
+Dim strDir As String
+Dim strExisting As String
 'longs
+Dim lngCalendar As Long
 Dim lngItem As Long
 'integers
 'doubles
 'booleans
 'variants
 'dates
+Dim dtStatus As Date
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
+  'confirm status date
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "Please provide a Project Status Date.", vbExclamation + vbOKOnly, "Invalid Status Date"
+  Else
+    dtStatus = ActiveProject.StatusDate
+  End If
+  
   'load listbox
   With cptIPMDAR_frm.lboFiles
     .Clear
@@ -971,17 +997,39 @@ Dim lngItem As Long
     .AddItem "ResourceAssignments.json"
   End With
   
+  'load cboPrevDirectories
+  'todo: limit to current project
+  strDir = Environ("USERPROFILE") & "\IPMDAR"
+  If Dir(strDir, vbDirectory) = vbNullString Then
+    MkDir strDir
+  End If
+  'get list of directories
+  Set aSubmittals = CreateObject("System.Collections.SortedList")
+  Set oFSO = CreateObject("Scripting.FileSystemObject")
+  Set oRootDir = oFSO.GetFolder(strDir)
+  For Each oSubDir In oRootDir.SubFolders
+    'todo: sort prev dir by datecreated or alphabetically? user chooses?
+    If Mid(oSubDir.Path, InStrRev(oSubDir.Path, "\") + 1) <> Format(dtStatus, "yyyy-mm-dd") Then 'todo: exclude current period dir
+      aSubmittals.Add oSubDir.DateCreated, Mid(oSubDir.Path, InStrRev(oSubDir.Path, "\") + 1)
+    End If
+    'todo: what if future periods exist for project?
+  Next
+  For lngCalendar = aSubmittals.Count To 1 Step -1
+    cptIPMDAR_frm.cboPrevDir.AddItem aSubmittals.getByIndex(lngCalendar - 1)
+  Next lngCalendar
+  If aSubmittals.Count > 0 Then 'default to most previous
+    cptIPMDAR_frm.cboPrevDir.Value = aSubmittals.getByIndex(aSubmittals.Count - 1)
+  Else
+    'todo: no prior periods exist yet
+  End If
+  
   'File.txt
   cptIPMDAR_frm.txtSchema = "IPMDAR_SCHEDULE_PERFORMANCE_DATASET/1.0"
   cptIPMDAR_frm.lboFiles.ListIndex = 0
   
   'DataSetMetadata
   With cptIPMDAR_frm
-    If IsDate(ActiveProject.StatusDate) Then
-      .txtReportingPeriodEndDate = Format(ActiveProject.StatusDate, "yyyy-mm-dd")
-    Else
-      .txtReportingPeriodEndDate = "INVALID"
-    End If
+    .txtReportingPeriodEndDate = Format(dtStatus, "yyyy-mm-dd")
     With .cboContractorIDCodeTypeID
       .Clear
       .AddItem "DUNS"
@@ -1008,12 +1056,7 @@ Dim lngItem As Long
   
   'ProjectScheduleData
   With cptIPMDAR_frm
-    If IsDate(ActiveProject.StatusDate) Then
-      .txtStatusDate = Format(ActiveProject.StatusDate, "yyyy-mm-dd")
-    Else
-      .txtStatusDate = "INVALID"
-      'todo: color it
-    End If
+    .txtStatusDate = Format(dtStatus, "yyyy-mm-dd")
     .txtCurrentStartDate = Format(ActiveProject.ProjectStart, "yyyy-mm-dd")
     .txtCurrentFinishDate = Format(ActiveProject.ProjectFinish, "yyyy-mm-dd")
     If IsDate(ActiveProject.ProjectSummaryTask.BaselineStart) Then
@@ -1033,6 +1076,112 @@ Dim lngItem As Long
     .cboDurationUnitsID.AddItem "HOURS"
     .cboDurationUnitsID.Value = "DAYS"
   End With
+  
+  'Calendars
+  With cptIPMDAR_frm.lboCalendars
+    
+    'load project calendar
+    .Clear
+    .AddItem
+    .List(0, 0) = ActiveProject.Calendar.Guid
+    .List(0, 1) = ActiveProject.Calendar.Name
+    If Not IsNull(cptIPMDAR_frm.cboPrevDir.Value) Then
+      strFile = strDir & "\" & cptIPMDAR_frm.cboPrevDir.Value & "\Calendars.json"
+      If Dir(strFile) <> vbNullString Then
+        strCalendarComments = cptParseCalendarComments(strFile, ActiveProject.Calendar.Guid)
+        If Len(strCalendarComments) > 0 Then
+          .List(0, 2) = "+"
+          .List(0, 3) = strCalendarComments
+        Else
+          .List(0, 2) = "x"
+        End If
+      End If
+    End If
+    'todo: subproject calendars?
+    
+    'load task calendars
+    strExisting = ""
+    For Each oTask In ActiveProject.Tasks
+      If oTask.Calendar <> ActiveProject.Calendar And oTask.Calendar <> "None" Then
+        If InStr(strExisting, oTask.Calendar) = 0 Then
+          .AddItem
+          .List(.ListCount - 1, 0) = oTask.CalendarGuid
+          .List(.ListCount - 1, 1) = oTask.Calendar
+          If Not IsNull(cptIPMDAR_frm.cboPrevDir.Value) Then
+            strFile = strDir & "\" & cptIPMDAR_frm.cboPrevDir.Value & "\Calendars.json"
+            If Dir(strFile) <> vbNullString Then
+              strCalendarComments = cptParseCalendarComments(strFile, oTask.CalendarGuid)
+              If Len(strCalendarComments) > 0 Then
+                .List(0, 2) = "+"
+                .List(0, 3) = strCalendarComments
+              Else
+                .List(0, 2) = "x"
+              End If
+            End If
+          End If
+          strExisting = strExisting & "[" & oTask.Calendar & "]"
+        End If
+      End If
+    Next
+    'todo: what if subproject task calendars don't match?
+    
+    'load resource calenders
+    'todo: are resource calendars required?
+    strExisting = ""
+    For Each oResource In ActiveProject.Resources
+      If Not oResource.Calendar Is Nothing Then
+        If oResource.Calendar.Exceptions.Count > oResource.Calendar.BaseCalendar.Exceptions.Count Then
+          If InStr(strExisting, oResource.Calendar) = 0 Then
+            .AddItem
+            .List(.ListCount - 1, 0) = oResource.CalendarGuid
+            .List(.ListCount - 1, 1) = oResource.Calendar
+            If Not IsNull(cptIPMDAR_frm.cboPrevDir.Value) Then
+              strFile = strDir & "\" & cptIPMDAR_frm.cboPrevDir.Value & "\Calendars.json"
+              If Dir(strFile) <> vbNullString Then
+                strCalendarComments = cptParseCalendarComments(strFile, oResource.CalendarGuid)
+                If Len(strCalendarComments) > 0 Then
+                  .List(0, 2) = "+"
+                  .List(0, 3) = strCalendarComments
+                Else
+                  .List(0, 2) = "x"
+                End If
+              End If
+            End If
+            strExisting = strExisting & "[" & oResource.Calendar & "]"
+          End If
+        End If
+      End If
+    Next oResource
+    'handle master/sub
+    For Each oSubProject In ActiveProject.Subprojects
+      For Each oResource In oSubProject.SourceProject.Resources
+        If Not oResource.Calendar Is Nothing Then
+          If oResource.Calendar.Exceptions.Count > oResource.Calendar.BaseCalendar.Exceptions.Count Then
+            If InStr(strExisting, oResource.Calendar) = 0 Then
+              .AddItem
+              .List(.ListCount - 1, 0) = oResource.CalendarGuid
+              .List(.ListCount - 1, 1) = oResource.Calendar
+              If Not IsNull(cptIPMDAR_frm.cboPrevDir.Value) Then
+                strFile = strDir & "\" & cptIPMDAR_frm.cboPrevDir.Value & "\Calendars.json"
+                If Dir(strFile) <> vbNullString Then
+                  strCalendarComments = cptParseCalendarComments(strFile, oResource.CalendarGuid)
+                  If Len(strCalendarComments) > 0 Then
+                    .List(0, 2) = "+"
+                    .List(0, 3) = strCalendarComments
+                  Else
+                    .List(0, 2) = "x"
+                  End If
+                End If
+              End If
+              strExisting = strExisting & "[" & oResource.Calendar & "]"
+              'todo: what if subproject resource calendars don't match?
+            End If
+          End If
+        End If
+      Next oResource
+    Next oSubProject
+    
+  End With 'cptIPMDAR_frm.lboCalendars
   
   'Tasks
   With cptIPMDAR_frm
@@ -1070,10 +1219,10 @@ Dim lngItem As Long
   'TaskOutlineStructure
   With cptIPMDAR_frm
     .optSummaryTasks.Value = True
-    '.optOutlineCode.Value = False
+    'todo: load project-specific saved settings
     .cboOutlineCode.Clear
     For lngItem = 1 To 10
-      .cboOutlineCode.AddItem "Outline Code" & lngItem
+      .cboOutlineCode.AddItem "Outline Code" & lngItem 'todo: make 2 cols, lngField, strName
     Next lngItem
     'todo: add ECFs?
   End With
@@ -1083,23 +1232,27 @@ Dim lngItem As Long
     .cboResourceID.Clear
     .cboResourceID.AddItem "Unique ID"
     .cboResourceID.AddItem "GUID"
-    .cboResourceID.AddItem "<< others >>"
+    .cboResourceID.AddItem "<< others >>" 'todo: other fields?
+    'todo: load project-specific saved settings
   End With
   
   'ResourceAssignments
   With cptIPMDAR_frm
-    'todo: update A_ResourceID with cboResourceID
-    'todo: update A_TaskID with cboTaskID
+    'A_ResourceID = cboResourceID
+    'A_TaskID = cboTaskID
     .txtA_Budget_AtCompletion_Dollars.Value = "[Resource]BaselineCost"
     .txtA_Budget_AtCompletion_Hours.Value = "[Resource]BaselineWork"
     .txtA_Estimate_ToComplete_Dollars.Value = "[Resource]RemainingCost"
     .txtA_Estimate_ToComplete_Hours.Value = "[Resource]RemainingWork"
     .txtA_Actual_ToDate_Dollars.Value = "null"
     .txtA_Actual_ToDate_Hours.Value = "null"
-    'todo: update A_PhysicalPercentComplete with Task
+    'A_PhysicalPercentComplete = Task Physical % Complete
   End With
   
-  'load existing settings
+  'todo: load existing settings
+  
+  'set to first page and show it
+  cptIPMDAR_frm.mpOptions.Value = 0
   cptIPMDAR_frm.Show False
   cptIPMDAR_frm.lboFiles.SetFocus
   
@@ -1108,12 +1261,18 @@ Dim lngItem As Long
   'todo: provide peak for selected project/task?
   'todo: source | sample | json
   'todo: checkbox create review workbook
-  'todo: add null as a value in all nullable fields
+  'todo: add null as a value in all nullable fields?
   'todo: tab order
   
-  'todo: create script with prompt > email to finance > receive xlsx > import > convert to json
 exit_here:
   On Error Resume Next
+  Set oRootDir = Nothing
+  Set oSubDir = Nothing
+  Set oFSO = Nothing
+  Set aSubmittals = Nothing
+  Set oSubProject = Nothing
+  Set oResource = Nothing
+  Set oTask = Nothing
 
   Exit Sub
 err_here:
@@ -1319,6 +1478,7 @@ Dim strSource As String
 
   xlApp.Visible = True
   If Dir(strDir & "IPMDAR_DATA_REVIEW.xlsx") <> vbNullString Then
+    'todo: provide way to select the reporting period in the workbook - maps to directory structure?
     If MsgBox("IPMDAR Data Review Workbook already exists in this location." & vbCrLf & vbCrLf & "Overwrite?", vbQuestion + vbYesNo, "Confirm Overwrite") = vbYes Then
       oWorkbook.SaveAs strDir & "IPMDAR_DATA_REVIEW.xlsx", 51
     End If
@@ -1420,6 +1580,7 @@ Dim dtStatus As Date
     Set oSel = oDoc.Windows(1).Selection
     oSel.Move wdStory, -1
     oSel.TypeText "Please run the attached query in COBRA's SQL Tool and provide the resulting csv file at your earliest convenience."
+    'todo: include contract / program name
     .Attachments.Add strFile
     .Importance = olImportanceHigh
     .Display False
@@ -1447,6 +1608,7 @@ Sub cptLoadCOBRAData()
 Dim FileDialog As FileDialog
 Dim xlApp As Excel.Application
 'strings
+Dim strDir As String
 Dim strJSON As String
 Dim strData As String
 Dim strFile As String
@@ -1560,17 +1722,81 @@ Dim vData As Variant
       .txtEVMSAcceptanceDate = vData(22)
       strJSON = strJSON & "," & Chr(34) & Replace(.txtEVMSAcceptanceDate.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(22) & Chr(34)
     End If
+    
+    'set up directories
+    If Dir(Environ("USERPROFILE") & "\IPMDAR", vbDirectory) = vbNullString Then MkDir Environ("USERPROFILE") & "\IPMDAR\"
+    strDir = Environ("USERPROFILE") & "\IPMDAR\" & Format(.txtStatusDate.Value, "yyyy-mm-dd")
+    If Dir(strDir, vbDirectory) = vbNullString Then MkDir Environ("USERPROFILE") & "\IPMDAR\" & Format(.txtStatusDate.Value, "yyyy-mm-dd") & "\"
+    
   End With
   
-  MsgBox "[{" & strJSON & "}]" 'todo: save as DatasetMetadata.json file and store it
+  'create DatasetMetadata.json
+  lngFile = FreeFile
+  Open strDir & "\DatasetMetadata.json" For Output As #lngFile
+  Print #lngFile, "[{" & strJSON & "}]"
+  Close #lngFile
   
 exit_here:
   On Error Resume Next
   Set FileDialog = Nothing
   Set xlApp = Nothing
-
+  For lngFile = 1 To FreeFile
+    Close #lngFile
+  Next lngFile
   Exit Sub
 err_here:
   Call cptHandleErr("cptIPMDAR_bas", "cptLoadCOBRAData", Err, Erl)
   Resume exit_here
 End Sub
+
+Private Function cptParseCalendarComments(strFile As String, strGUID As String) As String
+'objects
+'strings
+Dim strDir As String
+'longs
+Dim lngFile As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  cptParseCalendarComments = ""
+  
+  'get previous comments
+  lngFile = FreeFile
+  Open strFile For Input As #lngFile
+  Dim strTemp As String
+  Dim strBuffer As String
+  Do While Not EOF(lngFile)
+    Line Input #lngFile, strBuffer
+    strTemp = strTemp & strBuffer
+  Loop
+  Close #lngFile
+  
+  If InStr(strTemp, strGUID) > 0 Then
+    'parse calendar object
+    strTemp = cptRegEx(strTemp, strGUID & "[^}]*")
+    'parse comment element
+    strTemp = cptRegEx(strTemp, "Comments"": .*[^\s]")
+    'parse comment
+    strTemp = Replace(strTemp, "Comments"": ", "")
+    strTemp = Replace(strTemp, Chr(34), "")
+    'replace null
+    strTemp = Replace(strTemp, "null", "")
+  Else
+    strTemp = ""
+  End If
+  
+  cptParseCalendarComments = strTemp
+    
+exit_here:
+  On Error Resume Next
+  Close #lngFile
+  Exit Function
+err_here:
+  Call cptHandleErr("cptIPMDAR_bas", "cptParseCalendarComments", Err, Erl)
+  Resume exit_here
+End Function

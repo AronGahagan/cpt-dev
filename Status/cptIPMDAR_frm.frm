@@ -30,6 +30,10 @@ Private Sub cboTaskID_Change()
   Me.txtA_TaskID.Value = "[Task]" & Me.cboTaskID.Value
 End Sub
 
+Private Sub cmdCancel_Click()
+  Unload Me
+End Sub
+
 Private Sub cmdCreate_Click()
   'todo: parse all files, regex for forbidden values, trim, report
 End Sub
@@ -65,6 +69,10 @@ err_here:
   Resume exit_here
 End Sub
 
+Private Sub lboCalendars_AfterUpdate()
+  Me.txtCalendarComments = Me.lboCalendars.List(Me.lboCalendars.ListIndex, 3)
+End Sub
+
 Private Sub lboFiles_AfterUpdate()
 'objects
 'strings
@@ -89,10 +97,6 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub mpOptions_Change()
-
-End Sub
-
 Private Sub optOutlineCode_Click()
   Me.cboOutlineCode.Enabled = Me.optOutlineCode
   Me.cboOutlineCode.SetFocus
@@ -101,6 +105,11 @@ End Sub
 
 Private Sub optSummaryTasks_Click()
   Me.cboOutlineCode.Enabled = Not Me.optSummaryTasks
+End Sub
+
+Private Sub txtCalendarComments_Change()
+  Me.lboCalendars.List(Me.lboCalendars.ListIndex, 3) = Me.txtCalendarComments
+  'todo: need to save calendar comments somewhere as edited somewhere too -- automatically edit the json?
 End Sub
 
 Private Sub UserForm_Initialize()
