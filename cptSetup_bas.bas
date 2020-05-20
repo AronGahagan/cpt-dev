@@ -536,6 +536,13 @@ Dim lngCleanUp As Long
   'todo: account for EV Tool in cptValidateEVP
   'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bValidateEVT"" enabled=""false"" label=""Validate EVT"" imageMso=""RefreshWebView"" onAction=""cptAnalyzeEVT"" visible=""true"" supertip=""Validate EVT - e.g., ensure incomplete 50/50 tasks with Actual Start are marked as 50% EV % complete."" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  If cptModuleExists("cptIPMDAR_bas") And cptModuleExists("cptIPMDAR_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIPMDAR"" label=""IPMDAR"" imageMso=""FileMarkAsFinal"" onAction=""cptShowFrmIPMDAR"" visible=""true"" size=""large"" />"
+  End If
+  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+
+  'snapshots
   
   'metrics
   If cptModuleExists("cptMetrics_bas") Then

@@ -176,6 +176,27 @@
 		<Directory>Integration</Directory>
 	</Module>
 	<Module>
+		<Name>cptIPMDAR_bas</Name>
+		<FileName>cptIPMDAR_bas.bas</FileName>
+		<Version>v0.0.1</Version>
+		<Type>1</Type>
+		<Directory>Status</Directory>
+	</Module>
+	<Module>
+		<Name>cptIPMDAR_frm</Name>
+		<FileName>cptIPMDAR_frm.frm</FileName>
+		<Version>v0.0.1</Version>
+		<Type>3</Type>
+		<Directory>Status</Directory>
+	</Module>
+	<Module>
+		<Name>cptTaskTypeMapping_frm</Name>
+		<FileName>cptTaskTypeMapping_frm.frm</FileName>
+		<Version>v0.0.1</Version>
+		<Type>3</Type>
+		<Directory>Status</Directory>
+	</Module>	
+	<Module>
 		<Name>cptMetrics_bas</Name>
 		<FileName>cptMetrics_bas.bas</FileName>
 		<Version>v1.2.0</Version>
