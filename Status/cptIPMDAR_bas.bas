@@ -1340,10 +1340,106 @@ err_here:
 End Sub
 
 Sub cptRequestCOBRAData()
-'todo: generate *.sql file
-'todo: create email
-'todo: include script in email body
-'todo: attach *.sql to email
+'objects
+Dim olApp As Outlook.Application
+Dim oMailItem As MailItem
+Dim oDoc As Word.Document
+Dim oSel As Word.Selection
+'strings
+Dim strFile As String
+Dim strSQL As String
+'longs
+Dim lngFile As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+Dim dtStatus As Date
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  'ensure status date
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "Please provide a Status Date.", vbExclamation + vbOKOnly, "Invalid Status Date"
+    GoTo exit_here
+  Else
+    dtStatus = ActiveProject.StatusDate
+  End If
+
+  'generate *.sql file
+  lngFile = FreeFile
+  strFile = Environ("TMP") & "\spd-cobra-query.sql"
+  Open strFile For Output As #lngFile
+  strSQL = "DECLARE @MyProj VARCHAR(MAX) " & vbCrLf
+  strSQL = strSQL & "SET @MyProj=inputbox('Project Name:') " & vbCrLf
+  strSQL = strSQL & "SELECT CLASSFCN SecurityMarking," & vbCrLf
+  strSQL = strSQL & "    CASE" & vbCrLf
+  strSQL = strSQL & "        WHEN CONT_STATEMENT IS NULL THEN ''" & vbCrLf
+  strSQL = strSQL & "        ELSE CONT_STATEMENT " & vbCrLf
+  strSQL = strSQL & "    END DistributionStatement," & vbCrLf
+  strSQL = strSQL & "    CONVERT(varchar(10),STATUSDATE,126) ReportingPeriodEnDate," & vbCrLf
+  strSQL = strSQL & "    CONT_NAME ContractorName," & vbCrLf
+  strSQL = strSQL & "    CONT_IDTYPE ContractorIDCodeTypeID," & vbCrLf
+  strSQL = strSQL & "    CONT_IDCODE ContractorIDCode," & vbCrLf
+  strSQL = strSQL & "    ADDRESS ContractorAddress_Street," & vbCrLf
+  strSQL = strSQL & "    CITY ContractorAddress_City," & vbCrLf
+  strSQL = strSQL & "    STATE ContractorAddress_State," & vbCrLf
+  strSQL = strSQL & "    COUNTRY ContractorAddress_Country," & vbCrLf
+  strSQL = strSQL & "    ZIP ContractorAddress_ZipCode," & vbCrLf
+  strSQL = strSQL & "    CONT_REPN PointOfContactName," & vbCrLf
+  strSQL = strSQL & "    CONT_REPT PointOfContactTitle," & vbCrLf
+  strSQL = strSQL & "    CONT_REPPHONE PointOfContactTelephone," & vbCrLf
+  strSQL = strSQL & "    CONT_REPEMAIL PointOfContactEmail," & vbCrLf
+  strSQL = strSQL & "    CONTRACT ContractName," & vbCrLf
+  strSQL = strSQL & "    CONT_NO ContractNumber," & vbCrLf
+  strSQL = strSQL & "    CONT_TYPE ContractType," & vbCrLf
+  strSQL = strSQL & "    CONT_TASK ContractTaskOrEffortName," & vbCrLf
+  strSQL = strSQL & "    CONT_PROGRAM ProgramName," & vbCrLf
+  strSQL = strSQL & "    CONT_PHASE ProgramPhase," & vbCrLf
+  strSQL = strSQL & "    CASE " & vbCrLf
+  strSQL = strSQL & "        WHEN EVMS_ACC=1 THEN 'TRUE' " & vbCrLf
+  strSQL = strSQL & "        Else 'FALSE' " & vbCrLf
+  strSQL = strSQL & "    END EVMSAccepted," & vbCrLf
+  strSQL = strSQL & "    CONVERT(varchar(10),EVMS_ADATE,126) EVMSAcceptanceDate " & vbCrLf
+  strSQL = strSQL & "FROM PROGRAM " & vbCrLf
+  strSQL = strSQL & "WHERE [PROGRAM]=@MyProj"
+  Print #lngFile, strSQL
+  Close #lngFile
+  
+  'create email, attach file
+  On Error Resume Next
+  Set olApp = GetObject(, "Outlook.Application")
+  If olApp Is Nothing Then
+    Set olApp = CreateObject("Outlook.Application")
+  End If
+  Set oMailItem = olApp.CreateItem(olMailItem)
+  With oMailItem
+    .Subject = "REQUEST: COBRA data for IPMDAR " & Format(dtStatus, "yyyy-mm-dd")
+    Set oDoc = .GetInspector.WordEditor
+    Set oSel = oDoc.Windows(1).Selection
+    oSel.Move wdStory, -1
+    oSel.TypeText "Please run the attached query in COBRA's SQL Tool and provide the resulting csv file at your earliest convenience."
+    .Attachments.Add strFile
+    .Importance = olImportanceHigh
+    .Display False
+  End With
+    
+  'delete tmp file
+  If Dir(strFile) <> vbNullString Then Kill strFile
+  
+exit_here:
+  On Error Resume Next
+  Set olApp = Nothing
+  Set oMailItem = Nothing
+  Set oDoc = Nothing
+  Set oSel = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptIPMDAR_bas", "cptRequestCOBRAData", Err, Erl)
+  Resume exit_here
+
 End Sub
 
 Sub cptLoadCOBRAData()
@@ -1351,6 +1447,7 @@ Sub cptLoadCOBRAData()
 Dim FileDialog As FileDialog
 Dim xlApp As Excel.Application
 'strings
+Dim strJSON As String
 Dim strData As String
 Dim strFile As String
 'longs
