@@ -84,10 +84,6 @@ Private Sub cboTaskID_Change()
   Me.txtA_TaskID.Value = "[Task]" & Me.cboTaskID.Value
 End Sub
 
-Private Sub cmdCancel_Click()
-  Unload Me
-End Sub
-
 Private Sub cmdCreate_Click()
   'todo: parse all files, regex for forbidden values, trim, report
 End Sub
@@ -135,11 +131,20 @@ Private Sub lboFiles_AfterUpdate()
 'doubles
 'booleans
 'variants
+Dim vCal As Variant
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
   Me.mpOptions.Value = Me.lboFiles.ListIndex
+  Select Case Me.lboFiles.Value
+    Case "Calendars.json"
+      Call cptLoadCalendars
+      
+    Case Else
+    
+  End Select
+
   Me.lboFiles.SetFocus
 
 exit_here:
@@ -163,6 +168,11 @@ End Sub
 
 Private Sub txtCalendarComments_Change()
   Me.lboCalendars.List(Me.lboCalendars.ListIndex, 3) = Me.txtCalendarComments
+  If Len(Me.txtCalendarComments) > 0 Then
+    Me.lboCalendars.List(Me.lboCalendars.ListIndex, 2) = "+"
+  Else
+    Me.lboCalendars.List(Me.lboCalendars.ListIndex, 2) = "x"
+  End If
   'todo: need to save calendar comments somewhere as edited somewhere too -- automatically edit the json?
 End Sub
 
