@@ -18,7 +18,7 @@ Attribute VB_Exposed = False
 
 
 
-'<cpt_version>v3.1.5</cpt_version>
+'<cpt_version>v3.2.0</cpt_version>
 Private Sub bcrBox_Change()
 
     If checkDuplicate(bcrBox) = True Then
