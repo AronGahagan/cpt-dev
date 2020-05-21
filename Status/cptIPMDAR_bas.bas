@@ -9,7 +9,7 @@ Sub cptJSON_Main()
 'objects
 Dim aRecords As Object
 Dim oStream As Stream
-Dim oFileSystem As Scripting.FileSystemObject
+Dim oFSO As Scripting.FileSystemObject
 Dim oSubProject As MSProject.SubProject
 Dim oSourceProject As MSProject.Project
 Dim aProjects As Object
@@ -195,7 +195,7 @@ exit_here:
   On Error Resume Next
   Set aRecords = Nothing
   Set oStream = Nothing
-  Set oFileSystem = Nothing
+  Set oFSO = Nothing
   Set oSubProject = Nothing
   Set oSourceProject = Nothing
   Set aProjects = Nothing
@@ -940,15 +940,17 @@ End Function
 
 Sub cptShowFrmIPMDAR()
 'objects
+Dim oFile As Scripting.File
 Dim aContracts As Object
 Dim oRootDir As Object
 Dim oSubDir As Object
-Dim oFSO As Object
+Dim oFSO As Scripting.FileSystemObject 'Object
 Dim aSubmittals As Object
 Dim oSubProject As Object
 Dim oResource As Resource
 Dim oTask As Task
 'strings
+Dim strBuffer As String
 Dim strPeriod As String
 Dim strContract As String
 Dim strFile As String
@@ -956,6 +958,7 @@ Dim strCalendarComments As String
 Dim strDir As String
 Dim strExisting As String
 'longs
+Dim lngFile As Long
 Dim lngContracts As Long
 Dim lngCalendar As Long
 Dim lngItem As Long
@@ -988,6 +991,10 @@ Dim dtStatus As Date
   Set oRootDir = oFSO.GetFolder(strDir)
   For Each oSubDir In oRootDir.SubFolders
     aContracts.Add Replace(oSubDir.Path, strDir, ""), Replace(oSubDir.Path, strDir, "")
+    'todo: automatically link to the directory with matching guid.txt
+    Set oFile = oFSO.GetFile(oSubDir.Path & "\guid.txt")
+    'todo: if directory name doesn't match contract name then sync them up
+    'todo: prompt 'json assets associated with this project are in directory xxx. -- or simply link them to the directory, and next COBRA load it will be aligned
   Next
   'list the contracts
   cptIPMDAR_frm.cboContract.Clear
@@ -1001,16 +1008,14 @@ Dim dtStatus As Date
   'todo: - if not found, find it in a subdirectory // if contract names match then...what?
   
   'confirm contract
-  On Error Resume Next
   strDir = ""
-  strDir = ActiveProject.CustomDocumentProperties("cptSPD_DIR").Value
+  On Error Resume Next
+  strDir = ActiveProject.CustomDocumentProperties("cptSPD_DIR").Value 'trips error if it doesn't exist
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   'if stored contract no longer matches one of the directories then prompt to reset
   If Dir(strDir, vbDirectory) = vbNullString Then strDir = ""
   If Len(strDir) = 0 Then
-    'todo: replace this with form controls
-    
-    vbResponse = InputBox("(We recommend matching the contract name in COBRA)." & vbCrLf & "Contract Name:", "Directory Name Needed")
+    vbResponse = InputBox("(We recommend matching the contract name in COBRA)." & vbCrLf & "Contract Name:", "Please provide a Contract Name:")
     If StrPtr(vbResponse) = 0 Then 'user hit cancel
       GoTo exit_here
     ElseIf Len(vbResponse) = 0 Then 'user entered zero-length string
@@ -1019,20 +1024,46 @@ Dim dtStatus As Date
       strContract = CStr(vbResponse)
     End If
     strDir = Environ("USERPROFILE") & "\IPMDAR\" & strContract
-    If Dir(Environ("USERPROFILE") & "\IPMDAR\" & strContract, vbDirectory) = vbNullString Then
-      MkDir Environ("USERPROFILE") & "\IPMDAR\" & strContract
+    If Dir(strDir, vbDirectory) = vbNullString Then
+      MkDir strDir
     End If
     On Error Resume Next
     ActiveProject.CustomDocumentProperties.Add Name:="cptSPD_DIR", LinkToContent:=False, Type:=4, Value:=strDir
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     ActiveProject.CustomDocumentProperties("cptSPD_DIR").Value = strDir
-    
+    lngFile = FreeFile
+    Open strDir & "\guid.txt" For Output As #lngFile
+    Print #lngFile, ActiveProject.GetServerProjectGuid
+    Close #lngFile
+    'make this file read-only and archive
+    Set oFSO = CreateObject("Scripting.FileSystemObject")
+    Set oFile = oFSO.GetFile(strDir & "\guid.txt")
+    oFile.Attributes = ReadOnly
+    oFile.Attributes = Hidden
+  Else
+    'todo: validate guid matches
+    If Dir(strDir & "\guid.txt", vbHidden + vbReadOnly) <> vbNullString Then
+      lngFile = FreeFile
+      Open strDir & "\guid.txt" For Input As #lngFile
+      Do While Not EOF(lngFile)
+        Line Input #lngFile, strBuffer
+      Loop
+      Close #lngFile
+      If strBuffer <> ActiveProject.GetServerProjectGuid Then
+        If MsgBox("The associated directory is linked to a different source file." & vbCrLf & vbCrLf & "Proceed anyway?", vbExclamation + vbYesNo, "GUID Mismatch") = vbNo Then
+          GoTo exit_here
+        Else
+          'todo: handle mismatched guid; store source project file name as second value; use Line Input #lngFile,strGUID,strProjectName
+        End If
+      End If
+    End If
   End If
   On Error Resume Next
   cptIPMDAR_frm.cboContract.Value = Mid(strDir, InStrRev(strDir, "\") + 1)
-  If Err.Number = 380 Then
+  If Err.Number = 380 Then 'item not yet in list, so add it
     cptIPMDAR_frm.cboContract.AddItem strContract
     cptIPMDAR_frm.cboContract.Value = Mid(strDir, InStrRev(strDir, "\") + 1)
+    Err.Clear
   End If
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   'generate a directory with current status date
@@ -1201,6 +1232,7 @@ Dim dtStatus As Date
   
 exit_here:
   On Error Resume Next
+  Set oFile = Nothing
   Set aContracts = Nothing
   Set oRootDir = Nothing
   Set oSubDir = Nothing
@@ -1548,6 +1580,7 @@ Sub cptLoadCOBRAData()
 Dim FileDialog As FileDialog
 Dim xlApp As Excel.Application
 'strings
+Dim strGUID As String
 Dim strMsg As String
 Dim strNewDir As String
 Dim strDir As String
@@ -1667,13 +1700,28 @@ try_again:
     .txtContractName = vData(15)
     strJSON = strJSON & Chr(34) & Replace(.txtContractName.Name, "txt", "") & Chr(34) & ": " & Chr(34) & vData(15) & Chr(34) & ","
     'prompt to align contract name
-    If vData(15) <> Dir(ActiveProject.CustomDocumentProperties("cptSPD_DIR"), vbDirectory) Then
+    If vData(15) <> Dir(ActiveProject.CustomDocumentProperties("cptSPD_DIR").Value, vbDirectory) Then
       If MsgBox("Align directory with COBRA's contract name '" & vData(15) & "'?", vbExclamation + vbYesNo, "Mismatched Contract Name") = vbYes Then
         'rename the directory if it doesn't exist
         strDir = Environ("USERPROFILE") & "\IPMDAR\" & cptIPMDAR_frm.cboContract.Value
         strNewDir = Environ("USERPROFILE") & "\IPMDAR\" & vData(15)
         If Dir(strNewDir, vbDirectory) <> vbNullString Then
-          MsgBox "The directory already exists. Please manually move subdirectories to the existing directory and delete old contract directory.", vbInformation + vbOKOnly, "Contract Directory Exists"
+          If Dir(strNewDir & "\guid.txt", vbHidden + vbReadOnly) <> vbNullString Then
+            lngFile = FreeFile
+            Open strNewDir & "\guid.txt" For Input As #lngFile
+            Do While Not EOF(lngFile)
+              Line Input #lngFile, strGUID 'todo: add source project name
+            Loop
+            Close #lngFile
+            If strGUID <> ActiveProject.GetServerProjectGuid Then
+              MsgBox "This directory is linked to a different source file."
+              'todo: how to handle this situation
+              'todo: also follow this procedure on form show
+            End If
+          Else
+            MsgBox "The directory already exists. Please manually move subdirectories to the existing directory and delete old contract directory.", vbInformation + vbOKOnly, "Contract Directory Exists"
+            'todo: handle guid.txt here
+          End If
           'todo: prompt to automatically move all files/subdirs to new dir?
         Else
           Name strDir As strNewDir
