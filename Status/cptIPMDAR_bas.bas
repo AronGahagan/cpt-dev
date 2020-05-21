@@ -4,7 +4,6 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 'for x = 0 to cptIPMDAR_frm.lboFiles.ListCount-1 : debug.Print (x+1) & " - " & cptIPMDAR_frm.lboFiles.List(x,0) : next x
-'todo: if COBRA contract name <> subdirectory then prompt to synchronize
 
 Sub cptJSON_Main()
 'objects
@@ -137,8 +136,6 @@ Dim vFile As Variant
       strErr = "Resources.json" & vbCrLf
     End If
     'todo: ResourceCustomFieldValues
-    
-    'todo: provide means to add calendar comments
   
   Next lngProject
   
@@ -180,7 +177,7 @@ Dim vFile As Variant
   'todo: -- section headers [created with the ClearPlan toolbar
   'todo: -- placeholders for all explanations for leads, lags, constraints
   'todo: -- placeholders for CWBS, SOW if exist in Outline Code
-  'todo: export IMS Data Dictionary
+  'todo: -- export IMS Data Dictionary and paste into narrative
   'todo: prompt to save server file as .mpp and consolidate?
   
   'prompt user
@@ -224,12 +221,11 @@ Dim lngFile As Long
 'variants
 'dates
 
+  'this is loaded directly from COBRA
+  GoTo exit_here
+
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
-  'todo: requires user form
-  'todo: or automatically setup project custom fields/documentproperties?
-  'todo: load previous period's data
-  
+    
   strFile = strDir & "\DatasetMetadata.json"
   lngFile = FreeFile
   If Dir(strFile) <> vbNullString Then Kill strFile
@@ -429,7 +425,8 @@ Dim dtException As Date
   lngCalendarExceptionsFile = FreeFile
   Open strCalendarExceptionsFile For Append As #lngCalendarExceptionsFile
   
-  For Each oCalendar In oProject.BaseCalendars 'todo: only used calendars
+  'todo: calendar loop needs to match cptLoadCalendars()
+  For Each oCalendar In oProject.BaseCalendars 'only used calendars
     'todo: what about resource calendars? all exceptions or only exceptions to base calendar?
   
     'Calendars.json
@@ -985,7 +982,7 @@ Dim dtStatus As Date
     MkDir strDir
   End If
   
-  'todo: load contracts in directory
+  'load contracts in directory
   Set aContracts = CreateObject("System.Collections.SortedList")
   Set oFSO = CreateObject("Scripting.FileSystemObject")
   Set oRootDir = oFSO.GetFolder(strDir)
@@ -998,7 +995,7 @@ Dim dtStatus As Date
     cptIPMDAR_frm.cboContract.AddItem aContracts.getByIndex(lngContracts - 1)
   Next lngContracts
   
-  'todo: add 'new contract' button?
+  'todo: add 'new contract' button? notify location of Contract Name? Reset?
   'todo: cboContract_Change >> update docprops >> refresh cboPeriods >> [lots of fields updated]
   'todo: save ActiveProject.GetServerProjectGuid to txt and validate
   'todo: - if not found, find it in a subdirectory // if contract names match then...what?
@@ -1083,10 +1080,7 @@ Dim dtStatus As Date
       .AddItem "DUNS_PLUS_4"
       .AddItem "CAGE"
     End With
-    .txtContractorIDCode.Enabled = False
-    'todo: enable code on cboCode not null
     .optEVFalse = True
-    .txtEVMSAcceptanceDate.Enabled = False
   End With
   
   'SourceSoftwareMetadata
@@ -1201,9 +1195,7 @@ Dim dtStatus As Date
   
   'todo: for enumerated values, show list of required values
   'todo: for enumerated values, provide auto-generation
-  'todo: provide peak for selected project/task?
-  'todo: source | sample | json
-  'todo: checkbox create review workbook
+  'todo: provide peek for selected project/task? e.g.: source | sample | json
   'todo: add null as a value in all nullable fields?
   'todo: tab order
   
@@ -1873,7 +1865,6 @@ Dim lngProject As Long
       'todo: what if subproject resource calendars don't match?
       strExisting = ""
       For Each oResource In oProject.Resources
-        Debug.Print oResource.Name
         If Not oResource.Calendar Is Nothing Then
           If oResource.Calendar.Exceptions.Count > oResource.Calendar.BaseCalendar.Exceptions.Count Then
             If InStr(strExisting, oResource.Calendar.Guid) = 0 Then
@@ -1936,5 +1927,72 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptIPMDAR_bas", "cptLoadCalendars", Err, Erl)
+  Resume exit_here
+End Sub
+
+Public Sub cptScrubIPMDAR(strDir As String)
+'objects
+Dim oFile As Scripting.File
+Dim oFolder As Scripting.Folder 'Object
+Dim oFSO As Scripting.FileSystemObject
+'strings
+Dim strTemp As String
+Dim strBuffer As String
+Dim strFile As String
+'longs
+Dim lngFile As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  'todo: requirements:
+  'todo: - string values must not contain [\u0000-\u0008]|[\u000B-\u000C]|[\u000E-\u000F]|\u007F
+  '-- reference: http://www.endmemo.com/unicode/ascii.php
+  'todo: - string values used as IDs must be limited to [\u0020-\u007E]
+  'todo: trim all text
+  'todo: trim all instances of >1 spaces
+  'todo: ensure all required fields are not null
+  'todo: is JSON well-formed?
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  'get directory
+  Set oFSO = CreateObject("Scripting.FileSystemObject")
+  Set oFolder = oFSO.GetFolder(strDir)
+  'loop through each submittal file
+  For Each oFile In oFolder.Files
+    If InStr(oFile.Name, "json") Then
+      Debug.Print "Scrubbing " & oFile.Name & "..." 'todo: put this in lblStatus
+      lngFile = FreeFile
+      Open oFile.Path For Input As #lngFile
+      Do While Not EOF(lngFile)
+        Line Input #lngFile, strBuffer
+        strTemp = strTemp & strBuffer
+      Loop
+      If Len(cptRegEx(strBuffer, "[\u0000-\u0008]|[\u000B-\u000C]|[\u000E-\u000F]|\u007F")) > 0 Then
+        MsgBox oFile.Name & " failed (but we fixed it for you).", vbInformation + vbOKOnly, "Boom"
+        'todo: replace all occurences
+        'todo: delete original
+        'todo: rewrite the file
+      End If
+      strBuffer = ""
+      Close #lngFile
+    End If
+  Next
+  
+  Debug.Print "...complete." 'todo: put this in lblStatus
+  
+exit_here:
+  On Error Resume Next
+  Set oFile = Nothing
+  Set oFolder = Nothing
+  Set oFSO = Nothing
+
+  Exit Sub
+err_here:
+  'Call HandleErr("cptIPMDAR_bas", "cptScrubIPMDAR", Err)
+  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub

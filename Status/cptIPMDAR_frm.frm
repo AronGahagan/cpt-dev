@@ -42,10 +42,9 @@ Dim lngPeriod As Long
   Set oRootDir = oFSO.GetFolder(Environ("USERPROFILE") & "\IPMDAR\" & Me.cboContract.Value)
   For Each oSubDir In oRootDir.SubFolders
     'todo: sort prev dir by datecreated or alphabetically? user chooses?
-    If Mid(oSubDir.Path, InStrRev(oSubDir.Path, "\") + 1) <> Format(ActiveProject.StatusDate, "yyyy-mm-dd") Then  'todo: exclude current period dir
+    If Mid(oSubDir.Path, InStrRev(oSubDir.Path, "\") + 1) <> Format(ActiveProject.StatusDate, "yyyy-mm-dd") Then  'exclude current period dir
       aSubmittals.Add oSubDir.DateCreated, Mid(oSubDir.Path, InStrRev(oSubDir.Path, "\") + 1)
     End If
-    'todo: what if future periods exist for project? A: let the user be smart about this
   Next
   'list the previous periods in descending order
   cptIPMDAR_frm.cboPrevDir.Clear
@@ -55,7 +54,7 @@ Dim lngPeriod As Long
   If aSubmittals.Count > 0 Then 'default to most previous
     cptIPMDAR_frm.cboPrevDir.Value = aSubmittals.getByIndex(aSubmittals.Count - 1)
   Else
-    'todo: no prior periods exist yet
+    'todo: no prior periods exist yet - debug this
   End If
   Me.cboPrevDir.ControlTipText = "Matches subdirectories in C:\Users\[username]\IPMDAR\" & Me.cboContract.Value & "\"
 exit_here:
