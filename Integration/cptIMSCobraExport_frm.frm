@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIMSCobraExport_frm 
-   Caption         =   "IMS Export Utility v3.1.5"
-   ClientHeight    =   7380
+   Caption         =   "IMS Export Utility v3.2.0"
+   ClientHeight    =   7284
    ClientLeft      =   120
-   ClientTop       =   465
-   ClientWidth     =   4395
+   ClientTop       =   468
+   ClientWidth     =   4392
    OleObjectBlob   =   "cptIMSCobraExport_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -14,7 +14,11 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-'<cpt_version>v3.1.5</cpt_version>
+
+
+
+
+'<cpt_version>v3.2.0</cpt_version>
 Private Sub bcrBox_Change()
 
     If checkDuplicate(bcrBox) = True Then
@@ -142,7 +146,7 @@ Private Sub BCWS_Checkbox_Change()
         Me.BcrBtn.Enabled = False
         BCR_ID_TextBox.Enabled = False
         Me.exportDescCheckBox.Enabled = False
-        If Me.ETC_Checkbox.Value = False Then
+        If Me.ETC_Checkbox.Value = False And Me.WhatIf_CheckBox.Value = False Then
             Me.exportTPhaseCheckBox.Enabled = False
         End If
     End If
@@ -501,6 +505,7 @@ Private Sub CSVBtn_Change()
         Me.BCWS_Checkbox.Enabled = True
         Me.BCWP_Checkbox.Enabled = True
         Me.ETC_Checkbox.Enabled = True
+        Me.WhatIf_CheckBox.Enabled = True 'v3.2
         Me.ResExportCheckbox.Enabled = True
         If Me.ResExportCheckbox.Value = True Then
             Me.exportTPhaseCheckBox.Enabled = True
@@ -517,6 +522,7 @@ Private Sub CSVBtn_Change()
         Me.BCWS_Checkbox.Enabled = False
         Me.BCWP_Checkbox.Enabled = False
         Me.ETC_Checkbox.Enabled = False
+        Me.WhatIf_CheckBox.Enabled = False 'v3.2
         Me.TotalProjBtn.Enabled = False
         Me.ResExportCheckbox.Enabled = False
         Me.exportTPhaseCheckBox.Enabled = False
@@ -525,7 +531,7 @@ Private Sub CSVBtn_Change()
         Me.exportDescCheckBox.Enabled = False
     End If
     
-    If BCWS_Checkbox.Value = False And BCWP_Checkbox.Value = False And ETC_Checkbox.Value = False Then
+    If BCWS_Checkbox.Value = False And BCWP_Checkbox.Value = False And ETC_Checkbox.Value = False And WhatIf_CheckBox.Value = False Then 'v3.2
     
         BCWS_Checkbox.Value = True
         Me.TotalProjBtn.Enabled = True
@@ -543,7 +549,7 @@ Private Sub ETC_Checkbox_Click()
     If Me.ETC_Checkbox = True Then
         Me.exportTPhaseCheckBox.Enabled = True
     Else
-        If Me.BCWS_Checkbox = False Then
+        If Me.BCWS_Checkbox.Value = False And Me.WhatIf_CheckBox.Value = False Then
             Me.exportTPhaseCheckBox.Enabled = False
         End If
     End If
@@ -590,7 +596,7 @@ End Sub
 
 Private Sub ExportBtn_Click()
 
-    If CSVBtn.Value = True And BCWS_Checkbox.Value = False And BCWP_Checkbox.Value = False And ETC_Checkbox.Value = False Then
+    If CSVBtn.Value = True And BCWS_Checkbox.Value = False And BCWP_Checkbox.Value = False And ETC_Checkbox.Value = False And WhatIf_CheckBox.Value = False Then 'v3.2
     
         MsgBox "You must select at least one CSV export file type."
         Exit Sub
@@ -605,6 +611,13 @@ Private Sub ExportBtn_Click()
         End If
         If Me.bcrBox.Value = "<None>" Then
             MsgBox "You must map a BCR ID Field."
+            Exit Sub
+        End If
+    End If
+    
+    If WhatIf_CheckBox.Value = True Then 'v3.2
+        If Me.whatifBox.Value = "<None>" Then
+            MsgBox "You must map a What-If Field."
             Exit Sub
         End If
     End If
@@ -808,6 +821,7 @@ Private Sub UserForm_Initialize()
         Me.BCWS_Checkbox.Enabled = True
         Me.BCWP_Checkbox.Enabled = True
         Me.ETC_Checkbox.Enabled = True
+        Me.WhatIf_CheckBox.Enabled = True 'v3.2
         Me.TotalProjBtn.Enabled = True
         Me.BcrBtn.Enabled = True
         Me.ResExportCheckbox.Enabled = True
@@ -815,6 +829,7 @@ Private Sub UserForm_Initialize()
         Me.BCWS_Checkbox.Enabled = False
         Me.BCWP_Checkbox.Enabled = False
         Me.ETC_Checkbox.Enabled = False
+        Me.WhatIf_CheckBox.Enabled = False 'v3.2
         Me.TotalProjBtn.Enabled = False
         Me.BcrBtn.Enabled = False
         Me.ResExportCheckbox.Enabled = False
@@ -907,7 +922,7 @@ Private Function PopulateCustFieldUsage() As Boolean
     Dim curproj As Project
     Dim docProp As DocumentProperty
     Dim docProps As DocumentProperties
-    Dim fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fEVT, fCAID2, fCAID2t, fMSID, fMSW, fBCR, fPCNT, fResID As Boolean
+    Dim fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fEVT, fCAID2, fCAID2t, fMSID, fMSW, fBCR, fWhatIf, fPCNT, fResID As Boolean 'v3.2
     Dim NameTest As Double
     
     Set curproj = ActiveProject
@@ -1024,6 +1039,17 @@ Private Function PopulateCustFieldUsage() As Boolean
                     Me.bcrBox.Value = docProp.Value
                 End If
                 
+            Case "fWhatIf" 'v3.2
+            
+                If docProp.Value = "<None>" Then
+                    fWhatIf = True
+                    Me.whatifBox.Value = docProp.Value
+                Else
+                    NameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                    fWhatIf = True
+                    Me.whatifBox.Value = docProp.Value
+                End If
+                
             Case "fPCNT"
             
                 NameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
@@ -1046,7 +1072,7 @@ NextDocProp:
     Set docProps = Nothing
     Set curpro = Nothing
     
-    If fCAID1 And fCAID2 And fWP And fCAM And fEVT And fCAID3 And fMSID And fMSW And fPCNT And fResID Then
+    If fCAID1 And fCAID2 And fWP And fCAM And fEVT And fCAID3 And fMSID And fMSW And fPCNT And fResID And fBCR And fWhatIf Then 'v3.2
     
         PopulateCustFieldUsage = True
     
@@ -1063,6 +1089,54 @@ DocPropNameChange:
     Resume NextDocProp
 
 End Function
+
+Private Sub WhatIf_CheckBox_Click() 'v3.2
+    If Me.WhatIf_CheckBox.Value = True Then
+        Me.exportTPhaseCheckBox.Enabled = True
+    Else
+        If Me.BCWS_Checkbox.Value = False And Me.ETC_Checkbox.Value = False Then
+            Me.exportTPhaseCheckBox.Enabled = False
+        End If
+    End If
+End Sub
+
+Private Sub whatifBox_Change() 'v3.2
+    If checkDuplicate(whatifBox) = True Then
+        MsgBox "Please select a unique IMS Field."
+        whatifBox.Value = ""
+        Exit Sub
+    End If
+    
+    If isIMSfield(whatifBox.Value) = False And whatifBox.Value <> "" And whatifBox.Value <> "<None>" Then
+        MsgBox "Please select a valid IMS Field."
+        whatifBox.Value = ""
+        Exit Sub
+    End If
+    
+    Dim docProps As DocumentProperties
+    Dim curproj As Project
+    
+    Set curproj = ActiveProject
+    Set docProps = curproj.CustomDocumentProperties
+    
+    On Error GoTo PropMissing
+    
+    docProps("fWhatIf").Value = Me.whatifBox.Value
+
+PropFound:
+
+    Me.TabButtons(1).Tag = VerifyCustFieldUsage
+    
+    Set docProps = Nothing
+    Set curproj = Nothing
+    
+    Exit Sub
+    
+PropMissing:
+
+    docProps.Add "fWhatIf", False, msoPropertyTypeString, Me.whatifBox.Value
+    Resume PropFound
+End Sub
 
 Private Sub wpBox_Change()
 
