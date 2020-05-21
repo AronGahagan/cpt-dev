@@ -10,7 +10,7 @@
 	<Module>
 		<Name>cptBackbone_bas</Name>
 		<FileName>cptBackbone_bas.bas</FileName>
-		<Version>v1.0.6</Version>
+		<Version>v1.0.7</Version>
 		<Type>1</Type>
 		<Directory>Backbone</Directory>
 	</Module>

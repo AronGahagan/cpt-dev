@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.0.6</cpt_version>
+'<cpt_version>v1.0.7</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -153,8 +153,8 @@ Dim lngOutlineLevel As Long
 
   With CreateObject("ADODB.Recordset")
     'delete existing
-    If Dir(cptDir & "\cwbs-appendix-e.adtg") <> vbNullString Then
-      Kill cptDir & "\cwbs-appendix-e.adtg"
+    If Dir(cptDir & "\cwbs-appendix-b.adtg") <> vbNullString Then
+      Kill cptDir & "\cwbs-appendix-b.adtg"
     End If
     .Fields.Append "CWBS", adVarChar, 10
     .Fields.Append "CWBS TITLE", adVarChar, 75
@@ -669,7 +669,7 @@ Dim lngItem As Long
           MailItem.Importance = 2 'olImportanceHigh
           MailItem.Subject = "Template Request: " & strTemplate
           MailItem.HTMLBody = "Please forward the subject-referenced template. Thank you." & MailItem.HTMLBody
-          MailItem.display False
+          MailItem.Display False
         End If
         GoTo exit_here
       End If
