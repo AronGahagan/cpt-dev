@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.2.5</cpt_version>
+'<cpt_version>v1.2.6</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -81,6 +81,9 @@ next_field:
   
   'add Physical % Complete
   arrEVP.Add "Physical % Complete", FieldNameToFieldConstant("Physical % Complete")
+  
+  'add Contact field
+  arrFields.Add "Contact", FieldNameToFieldConstant("Contact")
   
   'get enterprise custom fields
   For lngField = 188776000 To 188778000 '2000 should do it for now
@@ -1602,9 +1605,9 @@ Dim lngItem As Long
   TableApply Name:="cptStatusSheet Table"
 
   'reset the filter
-  FilterEdit Name:="cptStatusSheet Filter", Taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
+  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
   If cptStatusSheet_frm.chkHide And IsDate(cptStatusSheet_frm.txtHideCompleteBefore) Then
-    FilterEdit Name:="cptStatusSheet Filter", Taskfilter:=True, FieldName:="", NewFieldName:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, operation:="Or", ShowSummaryTasks:=True
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
   End If
   FilterApply "cptStatusSheet Filter"
 
