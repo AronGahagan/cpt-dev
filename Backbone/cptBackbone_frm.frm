@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.4</cpt_version>
+'<cpt_version>v1.0.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -57,6 +57,12 @@ Private Sub cboImport_Change()
       Me.chkAlsoCreateTasks.Visible = True
       Me.lblNote.Caption = "Import *.xlsx: Header CODE,LEVEL,TITLE in [A1:C1]"
     Case "From MIL-STD-881D Appendix B"
+      Me.cmdImport.Caption = "Load"
+      Me.chkAlsoCreateTasks.Visible = True
+      Me.chkAlsoCreateTasks = True
+      Me.chkAlsoCreateTasks.Enabled = False
+      Me.lblNote.Caption = "Import generic CWBS as starting point."
+    Case "From MIL-STD-881D Appendix E"
       Me.cmdImport.Caption = "Load"
       Me.chkAlsoCreateTasks.Visible = True
       Me.chkAlsoCreateTasks = True
@@ -163,6 +169,9 @@ Dim lngOutlineCode As Long
       
     Case "From MIL-STD-881D Appendix B"
       Call cptImportAppendixB(lngOutlineCode)
+      
+    Case "From MIL-STD-881D Appendix E"
+      Call cptImportAppendixE(lngOutlineCode)
       
     Case "From Existing Tasks"
       Call cptCreateCode(lngOutlineCode)

@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.0.4</cpt_version>
+'<cpt_version>v1.0.7</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -69,7 +69,7 @@ Dim lngItem As Long
         For Each Worksheet In Workbook.Sheets
           If Worksheet.[A1].Value = "CODE" And Worksheet.[B1].Value = "LEVEL" And Worksheet.[C1].Value = "TITLE" Then
             strOutlineCode = CustomFieldGetName(lngOutlineCode)
-            Set rng = Worksheet.Range(Worksheet.[A2], Worksheet.Cells(Worksheet.Rows.Count, 1).End(xlUp))
+            Set rng = Worksheet.Range(Worksheet.[A2], Worksheet.Cells(Worksheet.Rows.Count, 1).End(-4162)) '-4162 = xlUp
             lngItem = 0
             For Each c In rng.Cells
               lngItem = lngItem + 1
@@ -152,91 +152,91 @@ Dim lngOutlineLevel As Long
   CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=False, OnlyLeaves:=False, LookupDefault:=False, SortOrder:=0
 
   With CreateObject("ADODB.Recordset")
-    If Dir(cptDir & "\cwbs-appendix-b.adtg") = vbNullString Then
-      .Fields.Append "CWBS", adVarChar, 10
-      .Fields.Append "CWBS TITLE", adVarChar, 75
-      .Open
-      .AddNew Array("CWBS", "CWBS Title"), Array("1", "Electronic System/Generic System")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.1", "Prime Mission Product (PMP) 1...n (Specify)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.1.1", "PMP Integration, Assembly, Test, and Checkout")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.1.2", "PMP Subsystem 1...n (Specify)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.1.2.1", "Subsystem Integration, Assembly, Test, and Checkout")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.1.2.2", "Subsystem Hardware 1...n (Specify)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.1.2.3", "Subsystem Software Release 1...n (Specify)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.1.3", "PMP Software Release 1...n (Specify)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.1.3.1", "Computer Software Configuration Item (CSCI) 1...n (Specify)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.1.3.2", "PMP Software Integration, Assembly, Test, and Checkout")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.2", "Platform Integration, Assembly, Test, and Checkout")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.3", "Systems Engineering")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.3.1", "Software Systems Engineering")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.3.2", "Integrated Logistics Support (ILS) Systems Engineering")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.3.3", "Cybersecurity Systems Engineering")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.3.4", "Core Systems Engineering")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.3.5", "Other Systems Engineering 1...n (Specify)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.4", "Program Management")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.4.1", "Software Program Management")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.4.2", "Integrated Logistics Support (ILS) Program Management")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.4.3", "Cybersecurity Management")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.4.4", "Core Program Management")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.4.5", "Other Program Management 1...n (Specify)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.5", "System Test and Evaluation")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.5.1", "Development Test and Evaluation")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.5.2", "Operational Test and Evaluation")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.5.3", "Cybersecurity Test and Evaluation")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.5.4", "Mock-ups/System Integration Labs (SILs)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.5.5", "Test and Evaluation Support")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.5.6", "Test Facilities")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.6", "Training")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.6.1", "Equipment")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.6.1.1", "Operator Instructional Equipment")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.6.1.2", "Maintainer Instructional Equipment")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.6.2", "Services")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.6.2.1", "Operator Instructional Services")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.6.2.2", "Maintainer Instructional Services")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.6.3", "Facilities")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.6.4", "Training Software 1...n (Specify)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.7", "Data")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.7.1", "Data Deliverables 1...n (Specify)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.7.2", "Data Repository")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.7.3", "Data Rights 1...n (Specify)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.8", "Peculiar Support Equipment")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1", "Test and Measurement Equipment")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1.1", "Test and Measurement Equipment (Airframe/Hull/Vehicle)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1.2", "Test and Measurement Equipment (Propulsion)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1.3", "Test and Measurement Equipment (Electronics/Avionics)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1.4", "Test and Measurement Equipment (Other Major Subsystems 1...n (Sif))")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2", "Support and Handling Equipment")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2.1", "Support and Handling Equipment (Airframe/Hull/Vehicle)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2.2", "Support and Handling Equipment (Propulsion)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2.3", "Support and Handling Equipment (Electronics/Avionics)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2.4", "Support and Handling Equipment (Other Major Subsystems 1...n (Specify))")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.9", "Common Support Equipment")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.9.1", "Test and Measurement Equipment")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.9.1.1", "Test and Measurement Equipment (Airframe/Hull/Vehicle)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.9.1.2", "Test and Measurement Equipment (Propulsion)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.9.1.3", "Test and Measurement Equipment (Electronics/Avionics)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.9.1.4", "Test and Measurement Equipment (Other Major Subsystems 1...n (Specify))")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.9.2", "Support and Handling Equipment")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.9.2.1", "Support and Handling Equipment (Airframe/Hull/Vehicle)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.9.2.2", "Support and Handling Equipment (Propulsion)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.9.2.3", "Support and Handling Equipment (Electronics/Avionics)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.9.2.4", "Support and Handling Equipment (Other Major Subsystems 1...n (Specify))")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.10", "Operational/Site Activation by Site 1...n (Specify)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.10.1", "System Assembly, Installation, and Checkout on Site")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.10.2", "Contractor Technical Support")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.10.3", "Site Construction")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.10.4", "Site /Ship/Vehicle Conversion")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.10.5", "Interim Contractor Support (ICS)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.11", "Contractor Logistics Support (CLS)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.12", "Industrial Facilities")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.12.1", "Construction/Conversion/Expansion")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.12.2", "Equipment Acquisition or Modernization")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.12.3", "Maintenance (Industrial Facilities)")
-      .AddNew Array("CWBS", "CWBS Title"), Array("1.13", "Initial Spares and Repair Parts")
-      .Save cptDir & "\cwbs-appendix-b.adtg"
-    Else
-      .Open cptDir & "\cwbs-appendix-b.adtg"
+    'delete existing
+    If Dir(cptDir & "\cwbs-appendix-b.adtg") <> vbNullString Then
+      Kill cptDir & "\cwbs-appendix-b.adtg"
     End If
+    .Fields.Append "CWBS", adVarChar, 10
+    .Fields.Append "CWBS TITLE", adVarChar, 75
+    .Open
+    .AddNew Array("CWBS", "CWBS Title"), Array("1", "Electronic System/Generic System")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1", "Prime Mission Product (PMP) 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.1", "PMP Integration, Assembly, Test, and Checkout")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.2", "PMP Subsystem 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.2.1", "Subsystem Integration, Assembly, Test, and Checkout")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.2.2", "Subsystem Hardware 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.2.3", "Subsystem Software Release 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.3", "PMP Software Release 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.3.1", "Computer Software Configuration Item (CSCI) 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.3.2", "PMP Software Integration, Assembly, Test, and Checkout")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.2", "Platform Integration, Assembly, Test, and Checkout")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.3", "Systems Engineering")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.3.1", "Software Systems Engineering")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.3.2", "Integrated Logistics Support (ILS) Systems Engineering")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.3.3", "Cybersecurity Systems Engineering")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.3.4", "Core Systems Engineering")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.3.5", "Other Systems Engineering 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.4", "Program Management")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.4.1", "Software Program Management")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.4.2", "Integrated Logistics Support (ILS) Program Management")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.4.3", "Cybersecurity Management")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.4.4", "Core Program Management")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.4.5", "Other Program Management 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5", "System Test and Evaluation")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5.1", "Development Test and Evaluation")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5.2", "Operational Test and Evaluation")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5.3", "Cybersecurity Test and Evaluation")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5.4", "Mock-ups/System Integration Labs (SILs)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5.5", "Test and Evaluation Support")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5.6", "Test Facilities")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.6", "Training")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.6.1", "Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.6.1.1", "Operator Instructional Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.6.1.2", "Maintainer Instructional Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.6.2", "Services")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.6.2.1", "Operator Instructional Services")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.6.2.2", "Maintainer Instructional Services")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.6.3", "Facilities")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.6.4", "Training Software 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7", "Data")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7.1", "Data Deliverables 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7.2", "Data Repository")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7.3", "Data Rights 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8", "Peculiar Support Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1", "Test and Measurement Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1.1", "Test and Measurement Equipment (Airframe/Hull/Vehicle)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1.2", "Test and Measurement Equipment (Propulsion)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1.3", "Test and Measurement Equipment (Electronics/Avionics)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1.4", "Test and Measurement Equipment (Other Major Subsystems 1...n (Sif))")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2", "Support and Handling Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2.1", "Support and Handling Equipment (Airframe/Hull/Vehicle)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2.2", "Support and Handling Equipment (Propulsion)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2.3", "Support and Handling Equipment (Electronics/Avionics)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2.4", "Support and Handling Equipment (Other Major Subsystems 1...n (Specify))")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9", "Common Support Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.1", "Test and Measurement Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.1.1", "Test and Measurement Equipment (Airframe/Hull/Vehicle)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.1.2", "Test and Measurement Equipment (Propulsion)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.1.3", "Test and Measurement Equipment (Electronics/Avionics)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.1.4", "Test and Measurement Equipment (Other Major Subsystems 1...n (Specify))")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.2", "Support and Handling Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.2.1", "Support and Handling Equipment (Airframe/Hull/Vehicle)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.2.2", "Support and Handling Equipment (Propulsion)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.2.3", "Support and Handling Equipment (Electronics/Avionics)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.2.4", "Support and Handling Equipment (Other Major Subsystems 1...n (Specify))")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.10", "Operational/Site Activation by Site 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.10.1", "System Assembly, Installation, and Checkout on Site")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.10.2", "Contractor Technical Support")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.10.3", "Site Construction")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.10.4", "Site /Ship/Vehicle Conversion")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.10.5", "Interim Contractor Support (ICS)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.11", "Contractor Logistics Support (CLS)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.12", "Industrial Facilities")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.12.1", "Construction/Conversion/Expansion")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.12.2", "Equipment Acquisition or Modernization")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.12.3", "Maintenance (Industrial Facilities)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.13", "Initial Spares and Repair Parts")
+    .Save cptDir & "\cwbs-appendix-b.adtg"
     .MoveFirst
     lngItem = 0
     Do While Not .EOF
@@ -283,6 +283,171 @@ err_here:
   Call cptHandleErr("cptBackbone_bas", "cptImportAppendixB", Err, Erl)
   Resume exit_here
 End Sub
+
+
+Sub cptImportAppendixE(lngOutlineCode As Long)
+'objects
+Dim TaskTable As Object 'TaskTable
+Dim Task As Task
+'strings
+'longs
+Dim lngItem As Long
+Dim lngField As Long
+Dim lngOutlineLevel As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  Application.OpenUndoTransaction "Import Appendix E"
+  
+  CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=2, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+  CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=3, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+  CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=4, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+  CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=5, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+  CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=6, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+  CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=7, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+  CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=8, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+  CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=9, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+  CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=10, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+  CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=False, OnlyLeaves:=False, LookupDefault:=False, SortOrder:=0
+
+  With CreateObject("ADODB.Recordset")
+    'delete existing
+    If Dir(cptDir & "\cwbs-appendix-e.adtg") <> vbNullString Then
+      Kill cptDir & "\cwbs-appendix-e.adtg"
+    End If
+    .Fields.Append "CWBS", adVarChar, 10
+    .Fields.Append "CWBS TITLE", adVarChar, 75
+    .Open
+    .AddNew Array("CWBS", "CWBS Title"), Array("1", "Sea System")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1", "Ship")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.1", "Hull Structure")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.2", "Propulsion Plant")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.3", "Electric Plant")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.4", "Command, Communications, and Surveillance")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.5", "Auxiliary Systems")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.6", "Outfit and Furnishings")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.7", "Armament")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.8", "Total Ship Integration/Engineering")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.1.9", "Ship Assembly and Support Services")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.2", "Systems Engineering")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.2.1", "Software Systems Engineering")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.2.2", "Integrated Logistics Support (ILS) Systems Engineering")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.2.3", "Cybersecurity Systems Engineering")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.2.4", "Core Systems Engineering")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.2.5", "Other Systems Engineering 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.3", "Program Management")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.3.1", "Software Program Management")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.3.2", "Integrated Logistics Support (ILS) Program Management")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.3.3", "Cybersecurity Management")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.3.4", "Core Program Management")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.3.5", "Other Program Management 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.4", "System Test and Evaluation")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.4.1", "Development Test and Evaluation")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.4.2", "Operational Test and Evaluation")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.4.3", "Cybersecurity Test and Evaluation")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.4.4", "Mock-ups/System Integration Labs (SILs)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.4.5", "Test and Evaluation Support")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.4.6", "Test Facilities")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5", "Training")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5.1", "Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5.1.1", "Operator Instructional Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5.1.2", "Maintainer Instructional Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5.2", "Services")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5.2.1", "Operator Instructional Services")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5.2.2", "Maintainer Instructional Services")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5.3", "Facilities")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.5.4", "Training Software 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.6", "Data")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.6.1", "Data Deliverables 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.6.2", "Data Repository")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.6.3", "Data Rights 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7", "Peculiar Support Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7.1", "Test and Measurement Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7.1.1", "Test and Measurement Equipment (Airframe/Hull/Vehicle)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7.1.2", "Test and Measurement Equipment (Propulsion)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7.1.3", "Test and Measurement Equipment (Electronics/Avionics)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7.1.4", "Test and Measurement Equipment (Other Major Subsystem 1...n (Specify))")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7.2", "Support and Handling Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7.2.1", "Support and Handling Equipment (Airframe/Hull/Vehicle)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7.2.2", "Support and Handling Equipment (Propulsion)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7.2.3", "Support and Handling Equipment (Electronics/Avionics)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.7.2.4", "Support and Handling Equipment (Other Major Subsystem 1...n (Specify))")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8", "Common Support Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1", "Test and Measurement Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1.1", "Test and Measurement Equipment (Airframe/Hull/Vehicle)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1.2", "Test and Measurement Equipment (Propulsion)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1.3", "Test and Measurement Equipment (Electronics/Avionics)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.1.4", "Test and Measurement Equipment (Other Major Subsystem 1...n (Specify))")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2", "Support and Handling Equipment")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2.1", "Support and Handling Equipment (Airframe/Hull/Vehicle)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2.2", "Support and Handling Equipment (Propulsion)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2.3", "Support and Handling Equipment (Electronics/Avionics)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.8.2.4", "Support and Handling Equipment (Other Major Subsystem 1...n (Specify))")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9", "Operational/Site Activation by Site 1...n (Specify)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.1", "System Assembly, Installation, and Checkout")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.2", "Contractor Technical Support")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.3", "Site Construction")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.4", "Site/Ship/Vehicle Conversion")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.9.5", "Interim Contractor Support (ICS)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.10", "Contractor Logistics Support (CLS)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.11", "Industrial Facilities")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.11.1", "Construction/Conversion/Expansion")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.11.2", "Equipment Acquisition or Modernization")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.11.3", "Maintenance (Industrial Facilities)")
+    .AddNew Array("CWBS", "CWBS Title"), Array("1.12", "Initial Spares and Repair Parts")
+    .Save cptDir & "\cwbs-appendix-e.adtg"
+    .MoveFirst
+    lngItem = 0
+    Do While Not .EOF
+      lngItem = lngItem + 1
+      Set Task = ActiveProject.Tasks.Add(.Fields(1).Value)
+      Task.SetField lngOutlineCode, .Fields(0)
+      ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode)).LookupTable.Item(lngItem).Description = .Fields(1).Value
+
+      lngOutlineLevel = Len(.Fields(0).Value) - Len(Replace(.Fields(0).Value, ".", ""))
+      If lngOutlineLevel > 0 Then
+        Task.OutlineLevel = lngOutlineLevel + 1
+      End If
+      
+      .MoveNext
+    Loop
+    .Close
+  End With
+  
+  'pretty up the task table
+  If Len(ActiveProject.CurrentTable) > 0 Then
+    SelectBeginning
+    SetRowHeight 1, "all"
+    Set TaskTable = ActiveProject.TaskTables(ActiveProject.CurrentTable)
+    For lngField = 1 To TaskTable.TableFields.Count
+      If FieldConstantToFieldName(TaskTable.TableFields(lngField).Field) = "Name" Then
+        ColumnBestFit lngField
+        Exit For
+      End If
+    Next lngField
+  End If
+  
+  'reset outline code to disallow new entries
+  CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=True, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
+  Call cptRefreshOutlineCodePreview(CustomFieldGetName(lngOutlineCode))
+  
+exit_here:
+  On Error Resume Next
+  Application.CloseUndoTransaction
+  Set TaskTable = Nothing
+  Set Task = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptBackbone_bas", "cptImportAppendixE", Err, Erl)
+  Resume exit_here
+End Sub
+
 
 Sub cptExportOutlineCodeToExcel(lngOutlineCode As Long)
 'objects
@@ -331,7 +496,7 @@ Dim lngLookupItems As Long
   
   'export the codes
   For lngLookupItems = 1 To LookupTable.Count
-    lngLastRow = Worksheet.Cells(Worksheet.Rows.Count, 1).End(xlUp).Row + 1
+    lngLastRow = Worksheet.Cells(Worksheet.Rows.Count, 1).End(-4162).Row + 1 '-4162 = xlUp
     Worksheet.Cells(lngLastRow, 1).Value = "'" & LookupTable.Item(lngLookupItems).FullName
     Worksheet.Cells(lngLastRow, 2).Value = LookupTable.Item(lngLookupItems).Level
     Worksheet.Cells(lngLastRow, 3).Value = LookupTable.Item(lngLookupItems).Description
@@ -351,8 +516,8 @@ Dim lngLookupItems As Long
   ListObject.Name = strOutlineCode
   ListObject.TableStyle = ""
   ListObject.HeaderRowRange.Font.Bold = True
-  ListObject.Range.Borders(xlDiagonalDown).LineStyle = -4142 'xlNone
-  ListObject.Range.Borders(xlDiagonalUp).LineStyle = -4142 'xlNone
+  ListObject.Range.Borders(5).LineStyle = -4142 'xlDiagonalDown = xlNone
+  ListObject.Range.Borders(6).LineStyle = -4142 'xlDiagonalUp = xlNone
   With ListObject.Range.Borders(7) 'xlEdgeLeft
     .LineStyle = 1 'xlContinuous
     .ThemeColor = 1
@@ -409,7 +574,7 @@ exit_here:
   cptBackbone_frm.lblProgress.Width = cptBackbone_frm.lblStatus.Width
   xlApp.Visible = True
   xlApp.ScreenUpdating = True
-  xlApp.Calculation = xlCalculationAutomatic
+  xlApp.Calculation = -4105 'xlCalculationAutomatic
   Set ListObject = Nothing
   Set Worksheet = Nothing
   Set Workbook = Nothing
@@ -499,7 +664,7 @@ Dim lngItem As Long
           If olApp Is Nothing Then
             Set olApp = CreateObject("Outlook.Application")
           End If
-          Set MailItem = olApp.CreateItem(olMailItem)
+          Set MailItem = olApp.CreateItem(0) '0 = olMailItem
           MailItem.To = "cpt@ClearPlanConsulting.com"
           MailItem.Importance = 2 'olImportanceHigh
           MailItem.Subject = "Template Request: " & strTemplate
@@ -548,7 +713,7 @@ Dim lngItem As Long
   End If
   
   'format it
-  '-4121=xlDown; -4161=xlToRight; 1=xlContinuous; 2=xlThin; -4105=xlColorIndexAutomatic
+  '-4121=-4121; -4161=xlToRight; 1=xlContinuous; 2=xlThin; -4105=xlColorIndexAutomatic
   wsIndex.[B8:I8].AutoFill Destination:=wsIndex.Range(wsIndex.Cells(8, 2), wsIndex.Cells(7 + LookupTable.Count - 1, 9))
   For lngBorder = 7 To 12 'left,top,bottom,right,insidevertical,insidehorizontal
     With wsIndex.Range(wsIndex.[A7].End(-4121), wsIndex.Cells(7, 19)).Borders(lngBorder)
@@ -679,6 +844,7 @@ Dim strOutlineCode As String, strOutlineCodeName As String
   cptBackbone_frm.cboImport.Clear
   cptBackbone_frm.cboImport.AddItem "From Excel Workbook"
   cptBackbone_frm.cboImport.AddItem "From MIL-STD-881D Appendix B"
+  cptBackbone_frm.cboImport.AddItem "From MIL-STD-881D Appendix E"
   cptBackbone_frm.cboImport.AddItem "From Existing Tasks"
   
   'add Export Actions
