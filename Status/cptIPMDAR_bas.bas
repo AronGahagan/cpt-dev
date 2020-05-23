@@ -940,6 +940,7 @@ End Function
 
 Sub cptShowFrmIPMDAR()
 'objects
+Dim oStream As Scripting.TextStream
 Dim oFile As Scripting.File
 Dim aContracts As Object
 Dim oRootDir As Object
@@ -1024,24 +1025,42 @@ Dim dtStatus As Date
       strContract = CStr(vbResponse)
     End If
     strDir = Environ("USERPROFILE") & "\IPMDAR\" & strContract
-    If Dir(strDir, vbDirectory) = vbNullString Then
+    If Dir(strDir, vbDirectory + vbHidden + vbReadOnly) = vbNullString Then
       MkDir strDir
     End If
     On Error Resume Next
     ActiveProject.CustomDocumentProperties.Add Name:="cptSPD_DIR", LinkToContent:=False, Type:=4, Value:=strDir
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     ActiveProject.CustomDocumentProperties("cptSPD_DIR").Value = strDir
-    lngFile = FreeFile
-    Open strDir & "\guid.txt" For Output As #lngFile
-    Print #lngFile, ActiveProject.GetServerProjectGuid
-    Close #lngFile
-    'make this file read-only and archive
-    Set oFSO = CreateObject("Scripting.FileSystemObject")
-    Set oFile = oFSO.GetFile(strDir & "\guid.txt")
-    oFile.Attributes = ReadOnly
-    oFile.Attributes = Hidden
+    'does the file already exist?
+    If Dir(strDir & "\guid.txt", vbHidden + vbReadOnly) <> vbNullString Then
+      'does the guid match?
+      lngFile = FreeFile
+      Open strDir & "\guid.txt" For Input As #lngFile
+      Do While Not EOF(lngFile)
+        Line Input #lngFile, strBuffer
+      Loop
+      Close #lngFile
+      If strBuffer <> ActiveProject.GetServerProjectGuid Then
+        If MsgBox("The associated directory is linked to a different source file." & vbCrLf & vbCrLf & "Proceed anyway?", vbExclamation + vbYesNo, "GUID Mismatch") = vbNo Then
+          GoTo exit_here
+        Else
+          'todo: handle mismatched guid; store source project file name as second value; use Line Input #lngFile,strGUID,strProjectName
+        End If
+      End If
+    Else
+      lngFile = FreeFile
+      Open strDir & "\guid.txt" For Output As #lngFile
+      Print #lngFile, ActiveProject.GetServerProjectGuid
+      Close #lngFile
+      'make this file read-only and archive
+      Set oFSO = CreateObject("Scripting.FileSystemObject")
+      Set oFile = oFSO.GetFile(strDir & "\guid.txt")
+      oFile.Attributes = ReadOnly
+      oFile.Attributes = Hidden
+    End If
   Else
-    'todo: validate guid matches
+    'validate guid matches
     If Dir(strDir & "\guid.txt", vbHidden + vbReadOnly) <> vbNullString Then
       lngFile = FreeFile
       Open strDir & "\guid.txt" For Input As #lngFile
@@ -1232,6 +1251,7 @@ Dim dtStatus As Date
   
 exit_here:
   On Error Resume Next
+  Set oStream = Nothing
   Set oFile = Nothing
   Set aContracts = Nothing
   Set oRootDir = Nothing
@@ -1250,8 +1270,12 @@ End Sub
 
 Sub cptShowFrmCptTaskTypeMap()
 'objects
+Dim aFields As Object
 'strings
+Dim strCustomFieldName As String
 'longs
+Dim lngCount As Long
+Dim lngItem As Long
 'integers
 'doubles
 'booleans
@@ -1259,17 +1283,16 @@ Sub cptShowFrmCptTaskTypeMap()
 'dates
 
   With cptTaskTypeMapping_frm
-    With .cboFieldToMap
+    With .cboEnum
       .Clear
-      .AddItem "* TaskTypeID"
+      .AddItem "TaskTypeID*"
       .AddItem "TaskSubTypeID"
+      .AddItem "TaskPlanningLevelID*"
+      .AddItem "EarnedValueTechniqueID*"
+      .AddItem "ElementOfCostID*"
+      .Value = "TaskTypeID*" 'triggers cboWhere
     End With
-    With .cboWhereField
-      .Clear
-      .AddItem
-      .List(.ListCount - 1, 0) = FieldNameToFieldConstant("Name", pjTask)
-      .List(.ListCount - 1, 1) = "Task Name"
-    End With
+    
     With .cboOperator
       .Clear
       .AddItem "equals"
@@ -1278,13 +1301,6 @@ Sub cptShowFrmCptTaskTypeMap()
       .AddItem "does not equal"
       .AddItem "does not contain"
     End With
-    With .cboTaskType
-      .Clear
-      .AddItem "ACTIVITY"
-      .AddItem "MILESTONE"
-      .AddItem "SUMMARY"
-      .AddItem "HAMMOCK"
-    End With
     
     .Show False
     
@@ -1292,6 +1308,7 @@ Sub cptShowFrmCptTaskTypeMap()
 
 exit_here:
   On Error Resume Next
+  Set aFields = Nothing
 
   Exit Sub
 err_here:
