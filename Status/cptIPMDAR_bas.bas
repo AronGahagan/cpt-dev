@@ -1282,7 +1282,7 @@ Dim lngItem As Long
 'variants
 'dates
 
-  With cptTaskTypeMapping_frm
+  With cptIPMDARMapping_frm
     With .cboEnum
       .Clear
       .AddItem "TaskTypeID*"
@@ -2060,4 +2060,88 @@ err_here:
   'Call HandleErr("cptIPMDAR_bas", "cptScrubIPMDAR", Err)
   MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
+End Sub
+
+Sub cptAddEVTDefaults(strEngine As String)
+'objects
+Dim aDefaults As Object
+'strings
+'longs
+Dim lngWhereField As Long
+Dim lngCol As Long
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If MsgBox("Add " & strEngine & " Defaults?", vbQuestion + vbYesNo, "Snappy") = vbYes Then
+    Set aDefaults = CreateObject("System.Collections.ArrayList")
+    If strEngine = "MPM" Then
+      '0 - No EVM Required - not used
+      aDefaults.Add Array("1", "FIXED_0_100")
+      aDefaults.Add Array("2", "FIXED_X_Y") '25/75
+      aDefaults.Add Array("3", "FIXED_X_Y") '40/60
+      aDefaults.Add Array("4", "FIXED_X_Y") '50/50
+      aDefaults.Add Array("5", "PERCENT_COMPLETE") '% Complete
+      aDefaults.Add Array("6", "LEVEL_OF_EFFORT")
+      aDefaults.Add Array("7", "STANDARDS") 'Earned Standards
+      aDefaults.Add Array("8", "MILESTONE") 'Milestone Weights
+      aDefaults.Add Array("9", "OTHER_DISCRETE") 'BCWP Entry
+      aDefaults.Add Array("A", "APPORTIONED_EFFORT")
+      aDefaults.Add Array("P", "PERCENT_COMPLETE") 'Milestone Weights with % Complete
+      'K - Key Event - not used
+      
+    ElseIf strEngine = "COBRA" Then
+      'todo: confirm this mapping
+      aDefaults.Add Array("A", "LEVEL_OF_EFFORT")
+      aDefaults.Add Array("B", "MILESTONE") 'Milestones
+      aDefaults.Add Array("C", "PERCENT_COMPLETE")
+      aDefaults.Add Array("D", "UNITS")
+      aDefaults.Add Array("E", "FIXED_X_Y") '50/50
+      aDefaults.Add Array("F", "FIXED_0_100")
+      aDefaults.Add Array("G", "FIXED_100_0")
+      aDefaults.Add Array("H", "FIXED_X_Y") 'User Defined
+      aDefaults.Add Array("J", "APPORTIONED_EFFORT") 'Apportioned
+      aDefaults.Add Array("K", "PLANNING_PACKAGE")
+      'todo: add this to TaskSubTypeID?
+      aDefaults.Add Array("L", "OTHER_DISCRETE") 'Assignment % Complete
+      aDefaults.Add Array("M", "OTHER_DISCRETE") 'Calculated Apportionment
+      aDefaults.Add Array("N", "STEPS") 'Steps
+      aDefaults.Add Array("O", "OTHER_DISCRETE") 'Earned As Spent
+      aDefaults.Add Array("P", "OTHER_DISCRETE") '% Complete Manual Entry
+      
+    End If
+    
+    'add the mapping
+    With cptIPMDARMapping_frm
+      lngWhereField = .cboWhereField.ListIndex
+      With .lboTaskTypeMap
+        For lngItem = 0 To aDefaults.Count - 1
+          .AddItem
+          .List(.ListCount - 1, 0) = Replace(cptIPMDARMapping_frm.cboEnum.Value, "*", "")
+          .List(.ListCount - 1, 1) = cptIPMDARMapping_frm.cboWhereField.Value
+          .List(.ListCount - 1, 2) = cptIPMDARMapping_frm.cboWhereField.List(lngWhereField, 1)  'field name
+          .List(.ListCount - 1, 3) = "equals"
+          .List(.ListCount - 1, 4) = aDefaults(lngItem)(0)
+          .List(.ListCount - 1, 5) = aDefaults(lngItem)(1)
+        Next lngItem
+      End With
+    End With
+    
+    
+  End If
+
+exit_here:
+  On Error Resume Next
+  Set aDefaults = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptTaskMapping_frm", "lblCOBRA_Click", Err, Erl)
+  Resume exit_here
+
 End Sub
