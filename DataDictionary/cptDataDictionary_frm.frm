@@ -4,7 +4,7 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptDataDictionary_frm
    ClientHeight    =   5415
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   9465
+   ClientWidth     =   9465.001
    OleObjectBlob   =   "cptDataDictionary_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.0</cpt_version>
+'<cpt_version>v1.1.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -94,9 +94,9 @@ End Sub
 
 Private Sub cmdImport_Click()
 'objects
-Dim xlApp As Excel.Application
-Dim Workbook As Workbook
-Dim Worksheet As Worksheet
+Dim xlApp As Object 'Excel.Application
+Dim Workbook As Object 'Workbook
+Dim Worksheet As Object 'Worksheet
 'strings
 'longs
 Dim lngItem As Long

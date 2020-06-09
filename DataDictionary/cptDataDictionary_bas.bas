@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDataDictionary_bas"
-'<cpt_version>v1.1.0</cpt_version>
+'<cpt_version>v1.1.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -135,13 +135,16 @@ Dim vFieldScope As Variant
           If Len(CustomFieldGetFormula(lngField)) > 0 Then
             Worksheet.Cells(lngRow, 6).Value = CustomFieldGetFormula(lngField)
           End If
+          blnLookupTable = False
           On Error Resume Next
           blnLookupTable = Len(CustomFieldValueListGetItem(lngField, pjValueListValue, 1)) > 0
+          'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 <- don't put this here
+          
           strAttributes = ""
           If blnLookupTable Then
             
             If blnLookups Then
-              lngLookupCol = wsLookups.[XFD2].End(xlToLeft).Column
+              lngLookupCol = wsLookups.[XFD2].End(-4159).Column
               If wsLookups.Cells(1, lngLookupCol) <> "" Then lngLookupCol = lngLookupCol + 2
               wsLookups.Cells(1, lngLookupCol) = UCase(strFieldName)
               wsLookups.Cells(2, lngLookupCol) = UCase(strFieldName) & " LOOKUP:"
@@ -185,13 +188,13 @@ Dim vFieldScope As Variant
             
             If blnLookups Then 'use data validation
               'name the range
-              wsLookups.ListObjects.Add(SourceType:=xlSrcRange, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + intListItem, lngLookupCol)).Address(True, True), xllistobjecthasheaders:=xlYes).Name = UCase(Replace(FieldConstantToFieldName(lngField), " ", "_"))
+              wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + intListItem, lngLookupCol)).Address(True, True), xllistobjecthasheaders:=1).Name = UCase(Replace(FieldConstantToFieldName(lngField), " ", "_"))
               wsLookups.Columns(lngLookupCol).AutoFit
               wsLookups.Columns(lngLookupCol + 1).ColumnWidth = 2
               With Worksheet.Cells(lngRow, 6).Validation
                  .Delete
-                 .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:= _
-                 xlBetween, Formula1:="=INDIRECT(""" & UCase(Replace(FieldConstantToFieldName(lngField), " ", "_")) & """)"
+                 .Add Type:=3, AlertStyle:=1, Operator:= _
+                 1, Formula1:="=INDIRECT(""" & UCase(Replace(FieldConstantToFieldName(lngField), " ", "_")) & """)"
                  .IgnoreBlank = True
                  .InCellDropdown = True
                  .InputTitle = ""
@@ -245,7 +248,7 @@ next_field:
       If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
       If Not LookupTable Is Nothing Then
         If blnLookups Then
-          lngLookupCol = wsLookups.[XFD2].End(xlToLeft).Column
+          lngLookupCol = wsLookups.[XFD2].End(-4159).Column
           If wsLookups.Cells(1, lngLookupCol) <> "" Then lngLookupCol = lngLookupCol + 2
           wsLookups.Cells(1, lngLookupCol) = UCase(FieldConstantToFieldName(lngField))
           wsLookups.Cells(2, lngLookupCol) = UCase(FieldConstantToFieldName(lngField)) & " LOOKUP:"
@@ -267,13 +270,13 @@ next_field:
         
         If blnLookups Then 'use validation
           'name the range
-          wsLookups.ListObjects.Add(SourceType:=xlSrcRange, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + LookupTable.Count, lngLookupCol)).Address(True, True), xllistobjecthasheaders:=xlYes).Name = UCase(Replace(FieldConstantToFieldName(lngField), " ", "_"))
+          wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + LookupTable.Count, lngLookupCol)).Address(True, True), xllistobjecthasheaders:=1).Name = UCase(Replace(FieldConstantToFieldName(lngField), " ", "_"))
           wsLookups.Columns(lngLookupCol).AutoFit
           wsLookups.Columns(lngLookupCol + 1).ColumnWidth = 2
           With Worksheet.Cells(lngRow, 6).Validation
             .Delete
-            .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:= _
-            xlBetween, Formula1:="=INDIRECT(""" & UCase(Replace(FieldConstantToFieldName(lngField), " ", "_")) & """)"
+            .Add Type:=3, AlertStyle:=1, Operator:= _
+            1, Formula1:="=INDIRECT(""" & UCase(Replace(FieldConstantToFieldName(lngField), " ", "_")) & """)"
             .IgnoreBlank = True
             .InCellDropdown = True
             .InputTitle = ""
@@ -317,17 +320,17 @@ next_field:
   'convert to table / format it
   Worksheet.Activate
   xlApp.ActiveWindow.ScrollRow = lngHeaderRow
-  Set rng = Worksheet.Range(Worksheet.Cells(lngHeaderRow, 1).End(xlToRight), Worksheet.Cells(lngHeaderRow, 1).End(xlDown))
-  Worksheet.ListObjects.Add(xlSrcRange, rng, , xlYes).Name = "DATA_DICTIONARY"
+  Set rng = Worksheet.Range(Worksheet.Cells(lngHeaderRow, 1).End(-4161), Worksheet.Cells(lngHeaderRow, 1).End(-4121))
+  Worksheet.ListObjects.Add(1, rng, , 1).Name = "DATA_DICTIONARY"
   'autofit
   Worksheet.Range("DATA_DICTIONARY[#All]").Select
   rng.Columns.AutoFit
   rng.Rows.AutoFit
   rng.VerticalAlignment = xlCenter
-  lngCol = Worksheet.Rows(lngHeaderRow).Find("Attributes", lookat:=xlWhole).Column
+  lngCol = Worksheet.Rows(lngHeaderRow).Find("Attributes", lookat:=1).Column
   Worksheet.Columns(lngCol).ColumnWidth = 100
   Worksheet.Columns(lngCol).WrapText = True
-  lngCol = Worksheet.Rows(lngHeaderRow).Find("Description", lookat:=xlWhole).Column
+  lngCol = Worksheet.Rows(lngHeaderRow).Find("Description", lookat:=1).Column
   Worksheet.Columns(lngCol).ColumnWidth = 100
   Worksheet.Cells(lngHeaderRow + 1, 1).Select
   
@@ -530,8 +533,12 @@ End Sub
 
 Sub cptImportDataDictionary(Optional strFile As String)
 'objects
-Dim rst As ADODB.Recordset 'Object
-Dim xlApp As Excel.Application, Workbook As Workbook, Worksheet As Worksheet, rng As Range, ListObject As ListObject
+Dim rst As Object 'ADODB.Recordset
+Dim xlApp As Object
+Dim Workbook As Object
+Dim Worksheet As Object
+Dim rng As Object
+Dim ListObject As Object
 'strings
 Dim strMsg As String
 Dim strNewDescription As String
@@ -581,7 +588,7 @@ Dim vFile As Variant
                                   ButtonText:="Import", MultiSelect:=False)
     If vFile = False Then GoTo exit_here
   End If
-  xlApp.ActivateMicrosoftApp xlMicrosoftProject
+  xlApp.ActivateMicrosoftApp 6 'xlMicrosoftProject
   
 skip_that:
   
@@ -603,11 +610,11 @@ skip_that:
     GoTo exit_here
   End If
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  lngHeaderRow = Worksheet.Columns(1).Find("Enterprise", lookat:=xlWhole).Row
-  lngLastRow = Worksheet.Cells(lngHeaderRow, 1).End(xlDown).Row
-  lngNameCol = Worksheet.Rows(lngHeaderRow).Find("Custom Name", lookat:=xlWhole).Column
-  lngLastCol = Worksheet.Rows(lngHeaderRow).End(xlToRight).Column
-  lngDescriptionCol = Worksheet.Rows(lngHeaderRow).Find("Description", lookat:=xlWhole).Column
+  lngHeaderRow = Worksheet.Columns(1).Find("Enterprise", lookat:=1).Row
+  lngLastRow = Worksheet.Cells(lngHeaderRow, 1).End(-4121).Row
+  lngNameCol = Worksheet.Rows(lngHeaderRow).Find("Custom Name", lookat:=1).Column
+  lngLastCol = Worksheet.Rows(lngHeaderRow).End(-4161).Column
+  lngDescriptionCol = Worksheet.Rows(lngHeaderRow).Find("Description", lookat:=1).Column
   
   'get saved dictionary settings
   strSavedSettings = cptDir & "\settings\cpt-data-dictionary.adtg"
@@ -647,7 +654,7 @@ next_row:
     'show the selected file
     If Not xlApp.Visible Then xlApp.Visible = True
     xlApp.ScreenUpdating = True
-    xlApp.WindowState = xlMinimized
+    xlApp.WindowState = -4140 'xlMinimized
     
     'notify of missing custom fields
     If lngNotFound > 0 Then
