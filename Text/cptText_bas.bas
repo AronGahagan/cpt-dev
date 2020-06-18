@@ -35,7 +35,6 @@ Dim Tasks As Tasks, Task As Task, strAppend As String
 next_task:
   Next Task
   
-  
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
@@ -44,7 +43,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptText_bas", "cptBulkAppend", err, Erl)
+  Call cptHandleErr("cptText_bas", "cptBulkAppend", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -71,7 +70,6 @@ Dim Tasks As Tasks, Task As Task, strPrepend As String
 next_task:
   Next Task
   
-  
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
@@ -80,7 +78,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("basTextTool", "cptBulkPrepend", err, Erl)
+  Call cptHandleErr("basTextTool", "cptBulkPrepend", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -118,7 +116,7 @@ Dim vbResponse As Variant, lgEnumerate As Long
   
   Application.OpenUndoTransaction "Enumeration"
   
-  If Tasks.count > 2 Then
+  If Tasks.Count > 2 Then
     For Each Task In Tasks
       If Task.ExternalTask Then GoTo next_task
       If Not Task Is Nothing Then
@@ -130,7 +128,6 @@ next_task:
   End If
   cptSpeed False
 
-
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
@@ -139,7 +136,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptText_bas", "cptEnumerate", err, Erl)
+  Call cptHandleErr("cptText_bas", "cptEnumerate", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -201,8 +198,8 @@ next_task:
     MsgBox "No instances of '" & CStr(vFind) & "' found in selected cells.", vbExclamation + vbOKOnly, "MyReplace"
   Else
     FilterEdit "cptMyReplace", True, True, True, False, , "Unique ID", , "equals", arrReplaced.getKey(0), "Or", True
-    For lngItem = 1 To arrReplaced.count - 1
-      FilterEdit "cptMyReplace", Taskfilter:=True, FieldName:="", NewFieldName:="Unique ID", test:="equals", Value:=arrReplaced.getKey(lngItem), operation:="Or", ShowInMenu:=True
+    For lngItem = 1 To arrReplaced.Count - 1
+      FilterEdit "cptMyReplace", TaskFilter:=True, FieldName:="", NewFieldName:="Unique ID", test:="equals", Value:=arrReplaced.getKey(lngItem), Operation:="Or", ShowInMenu:=True
     Next lngItem
     FilterApply "cptMyReplace", True
     Application.Find "Unique ID", "equals", arrReplaced.getKey(0)
@@ -227,7 +224,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptText_bas", "cptMyReplace", err, Erl)
+  Call cptHandleErr("cptText_bas", "cptMyReplace", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -243,8 +240,8 @@ Dim blnMaster As Boolean
 'longs
 Dim lgNameCol As Long
 
-  If ActiveProject.Tasks.count = 0 Then GoTo exit_here
-  If ActiveProject.Subprojects.count > 0 Then blnMaster = True
+  If ActiveProject.Tasks.Count = 0 Then GoTo exit_here
+  If ActiveProject.Subprojects.Count > 0 Then blnMaster = True
   
   If Not cptCheckReference("Excel") Then GoTo exit_here
 
@@ -263,14 +260,14 @@ Dim lgNameCol As Long
   Set Workbook = xlApp.Workbooks.Open(strFileName)
   Set Worksheet = Workbook.Sheets(1)
   
-  Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown)), , xlYes)
+  Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(-4121)), , xlYes)
   
   xlApp.ActiveWindow.Zoom = 85
   ListObject.Range.Columns.AutoFit
   ListObject.TableStyle = ""
   Set rng = Worksheet.Range("Table1[Name]")
   rng.FormatConditions.AddUniqueValues
-  rng.FormatConditions(rng.FormatConditions.count).SetFirstPriority
+  rng.FormatConditions(rng.FormatConditions.Count).SetFirstPriority
   rng.FormatConditions(1).DupeUnique = xlDuplicate
   With rng.FormatConditions(1).Font
     .Color = -16383844
@@ -307,7 +304,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptText_bas", "cptFindDuplicateTaskNames", err, Erl)
+  Call cptHandleErr("cptText_bas", "cptFindDuplicateTaskNames", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -328,7 +325,6 @@ Dim Task As Task, lgBefore As Long, lgAfter As Long, lgCount As Long
     End If
   Next Task
 
-
   MsgBox Format(lgCount, "#,##0") & " task names trimmed.", vbInformation + vbOKOnly, "Trim Task Names"
 
 exit_here:
@@ -337,7 +333,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_bas", "cptTrimTaskNames", err, Erl)
+  Call cptHandleErr("cptText_bas", "cptTrimTaskNames", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -379,7 +375,7 @@ exit_here:
   Set Tasks = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_bas", "ShowcptText_frm", err, Erl)
+  Call cptHandleErr("cptText_bas", "ShowcptText_frm", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -405,7 +401,7 @@ Dim lngItem As Long, lgEnumerate As Long
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     If Task Is Nothing Then
       If MsgBox("UID " & cptText_frm.lboOutput.List(lngItem, 0) & " not found in " & UCase(ActiveProject.Name) & "! Proceed?", vbCritical + vbYesNo, "Task Not Found") = vbNo Then
-        err.Clear
+        Err.Clear
         GoTo exit_here
       Else
         GoTo next_item
@@ -482,7 +478,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_bas", "cptUpdatePreview", err, Erl)
+  Call cptHandleErr("cptText_bas", "cptUpdatePreview", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -510,8 +506,25 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_bas", "cptResetRowHeight", err, Erl)
+  Call cptHandleErr("cptText_bas", "cptResetRowHeight", Err, Erl)
   Resume exit_here
 End Sub
 
+Sub cptShowFilterByClipboardFrm()
 
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  With cptFilterByClipboard_frm
+    .optUID = True
+    .Show False
+  End With
+  
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptText_bas", "cptShowFilterByClipboardFrm", Err, Erl)
+  Resume exit_here
+  
+End Sub
