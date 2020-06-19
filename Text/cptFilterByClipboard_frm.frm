@@ -96,6 +96,7 @@ Private Sub optID_Click()
   strFilter = Me.txtFilter.Text
   Me.txtFilter.Text = ""
   Me.txtFilter.Value = strFilter
+  Me.lboHeader.List(0, 0) = "ID"
 End Sub
 
 Private Sub optUID_Click()
@@ -103,6 +104,7 @@ Private Sub optUID_Click()
   strFilter = Me.txtFilter.Text
   Me.txtFilter.Text = ""
   Me.txtFilter.Value = strFilter
+  Me.lboHeader.List(0, 0) = "UID"
 End Sub
 
 Private Sub tglEdit_Click()
@@ -142,6 +144,8 @@ Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, B
   strFilter = Data.GetText
   If InStr(strFilter, vbTab) > 0 Then
     vList = Split(strFilter, vbCrLf)
+  ElseIf InStr(strFilter, vbCrLf) > 0 Then
+    vList = Split(strFilter, vbCrLf)
   ElseIf InStr(strFilter, ",") > 0 Then
     vList = Split(strFilter, ",")
   ElseIf InStr(strFilter, ";") > 0 Then
@@ -155,11 +159,14 @@ Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, B
   For lngItem = 0 To UBound(vList)
     strItem = cptRegEx(CStr(vList(lngItem)), "[0-9]*")
     If Len(strItem) > 0 Then
+      'ignore UID 0
+      If CLng(strItem) = 0 Then GoTo next_item
       'remove duplicates
       If cptRegEx(CStr(strNewList), "\b" & strItem & "\b") = "" Then
         strNewList = strNewList & CLng(strItem) & ","
       End If
     End If
+next_item:
   Next lngItem
   Cancel = True
   Effect = fmDropEffectNone
