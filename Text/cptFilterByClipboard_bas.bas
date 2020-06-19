@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>1.0.0</cpt_version>
+'<cpt_version>1.0.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -120,6 +120,7 @@ Dim vUID As Variant
     If Not oTask Is Nothing Then
       cptFilterByClipboard_frm.lboFilter.List(cptFilterByClipboard_frm.lboFilter.ListCount - 1, 1) = oTask.Name
       strFilter = strFilter & lngUID & Chr$(9)
+      'oTask.Number20 = lngItem
       Set oTask = Nothing
     Else
       cptFilterByClipboard_frm.lboFilter.List(cptFilterByClipboard_frm.lboFilter.ListCount - 1, 1) = "< not found >"
@@ -133,15 +134,24 @@ next_item:
   End If
   
   If Len(strFilter) > 0 And cptFilterByClipboard_frm.chkFilter Then
+    ScreenUpdating = False
+    OptionsViewEx displaysummarytasks:=True
+    SelectAll
+    OutlineShowAllTasks
+    SelectBeginning
     strFilter = Left(strFilter, Len(strFilter) - 1)
     If cptFilterByClipboard_frm.optUID Then
       SetAutoFilter "Unique ID", FilterType:=pjAutoFilterIn, Criteria1:=strFilter
     ElseIf cptFilterByClipboard_frm.optID Then
       SetAutoFilter "ID", FilterType:=pjAutoFilterIn, Criteria1:=strFilter
     End If
+    OptionsViewEx projectsummary:=False, displayoutlinenumber:=False, displaynameindent:=False, displaysummarytasks:=False
+    'Sort "Number20"
   End If
+  
 exit_here:
   On Error Resume Next
+  ScreenUpdating = True
   Set oTask = Nothing
 
   Exit Sub
