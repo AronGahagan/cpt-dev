@@ -92,6 +92,20 @@
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
+		<Name>cptFilterByClipboard_bas</Name>
+		<FileName>cptFilterByClipboard_bas.bas</FileName>
+		<Version>v1.0.0</Version>
+		<Type>1</Type>
+		<Directory>Text</Directory>
+	</Module>
+	<Module>
+		<Name>cptFilterByClipboard_frm</Name>
+		<FileName>cptFilterByClipboard_frm.frm</FileName>
+		<Version>v1.0.0</Version>
+		<Type>3</Type>
+		<Directory>Text</Directory>
+	</Module>
+	<Module>
 		<Name>cptIMSCobraExport_bas</Name>
 		<FileName>cptIMSCobraExport_bas.bas</FileName>
 		<Version>v3.2.0</Version>
@@ -136,7 +150,7 @@
 	<Module>
 		<Name>cptSetup_bas</Name>
 		<FileName>cptSetup_bas.bas</FileName>
-		<Version>v1.3.15</Version>
+		<Version>v1.3.16</Version>
 		<Type>1</Type>
 		<Directory></Directory>
 	</Module>
