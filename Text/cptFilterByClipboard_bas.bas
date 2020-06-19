@@ -93,8 +93,6 @@ Dim vUID As Variant
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  'todo: remove duplicates
   
   cptFilterByClipboard_frm.lboFilter.Clear
   strFilter = cptFilterByClipboard_frm.txtFilter.Text

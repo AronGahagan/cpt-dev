@@ -110,8 +110,13 @@ Private Sub tglEdit_Click()
     Me.txtFilter.Visible = True
     Me.lboFilter.Visible = False
   Else
-    Me.txtFilter.Visible = False
-    Me.lboFilter.Visible = True
+    If Len(Me.txtFilter.Value) = 0 Then
+      Me.txtFilter.Visible = True
+      Me.lboFilter.Visible = False
+    Else
+      Me.txtFilter.Visible = False
+      Me.lboFilter.Visible = True
+    End If
   End If
   Me.txtFilter.Height = Me.lboFilter.Height
 End Sub
@@ -150,7 +155,10 @@ Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, B
   For lngItem = 0 To UBound(vList)
     strItem = cptRegEx(CStr(vList(lngItem)), "[0-9]*")
     If Len(strItem) > 0 Then
-      strNewList = strNewList & CLng(strItem) & ","
+      'remove duplicates
+      If cptRegEx(CStr(strNewList), "\b" & strItem & "\b") = "" Then
+        strNewList = strNewList & CLng(strItem) & ","
+      End If
     End If
   Next lngItem
   Cancel = True
