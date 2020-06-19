@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>1.0.1</cpt_version>
+'<cpt_version>1.0.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -42,47 +42,91 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDynamicFilter_frm", "lblURL", Err, Erl)
+  Call cptHandleErr("cptFilterByClipboard_frm", "lblURL", Err, Erl)
   Resume exit_here
 
 End Sub
 
 Private Sub lboFilter_Click()
   'objects
+  Dim oTasks As Tasks
   Dim oTask As Task
   'strings
+  Dim strField As String
   'longs
+  Dim lngUID As Long
   'integers
   'doubles
   'booleans
+  Dim blnDisplaySummaryTasks As Boolean
   'variants
   'dates
   Dim dtGoTo As Date
 
+  'round([Task's master project UID] / 4194304) = InsertedSubproject ID in Master
+  'Task.UniqueId-(X*4194304)+X) where X is Subproject UID gets Task Index
+  'task.uniqueid
   On Error Resume Next
   If Me.optUID Then
-    Set oTask = ActiveProject.Tasks.UniqueID(CLng(Me.lboFilter.Value))
+    lngUID = CLng(Me.lboFilter.Value)
+    Set oTask = ActiveProject.Tasks.UniqueID(lngUID)
+    strField = "Unique ID"
   ElseIf Me.optID Then
-    Set oTask = ActiveProject.Tasks.Item(CLng(Me.lboFilter.Value))
+    lngUID = CLng(Me.lboFilter.Value)
+    Set oTask = ActiveProject.Tasks.Item(lngUID)
+    strField = "ID"
   End If
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If Not oTask Is Nothing Then
+    
     If IsDate(oTask.Stop) Then
       dtGoTo = oTask.Stop
     Else
       dtGoTo = oTask.Start
     End If
     If ActiveWindow.ActivePane <> ActiveWindow.TopPane Then ActiveWindow.TopPane.Activate
-    On Error Resume Next
-    If Not EditGoTo(oTask.ID, dtGoTo) Then
-      OptionsViewEx displaysummarytasks:=True
-      OutlineShowAllTasks
-      EditGoTo oTask.ID, dtGoTo
-    End If
-  End If
+  
+    If ActiveProject.Subprojects.Count = 0 Then 'use EditGoto
+      On Error Resume Next
+      If Not EditGoTo(oTask.ID, dtGoTo) Then
+        If MsgBox("Task " & strField & " " & lngUID & " is currently hidden. Would you like to remove all filters, show summary tasks, and show all tasks in order to find it?", vbQuestion + vbYesNo, "Reset View?") = vbYes Then
+          ScreenUpdating = False
+          FilterClear
+          OptionsViewEx displaysummarytasks:=True
+          SelectAll
+          OutlineShowAllTasks
+          ScreenUpdating = True
+          If Not EditGoTo(oTask.ID, dtGoTo) Then
+            MsgBox "An unknown error has occured--can't find it!", vbCritical + vbOKOnly, "Still can't find it"
+          End If
+        End If
+      End If
+    
+    ElseIf ActiveProject.Subprojects.Count > 0 Then 'use Find
+      On Error Resume Next
+      If Not FindEx(strField, "equals", lngUID) Then
+        If MsgBox("Task " & strField & " " & lngUID & " is currently hidden. Would you like to remove all filters, show summary tasks, and show all tasks in order to find it?", vbQuestion + vbYesNo, "Reset View?") = vbYes Then
+          ScreenUpdating = False
+          FilterClear
+          OptionsViewEx displaysummarytasks:=True
+          SelectAll
+          OutlineShowAllTasks
+          ScreenUpdating = True
+          If Not FindEx(strField, "equals", lngUID) Then
+            MsgBox "An unknown error has occured--can't find it!", vbCritical + vbOKOnly, "Still can't find it"
+          End If
+        End If
+      End If
+      
+    End If 'ActiveProject.Subprojects.Count = 0
+  Else
+    MsgBox "Task " & strField & " " & lngUID & " not found in this project.", vbExclamation + vbOKOnly, strField & " not found"
+  End If 'Not oTask Is Nothing
   
 exit_here:
   On Error Resume Next
+  ScreenUpdating = True
+  Set oTasks = Nothing
   Set oTask = Nothing
 
   Exit Sub
@@ -191,5 +235,9 @@ Private Sub txtFilter_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift 
 End Sub
 
 Private Sub txtFilter_MouseUp(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
-  Call cptClipboardJump
+  If Len(Me.txtFilter.Text) > 0 Then Call cptClipboardJump
+End Sub
+
+Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+  Me.optID.Enabled = ActiveProject.Subprojects.Count = 0
 End Sub
