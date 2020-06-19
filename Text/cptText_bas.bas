@@ -509,22 +509,3 @@ err_here:
   Call cptHandleErr("cptText_bas", "cptResetRowHeight", Err, Erl)
   Resume exit_here
 End Sub
-
-Sub cptShowFilterByClipboardFrm()
-
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
-  With cptFilterByClipboard_frm
-    .optUID = True
-    .Show False
-  End With
-  
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptText_bas", "cptShowFilterByClipboardFrm", Err, Erl)
-  Resume exit_here
-  
-End Sub

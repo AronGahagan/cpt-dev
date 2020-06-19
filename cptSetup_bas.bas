@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.3.15</cpt_version>
+'<cpt_version>v1.3.16</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -152,7 +152,7 @@ frx:
             '<issue19> revised
             vbComponent.Name = vbComponent.Name & "_" & Format(Now, "hhnnss")
             DoEvents
-            ThisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
+            ThisProject.VBProject.VBComponents.Remove vbComponent 'ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
             DoEvents '</issue19>
             Exit For
           End If
@@ -194,7 +194,7 @@ this_project:
     Name strFileName As strCptFileName
     'import the module
     If cptModuleExists("cptThisProject_cls") Then
-      ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents("cptThisProject_cls")
+      ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents("cptThisProject_cls")
       DoEvents
     End If
     Set cmCptThisProject = ThisProject.VBProject.VBComponents.import(strCptFileName).CodeModule
@@ -236,7 +236,7 @@ this_project:
       arrCode.Add CStr(vEvent), .Lines(.ProcStartLine(CStr(vEvent), 0) + 2, .ProcCountLines(CStr(vEvent), 0) - 3) '0 = vbext_pk_Proc
     Next
   End With
-  ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
+  ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
   '<issue19> added
   DoEvents '</issue19>
 
@@ -319,7 +319,7 @@ exit_here:
   Set arrCore = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptSetup", err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptSetup", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -357,11 +357,10 @@ Dim lngCleanUp As Long
   If cptModuleExists("cptText_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gTextTools"" label=""Text"" visible=""true"" >"
     If cptModuleExists("cptDynamicFilter_bas") And cptModuleExists("cptDynamicFilter_frm") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDynamicFilter"" label=""Dynamic Filter"" imageMso=""FilterBySelection"" onAction=""ShowcptDynamicFilter_frm"" visible=""true"" size=""large"" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDynamicFilter"" label=""Dynamic Filter"" imageMso=""FilterBySelection"" onAction=""ShowcptDynamicFilter_frm"" visible=""true"" />"
     End If
     If cptModuleExists("cptText_frm") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbText"" size=""large"" >"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbText"" >"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdvancedTextTools"" label=""Advanced"" imageMso=""AdvancedFilterDialog"" onAction=""ShowcptText_frm"" />" 'visible=""true""
       ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mText"">"
       ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Utilities"" />"
@@ -377,7 +376,7 @@ Dim lngCleanUp As Long
       ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
       ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
     Else
-      ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTextTools"" label=""Tools"" imageMso=""TextBoxInsert"" visible=""true"" size=""large"" >"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mTextTools"" label=""Tools"" imageMso=""TextBoxInsert"" visible=""true"" >"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bPrepend"" label=""Bulk Prepend"" imageMso=""RightArrow2"" onAction=""cptBulkPrepend"" visible=""true""/>"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAppend"" label=""Bulk Append"" imageMso=""LeftArrow2"" onAction=""cptBulkAppend"" visible=""true""/>"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMyReplace"" label=""MyReplace"" imageMso=""ReplaceDialog"" onAction=""cptMyReplace"" visible=""true""/>"
@@ -387,6 +386,9 @@ Dim lngCleanUp As Long
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""cptFindDuplicateTaskNames"" visible=""true""/>"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetRowHeight"" label=""Reset Row Height"" imageMso=""RowHeight"" onAction=""cptResetRowHeight"" visible=""true""/>"
       ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+    End If
+    If cptModuleExists("cptFilterByClipboard_bas") And cptModuleExists("cptFilterByClipboard_frm") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bClipboard"" label=""Filter by Clipboard"" imageMso=""PasteOption"" onAction=""cptShowFilterByClipboardFrm"" visible=""true""/>"
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
@@ -523,7 +525,7 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
 Dim strMsg As String
 
     strMsg = "Uh oh!" & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
-    strMsg = strMsg & "Error " & err.Number & ": " & err.Description & vbCrLf
+    strMsg = strMsg & "Error " & Err.Number & ": " & Err.Description & vbCrLf
     strMsg = strMsg & "Source: " & strModule & "." & strProcedure
     If lngErl > 0 Then
       strMsg = strMsg & vbCrLf & "Line: " & lngErl
@@ -570,9 +572,9 @@ exit_here:
     Set REMatches = Nothing
     Exit Function
 err_here:
-  If err.Number = 5 Then
+  If Err.Number = 5 Then
     cptRegEx = ""
-    err.Clear
+    Err.Clear
   End If
   Resume exit_here
 End Function
@@ -628,7 +630,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptModuleExists", err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptModuleExists", Err, Erl)
   Resume exit_here
 
 End Function
@@ -696,7 +698,7 @@ Dim lngLine As Long
       Application.StatusBar = "Purging module " & vbComponent.Name & "..."
       If Dir(cptDir & "\modules\", vbDirectory) = vbNullString Then MkDir cptDir & "\modules"
       vbComponent.Export cptDir & "\modules\" & vbComponent.Name
-      ThisProject.VBProject.VBComponents.remove vbComponent
+      ThisProject.VBProject.VBComponents.Remove vbComponent
     End If
 next_component:
   Next vbComponent
@@ -712,6 +714,6 @@ exit_here:
   Set cmThisProject = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptUninstall", err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptUninstall", Err, Erl)
   Resume exit_here
 End Sub
