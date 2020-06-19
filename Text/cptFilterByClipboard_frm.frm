@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>1.0.0</cpt_version>
+'<cpt_version>1.0.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -61,7 +61,7 @@ Private Sub lboFilter_Click()
 
   On Error Resume Next
   If Me.optUID Then
-    Set oTask = ActiveProject.Tasks.UniqueID(Me.lboFilter.Value)
+    Set oTask = ActiveProject.Tasks.UniqueID(CLng(Me.lboFilter.Value))
   ElseIf Me.optID Then
     Set oTask = ActiveProject.Tasks.Item(CLng(Me.lboFilter.Value))
   End If
