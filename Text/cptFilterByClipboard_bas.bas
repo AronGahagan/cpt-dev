@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
 '<cpt_version>1.0.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowFilterByClipboardFrm()
@@ -25,7 +25,11 @@ Sub cptShowFilterByClipboardFrm()
     .lboHeader.List(.lboHeader.ListCount - 1, 0) = "UID"
     .lboHeader.List(.lboHeader.ListCount - 1, 1) = "Task Name"
     .lboHeader.Width = .lboFilter.Width
+    .lboHeader.ColumnCount = 2
+    .lboHeader.ColumnWidths = 45
     .lboFilter.Top = .lboHeader.Top + .lboHeader.Height
+    .lboFilter.ColumnCount = 2
+    .lboFilter.ColumnWidths = 45
     .txtFilter.Top = .lboFilter.Top
     .txtFilter.Width = .lboFilter.Width
     .txtFilter.Height = .lboFilter.Height
@@ -83,6 +87,7 @@ Dim oTask As Task
 'strings
 Dim strFilter As String
 'longs
+Dim lngItems As Long
 Dim lngItem As Long
 Dim lngUID As Long
 'integers
@@ -94,7 +99,7 @@ Dim vUID As Variant
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  'cptFilterByClipboard_frm.lboFilter.Clear
+  cptFilterByClipboard_frm.lboFilter.Clear
   strFilter = cptFilterByClipboard_frm.txtFilter.Text
   If Len(strFilter) = 0 Then
     FilterClear
@@ -106,12 +111,11 @@ Dim vUID As Variant
   If IsEmpty(vUID) Then GoTo exit_here
   For lngItem = 0 To UBound(vUID)
     If vUID(lngItem) = "" Then GoTo next_item
+    If Not IsNumeric(vUID(lngItem)) Then GoTo next_item
     lngUID = vUID(lngItem)
-    strFilter = strFilter & lngUID & Chr$(9)
-    If cptFilterByClipboard_frm.lboFilter.ListCount = lngItem Then
-      cptFilterByClipboard_frm.lboFilter.AddItem
-      cptFilterByClipboard_frm.lboFilter.List(cptFilterByClipboard_frm.lboFilter.ListCount - 1, 0) = lngUID
-    End If
+    cptFilterByClipboard_frm.lboFilter.AddItem lngUID
+    
+    'validate task exists
     On Error Resume Next
     If cptFilterByClipboard_frm.optUID Then
       Set oTask = ActiveProject.Tasks.UniqueID(lngUID)
@@ -120,14 +124,13 @@ Dim vUID As Variant
     End If
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     If Not oTask Is Nothing Then
-      If cptFilterByClipboard_frm.lboFilter.ListCount = lngItem + 1 Then
-        cptFilterByClipboard_frm.lboFilter.List(cptFilterByClipboard_frm.lboFilter.ListCount - 1, 1) = oTask.Name
-      End If
+      'add to autofilter
       strFilter = strFilter & lngUID & Chr$(9)
+      cptFilterByClipboard_frm.lboFilter.List(cptFilterByClipboard_frm.lboFilter.ListCount - 1, 1) = oTask.Name
       'oTask.Number20 = lngItem
       Set oTask = Nothing
     Else
-      cptFilterByClipboard_frm.lboFilter.List(cptFilterByClipboard_frm.lboFilter.ListCount - 1, 1) = "< not found >"
+      cptFilterByClipboard_frm.lboFilter.List(lngItem, 1) = "< not found >"
     End If
 next_item:
   Next lngItem
@@ -163,3 +166,94 @@ err_here:
   Call cptHandleErr("cptFilterByClipboard_bas", "cptUpdateClipboard", Err, Erl)
   Resume exit_here
 End Sub
+
+Function cptGuessDelimiter(ByRef vData As Variant, strRegEx As String) As Long
+'objects
+Dim aScores As SortedList
+Dim RE As Object
+Dim REMatches As Object
+'strings
+'longs
+Dim lngMax As Long
+Dim lngMatch As Long
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+Dim vRecords As Variant
+Dim REMatch As Variant
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  Set RE = CreateObject("vbscript.regexp")
+  With RE
+      .MultiLine = True
+      .Global = True
+      .ignorecase = True
+      .Pattern = strRegEx
+  End With
+  
+  Set aScores = CreateObject("System.Collections.SortedList")
+  
+  'check all "^([^\t\,\;]*[\t\,\;])"
+  RE.Pattern = "^([^\t\,\;]*[\t\,\;])"
+  
+  For lngItem = 0 To UBound(vData)
+    Set REMatches = RE.Execute(CStr(vData(lngItem)))
+    For Each REMatch In REMatches
+      lngMatch = Asc(Right(REMatch, 1))
+      If aScores.Contains(lngMatch) Then
+        'add a point
+        aScores.Item(lngMatch) = aScores.Item(lngMatch) + 1
+        If aScores.Item(lngMatch) > lngMax Then lngMax = aScores.Item(lngMatch)
+      Else
+        aScores.Add lngMatch, 1
+      End If
+    Next
+  Next lngItem
+  
+  'check only valid "^([0-9]*[\t\,\;])"
+  RE.Pattern = "^([0-9]*[\t\,\;])+"
+  For lngItem = 0 To UBound(vData)
+    On Error GoTo skip_it
+    Set REMatches = RE.Execute(CStr(vData(lngItem)))
+    For Each REMatch In REMatches
+      lngMatch = Asc(Right(REMatch, 1))
+      If aScores.Contains(lngMatch) Then
+        'add a point
+        aScores.Item(lngMatch) = aScores.Item(lngMatch) + 1
+        If aScores.Item(lngMatch) > lngMax Then lngMax = aScores.Item(lngMatch)
+      Else
+        aScores.Add lngMatch, 1
+      End If
+    Next
+skip_it:
+  Next lngItem
+  Err.Clear
+  
+  On Error Resume Next
+  'todo: this doesn't work if there is a 'tie'
+  lngMatch = aScores.GetKeyList()(aScores.IndexOfValue(lngMax))
+  If Err.Number > 0 Then
+    Stop
+  Else
+    cptGuessDelimiter = lngMatch
+  End If
+
+exit_here:
+  On Error Resume Next
+  Set aScores = Nothing
+  Set RE = Nothing
+  Set REMatches = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptFilterByClipboard_bas", "cptGuessDelimiter", Err, Erl)
+  If Err.Number = 5 Then
+    cptGuessDelimiter = 0
+    Err.Clear
+  End If
+  Resume exit_here
+End Function
