@@ -31,10 +31,12 @@ Private Sub cmdClear_Click()
   Me.lboHeader.AddItem "UID"
   Me.lboHeader.Column(1, 0) = "Task Name"
   Me.lboFilter.ColumnCount = 2
-  Me.txtFilter = ""
+  Me.txtFilter.Text = ""
   Me.txtFilter.Visible = True
   Me.lboFilter.Visible = False
+  Call cptClearFreeField
   Call cptUpdateClipboard
+  Me.txtFilter.SetFocus
 End Sub
 
 Private Sub lblURL_Click()
@@ -160,10 +162,12 @@ Private Sub tglEdit_Click()
   If Me.tglEdit Then
     Me.txtFilter.Visible = True
     Me.lboFilter.Visible = False
+    Me.txtFilter.SetFocus
   Else
     If Len(Me.txtFilter.Value) = 0 Then
       Me.txtFilter.Visible = True
       Me.lboFilter.Visible = False
+      Me.txtFilter.SetFocus
     Else
       Me.txtFilter.Visible = False
       Me.lboFilter.Visible = True
@@ -275,4 +279,8 @@ Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, 
     Me.optID.Locked = False
     Me.optID.ControlTipText = ""
   End If
+End Sub
+
+Private Sub UserForm_Terminate()
+  Call cptClearFreeField
 End Sub
