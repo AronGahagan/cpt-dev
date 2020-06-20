@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>1.0.2</cpt_version>
+'<cpt_version>1.0.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -26,9 +26,17 @@ Private Sub chkFilter_Click()
 End Sub
 
 Private Sub cmdClear_Click()
-  Me.txtFilter = ""
+  Me.lboHeader.Clear
+  Me.lboHeader.ColumnCount = 2
+  Me.lboHeader.AddItem "UID"
+  Me.lboHeader.Column(1, 0) = "Task Name"
+  Me.lboFilter.ColumnCount = 2
+  Me.txtFilter.Text = ""
   Me.txtFilter.Visible = True
   Me.lboFilter.Visible = False
+  Call cptClearFreeField
+  Call cptUpdateClipboard
+  Me.txtFilter.SetFocus
 End Sub
 
 Private Sub lblURL_Click()
@@ -58,7 +66,6 @@ Private Sub lboFilter_Click()
   'integers
   'doubles
   'booleans
-  Dim blnDisplaySummaryTasks As Boolean
   'variants
   'dates
   Dim dtGoTo As Date
@@ -141,6 +148,8 @@ Private Sub optID_Click()
   Me.txtFilter.Text = ""
   Me.txtFilter.Value = strFilter
   Me.lboHeader.List(0, 0) = "ID"
+  FilterClear
+  Call cptUpdateClipboard
 End Sub
 
 Private Sub optUID_Click()
@@ -149,16 +158,20 @@ Private Sub optUID_Click()
   Me.txtFilter.Text = ""
   Me.txtFilter.Value = strFilter
   Me.lboHeader.List(0, 0) = "UID"
+  FilterClear
+  Call cptUpdateClipboard
 End Sub
 
 Private Sub tglEdit_Click()
   If Me.tglEdit Then
     Me.txtFilter.Visible = True
     Me.lboFilter.Visible = False
+    Me.txtFilter.SetFocus
   Else
     If Len(Me.txtFilter.Value) = 0 Then
       Me.txtFilter.Visible = True
       Me.lboFilter.Visible = False
+      Me.txtFilter.SetFocus
     Else
       Me.txtFilter.Visible = False
       Me.lboFilter.Visible = True
@@ -173,48 +186,69 @@ Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, B
   Dim strFilter As String
   Dim strItem As String
   'longs
+  Dim lngDelimiter As Long
+  Dim lngField As Long
+  Dim lngRecord As Long
   Dim lngItem As Long
   'integers
   'doubles
   'booleans
   'variants
+  Dim vRecord As Variant
   Dim strNewList As Variant
-  Dim vList As Variant
+  Dim vData As Variant
   'dates
 
-  'scrub the incoming data
+  'FilterClear
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  strFilter = Data.GetText
-  If InStr(strFilter, vbTab) > 0 Then
-    vList = Split(strFilter, vbCrLf)
-  ElseIf InStr(strFilter, vbCrLf) > 0 Then
-    vList = Split(strFilter, vbCrLf)
-  ElseIf InStr(strFilter, ",") > 0 Then
-    vList = Split(strFilter, ",")
-  ElseIf InStr(strFilter, ";") > 0 Then
-    vList = Split(strFilter, ";")
+  'scrub the incoming data
+  vData = Split(Data.GetText, vbCrLf)
+  'guess the delimiter
+  lngDelimiter = cptGuessDelimiter(vData, "^([^\t\,\;]*[\t\,\;])+")
+  'populate lboFilter
+  If UBound(vData) > 1 Then
+    Me.lboFilter.Clear
+    For lngRecord = 0 To UBound(vData)
+      If vData(lngRecord) = "" Then GoTo next_record
+        strItem = cptRegEx(CStr(vData(lngRecord)), "[0-9]*")
+        If Len(strItem) > 0 Then
+          'ignore UID 0
+          If CLng(strItem) = 0 Then GoTo next_record
+          'remove duplicates
+          If cptRegEx(CStr(strNewList), "\b" & strItem & "\b") = "" Then
+            strNewList = strNewList & CLng(strItem) & ","
+          End If
+        End If
+next_record:
+    Next lngRecord
+    
   Else
-    vList = Array(strFilter)
+
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    
+    strFilter = Data.GetText
+    vRecord = Split(strFilter, Chr(lngDelimiter))
+        
+    If IsEmpty(vRecord) Then GoTo exit_here
+    
+    For lngItem = 0 To UBound(vRecord)
+      strItem = cptRegEx(CStr(vRecord(lngItem)), "[0-9]*")
+      If Len(strItem) > 0 Then
+        'ignore UID 0
+        If CLng(strItem) = 0 Then GoTo next_item
+        'remove duplicates
+        If cptRegEx(CStr(strNewList), "\b" & strItem & "\b") = "" Then
+          strNewList = strNewList & CLng(strItem) & ","
+        End If
+      End If
+next_item:
+    Next lngItem
+    
   End If
   
-  If IsEmpty(vList) Then GoTo exit_here
-  
-  For lngItem = 0 To UBound(vList)
-    strItem = cptRegEx(CStr(vList(lngItem)), "[0-9]*")
-    If Len(strItem) > 0 Then
-      'ignore UID 0
-      If CLng(strItem) = 0 Then GoTo next_item
-      'remove duplicates
-      If cptRegEx(CStr(strNewList), "\b" & strItem & "\b") = "" Then
-        strNewList = strNewList & CLng(strItem) & ","
-      End If
-    End If
-next_item:
-  Next lngItem
   Cancel = True
-  Effect = fmDropEffectNone
-  If Len(strNewList) > 0 Then Me.txtFilter = strNewList
+  Me.txtFilter.Visible = True
+  Me.txtFilter.Text = strNewList
   
 exit_here:
   On Error Resume Next
@@ -227,11 +261,11 @@ err_here:
 End Sub
 
 Private Sub txtFilter_Change()
-  Call cptUpdateClipboard
+  If Me.txtFilter.Visible Then Call cptUpdateClipboard
 End Sub
 
 Private Sub txtFilter_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
-  Call cptClipboardJump
+  If Len(Me.txtFilter.Text) > 0 Then Call cptClipboardJump
 End Sub
 
 Private Sub txtFilter_MouseUp(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
@@ -239,5 +273,19 @@ Private Sub txtFilter_MouseUp(ByVal Button As Integer, ByVal Shift As Integer, B
 End Sub
 
 Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
-  Me.optID.Enabled = ActiveProject.Subprojects.Count = 0
+  If ActiveProject.Subprojects.Count > 0 Then
+    Me.optID = False
+    Me.optUID = True
+    Me.optID.Locked = True
+    Me.optID.ControlTipText = "Unavailable for Master/Subproject files"
+    Me.optID.Enabled = False
+  Else
+    Me.optID.Enabled = True
+    Me.optID.Locked = False
+    Me.optID.ControlTipText = ""
+  End If
+End Sub
+
+Private Sub UserForm_Terminate()
+  Call cptClearFreeField
 End Sub
