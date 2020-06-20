@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>1.0.2</cpt_version>
+'<cpt_version>1.0.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -148,6 +148,8 @@ Private Sub optID_Click()
   Me.txtFilter.Text = ""
   Me.txtFilter.Value = strFilter
   Me.lboHeader.List(0, 0) = "ID"
+  FilterClear
+  Call cptUpdateClipboard
 End Sub
 
 Private Sub optUID_Click()
@@ -156,6 +158,8 @@ Private Sub optUID_Click()
   Me.txtFilter.Text = ""
   Me.txtFilter.Value = strFilter
   Me.lboHeader.List(0, 0) = "UID"
+  FilterClear
+  Call cptUpdateClipboard
 End Sub
 
 Private Sub tglEdit_Click()
@@ -195,6 +199,8 @@ Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, B
   Dim vData As Variant
   'dates
 
+  'FilterClear
+
   'scrub the incoming data
   vData = Split(Data.GetText, vbCrLf)
   'guess the delimiter
@@ -213,7 +219,6 @@ Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, B
             strNewList = strNewList & CLng(strItem) & ","
           End If
         End If
-'      End If
 next_record:
     Next lngRecord
     

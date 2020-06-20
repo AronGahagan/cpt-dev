@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>1.0.1</cpt_version>
+'<cpt_version>1.0.3</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowFilterByClipboardFrm()
@@ -41,23 +41,19 @@ Dim lngFreeField As Long
   
   lngFreeField = cptGetFreeField("Number")
   If lngFreeField > 0 Then
-    If MsgBox("Looks like " & FieldConstantToFieldName(lngFreeField) & " isn't in use." & vbCrLf & vbCrLf & "OK to temporarily borrow it for this?", vbQuestion + vbYesNo, "Wanted: Custom Number Field") = vbNo Then
-      With cptFilterByClipboard_frm.cboFreeField
-        .Clear
-        .AddItem 0
-        .List(.ListCount - 1, 1) = "Nothing"
-        .Value = 0
-        .Locked = True
-      End With
-    Else
+    If MsgBox("Looks like " & FieldConstantToFieldName(lngFreeField) & " isn't in use." & vbCrLf & vbCrLf & "OK to temporarily borrow it for this?", vbQuestion + vbYesNo, "Wanted: Custom Number Field") = vbYes Then
       cptFilterByClipboard_frm.cboFreeField.Value = lngFreeField
       cptFilterByClipboard_frm.cboFreeField.Locked = True
+    Else
+      lngFreeField = 0
     End If
-  Else
+  End If
+  If lngFreeField = 0 Then
+    MsgBox "Since there are no custom task number fields available, filtered tasks will not appear in the same order as pasted.", vbInformation + vbOKOnly, "No Room at the Inn"
     With cptFilterByClipboard_frm.cboFreeField
       .Clear
       .AddItem 0
-      .List(.ListCount - 1, 1) = "None Available"
+      .List(.ListCount - 1, 1) = "Not Available"
       .Value = 0
       .Locked = True
     End With
@@ -137,7 +133,7 @@ Dim vUID As Variant
   If Not IsNull(cptFilterByClipboard_frm.cboFreeField.Value) Then
     lngFreeField = cptFilterByClipboard_frm.cboFreeField
     For Each oTask In ActiveProject.Tasks
-      If Not oTask Is Nothing Then oTask.SetField lngFreeField, 0
+      If Not oTask Is Nothing And lngFreeField > 0 Then oTask.SetField lngFreeField, 0
       Application.StatusBar = "resetting number field"
     Next oTask
   Else
