@@ -6,7 +6,10 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 
 Sub cptShowCptFiscal_frm()
 'objects
+Dim oException As MSProject.Exception
+Dim oCal As MSProject.Calendar
 'strings
+Dim strExceptions As String
 'longs
 Dim lngItem As Long
 'integers
@@ -15,14 +18,47 @@ Dim lngItem As Long
 'variants
 'dates
 
+  'get/create fiscal calendar
+  On Error Resume Next
+  Set oCal = ActiveProject.BaseCalendars("cptFiscalCalendar")
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
-  'load data
-  If Dir(cptDir & "\cpt-fiscal.adtg") <> vbNullString Then
-    'load fiscal calendar
+  If oCal Is Nothing Then
+    BaseCalendarCreate Name:="cptFiscalCalendar", FromName:="Standard [" & ActiveProject.Name & "]"
+    Set oCal = ActiveProject.BaseCalendars("cptFiscalCalendar")
   End If
   
   With cptFiscal_frm
+  
+    'load calendars
+    .cboFiscalCal.Clear
+    .cboFiscalCal.AddItem "cptFiscalCalendar"
+    .cboFiscalCal.Value = "cptFiscalCalendar"
+    .cboExport.Locked = True
+  
+    'load exceptions
+    '.lboExceptions.ColumnWidths = 45
+    For Each oException In oCal.Exceptions
+      .lboExceptions.AddItem oException.Start
+      strExceptions = strExceptions & oException.Start & vbTab
+      .lboExceptions.List(.lboExceptions.ListCount - 1, 1) = oException.Name
+      strExceptions = strExceptions & oException.Name & vbCrLf
+    Next
+    
+    'load headers
+    .lboHeaders.AddItem "End Date"
+    .lboHeaders.List(0, 1) = "Label"
+    '.lboHeaders.ColumnWidths = 45
+  
+    If .lboExceptions.ListCount = 0 Then
+      .txtExceptions.Visible = True
+      .lboExceptions.Visible = False
+      .tglEdit = True
+    Else
+      .txtExceptions.Visible = False
+      .lboExceptions.Visible = True
+      .tglEdit = False
+    End If
+    
     'load import options
     .cboImport.AddItem "COBRA Export"
     .cboImport.AddItem "MPM Export"
@@ -33,22 +69,18 @@ Dim lngItem As Long
     .cboExport.AddItem "For MPM"
     .cboExport.AddItem "To Excel Workbook"
 
-    'load calendars
-    .lboCalendars.Clear
-    For lngItem = 1 To ActiveProject.BaseCalendars.Count
-      .lboCalendars.AddItem ActiveProject.BaseCalendars(lngItem).Name
-    Next
-    
     .Show False
     
   End With
     
 exit_here:
   On Error Resume Next
+  Set oException = Nothing
+  Set oCal = Nothing
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFiscal_bas", "cptShowCptFiscalFrm", err, Erl)
+  Call cptHandleErr("cptFiscal_bas", "cptShowCptFiscalFrm", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -107,7 +139,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptFiscal_bas", "cptExportCalendarExceptions", err, Erl)
+  Call cptHandleErr("cptFiscal_bas", "cptExportCalendarExceptions", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -154,7 +186,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFiscal_bas", "cptExportExceptionsTemplate", err)
+  Call cptHandleErr("cptFiscal_bas", "cptExportExceptionsTemplate", Err)
   Resume exit_here
 End Sub
 
@@ -230,6 +262,44 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFiscal_bas", "cptImportCalendarExceptions", err, Erl)
+  Call cptHandleErr("cptFiscal_bas", "cptImportCalendarExceptions", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptUpdateFiscal()
+'objects
+Dim oFiscalCal As MSProject.Calendar
+'strings
+'longs
+Dim lngItem As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  With cptFiscal_frm
+    If .txtExceptions.Visible = True Then GoTo exit_here
+  
+    Set oFiscalCal = ActiveProject.BaseCalendars(.cboFiscalCal.Value)
+  
+    With .lboExceptions
+      .Clear
+      For lngItem = 1 To oFiscalCal.Exceptions.Count
+        .AddItem oFiscalCal.Exceptions(lngItem).Start
+        .List(.ListCount - 1, 1) = oFiscalCal.Exceptions(lngItem).Name
+      Next lngItem
+    End With
+  End With
+
+exit_here:
+  On Error Resume Next
+  Set oFiscalCal = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptFiscal_bas", "cptUpdateFiscal", Err, Erl)
   Resume exit_here
 End Sub
