@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
 '<cpt_version>1.0.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowFilterByClipboardFrm()
@@ -94,7 +94,7 @@ Dim vUID As Variant
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  cptFilterByClipboard_frm.lboFilter.Clear
+  'cptFilterByClipboard_frm.lboFilter.Clear
   strFilter = cptFilterByClipboard_frm.txtFilter.Text
   If Len(strFilter) = 0 Then
     FilterClear
@@ -108,8 +108,10 @@ Dim vUID As Variant
     If vUID(lngItem) = "" Then GoTo next_item
     lngUID = vUID(lngItem)
     strFilter = strFilter & lngUID & Chr$(9)
-    cptFilterByClipboard_frm.lboFilter.AddItem
-    cptFilterByClipboard_frm.lboFilter.List(cptFilterByClipboard_frm.lboFilter.ListCount - 1, 0) = lngUID
+    If cptFilterByClipboard_frm.lboFilter.ListCount = lngItem Then
+      cptFilterByClipboard_frm.lboFilter.AddItem
+      cptFilterByClipboard_frm.lboFilter.List(cptFilterByClipboard_frm.lboFilter.ListCount - 1, 0) = lngUID
+    End If
     On Error Resume Next
     If cptFilterByClipboard_frm.optUID Then
       Set oTask = ActiveProject.Tasks.UniqueID(lngUID)
@@ -118,7 +120,9 @@ Dim vUID As Variant
     End If
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     If Not oTask Is Nothing Then
-      cptFilterByClipboard_frm.lboFilter.List(cptFilterByClipboard_frm.lboFilter.ListCount - 1, 1) = oTask.Name
+      If cptFilterByClipboard_frm.lboFilter.ListCount = lngItem + 1 Then
+        cptFilterByClipboard_frm.lboFilter.List(cptFilterByClipboard_frm.lboFilter.ListCount - 1, 1) = oTask.Name
+      End If
       strFilter = strFilter & lngUID & Chr$(9)
       'oTask.Number20 = lngItem
       Set oTask = Nothing
