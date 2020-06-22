@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>1.0.4</cpt_version>
+'<cpt_version>1.0.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -320,7 +320,7 @@ Dim blnFree As Boolean
   If lngType = 0 Then lngType = pjTask
   
   'hash of local custom field counts
-  Set aTypes = CreateObject("Systems.Collections.SortedList")
+  Set aTypes = CreateObject("System.Collections.SortedList")
   aTypes.Add "Flag", 20
   aTypes.Add "Number", 20
   aTypes.Add "Text", 30
