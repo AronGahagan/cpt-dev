@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>1.0.3</cpt_version>
+'<cpt_version>1.0.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -294,13 +294,16 @@ err_here:
   Resume exit_here
 End Function
 
-Function cptGetFreeField(strDataType As String) As Long
+Function cptGetFreeField(strDataType As String, Optional lngType As Long) As Long
 'objects
+Dim aTypes As Object
 Dim aFree As Object
 Dim oTask As Task
 'strings
 'longs
+Dim lngFree As Long
 Dim lngField As Long
+Dim lngItems As Long
 Dim lngItem As Long
 'integers
 'doubles
@@ -312,11 +315,23 @@ Dim blnFree As Boolean
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   Calculation = pjManual
-
+  
+  'field type
+  If lngType = 0 Then lngType = pjTask
+  
+  'hash of local custom field counts
+  Set aTypes = CreateObject("System.Collections.SortedList")
+  aTypes.Add "Flag", 20
+  aTypes.Add "Number", 20
+  aTypes.Add "Text", 30
+  If aTypes.Contains(strDataType) Then lngItems = aTypes.Item(strDataType) Else lngItems = 10
+  
+  'prep to capture free fields
   Set aFree = CreateObject("System.Collections.ArrayList")
-
-  For lngItem = 20 To 1 Step -1
-    lngField = FieldNameToFieldConstant(strDataType & lngItem, pjTask)
+  
+  'examine last to first
+  For lngItem = lngItems To 1 Step -1
+    lngField = FieldNameToFieldConstant(strDataType & lngItem, lngType)
     If CustomFieldGetName(lngField) = "" Then
       aFree.Add Array(lngField, lngField)
     End If
@@ -338,21 +353,23 @@ next_task:
   For lngItem = 0 To aFree.Count - 1
     If aFree(lngItem)(1) = True Then
       With cptFilterByClipboard_frm.cboFreeField
-        .AddItem aFree(lngItem)(0)
-        .List(.ListCount - 1, 1) = FieldConstantToFieldName(aFree(lngItem)(0))
+        lngFree = aFree(lngItem)(0)
+        .AddItem lngFree
+        .List(.ListCount - 1, 1) = FieldConstantToFieldName(lngFree)
         Exit For
       End With
     End If
   Next lngItem
 
-  If aFree.Count > 0 Then
-    cptGetFreeField = aFree(0)(0)
+  If lngFree > 0 Then
+    cptGetFreeField = lngFree
   Else
     cptGetFreeField = 0
   End If
 
 exit_here:
   On Error Resume Next
+  Set aTypes = Nothing
   Calculation = pjAutomatic
   Set aFree = Nothing
   Set oTask = Nothing
