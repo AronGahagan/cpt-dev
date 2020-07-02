@@ -1,3 +1,4 @@
+Attribute VB_Name = "cptCriticalPath_bas"
 '<cpt_version>v2.8.2</cpt_version>
 Option Explicit
 Private CritField As String 'Stores comma seperated values for each task showing which paths they are a part of
