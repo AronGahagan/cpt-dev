@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCriticalPath_bas"
-'<cpt_version>v2.8.1</cpt_version>
+'<cpt_version>v2.8.2</cpt_version>
 Option Explicit
 Private CritField As String 'Stores comma seperated values for each task showing which paths they are a part of
 Private GroupField As String 'Stores a single value - used to group/sort tasks in final CP view
@@ -361,16 +361,16 @@ Private Sub SetupCPView(ByVal GroupField As String, ByVal curproj As Project, By
     curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, Create:=True, ShowAddNewColumn:=True, OverwriteExisting:=True, FieldName:="ID", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, LockFirstColumn:=True, ColumnPosition:=0
     
     'Add fields to CP Driving Path Table
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Unique ID", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1, LockFirstColumn:=True
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:=GroupField, Title:="Driving Path", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Name", Width:=45, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=2
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Duration", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=3
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Start", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=4
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Finish", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=5
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Total Slack", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=6
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Unique ID", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1, LockFirstColumn:=True
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:=GroupField, Title:="Driving Path", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Name", Width:=45, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=2
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Duration", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=3
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Start", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=4
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Finish", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=5
+    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Total Slack", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=6
 
     'Create CP Driving Path Filter
-    curproj.Application.FilterEdit Name:="*ClearPlan Driving Path Filter", Taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=GroupField, test:="is greater than", Value:="0", ShowInMenu:=False, ShowSummaryTasks:=False
+    curproj.Application.FilterEdit Name:="*ClearPlan Driving Path Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=GroupField, test:="is greater than", Value:="0", ShowInMenu:=False, ShowSummaryTasks:=False
     
     'On Error Resume Next
     
@@ -895,8 +895,18 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
         End Select
     End If
     
-    'subtract the pred date from the succ date, using the pred calendar, to get the True Float value
-    tempFloat = Application.DateDifference(pDate, sDate, pCalObj)
+    'v2.8.2 check for edays
+    If Left(GetLettersOnly(tPred.DurationText), 1) <> "e" Then
+    
+        'no edays; subtract the pred date from the succ date, using the pred calendar, to get the True Float value
+        tempFloat = Application.DateDifference(pDate, sDate, pCalObj)
+        
+    Else
+    
+        'using edays; calculate date diff in minutes
+        tempFloat = DateDiff("n", pDate, sDate)
+    
+    End If
     
     'Return the True Float value
     TrueFloat = tempFloat
@@ -916,4 +926,22 @@ Public Function ExistsInCollection(ByVal col As Collection, ByVal key As Variant
     Exit Function
 err: 'If error encountered, item does not exist - return "False" boolean vlaue
     ExistsInCollection = False
+End Function
+
+Function GetLettersOnly(str As String) As String
+'v2.8.2 - strip out non-alpha characters from input string
+'used to evaluate task duration text for elapsed day prefix "e"
+
+    Dim i As Long, letters As String, letter As String
+
+    letters = vbNullString
+
+    For i = 1 To Len(str)
+        letter = VBA.Mid$(str, i, 1)
+
+        If Asc(LCase(letter)) >= 97 And Asc(LCase(letter)) <= 122 Then
+            letters = letters + letter
+        End If
+    Next
+    GetLettersOnly = letters
 End Function
