@@ -895,8 +895,8 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
         End Select
     End If
     
-    'v2.8.1 check for edays
-    If DurationFormat(tPred.Duration, pjDays) = tPred.GetField(pjTaskDuration) Then
+    'v2.8.2 check for edays
+    If Left(GetLettersOnly(tPred.DurationText), 1) <> "e" Then
     
         'no edays; subtract the pred date from the succ date, using the pred calendar, to get the True Float value
         tempFloat = Application.DateDifference(pDate, sDate, pCalObj)
@@ -926,4 +926,22 @@ Public Function ExistsInCollection(ByVal col As Collection, ByVal key As Variant
     Exit Function
 err: 'If error encountered, item does not exist - return "False" boolean vlaue
     ExistsInCollection = False
+End Function
+
+Function GetLettersOnly(str As String) As String
+'v2.8.2 - strip out non-alpha characters from input string
+'used to evaluate task duration text for elapsed day prefix "e"
+
+    Dim i As Long, letters As String, letter As String
+
+    letters = vbNullString
+
+    For i = 1 To Len(str)
+        letter = VBA.Mid$(str, i, 1)
+
+        If Asc(LCase(letter)) >= 97 And Asc(LCase(letter)) <= 122 Then
+            letters = letters + letter
+        End If
+    Next
+    GetLettersOnly = letters
 End Function
