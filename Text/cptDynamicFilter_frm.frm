@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.3</cpt_version>
+'<cpt_version>v1.3.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -52,7 +52,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDynamicFilter_frm", "chkKeepSelected_Click", err, Erl)
+  Call cptHandleErr("cptDynamicFilter_frm", "chkKeepSelected_Click", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -62,6 +62,7 @@ Private Sub chkShowRelatedSummaries_Click()
 End Sub
 
 Private Sub cmdClear_Click()
+  If ActiveWindow.ActivePane <> ActiveWindow.TopPane Then ActiveWindow.TopPane.Activate
   FilterClear
 End Sub
 
@@ -80,7 +81,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDynamicFilter_frm", "lblURL", err, Erl)
+  Call cptHandleErr("cptDynamicFilter_frm", "lblURL", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -172,7 +173,7 @@ exit_here:
   cptSpeed False 'slow down
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDynamicFilter_frm", "txtFilter_Change", err, Erl)
+  Call cptHandleErr("cptDynamicFilter_frm", "txtFilter_Change", Err, Erl)
   Resume exit_here
 
 End Sub
