@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>1.0.5</cpt_version>
+'<cpt_version>1.0.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -381,13 +381,24 @@ err_here:
 End Function
 
 Sub cptClearFreeField()
-Dim oTask As Task
-Dim lngFreeField As Long
-Dim lngTasks As Long
-Dim lngTask As Long
+  'objects
+  Dim oTask As Task
+  'strings
+  'longs
+  Dim lngFreeField As Long
+  Dim lngTasks As Long
+  Dim lngTask As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
   
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
   Calculation = pjManual
   ScreenUpdating = False
+  If cptFilterByClipboard_frm.cboFreeField = "" Then GoTo exit_here
   lngFreeField = cptFilterByClipboard_frm.cboFreeField.Value
   If lngFreeField > 0 Then
     lngTasks = ActiveProject.Tasks.Count
@@ -401,7 +412,16 @@ Dim lngTask As Long
       End If
     Next oTask
   End If
+  
+exit_here:
+  On Error Resume Next
   Application.StatusBar = ""
   Calculation = pjAutomatic
   ScreenUpdating = True
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptFilterByClipboard_bas", "cptClearFreeField", Err, Erl)
+  Resume exit_here
+  
 End Sub
