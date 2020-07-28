@@ -1,2 +1,3 @@
 * text=auto
 *.frm binary diff=text
+*.cls binary diff=text
