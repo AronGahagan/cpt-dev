@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.2.0</cpt_version>
+'<cpt_version>v3.2.1</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -415,7 +415,7 @@ Private Sub DataChecks(ByVal curproj As Project)
                                 End If
 
                                 .AssignmentBCost = .AssignmentBCost + tAss.BaselineCost
-                                If tAss.BaselineWork = "" Then
+                                If tAss.BaselineWork = "" Or tAss.ResourceType <> pjResourceTypeWork Then 'v3.2.1
                                     tempBWork = 0
                                 Else
                                     tempBWork = tAss.BaselineWork
@@ -500,7 +500,7 @@ Private Sub DataChecks(ByVal curproj As Project)
                             End If
 
                             .AssignmentBCost = .AssignmentBCost + tAss.BaselineCost
-                            If tAss.BaselineWork = "" Then
+                            If tAss.BaselineWork = "" Or tAss.ResourceType <> pjResourceTypeWork Then 'v3.2.1
                                 tempBWork = 0
                             Else
                                 tempBWork = tAss.BaselineWork
