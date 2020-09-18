@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCountTasks_bas"
-'<cpt_version>v1.0.2</cpt_version>
+'<cpt_version>v1.0.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -14,7 +14,7 @@ Dim strMsg As String
   '===
   'Validate users selected view type
   If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
-    MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "Dynamic Filter"
+    MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "Task Counter"
     GoTo exit_here
   End If
   'Validate users selected window pane - select the task table if not active
@@ -27,7 +27,7 @@ Dim strMsg As String
     Case "All"
       On Error Resume Next
       Set Tasks = ActiveProject.Tasks
-      If Tasks Is Nothing Or Tasks.count = 0 Then
+      If Tasks Is Nothing Or Tasks.Count = 0 Then
         MsgBox "There are no tasks in this project.", vbInformation + vbOKOnly, "Task Counter"
         GoTo exit_here
       End If
@@ -82,7 +82,7 @@ exit_here:
   Set Task = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCountTasks_bas", "cptCountTasks", err, Erl)
+  Call cptHandleErr("cptCountTasks_bas", "cptCountTasks", Err, Erl)
   Resume exit_here
 End Sub
 
