@@ -55,7 +55,11 @@ Private Sub cboImport_Change()
       Me.cmdImport.Caption = "Import..."
       Me.cmdExportTemplate.Visible = True
       Me.chkAlsoCreateTasks.Visible = True
-      Me.lblNote.Caption = "Import *.xlsx: Header CODE,LEVEL,TITLE in [A1:C1]"
+      Me.lblNote.Caption = "Import *.xlsx: Header CODE,LEVEL,DESCRIPTION in [A1:C1]"
+    Case "From MSP Server Outline Code Export"
+      Me.cmdImport.Caption = "Import..."
+      Me.chkAlsoCreateTasks.Visible = False
+      Me.lblNote.Caption = "Import *.xlsx: Header LEVEL,VALUE,DESCRIPTION in [A1:C1]"
     Case "From MIL-STD-881D Appendix B"
       Me.cmdImport.Caption = "Load"
       Me.chkAlsoCreateTasks.Visible = True
@@ -168,6 +172,9 @@ Dim lngOutlineCode As Long
     Case "From Excel Workbook"
       Call cptImportCWBSFromExcel(lngOutlineCode)
       
+    Case "From MSP Server Outline Code Export"
+      Call cptImportCWBSFromServer(lngOutlineCode)
+    
     Case "From MIL-STD-881D Appendix B"
       Call cptImportAppendixB(lngOutlineCode)
       
