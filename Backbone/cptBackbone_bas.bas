@@ -6,18 +6,19 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
 
 Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
 'objects
-Dim Task As Task
-Dim LookupTable As LookupTable
-Dim OutlineCode As OutlineCode
+Dim oTask As Task
+Dim oLookupTable As LookupTable
+Dim oOutlineCode As OutlineCode
 Dim c As Object
-Dim rng As Object
-Dim FileDialog As Object 'FileDialog
-Dim Worksheet As Object
-Dim Workbook As Object
-Dim xlApp As Object 'Excel.Application
+Dim oRange As Object
+Dim oFileDialog As Object 'FileDialog
+Dim oWorksheet As Object
+Dim oWorkbook As Object
+Dim oExcel As Object 'Excel.Application
 'strings
 Dim strOutlineCode As String
 'longs
+Dim lngItems As Long
 Dim lngOutlineLevel As Long
 Dim lngItem As Long
 'integers
@@ -28,15 +29,15 @@ Dim lngItem As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     
-  If MsgBox("Epected fields/column headers, in range [A1:C1], are CODE,LEVEL,TITLE and there should be no blank rows." & vbCrLf & vbCrLf & "Proceed?", vbQuestion + vbYesNo, "Confirm CWBS Import") = vbNo Then
+  If MsgBox("Epected fields/column headers, in range [A1:C1], are CODE,LEVEL,DESCRIPTION and there should be no blank rows." & vbCrLf & vbCrLf & "Proceed?", vbQuestion + vbYesNo, "Confirm CWBS Import") = vbNo Then
     'export a sample template
     If MsgBox("Would you like an example?", vbQuestion + vbYesNo, "A little help") = vbYes Then Call cptExportTemplate
   Else
     strOutlineCode = CustomFieldGetName(lngOutlineCode)
-    Set xlApp = CreateObject("Excel.Application")
+    Set oExcel = CreateObject("Excel.Application")
     'allow user to select excel file and import it to chosen
-    Set FileDialog = xlApp.FileDialog(msoFileDialogFilePicker)
-    With FileDialog
+    Set oFileDialog = oExcel.FileDialog(msoFileDialogFilePicker)
+    With oFileDialog
       .AllowMultiSelect = False
       .ButtonName = "Import"
       .InitialView = msoFileDialogViewDetails
@@ -62,40 +63,45 @@ Dim lngItem As Long
         CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=10, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
         CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=False, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
         
-        Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+        Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
         'open the workbook
-        Set Workbook = xlApp.Workbooks.Open(FileDialog.SelectedItems(1))
+        Set oWorkbook = oExcel.Workbooks.Open(oFileDialog.SelectedItems(1))
         'find the sheet
-        For Each Worksheet In Workbook.Sheets
-          If Worksheet.[A1].Value = "CODE" And Worksheet.[B1].Value = "LEVEL" And Worksheet.[C1].Value = "TITLE" Then
+        For Each oWorksheet In oWorkbook.Sheets
+          If oWorksheet.[A1].Value = "CODE" And oWorksheet.[B1].Value = "LEVEL" And oWorksheet.[C1].Value = "DESCRIPTION" Then
             strOutlineCode = CustomFieldGetName(lngOutlineCode)
-            Set rng = Worksheet.Range(Worksheet.[A2], Worksheet.Cells(Worksheet.Rows.Count, 1).End(-4162)) '-4162 = xlUp
+            Set oRange = oWorksheet.Range(oWorksheet.[A2], oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(-4162)) '-4162 = xlUp
+            lngItems = oRange.Cells.Count
             lngItem = 0
-            For Each c In rng.Cells
+            For Each c In oRange.Cells
               lngItem = lngItem + 1
-              Set Task = ActiveProject.Tasks.Add(c.Offset(0, 2).Value)
-              Task.SetField lngOutlineCode, c.Value
-              If OutlineCode Is Nothing Then Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
-              If LookupTable Is Nothing Then Set LookupTable = OutlineCode.LookupTable
-              LookupTable.Item(lngItem).Description = c.Offset(0, 2)
+              Set oTask = ActiveProject.Tasks.Add(c.Offset(0, 2).Value)
+              oTask.SetField lngOutlineCode, c.Value
+              If oOutlineCode Is Nothing Then Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+              If oLookupTable Is Nothing Then Set oLookupTable = oOutlineCode.LookupTable
+              oLookupTable.Item(lngItem).Description = c.Offset(0, 2)
               If cptBackbone_frm.chkAlsoCreateTasks Then
                 lngOutlineLevel = Len(c.Value) - Len(Replace(c.Value, ".", ""))
                 If lngOutlineLevel > 0 Then
-                  Task.OutlineLevel = lngOutlineLevel + 1
+                  oTask.OutlineLevel = lngOutlineLevel + 1
                 End If
               Else
-                Task.Delete
+                oTask.Delete
               End If
+              cptBackbone_frm.lblStatus.Caption = "Importing " & lngItem & " of " & lngItems & "(" & Format(lngItem / lngItems, "0%") & ")..."
+              cptBackbone_frm.lblProgress.Width = (lngItem / lngItems) * cptBackbone_frm.lblStatus.Width
             Next c
+            cptBackbone_frm.lblStatus.Caption = "Ready..."
+            cptBackbone_frm.lblProgress.Width = cptBackbone_frm.lblStatus.Width
             'reset outline code to disallow new entries
             CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=True, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
             'refresh the form
             cptBackbone_frm.cboOutlineCodes.List(cptBackbone_frm.cboOutlineCodes.ListIndex, 1) = FieldConstantToFieldName(lngOutlineCode) & " (" & strOutlineCode & ")"
             Exit For
           End If
-        Next Worksheet
+        Next oWorksheet
       Else
-        MsgBox "No worksheet found where [A1:C1] contains CODE, LEVEL, TITLE.", vbExclamation + vbOKOnly, "Invalid Workbook"
+        MsgBox "No worksheet found where [A1:C1] contains CODE, LEVEL, DESCRIPTION.", vbExclamation + vbOKOnly, "Invalid Workbook"
       End If 'proper headers found
     End With
   End If 'proceed
@@ -104,9 +110,9 @@ exit_here:
   On Error Resume Next
   cptSpeed False
   Application.CloseUndoTransaction
-  Set Task = Nothing
+  Set oTask = Nothing
   Set OutlineCode = Nothing
-  Set OutlineCode = Nothing
+  Set LookupTable = Nothing
   Set c = Nothing
   Set rng = Nothing
   Set FileDialog = Nothing
@@ -118,6 +124,122 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptBackbone_bas", "cptImportCWBSFromExcel", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptImportCWBSFromServer(lngOutlineCode As Long)
+  'objects
+  Dim c As Object
+  Dim oTask As Task
+  Dim oRange As Object
+  Dim oWorksheet As Object
+  Dim oWorkbook As Object
+  Dim oLookupTable As LookupTable
+  Dim oOutlineCode As OutlineCode
+  Dim oFileDialog As FileDialog
+  Dim oExcel As Object
+  'strings
+  Dim strDescription As String
+  Dim strCode As String
+  Dim strOutlineCode As String
+  Dim stroOutlineCode As String
+  'longs
+  Dim lngItems As Long
+  Dim lngOutlineLevel As Long
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If MsgBox("Epected fields/column headers, in range [A1:C1], are LEVEL,VALUE,DESCRIPTION and there should be no blank rows." & vbCrLf & vbCrLf & "Proceed?", vbQuestion + vbYesNo, "Confirm CWBS Import") = vbYes Then
+    strOutlineCode = CustomFieldGetName(lngOutlineCode)
+    Set oExcel = CreateObject("Excel.Application")
+    'allow user to select excel file and import it to chosen
+    Set oFileDialog = oExcel.FileDialog(msoFileDialogFilePicker)
+    With oFileDialog
+      .AllowMultiSelect = False
+      .ButtonName = "Import"
+      .InitialView = 2 'msoFileDialogViewDetails
+      .InitialFileName = Environ("USERPROFILE") & "\"
+      .Title = "Select " & stroOutlineCode & " source file:"
+      .Filters.Add "Microsoft Excel Workbook (xlsx)", "*.xlsx"
+      .Filters.Add "Comma Separated Values (csv)", "*.csv"
+      If .Show = -1 Then
+      
+        Application.OpenUndoTransaction "Import " & stroOutlineCode & " from MSP Server Outline Code Export"
+      
+        cptSpeed True
+      
+        'set up the outline code field
+        CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=2, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+        CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=3, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+        CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=4, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+        CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=5, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+        CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=6, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+        CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=7, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+        CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=8, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+        CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=9, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+        CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=10, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+        CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=False, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
+        
+        Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+        'open the workbook
+        Set oWorkbook = oExcel.Workbooks.Open(oFileDialog.SelectedItems(1))
+        'find the sheet
+        For Each oWorksheet In oWorkbook.Sheets
+          If UCase(oWorksheet.[A1].Value) = "LEVEL" And UCase(oWorksheet.[B1].Value) = "VALUE" And UCase(oWorksheet.[C1].Value) = "DESCRIPTION" Then
+            strOutlineCode = CustomFieldGetName(lngOutlineCode)
+            Set oRange = oWorksheet.Range(oWorksheet.[A2], oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(-4162)) '-4162 = xlUp
+            lngItems = oRange.Cells.Count
+            lngItem = 0
+            For Each c In oRange.Cells
+              lngItem = lngItem + 1
+              If oOutlineCode Is Nothing Then Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+              If oLookupTable Is Nothing Then Set oLookupTable = oOutlineCode.LookupTable
+              Set oTask = ActiveProject.Tasks.Add(c.Offset(0, 2).Value)
+              strCode = Left(c.Offset(0, 2), InStr(c.Offset(0, 2), " ") - 1)
+              strDescription = Replace(c.Offset(0, 2), strCode & " - ", "")
+              oTask.SetField lngOutlineCode, strCode
+              oLookupTable.Item(lngItem).Description = strDescription
+              cptBackbone_frm.lblStatus.Caption = "Importing " & lngItem & " of " & lngItems & "(" & Format(lngItem / lngItems, "0%") & ")..."
+              cptBackbone_frm.lblProgress.Width = (lngItem / lngItems) * cptBackbone_frm.lblStatus.Width
+            Next c
+            cptBackbone_frm.lblStatus.Caption = "Ready..."
+            cptBackbone_frm.lblProgress.Width = cptBackbone_frm.lblStatus.Width
+            'reset outline code to disallow new entries
+            CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=True, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
+            'refresh the form
+            cptBackbone_frm.cboOutlineCodes.List(cptBackbone_frm.cboOutlineCodes.ListIndex, 1) = FieldConstantToFieldName(lngOutlineCode) & " (" & strOutlineCode & ")"
+            Exit For
+          End If
+        Next oWorksheet
+      Else
+        MsgBox "No worksheet found where [A1:C1] contains LEVEL, VALUE, DESCRIPTION.", vbExclamation + vbOKOnly, "Invalid Workbook"
+      End If 'proper headers found
+    End With
+  End If 'proceed
+
+exit_here:
+  On Error Resume Next
+  Set c = Nothing
+  Set oTask = Nothing
+  Set oRange = Nothing
+  Set oWorksheet = Nothing
+  oWorkbook.Close False
+  Set oWorkbook = Nothing
+  Set oLookupTable = Nothing
+  Set oOutlineCode = Nothing
+  Set oFileDialog = Nothing
+  oExcel.Quit False
+  Set oExcel = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptBackbone_bas", "cptImportCWBSFromServer", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -492,7 +614,7 @@ Dim lngLookupItems As Long
   xlApp.ScreenUpdating = False
   Set Worksheet = Workbook.Sheets(1)
   Worksheet.outline.SummaryRow = 0 'xlSummaryAbove
-  Worksheet.[A1:C1] = Array("CODE", "LEVEL", "TITLE")
+  Worksheet.[A1:C1] = Array("CODE", "LEVEL", "DESCRIPTION")
   
   'export the codes
   For lngLookupItems = 1 To LookupTable.Count
@@ -793,7 +915,7 @@ Dim strMsg As String
     Set Workbook = xlApp.Workbooks.Add
     Set Worksheet = Workbook.Sheets(1)
     Worksheet.Name = "CWBS"
-    Worksheet.[A1:C1] = Array("CODE", "LEVEL", "TITLE")
+    Worksheet.[A1:C1] = Array("CODE", "LEVEL", "DESCRIPTION")
     Worksheet.[A1:C1].Font.Bold = True
     Worksheet.[A2].Select
     Worksheet.Columns(1).ColumnWidth = 10
