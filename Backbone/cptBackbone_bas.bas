@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.0.7</cpt_version>
+'<cpt_version>v1.0.8</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -843,6 +843,7 @@ Dim strOutlineCode As String, strOutlineCodeName As String
   'add Import Actions
   cptBackbone_frm.cboImport.Clear
   cptBackbone_frm.cboImport.AddItem "From Excel Workbook"
+  cptBackbone_frm.cboImport.AddItem "From MSP Server Outline Code Export"
   cptBackbone_frm.cboImport.AddItem "From MIL-STD-881D Appendix B"
   cptBackbone_frm.cboImport.AddItem "From MIL-STD-881D Appendix E"
   cptBackbone_frm.cboImport.AddItem "From Existing Tasks"
@@ -855,8 +856,8 @@ Dim strOutlineCode As String, strOutlineCodeName As String
   cptBackbone_frm.cboExport.AddItem "To DI-MGMT-81334D Template"
   
   'pre-select Outline Code 1
-  cptBackbone_frm.txtNameIt = ""
   cptBackbone_frm.cboOutlineCodes.ListIndex = 0
+  cptBackbone_frm.txtNameIt = CustomFieldGetName(cptBackbone_frm.cboOutlineCodes.List(0, 0))
   cptBackbone_frm.Show False
   cptBackbone_frm.cboOutlineCodes.SetFocus
 

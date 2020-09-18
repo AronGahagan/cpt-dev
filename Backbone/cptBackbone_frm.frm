@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.6</cpt_version>
+'<cpt_version>v1.0.8</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -84,6 +84,7 @@ Private Sub cboOutlineCodes_Change()
     If Len(CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))) > 0 Then
       Call cptRefreshOutlineCodePreview(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 1))
     End If
+    Me.txtNameIt = CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))
   End If
 End Sub
 
@@ -318,9 +319,11 @@ Dim lngField As Long
   lngField = FieldNameToFieldConstant(Me.txtNameIt.Text)
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If lngField <> 0 Then 'exists
-    Me.txtNameIt.BorderColor = 255
-    Me.txtNameIt.ForeColor = 255
-    Me.lblStatus.Caption = FieldConstantToFieldName(FieldNameToFieldConstant(Me.txtNameIt.Text)) & " is already named '" & Me.txtNameIt.Text & "'!"
+    If FieldNameToFieldConstant(Me.txtNameIt.Text) <> CLng(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0)) Then
+      Me.txtNameIt.BorderColor = 255
+      Me.txtNameIt.ForeColor = 255
+      Me.lblStatus.Caption = FieldConstantToFieldName(FieldNameToFieldConstant(Me.txtNameIt.Text)) & " is already named '" & Me.txtNameIt.Text & "'!"
+    End If
   End If
   
 exit_here:
