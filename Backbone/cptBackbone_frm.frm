@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.6</cpt_version>
+'<cpt_version>v1.0.8</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -55,7 +55,11 @@ Private Sub cboImport_Change()
       Me.cmdImport.Caption = "Import..."
       Me.cmdExportTemplate.Visible = True
       Me.chkAlsoCreateTasks.Visible = True
-      Me.lblNote.Caption = "Import *.xlsx: Header CODE,LEVEL,TITLE in [A1:C1]"
+      Me.lblNote.Caption = "Import *.xlsx: Header CODE,LEVEL,DESCRIPTION in [A1:C1]"
+    Case "From MSP Server Outline Code Export"
+      Me.cmdImport.Caption = "Import..."
+      Me.chkAlsoCreateTasks.Visible = False
+      Me.lblNote.Caption = "Import *.xlsx: Header LEVEL,VALUE,DESCRIPTION in [A1:C1]"
     Case "From MIL-STD-881D Appendix B"
       Me.cmdImport.Caption = "Load"
       Me.chkAlsoCreateTasks.Visible = True
@@ -84,6 +88,7 @@ Private Sub cboOutlineCodes_Change()
     If Len(CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))) > 0 Then
       Call cptRefreshOutlineCodePreview(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 1))
     End If
+    Me.txtNameIt = CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))
   End If
 End Sub
 
@@ -167,6 +172,9 @@ Dim lngOutlineCode As Long
     Case "From Excel Workbook"
       Call cptImportCWBSFromExcel(lngOutlineCode)
       
+    Case "From MSP Server Outline Code Export"
+      Call cptImportCWBSFromServer(lngOutlineCode)
+    
     Case "From MIL-STD-881D Appendix B"
       Call cptImportAppendixB(lngOutlineCode)
       
@@ -318,9 +326,11 @@ Dim lngField As Long
   lngField = FieldNameToFieldConstant(Me.txtNameIt.Text)
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If lngField <> 0 Then 'exists
-    Me.txtNameIt.BorderColor = 255
-    Me.txtNameIt.ForeColor = 255
-    Me.lblStatus.Caption = FieldConstantToFieldName(FieldNameToFieldConstant(Me.txtNameIt.Text)) & " is already named '" & Me.txtNameIt.Text & "'!"
+    If FieldNameToFieldConstant(Me.txtNameIt.Text) <> CLng(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0)) Then
+      Me.txtNameIt.BorderColor = 255
+      Me.txtNameIt.ForeColor = 255
+      Me.lblStatus.Caption = FieldConstantToFieldName(FieldNameToFieldConstant(Me.txtNameIt.Text)) & " is already named '" & Me.txtNameIt.Text & "'!"
+    End If
   End If
   
 exit_here:
