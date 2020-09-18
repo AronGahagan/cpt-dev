@@ -28,6 +28,10 @@ Dim vType As Variant
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+  'todo: import saved map or create new on cmdSave_Click
+  'todo: save mapping by project GUID
+  'todo: process is: import with enterprise open, then save as mpp
+
   Set rst = CreateObject("ADODB.Recordset")
   
   rst.Fields.Append "ECF_Constant", adInteger
@@ -49,6 +53,11 @@ Dim vType As Variant
   With cptSaveLocal_frm
     'populate map
     .lboMap.Clear
+    If rst.RecordCount = 0 Then
+      rst.Close
+      MsgBox "No Enterprise Custom Fields available in this file.", vbExclamation + vbOKOnly, "No ECFs found"
+      GoTo exit_here
+    End If
     rst.MoveFirst
     Do While Not rst.EOF
       .lboMap.AddItem
@@ -76,7 +85,7 @@ Dim vType As Variant
   
     .cboFieldTypes.Value = "Text"
   
-    .lblECFCount.Caption = Format(lngECFCount, "#,##0") & " enterprise custom fields."
+    .lblStatus.Caption = Format(lngECFCount, "#,##0") & " enterprise custom fields."
     .Show False
     
   End With
@@ -109,6 +118,8 @@ Dim lngMap As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+  'todo: only cycle through tasks once, mapped field each time
+
   With cptSaveLocal_frm
     For lngMap = 0 To .lboMap.ListCount - 1
       If .lboMap.List(lngMap, 2) > 0 Then
@@ -117,11 +128,14 @@ Dim lngMap As Long
         'populate the fields
         For Each Task In ActiveProject.Tasks
           On Error Resume Next
-          Task.SetField lngLocal, CStr(Task.GetField(lngECF))
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-          If Task.GetField(lngLocal) <> CStr(Task.GetField(lngECF)) Then
-            MsgBox "There was an error copying from ECF " & CustomFieldGetName(lngECF) & " to LCF " & CustomFieldGetName(lngLocal) & "." & vbCrLf & vbCrLf & "Please validate data types.", vbExclamation + vbOKOnly, "Fail"
-            GoTo next_mapping
+          If Len(Task.GetField(lngLocal)) > 0 Then Task.SetField lngLocal, ""
+          If Len(Task.GetField(lngECF)) > 0 Then
+            Task.SetField lngLocal, CStr(Task.GetField(lngECF))
+            If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+            If Task.GetField(lngLocal) <> CStr(Task.GetField(lngECF)) Then
+              MsgBox "There was an error copying from ECF " & CustomFieldGetName(lngECF) & " to LCF " & CustomFieldGetName(lngLocal) & "." & vbCrLf & vbCrLf & "Please validate data types.", vbExclamation + vbOKOnly, "Fail"
+              GoTo next_mapping
+            End If
           End If
         Next Task
       End If

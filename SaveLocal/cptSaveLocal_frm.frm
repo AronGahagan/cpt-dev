@@ -4,7 +4,7 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptSaveLocal_frm
    ClientHeight    =   4140
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   7410
+   ClientWidth     =   8205.001
    OleObjectBlob   =   "cptSaveLocal_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -13,6 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
@@ -67,6 +68,7 @@ Private Sub cmdMap_Click()
 'objects
 'strings
 'longs
+Dim lngItem As Long
 Dim lngDown As Long
 Dim lngCodeNumber As Long
 Dim lngField As Long
@@ -76,6 +78,8 @@ Dim lngMap As Long
 'booleans
 'variants
 'dates
+
+  'todo: use lngECF and lngLocal; strECR and strLocal
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -126,6 +130,20 @@ Dim lngMap As Long
       CustomFieldRename CLng(Me.lboLocalFields), Me.lboMap.List(Me.lboMap.ListIndex, 1) & " (" & FieldConstantToFieldName(Me.lboLocalFields) & ")"
       Me.lboLocalFields.List(Me.lboLocalFields.ListIndex, 1) = FieldConstantToFieldName(Me.lboLocalFields) & " (" & CustomFieldGetName(Me.lboLocalFields) & ")"
     End If
+    'get formula
+    'get pick list
+    Dim strECF As String
+    'strLocal
+    strECF = Me.lboMap.List(Me.lboMap.ListIndex, 1)
+    'lngECF
+    If GlobalOutlineCodes(strECF).LookupTable.Count > 0 Then
+      'make it a picklist
+      CustomFieldPropertiesEx lngField, pjFieldAttributeValueList
+      For lngItem = 1 To GlobalOutlineCodes(strECF).LookupTable.Count
+        Dim lngLocal
+        CustomFieldValueListAdd lngField, GlobalOutlineCodes(strECF).LookupTable(lngItem).Name
+      Next lngItem
+    End If
     Me.lboMap.List(Me.lboMap.ListIndex, 2) = Me.lboLocalFields
     Me.lboMap.List(Me.lboMap.ListIndex, 3) = CustomFieldGetName(Me.lboLocalFields)
   End If
@@ -142,4 +160,73 @@ End Sub
 
 Private Sub cmdSaveLocal_Click()
   Call cptSaveLocal
+End Sub
+
+Private Sub lblShowFormula_Click()
+  If Me.lboMap.ListIndex >= 0 Then
+    MsgBox CustomFieldGetFormula(Me.lboMap.List(Me.lboMap.ListIndex, 0)), vbInformation + vbOKOnly, "Formula:"
+  End If
+End Sub
+
+Private Sub lboMap_Click()
+  'objects
+  Dim oLookupTable As LookupTable
+  'strings
+  Dim strECF As String
+  'longs
+  Dim lngItem As Long
+  Dim lngMax As Long
+  Dim lngECF As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  Me.lblShowFormula.Visible = False
+  Me.lblStatus.Caption = "Analyzing..."
+
+  strECF = Me.lboMap.List(Me.lboMap.ListIndex, 1)
+  lngECF = Me.lboMap.List(Me.lboMap.ListIndex, 0)
+  
+  On Error Resume Next
+  Set oLookupTable = GlobalOutlineCodes(strECF).LookupTable
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If Not oLookupTable Is Nothing Then
+    'does it need an Outline Code?
+    If oLookupTable.Count = 0 Then GoTo skip_outline_code_check
+    For lngItem = 1 To oLookupTable.Count
+      If oLookupTable(lngItem).Level > lngMax Then lngMax = oLookupTable(lngItem).Level
+    Next lngItem
+    If lngMax = 1 Then 'No
+      Me.lblStatus.Caption = "This field requires a Lookup."
+      'todo: text or numeric?
+    Else 'Yes
+      Me.lblStatus.Caption = "This field requires an Outline Code."
+      Me.cboFieldTypes.Value = "Outline Code"
+      GoTo exit_here
+    End If
+  End If
+  
+skip_outline_code_check:
+  
+  'does it have a formulae?
+  If Len(CustomFieldGetFormula(lngECF)) > 0 Then
+    Me.lblStatus.Caption = "This field has a formula."
+    Me.lblShowFormula.Visible = True
+    'todo: text or numeric or duration or date or flag? analyze current field data to determine
+  End If
+  
+  'if all else fails, analyze the data
+  
+  
+exit_here:
+  On Error Resume Next
+  Set oLookupTable = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_frm", "lboMap_Click", Err, Erl)
+  Resume exit_here
 End Sub
