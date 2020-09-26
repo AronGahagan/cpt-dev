@@ -150,6 +150,7 @@ Dim vType As Variant
       .cboFieldTypes.List(.cboFieldTypes.ListCount - 1, 1) = aTypes.GetByIndex(lngType)
     Next lngType
     
+    .chkAutoSwitch = True
     .optTasks = True
     .cboFieldTypes.Value = "Text"
   

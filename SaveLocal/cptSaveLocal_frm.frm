@@ -291,13 +291,10 @@ Private Sub lboMap_Click()
   'integers
   'doubles
   'booleans
-  Dim blnSwitch As Boolean
   'variants
   'dates
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
-  blnSwitch = True 'enable autoSwitch
   
   Me.lblShowFormula.Visible = False
   Me.lblStatus.Caption = "Analyzing..."
@@ -337,7 +334,7 @@ Private Sub lboMap_Click()
       Me.lblStatus.Caption = "Undetermined: confirm manually."
   End Select
   
-  If blnSwitch And Me.cboFieldTypes.Value <> strSwitch Then
+  If Me.chkAutoSwitch And Me.cboFieldTypes.Value <> strSwitch Then
     Me.cboFieldTypes.Value = strSwitch
   End If
   
