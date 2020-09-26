@@ -59,6 +59,13 @@ err_here:
   Resume exit_here
 End Sub
 
+Private Sub chkAutoSwitch_Click()
+  If Not Me.Visible Then Exit Sub
+  If Me.cboFieldTypes <> Me.lboMap.List(Me.lboMap.ListIndex, 2) Then
+    Me.cboFieldTypes = Me.lboMap.List(Me.lboMap.ListIndex, 2)
+  End If
+End Sub
+
 Private Sub cmdAutoMap_Click()
   Call cptAutoMap
 End Sub
@@ -284,11 +291,37 @@ err_here:
 End Sub
 
 Private Sub lboMap_Change()
+  'objects
+  'strings
+  'longs
+  Dim lngItems As Long
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
   If cptSaveLocal_frm.Visible Then
     If cptSaveLocal_frm.ActiveControl.Name = "lboMap" Then
+      For lngItem = 0 To Me.lboMap.ListCount - 1
+        If Me.lboMap.Selected(lngItem) Then lngItems = lngItems + 1
+      Next lngItem
+      Me.lblStatus.Caption = lngItems & " ECFs selected."
       Call cptAnalyzeAutoMap
     End If
   End If
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_frm", "lboMap_Change", Err, Erl)
+  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Resume exit_here
 End Sub
 
 Private Sub lboMap_Click()
@@ -353,10 +386,7 @@ Private Sub lboMap_Click()
       Me.cboFieldTypes.Value = strSwitch
     End If
   Else
-    For lngItem = 0 To Me.lboMap.ListCount - 1
-      If Me.lboMap.Selected(lngItem) Then lngItems = lngItems + 1
-    Next lngItem
-    Me.lblStatus.Caption = lngItems & " ECFs selected."
+    'todo: anything here?
   End If
   
 exit_here:

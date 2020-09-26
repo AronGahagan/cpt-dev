@@ -152,6 +152,9 @@ Dim vType As Variant
       .cboFieldTypes.List(.cboFieldTypes.ListCount - 1, 1) = aTypes.GetByIndex(lngType)
     Next lngType
     
+    .cmdAutoMap.Visible = False
+    .tglMap = False
+    .txtAutoMap.Visible = False
     .chkAutoSwitch = True
     .optTasks = True
     .cboFieldTypes.Value = "Text"
@@ -556,12 +559,14 @@ Sub cptAnalyzeAutoMap()
     strMsg = strMsg & String(34, "-") & vbCrLf
     If InStr(strMsg, "  X ") > 0 Then
       strMsg = strMsg & "AutoMap is NOT available."
-      'cptSaveLocal_frm.lboMap.MultiSelect = fmMultiSelectSingle
       cptSaveLocal_frm.cmdAutoMap.Visible = False
     Else
       strMsg = strMsg & "AutoMap IS available."
-      'cptSaveLocal_frm.lboMap.MultiSelect = fmMultiSelectMulti
-      cptSaveLocal_frm.cmdAutoMap.Visible = True
+      If cptSaveLocal_frm.tglMap Then
+        cptSaveLocal_frm.cmdAutoMap.Visible = True
+      Else
+        cptSaveLocal_frm.cmdAutoMap.Visible = False
+      End If
     End If
     
     cptSaveLocal_frm.txtAutoMap.Value = strMsg
@@ -596,6 +601,7 @@ Sub cptAutoMap()
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+  'todo: determine if unused custom field actually has data and prompt user
   'todo: AutoMap selected
   'todo: update rstSavedMap after each
   'todo: update lboMap after each...or lboLocalFields?
