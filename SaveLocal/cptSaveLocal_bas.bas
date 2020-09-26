@@ -14,6 +14,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 'todo: code up the search filter
 'todo: implement a 'suggest' feature
 ' -- count ECF vs Available LCF; Automap them.
+'todo: add 'Available' count per cboType
 
 Sub cptShowSaveLocalForm()
 'objects
@@ -146,7 +147,7 @@ Dim vType As Variant
     .cboFieldTypes.Clear
     For lngType = 0 To aTypes.Count - 1
       .cboFieldTypes.AddItem
-      .cboFieldTypes.List(.cboFieldTypes.ListCount - 1, 0) = aTypes.GetKey(lngType)
+      .cboFieldTypes.List(.cboFieldTypes.ListCount - 1, 0) = aTypes.getKey(lngType)
       .cboFieldTypes.List(.cboFieldTypes.ListCount - 1, 1) = aTypes.GetByIndex(lngType)
     Next lngType
     
@@ -464,3 +465,96 @@ err_here:
   Resume exit_here
 End Sub
 
+Sub cptAutoMap()
+  'objects
+  Dim rstAvailable As ADODB.Recordset
+  Dim aTypes As SortedList
+  'strings
+  'longs
+  Dim lngItem2 As Long
+  Dim lngAvailable As Long
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vType As Variant
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  Set rstAvailable = CreateObject("ADODB.Recordset")
+  With rstAvailable
+    .Fields.Append "TYPE", adVarChar, 50
+    .Fields.Append "ECF", adInteger
+    .Fields.Append "LCF", adInteger
+    .Open
+
+    Set aTypes = CreateObject("System.Collections.SortedList")
+    'record: field type, number of available custom fields
+    For Each vType In Array("Cost", "Date", "Duration", "Finish", "Start", "Outline Code")
+      aTypes.Add vType, 10
+      .AddNew Array(0, 1, 2), Array(vType, 0, 10)
+    Next
+    aTypes.Add "Flag", 20
+    .AddNew Array(0, 1, 2), Array("Flag", 0, 20)
+    aTypes.Add "Number", 20
+    .AddNew Array(0, 1, 2), Array("Number", 0, 20)
+    aTypes.Add "Text", 30
+    .AddNew Array(0, 1, 2), Array("Text", 0, 30)
+    .Update
+    .Sort = "TYPE"
+    
+    'todo: start->date;finish->date;date->date
+    
+    'get available LCF
+    For lngItem = 0 To aTypes.Count - 1
+      For lngItem2 = 1 To aTypes.getValueList()(lngItem)
+        If Len(CustomFieldGetName(FieldNameToFieldConstant(aTypes.getKey(lngItem) & lngItem2))) > 0 Then
+          .MoveFirst
+          .Find "TYPE='" & aTypes.getKey(lngItem) & "'"
+          If Not .EOF Then
+            .Fields(2) = .Fields(2) - 1
+          End If
+        End If
+      Next lngItem2
+    Next lngItem
+    
+    'get total ECF
+    For lngItem = 0 To cptSaveLocal_frm.lboMap.ListCount - 1
+      .MoveFirst
+      .Find "TYPE='" & Replace(cptSaveLocal_frm.lboMap.List(lngItem, 2), "Maybe", "") & "'"
+      If Not .EOF Then
+        .Fields(1) = .Fields(1) + 1
+      End If
+    Next lngItem
+    
+    'return result
+    strMsg = "TYPE" & String(8, " ") & vbTab & "|" & vbTab & "ECF" & vbTab & "|" & vbTab & "LCF" & vbTab & "|" & vbCrLf
+    .MoveFirst
+    Do While Not .EOF
+      strMsg = strMsg & rstAvailable(0) & String(12 - Len(rstAvailable(0)), " ") & vbTab & "|"
+      strMsg = strMsg & vbTab & String(3 - Len(CStr(rstAvailable(1))), " ") & rstAvailable(1) & " |"
+      strMsg = strMsg & vbTab & String(3 - Len(CStr(rstAvailable(2))), " ") & rstAvailable(2) & vbTab & "|" & vbCrLf
+      .MoveNext
+    Loop
+    
+    Debug.Print strMsg
+    
+    .Close
+    
+  End With
+  
+exit_here:
+  On Error Resume Next
+  rstAvailable.Close
+  Set rstAvailable = Nothing
+  aTypes.Clear
+  Set aTypes = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_bas", "cptAutoMap", Err, Erl)
+  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Resume exit_here
+End Sub
