@@ -347,3 +347,12 @@ err_here:
   Call cptHandleErr("cptSaveLocal_frm", "lboMap_Click", Err, Erl)
   Resume exit_here
 End Sub
+
+Private Sub tglMap_Click()
+  If Me.tglMap Then
+    Call cptAutoMap
+    Me.txtAutoMap.Visible = True
+  Else
+    Me.txtAutoMap.Visible = False
+  End If
+End Sub

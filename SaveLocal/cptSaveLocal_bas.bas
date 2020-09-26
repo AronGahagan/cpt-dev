@@ -15,6 +15,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 'todo: implement a 'suggest' feature
 ' -- count ECF vs Available LCF; Automap them.
 'todo: add 'Available' count per cboType
+'todo: redesign form-lboMap wider; lboLocal more narrow
 
 Sub cptShowSaveLocalForm()
 'objects
@@ -510,6 +511,7 @@ Sub cptAutoMap()
     'get available LCF
     For lngItem = 0 To aTypes.Count - 1
       For lngItem2 = 1 To aTypes.getValueList()(lngItem)
+        'todo: account for both pjTask and pjResource
         If Len(CustomFieldGetName(FieldNameToFieldConstant(aTypes.getKey(lngItem) & lngItem2))) > 0 Then
           .MoveFirst
           .Find "TYPE='" & aTypes.getKey(lngItem) & "'"
@@ -530,16 +532,32 @@ Sub cptAutoMap()
     Next lngItem
     
     'return result
-    strMsg = "TYPE" & String(8, " ") & vbTab & "|" & vbTab & "ECF" & vbTab & "|" & vbTab & "LCF" & vbTab & "|" & vbCrLf
+    strMsg = strMsg & String(34, "-") & vbCrLf
+    strMsg = strMsg & "| " & "TYPE" & String(10, " ") & "|"
+    strMsg = strMsg & " ECF |"
+    strMsg = strMsg & " LCF |"
+    strMsg = strMsg & " <> |" & vbCrLf
+    strMsg = strMsg & String(34, "-") & vbCrLf
     .MoveFirst
     Do While Not .EOF
-      strMsg = strMsg & rstAvailable(0) & String(12 - Len(rstAvailable(0)), " ") & vbTab & "|"
-      strMsg = strMsg & vbTab & String(3 - Len(CStr(rstAvailable(1))), " ") & rstAvailable(1) & " |"
-      strMsg = strMsg & vbTab & String(3 - Len(CStr(rstAvailable(2))), " ") & rstAvailable(2) & vbTab & "|" & vbCrLf
+      strMsg = strMsg & "| " & rstAvailable(0) & String(14 - Len(rstAvailable(0)), " ") & "|"
+      If rstAvailable(0) = "Start" Or rstAvailable(0) = "Finish" Then
+        strMsg = strMsg & "   - |"
+      Else
+        strMsg = strMsg & String(4 - Len(CStr(rstAvailable(1))), " ") & rstAvailable(1) & " |"
+      End If
+      strMsg = strMsg & String(4 - Len(CStr(rstAvailable(2))), " ") & rstAvailable(2) & " |"
+      strMsg = strMsg & IIf(rstAvailable(2) >= rstAvailable(1), " ok ", "  X ") & "|" & vbCrLf
       .MoveNext
     Loop
+    strMsg = strMsg & String(34, "-") & vbCrLf
+    If InStr(strMsg, "  X ") > 0 Then
+      strMsg = strMsg & "AutoMap is NOT available."
+    Else
+      strMsg = strMsg & "AutoMap IS available."
+    End If
     
-    Debug.Print strMsg
+    cptSaveLocal_frm.txtAutoMap.Value = strMsg
     
     .Close
     
