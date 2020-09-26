@@ -6,11 +6,13 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 
 'todo: create view ECF:Local;ECF:Local;ECF:Local;
 ' -- based on saved map, current selections
-'todo: handle resource custom fields
+'todo: handle resource custom fields - add toggle option and filter accordinlgy
 'todo: process is: import with enterprise open, then save as mpp
 'todo: make compatible with master/sub projects
 'todo: handle when user changes custom fields manually -- onmouseover
 'todo: code up the search filter
+'todo: implement a 'suggest' feature
+' -- count ECF vs Available LCF; Automap them.
 
 Sub cptShowSaveLocalForm()
 'objects

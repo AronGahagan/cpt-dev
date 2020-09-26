@@ -188,6 +188,7 @@ Private Sub cmdUnmap_Click()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If Me.lboMap.ListIndex < 0 Then GoTo exit_here
+  If IsNull(Me.lboMap.List(Me.lboMap.ListIndex, 3)) Then GoTo exit_here
 
   If MsgBox("Are you sure?", vbQuestion + vbYesNo, "Please Confirm") = vbNo Then GoTo exit_here
   
@@ -246,6 +247,7 @@ Private Sub lboMap_Click()
   'objects
   Dim oLookupTable  As LookupTable
   'strings
+  Dim strSwitch As String
   Dim strECF As String
   'longs
   Dim lngItem As Long
@@ -254,60 +256,55 @@ Private Sub lboMap_Click()
   'integers
   'doubles
   'booleans
+  Dim blnSwitch As Boolean
   'variants
   'dates
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnSwitch = True 'enable autoSwitch
+  
   Me.lblShowFormula.Visible = False
   Me.lblStatus.Caption = "Analyzing..."
 
   lngECF = Me.lboMap.List(Me.lboMap.ListIndex, 0)
   strECF = Me.lboMap.List(Me.lboMap.ListIndex, 1)
   
-  On Error Resume Next
-  Set oLookupTable = GlobalOutlineCodes(strECF).LookupTable
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If Not oLookupTable Is Nothing Then
-    'does it need an Outline Code?
-    If oLookupTable.Count = 0 Then GoTo skip_outline_code_check
-    For lngItem = 1 To oLookupTable.Count
-      If oLookupTable(lngItem).Level > lngMax Then
-        lngMax = oLookupTable(lngItem).Level
-        Exit For
-      End If
-    Next lngItem
-    If lngMax = 1 Then 'No
-      GoTo skip_outline_code_check
-    Else 'Yes
-      Me.lblStatus.Caption = "This field requires an Outline Code."
-      GoTo exit_here
-    End If
-  End If
-  
-skip_outline_code_check:
-  
   Select Case Me.lboMap.List(Me.lboMap.ListIndex, 2)
     Case "Cost"
       Me.lblStatus.Caption = "This is likely a Cost field."
+      strSwitch = "Cost"
     Case "Date"
       Me.lblStatus.Caption = "This is likely a Date field."
+      strSwitch = "Date"
     Case "Duration"
       Me.lblStatus.Caption = "This is likely a Duration field."
+      strSwitch = "Duration"
     Case "Flag"
       Me.lblStatus.Caption = "This is likely a Flag field."
+      strSwitch = "Flag"
     Case "MaybeFlag"
       Me.lblStatus.Caption = "This is likely a Flag field."
+      strSwitch = "Flag"
     Case "Number"
       Me.lblStatus.Caption = "This is likely a Number field."
+      strSwitch = "Number"
     Case "Outline Code"
       Me.lblStatus.Caption = "This field requires an Outline Code."
+      strSwitch = "Outline Code"
     Case "MaybeText"
       Me.lblStatus.Caption = "This is likely a Text field."
+      strSwitch = "Text"
     Case "Text"
       Me.lblStatus.Caption = "This is likely a Text field."
+      strSwitch = "Text"
     Case Else
       Me.lblStatus.Caption = "Undetermined: confirm manually."
   End Select
+  
+  If blnSwitch And Me.cboFieldTypes.Value <> strSwitch Then
+    Me.cboFieldTypes.Value = strSwitch
+  End If
   
 exit_here:
   On Error Resume Next
