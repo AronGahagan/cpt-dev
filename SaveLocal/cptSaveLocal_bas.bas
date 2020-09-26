@@ -12,10 +12,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 'todo: make compatible with master/sub projects
 'todo: handle when user changes custom fields manually -- onmouseover
 'todo: code up the search filter
-'todo: implement a 'suggest' feature
-' -- count ECF vs Available LCF; Automap them.
-'todo: redesign form-lboMap wider; lboLocal more narrow
-'todo: update txtAutoMap on selection
+'todo: redesign form-lboECF wider; lboLocal more narrow
 
 Sub cptShowSaveLocalForm()
 'objects
@@ -105,7 +102,7 @@ Dim vType As Variant
   'populate the form - defaults to task ECFs, text
   With cptSaveLocal_frm
     'populate map
-    .lboMap.Clear
+    .lboECF.Clear
     If rst.RecordCount = 0 Then
       rst.Close
       MsgBox "No Enterprise Custom Fields available in this file.", vbExclamation + vbOKOnly, "No ECFs found"
@@ -114,18 +111,18 @@ Dim vType As Variant
     rst.MoveFirst
     Do While Not rst.EOF
       If UCase(rst("GUID")) = UCase(strGUID) And rst("pjType") = 0 Then
-        .lboMap.AddItem
-        .lboMap.List(.lboMap.ListCount - 1, 0) = rst("ECF_Constant")
-        .lboMap.List(.lboMap.ListCount - 1, 1) = rst("ECF_Name")
-        .lboMap.List(.lboMap.ListCount - 1, 2) = rst("ENTITY")
+        .lboECF.AddItem
+        .lboECF.List(.lboECF.ListCount - 1, 0) = rst("ECF_Constant")
+        .lboECF.List(.lboECF.ListCount - 1, 1) = rst("ECF_Name")
+        .lboECF.List(.lboECF.ListCount - 1, 2) = rst("ENTITY")
         If blnExists Then
           rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND ECF=" & rst("ECF_Constant") '& " AND ENTITY=" & pjTask
           If Not rstSavedMap.EOF Then
-            .lboMap.List(.lboMap.ListCount - 1, 3) = rstSavedMap("LCF")
+            .lboECF.List(.lboECF.ListCount - 1, 3) = rstSavedMap("LCF")
             If Len(CustomFieldGetName(rstSavedMap("LCF"))) > 0 Then
-              .lboMap.List(.lboMap.ListCount - 1, 4) = CustomFieldGetName(rstSavedMap("LCF"))
+              .lboECF.List(.lboECF.ListCount - 1, 4) = CustomFieldGetName(rstSavedMap("LCF"))
             Else
-              .lboMap.List(.lboMap.ListCount - 1, 4) = FieldConstantToFieldName(rstSavedMap("LCF"))
+              .lboECF.List(.lboECF.ListCount - 1, 4) = FieldConstantToFieldName(rstSavedMap("LCF"))
             End If
           End If
           rstSavedMap.Filter = ""
@@ -226,10 +223,10 @@ Dim lngItem As Long
   End If
   
   With cptSaveLocal_frm
-    For lngItem = 0 To .lboMap.ListCount - 1
-      If .lboMap.List(lngItem, 3) > 0 Then
-        lngECF = .lboMap.List(lngItem, 0)
-        lngLCF = .lboMap.List(lngItem, 3)
+    For lngItem = 0 To .lboECF.ListCount - 1
+      If .lboECF.List(lngItem, 3) > 0 Then
+        lngECF = .lboECF.List(lngItem, 0)
+        lngLCF = .lboECF.List(lngItem, 3)
         rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
         'populate the fields
         For Each oTask In ActiveProject.Tasks
@@ -527,12 +524,15 @@ Sub cptAnalyzeAutoMap()
     Next lngItem
     
     'get total ECF
-    For lngItem = 0 To cptSaveLocal_frm.lboMap.ListCount - 1
-      If cptSaveLocal_frm.lboMap.Selected(lngItem) Then
+    For lngItem = 0 To cptSaveLocal_frm.lboECF.ListCount - 1
+      If cptSaveLocal_frm.lboECF.Selected(lngItem) Then
         .MoveFirst
-        .Find "TYPE='" & Replace(cptSaveLocal_frm.lboMap.List(lngItem, 2), "Maybe", "") & "'"
+        .Find "TYPE='" & Replace(cptSaveLocal_frm.lboECF.List(lngItem, 2), "Maybe", "") & "'"
         If Not .EOF Then
-          .Fields(1) = .Fields(1) + 1
+          If IsNull(cptSaveLocal_frm.lboECF.List(cptSaveLocal_frm.lboECF.ListIndex, 3)) Then
+            'only count unmapped
+            .Fields(1) = .Fields(1) + 1
+          End If
         End If
       End If
     Next lngItem
@@ -557,9 +557,9 @@ Sub cptAnalyzeAutoMap()
       .MoveNext
     Loop
     strMsg = strMsg & String(34, "-") & vbCrLf
+    cptSaveLocal_frm.cmdAutoMap.Visible = False
     If InStr(strMsg, "  X ") > 0 Then
       strMsg = strMsg & "AutoMap is NOT available."
-      cptSaveLocal_frm.cmdAutoMap.Visible = False
     Else
       strMsg = strMsg & "AutoMap IS available."
       If cptSaveLocal_frm.tglMap Then
@@ -593,6 +593,10 @@ Sub cptAutoMap()
   'objects
   'strings
   'longs
+  Dim lngECF As Long
+  Dim lngLCF As Long
+  Dim lngLCFs As Long
+  Dim lngECFs As Long
   'integers
   'doubles
   'booleans
@@ -601,14 +605,42 @@ Sub cptAutoMap()
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  'todo: determine if unused custom field actually has data and prompt user
-  'todo: AutoMap selected
+  'todo: unselect after complete - if fails, leave selected
   'todo: update rstSavedMap after each
-  'todo: update lboMap after each...or lboLocalFields?
+  'todo: update lboECF after each...or lboLCF?
   'todo: for dates > 10 cycle through date, start, finish
-  'todo: update cptAnalyzeAutoMap after each
-  'todo: update lblProgress and lblStatus after each
 
+  With cptSaveLocal_frm
+    .lblStatus.Caption = "AutoMapping..."
+    'loop through ECFs looking for selected ECFs to map
+    For lngECFs = 0 To .lboECF.ListCount - 1
+      If .lboECF.Selected(lngECFs) Then
+        lngECF = .lboECF.List(lngECFs, 0)
+        'switch cbo types to get list of lngLCFs
+        If .cboFieldTypes <> .lboECF.List(lngECFs, 2) Then .cboFieldTypes = .lboECF.List(lngECFs, 2)
+        'loop through LCFs looking for one available
+        For lngLCFs = 0 To .lboLCF.ListCount - 1
+          lngLCF = .lboLCF.List(lngLCFs, 0)
+          If Len(CustomFieldGetName(lngLCF)) = 0 Then
+            Call cptMapECFtoLCF(lngECF, lngLCF)
+            .lboECF.List(lngECFs, 3) = lngLCF
+            .lboECF.List(lngECFs, 4) = CustomFieldGetName(lngLCF)
+            Call cptAnalyzeAutoMap
+            Exit For
+          End If
+        Next lngLCFs
+      End If
+      .lblProgress.Width = (lngECFs / (.lboECF.ListCount - 1)) * .lblStatus.Width
+    Next lngECFs
+    .lblStatus.Caption = "AutoMap complete."
+    .lblProgress.Width = .lblStatus.Width
+    
+    If MsgBox("Fields AutoMapped. Import field data now?", vbQuestion + vbYesNo, "Save Local") = vbYes Then
+      .cmdSaveLocal.SetFocus
+    End If
+    
+  End With
+  
 exit_here:
   On Error Resume Next
 
@@ -618,3 +650,171 @@ err_here:
   MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
+
+Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
+  'objects
+  Dim rstSavedMap As Object
+  Dim oLookupTableEntry As LookupTableEntry
+  Dim oOutlineCodeLocal As OutlineCode
+  Dim oOutlineCode As OutlineCode
+  'strings
+  Dim strGUID As String
+  Dim strSavedMap As String
+  Dim strECF As String
+  Dim strLocal As String
+  'longs
+  Dim lngItem As Long
+  Dim lngDown As Long
+  Dim lngCodeNumber As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  With cptSaveLocal_frm
+    'if already mapped then prompt with ECF name and ask to remap
+    For lngItem = 0 To .lboECF.ListCount - 1
+      If .lboECF.List(lngItem, 3) = lngLCF Then
+        If MsgBox(FieldConstantToFieldName(lngLCF) & " is already mapped to " & .lboECF.List(lngItem, 1) & " - reassign it?", vbExclamation + vbYesNo, "Already Mapped") = vbYes Then
+          CustomFieldDelete lngLCF
+          .lboECF.List(lngItem, 3) = ""
+          .lboECF.List(lngItem, 4) = ""
+        Else
+          GoTo exit_here
+        End If
+      End If
+    Next lngItem
+    
+    'capture rename
+    If Len(CustomFieldGetName(lngLCF)) > 0 Then
+      If MsgBox("Rename " & FieldConstantToFieldName(lngLCF) & " to " & FieldConstantToFieldName(lngECF) & "?", vbQuestion + vbYesNo, "Please confirm") = vbYes Then
+        'rename it
+        CustomFieldRename CLng(lngLCF), CustomFieldGetName(lngECF) & " (" & FieldConstantToFieldName(lngLCF) & ")"
+        'rename in lboLCF
+        If Not .tglMap Then .lboLCF.List(.lboLCF.ListIndex, 1) = FieldConstantToFieldName(lngLCF) & " (" & CustomFieldGetName(lngLCF) & ")"
+      Else
+        GoTo exit_here
+      End If
+    Else
+      ActiveWindow.TopPane.Activate
+      'rename it in msp
+      CustomFieldRename lngLCF, CustomFieldGetName(lngECF) & " (" & FieldConstantToFieldName(lngLCF) & ")"
+      'rename it in lboLCF
+      If Not .tglMap Then .lboLCF.List(.lboLCF.ListIndex, 1) = FieldConstantToFieldName(.lboLCF) & " (" & CustomFieldGetName(.lboLCF) & ")"
+    End If
+    
+    'get formula
+    If Len(CustomFieldGetFormula(lngECF)) > 0 Then
+      CustomFieldSetFormula lngLCF, CustomFieldGetFormula(lngECF)
+    End If
+    
+    'get indicators
+    'todo: warn user these are not exposed/available
+    
+    'get pick list
+    strECF = CustomFieldGetName(lngECF)
+    On Error Resume Next
+    Set oOutlineCode = GlobalOutlineCodes(strECF)
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If Not oOutlineCode Is Nothing Then
+      'make it a picklist
+      CustomFieldPropertiesEx lngLCF, pjFieldAttributeValueList
+      If oOutlineCode.CodeMask.Count > 1 Then 'import outline code and all settings
+'        MsgBox "If copying down an Outline Code, please use the 'Import Field' function of the Custom Fields dialog before clicking Save Local.", vbInformation + vbOKOnly, "Nota Bene"
+'        VBA.SendKeys "%r", True
+'        VBA.SendKeys "f", True
+'        VBA.SendKeys "%y", True
+'        VBA.SendKeys "o", True
+'        VBA.SendKeys "{TAB}"
+'        'repeat the down key based on which code
+'        lngCodeNumber = CLng(Replace(FieldConstantToFieldName(lngLCF), "Outline Code", ""))
+'        If lngCodeNumber > 1 Then
+'          For lngDown = 1 To lngCodeNumber - 1
+'            VBA.SendKeys "{DOWN}", True
+'          Next lngDown
+'        End If
+'        VBA.SendKeys "%i", True
+'        VBA.SendKeys "%f", True
+'        VBA.SendKeys "%{DOWN}", True
+'        VBA.SendKeys Left(FieldConstantToFieldName(.lboECF.List(.lboECF.ListIndex, 0)), 1), True
+        'capture code mask
+        With oOutlineCode.CodeMask
+          For lngItem = 1 To .Count
+            CustomOutlineCodeEditEx lngLCF, .Item(lngItem).Level, .Item(lngItem).Sequence, .Item(lngItem).Length, .Item(lngItem).Separator
+          Next lngItem
+        End With
+        'capture picklist
+        Set oOutlineCodeLocal = ActiveProject.OutlineCodes(CustomFieldGetName(lngLCF))
+        With oOutlineCode.LookupTable
+          For lngItem = .Count To 1 Step -1
+            Set oLookupTableEntry = oOutlineCodeLocal.LookupTable.AddChild(.Item(lngItem).Name)
+            oLookupTableEntry.Description = .Item(lngItem).Description
+            'oLookupTableEntry.Level = .Item(lngItem).Level
+          Next lngItem
+          For lngItem = 1 To .Count
+            oOutlineCodeLocal.LookupTable.Item(lngItem).Level = .Item(lngItem).Level
+          Next lngItem
+        End With
+        'capture other options
+        CustomOutlineCodeEditEx FieldID:=lngLCF, OnlyLookUpTableCodes:=oOutlineCode.OnlyLookUpTableCodes, OnlyCompleteCodes:=oOutlineCode.OnlyCompleteCodes
+        CustomOutlineCodeEditEx FieldID:=lngLCF, OnlyLeaves:=oOutlineCode.OnlyLeaves
+        'CustomOutlineCodeEditEx FieldID:=lngLCF, RequiredCode:=oOutlineCode.RequiredCode
+        If oOutlineCode.DefaultValue <> "" Then CustomOutlineCodeEditEx FieldID:=lngLCF, DefaultValue:=oOutlineCode.DefaultValue
+        CustomOutlineCodeEditEx FieldID:=lngLCF, SortOrder:=oOutlineCode.SortOrder
+      Else 'import just the pick list
+        For lngItem = 1 To oOutlineCode.LookupTable.Count
+          CustomFieldValueListAdd lngLCF, oOutlineCode.LookupTable(lngItem).Name, oOutlineCode.LookupTable(lngItem).Description
+        Next lngItem
+        
+      End If
+    End If
+    If Not .tglMap Then
+      .lboECF.List(.lboECF.ListIndex, 3) = lngLCF
+      .lboECF.List(.lboECF.ListIndex, 4) = CustomFieldGetName(lngLCF)
+    End If
+  End With
+  
+  'update rstSavedMap
+  If Application.Version < 12 Then
+    strGUID = ActiveProject.DatabaseProjectUniqueID
+  Else
+    strGUID = ActiveProject.GetServerProjectGuid
+  End If
+  
+  Set rstSavedMap = CreateObject("ADODB.Recordset")
+  strSavedMap = cptDir & "\settings\cpt-save-local.adtg"
+  If Dir(strSavedMap) <> vbNullString Then
+    rstSavedMap.Open strSavedMap
+    rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND ECF=" & lngECF
+    If Not rstSavedMap.EOF Then
+      rstSavedMap.Fields(2) = lngLCF
+    Else
+      rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
+    End If
+    rstSavedMap.Filter = ""
+    rstSavedMap.Save
+  Else 'create it
+    rstSavedMap.Fields.Append "GUID", adGUID
+    rstSavedMap.Fields.Append "ECF", adInteger
+    rstSavedMap.Fields.Append "LCF", adInteger
+    rstSavedMap.Open
+    rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
+    rstSavedMap.Save
+  End If
+  rstSavedMap.Close
+  
+exit_here:
+  On Error Resume Next
+  Set rstSavedMap = Nothing
+  Set oLookupTableEntry = Nothing
+  Set oOutlineCodeLocal = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_bas", "cptMapECFtoLCF", Err, Erl)
+  Resume exit_here
+End Sub
+

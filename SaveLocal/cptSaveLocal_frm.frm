@@ -34,19 +34,19 @@ Dim lngField As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  Me.lboLocalFields.Clear
+  Me.lboLCF.Clear
   lngFields = Me.cboFieldTypes.Column(1)
   For lngField = 1 To lngFields
     strFieldName = Me.cboFieldTypes.Column(0) & lngField
     lngFieldID = FieldNameToFieldConstant(strFieldName)
     If Len(CustomFieldGetName(FieldNameToFieldConstant(Me.cboFieldTypes.Column(0) & lngField))) > 0 Then
-      Me.lboLocalFields.AddItem
-      Me.lboLocalFields.List(Me.lboLocalFields.ListCount - 1, 0) = lngFieldID
-      Me.lboLocalFields.List(Me.lboLocalFields.ListCount - 1, 1) = strFieldName & " (" & CustomFieldGetName(lngFieldID) & ")" 'Me.lboLocalFields.List(Me.lboLocalFields.ListCount - 1, 0) = CustomFieldGetName(FieldNameToFieldConstant(Me.cboFieldTypes.Column(0) & lngField))
+      Me.lboLCF.AddItem
+      Me.lboLCF.List(Me.lboLCF.ListCount - 1, 0) = lngFieldID
+      Me.lboLCF.List(Me.lboLCF.ListCount - 1, 1) = strFieldName & " (" & CustomFieldGetName(lngFieldID) & ")" 'Me.lboLCF.List(Me.lboLCF.ListCount - 1, 0) = CustomFieldGetName(FieldNameToFieldConstant(Me.cboFieldTypes.Column(0) & lngField))
     Else
-      Me.lboLocalFields.AddItem
-      Me.lboLocalFields.List(Me.lboLocalFields.ListCount - 1, 0) = lngFieldID
-      Me.lboLocalFields.List(Me.lboLocalFields.ListCount - 1, 1) = strFieldName
+      Me.lboLCF.AddItem
+      Me.lboLCF.List(Me.lboLCF.ListCount - 1, 0) = lngFieldID
+      Me.lboLCF.List(Me.lboLCF.ListCount - 1, 1) = strFieldName
     End If
   Next
 
@@ -61,8 +61,8 @@ End Sub
 
 Private Sub chkAutoSwitch_Click()
   If Not Me.Visible Then Exit Sub
-  If Me.cboFieldTypes <> Me.lboMap.List(Me.lboMap.ListIndex, 2) Then
-    Me.cboFieldTypes = Me.lboMap.List(Me.lboMap.ListIndex, 2)
+  If Me.cboFieldTypes <> Me.lboECF.List(Me.lboECF.ListIndex, 2) Then
+    Me.cboFieldTypes = Me.lboECF.List(Me.lboECF.ListIndex, 2)
   End If
 End Sub
 
@@ -96,105 +96,10 @@ err_here:
 End Sub
 
 Private Sub cmdMap_Click()
-'objects
-Dim oOutlineCode As OutlineCode
-'strings
-Dim strECF As String
-Dim strLocal As String
-'longs
-Dim lngItem As Long
-Dim lngDown As Long
-Dim lngCodeNumber As Long
-Dim lngLocal As Long
-Dim lngECF As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
-
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  If Not IsNull(Me.lboMap) And Not IsNull(Me.lboLocalFields) Then
-    lngLocal = Me.lboLocalFields.List(Me.lboLocalFields.ListIndex)
-    lngECF = Me.lboMap.List(Me.lboMap.ListIndex)
-    'if already mapped then prompt with ECF name and ask to remap
-    For lngItem = 0 To Me.lboMap.ListCount - 1
-      If Me.lboMap.List(lngItem, 3) = lngLocal Then
-        If MsgBox(FieldConstantToFieldName(lngLocal) & " is already mapped to " & Me.lboMap.List(lngItem, 1) & " - reassign it?", vbExclamation + vbYesNo, "Already Mapped") = vbYes Then
-          Me.lboMap.List(lngItem, 3) = ""
-          Me.lboMap.List(lngItem, 4) = ""
-        Else
-          GoTo exit_here
-        End If
-      End If
-    Next lngItem
-    'capture outline code
-    'todo: copy codemask; default value; rollup; only leaves; etc.
-    If InStr(FieldConstantToFieldName(lngLocal), "Outline") > 0 Then
-      MsgBox "If copying down an Outline Code, please use the 'Import Field' function of the Custom Fields dialog before clicking Save Local.", vbInformation + vbOKOnly, "Nota Bene"
-      VBA.SendKeys "%r", True
-      VBA.SendKeys "f", True
-      VBA.SendKeys "%y", True
-      VBA.SendKeys "o", True
-      VBA.SendKeys "{TAB}"
-      'repeat the down key based on which code
-      lngCodeNumber = CLng(Replace(FieldConstantToFieldName(lngLocal), "Outline Code", ""))
-      If lngCodeNumber > 1 Then
-        For lngDown = 1 To lngCodeNumber - 1
-          VBA.SendKeys "{DOWN}", True
-        Next lngDown
-      End If
-      VBA.SendKeys "%i", True
-      VBA.SendKeys "%f", True
-      VBA.SendKeys "%{DOWN}", True
-      VBA.SendKeys Left(FieldConstantToFieldName(Me.lboMap.List(Me.lboMap.ListIndex, 0)), 1), True
-    End If
-    'capture rename
-    If Len(CustomFieldGetName(Me.lboLocalFields)) > 0 Then
-      If MsgBox("Rename " & FieldConstantToFieldName(Me.lboLocalFields) & " to " & FieldConstantToFieldName(Me.lboMap) & "?", vbQuestion + vbYesNo, "Please confirm") = vbYes Then
-        'rename it
-        CustomFieldRename CLng(Me.lboLocalFields), Me.lboMap.List(Me.lboMap.ListIndex, 1) & " (" & FieldConstantToFieldName(Me.lboLocalFields) & ")"
-        'rename in lboLocalFields
-        Me.lboLocalFields.List(Me.lboLocalFields.ListIndex, 1) = FieldConstantToFieldName(Me.lboLocalFields) & " (" & CustomFieldGetName(Me.lboLocalFields) & ")"
-      Else
-        GoTo exit_here
-      End If
-    Else
-      CustomFieldRename CLng(Me.lboLocalFields), Me.lboMap.List(Me.lboMap.ListIndex, 1) & " (" & FieldConstantToFieldName(Me.lboLocalFields) & ")"
-      Me.lboLocalFields.List(Me.lboLocalFields.ListIndex, 1) = FieldConstantToFieldName(Me.lboLocalFields) & " (" & CustomFieldGetName(Me.lboLocalFields) & ")"
-    End If
-    'get formula
-    If Len(CustomFieldGetFormula(lngECF)) > 0 Then
-      CustomFieldSetFormula lngLocal, CustomFieldGetFormula(lngECF)
-    End If
-    'get indicators
-    'todo: warn user these are not exposed/available
-    'get pick list
-    strECF = Me.lboMap.List(Me.lboMap.ListIndex, 1)
-    On Error Resume Next
-    Set oOutlineCode = GlobalOutlineCodes(strECF)
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-    If Not oOutlineCode Is Nothing Then
-      If GlobalOutlineCodes(strECF).LookupTable.Count > 0 Then
-        'make it a picklist
-        CustomFieldPropertiesEx lngLocal, pjFieldAttributeValueList
-        For lngItem = 1 To GlobalOutlineCodes(strECF).LookupTable.Count
-          CustomFieldValueListAdd lngLocal, GlobalOutlineCodes(strECF).LookupTable(lngItem).Name, GlobalOutlineCodes(strECF).LookupTable(lngItem).Description
-        Next lngItem
-      End If
-    End If
-    Me.lboMap.List(Me.lboMap.ListIndex, 3) = Me.lboLocalFields
-    Me.lboMap.List(Me.lboMap.ListIndex, 4) = CustomFieldGetName(Me.lboLocalFields)
+  'todo: if tglAuto then disable cmdMap
+  If Not IsNull(Me.lboECF) And Not IsNull(Me.lboLCF) Then
+    Call cptMapECFtoLCF(Me.lboECF, Me.lboLCF)
   End If
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "cmdMap_Click", Err, Erl)
-  Resume exit_here
 End Sub
 
 Private Sub cmdSaveLocal_Click()
@@ -219,14 +124,14 @@ Private Sub cmdUnmap_Click()
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If Me.lboMap.ListIndex < 0 Then GoTo exit_here
-  If IsNull(Me.lboMap.List(Me.lboMap.ListIndex, 3)) Then GoTo exit_here
+  If Me.lboECF.ListIndex < 0 Then GoTo exit_here
+  If IsNull(Me.lboECF.List(Me.lboECF.ListIndex, 3)) Then GoTo exit_here
 
   If MsgBox("Are you sure?", vbQuestion + vbYesNo, "Please Confirm") = vbNo Then GoTo exit_here
   
   'get the ECF and LCF
-  lngECF = Me.lboMap.List(Me.lboMap.ListIndex, 0)
-  lngLCF = Me.lboMap.List(Me.lboMap.ListIndex, 3)
+  lngECF = Me.lboECF.List(Me.lboECF.ListIndex, 0)
+  lngLCF = Me.lboECF.List(Me.lboECF.ListIndex, 3)
   
   'delete it from LCF
   CustomFieldDelete lngLCF
@@ -248,14 +153,14 @@ Private Sub cmdUnmap_Click()
     End If
   End If
   
-  'remove from lboMap
-  Me.lboMap.List(Me.lboMap.ListIndex, 3) = ""
-  Me.lboMap.List(Me.lboMap.ListIndex, 4) = ""
+  'remove from lboECF
+  Me.lboECF.List(Me.lboECF.ListIndex, 3) = ""
+  Me.lboECF.List(Me.lboECF.ListIndex, 4) = ""
   
   'rename in lboLocal
-  For lngItem = 0 To Me.lboLocalFields.ListCount - 1
-    If Me.lboLocalFields.List(lngItem, 0) = lngLCF Then
-      Me.lboLocalFields.List(lngItem, 1) = FieldConstantToFieldName(lngLCF)
+  For lngItem = 0 To Me.lboLCF.ListCount - 1
+    If Me.lboLCF.List(lngItem, 0) = lngLCF Then
+      Me.lboLCF.List(lngItem, 1) = FieldConstantToFieldName(lngLCF)
     End If
   Next lngItem
 
@@ -269,9 +174,25 @@ err_here:
   Resume exit_here
 End Sub
 
+Private Sub lblSelectAll_Click()
+  Dim lngItem As Long
+  For lngItem = 0 To Me.lboECF.ListCount - 1
+    If IsNull(Me.lboECF.List(lngItem, 3)) Then
+      Me.lboECF.Selected(lngItem) = True
+    End If
+  Next lngItem
+End Sub
+
+Private Sub lblSelectNone_Click()
+  Dim lngItem As Long
+  For lngItem = 0 To Me.lboECF.ListCount - 1
+    Me.lboECF.Selected(lngItem) = False
+  Next lngItem
+End Sub
+
 Private Sub lblShowFormula_Click()
-  If Me.lboMap.ListIndex >= 0 Then
-    MsgBox CustomFieldGetFormula(Me.lboMap.List(Me.lboMap.ListIndex, 0)), vbInformation + vbOKOnly, "Formula:"
+  If Me.lboECF.ListIndex >= 0 Then
+    MsgBox CustomFieldGetFormula(Me.lboECF.List(Me.lboECF.ListIndex, 0)), vbInformation + vbOKOnly, "Formula:"
   End If
 End Sub
 
@@ -290,7 +211,7 @@ err_here:
 
 End Sub
 
-Private Sub lboMap_Change()
+Private Sub lboECF_Change()
   'objects
   'strings
   'longs
@@ -304,13 +225,15 @@ Private Sub lboMap_Change()
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If cptSaveLocal_frm.Visible Then
-    If cptSaveLocal_frm.ActiveControl.Name = "lboMap" Then
-      For lngItem = 0 To Me.lboMap.ListCount - 1
-        If Me.lboMap.Selected(lngItem) Then lngItems = lngItems + 1
-      Next lngItem
-      Me.lblStatus.Caption = lngItems & " ECFs selected."
-      Call cptAnalyzeAutoMap
+  If Me.Visible Then
+    If Me.ActiveControl.Name = "lboECF" Then
+      If Me.tglMap Then
+        For lngItem = 0 To Me.lboECF.ListCount - 1
+          If Me.lboECF.Selected(lngItem) Then lngItems = lngItems + 1
+        Next lngItem
+        Me.lblStatus.Caption = lngItems & " ECFs selected."
+        Call cptAnalyzeAutoMap
+      End If
     End If
   End If
 
@@ -319,12 +242,12 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "lboMap_Change", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "lboECF_Change", Err, Erl)
   MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
 
-Private Sub lboMap_Click()
+Private Sub lboECF_Click()
   'objects
   Dim oLookupTable  As LookupTable
   'strings
@@ -343,14 +266,14 @@ Private Sub lboMap_Click()
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  If Me.lboMap.MultiSelect = fmMultiSelectSingle Then
+  If Me.lboECF.MultiSelect = fmMultiSelectSingle Then
     Me.lblShowFormula.Visible = False
     Me.lblStatus.Caption = "Analyzing..."
   
-    lngECF = Me.lboMap.List(Me.lboMap.ListIndex, 0)
-    strECF = Me.lboMap.List(Me.lboMap.ListIndex, 1)
+    lngECF = Me.lboECF.List(Me.lboECF.ListIndex, 0)
+    strECF = Me.lboECF.List(Me.lboECF.ListIndex, 1)
     
-    Select Case Me.lboMap.List(Me.lboMap.ListIndex, 2)
+    Select Case Me.lboECF.List(Me.lboECF.ListIndex, 2)
       Case "Cost"
         Me.lblStatus.Caption = "This is likely a Cost field."
         strSwitch = "Cost"
@@ -395,7 +318,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "lboMap_Click", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "lboECF_Click", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -413,18 +336,26 @@ Private Sub tglMap_Click()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If Me.tglMap Then
-    Me.lboMap.MultiSelect = fmMultiSelectMulti
-    For lngItem = 0 To Me.lboMap.ListCount - 1
-      Me.lboMap.Selected(lngItem) = True
+    Me.lboECF.MultiSelect = fmMultiSelectMulti
+    For lngItem = 0 To Me.lboECF.ListCount - 1
+      If IsNull(Me.lboECF.List(lngItem, 3)) Then
+        Me.lboECF.Selected(lngItem) = True
+      End If
     Next lngItem
     Call cptAnalyzeAutoMap
-    Me.lboLocalFields.Visible = False
+    Me.lboLCF.Visible = False
     Me.txtAutoMap.Visible = True
+    Me.lblStatus.Caption = Me.lboECF.ListCount & " ECFs selected."
+    Me.lblSelectAll.Visible = True
+    Me.lblSelectNone.Visible = True
   Else
-    Me.lboMap.MultiSelect = fmMultiSelectSingle
-    Me.lboMap.ListIndex = 0
+    Me.lboECF.MultiSelect = fmMultiSelectSingle
+    Me.lboECF.ListIndex = 0
     Me.txtAutoMap.Visible = False
-    Me.lboLocalFields.Visible = True
+    Me.lboLCF.Visible = True
+    Me.cmdAutoMap.Visible = False
+    Me.lblSelectAll.Visible = False
+    Me.lblSelectNone.Visible = False
   End If
 
 exit_here:
