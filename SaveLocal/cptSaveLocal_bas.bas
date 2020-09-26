@@ -14,8 +14,8 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 'todo: code up the search filter
 'todo: implement a 'suggest' feature
 ' -- count ECF vs Available LCF; Automap them.
-'todo: add 'Available' count per cboType
 'todo: redesign form-lboMap wider; lboLocal more narrow
+'todo: update txtAutoMap on selection
 
 Sub cptShowSaveLocalForm()
 'objects
@@ -466,11 +466,12 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptAutoMap()
+Sub cptAnalyzeAutoMap()
   'objects
   Dim rstAvailable As ADODB.Recordset
   Dim aTypes As SortedList
   'strings
+  Dim strMsg As String
   'longs
   Dim lngItem2 As Long
   Dim lngAvailable As Long
@@ -524,10 +525,12 @@ Sub cptAutoMap()
     
     'get total ECF
     For lngItem = 0 To cptSaveLocal_frm.lboMap.ListCount - 1
-      .MoveFirst
-      .Find "TYPE='" & Replace(cptSaveLocal_frm.lboMap.List(lngItem, 2), "Maybe", "") & "'"
-      If Not .EOF Then
-        .Fields(1) = .Fields(1) + 1
+      If cptSaveLocal_frm.lboMap.Selected(lngItem) Then
+        .MoveFirst
+        .Find "TYPE='" & Replace(cptSaveLocal_frm.lboMap.List(lngItem, 2), "Maybe", "") & "'"
+        If Not .EOF Then
+          .Fields(1) = .Fields(1) + 1
+        End If
       End If
     Next lngItem
     
@@ -553,8 +556,12 @@ Sub cptAutoMap()
     strMsg = strMsg & String(34, "-") & vbCrLf
     If InStr(strMsg, "  X ") > 0 Then
       strMsg = strMsg & "AutoMap is NOT available."
+      'cptSaveLocal_frm.lboMap.MultiSelect = fmMultiSelectSingle
+      cptSaveLocal_frm.cmdAutoMap.Visible = False
     Else
       strMsg = strMsg & "AutoMap IS available."
+      'cptSaveLocal_frm.lboMap.MultiSelect = fmMultiSelectMulti
+      cptSaveLocal_frm.cmdAutoMap.Visible = True
     End If
     
     cptSaveLocal_frm.txtAutoMap.Value = strMsg
@@ -569,6 +576,35 @@ exit_here:
   Set rstAvailable = Nothing
   aTypes.Clear
   Set aTypes = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_bas", "cptAutoMap", Err, Erl)
+  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Resume exit_here
+End Sub
+
+Sub cptAutoMap()
+  'objects
+  'strings
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  'todo: AutoMap selected
+  'todo: update rstSavedMap after each
+  'todo: update lboMap after each...or lboLocalFields?
+  'todo: for dates > 10 cycle through date, start, finish
+  'todo: update cptAnalyzeAutoMap after each
+  'todo: update lblProgress and lblStatus after each
+
+exit_here:
+  On Error Resume Next
 
   Exit Sub
 err_here:

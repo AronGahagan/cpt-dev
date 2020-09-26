@@ -59,6 +59,10 @@ err_here:
   Resume exit_here
 End Sub
 
+Private Sub cmdAutoMap_Click()
+  Call cptAutoMap
+End Sub
+
 Private Sub cmdCancel_Click()
   Unload Me
 End Sub
@@ -71,6 +75,7 @@ Dim strDescription As String
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+  ActiveWindow.TopPane.Activate
   Application.CustomizeField
 
 exit_here:
@@ -278,6 +283,14 @@ err_here:
 
 End Sub
 
+Private Sub lboMap_Change()
+  If cptSaveLocal_frm.Visible Then
+    If cptSaveLocal_frm.ActiveControl.Name = "lboMap" Then
+      Call cptAnalyzeAutoMap
+    End If
+  End If
+End Sub
+
 Private Sub lboMap_Click()
   'objects
   Dim oLookupTable  As LookupTable
@@ -285,6 +298,7 @@ Private Sub lboMap_Click()
   Dim strSwitch As String
   Dim strECF As String
   'longs
+  Dim lngItems As Long
   Dim lngItem As Long
   Dim lngMax As Long
   Dim lngECF As Long
@@ -296,46 +310,53 @@ Private Sub lboMap_Click()
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  Me.lblShowFormula.Visible = False
-  Me.lblStatus.Caption = "Analyzing..."
-
-  lngECF = Me.lboMap.List(Me.lboMap.ListIndex, 0)
-  strECF = Me.lboMap.List(Me.lboMap.ListIndex, 1)
+  If Me.lboMap.MultiSelect = fmMultiSelectSingle Then
+    Me.lblShowFormula.Visible = False
+    Me.lblStatus.Caption = "Analyzing..."
   
-  Select Case Me.lboMap.List(Me.lboMap.ListIndex, 2)
-    Case "Cost"
-      Me.lblStatus.Caption = "This is likely a Cost field."
-      strSwitch = "Cost"
-    Case "Date"
-      Me.lblStatus.Caption = "This is likely a Date field."
-      strSwitch = "Date"
-    Case "Duration"
-      Me.lblStatus.Caption = "This is likely a Duration field."
-      strSwitch = "Duration"
-    Case "Flag"
-      Me.lblStatus.Caption = "This is likely a Flag field."
-      strSwitch = "Flag"
-    Case "MaybeFlag"
-      Me.lblStatus.Caption = "This is likely a Flag field."
-      strSwitch = "Flag"
-    Case "Number"
-      Me.lblStatus.Caption = "This is likely a Number field."
-      strSwitch = "Number"
-    Case "Outline Code"
-      Me.lblStatus.Caption = "This field requires an Outline Code."
-      strSwitch = "Outline Code"
-    Case "MaybeText"
-      Me.lblStatus.Caption = "This is likely a Text field."
-      strSwitch = "Text"
-    Case "Text"
-      Me.lblStatus.Caption = "This is likely a Text field."
-      strSwitch = "Text"
-    Case Else
-      Me.lblStatus.Caption = "Undetermined: confirm manually."
-  End Select
-  
-  If Me.chkAutoSwitch And Me.cboFieldTypes.Value <> strSwitch Then
-    Me.cboFieldTypes.Value = strSwitch
+    lngECF = Me.lboMap.List(Me.lboMap.ListIndex, 0)
+    strECF = Me.lboMap.List(Me.lboMap.ListIndex, 1)
+    
+    Select Case Me.lboMap.List(Me.lboMap.ListIndex, 2)
+      Case "Cost"
+        Me.lblStatus.Caption = "This is likely a Cost field."
+        strSwitch = "Cost"
+      Case "Date"
+        Me.lblStatus.Caption = "This is likely a Date field."
+        strSwitch = "Date"
+      Case "Duration"
+        Me.lblStatus.Caption = "This is likely a Duration field."
+        strSwitch = "Duration"
+      Case "Flag"
+        Me.lblStatus.Caption = "This is likely a Flag field."
+        strSwitch = "Flag"
+      Case "MaybeFlag"
+        Me.lblStatus.Caption = "This is likely a Flag field."
+        strSwitch = "Flag"
+      Case "Number"
+        Me.lblStatus.Caption = "This is likely a Number field."
+        strSwitch = "Number"
+      Case "Outline Code"
+        Me.lblStatus.Caption = "This field requires an Outline Code."
+        strSwitch = "Outline Code"
+      Case "MaybeText"
+        Me.lblStatus.Caption = "This is likely a Text field."
+        strSwitch = "Text"
+      Case "Text"
+        Me.lblStatus.Caption = "This is likely a Text field."
+        strSwitch = "Text"
+      Case Else
+        Me.lblStatus.Caption = "Undetermined: confirm manually."
+    End Select
+    
+    If Me.chkAutoSwitch And Me.cboFieldTypes.Value <> strSwitch Then
+      Me.cboFieldTypes.Value = strSwitch
+    End If
+  Else
+    For lngItem = 0 To Me.lboMap.ListCount - 1
+      If Me.lboMap.Selected(lngItem) Then lngItems = lngItems + 1
+    Next lngItem
+    Me.lblStatus.Caption = lngItems & " ECFs selected."
   End If
   
 exit_here:
@@ -349,10 +370,39 @@ err_here:
 End Sub
 
 Private Sub tglMap_Click()
+  'objects
+  'strings
+  'longs
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
   If Me.tglMap Then
-    Call cptAutoMap
+    Me.lboMap.MultiSelect = fmMultiSelectMulti
+    For lngItem = 0 To Me.lboMap.ListCount - 1
+      Me.lboMap.Selected(lngItem) = True
+    Next lngItem
+    Call cptAnalyzeAutoMap
+    Me.lboLocalFields.Visible = False
     Me.txtAutoMap.Visible = True
   Else
+    Me.lboMap.MultiSelect = fmMultiSelectSingle
+    Me.lboMap.ListIndex = 0
     Me.txtAutoMap.Visible = False
+    Me.lboLocalFields.Visible = True
   End If
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_frm", "tglMap_Click", Err, Erl)
+  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Resume exit_here
 End Sub
