@@ -111,12 +111,16 @@ Dim vType As Variant
         .lboMap.List(.lboMap.ListCount - 1, 1) = rst("ECF_Name")
         .lboMap.List(.lboMap.ListCount - 1, 2) = rst("ENTITY")
         If blnExists Then
-          rstSavedMap.Filter = "GUID='" & strGUID & "' AND ECF_Constant=" & lngField '& " AND ENTITY=" & pjTask
-          If Not rst.EOF Then
-            .lboMap.List(.lboMap.ListCount - 1, 3) = rstSavedMap("LCF_Constant")
-            .lboMap.List(.lboMap.ListCount - 1, 4) = rstSavedMap("LCF_Name")
+          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND ECF=" & rst("ECF_Constant") '& " AND ENTITY=" & pjTask
+          If Not rstSavedMap.EOF Then
+            .lboMap.List(.lboMap.ListCount - 1, 3) = rstSavedMap("LCF")
+            If Len(CustomFieldGetName(rstSavedMap("LCF"))) > 0 Then
+              .lboMap.List(.lboMap.ListCount - 1, 4) = CustomFieldGetName(rstSavedMap("LCF"))
+            Else
+              .lboMap.List(.lboMap.ListCount - 1, 4) = FieldConstantToFieldName(rstSavedMap("LCF"))
+            End If
           End If
-          rst.Filter = ""
+          rstSavedMap.Filter = ""
         End If
       End If
       rst.MoveNext
@@ -210,12 +214,12 @@ Dim lngItem As Long
   
   With cptSaveLocal_frm
     For lngItem = 0 To .lboMap.ListCount - 1
-      If .lboMap.List(lngItem, 2) > 0 Then
+      If .lboMap.List(lngItem, 3) > 0 Then
         lngECF = .lboMap.List(lngItem, 0)
-        lngLCF = .lboMap.List(lngItem, 2)
+        lngLCF = .lboMap.List(lngItem, 3)
         rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
         'populate the fields
-        For Each oTask In ActiveProject.oTasks
+        For Each oTask In ActiveProject.Tasks
           On Error Resume Next
           If Len(oTask.GetField(lngLCF)) > 0 Then oTask.SetField lngLCF, ""
           If Len(oTask.GetField(lngECF)) > 0 Then
@@ -369,8 +373,6 @@ Function cptInterrogateECF(ByRef oTask As Task, lngField As Long)
   
   On Error Resume Next
   
-  If FieldConstantToFieldName(lngField) = "Product Risk" Then Stop
-  
   'check for outlinecode requirement (has parent-child structure)
   Set oOutlineCode = Application.GlobalOutlineCodes(FieldConstantToFieldName(lngField))
   If Not oOutlineCode Is Nothing Then
@@ -378,8 +380,11 @@ Function cptInterrogateECF(ByRef oTask As Task, lngField As Long)
       cptInterrogateECF = "Outline Code"
       GoTo exit_here
     Else
-      'todo: costs, dates
-      If oOutlineCode.CodeMask(1).Sequence = 7 Then
+      If oOutlineCode.CodeMask(1).Sequence = 4 Then
+        cptInterrogateECF = "Date"
+      ElseIf oOutlineCode.CodeMask(1).Sequence = 5 Then
+        cptInterrogateECF = "Cost"
+      ElseIf oOutlineCode.CodeMask(1).Sequence = 7 Then
         cptInterrogateECF = "Number"
       Else
         cptInterrogateECF = "Text"
@@ -387,7 +392,7 @@ Function cptInterrogateECF(ByRef oTask As Task, lngField As Long)
       GoTo exit_here
     End If
   End If
-    
+   
   oTask.SetField lngField, "xxx"
 
   If Err.Description = "This field only supports positive numbers." Then
@@ -408,10 +413,6 @@ Function cptInterrogateECF(ByRef oTask As Task, lngField As Long)
   ElseIf Err.Description = "The argument value is not valid." Then
     'figure out formula
     If Len(CustomFieldGetFormula(lngField)) > 0 Then
-      strVal = oTask.GetField(lngField)
-      GoTo enhanced_interrogation
-    Else
-      oTask.SetField lngField, oOutlineCode.LookupTable(1).Name
       strVal = oTask.GetField(lngField)
       GoTo enhanced_interrogation
     End If

@@ -152,8 +152,8 @@ Dim lngECF As Long
         Next lngItem
       End If
     End If
-    Me.lboMap.List(Me.lboMap.ListIndex, 2) = Me.lboLocalFields
-    Me.lboMap.List(Me.lboMap.ListIndex, 3) = CustomFieldGetName(Me.lboLocalFields)
+    Me.lboMap.List(Me.lboMap.ListIndex, 3) = Me.lboLocalFields
+    Me.lboMap.List(Me.lboMap.ListIndex, 4) = CustomFieldGetName(Me.lboLocalFields)
   End If
 
 exit_here:
@@ -167,6 +167,47 @@ End Sub
 
 Private Sub cmdSaveLocal_Click()
   Call cptSaveLocal
+End Sub
+
+Private Sub cmdUnmap_Click()
+  'objects
+  'strings
+  'longs
+  Dim lngItem As Long
+  Dim lngLCF As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If MsgBox("Are you sure?", vbQuestion + vbYesNo, "Please Confirm") = vbNo Then GoTo exit_here
+  
+  'get the LCF
+  lngLCF = Me.lboMap.List(Me.lboMap.ListIndex, 3)
+  'delete it
+  CustomFieldDelete lngLCF
+  
+  'remove from lboMap
+  Me.lboMap.List(Me.lboMap.ListIndex, 3) = ""
+  Me.lboMap.List(Me.lboMap.ListIndex, 4) = ""
+  
+  'rename in lboLocal
+  For lngItem = 0 To Me.lboLocalFields.ListCount - 1
+    If Me.lboLocalFields.List(lngItem, 0) = lngLCF Then
+      Me.lboLocalFields.List(lngItem, 1) = FieldConstantToFieldName(lngLCF)
+    End If
+  Next lngItem
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_frm", "cmdUnmap", Err, Erl)
+  Resume exit_here
 End Sub
 
 Private Sub lblShowFormula_Click()
