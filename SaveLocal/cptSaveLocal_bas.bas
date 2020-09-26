@@ -4,6 +4,7 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+'todo: save rst as rstECF for session only
 'todo: create view ECF:Local;ECF:Local;ECF:Local;
 ' -- based on saved map, current selections
 'todo: handle resource custom fields - add toggle option and filter accordinlgy
@@ -83,8 +84,12 @@ Dim vType As Variant
       lngECFCount = lngECFCount + 1
     End If
   Next lngField
-
+  
+  If Dir(cptDir & "\settings\cpt-ecf.adtg") <> vbNullString Then
+    Kill cptDir & "\settings\cpt-ecf.adtg"
+  End If
   rst.Sort = "ECF_Name"
+  rst.Save cptDir & "\settings\cpt-ecf.adtg"
   
   'check for saved map
   
@@ -144,7 +149,8 @@ Dim vType As Variant
       .cboFieldTypes.List(.cboFieldTypes.ListCount - 1, 0) = aTypes.GetKey(lngType)
       .cboFieldTypes.List(.cboFieldTypes.ListCount - 1, 1) = aTypes.GetByIndex(lngType)
     Next lngType
-  
+    
+    .optTasks = True
     .cboFieldTypes.Value = "Text"
   
     .lblStatus.Caption = Format(lngECFCount, "#,##0") & " enterprise custom fields."

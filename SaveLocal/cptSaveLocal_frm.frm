@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptSaveLocal_frm 
    Caption         =   "Save ECF to LCF"
-   ClientHeight    =   5145
+   ClientHeight    =   5415
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   9030.001
+   ClientWidth     =   9960.001
    OleObjectBlob   =   "cptSaveLocal_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -61,6 +61,26 @@ End Sub
 
 Private Sub cmdCancel_Click()
   Unload Me
+End Sub
+
+Private Sub cmdCustomFields_Click()
+'long
+Dim lngSelected As Long
+'string
+Dim strDescription As String
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  Application.CustomizeField
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_frm", "cmdCustomFields_Click()", Err, Erl)
+  Resume exit_here
+  
 End Sub
 
 Private Sub cmdMap_Click()
@@ -241,6 +261,21 @@ Private Sub lblShowFormula_Click()
   If Me.lboMap.ListIndex >= 0 Then
     MsgBox CustomFieldGetFormula(Me.lboMap.List(Me.lboMap.ListIndex, 0)), vbInformation + vbOKOnly, "Formula:"
   End If
+End Sub
+
+Private Sub lblURL_Click()
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_frm", "lblURL_Click", Err, Erl)
+  Resume exit_here
+
 End Sub
 
 Private Sub lboMap_Click()
