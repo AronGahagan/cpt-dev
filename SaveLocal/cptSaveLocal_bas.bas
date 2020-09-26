@@ -15,9 +15,13 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 
 Sub cptShowSaveLocalForm()
 'objects
+Dim oTask As Task
+Dim rstSavedMap As ADODB.Recordset
 Dim aTypes As Object
 Dim rst As ADODB.Recordset
 'strings
+Dim strSaved As String
+Dim strEntity As String
 Dim strGUID As String
 Dim strECF As String
 'longs
@@ -28,43 +32,69 @@ Dim lngECFCount As Long
 'integers
 'doubles
 'booleans
+Dim blnExists As Boolean
 'variants
 Dim vType As Variant
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  cptSpeed True
+  
+  'get project guid
+  If Application.Version < 12 Then
+    strGUID = ActiveProject.DatabaseProjectUniqueID
+  Else
+    strGUID = ActiveProject.GetServerProjectGuid
+  End If
 
-  strGUID = ActiveProject.GetServerProjectGuid
-
+  'prepare to capture all ECFs
   Set rst = CreateObject("ADODB.Recordset")
   rst.Fields.Append "GUID", adGUID
   rst.Fields.Append "pjType", adInteger
+  rst.Fields.Append "ENTITY", adVarChar, 50
   rst.Fields.Append "ECF_Constant", adInteger
   rst.Fields.Append "ECF_Name", adVarChar, 120
-  rst.Fields.Append "LOCAL_Constant", adInteger
-  rst.Fields.Append "LOCAL_Name", adVarChar, 120
+  'rst.Fields.Append "LCF_Constant", adInteger
+  'rst.Fields.Append "LCF_Name", adVarChar, 120
   rst.Open
   
-  'get enterprise custom fields
+  'create a dummy task to interrogate the ECFs
+  Set oTask = ActiveProject.Tasks.Add("<dummy for cpt-save-local>")
+  Application.CalculateProject
+  
+  'get enterprise custom task fields
   For lngField = 188776000 To 188778000 '2000 should do it for now
-    If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
+    If FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
       strECF = FieldConstantToFieldName(lngField)
-      If lngField = FieldNameToFieldConstant(strECF, pjTask) Then
-        lngType = pjTask
-      ElseIf lngField = FieldNameToFieldConstant(strECF, pjResource) Then
-        lngType = pjResource
-      ElseIf lngField = FieldNameToFieldConstant(strECF, pjProject) Then
-        lngType = pjProject
-      Else
-        lngType = 10
-      End If
-      rst.AddNew Array("GUID", "pjType", "ECF_Constant", "ECF_Name"), Array(strGUID, lngType, lngField, FieldConstantToFieldName(lngField))
+      strEntity = cptInterrogateECF(oTask, lngField)
+      rst.AddNew Array("GUID", "pjType", "ENTITY", "ECF_Constant", "ECF_Name"), Array(strGUID, pjTask, strEntity, lngField, FieldConstantToFieldName(lngField))
+      lngECFCount = lngECFCount + 1
+    End If
+  Next lngField
+
+  'get enterprise custom resource fields
+  For lngField = 205553664 To 205555664 '2000 should do it for now
+    If FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
+      strECF = FieldConstantToFieldName(lngField)
+      strEntity = cptInterrogateECF(oTask, lngField)
+      rst.AddNew Array("GUID", "pjType", "ENTITY", "ECF_Constant", "ECF_Name"), Array(strGUID, pjResource, strEntity, lngField, FieldConstantToFieldName(lngField))
       lngECFCount = lngECFCount + 1
     End If
   Next lngField
 
   rst.Sort = "ECF_Name"
-
+  
+  'check for saved map
+  
+  strSaved = cptDir & "\settings\cpt-save-local.adtg"
+  blnExists = Dir(strSaved) <> vbNullString
+  If blnExists Then
+    Set rstSavedMap = CreateObject("ADODB.Recordset")
+    rstSavedMap.Open strSaved
+  End If
+  
+  'populate the form - defaults to task ECFs, text
   With cptSaveLocal_frm
     'populate map
     .lboMap.Clear
@@ -75,10 +105,19 @@ Dim vType As Variant
     End If
     rst.MoveFirst
     Do While Not rst.EOF
-      If UCase(rst(0)) = UCase(strGUID) And rst("pjType") = 0 Then
+      If UCase(rst("GUID")) = UCase(strGUID) And rst("pjType") = 0 Then
         .lboMap.AddItem
-        .lboMap.List(.lboMap.ListCount - 1, 0) = rst(2)
-        .lboMap.List(.lboMap.ListCount - 1, 1) = rst(3)
+        .lboMap.List(.lboMap.ListCount - 1, 0) = rst("ECF_Constant")
+        .lboMap.List(.lboMap.ListCount - 1, 1) = rst("ECF_Name")
+        .lboMap.List(.lboMap.ListCount - 1, 2) = rst("ENTITY")
+        If blnExists Then
+          rstSavedMap.Filter = "GUID='" & strGUID & "' AND ECF_Constant=" & lngField '& " AND ENTITY=" & pjTask
+          If Not rst.EOF Then
+            .lboMap.List(.lboMap.ListCount - 1, 3) = rstSavedMap("LCF_Constant")
+            .lboMap.List(.lboMap.ListCount - 1, 4) = rstSavedMap("LCF_Name")
+          End If
+          rst.Filter = ""
+        End If
       End If
       rst.MoveNext
     Loop
@@ -104,12 +143,18 @@ Dim vType As Variant
     .cboFieldTypes.Value = "Text"
   
     .lblStatus.Caption = Format(lngECFCount, "#,##0") & " enterprise custom fields."
+    oTask.Delete
+    cptSpeed False
     .Show False
     
   End With
 
 exit_here:
   On Error Resume Next
+  cptSpeed False
+  oTask.Delete
+  Set oTask = Nothing
+  Set rstSavedMap = Nothing
   Set vType = Nothing
   Set aTypes = Nothing
   If rst.State Then rst.Close
@@ -123,12 +168,15 @@ End Sub
 
 Sub cptSaveLocal()
 'objects
-Dim Task As Task
+Dim rstSavedMap As ADODB.Recordset
+Dim oTask As Task
 'strings
+Dim strGUID As String
+Dim strSavedMap As String
 'longs
-Dim lngLocal As Long
+Dim lngLCF As Long
 Dim lngECF As Long
-Dim lngMap As Long
+Dim lngItem As Long
 'integers
 'doubles
 'booleans
@@ -136,37 +184,63 @@ Dim lngMap As Long
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  'todo: only cycle through tasks once, mapped field each time
-
+  
+  'get project guid
+  If Application.Version < 12 Then
+    strGUID = ActiveProject.DatabaseProjectUniqueID
+  Else
+    strGUID = ActiveProject.GetServerProjectGuid
+  End If
+  
+  'save map
+  Set rstSavedMap = CreateObject("ADODB.Recordset")
+  strSavedMap = cptDir & "\settings\cpt-save-local.adtg"
+  If Dir(strSavedMap) = vbNullString Then 'create it
+    rstSavedMap.Fields.Append "GUID", adGUID
+    rstSavedMap.Fields.Append "ECF", adBigInt
+    rstSavedMap.Fields.Append "LCF", adBigInt
+    rstSavedMap.Open
+  Else
+    'replace existing saved map
+    rstSavedMap.Filter = "GUID<>'" & strGUID & "'"
+    rstSavedMap.Open strSavedMap
+    rstSavedMap.Save strSavedMap, adPersistADTG
+    rstSavedMap.Open strSavedMap
+  End If
+  
   With cptSaveLocal_frm
-    For lngMap = 0 To .lboMap.ListCount - 1
-      If .lboMap.List(lngMap, 2) > 0 Then
-        lngECF = .lboMap.List(lngMap, 0)
-        lngLocal = .lboMap.List(lngMap, 2)
+    For lngItem = 0 To .lboMap.ListCount - 1
+      If .lboMap.List(lngItem, 2) > 0 Then
+        lngECF = .lboMap.List(lngItem, 0)
+        lngLCF = .lboMap.List(lngItem, 2)
+        rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
         'populate the fields
-        For Each Task In ActiveProject.Tasks
+        For Each oTask In ActiveProject.oTasks
           On Error Resume Next
-          If Len(Task.GetField(lngLocal)) > 0 Then Task.SetField lngLocal, ""
-          If Len(Task.GetField(lngECF)) > 0 Then
-            Task.SetField lngLocal, CStr(Task.GetField(lngECF))
+          If Len(oTask.GetField(lngLCF)) > 0 Then oTask.SetField lngLCF, ""
+          If Len(oTask.GetField(lngECF)) > 0 Then
+            oTask.SetField lngLCF, CStr(oTask.GetField(lngECF))
             If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-            If Task.GetField(lngLocal) <> CStr(Task.GetField(lngECF)) Then
-              MsgBox "There was an error copying from ECF " & CustomFieldGetName(lngECF) & " to LCF " & CustomFieldGetName(lngLocal) & "." & vbCrLf & vbCrLf & "Please validate data types.", vbExclamation + vbOKOnly, "Fail"
+            If oTask.GetField(lngLCF) <> CStr(oTask.GetField(lngECF)) Then
+              MsgBox "There was an error copying from ECF " & CustomFieldGetName(lngECF) & " to LCF " & CustomFieldGetName(lngLCF) & "." & vbCrLf & vbCrLf & "Please validate data types.", vbExclamation + vbOKOnly, "Fail"
               GoTo next_mapping
             End If
           End If
-        Next Task
+        Next oTask
       End If
 next_mapping:
-    Next lngMap
+    Next lngItem
   End With
+
+  rstSavedMap.Save strSavedMap, adPersistADTG
 
   MsgBox "Enteprise Custom Fields saved locally.", vbInformation + vbOKOnly, "Complete"
 
 exit_here:
   On Error Resume Next
-  Set Task = Nothing
+  rstSavedMap.Close
+  Set rstSavedMap = Nothing
+  Set oTask = Nothing
 
   Exit Sub
 err_here:
@@ -276,13 +350,14 @@ err_here:
   Resume exit_here
 End Function
 
-Function cptInterrogateECF(lngField As Long)
+Function cptInterrogateECF(ByRef oTask As Task, lngField As Long)
   'objects
-  Dim oTask As Task
+  Dim oOutlineCode As OutlineCode
   'strings
   Dim strPattern As String
   Dim strVal As String
   'longs
+  Dim lngItem As Long
   Dim lngVal As Long
   'integers
   'doubles
@@ -292,15 +367,29 @@ Function cptInterrogateECF(lngField As Long)
   'dates
   Dim dtVal As Date
   
-  'todo: determine if field is task, project, or resource type
+  On Error Resume Next
   
-  On Error Resume Next
-     
-  'todo: create only a single task and interrogate all ECFs at once on form load
-  Set oTask = ActiveProject.Tasks.Add("deleteMe")
+  If FieldConstantToFieldName(lngField) = "Product Risk" Then Stop
+  
+  'check for outlinecode requirement (has parent-child structure)
+  Set oOutlineCode = Application.GlobalOutlineCodes(FieldConstantToFieldName(lngField))
+  If Not oOutlineCode Is Nothing Then
+    If oOutlineCode.CodeMask.Count > 1 Then
+      cptInterrogateECF = "Outline Code"
+      GoTo exit_here
+    Else
+      'todo: costs, dates
+      If oOutlineCode.CodeMask(1).Sequence = 7 Then
+        cptInterrogateECF = "Number"
+      Else
+        cptInterrogateECF = "Text"
+      End If
+      GoTo exit_here
+    End If
+  End If
     
-  On Error Resume Next
   oTask.SetField lngField, "xxx"
+
   If Err.Description = "This field only supports positive numbers." Then
     cptInterrogateECF = "Cost"
   ElseIf Err.Description = "The date you entered isn't supported for this field." Then
@@ -311,18 +400,18 @@ Function cptInterrogateECF(lngField As Long)
     cptInterrogateECF = "Flag"
   ElseIf Err.Description = "This field only supports numbers." Then
     cptInterrogateECF = "Number"
-  ElseIf Err.Description = "This is not a valid lookup table value." Then
+  ElseIf Err.Description = "This is not a valid lookup table value." Or Err.Description = "The value you entered does not exist in the lookup table of this code" Then
     'select the first value and check it
-    'fails if text picklist has cost
-    'fails if text picklist has dates
-    'fails if text picklist has numbers
-    'fails if text picklist has currency label
-    oTask.SetField lngField, Application.CustomFieldValueListGetItem(lngField, pjValueListValue, 1)
+    oTask.SetField lngField, oOutlineCode.LookupTable(1).Name
     strVal = oTask.GetField(lngField)
     GoTo enhanced_interrogation
   ElseIf Err.Description = "The argument value is not valid." Then
     'figure out formula
     If Len(CustomFieldGetFormula(lngField)) > 0 Then
+      strVal = oTask.GetField(lngField)
+      GoTo enhanced_interrogation
+    Else
+      oTask.SetField lngField, oOutlineCode.LookupTable(1).Name
       strVal = oTask.GetField(lngField)
       GoTo enhanced_interrogation
     End If
@@ -345,11 +434,12 @@ enhanced_interrogation:
   'check for number
   On Error Resume Next
   lngVal = oTask.GetField(lngField)
-  If Err.Number = 0 Then
+  If Err.Number = 0 And Len(oTask.GetField(lngField)) = Len(CStr(lngVal)) Then
     cptInterrogateECF = "Number"
     GoTo exit_here
   End If
   
+  'check for date
   On Error Resume Next
   dtVal = oTask.GetField(lngField)
   If Err.Number = 0 Then
@@ -357,30 +447,34 @@ enhanced_interrogation:
     GoTo exit_here
   End If
   
+  'could be flag
   If Len(cptRegEx(strVal, "Yes|No")) > 0 Then
-    cptInterrogateECF = "MaybeFlag"
+    On Error Resume Next
+    Set oOutlineCode = GlobalOutlineCodes(FieldConstantToFieldName(lngField))
+    If oOutlineCode Is Nothing Then
+      cptInterrogateECF = "MaybeFlag"
+    Else
+      cptInterrogateECF = "Text"
+    End If
     GoTo exit_here
   End If
   
-  Err.Clear
+  On Error Resume Next
   strVal = oTask.GetField(lngField)
   'could be duration
   If strVal = DurationFormat(DurationValue(strVal), ActiveProject.DefaultDurationUnits) Then
-    cptInterrogateECF = "Duration"
-    GoTo exit_here
+    If Err.Number = 0 Then
+      cptInterrogateECF = "Duration"
+      GoTo exit_here
+    End If
   End If
   
-  'could be flag
-  
-  
-  'otherwise, it's (probably) text
+  'otherwise, it's most likely text
   cptInterrogateECF = "Text"
 
 exit_here:
-  Err.Clear
   On Error Resume Next
-  oTask.Delete
-  Set oTask = Nothing
+  Set oOutlineCode = Nothing
   
   Exit Function
 err_here:
@@ -389,8 +483,7 @@ err_here:
   Resume exit_here
 End Function
 
-
-Sub cptGetAllFields()
+Sub cptGetAllFields(lngFrom As Long, lngTo As Long)
   'objects
   Dim oWorksheet As Worksheet
   Dim oWorkbook As Workbook
@@ -402,8 +495,8 @@ Sub cptGetAllFields()
   Dim strFile As String
   Dim strFieldName As String
   'longs
-  Dim lngTo As Long
-  Dim lngFrom As Long
+  'Dim lngTo As Long
+  'Dim lngFrom As Long
   Dim lngFile As Long
   Dim lngField As Long
   'integers
@@ -411,6 +504,8 @@ Sub cptGetAllFields()
   'booleans
   'variants
   'dates
+  
+  GoTo exit_here
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -427,8 +522,8 @@ Sub cptGetAllFields()
   '218103807 highest and enterprise
   
   'restart at 188800001
-  lngFrom = 215000001
-  lngTo = 218103807
+  'lngFrom = 215000001
+  'lngTo = 218103807
   
   For lngField = lngFrom To lngTo
     strFieldName = FieldConstantToFieldName(lngField)
