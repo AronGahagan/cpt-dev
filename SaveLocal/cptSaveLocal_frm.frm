@@ -149,8 +149,9 @@ Private Sub cmdUnmap_Click()
     rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND ECF=" & lngECF & " AND LCF=" & lngLCF
     If Not rstSavedMap.EOF Then
       rstSavedMap.Delete adAffectCurrent
-      rstSavedMap.Save
     End If
+    rstSavedMap.Filter = ""
+    rstSavedMap.Save strSavedMap, adPersistADTG
   End If
   
   'remove from lboECF
@@ -181,6 +182,7 @@ Private Sub lblSelectAll_Click()
       Me.lboECF.Selected(lngItem) = True
     End If
   Next lngItem
+  Call cptAnalyzeAutoMap
 End Sub
 
 Private Sub lblSelectNone_Click()
@@ -188,6 +190,7 @@ Private Sub lblSelectNone_Click()
   For lngItem = 0 To Me.lboECF.ListCount - 1
     Me.lboECF.Selected(lngItem) = False
   Next lngItem
+  Call cptAnalyzeAutoMap
 End Sub
 
 Private Sub lblShowFormula_Click()

@@ -4,7 +4,6 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-'todo: save rst as rstECF for session only
 'todo: create view ECF:Local;ECF:Local;ECF:Local;
 ' -- based on saved map, current selections
 'todo: handle resource custom fields - add toggle option and filter accordinlgy
@@ -13,6 +12,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 'todo: handle when user changes custom fields manually -- onmouseover
 'todo: code up the search filter
 'todo: redesign form-lboECF wider; lboLocal more narrow
+'todo: export map to excel
 
 Sub cptShowSaveLocalForm()
 'objects
@@ -653,7 +653,7 @@ End Sub
 
 Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
   'objects
-  Dim rstSavedMap As Object
+  Dim rstSavedMap As ADODB.Recordset
   Dim oLookupTableEntry As LookupTableEntry
   Dim oOutlineCodeLocal As OutlineCode
   Dim oOutlineCode As OutlineCode
@@ -795,14 +795,14 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
       rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
     End If
     rstSavedMap.Filter = ""
-    rstSavedMap.Save
+    rstSavedMap.Save strSavedMap, adPersistADTG
   Else 'create it
     rstSavedMap.Fields.Append "GUID", adGUID
     rstSavedMap.Fields.Append "ECF", adInteger
     rstSavedMap.Fields.Append "LCF", adInteger
     rstSavedMap.Open
     rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
-    rstSavedMap.Save
+    rstSavedMap.Save strSavedMap, adPersistADTG
   End If
   rstSavedMap.Close
   
