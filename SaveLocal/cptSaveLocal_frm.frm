@@ -171,8 +171,12 @@ End Sub
 
 Private Sub cmdUnmap_Click()
   'objects
+  Dim rstSavedMap As ADODB.Recordset
   'strings
+  Dim strGUID As String
+  Dim strSavedMap As String
   'longs
+  Dim lngECF As Long
   Dim lngItem As Long
   Dim lngLCF As Long
   'integers
@@ -183,12 +187,33 @@ Private Sub cmdUnmap_Click()
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+  If Me.lboMap.ListIndex < 0 Then GoTo exit_here
+
   If MsgBox("Are you sure?", vbQuestion + vbYesNo, "Please Confirm") = vbNo Then GoTo exit_here
   
-  'get the LCF
+  'get the ECF and LCF
+  lngECF = Me.lboMap.List(Me.lboMap.ListIndex, 0)
   lngLCF = Me.lboMap.List(Me.lboMap.ListIndex, 3)
-  'delete it
+  
+  'delete it from LCF
   CustomFieldDelete lngLCF
+  
+  'delete it from saved map
+  If Application.Version < 12 Then
+    strGUID = ActiveProject.DatabaseProjectUniqueID
+  Else
+    strGUID = ActiveProject.GetServerProjectGuid
+  End If
+  strSavedMap = cptDir & "\settings\cpt-save-local.adtg"
+  If Dir(strSavedMap) <> vbNullString Then
+    Set rstSavedMap = CreateObject("ADODB.Recordset")
+    rstSavedMap.Open strSavedMap
+    rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND ECF=" & lngECF & " AND LCF=" & lngLCF
+    If Not rstSavedMap.EOF Then
+      rstSavedMap.Delete adAffectCurrent
+      rstSavedMap.Save
+    End If
+  End If
   
   'remove from lboMap
   Me.lboMap.List(Me.lboMap.ListIndex, 3) = ""
@@ -203,6 +228,7 @@ Private Sub cmdUnmap_Click()
 
 exit_here:
   On Error Resume Next
+  Set rstSavedMap = Nothing
 
   Exit Sub
 err_here:

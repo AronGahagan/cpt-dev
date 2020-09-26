@@ -6,12 +6,11 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 
 'todo: create view ECF:Local;ECF:Local;ECF:Local;
 ' -- based on saved map, current selections
-'todo: determine ECF field type and auto-change cboTypes upon selection
-'todo: handle resource and project custom fields
-'todo: import saved map or create new on cmdSave_Click
-'todo: save mapping by project GUID
+'todo: handle resource custom fields
 'todo: process is: import with enterprise open, then save as mpp
 'todo: make compatible with master/sub projects
+'todo: handle when user changes custom fields manually -- onmouseover
+'todo: code up the search filter
 
 Sub cptShowSaveLocalForm()
 'objects
@@ -251,108 +250,6 @@ err_here:
   Call cptHandleErr("cptSaveLocal_bas", "cptSaveLocal", Err, Erl)
   Resume exit_here
 End Sub
-
-Function cptGetECFType()
-'objects
-Dim rstValues As ADODB.Recordset
-Dim rstFields As ADODB.Recordset
-Dim oTask As Task
-'strings
-Dim strRecord As String
-Dim strFields As String
-Dim strValues As String
-Dim strCon As String
-Dim strDir As String
-Dim strSQL As String
-Dim strFile As String
-'longs
-Dim lngField As Long
-Dim lngFields As Long
-Dim lngValues As Long
-Dim lngItem As Long
-Dim lngGOC As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
-
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
-  'define dir
-  strDir = Environ("USERPROFILE")
-  'define fields csv
-  strFields = "ecf_fields.csv"
-  lngFields = FreeFile
-  Open strDir & "\" & strFields For Output As #lngFields
-  
-  'first capture the ecf fields
-  lngItem = 0
-  For lngField = 188776000 To 188778000 '2000 should do it for now
-    If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
-      Print #lngFields, lngItem & "," & lngField & "," & FieldConstantToFieldName(lngField)
-      lngItem = lngItem + 1
-    End If
-  Next lngField
-  
-  'define values csv
-  strValues = "ecf_values.csv"
-  lngValues = FreeFile
-  Open strDir & "\" & strValues For Output As #lngValues
-  
-  For Each oTask In ActiveProject.Tasks
-    lngItem = 0
-    'get enterprise custom fields
-    For lngField = 188776000 To 188778000 '2000 should do it for now
-      If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
-        strRecord = strRecord & oTask.GetField(lngField) & ","
-        lngItem = lngItem + 1
-        If lngItem = 33 Then Stop
-      End If
-    Next lngField
-    Print #lngValues, oTask.UniqueID & "," & strRecord
-    strRecord = ""
-  Next oTask
-  Close #lngFields
-  Close #lngValues
-  
-  strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strDir & "';Extended Properties='text;HDR=No;IMEX=2;FMT=Delimited';"
-  Set rstFields = CreateObject("ADODB.Recordset")
-  rstFields.Open "SELECT * FROM [" & strFields & "]", strCon, adOpenKeyset
-  Set rstValues = CreateObject("ADODB.Recordset")
-  rstValues.Open "SELECT * FROM [" & strValues & "]", strCon, adOpenKeyset
-  rstFields.MoveFirst
-  Do While Not rstFields.EOF
-    Debug.Print rstFields(0); rstFields(1); rstFields(2); rstValues.Fields(rstFields.AbsolutePosition - 1).Type
-    rstFields.MoveNext
-  Loop
-  rstFields.Close
-  rstValues.Close
-  
-  '3 = adInteger = Number
-  '202 = adVarWChar = Text
-  
-  Kill strDir & "\" & strFields
-  Kill strDir & "\" & strValues
-  
-'  'todo: use this to at least capture which ECFs are Outline Codes
-'  For lngGOC = 1 To Application.GlobalOutlineCodes.Count
-'
-'  Next lngGOC
-
-exit_here:
-  On Error Resume Next
-  Set rstValues = Nothing
-  If rstFields.State Then rstFields.Close
-  Set rstFields = Nothing
-  Set oTask = Nothing
-
-  Exit Function
-err_here:
-  'Call HandleErr("foo", "bar", Err)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
-  Resume exit_here
-End Function
 
 Function cptInterrogateECF(ByRef oTask As Task, lngField As Long)
   'objects
