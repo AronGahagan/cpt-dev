@@ -406,6 +406,9 @@ If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If Len(strStartFilter) > 0 Then FilterApply strStartFilter
   If Len(strStartGroup) > 0 Then GroupApply strStartGroup
   
+  ActiveProject.Views(".cptSaveLocal Task View").Delete
+  ActiveProject.TaskTables(".cptSaveLocal Task Table").Delete
+  
 exit_here:
   On Error Resume Next
 

@@ -8,18 +8,21 @@ Public strStartTable As String
 Public strStartFilter As String
 Public strStartGroup As String
 
-'todo: create view ECF:Local;ECF:Local;ECF:Local;
-' -- based on saved map, current selections
 'todo: handle resource custom fields - add toggle option and filter accordinlgy
 'todo: process is: import with enterprise open, then save as mpp
 'todo: make compatible with master/sub projects
 'todo: handle when user changes custom fields manually -- onmouseover
 'todo: code up the search filter
-'todo: redesign form-lboECF wider; lboLocal more narrow
-'todo: export map to excel
 
 Sub cptShowSaveLocalForm()
 'objects
+Dim oListObject As ListObject
+Dim aProjects As ArrayList
+Dim oSubproject As SubProject
+Dim oMasterProject As Project
+Dim oWorksheet As Worksheet
+Dim oWorkbook As Workbook
+Dim oExcel As Excel.Application
 Dim oTask As Task
 Dim rstSavedMap As ADODB.Recordset
 Dim aTypes As Object
@@ -30,6 +33,11 @@ Dim strEntity As String
 Dim strGUID As String
 Dim strECF As String
 'longs
+Dim lngMismatchCount As Long
+Dim lngLastRow As Long
+Dim lngSubproject As Long
+Dim lngProject As Long
+Dim lngSubprojectCount As Long
 Dim lngField As Long
 Dim lngFields As Long
 Dim lngType As Long
@@ -39,11 +47,119 @@ Dim lngECFCount As Long
 'booleans
 Dim blnExists As Boolean
 'variants
+Dim vEntity As Variant
 Dim vType As Variant
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'setup array of types/counts
+  Set aTypes = CreateObject("System.Collections.SortedList")
+  'record: field type, number of available custom fields
+  For Each vType In Array("Cost", "Date", "Duration", "Finish", "Start", "Outline Code")
+    aTypes.Add vType, 10
+  Next
+  aTypes.Add "Flag", 20
+  aTypes.Add "Number", 20
+  aTypes.Add "Text", 30
+  
+  'if master/sub then ensure LCFs match
+  lngSubprojectCount = ActiveProject.Subprojects.Count
+  If lngSubprojectCount > 0 Then
+    If MsgBox(lngSubprojectCount & " subproject(s) found." & vbCrLf & vbCrLf & "It is highly recommended that you analyze master/sub LCF matches." & vbCrLf & vbCrLf & "Do it now?", vbExclamation + vbYesNo, "Master/Sub Detected") = vbNo Then GoTo skip_it
+    Set oMasterProject = ActiveProject
+    Application.StatusBar = "Analyzing subprojects..."
+    'set up Excel
+    Set oExcel = CreateObject("Excel.Application")
+    oExcel.WindowState = xlMaximized
+    'oExcel.Visible = True
+    Set oWorkbook = oExcel.Workbooks.Add
+    oExcel.ScreenUpdating = False
+    oExcel.Calculation = xlCalculationManual
+    Set oWorksheet = oWorkbook.Sheets(1)
+    oExcel.ActiveWindow.Zoom = 85
+    oExcel.ActiveWindow.SplitRow = 2
+    oExcel.ActiveWindow.SplitColumn = 4
+    oExcel.ActiveWindow.FreezePanes = True
+    oWorksheet.Name = "Sync"
+    'set up headers
+    oWorksheet.[A1:D1].Merge
+    oWorksheet.[A1] = "LCF"
+    oWorksheet.[A1].HorizontalAlignment = xlCenter
+    oWorksheet.[A2:D2] = Array("ENTITY", "TYPE", "CONSTANT", "NAME")
+    'capture master and subproject names
+    oWorksheet.Cells(1, 5) = oMasterProject.Name
+    oWorksheet.Columns.AutoFit
+    cptSpeed True
+    Set aProjects = CreateObject("System.Collections.ArrayList")
+    aProjects.Add oMasterProject.Name
+    For Each oSubproject In oMasterProject.Subprojects
+      FileOpenEx oSubproject.SourceProject.FullName, True
+      aProjects.Add ActiveProject.Name
+    Next oSubproject
+    For lngProject = 0 To aProjects.Count - 1
+      Application.StatusBar = "Analyzing " & aProjects(lngProject) & "..."
+      DoEvents
+      lngLastRow = 2
+      Projects(aProjects(lngProject)).Activate
+      oWorksheet.Cells(1, 5 + lngProject) = aProjects(lngProject)
+      oWorksheet.Cells(2, 5 + lngProject) = "CUSTOM NAME"
+      For Each vEntity In Array(pjTask, pjResource)
+        For lngType = 0 To aTypes.Count - 1
+          For lngField = 1 To aTypes.getByIndex(lngType)
+            lngLastRow = lngLastRow + 1
+            If lngProject = 0 Then
+              'lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row + 1
+              oWorksheet.Cells(lngLastRow, 1) = Choose(vEntity + 1, "Task", "Resource")
+              oWorksheet.Cells(lngLastRow, 2) = aTypes.getKey(lngType)
+            End If
+            lngLCF = FieldNameToFieldConstant(aTypes.getKey(lngType) & lngField, vEntity)
+            'If lngLCF = 188744096 Then Stop
+            If lngProject = 0 Then
+              oWorksheet.Cells(lngLastRow, 3) = lngLCF
+              oWorksheet.Cells(lngLastRow, 4) = FieldConstantToFieldName(lngLCF)
+            End If
+            oExcel.ActiveWindow.ScrollRow = lngLastRow
+            oWorksheet.Cells(lngLastRow, 5 + lngProject) = CustomFieldGetName(lngLCF)
+            oWorksheet.Cells.Columns.AutoFit
+          Next lngField
+        Next lngType
+      Next vEntity
+    Next lngProject
+    'add a formula
+    oWorksheet.Cells(2, 5 + lngProject) = "MATCH"
+    oWorksheet.Range(oWorksheet.Cells(3, 5 + lngProject), oWorksheet.Cells(lngLastRow, 5 + lngProject)).FormulaR1C1 = "=AND(EXACT(RC[-5],RC[-4]),EXACT(RC[-4],RC[-3]),EXACT(RC[-3],RC[-2]),EXACT(RC[-2],RC[-1]))"
+    Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.Cells(2, 1), oWorksheet.Cells(lngLastRow, 5 + lngProject)), , xlYes)
+    oListObject.TableStyle = ""
+    oExcel.Calculation = xlCalculationAutomatic
+    oWorksheet.Range(oWorksheet.Cells(2, 1), oWorksheet.Cells(2, 5 + lngProject)).AutoFilter 5 + lngProject, False
+    oWorksheet.Columns.AutoFit
+    oExcel.ActiveWindow.ScrollRow = 2
+    oMasterProject.Activate
+    For lngProject = 0 To aProjects.Count - 1
+      If aProjects(lngProject) <> oMasterProject.Name Then
+        Projects(aProjects(lngProject)).Activate
+        Application.FileCloseEx pjDoNotSave
+      End If
+    Next lngProject
+    cptSpeed False
+    lngMismatchCount = oListObject.DataBodyRange.Rows.Count
+    If lngMismatchCount > 0 Then
+      oExcel.ActivateMicrosoftApp xlMicrosoftProject
+      MsgBox "Local Custom Fields do not match between Master and all Subprojects!", vbCritical + vbOKOnly, "Warning"
+      oExcel.ScreenUpdating = True
+      oExcel.Visible = True
+      Application.ActivateMicrosoftApp pjMicrosoftExcel
+      GoTo exit_here
+    Else
+      oWorkbook.Close False
+      oExcel.Quit
+    End If
     
+  End If
+  
+skip_it:
+
   'get project guid
   If Application.Version < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
@@ -85,23 +201,13 @@ Dim vType As Variant
   Set oTask = ActiveProject.Tasks.Add("<dummy for cpt-save-local>")
   Application.CalculateProject
   
-  'show the form?
-  Set aTypes = CreateObject("System.Collections.SortedList")
-  'record: field type, number of available custom fields
-  For Each vType In Array("Cost", "Date", "Duration", "Finish", "Start", "Outline Code")
-    aTypes.Add vType, 10
-  Next
-  aTypes.Add "Flag", 20
-  aTypes.Add "Number", 20
-  aTypes.Add "Text", 30
-  
   'populate field types
   With cptSaveLocal_frm
     .cboLCF.Clear
     For lngType = 0 To aTypes.Count - 1
       .cboLCF.AddItem
       .cboLCF.List(.cboLCF.ListCount - 1, 0) = aTypes.getKey(lngType)
-      .cboLCF.List(.cboLCF.ListCount - 1, 1) = aTypes.GetByIndex(lngType)
+      .cboLCF.List(.cboLCF.ListCount - 1, 1) = aTypes.getByIndex(lngType)
     Next lngType
     
     .cmdAutoMap.Visible = False
@@ -199,11 +305,24 @@ Dim vType As Variant
 
 exit_here:
   On Error Resume Next
+  Set oListObject = Nothing
+  Set aProjects = Nothing
+  Set oSubproject = Nothing
+  Set oMasterProject = Nothing
+  Set aProjects = Nothing
+  Application.StatusBar = ""
+  Set oWorksheet = Nothing
+  oExcel.Calculation = xlCalculationAutomatic
+  oExcel.ScreenUpdating = True
+  oExcel.Visible = True
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
   cptSpeed False
   oTask.Delete
   Set oTask = Nothing
   Set rstSavedMap = Nothing
   Set vType = Nothing
+  aTypes.Clear
   Set aTypes = Nothing
   If rst.State Then rst.Close
   Set rst = Nothing
@@ -236,6 +355,8 @@ Dim lngItem As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
+  'todo: ensure there is some mapping?
+  
   'get project guid
   If Application.Version < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
@@ -256,12 +377,15 @@ Dim lngItem As Long
     rstSavedMap.Filter = "GUID<>'" & strGUID & "'"
     rstSavedMap.Open strSavedMap
     rstSavedMap.Save strSavedMap, adPersistADTG
-    rstSavedMap.Open strSavedMap
+    'rstSavedMap.Open strSavedMap
   End If
   
   'get total task count
   ActiveWindow.TopPane.Activate
-  Call ViewApply("cpt_SaveLocal")
+  'todo: task vs resource
+  If ActiveProject.CurrentView <> ".cptSaveLocal Task View" Then
+    ViewApply ".cpt_SaveLocal Task View"
+  End If
   FilterClear
   GroupClear
   OutlineShowAllTasks
@@ -286,20 +410,20 @@ Dim lngItem As Long
           lngLCF = .lboECF.List(lngItem, 3)
           'no duplicates
           'todo: does Filter = X AND (Y OR Z) work?
-          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND ECF=" & lngECF
-          If rstSavedMap.RecordCount = 1 Then
+'          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND ECF=" & lngECF
+'          If rstSavedMap.RecordCount = 1 Then
             'overwrite it
-            rstSavedMap.Delete adAffectCurrent
-          End If
-          rstSavedMap.Filter = ""
-          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND LCF=" & lngLCF
-          If rstSavedMap.RecordCount = 1 Then
+'            rstSavedMap.Delete adAffectCurrent
+'          End If
+'          rstSavedMap.Filter = ""
+'          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND LCF=" & lngLCF
+'          If rstSavedMap.RecordCount = 1 Then
             'overwrite it
-            rstSavedMap.Delete adAffectCurrent
-          End If
-          rstSavedMap.Filter = ""
+'            rstSavedMap.Delete adAffectCurrent
+'          End If
+'          rstSavedMap.Filter = ""
           'add the new record
-          rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
+'          rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
           'first clear the values
           If Len(oTask.GetField(lngLCF)) > 0 Then oTask.SetField lngLCF, ""
           'if ECF is formula, then skip it
@@ -322,7 +446,7 @@ next_mapping:
 
   'todo: resource ECF > LCF
 
-  rstSavedMap.Save strSavedMap, adPersistADTG
+'  rstSavedMap.Save strSavedMap, adPersistADTG
 
   MsgBox "Enteprise Custom Fields saved locally.", vbInformation + vbOKOnly, "Complete"
 
