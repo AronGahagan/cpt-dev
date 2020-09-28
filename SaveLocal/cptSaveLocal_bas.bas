@@ -63,7 +63,9 @@ Dim vType As Variant
   ViewApply "Gantt Chart"
   TableEditEx ".cptSaveLocal Task Table", True, True, True, , "ID", , , , , , True, , , , , , , , False
   TableEditEx ".cptSaveLocal Task Table", True, False, , , , "Unique ID", "UID", , , , True
+  On Error Resume Next
   ActiveProject.Views(".cptSaveLocal Task View").Delete
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   ViewEditSingle ".cptSaveLocal Task View", True, , pjTaskSheet, , , ".cptSaveLocal Task Table", "All Tasks", "No Group"
   ViewApply ".cptSaveLocal Task View"
   cptSpeed False
@@ -73,10 +75,10 @@ Dim vType As Variant
   rst.Fields.Append "GUID", adGUID
   rst.Fields.Append "pjType", adInteger
   rst.Fields.Append "ENTITY", adVarChar, 50
-  rst.Fields.Append "ECF_Constant", adInteger
+  rst.Fields.Append "ECF", adInteger
   rst.Fields.Append "ECF_Name", adVarChar, 120
-  'rst.Fields.Append "LCF_Constant", adInteger
-  'rst.Fields.Append "LCF_Name", adVarChar, 120
+  rst.Fields.Append "LCF", adInteger
+  rst.Fields.Append "LCF_Name", adVarChar, 120
   rst.Open
   
   'create a dummy task to interrogate the ECFs
@@ -95,11 +97,11 @@ Dim vType As Variant
   
   'populate field types
   With cptSaveLocal_frm
-    .cboFieldTypes.Clear
+    .cboLCF.Clear
     For lngType = 0 To aTypes.Count - 1
-      .cboFieldTypes.AddItem
-      .cboFieldTypes.List(.cboFieldTypes.ListCount - 1, 0) = aTypes.getKey(lngType)
-      .cboFieldTypes.List(.cboFieldTypes.ListCount - 1, 1) = aTypes.GetByIndex(lngType)
+      .cboLCF.AddItem
+      .cboLCF.List(.cboLCF.ListCount - 1, 0) = aTypes.getKey(lngType)
+      .cboLCF.List(.cboLCF.ListCount - 1, 1) = aTypes.GetByIndex(lngType)
     Next lngType
     
     .cmdAutoMap.Visible = False
@@ -107,7 +109,7 @@ Dim vType As Variant
     .txtAutoMap.Visible = False
     .chkAutoSwitch = True
     .optTasks = True
-    .cboFieldTypes.Value = "Text"
+    .cboLCF.Value = "Text"
     
     .Show False
   End With
@@ -117,7 +119,7 @@ Dim vType As Variant
     If FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
       strECF = FieldConstantToFieldName(lngField)
       strEntity = cptInterrogateECF(oTask, lngField)
-      rst.AddNew Array("GUID", "pjType", "ENTITY", "ECF_Constant", "ECF_Name"), Array(strGUID, pjTask, strEntity, lngField, FieldConstantToFieldName(lngField))
+      rst.AddNew Array("GUID", "pjType", "ENTITY", "ECF", "ECF_Name"), Array(strGUID, pjTask, strEntity, lngField, FieldConstantToFieldName(lngField))
       lngECFCount = lngECFCount + 1
     End If
     cptSaveLocal_frm.lblStatus.Caption = "Analyzing Task ECFs...(" & Format(((lngField - 188776000) / (188778000 - 188776000)), "0%") & ")"
@@ -130,7 +132,7 @@ Dim vType As Variant
     If FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
       strECF = FieldConstantToFieldName(lngField)
       strEntity = cptInterrogateECF(oTask, lngField)
-      rst.AddNew Array("GUID", "pjType", "ENTITY", "ECF_Constant", "ECF_Name"), Array(strGUID, pjResource, strEntity, lngField, FieldConstantToFieldName(lngField))
+      rst.AddNew Array("GUID", "pjType", "ENTITY", "ECF", "ECF_Name"), Array(strGUID, pjResource, strEntity, lngField, FieldConstantToFieldName(lngField))
       lngECFCount = lngECFCount + 1
     End If
     cptSaveLocal_frm.lblStatus.Caption = "Analyzing Resource ECFs...(" & Format((lngField - 205553664) / (205555664 - 205553664), "0%") & ")"
@@ -165,11 +167,11 @@ Dim vType As Variant
     Do While Not rst.EOF
       If UCase(rst("GUID")) = UCase(strGUID) And rst("pjType") = 0 Then
         .lboECF.AddItem
-        .lboECF.List(.lboECF.ListCount - 1, 0) = rst("ECF_Constant")
+        .lboECF.List(.lboECF.ListCount - 1, 0) = rst("ECF")
         .lboECF.List(.lboECF.ListCount - 1, 1) = rst("ECF_Name")
         .lboECF.List(.lboECF.ListCount - 1, 2) = rst("ENTITY")
         If blnExists Then
-          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND ECF=" & rst("ECF_Constant") '& " AND ENTITY=" & pjTask
+          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND ECF=" & rst("ECF") '& " AND ENTITY=" & pjTask
           If Not rstSavedMap.EOF Then
             .lboECF.List(.lboECF.ListCount - 1, 3) = rstSavedMap("LCF")
             If Len(CustomFieldGetName(rstSavedMap("LCF"))) > 0 Then
@@ -692,7 +694,7 @@ Sub cptAutoMap()
       If .lboECF.Selected(lngECFs) Then
         lngECF = .lboECF.List(lngECFs, 0)
         'switch cbo types to get list of lngLCFs
-        If .cboFieldTypes <> .lboECF.List(lngECFs, 2) Then .cboFieldTypes = .lboECF.List(lngECFs, 2)
+        If .cboLCF <> .lboECF.List(lngECFs, 2) Then .cboLCF = .lboECF.List(lngECFs, 2)
         'loop through LCFs looking for one available
         For lngLCFs = 0 To .lboLCF.ListCount - 1
           lngLCF = .lboLCF.List(lngLCFs, 0)
@@ -883,8 +885,12 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
   rstSavedMap.Close
   
   'update the table
-  TableEditEx ".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(lngECF), , , , , True, , , , , , , , False
-  TableEditEx ".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(lngLCF), , , , , True, , , , , , , , False
+  If Not TableEditEx(".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(lngECF), , , , , True, , , , , , , , False) Then
+    MsgBox "Failed to add column " & FieldConstantToFieldName(lngECF) & "!", vbExclamation + vbOKOnly, "Fail"
+  End If
+  If Not TableEditEx(".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(lngLCF), , , , , True, , , , , , , , False) Then
+    MsgBox "Failed to add column " & FieldConstantToFieldName(lngECF) & "!", vbExclamation + vbOKOnly, "Fail"
+  End If
   TableApply ".cptSaveLocal Task Table"
   
 exit_here:
@@ -899,3 +905,70 @@ err_here:
   Resume exit_here
 End Sub
 
+Private Sub cptExportCFMap()
+  'objects
+  Dim rstSavedMap As ADODB.Recordset
+  'strings
+  Dim strSavedMapExport As String
+  Dim strGUID As String
+  Dim strSavedMap As String
+  'longs
+  Dim lngFile As Long
+  Dim lngProjectCount As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  'ensure file exists
+  strSavedMap = cptDir & "\settings\cpt-save-local.adtg"
+  If Dir(strSavedMap) = vbNullString Then
+    MsgBox "You have no saved map for this project.", vbExclamation + vbOKOnly, "No Map"
+    GoTo exit_here
+  End If
+  
+  If Application.Version < 12 Then
+    strGUID = ActiveProject.DatabaseProjectUniqueID
+  Else
+    strGUID = ActiveProject.GetServerProjectGuid
+  End If
+  
+  'prepare an export csv file
+  lngFile = FreeFile
+  strSavedMapExport = Environ("USERPROFILE") & "\Downloads\"
+  If Dir(strSavedMapExport, vbDirectory) = vbNullString Then
+    strSavedMapExport = Environ("USERPROFILE")
+  End If
+  strSavedMapExport = strSavedMapExport & "cpt-saved-map.csv"
+  If Dir(strSavedMapExport) <> vbNullString Then Kill strSavedMapExport
+  Open strSavedMapExport For Output As #lngFile
+  'open the filtered recordset and export it
+  Set rstSavedMap = CreateObject("ADODB.Recordset")
+  With rstSavedMap
+    .Open strSavedMap, "Provider=MSPersist", , , adCmdFile
+    .Filter = "GUID='" & UCase(strGUID) & "'"
+    If .RecordCount = 0 Then
+      MsgBox "You have no saved map for this project.", vbExclamation + vbOKOnly, "No Map"
+    Else
+      Print #lngFile, .GetString(adClipString, , ",", vbCrLf, vbNullString)
+    End If
+    Close #lngFile
+    .Filter = ""
+    .Close
+  End With
+  
+  MsgBox "Map saved to '" & strSavedMapExport & "'", vbInformation + vbOKOnly, "Export Complete"
+    
+exit_here:
+  On Error Resume Next
+  rstSavedMap.Close
+  Set rstSavedMap = Nothing
+  Close #lngFile
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_bas", "cptSaveLocal_frm", Err, Erl)
+  Resume exit_here
+End Sub

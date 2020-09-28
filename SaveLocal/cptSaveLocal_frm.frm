@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptSaveLocal_frm 
    Caption         =   "Save ECF to LCF"
-   ClientHeight    =   5415
+   ClientHeight    =   6975
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   9960.001
+   ClientWidth     =   12000
    OleObjectBlob   =   "cptSaveLocal_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -18,7 +18,7 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Private Sub cboFieldTypes_Change()
+Private Sub cboLCF_Change()
 'objects
 'strings
 Dim strFieldName As String
@@ -35,14 +35,14 @@ Dim lngField As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   Me.lboLCF.Clear
-  lngFields = Me.cboFieldTypes.Column(1)
+  lngFields = Me.cboLCF.Column(1)
   For lngField = 1 To lngFields
-    strFieldName = Me.cboFieldTypes.Column(0) & lngField
+    strFieldName = Me.cboLCF.Column(0) & lngField
     lngFieldID = FieldNameToFieldConstant(strFieldName)
-    If Len(CustomFieldGetName(FieldNameToFieldConstant(Me.cboFieldTypes.Column(0) & lngField))) > 0 Then
+    If Len(CustomFieldGetName(FieldNameToFieldConstant(Me.cboLCF.Column(0) & lngField))) > 0 Then
       Me.lboLCF.AddItem
       Me.lboLCF.List(Me.lboLCF.ListCount - 1, 0) = lngFieldID
-      Me.lboLCF.List(Me.lboLCF.ListCount - 1, 1) = strFieldName & " (" & CustomFieldGetName(lngFieldID) & ")" 'Me.lboLCF.List(Me.lboLCF.ListCount - 1, 0) = CustomFieldGetName(FieldNameToFieldConstant(Me.cboFieldTypes.Column(0) & lngField))
+      Me.lboLCF.List(Me.lboLCF.ListCount - 1, 1) = strFieldName & " (" & CustomFieldGetName(lngFieldID) & ")" 'Me.lboLCF.List(Me.lboLCF.ListCount - 1, 0) = CustomFieldGetName(FieldNameToFieldConstant(Me.cboLCF.Column(0) & lngField))
     Else
       Me.lboLCF.AddItem
       Me.lboLCF.List(Me.lboLCF.ListCount - 1, 0) = lngFieldID
@@ -55,14 +55,14 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "cboFieldTypes_Change", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "cboLCF_Change", Err, Erl)
   Resume exit_here
 End Sub
 
 Private Sub chkAutoSwitch_Click()
   If Not Me.Visible Then Exit Sub
-  If Me.cboFieldTypes <> Me.lboECF.List(Me.lboECF.ListIndex, 2) Then
-    Me.cboFieldTypes = Me.lboECF.List(Me.lboECF.ListIndex, 2)
+  If Me.cboLCF <> Me.lboECF.List(Me.lboECF.ListIndex, 2) Then
+    Me.cboLCF = Me.lboECF.List(Me.lboECF.ListIndex, 2)
   End If
 End Sub
 
@@ -95,6 +95,10 @@ err_here:
   
 End Sub
 
+Private Sub cmdExportMap_Click()
+  Call cptExportCFMap
+End Sub
+
 Private Sub cmdMap_Click()
   If Not IsNull(Me.lboECF) And Not IsNull(Me.lboLCF) Then
     Call cptMapECFtoLCF(Me.lboECF, Me.lboLCF)
@@ -125,7 +129,7 @@ Private Sub cmdUnmap_Click()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If Me.lboECF.ListIndex < 0 Then GoTo exit_here
-  If IsNull(Me.lboECF.List(Me.lboECF.ListIndex, 3)) Then GoTo exit_here
+  If IsNull(Me.lboECF.List(Me.lboECF.ListIndex, 3)) Or Me.lboECF.List(Me.lboECF.ListIndex, 3) = "" Then GoTo exit_here
 
   If MsgBox("Are you sure?", vbQuestion + vbYesNo, "Please Confirm") = vbNo Then GoTo exit_here
   
@@ -321,8 +325,8 @@ Private Sub lboECF_Click()
         Me.lblStatus.Caption = "Undetermined: confirm manually."
     End Select
     
-    If Me.chkAutoSwitch And Me.cboFieldTypes.Value <> strSwitch Then
-      Me.cboFieldTypes.Value = strSwitch
+    If Me.chkAutoSwitch And Me.cboLCF.Value <> strSwitch Then
+      Me.cboLCF.Value = strSwitch
     End If
   Else
     'todo: anything here?
