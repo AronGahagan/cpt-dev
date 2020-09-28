@@ -3,6 +3,10 @@ Attribute VB_Name = "cptSaveLocal_bas"
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+Public strStartView As String
+Public strStartTable As String
+Public strStartFilter As String
+Public strStartGroup As String
 
 'todo: create view ECF:Local;ECF:Local;ECF:Local;
 ' -- based on saved map, current selections
@@ -39,16 +43,31 @@ Dim vType As Variant
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
-  cptSpeed True
-  
+    
   'get project guid
   If Application.Version < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
   End If
-
+  
+  'capture starting view/table/filter/group
+  ActiveWindow.TopPane.Activate
+  strStartView = ActiveProject.CurrentView
+  strStartTable = ActiveProject.CurrentTable
+  strStartFilter = ActiveProject.CurrentFilter
+  strStartGroup = ActiveProject.CurrentGroup
+  
+  'create/overwrite the table
+  cptSpeed True
+  ViewApply "Gantt Chart"
+  TableEditEx ".cptSaveLocal Task Table", True, True, True, , "ID", , , , , , True, , , , , , , , False
+  TableEditEx ".cptSaveLocal Task Table", True, False, , , , "Unique ID", "UID", , , , True
+  ActiveProject.Views(".cptSaveLocal Task View").Delete
+  ViewEditSingle ".cptSaveLocal Task View", True, , pjTaskSheet, , , ".cptSaveLocal Task Table", "All Tasks", "No Group"
+  ViewApply ".cptSaveLocal Task View"
+  cptSpeed False
+  
   'prepare to capture all ECFs
   Set rst = CreateObject("ADODB.Recordset")
   rst.Fields.Append "GUID", adGUID
@@ -64,6 +83,35 @@ Dim vType As Variant
   Set oTask = ActiveProject.Tasks.Add("<dummy for cpt-save-local>")
   Application.CalculateProject
   
+  'show the form?
+  Set aTypes = CreateObject("System.Collections.SortedList")
+  'record: field type, number of available custom fields
+  For Each vType In Array("Cost", "Date", "Duration", "Finish", "Start", "Outline Code")
+    aTypes.Add vType, 10
+  Next
+  aTypes.Add "Flag", 20
+  aTypes.Add "Number", 20
+  aTypes.Add "Text", 30
+  
+  'populate field types
+  With cptSaveLocal_frm
+    .cboFieldTypes.Clear
+    For lngType = 0 To aTypes.Count - 1
+      .cboFieldTypes.AddItem
+      .cboFieldTypes.List(.cboFieldTypes.ListCount - 1, 0) = aTypes.getKey(lngType)
+      .cboFieldTypes.List(.cboFieldTypes.ListCount - 1, 1) = aTypes.GetByIndex(lngType)
+    Next lngType
+    
+    .cmdAutoMap.Visible = False
+    .tglAutoMap = False
+    .txtAutoMap.Visible = False
+    .chkAutoSwitch = True
+    .optTasks = True
+    .cboFieldTypes.Value = "Text"
+    
+    .Show False
+  End With
+  
   'get enterprise custom task fields
   For lngField = 188776000 To 188778000 '2000 should do it for now
     If FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
@@ -72,6 +120,9 @@ Dim vType As Variant
       rst.AddNew Array("GUID", "pjType", "ENTITY", "ECF_Constant", "ECF_Name"), Array(strGUID, pjTask, strEntity, lngField, FieldConstantToFieldName(lngField))
       lngECFCount = lngECFCount + 1
     End If
+    cptSaveLocal_frm.lblStatus.Caption = "Analyzing Task ECFs...(" & Format(((lngField - 188776000) / (188778000 - 188776000)), "0%") & ")"
+    cptSaveLocal_frm.lblProgress.Width = ((lngField - 188776000) / (188778000 - 188776000)) * cptSaveLocal_frm.lblStatus.Width
+    DoEvents
   Next lngField
 
   'get enterprise custom resource fields
@@ -82,6 +133,9 @@ Dim vType As Variant
       rst.AddNew Array("GUID", "pjType", "ENTITY", "ECF_Constant", "ECF_Name"), Array(strGUID, pjResource, strEntity, lngField, FieldConstantToFieldName(lngField))
       lngECFCount = lngECFCount + 1
     End If
+    cptSaveLocal_frm.lblStatus.Caption = "Analyzing Resource ECFs...(" & Format((lngField - 205553664) / (205555664 - 205553664), "0%") & ")"
+    cptSaveLocal_frm.lblProgress.Width = ((lngField - 205553664) / (205555664 - 205553664)) * cptSaveLocal_frm.lblStatus.Width
+    DoEvents
   Next lngField
   
   If Dir(cptDir & "\settings\cpt-ecf.adtg") <> vbNullString Then
@@ -91,7 +145,6 @@ Dim vType As Variant
   rst.Save cptDir & "\settings\cpt-ecf.adtg"
   
   'check for saved map
-  
   strSaved = cptDir & "\settings\cpt-save-local.adtg"
   blnExists = Dir(strSaved) <> vbNullString
   If blnExists Then
@@ -124,6 +177,9 @@ Dim vType As Variant
             Else
               .lboECF.List(.lboECF.ListCount - 1, 4) = FieldConstantToFieldName(rstSavedMap("LCF"))
             End If
+            TableEditEx ".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(rstSavedMap("ECF")), , , , , True, , , , , , , , False
+            TableEditEx ".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(rstSavedMap("LCF")), , , , , True, , , , , , , , False
+            TableApply ".cptSaveLocal Task Table"
           End If
           rstSavedMap.Filter = ""
         End If
@@ -131,31 +187,7 @@ Dim vType As Variant
       rst.MoveNext
     Loop
     rst.Close
-    
-    Set aTypes = CreateObject("System.Collections.SortedList")
-    'record: field type, number of available custom fields
-    For Each vType In Array("Cost", "Date", "Duration", "Finish", "Start", "Outline Code")
-      aTypes.Add vType, 10
-    Next
-    aTypes.Add "Flag", 20
-    aTypes.Add "Number", 20
-    aTypes.Add "Text", 30
-    
-    'populate field types
-    .cboFieldTypes.Clear
-    For lngType = 0 To aTypes.Count - 1
-      .cboFieldTypes.AddItem
-      .cboFieldTypes.List(.cboFieldTypes.ListCount - 1, 0) = aTypes.getKey(lngType)
-      .cboFieldTypes.List(.cboFieldTypes.ListCount - 1, 1) = aTypes.GetByIndex(lngType)
-    Next lngType
-    
-    .cmdAutoMap.Visible = False
-    .tglMap = False
-    .txtAutoMap.Visible = False
-    .chkAutoSwitch = True
-    .optTasks = True
-    .cboFieldTypes.Value = "Text"
-  
+      
     .lblStatus.Caption = Format(lngECFCount, "#,##0") & " enterprise custom fields."
     oTask.Delete
     cptSpeed False
@@ -182,12 +214,15 @@ End Sub
 
 Sub cptSaveLocal()
 'objects
+Dim oTasks As Object
 Dim rstSavedMap As ADODB.Recordset
 Dim oTask As Task
 'strings
+Dim strErrors As String
 Dim strGUID As String
 Dim strSavedMap As String
 'longs
+Dim lngTasks As Long
 Dim lngLCF As Long
 Dim lngECF As Long
 Dim lngItem As Long
@@ -222,29 +257,68 @@ Dim lngItem As Long
     rstSavedMap.Open strSavedMap
   End If
   
+  'get total task count
+  ActiveWindow.TopPane.Activate
+  Call ViewApply("cpt_SaveLocal")
+  FilterClear
+  GroupClear
+  OutlineShowAllTasks
+  SelectAll
+  On Error Resume Next
+  Set oTasks = ActiveSelection.Tasks
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If Not oTasks Is Nothing Then
+    lngTasks = oTasks.Count
+  Else
+    MsgBox "There are no tasks in this schedule.", vbCritical + vbOKOnly, "No Tasks"
+    GoTo exit_here
+  End If
+  
   With cptSaveLocal_frm
-    For lngItem = 0 To .lboECF.ListCount - 1
-      If .lboECF.List(lngItem, 3) > 0 Then
-        lngECF = .lboECF.List(lngItem, 0)
-        lngLCF = .lboECF.List(lngItem, 3)
-        rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
-        'populate the fields
-        For Each oTask In ActiveProject.Tasks
-          On Error Resume Next
+    'todo: need to filter the lboECF for tasks
+    For Each oTask In ActiveProject.Tasks
+      On Error Resume Next
+      For lngItem = 0 To .lboECF.ListCount - 1
+        If .lboECF.List(lngItem, 3) > 0 Then
+          lngECF = .lboECF.List(lngItem, 0)
+          lngLCF = .lboECF.List(lngItem, 3)
+          'no duplicates
+          'todo: does Filter = X AND (Y OR Z) work?
+          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND ECF=" & lngECF
+          If rstSavedMap.RecordCount = 1 Then
+            'overwrite it
+            rstSavedMap.Delete adAffectCurrent
+          End If
+          rstSavedMap.Filter = ""
+          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND LCF=" & lngLCF
+          If rstSavedMap.RecordCount = 1 Then
+            'overwrite it
+            rstSavedMap.Delete adAffectCurrent
+          End If
+          rstSavedMap.Filter = ""
+          'add the new record
+          rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
+          'first clear the values
           If Len(oTask.GetField(lngLCF)) > 0 Then oTask.SetField lngLCF, ""
+          'if ECF is formula, then skip it
+          If Len(CustomFieldGetFormula(lngECF)) > 0 Then GoTo next_mapping
           If Len(oTask.GetField(lngECF)) > 0 Then
             oTask.SetField lngLCF, CStr(oTask.GetField(lngECF))
             If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
             If oTask.GetField(lngLCF) <> CStr(oTask.GetField(lngECF)) Then
-              MsgBox "There was an error copying from ECF " & CustomFieldGetName(lngECF) & " to LCF " & CustomFieldGetName(lngLCF) & "." & vbCrLf & vbCrLf & "Please validate data types.", vbExclamation + vbOKOnly, "Fail"
-              GoTo next_mapping
+              If MsgBox("There was an error copying from ECF " & CustomFieldGetName(lngECF) & " to LCF " & CustomFieldGetName(lngLCF) & " on Task UID " & oTask.UniqueID & "." & vbCrLf & vbCrLf & "Please validate data type mapping." & vbCrLf & vbCrLf & "Proceed anyway?", vbExclamation + vbYesNo, "Failed!") = vbNo Then
+                GoTo exit_here
+              End If
             End If
           End If
-        Next oTask
-      End If
+        End If
 next_mapping:
-    Next lngItem
+      Next lngItem
+      
+    Next oTask
   End With
+
+  'todo: resource ECF > LCF
 
   rstSavedMap.Save strSavedMap, adPersistADTG
 
@@ -252,6 +326,7 @@ next_mapping:
 
 exit_here:
   On Error Resume Next
+  Set oTasks = Nothing
   rstSavedMap.Close
   Set rstSavedMap = Nothing
   Set oTask = Nothing
@@ -562,7 +637,7 @@ Sub cptAnalyzeAutoMap()
       strMsg = strMsg & "AutoMap is NOT available."
     Else
       strMsg = strMsg & "AutoMap IS available."
-      If cptSaveLocal_frm.tglMap Then
+      If cptSaveLocal_frm.tglAutoMap Then
         cptSaveLocal_frm.cmdAutoMap.Visible = True
       Else
         cptSaveLocal_frm.cmdAutoMap.Visible = False
@@ -661,7 +736,6 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
   Dim strGUID As String
   Dim strSavedMap As String
   Dim strECF As String
-  Dim strLocal As String
   'longs
   Dim lngItem As Long
   Dim lngDown As Long
@@ -694,7 +768,7 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
         'rename it
         CustomFieldRename CLng(lngLCF), CustomFieldGetName(lngECF) & " (" & FieldConstantToFieldName(lngLCF) & ")"
         'rename in lboLCF
-        If Not .tglMap Then .lboLCF.List(.lboLCF.ListIndex, 1) = FieldConstantToFieldName(lngLCF) & " (" & CustomFieldGetName(lngLCF) & ")"
+        If Not .tglAutoMap Then .lboLCF.List(.lboLCF.ListIndex, 1) = FieldConstantToFieldName(lngLCF) & " (" & CustomFieldGetName(lngLCF) & ")"
       Else
         GoTo exit_here
       End If
@@ -703,7 +777,7 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
       'rename it in msp
       CustomFieldRename lngLCF, CustomFieldGetName(lngECF) & " (" & FieldConstantToFieldName(lngLCF) & ")"
       'rename it in lboLCF
-      If Not .tglMap Then .lboLCF.List(.lboLCF.ListIndex, 1) = FieldConstantToFieldName(.lboLCF) & " (" & CustomFieldGetName(.lboLCF) & ")"
+      If Not .tglAutoMap Then .lboLCF.List(.lboLCF.ListIndex, 1) = FieldConstantToFieldName(.lboLCF) & " (" & CustomFieldGetName(.lboLCF) & ")"
     End If
     
     'get formula
@@ -749,11 +823,12 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
         'capture picklist
         Set oOutlineCodeLocal = ActiveProject.OutlineCodes(CustomFieldGetName(lngLCF))
         With oOutlineCode.LookupTable
+          'load items bottom to top
           For lngItem = .Count To 1 Step -1
             Set oLookupTableEntry = oOutlineCodeLocal.LookupTable.AddChild(.Item(lngItem).Name)
             oLookupTableEntry.Description = .Item(lngItem).Description
-            'oLookupTableEntry.Level = .Item(lngItem).Level
           Next lngItem
+          'indent top to bottom
           For lngItem = 1 To .Count
             oOutlineCodeLocal.LookupTable.Item(lngItem).Level = .Item(lngItem).Level
           Next lngItem
@@ -761,6 +836,7 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
         'capture other options
         CustomOutlineCodeEditEx FieldID:=lngLCF, OnlyLookUpTableCodes:=oOutlineCode.OnlyLookUpTableCodes, OnlyCompleteCodes:=oOutlineCode.OnlyCompleteCodes
         CustomOutlineCodeEditEx FieldID:=lngLCF, OnlyLeaves:=oOutlineCode.OnlyLeaves
+        'todo: next line for RequiredCode throws an error, not sure why
         'CustomOutlineCodeEditEx FieldID:=lngLCF, RequiredCode:=oOutlineCode.RequiredCode
         If oOutlineCode.DefaultValue <> "" Then CustomOutlineCodeEditEx FieldID:=lngLCF, DefaultValue:=oOutlineCode.DefaultValue
         CustomOutlineCodeEditEx FieldID:=lngLCF, SortOrder:=oOutlineCode.SortOrder
@@ -771,7 +847,7 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
         
       End If
     End If
-    If Not .tglMap Then
+    If Not .tglAutoMap Then
       .lboECF.List(.lboECF.ListIndex, 3) = lngLCF
       .lboECF.List(.lboECF.ListIndex, 4) = CustomFieldGetName(lngLCF)
     End If
@@ -805,6 +881,11 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
     rstSavedMap.Save strSavedMap, adPersistADTG
   End If
   rstSavedMap.Close
+  
+  'update the table
+  TableEditEx ".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(lngECF), , , , , True, , , , , , , , False
+  TableEditEx ".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(lngLCF), , , , , True, , , , , , , , False
+  TableApply ".cptSaveLocal Task Table"
   
 exit_here:
   On Error Resume Next

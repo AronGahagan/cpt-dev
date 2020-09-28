@@ -96,7 +96,6 @@ err_here:
 End Sub
 
 Private Sub cmdMap_Click()
-  'todo: if tglAuto then disable cmdMap
   If Not IsNull(Me.lboECF) And Not IsNull(Me.lboLCF) Then
     Call cptMapECFtoLCF(Me.lboECF, Me.lboLCF)
   End If
@@ -108,6 +107,7 @@ End Sub
 
 Private Sub cmdUnmap_Click()
   'objects
+  Dim oTableField As Object
   Dim rstSavedMap As ADODB.Recordset
   'strings
   Dim strGUID As String
@@ -165,8 +165,21 @@ Private Sub cmdUnmap_Click()
     End If
   Next lngItem
 
+  'remove from cptSaveLocal table
+  If Me.optTasks Then
+    For Each oTableField In ActiveProject.TaskTables(".cptSaveLocal Task Table").TableFields
+      If oTableField.Field = lngECF Or oTableField.Field = lngLCF Then
+        oTableField.Delete
+      End If
+    Next oTableField
+    TableApply ".cptSaveLocal Task Table"
+  ElseIf Me.optResources Then
+    'todo: handle resource table adjustments
+  End If
+  
 exit_here:
   On Error Resume Next
+  Set oTableField = Nothing
   Set rstSavedMap = Nothing
 
   Exit Sub
@@ -230,7 +243,7 @@ Private Sub lboECF_Change()
 
   If Me.Visible Then
     If Me.ActiveControl.Name = "lboECF" Then
-      If Me.tglMap Then
+      If Me.tglAutoMap Then
         For lngItem = 0 To Me.lboECF.ListCount - 1
           If Me.lboECF.Selected(lngItem) Then lngItems = lngItems + 1
         Next lngItem
@@ -325,7 +338,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub tglMap_Click()
+Private Sub tglAutoMap_Click()
   'objects
   'strings
   'longs
@@ -338,7 +351,7 @@ Private Sub tglMap_Click()
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If Me.tglMap Then
+  If Me.tglAutoMap Then
     Me.lboECF.MultiSelect = fmMultiSelectMulti
     For lngItem = 0 To Me.lboECF.ListCount - 1
       If IsNull(Me.lboECF.List(lngItem, 3)) Then
@@ -351,6 +364,7 @@ Private Sub tglMap_Click()
     Me.lblStatus.Caption = Me.lboECF.ListCount & " ECFs selected."
     Me.lblSelectAll.Visible = True
     Me.lblSelectNone.Visible = True
+    Me.cmdMap.Enabled = False
   Else
     Me.lboECF.MultiSelect = fmMultiSelectSingle
     Me.lboECF.ListIndex = 0
@@ -359,6 +373,7 @@ Private Sub tglMap_Click()
     Me.cmdAutoMap.Visible = False
     Me.lblSelectAll.Visible = False
     Me.lblSelectNone.Visible = False
+    Me.cmdMap.Enabled = True
   End If
 
 exit_here:
@@ -366,7 +381,25 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "tglMap_Click", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "tglAutoMap_Click", Err, Erl)
   MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Resume exit_here
+End Sub
+
+Private Sub UserForm_Terminate()
+
+If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If Len(strStartView) > 0 Then ViewApply strStartView, True
+  If Len(strStartTable) > 0 Then TableApply strStartTable
+  If Len(strStartFilter) > 0 Then FilterApply strStartFilter
+  If Len(strStartGroup) > 0 Then GroupApply strStartGroup
+  
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_frm", "Terminate", Err, Erl)
   Resume exit_here
 End Sub
