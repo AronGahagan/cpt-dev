@@ -634,15 +634,17 @@ Sub cptAnalyzeAutoMap()
       .MoveNext
     Loop
     strMsg = strMsg & String(34, "-") & vbCrLf
-    cptSaveLocal_frm.cmdAutoMap.Visible = False
+    cptSaveLocal_frm.cmdAutoMap.Enabled = False
     If InStr(strMsg, "  X ") > 0 Then
-      strMsg = strMsg & "AutoMap is NOT available."
+      strMsg = strMsg & "AutoMap is NOT available." & vbCrLf
+      strMsg = strMsg & "Free up some fields and try again."
     Else
-      strMsg = strMsg & "AutoMap IS available."
+      strMsg = strMsg & "AutoMap IS available." & vbCrLf
+      strMsg = strMsg & "Click GO! to AutoMap now."
       If cptSaveLocal_frm.tglAutoMap Then
-        cptSaveLocal_frm.cmdAutoMap.Visible = True
+        cptSaveLocal_frm.cmdAutoMap.Enabled = True
       Else
-        cptSaveLocal_frm.cmdAutoMap.Visible = False
+        cptSaveLocal_frm.cmdAutoMap.Enabled = False
       End If
     End If
     
@@ -905,7 +907,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub cptExportCFMap()
+Sub cptExportCFMap()
   'objects
   Dim rstSavedMap As ADODB.Recordset
   'strings
@@ -970,5 +972,94 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptSaveLocal_bas", "cptSaveLocal_frm", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptImportCFMap()
+  'objects
+  Dim rstSavedMap As ADODB.Recordset
+  Dim oStream As Scripting.TextStream
+  Dim oFile As Scripting.File
+  Dim oFSO As Scripting.FileSystemObject
+  Dim oExcel As Excel.Application
+  Dim oFileDialog As FileDialog
+  'strings
+  Dim strGUID As String
+  Dim strConn As String
+  Dim strSavedMapImport As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim aLine As Variant
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    
+  'get guid
+  If Application.Version < 12 Then
+    strGUID = ActiveProject.DatabaseProjectUniqueID
+  Else
+    strGUID = ActiveProject.GetServerProjectGuid
+  End If
+    
+  'borrow Excel's FileDialogFilePicker
+  Set oExcel = CreateObject("Excel.Application")
+  Set oFileDialog = oExcel.FileDialog(msoFileDialogFilePicker)
+  With oFileDialog
+    .AllowMultiSelect = False
+    .ButtonName = "Import"
+    .InitialView = msoFileDialogViewDetails
+    .InitialFileName = Environ("USERPROFILE") & "\Downloads\"
+    .Title = "Select cpt-saved-map.csv:"
+    .Filters.Add "Comma Separated Values (csv)", "*.csv"
+    If .Show = -1 Then
+      strSavedMapImport = .SelectedItems(1)
+    End If
+  End With
+  'close Excel, with thanks...
+  oExcel.Quit
+  
+  'stream the csv
+  Set oFSO = CreateObject("Scripting.FileSystemObject")
+  Set oFile = oFSO.GetFile(strSavedMapImport)
+  Set oStream = oFile.OpenAsTextStream(ForReading)
+  
+  'open user's saved map
+  Set rstSavedMap = CreateObject("ADODB.Recordset")
+  With rstSavedMap
+    If Dir(cptDir & "\settings\cpt-save-local.adtg") = vbNullString Then
+      .Fields.Append "GUID", adGUID
+      .Fields.Append "ECF", adInteger
+      .Fields.Append "LCF", adInteger
+      .Save strSavedMapImport, adPersistADTG
+    End If
+    .Open cptDir & "\settings\cpt-save-local.adtg", "Provider=MSPersist", , , adCmdFile
+    
+    Do Until oStream.AtEndOfStream
+      aLine = Split(oStream.ReadLine, ",")
+      If UBound(aLine) > 0 Then
+        cptSaveLocal_frm.lboECF.Value = CLng(aLine(1))
+        cptSaveLocal_frm.lboLCF.Value = CLng(aLine(2))
+        Call cptMapECFtoLCF(CLng(aLine(1)), CLng(aLine(2)))
+      End If
+    Loop
+    
+  End With
+
+exit_here:
+  On Error Resume Next
+  Set rstSavedMap = Nothing
+  Set oStream = Nothing
+  Set oFile = Nothing
+  Set oFSO = Nothing
+  oExcel.Quit
+  Set oExcel = Nothing
+  Set oFileDialog = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_bas", "cptImportCFMap", Err, Erl)
   Resume exit_here
 End Sub

@@ -99,6 +99,10 @@ Private Sub cmdExportMap_Click()
   Call cptExportCFMap
 End Sub
 
+Private Sub cmdImportMap_Click()
+  Call cptImportCFMap
+End Sub
+
 Private Sub cmdMap_Click()
   If Not IsNull(Me.lboECF) And Not IsNull(Me.lboLCF) Then
     Call cptMapECFtoLCF(Me.lboECF, Me.lboLCF)
@@ -327,6 +331,9 @@ Private Sub lboECF_Click()
     
     If Me.chkAutoSwitch And Me.cboLCF.Value <> strSwitch Then
       Me.cboLCF.Value = strSwitch
+      If Len(Me.lboECF.List(Me.lboECF.ListIndex, 3)) > 0 Then
+        Me.lboLCF.Value = Me.lboECF.List(Me.lboECF.ListIndex, 3)
+      End If
     End If
   Else
     'todo: anything here?
