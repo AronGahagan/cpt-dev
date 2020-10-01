@@ -16,6 +16,7 @@ Public strStartGroup As String
 
 Sub cptShowSaveLocalForm()
 'objects
+Dim oRange As Excel.Range
 Dim oListObject As ListObject
 Dim aProjects As ArrayList
 Dim oSubproject As SubProject
@@ -33,6 +34,7 @@ Dim strEntity As String
 Dim strGUID As String
 Dim strECF As String
 'longs
+Dim lngLCF As Long
 Dim lngMismatchCount As Long
 Dim lngLastRow As Long
 Dim lngSubproject As Long
@@ -47,6 +49,7 @@ Dim lngECFCount As Long
 'booleans
 Dim blnExists As Boolean
 'variants
+Dim vLine As Variant
 Dim vEntity As Variant
 Dim vType As Variant
 'dates
@@ -68,29 +71,26 @@ Dim vType As Variant
   If lngSubprojectCount > 0 Then
     If MsgBox(lngSubprojectCount & " subproject(s) found." & vbCrLf & vbCrLf & "It is highly recommended that you analyze master/sub LCF matches." & vbCrLf & vbCrLf & "Do it now?", vbExclamation + vbYesNo, "Master/Sub Detected") = vbNo Then GoTo skip_it
     Set oMasterProject = ActiveProject
-    Application.StatusBar = "Analyzing subprojects..."
+    Application.StatusBar = "Setting up Excel..."
     'set up Excel
     Set oExcel = CreateObject("Excel.Application")
-    oExcel.WindowState = xlMaximized
-    'oExcel.Visible = True
+    oExcel.Visible = False
     Set oWorkbook = oExcel.Workbooks.Add
     oExcel.ScreenUpdating = False
     oExcel.Calculation = xlCalculationManual
     Set oWorksheet = oWorkbook.Sheets(1)
     oExcel.ActiveWindow.Zoom = 85
-    oExcel.ActiveWindow.SplitRow = 2
+    oExcel.ActiveWindow.SplitRow = 1
     oExcel.ActiveWindow.SplitColumn = 4
     oExcel.ActiveWindow.FreezePanes = True
     oWorksheet.Name = "Sync"
     'set up headers
-    oWorksheet.[A1:D1].Merge
-    oWorksheet.[A1] = "LCF"
-    oWorksheet.[A1].HorizontalAlignment = xlCenter
-    oWorksheet.[A2:D2] = Array("ENTITY", "TYPE", "CONSTANT", "NAME")
+    oWorksheet.[A1:D1] = Array("ENTITY", "TYPE", "CONSTANT", "NAME")
     'capture master and subproject names
     oWorksheet.Cells(1, 5) = oMasterProject.Name
     oWorksheet.Columns.AutoFit
     cptSpeed True
+    Application.StatusBar = "Opening subprojects..."
     Set aProjects = CreateObject("System.Collections.ArrayList")
     aProjects.Add oMasterProject.Name
     For Each oSubproject In oMasterProject.Subprojects
@@ -100,21 +100,18 @@ Dim vType As Variant
     For lngProject = 0 To aProjects.Count - 1
       Application.StatusBar = "Analyzing " & aProjects(lngProject) & "..."
       DoEvents
-      lngLastRow = 2
+      lngLastRow = 1
       Projects(aProjects(lngProject)).Activate
       oWorksheet.Cells(1, 5 + lngProject) = aProjects(lngProject)
-      oWorksheet.Cells(2, 5 + lngProject) = "CUSTOM NAME"
       For Each vEntity In Array(pjTask, pjResource)
         For lngType = 0 To aTypes.Count - 1
           For lngField = 1 To aTypes.getByIndex(lngType)
             lngLastRow = lngLastRow + 1
             If lngProject = 0 Then
-              'lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row + 1
               oWorksheet.Cells(lngLastRow, 1) = Choose(vEntity + 1, "Task", "Resource")
               oWorksheet.Cells(lngLastRow, 2) = aTypes.getKey(lngType)
             End If
             lngLCF = FieldNameToFieldConstant(aTypes.getKey(lngType) & lngField, vEntity)
-            'If lngLCF = 188744096 Then Stop
             If lngProject = 0 Then
               oWorksheet.Cells(lngLastRow, 3) = lngLCF
               oWorksheet.Cells(lngLastRow, 4) = FieldConstantToFieldName(lngLCF)
@@ -127,15 +124,63 @@ Dim vType As Variant
       Next vEntity
     Next lngProject
     'add a formula
-    oWorksheet.Cells(2, 5 + lngProject) = "MATCH"
-    oWorksheet.Range(oWorksheet.Cells(3, 5 + lngProject), oWorksheet.Cells(lngLastRow, 5 + lngProject)).FormulaR1C1 = "=AND(EXACT(RC[-5],RC[-4]),EXACT(RC[-4],RC[-3]),EXACT(RC[-3],RC[-2]),EXACT(RC[-2],RC[-1]))"
-    Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.Cells(2, 1), oWorksheet.Cells(lngLastRow, 5 + lngProject)), , xlYes)
+    oWorksheet.Cells(1, 5 + lngProject) = "MATCH"
+    oWorksheet.Range(oWorksheet.Cells(2, 5 + lngProject), oWorksheet.Cells(lngLastRow, 5 + lngProject)).FormulaR1C1 = "=AND(EXACT(RC[-5],RC[-4]),EXACT(RC[-4],RC[-3]),EXACT(RC[-3],RC[-2]),EXACT(RC[-2],RC[-1]))"
+    Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)), , xlYes)
     oListObject.TableStyle = ""
+    oListObject.HeaderRowRange.Font.Bold = True
+    'throw some shade
+    With oListObject.HeaderRowRange.Interior
+      .Pattern = xlSolid
+      .PatternColorIndex = xlAutomatic
+      .ThemeColor = xlThemeColorDark1
+      .TintAndShade = -0.149998474074526
+      .PatternTintAndShade = 0
+    End With
+
+    oListObject.Range.Borders(xlDiagonalDown).LineStyle = xlNone
+    oListObject.Range.Borders(xlDiagonalUp).LineStyle = xlNone
+    For Each vLine In Array(xlEdgeLeft, xlEdgeTop, xlEdgeBottom, xlEdgeRight, xlInsideVertical, xlInsideHorizontal)
+      With oListObject.Range.Borders(vLine)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.249946592608417
+        .Weight = xlThin
+      End With
+    Next vLine
     oExcel.Calculation = xlCalculationAutomatic
-    oWorksheet.Range(oWorksheet.Cells(2, 1), oWorksheet.Cells(2, 5 + lngProject)).AutoFilter 5 + lngProject, False
+    'add conditional formatting
+    Set oRange = oListObject.ListColumns("MATCH").DataBodyRange
+    oRange.FormatConditions.Add Type:=xlCellValue, Operator:=xlEqual, Formula1:="=FALSE"
+    oRange.FormatConditions(oRange.FormatConditions.Count).SetFirstPriority
+    With oRange.FormatConditions(1).Font
+        .Color = -16383844
+        .TintAndShade = 0
+    End With
+    With oRange.FormatConditions(1).Interior
+        .PatternColorIndex = xlAutomatic
+        .Color = 13551615
+        .TintAndShade = 0
+    End With
+    oRange.FormatConditions(1).StopIfTrue = False
+    oRange.FormatConditions.Add Type:=xlCellValue, Operator:=xlEqual, Formula1:="=TRUE"
+    oRange.FormatConditions(oRange.FormatConditions.Count).SetFirstPriority
+    With oRange.FormatConditions(1).Font
+        .Color = -16752384
+        .TintAndShade = 0
+    End With
+    With oRange.FormatConditions(1).Interior
+        .PatternColorIndex = xlAutomatic
+        .Color = 13561798
+        .TintAndShade = 0
+    End With
+    oRange.FormatConditions(1).StopIfTrue = False
+    'autofilter it
+    oListObject.Range.AutoFilter oRange.Column, False
     oWorksheet.Columns.AutoFit
-    oExcel.ActiveWindow.ScrollRow = 2
+    oExcel.ActiveWindow.ScrollRow = 1
     oMasterProject.Activate
+    'todo: keep them open for changes, close on form close?
     For lngProject = 0 To aProjects.Count - 1
       If aProjects(lngProject) <> oMasterProject.Name Then
         Projects(aProjects(lngProject)).Activate
@@ -143,12 +188,13 @@ Dim vType As Variant
       End If
     Next lngProject
     cptSpeed False
-    lngMismatchCount = oListObject.DataBodyRange.Rows.Count
+    oExcel.ScreenUpdating = True
+    oExcel.Visible = True
+    oExcel.WindowState = xlMaximized
+    lngMismatchCount = oRange.SpecialCells(xlCellTypeVisible).Count
     If lngMismatchCount > 0 Then
       oExcel.ActivateMicrosoftApp xlMicrosoftProject
-      MsgBox "Local Custom Fields do not match between Master and all Subprojects!", vbCritical + vbOKOnly, "Warning"
-      oExcel.ScreenUpdating = True
-      oExcel.Visible = True
+      MsgBox lngMismatchCount & " Local Custom Fields do not match between Master and all Subprojects!", vbCritical + vbOKOnly, "Warning"
       Application.ActivateMicrosoftApp pjMicrosoftExcel
       GoTo exit_here
     Else
@@ -204,13 +250,20 @@ skip_it:
   'populate field types
   With cptSaveLocal_frm
     .cboLCF.Clear
+    .cboECF.Clear
+    .cboECF.AddItem "All Types"
     For lngType = 0 To aTypes.Count - 1
       .cboLCF.AddItem
       .cboLCF.List(.cboLCF.ListCount - 1, 0) = aTypes.getKey(lngType)
       .cboLCF.List(.cboLCF.ListCount - 1, 1) = aTypes.getByIndex(lngType)
-    Next lngType
+      .cboECF.AddItem
+      .cboECF.List(.cboECF.ListCount - 1, 0) = aTypes.getKey(lngType)
+      .cboECF.List(.cboECF.ListCount - 1, 1) = aTypes.getByIndex(lngType)
     
-    .cmdAutoMap.Visible = False
+    Next lngType
+    .cboECF.AddItem "undetermined"
+    
+    .cmdAutoMap.Enabled = False
     .tglAutoMap = False
     .txtAutoMap.Visible = False
     .chkAutoSwitch = True
@@ -298,13 +351,20 @@ skip_it:
       
     .lblStatus.Caption = Format(lngECFCount, "#,##0") & " enterprise custom fields."
     oTask.Delete
-    cptSpeed False
-    .Show False
     
+    If BLN_TRAP_ERRORS Then
+      .Hide
+      cptSpeed False
+      .Show
+    Else
+      cptSpeed False
+      .Show False
+    End If
   End With
 
 exit_here:
   On Error Resume Next
+  Set oRange = Nothing
   Set oListObject = Nothing
   Set aProjects = Nothing
   Set oSubproject = Nothing
@@ -1185,5 +1245,54 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptSaveLocal_bas", "cptImportCFMap", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptUpdateLCF(Optional strFilter As String)
+'objects
+'strings
+Dim strCustomName As String
+Dim strFieldName As String
+'longs
+Dim lngFieldID As Long
+Dim lngFields As Long
+Dim lngField As Long
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  With cptSaveLocal_frm
+    .lboLCF.Clear
+    lngFields = .cboLCF.Column(1)
+    For lngField = 1 To lngFields
+      strFieldName = .cboLCF.Column(0) & lngField
+      lngFieldID = FieldNameToFieldConstant(strFieldName)
+      strCustomName = CustomFieldGetName(FieldNameToFieldConstant(.cboLCF.Column(0) & lngField))
+      If strFilter <> "" Then
+        If InStr(UCase(strCustomName), UCase(strFilter)) = 0 Or Len(strCustomName) = 0 Then GoTo next_field
+      End If
+      If Len(strCustomName) > 0 Then
+        .lboLCF.AddItem
+        .lboLCF.List(.lboLCF.ListCount - 1, 0) = lngFieldID
+        .lboLCF.List(.lboLCF.ListCount - 1, 1) = strFieldName & " (" & CustomFieldGetName(lngFieldID) & ")" 'Me.lboLCF.List(Me.lboLCF.ListCount - 1, 0) = CustomFieldGetName(FieldNameToFieldConstant(Me.cboLCF.Column(0) & lngField))
+      Else
+        .lboLCF.AddItem
+        .lboLCF.List(.lboLCF.ListCount - 1, 0) = lngFieldID
+        .lboLCF.List(.lboLCF.ListCount - 1, 1) = strFieldName
+      End If
+next_field:
+    Next lngField
+  End With
+  
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_bas", "cboLCF_Change", Err, Erl)
   Resume exit_here
 End Sub

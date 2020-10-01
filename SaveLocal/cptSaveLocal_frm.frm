@@ -18,45 +18,8 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Private Sub cboLCF_Change()
-'objects
-'strings
-Dim strFieldName As String
-'longs
-Dim lngFieldID As Long
-Dim lngFields As Long
-Dim lngField As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
-
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  Me.lboLCF.Clear
-  lngFields = Me.cboLCF.Column(1)
-  For lngField = 1 To lngFields
-    strFieldName = Me.cboLCF.Column(0) & lngField
-    lngFieldID = FieldNameToFieldConstant(strFieldName)
-    If Len(CustomFieldGetName(FieldNameToFieldConstant(Me.cboLCF.Column(0) & lngField))) > 0 Then
-      Me.lboLCF.AddItem
-      Me.lboLCF.List(Me.lboLCF.ListCount - 1, 0) = lngFieldID
-      Me.lboLCF.List(Me.lboLCF.ListCount - 1, 1) = strFieldName & " (" & CustomFieldGetName(lngFieldID) & ")" 'Me.lboLCF.List(Me.lboLCF.ListCount - 1, 0) = CustomFieldGetName(FieldNameToFieldConstant(Me.cboLCF.Column(0) & lngField))
-    Else
-      Me.lboLCF.AddItem
-      Me.lboLCF.List(Me.lboLCF.ListCount - 1, 0) = lngFieldID
-      Me.lboLCF.List(Me.lboLCF.ListCount - 1, 1) = strFieldName
-    End If
-  Next
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "cboLCF_Change", Err, Erl)
-  Resume exit_here
+Sub cboLCF_Change()
+  Call cptUpdateLCF(Me.txtFilterLCF)
 End Sub
 
 Private Sub chkAutoSwitch_Click()
@@ -84,7 +47,10 @@ Dim strDescription As String
 
   ActiveWindow.TopPane.Activate
   Application.CustomizeField
-
+  Me.cboLCF_Change
+  'todo: update LCF name
+  'todo: if mapped field is renamed, prompt to unmap
+  'todo: if unmapped, prompt to clear out data
 exit_here:
   On Error Resume Next
 
@@ -248,7 +214,7 @@ Private Sub lboECF_Change()
   'dates
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  Me.lblShowFormula.Visible = False
   If Me.Visible Then
     If Me.ActiveControl.Name = "lboECF" Then
       If Me.tglAutoMap Then
@@ -257,6 +223,16 @@ Private Sub lboECF_Change()
         Next lngItem
         Me.lblStatus.Caption = lngItems & " ECFs selected."
         Call cptAnalyzeAutoMap
+      Else
+        If Me.chkAutoSwitch Then
+          Me.cboLCF = Replace(Me.lboECF.List(Me.lboECF.ListIndex, 2), "Maybe", "")
+          For lngItem = 0 To Me.cboLCF.ListCount - 1
+            If CustomFieldGetName(Me.lboLCF.List(lngItem)) = "" Then
+              Me.lboLCF.Selected(lngItem) = True
+              Exit For
+            End If
+          Next lngItem
+        End If
       End If
     End If
   End If
@@ -267,7 +243,6 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptSaveLocal_frm", "lboECF_Change", Err, Erl)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
 
@@ -335,6 +310,10 @@ Private Sub lboECF_Click()
         Me.lboLCF.Value = Me.lboECF.List(Me.lboECF.ListIndex, 3)
       End If
     End If
+    
+    If Len(CustomFieldGetFormula(Me.lboECF)) > 0 Then
+      Me.lblShowFormula.Visible = True
+    End If
   Else
     'todo: anything here?
   End If
@@ -381,7 +360,7 @@ Private Sub tglAutoMap_Click()
     Me.lboECF.ListIndex = 0
     Me.txtAutoMap.Visible = False
     Me.lboLCF.Visible = True
-    Me.cmdAutoMap.Visible = False
+    Me.cmdAutoMap.Enabled = False
     Me.lblSelectAll.Visible = False
     Me.lblSelectNone.Visible = False
     Me.cmdMap.Enabled = True
@@ -393,8 +372,83 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptSaveLocal_frm", "tglAutoMap_Click", Err, Erl)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
+End Sub
+'
+'Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+'  'objects
+'  'strings
+'  Dim strMsg As String
+'  Dim strECF As String
+'  Dim strCustomNameNew As String
+'  Dim strCustomName As String
+'  Dim strFieldName As String
+'  'longs
+'  Dim lngECF As Long
+'  Dim lngMapped As Long
+'  Dim lngLCF As Long
+'  Dim lngItem As Long
+'  'integers
+'  'doubles
+'  'booleans
+'  Dim blnRenamed As Boolean
+'  'variants
+'  'dates
+'
+'  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+'
+'  'todo: on cboFieldTypesLCF_Update re-examine for changes
+'
+'  'examine everything visible
+'  For lngItem = 0 To Me.lboLCF.ListCount - 1
+'    'ensure name is the same
+'    lngLCF = Me.lboLCF.List(lngItem, 0)
+'    strFieldName = FieldConstantToFieldName(lngLCF)
+'    strCustomName = cptRegEx(Me.lboLCF.List(lngItem, 1), "\(([^)]+)\)")
+'    strCustomNameNew = CustomFieldGetName(lngLCF)
+'    If Len(strCustomName & strCustomNameNew) = 0 Then GoTo next_item
+'    If strFieldName & " " & strCustomName & ")" <> strFieldName & " (" & strCustomNameNew & ")" Then
+'      blnRenamed = True
+'      Me.lboLCF.List(lngItem, 1) = strFieldName & " (" & strCustomNameNew & ")"
+'      For lngMapped = 0 To Me.lboECF.ListCount - 1
+'        If InStr(Me.lboECF.List(lngMapped, 3), lngLCF) > 0 Then
+'          lngECF = Me.lboECF.List(lngMapped, 0)
+'          strECF = FieldConstantToFieldName(lngECF)
+'          'if mapped, then prompt to unmap?
+'          strMsg = "The LCF " & strFieldName & " has been renamed" & vbCrLf
+'          strMsg = strMsg & "from '" & strCustomName & "'" & vbCrLf
+'          strMsg = strMsg & "to '" & strCustomNameNew & "'" & vbCrLf
+'          strMsg = strMsg & "and it is currently mapped to ECF '" & strECF & "':" & vbCrLf & vbCrLf
+'          strMsg = strMsg & "Would you like to unmap it now?"
+'          If MsgBox(strMsg, vbExclamation + vbYesNo, "Unmap?") = vbYes Then
+'          'todo: make cptMapECF and cptUnmapECF
+'          'todo: actually unmap it
+'          'if unmapped, prompt to clear existing data?
+'            If MsgBox("Would you also like to clear out all data from " & strFieldName & "?", vbExclamation + vbYesNo, "Careful") = vbYes Then
+'              Debug.Print "clearing data" 'todo: clear data from unmapped field
+'            End If
+'          Else
+'            Me.lboECF.List(lngMapped, 4) = strCustomNameNew '& " (" & strFieldName & ")"
+'          End If
+'          Exit For
+'        End If
+'      Next lngMapped
+'    End If
+'next_item:
+'    blnRenamed = False
+'  Next lngItem
+'
+'exit_here:
+'  On Error Resume Next
+'
+'  Exit Sub
+'err_here:
+'  Call cptHandleErr("cptSaveLocal_frm", "MouseMove", Err, Erl)
+'  Resume exit_here
+'End Sub
+
+Private Sub txtFilterLCF_Change()
+  Call cptUpdateLCF(Me.txtFilterLCF.Text)
 End Sub
 
 Private Sub UserForm_Terminate()
@@ -406,6 +460,7 @@ If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If Len(strStartFilter) > 0 Then FilterApply strStartFilter
   If Len(strStartGroup) > 0 Then GroupApply strStartGroup
   
+  If ActiveProject.CurrentView = ".cptSaveLocal Task View" Then ViewApply "Gantt Chart"
   ActiveProject.Views(".cptSaveLocal Task View").Delete
   ActiveProject.TaskTables(".cptSaveLocal Task Table").Delete
   
