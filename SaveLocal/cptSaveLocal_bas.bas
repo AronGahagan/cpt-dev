@@ -1,18 +1,16 @@
 Attribute VB_Name = "cptSaveLocal_bas"
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Public strStartView As String
 Public strStartTable As String
 Public strStartFilter As String
 Public strStartGroup As String
 
-'todo: handle resource custom fields - add toggle option and filter accordinlgy
 'todo: process is: import with enterprise open, then save as mpp
 'todo: make compatible with master/sub projects
-'todo: handle when user changes custom fields manually -- onmouseover
-'todo: code up the search filter
+'todo: handle when user changes custom fields manually
 
 Sub cptShowSaveLocalForm()
 'objects
@@ -29,11 +27,13 @@ Dim rstSavedMap As ADODB.Recordset
 Dim aTypes As Object
 Dim rst As ADODB.Recordset
 'strings
+Dim strURL As String
 Dim strSaved As String
 Dim strEntity As String
 Dim strGUID As String
 Dim strECF As String
 'longs
+Dim lngECF As Long
 Dim lngLCF As Long
 Dim lngMismatchCount As Long
 Dim lngLastRow As Long
@@ -47,7 +47,6 @@ Dim lngECFCount As Long
 'integers
 'doubles
 'booleans
-Dim blnExists As Boolean
 'variants
 Dim vLine As Variant
 Dim vEntity As Variant
@@ -55,6 +54,14 @@ Dim vType As Variant
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'get server URL
+  If Len(ActiveProject.ServerURL) = 0 Then
+    MsgBox "You are not connected to a Project Server.", vbCritical + vbOKOnly, "No Server"
+    GoTo exit_here
+  Else
+    strURL = ActiveProject.ServerURL
+  End If
   
   'setup array of types/counts
   Set aTypes = CreateObject("System.Collections.SortedList")
@@ -220,20 +227,12 @@ skip_it:
   strStartFilter = ActiveProject.CurrentFilter
   strStartGroup = ActiveProject.CurrentGroup
   
-  'create/overwrite the table
-  cptSpeed True
-  ViewApply "Gantt Chart"
-  TableEditEx ".cptSaveLocal Task Table", True, True, True, , "ID", , , , , , True, , , , , , , , False
-  TableEditEx ".cptSaveLocal Task Table", True, False, , , , "Unique ID", "UID", , , , True
-  On Error Resume Next
-  ActiveProject.Views(".cptSaveLocal Task View").Delete
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  ViewEditSingle ".cptSaveLocal Task View", True, , pjTaskSheet, , , ".cptSaveLocal Task Table", "All Tasks", "No Group"
-  ViewApply ".cptSaveLocal Task View"
-  cptSpeed False
+  'apply the ECF to LCF view
+  cptUpdateSaveLocalView
   
   'prepare to capture all ECFs
   Set rst = CreateObject("ADODB.Recordset")
+  rst.Fields.Append "URL", adVarChar, 255
   rst.Fields.Append "GUID", adGUID
   rst.Fields.Append "pjType", adInteger
   rst.Fields.Append "ENTITY", adVarChar, 50
@@ -253,109 +252,76 @@ skip_it:
     .cboECF.Clear
     .cboECF.AddItem "All Types"
     For lngType = 0 To aTypes.Count - 1
+      If aTypes.getKey(lngType) = "Start" Or aTypes.getKey(lngType) = "Finish" Then GoTo next_type
       .cboLCF.AddItem
       .cboLCF.List(.cboLCF.ListCount - 1, 0) = aTypes.getKey(lngType)
       .cboLCF.List(.cboLCF.ListCount - 1, 1) = aTypes.getByIndex(lngType)
       .cboECF.AddItem
       .cboECF.List(.cboECF.ListCount - 1, 0) = aTypes.getKey(lngType)
       .cboECF.List(.cboECF.ListCount - 1, 1) = aTypes.getByIndex(lngType)
-    
+next_type:
     Next lngType
     .cboECF.AddItem "undetermined"
-    
     .cmdAutoMap.Enabled = False
     .tglAutoMap = False
     .txtAutoMap.Visible = False
     .chkAutoSwitch = True
-    .optTasks = True
     .cboLCF.Value = "Text"
+    .optTasks = True
     
     .Show False
-  End With
   
-  'get enterprise custom task fields
-  For lngField = 188776000 To 188778000 '2000 should do it for now
-    If FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
-      strECF = FieldConstantToFieldName(lngField)
-      strEntity = cptInterrogateECF(oTask, lngField)
-      rst.AddNew Array("GUID", "pjType", "ENTITY", "ECF", "ECF_Name"), Array(strGUID, pjTask, strEntity, lngField, FieldConstantToFieldName(lngField))
-      lngECFCount = lngECFCount + 1
-    End If
-    cptSaveLocal_frm.lblStatus.Caption = "Analyzing Task ECFs...(" & Format(((lngField - 188776000) / (188778000 - 188776000)), "0%") & ")"
-    cptSaveLocal_frm.lblProgress.Width = ((lngField - 188776000) / (188778000 - 188776000)) * cptSaveLocal_frm.lblStatus.Width
-    DoEvents
-  Next lngField
-
-  'get enterprise custom resource fields
-  For lngField = 205553664 To 205555664 '2000 should do it for now
-    If FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
-      strECF = FieldConstantToFieldName(lngField)
-      strEntity = cptInterrogateECF(oTask, lngField)
-      rst.AddNew Array("GUID", "pjType", "ENTITY", "ECF", "ECF_Name"), Array(strGUID, pjResource, strEntity, lngField, FieldConstantToFieldName(lngField))
-      lngECFCount = lngECFCount + 1
-    End If
-    cptSaveLocal_frm.lblStatus.Caption = "Analyzing Resource ECFs...(" & Format((lngField - 205553664) / (205555664 - 205553664), "0%") & ")"
-    cptSaveLocal_frm.lblProgress.Width = ((lngField - 205553664) / (205555664 - 205553664)) * cptSaveLocal_frm.lblStatus.Width
-    DoEvents
-  Next lngField
-  
-  If Dir(cptDir & "\settings\cpt-ecf.adtg") <> vbNullString Then
-    Kill cptDir & "\settings\cpt-ecf.adtg"
-  End If
-  rst.Sort = "ECF_Name"
-  rst.Save cptDir & "\settings\cpt-ecf.adtg"
-  
-  'check for saved map
-  strSaved = cptDir & "\settings\cpt-save-local.adtg"
-  blnExists = Dir(strSaved) <> vbNullString
-  If blnExists Then
-    Set rstSavedMap = CreateObject("ADODB.Recordset")
-    rstSavedMap.Open strSaved
-  End If
-  
-  'populate the form - defaults to task ECFs, text
-  With cptSaveLocal_frm
-    'populate map
-    .lboECF.Clear
-    If rst.RecordCount = 0 Then
-      rst.Close
-      MsgBox "No Enterprise Custom Fields available in this file.", vbExclamation + vbOKOnly, "No ECFs found"
-      GoTo exit_here
-    End If
-    rst.MoveFirst
-    Do While Not rst.EOF
-      If UCase(rst("GUID")) = UCase(strGUID) And rst("pjType") = 0 Then
-        .lboECF.AddItem
-        .lboECF.List(.lboECF.ListCount - 1, 0) = rst("ECF")
-        .lboECF.List(.lboECF.ListCount - 1, 1) = rst("ECF_Name")
-        .lboECF.List(.lboECF.ListCount - 1, 2) = rst("ENTITY")
-        If blnExists Then
-          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND ECF=" & rst("ECF") '& " AND ENTITY=" & pjTask
-          If Not rstSavedMap.EOF Then
-            .lboECF.List(.lboECF.ListCount - 1, 3) = rstSavedMap("LCF")
-            If Len(CustomFieldGetName(rstSavedMap("LCF"))) > 0 Then
-              .lboECF.List(.lboECF.ListCount - 1, 4) = CustomFieldGetName(rstSavedMap("LCF"))
-            Else
-              .lboECF.List(.lboECF.ListCount - 1, 4) = FieldConstantToFieldName(rstSavedMap("LCF"))
-            End If
-            TableEditEx ".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(rstSavedMap("ECF")), , , , , True, , , , , , , , False
-            TableEditEx ".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(rstSavedMap("LCF")), , , , , True, , , , , , , , False
-            TableApply ".cptSaveLocal Task Table"
-          End If
-          rstSavedMap.Filter = ""
-        End If
+    'get enterprise custom task fields
+    For lngField = 188776000 To 188778000 '2000 should do it for now
+      If FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
+        strECF = FieldConstantToFieldName(lngField)
+        strEntity = cptInterrogateECF(oTask, lngField)
+        rst.AddNew Array("URL", "GUID", "pjType", "ENTITY", "ECF", "ECF_Name"), Array(strURL, strGUID, pjTask, strEntity, lngField, FieldConstantToFieldName(lngField))
+        lngECFCount = lngECFCount + 1
       End If
-      rst.MoveNext
-    Loop
-    rst.Close
-      
-    .lblStatus.Caption = Format(lngECFCount, "#,##0") & " enterprise custom fields."
+      .lblStatus.Caption = "Analyzing Task ECFs...(" & Format(((lngField - 188776000) / (188778000 - 188776000)), "0%") & ")"
+      .lblProgress.Width = ((lngField - 188776000) / (188778000 - 188776000)) * .lblStatus.Width
+      DoEvents
+    Next lngField
+
+    'get enterprise custom resource fields
+    For lngField = 205553664 To 205555664 '2000 should do it for now
+      If FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
+        strECF = FieldConstantToFieldName(lngField)
+        strEntity = cptInterrogateECF(oTask, lngField)
+        rst.AddNew Array("URL", "GUID", "pjType", "ENTITY", "ECF", "ECF_Name"), Array(strURL, strGUID, pjResource, strEntity, lngField, FieldConstantToFieldName(lngField))
+        lngECFCount = lngECFCount + 1
+      End If
+      .lblStatus.Caption = "Analyzing Resource ECFs...(" & Format((lngField - 205553664) / (205555664 - 205553664), "0%") & ")"
+      .lblProgress.Width = ((lngField - 205553664) / (205555664 - 205553664)) * .lblStatus.Width
+      DoEvents
+    Next lngField
+  
     oTask.Delete
+  
+    If Dir(cptDir & "\settings\cpt-ecf.adtg") <> vbNullString Then
+      Kill cptDir & "\settings\cpt-ecf.adtg"
+    End If
+    rst.Sort = "ECF_Name"
+    rst.Save cptDir & "\settings\cpt-ecf.adtg"
+    rst.Close
+  
+    'trigger lboECF refresh
+    .cboECF.Value = "All Types"
+    
+    'update the table
+    For lngField = 0 To .lboECF.ListCount - 1
+      If Not IsNull(.lboECF.List(lngField, 3)) Then
+        lngECF = .lboECF.List(lngField, 0)
+        lngLCF = .lboECF.List(lngField, 3)
+        cptUpdateSaveLocalView lngECF, lngLCF
+      End If
+    Next lngField
     
     If BLN_TRAP_ERRORS Then
       .Hide
       cptSpeed False
-      .Show
+      .Show 'modal to control changes to custom fields
     Else
       cptSpeed False
       .Show False
@@ -428,6 +394,7 @@ Dim lngItem As Long
   Set rstSavedMap = CreateObject("ADODB.Recordset")
   strSavedMap = cptDir & "\settings\cpt-save-local.adtg"
   If Dir(strSavedMap) = vbNullString Then 'create it
+    rstSavedMap.Fields.Append "URL", adVarChar, 255
     rstSavedMap.Fields.Append "GUID", adGUID
     rstSavedMap.Fields.Append "ECF", adBigInt
     rstSavedMap.Fields.Append "LCF", adBigInt
@@ -921,6 +888,7 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
   Dim oOutlineCodeLocal As OutlineCode
   Dim oOutlineCode As OutlineCode
   'strings
+  Dim strURL As String
   Dim strGUID As String
   Dim strSavedMap As String
   Dim strECF As String
@@ -936,22 +904,29 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+  'todo: deletecustomfield if overwriting
+
   With cptSaveLocal_frm
     'if already mapped then prompt with ECF name and ask to remap
     For lngItem = 0 To .lboECF.ListCount - 1
       If .lboECF.List(lngItem, 3) = lngLCF Then
-        If MsgBox(FieldConstantToFieldName(lngLCF) & " is already mapped to " & .lboECF.List(lngItem, 1) & " - reassign it?", vbExclamation + vbYesNo, "Already Mapped") = vbYes Then
-          CustomFieldDelete lngLCF
+        If .lboECF.List(lngItem, 0) = lngECF Then GoTo exit_here 'already mapped
+        If MsgBox(FieldConstantToFieldName(lngLCF) & " is already mapped to " & .lboECF.List(lngItem, 1) & " - reassign it?", vbExclamation + vbYesNo, "Already Mapped") = vbYes Then '
           .lboECF.List(lngItem, 3) = ""
           .lboECF.List(lngItem, 4) = ""
         Else
           GoTo exit_here
         End If
       End If
+next_ecf:
     Next lngItem
     
+    CustomFieldDelete lngLCF
+    
     'capture rename
+    If CustomFieldGetName(lngECF) = Replace(CustomFieldGetName(lngLCF), " (" & FieldConstantToFieldName(lngLCF) & ")", "") Then GoTo skip_rename
     If Len(CustomFieldGetName(lngLCF)) > 0 Then
+      'todo: skip if name already matches
       If MsgBox("Rename " & FieldConstantToFieldName(lngLCF) & " to " & FieldConstantToFieldName(lngECF) & "?", vbQuestion + vbYesNo, "Please confirm") = vbYes Then
         'rename it
         CustomFieldRename CLng(lngLCF), CustomFieldGetName(lngECF) & " (" & FieldConstantToFieldName(lngLCF) & ")"
@@ -967,6 +942,8 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
       'rename it in lboLCF
       If Not .tglAutoMap Then .lboLCF.List(.lboLCF.ListIndex, 1) = FieldConstantToFieldName(.lboLCF) & " (" & CustomFieldGetName(.lboLCF) & ")"
     End If
+    
+skip_rename:
     
     'get formula
     If Len(CustomFieldGetFormula(lngECF)) > 0 Then
@@ -1041,6 +1018,8 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
     End If
   End With
   
+  strURL = ActiveProject.ServerURL
+  
   'update rstSavedMap
   If Application.Version < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
@@ -1056,28 +1035,23 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
     If Not rstSavedMap.EOF Then
       rstSavedMap.Fields(2) = lngLCF
     Else
-      rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
+      rstSavedMap.AddNew Array(0, 1, 2, 3), Array(strURL, strGUID, lngECF, lngLCF)
     End If
     rstSavedMap.Filter = ""
     rstSavedMap.Save strSavedMap, adPersistADTG
   Else 'create it
+    rstSavedMap.Fields.Append "URL", adVarChar, 255
     rstSavedMap.Fields.Append "GUID", adGUID
     rstSavedMap.Fields.Append "ECF", adInteger
     rstSavedMap.Fields.Append "LCF", adInteger
     rstSavedMap.Open
-    rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
+    rstSavedMap.AddNew Array(0, 1, 2, 3), Array(strURL, strGUID, lngECF, lngLCF)
     rstSavedMap.Save strSavedMap, adPersistADTG
   End If
   rstSavedMap.Close
   
   'update the table
-  If Not TableEditEx(".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(lngECF), , , , , True, , , , , , , , False) Then
-    MsgBox "Failed to add column " & FieldConstantToFieldName(lngECF) & "!", vbExclamation + vbOKOnly, "Fail"
-  End If
-  If Not TableEditEx(".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(lngLCF), , , , , True, , , , , , , , False) Then
-    MsgBox "Failed to add column " & FieldConstantToFieldName(lngECF) & "!", vbExclamation + vbOKOnly, "Fail"
-  End If
-  TableApply ".cptSaveLocal Task Table"
+  cptUpdateSaveLocalView lngECF, lngLCF
   
 exit_here:
   On Error Resume Next
@@ -1095,6 +1069,7 @@ Sub cptExportCFMap()
   'objects
   Dim rstSavedMap As ADODB.Recordset
   'strings
+  Dim strMsg As String
   Dim strSavedMapExport As String
   Dim strGUID As String
   Dim strSavedMap As String
@@ -1108,7 +1083,12 @@ Sub cptExportCFMap()
   'dates
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
+  strMsg = "Your maps are only valid for other users on this server:" & vbCrLf & vbCrLf
+  strMsg = strMsg & ActiveProject.ServerURL & vbCrLf & vbCrLf
+  strMsg = strMsg & "Proceed with export?"
+  If MsgBox(strMsg, vbExclamation + vbYesNo, "Important") = vbNo Then GoTo exit_here
+  
   'ensure file exists
   strSavedMap = cptDir & "\settings\cpt-save-local.adtg"
   If Dir(strSavedMap) = vbNullString Then
@@ -1213,7 +1193,8 @@ Sub cptImportCFMap()
   'open user's saved map
   Set rstSavedMap = CreateObject("ADODB.Recordset")
   With rstSavedMap
-    If Dir(cptDir & "\settings\cpt-save-local.adtg") = vbNullString Then
+    If Dir(cptDir & "\settings\cpt-save-local.adtg") = vbNullString Then 'create it
+      .Fields.Append "ServerURL", adVarChar, 255
       .Fields.Append "GUID", adGUID
       .Fields.Append "ECF", adInteger
       .Fields.Append "LCF", adInteger
@@ -1224,9 +1205,22 @@ Sub cptImportCFMap()
     Do Until oStream.AtEndOfStream
       aLine = Split(oStream.ReadLine, ",")
       If UBound(aLine) > 0 Then
-        cptSaveLocal_frm.lboECF.Value = CLng(aLine(1))
-        cptSaveLocal_frm.lboLCF.Value = CLng(aLine(2))
-        Call cptMapECFtoLCF(CLng(aLine(1)), CLng(aLine(2)))
+        'ensure same server
+        If aLine(0) <> ActiveProject.ServerURL Then
+          MsgBox "Maps can only be imported from this server:" & vbCrLf & vbCrLf & ActiveProject.ServerURL, vbCritical + vbOKOnly, "Invalid Map"
+          GoTo exit_here
+        Else
+          'ensure ecf exists
+          If FieldConstantToFieldName(CLng(aLine(2))) = "<Unavailable>" Then
+            'todo: strECF
+            MsgBox "The imported ECF (" & CLng(aLine(2)) & ") is <Unavailable> on this server.", vbCritical + vbOKOnly, "Invalid ECF"
+          Else
+            'todo: ensure same ECF settings?
+            cptSaveLocal_frm.lboECF.Value = CLng(aLine(2))
+            cptSaveLocal_frm.lboLCF.Value = CLng(aLine(3))
+            Call cptMapECFtoLCF(CLng(aLine(2)), CLng(aLine(3)))
+          End If
+        End If
       End If
     Loop
     
@@ -1245,6 +1239,104 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptSaveLocal_bas", "cptImportCFMap", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptUpdateECF(Optional strFilter As String)
+  'objects
+  Dim rstECF As ADODB.Recordset
+  Dim rstSavedMap As ADODB.Recordset
+  'strings
+  Dim strGUID As String
+  Dim strSavedMap As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  Dim blnExists As Boolean
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'get project guid
+  If Application.Version < 12 Then
+    strGUID = ActiveProject.DatabaseProjectUniqueID
+  Else
+    strGUID = ActiveProject.GetServerProjectGuid
+  End If
+  
+  'open the ecf recordset
+  Set rstECF = CreateObject("ADODB.Recordset")
+  rstECF.Open cptDir & "\settings\cpt-ecf.adtg"
+    
+  'check for saved map
+  strSavedMap = cptDir & "\settings\cpt-save-local.adtg"
+  blnExists = Dir(strSavedMap) <> vbNullString
+  If blnExists Then
+    Set rstSavedMap = CreateObject("ADODB.Recordset")
+    rstSavedMap.Open strSavedMap
+  End If
+  
+  'populate the form - defaults to task ECFs, text
+  With cptSaveLocal_frm
+    'populate map
+    .lboECF.Clear
+    If rstECF.RecordCount = 0 Then
+      rstECF.Close
+      MsgBox "No Enterprise Custom Fields available in this file.", vbExclamation + vbOKOnly, "No ECFs found"
+      GoTo exit_here
+    End If
+    'apply
+    If .cboECF <> "All Types" Then
+      If .cboECF = "undetermined" Then
+        rstECF.Filter = "ENTITY='undetermined' OR ENTITY LIKE '%Maybe%'"
+      Else
+        rstECF.Filter = "ENTITY='" & .cboECF & "' OR ENTITY='undetermined'"
+      End If
+    End If
+    If rstECF.RecordCount = 0 Then GoTo no_records
+    rstECF.MoveFirst
+    Do While Not rstECF.EOF
+      If UCase(rstECF("GUID")) = UCase(strGUID) And rstECF("pjType") = IIf(.optTasks, pjTask, pjResource) Then
+        If strFilter <> "" Then
+          If InStr(UCase(rstECF("ECF_Name")), UCase(strFilter)) = 0 Then GoTo next_field
+        End If
+        .lboECF.AddItem
+        .lboECF.List(.lboECF.ListCount - 1, 0) = rstECF("ECF")
+        .lboECF.List(.lboECF.ListCount - 1, 1) = rstECF("ECF_Name")
+        .lboECF.List(.lboECF.ListCount - 1, 2) = rstECF("ENTITY")
+        If blnExists Then
+          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND ECF=" & rstECF("ECF") '& " AND ENTITY=" & IIf(.optTasks, pjTask, pjResource)
+          If Not rstSavedMap.EOF Then
+            .lboECF.List(.lboECF.ListCount - 1, 3) = rstSavedMap("LCF")
+            If Len(CustomFieldGetName(rstSavedMap("LCF"))) > 0 Then
+              .lboECF.List(.lboECF.ListCount - 1, 4) = CustomFieldGetName(rstSavedMap("LCF"))
+            Else
+              .lboECF.List(.lboECF.ListCount - 1, 4) = FieldConstantToFieldName(rstSavedMap("LCF"))
+            End If
+          End If
+          rstSavedMap.Filter = ""
+        End If
+      End If
+next_field:
+      rstECF.MoveNext
+    Loop
+no_records:
+    .lblStatus.Caption = Format(.lboECF.ListCount, "#,##0") & " enterprise custom field(s)."
+
+  End With
+
+exit_here:
+  On Error Resume Next
+  If rstECF.State Then rstECF.Close
+  Set rstECF = Nothing
+  If rstSavedMap.State Then rstSavedMap.Close
+  Set rstSavedMap = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_bas", "cptUpdateECF", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -1270,8 +1362,8 @@ Dim lngField As Long
     lngFields = .cboLCF.Column(1)
     For lngField = 1 To lngFields
       strFieldName = .cboLCF.Column(0) & lngField
-      lngFieldID = FieldNameToFieldConstant(strFieldName)
-      strCustomName = CustomFieldGetName(FieldNameToFieldConstant(.cboLCF.Column(0) & lngField))
+      lngFieldID = FieldNameToFieldConstant(strFieldName, IIf(.optTasks, pjTask, pjResource))
+      strCustomName = CustomFieldGetName(FieldNameToFieldConstant(.cboLCF.Column(0) & lngField, IIf(.optTasks, pjTask, pjResource)))
       If strFilter <> "" Then
         If InStr(UCase(strCustomName), UCase(strFilter)) = 0 Or Len(strCustomName) = 0 Then GoTo next_field
       End If
@@ -1294,5 +1386,80 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptSaveLocal_bas", "cboLCF_Change", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptUpdateSaveLocalView(Optional lngECF As Long, Optional lngLCF As Long)
+  'objects
+  'strings
+  'longs
+  Dim lngField As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  With cptSaveLocal_frm
+    If Not .Visible Then
+      'create/overwrite the tables
+      cptSpeed True
+      ViewApply "Gantt Chart"
+      TableEditEx ".cptSaveLocal Task Table", True, True, True, , "ID", , , , , , True, , , , , , , , False
+      TableEditEx ".cptSaveLocal Task Table", True, False, , , , "Unique ID", "UID", , , , True
+      TableEditEx ".cptSaveLocal Resource Table", False, True, True, , "ID", , , , , , True, , , , , , , , False
+      TableEditEx ".cptSaveLocal Resource Table", False, False, , , , "Unique ID", "UID", , , , True
+      On Error Resume Next
+      ActiveProject.Views(".cptSaveLocal Task View").Delete
+      ActiveProject.Views(".cptSaveLocal Resource View").Delete
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      ViewEditSingle ".cptSaveLocal Task View", True, , pjTaskSheet, , , ".cptSaveLocal Task Table", "All Tasks", "No Group"
+      ViewEditSingle ".cptSaveLocal Resource View", True, , pjResourceSheet, , , ".cptSaveLocal Resource Table", "All Resources", "No Group"
+      'update the table
+      For lngField = 0 To .lboECF.ListCount - 1
+        If Not IsNull(.lboECF.List(lngField, 3)) Then
+          lngECF = .lboECF.List(lngField, 0)
+          lngLCF = .lboECF.List(lngField, 3)
+          TableEditEx ".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(lngECF), , , , , True, , , , , , , , False
+          TableEditEx ".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(lngLCF), , , , , True, , , , , , , , False
+        End If
+      Next lngField
+      ViewApply ".cptSaveLocal Task View"
+      cptSpeed False
+    Else
+      If .optTasks Then
+        If ActiveProject.CurrentView <> ".cptSaveLocal Task View" Then ViewApply ".cptSaveLocal Task View"
+        If lngECF > 0 And lngLCF > 0 Then
+          If Not TableEditEx(".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(lngECF), , , , , True, , , , , , , , False) Then
+            MsgBox "Failed to add column " & FieldConstantToFieldName(lngECF) & "!", vbExclamation + vbOKOnly, "Fail"
+          End If
+          If Not TableEditEx(".cptSaveLocal Task Table", True, False, False, , , FieldConstantToFieldName(lngLCF), , , , , True, , , , , , , , False) Then
+            MsgBox "Failed to add column " & FieldConstantToFieldName(lngECF) & "!", vbExclamation + vbOKOnly, "Fail"
+          End If
+          TableApply ".cptSaveLocal Task Table"
+        End If
+      ElseIf .optResources Then
+        If ActiveProject.CurrentView <> ".cptSaveLocal Resource View" Then ViewApply ".cptSaveLocal Resource View"
+        If lngECF > 0 And lngLCF > 0 Then
+          If Not TableEditEx(".cptSaveLocal Resource Table", False, False, False, , , FieldConstantToFieldName(lngECF), , , , , True, , , , , , , , False) Then
+            MsgBox "Failed to add column " & FieldConstantToFieldName(lngECF) & "!", vbExclamation + vbOKOnly, "Fail"
+          End If
+          If Not TableEditEx(".cptSaveLocal Resource Table", False, False, False, , , FieldConstantToFieldName(lngLCF), , , , , True, , , , , , , , False) Then
+            MsgBox "Failed to add column " & FieldConstantToFieldName(lngECF) & "!", vbExclamation + vbOKOnly, "Fail"
+          End If
+          TableApply ".cptSaveLocal Resource Table"
+        End If
+      End If
+    End If
+  End With
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSaveLocal_bas", "cptUpdateSaveLocalView", Err, Erl)
   Resume exit_here
 End Sub

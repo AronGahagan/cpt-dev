@@ -15,8 +15,12 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+Private Sub cboECF_Change()
+  Call cptUpdateECF(Me.txtFilterECF)
+End Sub
 
 Sub cboLCF_Change()
   Call cptUpdateLCF(Me.txtFilterLCF)
@@ -148,7 +152,12 @@ Private Sub cmdUnmap_Click()
     Next oTableField
     TableApply ".cptSaveLocal Task Table"
   ElseIf Me.optResources Then
-    'todo: handle resource table adjustments
+    For Each oTableField In ActiveProject.ResourceTables(".cptSaveLocal Resource Table").TableFields
+      If oTableField.Field = lngECF Or oTableField.Field = lngLCF Then
+        oTableField.Delete
+      End If
+    Next oTableField
+    TableApply ".cptSaveLocal Resource Table"
   End If
   
 exit_here:
@@ -225,8 +234,18 @@ Private Sub lboECF_Change()
         Call cptAnalyzeAutoMap
       Else
         If Me.chkAutoSwitch Then
-          Me.cboLCF = Replace(Me.lboECF.List(Me.lboECF.ListIndex, 2), "Maybe", "")
-          For lngItem = 0 To Me.cboLCF.ListCount - 1
+          If Me.lboECF.List(Me.lboECF.ListIndex, 2) = "" Then
+            Me.cboLCF = "Text"
+          Else
+            Me.cboLCF = Replace(Me.lboECF.List(Me.lboECF.ListIndex, 2), "Maybe", "")
+          End If
+          For lngItem = 0 To Me.lboLCF.ListCount - 1
+            If Not IsNull(Me.lboECF.List(Me.lboECF.ListIndex, 3)) Then
+              If Me.lboLCF.List(lngItem, 0) = Me.lboECF.List(Me.lboECF.ListIndex, 3) Then
+                Me.lboLCF.Selected(lngItem) = True
+                Exit For
+              End If
+            End If
             If CustomFieldGetName(Me.lboLCF.List(lngItem)) = "" Then
               Me.lboLCF.Selected(lngItem) = True
               Exit For
@@ -302,6 +321,7 @@ Private Sub lboECF_Click()
         strSwitch = "Text"
       Case Else
         Me.lblStatus.Caption = "Undetermined: confirm manually."
+        strSwitch = "Text"
     End Select
     
     If Me.chkAutoSwitch And Me.cboLCF.Value <> strSwitch Then
@@ -326,6 +346,18 @@ exit_here:
 err_here:
   Call cptHandleErr("cptSaveLocal_frm", "lboECF_Click", Err, Erl)
   Resume exit_here
+End Sub
+
+Private Sub optResources_Click()
+  cptUpdateECF Me.txtFilterECF
+  cptUpdateLCF Me.txtFilterLCF
+  cptUpdateSaveLocalView
+End Sub
+
+Private Sub optTasks_Click()
+  cptUpdateECF Me.txtFilterECF
+  cptUpdateLCF Me.txtFilterLCF
+  cptUpdateSaveLocalView
 End Sub
 
 Private Sub tglAutoMap_Click()
@@ -447,6 +479,10 @@ End Sub
 '  Resume exit_here
 'End Sub
 
+Private Sub txtFilterECF_Change()
+  Call cptUpdateECF(Me.txtFilterECF.Text)
+End Sub
+
 Private Sub txtFilterLCF_Change()
   Call cptUpdateLCF(Me.txtFilterLCF.Text)
 End Sub
@@ -461,8 +497,11 @@ If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If Len(strStartGroup) > 0 Then GroupApply strStartGroup
   
   If ActiveProject.CurrentView = ".cptSaveLocal Task View" Then ViewApply "Gantt Chart"
+  On Error Resume Next
   ActiveProject.Views(".cptSaveLocal Task View").Delete
   ActiveProject.TaskTables(".cptSaveLocal Task Table").Delete
+  ActiveProject.Views(".cptSaveLocal Resource View").Delete
+  ActiveProject.TaskTables(".cptSaveLocal Resource Table").Delete
   
 exit_here:
   On Error Resume Next
