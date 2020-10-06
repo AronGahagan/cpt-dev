@@ -15,7 +15,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboECF_Change()
@@ -406,78 +406,6 @@ err_here:
   Call cptHandleErr("cptSaveLocal_frm", "tglAutoMap_Click", Err, Erl)
   Resume exit_here
 End Sub
-'
-'Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
-'  'objects
-'  'strings
-'  Dim strMsg As String
-'  Dim strECF As String
-'  Dim strCustomNameNew As String
-'  Dim strCustomName As String
-'  Dim strFieldName As String
-'  'longs
-'  Dim lngECF As Long
-'  Dim lngMapped As Long
-'  Dim lngLCF As Long
-'  Dim lngItem As Long
-'  'integers
-'  'doubles
-'  'booleans
-'  Dim blnRenamed As Boolean
-'  'variants
-'  'dates
-'
-'  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-'
-'  'todo: on cboFieldTypesLCF_Update re-examine for changes
-'
-'  'examine everything visible
-'  For lngItem = 0 To Me.lboLCF.ListCount - 1
-'    'ensure name is the same
-'    lngLCF = Me.lboLCF.List(lngItem, 0)
-'    strFieldName = FieldConstantToFieldName(lngLCF)
-'    strCustomName = cptRegEx(Me.lboLCF.List(lngItem, 1), "\(([^)]+)\)")
-'    strCustomNameNew = CustomFieldGetName(lngLCF)
-'    If Len(strCustomName & strCustomNameNew) = 0 Then GoTo next_item
-'    If strFieldName & " " & strCustomName & ")" <> strFieldName & " (" & strCustomNameNew & ")" Then
-'      blnRenamed = True
-'      Me.lboLCF.List(lngItem, 1) = strFieldName & " (" & strCustomNameNew & ")"
-'      For lngMapped = 0 To Me.lboECF.ListCount - 1
-'        If InStr(Me.lboECF.List(lngMapped, 3), lngLCF) > 0 Then
-'          lngECF = Me.lboECF.List(lngMapped, 0)
-'          strECF = FieldConstantToFieldName(lngECF)
-'          'if mapped, then prompt to unmap?
-'          strMsg = "The LCF " & strFieldName & " has been renamed" & vbCrLf
-'          strMsg = strMsg & "from '" & strCustomName & "'" & vbCrLf
-'          strMsg = strMsg & "to '" & strCustomNameNew & "'" & vbCrLf
-'          strMsg = strMsg & "and it is currently mapped to ECF '" & strECF & "':" & vbCrLf & vbCrLf
-'          strMsg = strMsg & "Would you like to unmap it now?"
-'          If MsgBox(strMsg, vbExclamation + vbYesNo, "Unmap?") = vbYes Then
-'          'todo: make cptMapECF and cptUnmapECF
-'          'todo: actually unmap it
-'          'if unmapped, prompt to clear existing data?
-'            If MsgBox("Would you also like to clear out all data from " & strFieldName & "?", vbExclamation + vbYesNo, "Careful") = vbYes Then
-'              Debug.Print "clearing data" 'todo: clear data from unmapped field
-'            End If
-'          Else
-'            Me.lboECF.List(lngMapped, 4) = strCustomNameNew '& " (" & strFieldName & ")"
-'          End If
-'          Exit For
-'        End If
-'      Next lngMapped
-'    End If
-'next_item:
-'    blnRenamed = False
-'  Next lngItem
-'
-'exit_here:
-'  On Error Resume Next
-'
-'  Exit Sub
-'err_here:
-'  Call cptHandleErr("cptSaveLocal_frm", "MouseMove", Err, Erl)
-'  Resume exit_here
-'End Sub
 
 Private Sub txtFilterECF_Change()
   Call cptUpdateECF(Me.txtFilterECF.Text)

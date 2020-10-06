@@ -1,16 +1,14 @@
 Attribute VB_Name = "cptSaveLocal_bas"
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Public strStartView As String
 Public strStartTable As String
 Public strStartFilter As String
 Public strStartGroup As String
 
-'todo: process is: import with enterprise open, then save as mpp
 'todo: make compatible with master/sub projects
-'todo: handle when user changes custom fields manually
 
 Sub cptShowSaveLocalForm()
 'objects
@@ -56,6 +54,7 @@ Dim vType As Variant
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   'get server URL
+  If Projects.Count = 0 Then GoTo exit_here
   If Len(ActiveProject.ServerURL) = 0 Then
     MsgBox "You are not connected to a Project Server.", vbCritical + vbOKOnly, "No Server"
     GoTo exit_here
@@ -187,7 +186,6 @@ Dim vType As Variant
     oWorksheet.Columns.AutoFit
     oExcel.ActiveWindow.ScrollRow = 1
     oMasterProject.Activate
-    'todo: keep them open for changes, close on form close?
     For lngProject = 0 To aProjects.Count - 1
       If aProjects(lngProject) <> oMasterProject.Name Then
         Projects(aProjects(lngProject)).Activate
@@ -361,15 +359,19 @@ End Sub
 
 Sub cptSaveLocal()
 'objects
-Dim oTasks As Object
 Dim rstSavedMap As ADODB.Recordset
+Dim oTasks As Tasks
 Dim oTask As Task
+Dim oResources As Resources
+Dim oResource As Resource
 'strings
 Dim strErrors As String
 Dim strGUID As String
 Dim strSavedMap As String
+Dim strMsg As String
 'longs
-Dim lngTasks As Long
+Dim lngType As Long
+Dim lngItems As Long
 Dim lngLCF As Long
 Dim lngECF As Long
 Dim lngItem As Long
@@ -400,78 +402,142 @@ Dim lngItem As Long
     rstSavedMap.Fields.Append "LCF", adBigInt
     rstSavedMap.Open
   Else
+    'todo: allow multiple maps per user!
     'replace existing saved map
     rstSavedMap.Filter = "GUID<>'" & strGUID & "'"
     rstSavedMap.Open strSavedMap
     rstSavedMap.Save strSavedMap, adPersistADTG
-    'rstSavedMap.Open strSavedMap
   End If
-  
   'get total task count
   ActiveWindow.TopPane.Activate
-  'todo: task vs resource
-  If ActiveProject.CurrentView <> ".cptSaveLocal Task View" Then
-    ViewApply ".cpt_SaveLocal Task View"
+  'determine whether we're working with tasks or resources
+  If cptSaveLocal_frm.optTasks Then
+    lngType = pjTask
+    If ActiveProject.CurrentView <> ".cptSaveLocal Task View" Then
+      ViewApply ".cptSaveLocal Task View"
+    End If
+  ElseIf cptSaveLocal_frm.optResources Then
+    lngType = pjResource
+    If ActiveProject.CurrencyCode <> ".cptSaveLocal Resource View" Then
+      ViewApply ".cptSaveLocal Resource View"
+    End If
   End If
   FilterClear
   GroupClear
-  OutlineShowAllTasks
-  SelectAll
   On Error Resume Next
-  Set oTasks = ActiveSelection.Tasks
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If Not oTasks Is Nothing Then
-    lngTasks = oTasks.Count
-  Else
-    MsgBox "There are no tasks in this schedule.", vbCritical + vbOKOnly, "No Tasks"
-    GoTo exit_here
+  If lngType = pjTask Then
+    OutlineShowAllTasks
+    SelectAll
+    Set oTasks = ActiveSelection.Tasks
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If Not oTasks Is Nothing Then
+      lngItems = oTasks.Count
+    Else
+      MsgBox "There are no tasks in this schedule.", vbCritical + vbOKOnly, "No Tasks"
+      GoTo exit_here
+    End If
+  ElseIf lngType = pjResource Then
+    SelectAll
+    Set oResources = ActiveSelection.Resources
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If Not oResources Is Nothing Then
+      lngItems = oResources.Count
+    Else
+      MsgBox "There are no resources in this schedule.", vbCritical + vbOKOnly, "No Resources"
+      GoTo exit_here
+    End If
   End If
   
   With cptSaveLocal_frm
-    'todo: need to filter the lboECF for tasks
-    For Each oTask In ActiveProject.Tasks
-      On Error Resume Next
-      For lngItem = 0 To .lboECF.ListCount - 1
-        If .lboECF.List(lngItem, 3) > 0 Then
-          lngECF = .lboECF.List(lngItem, 0)
-          lngLCF = .lboECF.List(lngItem, 3)
-          'no duplicates
-          'todo: does Filter = X AND (Y OR Z) work?
-'          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND ECF=" & lngECF
-'          If rstSavedMap.RecordCount = 1 Then
-            'overwrite it
-'            rstSavedMap.Delete adAffectCurrent
-'          End If
-'          rstSavedMap.Filter = ""
-'          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND LCF=" & lngLCF
-'          If rstSavedMap.RecordCount = 1 Then
-            'overwrite it
-'            rstSavedMap.Delete adAffectCurrent
-'          End If
-'          rstSavedMap.Filter = ""
-          'add the new record
-'          rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
-          'first clear the values
-          If Len(oTask.GetField(lngLCF)) > 0 Then oTask.SetField lngLCF, ""
-          'if ECF is formula, then skip it
-          If Len(CustomFieldGetFormula(lngECF)) > 0 Then GoTo next_mapping
-          If Len(oTask.GetField(lngECF)) > 0 Then
-            oTask.SetField lngLCF, CStr(oTask.GetField(lngECF))
-            If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-            If oTask.GetField(lngLCF) <> CStr(oTask.GetField(lngECF)) Then
-              If MsgBox("There was an error copying from ECF " & CustomFieldGetName(lngECF) & " to LCF " & CustomFieldGetName(lngLCF) & " on Task UID " & oTask.UniqueID & "." & vbCrLf & vbCrLf & "Please validate data type mapping." & vbCrLf & vbCrLf & "Proceed anyway?", vbExclamation + vbYesNo, "Failed!") = vbNo Then
-                GoTo exit_here
+    If lngType = pjTask Then
+      'todo: need to filter the lboECF for tasks
+      For Each oTask In ActiveProject.Tasks
+        If oTask Is Nothing Then GoTo next_task
+        If oTask.ExternalTask Then GoTo next_task
+        On Error Resume Next
+        For lngItem = 0 To .lboECF.ListCount - 1
+          If .lboECF.List(lngItem, 3) > 0 Then
+            lngECF = .lboECF.List(lngItem, 0)
+            lngLCF = .lboECF.List(lngItem, 3)
+            'no duplicates
+            'todo: does Filter = X AND (Y OR Z) work?
+  '          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND ECF=" & lngECF
+  '          If rstSavedMap.RecordCount = 1 Then
+              'overwrite it
+  '            rstSavedMap.Delete adAffectCurrent
+  '          End If
+  '          rstSavedMap.Filter = ""
+  '          rstSavedMap.Filter = "GUID='" & UCase(strGUID) & "' AND LCF=" & lngLCF
+  '          If rstSavedMap.RecordCount = 1 Then
+              'overwrite it
+  '            rstSavedMap.Delete adAffectCurrent
+  '          End If
+  '          rstSavedMap.Filter = ""
+            'add the new record
+  '          rstSavedMap.AddNew Array(0, 1, 2), Array(strGUID, lngECF, lngLCF)
+            'first clear the values
+            If Len(oTask.GetField(lngLCF)) > 0 Then oTask.SetField lngLCF, ""
+            'if ECF is formula, then skip it
+            If Len(CustomFieldGetFormula(lngECF)) > 0 Then GoTo next_task_mapping
+            If Len(oTask.GetField(lngECF)) > 0 Then
+              oTask.SetField lngLCF, CStr(oTask.GetField(lngECF))
+              If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+              If oTask.GetField(lngLCF) <> CStr(oTask.GetField(lngECF)) Then
+                If MsgBox("There was an error copying from ECF " & CustomFieldGetName(lngECF) & " to LCF " & CustomFieldGetName(lngLCF) & " on Task UID " & oTask.UniqueID & "." & vbCrLf & vbCrLf & "Please validate data type mapping." & vbCrLf & vbCrLf & "Proceed anyway?", vbExclamation + vbYesNo, "Failed!") = vbNo Then
+                  GoTo exit_here
+                End If
               End If
             End If
           End If
+next_task_mapping:
+        Next lngItem
+next_task:
+      Next oTask
+    ElseIf lngType = pjResource Then
+      'todo: how to handle enterprise resources?
+      'todo: - copy down to master project?
+      'todo: prompt to copy down to each subproject, and
+      For Each oResource In oResources
+        'cannot write to local custom fields on an enterprise resource
+        If oResource.Enterprise Then
+          EditGoTo oResource.ID
+          MsgBox "'" & oResource.Name & "' is an enterprise resource:" & vbCrLf & vbCrLf & "Cannot write to local custom fields of an enterprise resource." & vbCrLf & vbCrLf & "This resource will be skipped.", vbExclamation + vbOKOnly, "Not a Local Resource"
+'          If MsgBox("'" & oResource.Name & "' is an enterprise resource:" & vbCrLf & vbCrLf & "Cannot write to local custom fields of an enterprise resource." & vbCrLf & vbCrLf & "Save to local resource pool?", vbExclamation + vbOKOnly, "Not a Local Resource") = vbYes Then
+'            'todo: where to save to master/sub?
+'          End If
+          GoTo next_resource
         End If
-next_mapping:
-      Next lngItem
-      
-    Next oTask
+        On Error Resume Next
+        For lngItem = 0 To .lboECF.ListCount - 1
+          If .lboECF.List(lngItem, 3) > 0 Then
+            lngECF = .lboECF.List(lngItem, 0)
+            lngLCF = .lboECF.List(lngItem, 3)
+            'first clear the values
+            If Len(oResource.GetField(lngLCF)) > 0 Then oResource.SetField lngLCF, ""
+            'if ECF is formula, then skip it
+            If Len(CustomFieldGetFormula(lngECF)) > 0 Then GoTo next_resource_mapping
+            If Len(oResource.GetField(lngECF)) > 0 Then
+              oResource.SetField lngLCF, CStr(oResource.GetField(lngECF))
+              If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+              If oResource.GetField(lngLCF) <> CStr(oResource.GetField(lngECF)) Then
+                strMsg = "There was an error copying..." & vbCrLf
+                strMsg = strMsg & "- from ECF: '" & CustomFieldGetName(lngECF) & "'" & vbCrLf
+                strMsg = strMsg & "- to LCF: '" & CustomFieldGetName(lngLCF) & "'" & vbCrLf
+                strMsg = strMsg & "- on Resource: '" & oResource.Name & "':" & vbCrLf
+                strMsg = strMsg & vbCrLf & "Please validate data type mapping, and verify subproject custom fields match master project custom fields."
+                strMsg = strMsg & vbCrLf & vbCrLf & "Click 'OK' to continue; 'Cancel' to cancel"
+                If MsgBox(strMsg, vbExclamation + vbOKCancel, "Failed!") = vbCancel Then
+                  GoTo exit_here
+                End If
+              End If
+            End If
+          End If
+next_resource_mapping:
+        Next lngItem
+next_resource:
+      Next oResource
+    End If
   End With
-
-  'todo: resource ECF > LCF
 
 '  rstSavedMap.Save strSavedMap, adPersistADTG
 
@@ -479,6 +545,8 @@ next_mapping:
 
 exit_here:
   On Error Resume Next
+  Set oResource = Nothing
+  Set oResources = Nothing
   Set oTasks = Nothing
   rstSavedMap.Close
   Set rstSavedMap = Nothing
@@ -1411,6 +1479,11 @@ Sub cptUpdateSaveLocalView(Optional lngECF As Long, Optional lngLCF As Long)
       TableEditEx ".cptSaveLocal Task Table", True, False, , , , "Unique ID", "UID", , , , True
       TableEditEx ".cptSaveLocal Resource Table", False, True, True, , "ID", , , , , , True, , , , , , , , False
       TableEditEx ".cptSaveLocal Resource Table", False, False, , , , "Unique ID", "UID", , , , True
+      If ActiveProject.Subprojects.Count > 0 Then
+        TableEditEx ".cptSaveLocal Task Table", True, False, , , , "Project", , 40, , , True
+        TableEditEx ".cptSaveLocal Resource Table", False, False, , , , "Enterprise", , 15, pjCenter, , True
+      End If
+      TableEditEx ".cptSaveLocal Resource Table", False, False, , , , "Name", , 30, , , True
       On Error Resume Next
       ActiveProject.Views(".cptSaveLocal Task View").Delete
       ActiveProject.Views(".cptSaveLocal Resource View").Delete
