@@ -497,6 +497,10 @@ next_task:
       'todo: how to handle enterprise resources?
       'todo: - copy down to master project?
       'todo: prompt to copy down to each subproject, and
+      'todo: ResourceAssignment Resources:="pgm mgmt", Operation:=pjReplace, With:="Agile SW Eng"
+      'todo: -- note! does not move baseline work; resource must exist in the subproject; prompts user on EACH for completed work; if same name then pjReplace defaults to Enterprise
+      'todo: issue: cannot write to resource until it's local; cannot read from resource if no longer enterprise
+      'todo: - create copy of enterprise resource
       For Each oResource In oResources
         'cannot write to local custom fields on an enterprise resource
         If oResource.Enterprise Then
