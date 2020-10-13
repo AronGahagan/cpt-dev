@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptSaveLocal_bas"
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Public strStartView As String
 Public strStartTable As String
@@ -960,18 +960,25 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
   Dim oOutlineCodeLocal As OutlineCode
   Dim oOutlineCode As OutlineCode
   'strings
+  Dim strUnmapped As String
+  Dim strFields As String
+  Dim strField As String
+  Dim strCustomFormula As String
   Dim strURL As String
   Dim strGUID As String
   Dim strSavedMap As String
   Dim strECF As String
   'longs
+  Dim lngSourceField As Long
   Dim lngItem As Long
   Dim lngDown As Long
   Dim lngCodeNumber As Long
   'integers
   'doubles
   'booleans
+  Dim blnProceed As Boolean
   'variants
+  Dim vField As Variant
   'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -1017,9 +1024,52 @@ next_ecf:
     
 skip_rename:
     
-    'get formula
-    If Len(CustomFieldGetFormula(lngECF)) > 0 Then
-      CustomFieldSetFormula lngLCF, CustomFieldGetFormula(lngECF)
+    'does ECF have a formula?
+    strCustomFormula = CustomFieldGetFormula(lngECF)
+    If Len(strCustomFormula) > 0 Then
+      'does ECF rely on other fields?
+      strField = ""
+      Do While Len(cptRegEx(Replace(strCustomFormula, strField, ""), "\[[^\]]*\]")) > 0
+        strField = cptRegEx(Replace(strCustomFormula, strField, ""), "\[[^\]]*\]")
+        If InStr(strFields, strField) = 0 Then
+          strFields = strFields & strField & "|"
+        End If
+        strCustomFormula = Replace(strCustomFormula, strField, "")
+      Loop
+      blnProceed = True
+      'reset the temporary formula string
+      strCustomFormula = CustomFieldGetFormula(lngECF)
+      For Each vField In Split(strFields, "|")
+        'is input field an ECF?
+        If Len(vField) = 0 Then Exit For
+        lngSourceField = FieldNameToFieldConstant(Replace(Replace(vField, "[", ""), "]", ""))
+        If lngSourceField > 188776000 Then
+          'has input field been mapped?
+          For lngItem = 0 To .lboECF.ListCount - 1
+            If .lboECF.List(lngItem, 0) = lngSourceField Then
+              If IsNull(.lboECF.List(lngItem, 3)) Then
+                strUnmapped = strUnmapped & "- " & FieldConstantToFieldName(lngSourceField) & vbCrLf
+                blnProceed = False
+                Exit For
+              Else
+                strCustomFormula = Replace(strCustomFormula, "[" & FieldConstantToFieldName(lngSourceField) & "]", "[" & CustomFieldGetName(.lboECF.List(lngItem, 3)) & "]")
+                Exit For
+              End If
+            End If
+          Next lngItem
+        End If
+      Next vField
+      If Not blnProceed Then
+        MsgBox "ECF relies on the following unmapped ECF fields:" & vbCrLf & strUnmapped & vbCrLf & "Please map source ECF fields first.", vbInformation + vbOKOnly, "Not yet..."
+        CustomFieldDelete lngLCF
+        cptUpdateLCF
+        GoTo exit_here
+      Else
+        CustomFieldPropertiesEx lngLCF, pjFieldAttributeFormula
+        If Not CustomFieldSetFormula(lngLCF, strCustomFormula) Then  'CustomFieldGetFormula(lngECF)
+          MsgBox "Problem importing formula; please validate.", vbCritical + vbOKOnly, "Formula Error"
+        End If
+      End If
     End If
     
     'get indicators
