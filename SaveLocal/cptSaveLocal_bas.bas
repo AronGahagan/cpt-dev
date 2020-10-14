@@ -8,8 +8,6 @@ Public strStartTable As String
 Public strStartFilter As String
 Public strStartGroup As String
 
-'todo: make compatible with master/sub projects
-
 Sub cptShowSaveLocalForm()
 'objects
 Dim oRange As Excel.Range
@@ -383,8 +381,6 @@ Dim lngItem As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  'todo: ensure there is some mapping?
-  
   'get project guid
   If Application.Version < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
@@ -402,7 +398,7 @@ Dim lngItem As Long
     rstSavedMap.Fields.Append "LCF", adBigInt
     rstSavedMap.Open
   Else
-    'todo: allow multiple maps per user!
+    'todo: allow multiple maps per user
     'replace existing saved map
     rstSavedMap.Filter = "GUID<>'" & strGUID & "'"
     rstSavedMap.Open strSavedMap
@@ -450,7 +446,6 @@ Dim lngItem As Long
   
   With cptSaveLocal_frm
     If lngType = pjTask Then
-      'todo: need to filter the lboECF for tasks
       For Each oTask In ActiveProject.Tasks
         If oTask Is Nothing Then GoTo next_task
         If oTask.ExternalTask Then GoTo next_task
@@ -908,8 +903,7 @@ Sub cptAutoMap()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   'todo: unselect after complete - if fails, leave selected
-  'todo: update rstSavedMap after each
-  'todo: update lboECF after each...or lboLCF?
+  'todo: hide analysis after AutoMap; cptRefreshLCF
   'todo: for dates > 10 cycle through date, start, finish
 
   With cptSaveLocal_frm
@@ -919,7 +913,7 @@ Sub cptAutoMap()
       If .lboECF.Selected(lngECFs) Then
         lngECF = .lboECF.List(lngECFs, 0)
         'switch cbo types to get list of lngLCFs
-        If .cboLCF <> .lboECF.List(lngECFs, 2) Then .cboLCF = .lboECF.List(lngECFs, 2)
+        If .cboLCF <> .lboECF.List(lngECFs, 2) Then .cboLCF = Replace(.lboECF.List(lngECFs, 2), "Maybe", "")
         'loop through LCFs looking for one available
         For lngLCFs = 0 To .lboLCF.ListCount - 1
           lngLCF = .lboLCF.List(lngLCFs, 0)
@@ -1042,6 +1036,8 @@ skip_rename:
       For Each vField In Split(strFields, "|")
         'is input field an ECF?
         If Len(vField) = 0 Then Exit For
+        'skip status date no need to map this field
+        If vField = "[Status Date]" Then GoTo next_formula_field
         lngSourceField = FieldNameToFieldConstant(Replace(Replace(vField, "[", ""), "]", ""))
         If lngSourceField > 188776000 Then
           'has input field been mapped?
@@ -1058,6 +1054,7 @@ skip_rename:
             End If
           Next lngItem
         End If
+next_formula_field:
       Next vField
       If Not blnProceed Then
         MsgBox "ECF relies on the following unmapped ECF fields:" & vbCrLf & strUnmapped & vbCrLf & "Please map source ECF fields first.", vbInformation + vbOKOnly, "Not yet..."
@@ -1084,23 +1081,6 @@ skip_rename:
       'make it a picklist
       CustomFieldPropertiesEx lngLCF, pjFieldAttributeValueList
       If oOutlineCode.CodeMask.Count > 1 Then 'import outline code and all settings
-'        MsgBox "If copying down an Outline Code, please use the 'Import Field' function of the Custom Fields dialog before clicking Save Local.", vbInformation + vbOKOnly, "Nota Bene"
-'        VBA.SendKeys "%r", True
-'        VBA.SendKeys "f", True
-'        VBA.SendKeys "%y", True
-'        VBA.SendKeys "o", True
-'        VBA.SendKeys "{TAB}"
-'        'repeat the down key based on which code
-'        lngCodeNumber = CLng(Replace(FieldConstantToFieldName(lngLCF), "Outline Code", ""))
-'        If lngCodeNumber > 1 Then
-'          For lngDown = 1 To lngCodeNumber - 1
-'            VBA.SendKeys "{DOWN}", True
-'          Next lngDown
-'        End If
-'        VBA.SendKeys "%i", True
-'        VBA.SendKeys "%f", True
-'        VBA.SendKeys "%{DOWN}", True
-'        VBA.SendKeys Left(FieldConstantToFieldName(.lboECF.List(.lboECF.ListIndex, 0)), 1), True
         'capture code mask
         With oOutlineCode.CodeMask
           For lngItem = 1 To .Count
@@ -1113,7 +1093,9 @@ skip_rename:
           'load items bottom to top
           For lngItem = .Count To 1 Step -1
             Set oLookupTableEntry = oOutlineCodeLocal.LookupTable.AddChild(.Item(lngItem).Name)
-            oLookupTableEntry.Description = .Item(lngItem).Description
+            If Len(.Item(lngItem).Description) > 0 Then
+              oLookupTableEntry.Description = .Item(lngItem).Description
+            End If
           Next lngItem
           'indent top to bottom
           For lngItem = 1 To .Count
