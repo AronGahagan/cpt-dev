@@ -631,7 +631,7 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCOBRA"" label=""COBRA Export Tool"" imageMso=""Export"" onAction=""Export_IMS"" visible=""true"" supertip=""Validate that your IMS is ready for integration; create CSV transaction files for COBRA. Baseline, forecast, status, etc."" />"
   End If
   If cptModuleExists("cptCheckAssignments_bas") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCheckAssignments"" label=""Reconcile Assignments"" imageMso=""SynchronizationStatus"" onAction=""cptCheckAssignments"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCheckAssignments"" label=""Check Assignments"" imageMso=""SynchronizationStatus"" onAction=""cptCheckAssignments"" visible=""true"" supertip=""Reconcile task vs assignment work, baselines, etc."" />"
   End If
 
   If cptModuleExists("cptAdjustment_bas") And cptModuleExists("cptAdjustment_frm") Then
