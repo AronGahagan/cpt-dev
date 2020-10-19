@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.7</cpt_version>
+'<cpt_version>v1.6.8</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -51,7 +51,7 @@ err_here:
   Resume exit_here
 End Function
 
-Function cptGetControl(ByRef cptForm_frm As UserForm, strControlName As String) As Control
+Function cptGetControl(ByRef cptForm_frm As UserForm, strControlName As String) As control
 'NOTE: this only works for loaded forms
 
   Set cptGetControl = cptForm_frm.Controls(strControlName)
@@ -177,7 +177,7 @@ frx:
 
   'import the module
   Application.StatusBar = "Importing " & strFileName & "..."
-  ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
+  ThisProject.VBProject.VBComponents.Import cptDir & "\" & strFileName
   DoEvents
   
   '<issue24> remove the whitespace added by VBE import/export
@@ -239,7 +239,9 @@ Dim strAbout As String
   'cptAbout_frm.lblScoreBoard.Caption = "t0 : b1" EWR > MSY
   'cptAbout_frm.lblScoreBoard.Caption = "t0 : b2" MSY > EWR
   'cptAbout_frm.lblScoreBoard.Caption = "t0 : b3" 'EWR > SAN
-  cptAbout_frm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR
+  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR
+  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b5" 'EWR > NAS
+  cptAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR
   cptAbout_frm.Show '<issue19>
 
 exit_here:
