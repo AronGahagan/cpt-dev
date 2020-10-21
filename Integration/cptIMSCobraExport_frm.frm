@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIMSCobraExport_frm 
-   Caption         =   "IMS Export Utility v3.2.1"
+   Caption         =   "IMS Export Utility v3.2.2"
    ClientHeight    =   7284
    ClientLeft      =   120
    ClientTop       =   468
@@ -13,7 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v3.2.1</cpt_version>
+
+'<cpt_version>v3.2.2</cpt_version>
 Private Sub bcrBox_Change()
 
     If checkDuplicate(bcrBox) = True Then
@@ -487,7 +488,7 @@ End Sub
 
 Private Sub CancelBtn_Click()
     Me.Tag = "Cancel"
-    Me.hide
+    Me.Hide
 End Sub
 
 Private Sub cptLinkLabel_Click()
@@ -618,7 +619,7 @@ Private Sub ExportBtn_Click()
     End If
 
     Me.Tag = "Export"
-    Me.hide
+    Me.Hide
     
 End Sub
 
@@ -781,7 +782,7 @@ End Sub
 Private Sub RunDataBtn_Click()
     
     Me.Tag = "DataCheck"
-    Me.hide
+    Me.Hide
     
 End Sub
 
@@ -860,11 +861,11 @@ Private Function VerifyCustFieldUsage() As Boolean
     Else
         fCAID3 = False
     End If
-    If Me.resBox.Value <> "" Then fResID = True
-    If Me.wpBox.Value <> "" Then fWP = True
-    If Me.camBox.Value <> "" Then fCAM = True
-    If Me.evtBox.Value <> "" Then fEVT = True
-    If Me.PercentBox.Value <> "" Then fPCNT = True
+    If Me.resBox.Value <> "" Then fResID = True Else fResID = False 'v3.2.2
+    If Me.wpBox.Value <> "" Then fWP = True Else fWP = False 'v3.2.2
+    If Me.camBox.Value <> "" Then fCAM = True Else fCAM = False 'v3.2.2
+    If Me.evtBox.Value <> "" Then fEVT = True Else fEVT = False 'v3.2.2
+    If Me.PercentBox.Value <> "" Then fPCNT = True Else fPCNT = False 'v3.2.2
     
     If fCAID1 And fCAID2 And fCAID3 And fWP And fCAM And fEVT And fPCNT And fResID Then
     

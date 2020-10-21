@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.2.1</cpt_version>
+'<cpt_version>v3.2.2</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -100,12 +100,12 @@ Sub Export_IMS()
     curproj.Application.Calculation = pjManual
     curproj.Application.DisplayAlerts = False
 
-    If curproj.Subprojects.count > 0 And InStr(curproj.FullName, "<>") > 0 And curproj.ReadOnly <> True Then
+    If curproj.Subprojects.Count > 0 And InStr(curproj.FullName, "<>") > 0 And curproj.ReadOnly <> True Then
         MsgBox "Master Project Files with Subprojects must be opened Read Only"
         GoTo Quick_Exit
     End If
 
-    If curproj.Subprojects.count > 0 Then
+    If curproj.Subprojects.Count > 0 Then
         MasterProject = True
     Else
         MasterProject = False
@@ -297,13 +297,13 @@ Private Sub DataChecks(ByVal curproj As Project)
     Dim tAssBFin As String
     Dim tAssBWork As String
     Dim tempID As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim wpCount As Integer
     Dim camCount As Integer
     Dim taskCount As Integer
-    Dim x As Integer
+    Dim X As Integer
     Dim i As Integer
     Dim errorStr As String
     Dim ErrorCounter As Integer
@@ -343,7 +343,7 @@ Private Sub DataChecks(ByVal curproj As Project)
 
     '**Scan Task Data**
 
-    If curproj.Subprojects.count > 0 Then
+    If curproj.Subprojects.Count > 0 Then
 
         Set subProjs = curproj.Subprojects
 
@@ -390,7 +390,7 @@ Private Sub DataChecks(ByVal curproj As Project)
                             .BFinish = t.BaselineFinish
 
                             Set tAsses = t.Assignments
-                            .AssignmentCount = tAsses.count
+                            .AssignmentCount = tAsses.Count
 
                             For Each tAss In tAsses
 
@@ -475,7 +475,7 @@ Private Sub DataChecks(ByVal curproj As Project)
                         .BFinish = t.BaselineFinish
 
                         Set tAsses = t.Assignments
-                        .AssignmentCount = tAsses.count
+                        .AssignmentCount = tAsses.Count
 
                         For Each tAss In tAsses
 
@@ -541,19 +541,19 @@ Private Sub DataChecks(ByVal curproj As Project)
 
     ErrorCounter = 0
 
-    For x = 1 To taskCount
+    For X = 1 To taskCount
 
         If CAID3_Used = True And CAID2_Used = True Then
-            tempID = TaskChecks(x).CAID1 & "/" & TaskChecks(x).CAID2 & "/" & TaskChecks(x).CAID3
+            tempID = TaskChecks(X).CAID1 & "/" & TaskChecks(X).CAID2 & "/" & TaskChecks(X).CAID3
         End If
         If CAID3_Used = False And CAID2_Used = True Then
-            tempID = TaskChecks(x).CAID1 & "/" & TaskChecks(x).CAID2
+            tempID = TaskChecks(X).CAID1 & "/" & TaskChecks(X).CAID2
         End If
         If CAID3_Used = False And CAID2_Used = False Then
-            tempID = TaskChecks(x).CAID1
+            tempID = TaskChecks(X).CAID1
         End If
 
-        If TaskChecks(x).CAM <> "" And TaskChecks(x).WP <> "" Then
+        If TaskChecks(X).CAM <> "" And TaskChecks(X).WP <> "" Then
 
             CAfound = False
 
@@ -566,7 +566,7 @@ Private Sub DataChecks(ByVal curproj As Project)
                 With CAMChecks(camCount)
 
                     .ID_str = tempID
-                    .CAM_Test = TaskChecks(x).CAM
+                    .CAM_Test = TaskChecks(X).CAM
                     .CAM_Error = False
 
                 End With
@@ -579,7 +579,7 @@ Private Sub DataChecks(ByVal curproj As Project)
 
                         CAfound = True
 
-                        If TaskChecks(x).CAM <> CAMChecks(i).CAM_Test Then
+                        If TaskChecks(X).CAM <> CAMChecks(i).CAM_Test Then
                             CAMChecks(i).CAM_Error = True
                         End If
 
@@ -598,7 +598,7 @@ Private Sub DataChecks(ByVal curproj As Project)
                     With CAMChecks(camCount)
 
                         .ID_str = tempID
-                        .CAM_Test = TaskChecks(x).CAM
+                        .CAM_Test = TaskChecks(X).CAM
                         .CAM_Error = False
 
                     End With
@@ -609,7 +609,7 @@ Private Sub DataChecks(ByVal curproj As Project)
 
         End If
 
-        If TaskChecks(x).WP <> "" Then
+        If TaskChecks(X).WP <> "" Then
 
             wpFound = False
 
@@ -622,8 +622,8 @@ Private Sub DataChecks(ByVal curproj As Project)
                 With WPChecks(wpCount)
 
                     .ID_Test = tempID
-                    .WP_ID = TaskChecks(x).WP
-                    .EVT_Test = TaskChecks(x).EVT
+                    .WP_ID = TaskChecks(X).WP
+                    .EVT_Test = TaskChecks(X).EVT
                     .WP_DupError = False
                     .EVT_Error = False
 
@@ -633,7 +633,7 @@ Private Sub DataChecks(ByVal curproj As Project)
 
                 For i = 1 To wpCount
 
-                    If WPChecks(i).WP_ID = TaskChecks(x).WP Then
+                    If WPChecks(i).WP_ID = TaskChecks(X).WP Then
 
                         wpFound = True
 
@@ -643,7 +643,7 @@ Private Sub DataChecks(ByVal curproj As Project)
 
                         End If
 
-                        If TaskChecks(x).EVT <> WPChecks(i).EVT_Test Then
+                        If TaskChecks(X).EVT <> WPChecks(i).EVT_Test Then
 
                             WPChecks(i).EVT_Error = True
 
@@ -664,8 +664,8 @@ Private Sub DataChecks(ByVal curproj As Project)
                     With WPChecks(wpCount)
 
                         .ID_Test = tempID
-                        .WP_ID = TaskChecks(x).WP
-                        .EVT_Test = TaskChecks(x).EVT
+                        .WP_ID = TaskChecks(X).WP
+                        .EVT_Test = TaskChecks(X).EVT
                         .WP_DupError = False
                         .EVT_Error = False
 
@@ -681,17 +681,21 @@ next_task:
 
         '**Report Tasks Missing Metadata**
 
-        If TaskChecks(x).WP <> "" Or TaskChecks(x).EVT <> "" Or TaskChecks(x).EVT <> "NA" Or TaskChecks(x).EVT <> "N/A" Or TaskChecks(x).BCost <> 0 Or TaskChecks(x).BWork <> 0 Then
+        If TaskChecks(X).UID = "578" Then
+            DoEvents
+        End If
 
-            If TaskChecks(x).BWork = 0 Then tempBValue = TaskChecks(x).BCost Else tempBValue = TaskChecks(x).BWork
+        If TaskChecks(X).WP <> "" Or (TaskChecks(X).EVT <> "" And TaskChecks(X).EVT <> "NA" And TaskChecks(X).EVT <> "N/A") Or TaskChecks(X).BCost <> 0 Or TaskChecks(X).BWork <> 0 Then 'v3.2.2
 
-            If TaskChecks(x).WP = "" Or TaskChecks(x).EVT = "" Or TaskChecks(x).BStart = "NA" Or TaskChecks(x).BFinish = "NA" Or tempBValue = 0 Then
+            If TaskChecks(X).BWork = 0 Then tempBValue = TaskChecks(X).BCost Else tempBValue = TaskChecks(X).BWork
+
+            If TaskChecks(X).WP = "" Or TaskChecks(X).EVT = "" Or TaskChecks(X).BStart = "NA" Or TaskChecks(X).BFinish = "NA" Or tempBValue = 0 Then
 
                 ErrorCounter = ErrorCounter + 1
 
                 If CAID3_Used = True And CAID2_Used = True Then
 
-                    With TaskChecks(x)
+                    With TaskChecks(X)
 
                         errorStr = .UID & ","
                         If .CAID1 = "" Then
@@ -764,7 +768,7 @@ next_task:
 
                 If CAID3_Used = False And CAID2_Used = True Then
 
-                    With TaskChecks(x)
+                    With TaskChecks(X)
 
                         errorStr = .UID & ","
                         If .CAID1 = "" Then
@@ -833,7 +837,7 @@ next_task:
 
                 If CAID3_Used = False And CAID2_Used = False Then
 
-                    With TaskChecks(x)
+                    With TaskChecks(X)
 
                         errorStr = .UID & ","
                         If .CAID1 = "" Then
@@ -903,7 +907,7 @@ next_task:
 
         End If
 
-    Next x
+    Next X
 
     Print #1, vbCrLf & "Total Task Errors Found: " & ErrorCounter
 
@@ -915,17 +919,17 @@ next_task:
 
     ErrorCounter = 0
 
-    For x = 1 To camCount
+    For X = 1 To camCount
 
-        If CAMChecks(x).CAM_Error = True Then
+        If CAMChecks(X).CAM_Error = True Then
 
             ErrorCounter = ErrorCounter + 1
 
-            Print #1, CAMChecks(x).ID_str
+            Print #1, CAMChecks(X).ID_str
 
         End If
 
-    Next x
+    Next X
 
     Print #1, vbCrLf & "Total CAM Errors Found: " & ErrorCounter
 
@@ -937,13 +941,13 @@ next_task:
 
     ErrorCounter = 0
 
-    For x = 1 To wpCount
+    For X = 1 To wpCount
 
-        If WPChecks(x).WP_DupError = True Or WPChecks(x).EVT_Error = True Then
+        If WPChecks(X).WP_DupError = True Or WPChecks(X).EVT_Error = True Then
 
             ErrorCounter = ErrorCounter + 1
 
-            With WPChecks(x)
+            With WPChecks(X)
                 errorStr = .WP_ID & "," & .WP_DupError & "," & .EVT_Error
             End With
 
@@ -952,7 +956,7 @@ next_task:
             errorStr = ""
         End If
 
-    Next x
+    Next X
 
     Print #1, vbCrLf & "Total Work Package Errors Found: " & ErrorCounter
 
@@ -964,11 +968,11 @@ next_task:
 
     ErrorCounter = 0
 
-    For x = 1 To taskCount
+    For X = 1 To taskCount
 
-        With TaskChecks(x)
+        With TaskChecks(X)
 
-            If TaskChecks(x).AssignmentCount > 0 Then
+            If TaskChecks(X).AssignmentCount > 0 Then
 
                 If Round(.BCost, 2) <> Round(.AssignmentBCost, 2) Or Round(.BWork, 2) <> Round(.AssignmentBWork, 2) Or .BStart <> .AssignmentBStart Or .BFinish <> .AssignmentBFinish Then
 
@@ -993,7 +997,7 @@ next_task:
 
         End With
 
-    Next x
+    Next X
 
     Print #1, vbCrLf & "Total Work Package Errors Found: " & ErrorCounter
 
@@ -1007,12 +1011,12 @@ End Sub
 
 Private Sub MPP_Export(ByVal curproj As Project)
 
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
 
     destFolder = SetDirectory(curproj.ProjectSummaryTask.Name)
 
-    If curproj.Subprojects.count > 0 Then
+    If curproj.Subprojects.Count > 0 Then
 
         Set subProjs = curproj.Subprojects
 
@@ -1034,12 +1038,12 @@ Private Sub MPP_Export(ByVal curproj As Project)
 End Sub
 Private Sub XML_Export(ByVal curproj As Project)
 
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
 
     destFolder = SetDirectory(curproj.ProjectSummaryTask.Name)
 
-    If curproj.Subprojects.count > 0 Then
+    If curproj.Subprojects.Count > 0 Then
 
         Set subProjs = curproj.Subprojects
 
@@ -1165,11 +1169,11 @@ Private Sub BCWP_Export(ByVal curproj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT As String
     Dim Milestone As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
-    Dim x As Integer
+    Dim X As Integer
     Dim i As Integer
     Dim aStartString As String
     Dim aFinishString As String
@@ -1190,10 +1194,10 @@ Private Sub BCWP_Export(ByVal curproj As Project)
             Print #1, fCAID1t & ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete"
         End If
 
-        x = 1
+        X = 1
         ActFound = False
 
-        If curproj.Subprojects.count > 0 Then
+        If curproj.Subprojects.Count > 0 Then
 
             Set subProjs = curproj.Subprojects
 
@@ -1235,7 +1239,7 @@ Private Sub BCWP_Export(ByVal curproj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If EVT = "B" Or EVT = "N" Or EVT = "B Milestone" Or EVT = "N Earning Rules" Then
@@ -1254,45 +1258,45 @@ Private Sub BCWP_Export(ByVal curproj As Project)
 
                                     'store ACT info
                                     'WP Data
-                                    If x = 1 Then
+                                    If X = 1 Then
 
                                         'create new WP line in ACTarrray
-                                        ReDim ACTarray(1 To x)
+                                        ReDim ACTarray(1 To X)
                                         If t.BaselineFinish <> "NA" Then
-                                            ACTarray(x).BFinish = t.BaselineFinish
+                                            ACTarray(X).BFinish = t.BaselineFinish
                                         End If
                                         If t.BaselineStart <> "NA" Then
-                                            ACTarray(x).BStart = t.BaselineStart
+                                            ACTarray(X).BStart = t.BaselineStart
                                         End If
                                         If CAID3_Used = True Then
-                                            ACTarray(x).CAID3 = CAID3
+                                            ACTarray(X).CAID3 = CAID3
                                         End If
-                                        ACTarray(x).CAM = CAM
-                                        ACTarray(x).ID = ID
-                                        ACTarray(x).CAID1 = CAID1
-                                        ACTarray(x).EVT = EVT
-                                        ACTarray(x).FFinish = t.Finish
-                                        ACTarray(x).FStart = t.Start
+                                        ACTarray(X).CAM = CAM
+                                        ACTarray(X).ID = ID
+                                        ACTarray(X).CAID1 = CAID1
+                                        ACTarray(X).EVT = EVT
+                                        ACTarray(X).FFinish = t.Finish
+                                        ACTarray(X).FStart = t.Start
                                         If CAID2_Used = True Then
-                                            ACTarray(x).CAID2 = CAID2
+                                            ACTarray(X).CAID2 = CAID2
                                         End If
-                                        ACTarray(x).WP = WP
+                                        ACTarray(X).WP = WP
                                         If t.ActualStart <> "NA" Then
-                                            ACTarray(x).AStart = t.ActualStart
+                                            ACTarray(X).AStart = t.ActualStart
                                         End If
                                         If t.ActualFinish <> "NA" Then
-                                            ACTarray(x).AFinish = t.ActualFinish
+                                            ACTarray(X).AFinish = t.ActualFinish
                                         End If
                                         If t.BaselineWork <> 0 Then
-                                            ACTarray(x).sumBCWS = 1
-                                            ACTarray(x).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
+                                            ACTarray(X).sumBCWS = 1
+                                            ACTarray(X).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
                                         Else
-                                            ACTarray(x).sumBCWS = 1
-                                            ACTarray(x).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
+                                            ACTarray(X).sumBCWS = 1
+                                            ACTarray(X).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
                                         End If
-                                        ACTarray(x).Prog = ACTarray(x).sumBCWP / ACTarray(x).sumBCWS * 100
+                                        ACTarray(X).Prog = ACTarray(X).sumBCWP / ACTarray(X).sumBCWS * 100
 
-                                        x = x + 1
+                                        X = X + 1
                                         ActFound = True
 
                                         GoTo nrBCWP_WP_Match_A
@@ -1359,31 +1363,31 @@ Private Sub BCWP_Export(ByVal curproj As Project)
                                     Next i
 
                                     'No match found, create new WP line in ACTarrray
-                                    ReDim Preserve ACTarray(1 To x)
+                                    ReDim Preserve ACTarray(1 To X)
                                     If t.BaselineFinish <> "NA" Then
-                                        ACTarray(x).BFinish = t.BaselineFinish
+                                        ACTarray(X).BFinish = t.BaselineFinish
                                     End If
                                     If t.BaselineStart <> "NA" Then
-                                        ACTarray(x).BStart = t.BaselineStart
+                                        ACTarray(X).BStart = t.BaselineStart
                                     End If
                                     If CAID3_Used = True Then
-                                        ACTarray(x).CAID3 = CAID3
+                                        ACTarray(X).CAID3 = CAID3
                                     End If
-                                    ACTarray(x).ID = ID
-                                    ACTarray(x).CAM = CAM
-                                    ACTarray(x).CAID1 = CAID1
-                                    ACTarray(x).EVT = EVT
-                                    ACTarray(x).FFinish = t.Finish
-                                    ACTarray(x).FStart = t.Start
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = t.Finish
+                                    ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
-                                        ACTarray(x).CAID2 = CAID2
+                                        ACTarray(X).CAID2 = CAID2
                                     End If
-                                    ACTarray(x).WP = WP
+                                    ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
-                                        ACTarray(x).AStart = t.ActualStart
+                                        ACTarray(X).AStart = t.ActualStart
                                     End If
                                     If t.ActualFinish <> "NA" Then
-                                        ACTarray(x).AFinish = t.ActualFinish
+                                        ACTarray(X).AFinish = t.ActualFinish
                                     End If
                                     If t.BaselineWork <> 0 Then
                                         ACTarray(i).sumBCWS = 1
@@ -1392,46 +1396,46 @@ Private Sub BCWP_Export(ByVal curproj As Project)
                                         ACTarray(i).sumBCWS = 1
                                         ACTarray(i).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
                                     End If
-                                    ACTarray(x).Prog = ACTarray(x).sumBCWP / ACTarray(x).sumBCWS * 100
+                                    ACTarray(X).Prog = ACTarray(X).sumBCWP / ACTarray(X).sumBCWS * 100
 
-                                    x = x + 1
+                                    X = X + 1
                                     ActFound = True
 
                                 ElseIf EVT = "E" Or EVT = "F" Or EVT = "G" Or EVT = "H" Or EVT = "E 50/50" Or EVT = "F 0/100" Or EVT = "G 100/0" Or EVT = "H User Defined" Then
 
                                     'store ACT info
                                     'WP Data
-                                    If x = 1 Then
+                                    If X = 1 Then
 
                                         'create new WP line in ACTarrray
-                                        ReDim ACTarray(1 To x)
+                                        ReDim ACTarray(1 To X)
                                         If t.BaselineFinish <> "NA" Then
-                                            ACTarray(x).BFinish = t.BaselineFinish
+                                            ACTarray(X).BFinish = t.BaselineFinish
                                         End If
                                         If t.BaselineStart <> "NA" Then
-                                            ACTarray(x).BStart = t.BaselineStart
+                                            ACTarray(X).BStart = t.BaselineStart
                                         End If
                                         If CAID3_Used = True Then
-                                            ACTarray(x).CAID3 = CAID3
+                                            ACTarray(X).CAID3 = CAID3
                                         End If
-                                        ACTarray(x).CAM = CAM
-                                        ACTarray(x).ID = ID
-                                        ACTarray(x).CAID1 = CAID1
-                                        ACTarray(x).EVT = EVT
-                                        ACTarray(x).FFinish = t.Finish
-                                        ACTarray(x).FStart = t.Start
+                                        ACTarray(X).CAM = CAM
+                                        ACTarray(X).ID = ID
+                                        ACTarray(X).CAID1 = CAID1
+                                        ACTarray(X).EVT = EVT
+                                        ACTarray(X).FFinish = t.Finish
+                                        ACTarray(X).FStart = t.Start
                                         If CAID2_Used = True Then
-                                            ACTarray(x).CAID2 = CAID2
+                                            ACTarray(X).CAID2 = CAID2
                                         End If
-                                        ACTarray(x).WP = WP
+                                        ACTarray(X).WP = WP
                                         If t.ActualStart <> "NA" Then
-                                            ACTarray(x).AStart = t.ActualStart
+                                            ACTarray(X).AStart = t.ActualStart
                                         End If
                                         If t.ActualFinish <> "NA" Then
-                                            ACTarray(x).AFinish = t.ActualFinish
+                                            ACTarray(X).AFinish = t.ActualFinish
                                         End If
 
-                                        x = x + 1
+                                        X = X + 1
                                         ActFound = True
 
                                         GoTo nrBCWP_WP_Match_A
@@ -1489,34 +1493,34 @@ Private Sub BCWP_Export(ByVal curproj As Project)
                                     Next i
 
                                     'No match found, create new WP line in ACTarrray
-                                    ReDim Preserve ACTarray(1 To x)
+                                    ReDim Preserve ACTarray(1 To X)
                                     If t.BaselineFinish <> "NA" Then
-                                        ACTarray(x).BFinish = t.BaselineFinish
+                                        ACTarray(X).BFinish = t.BaselineFinish
                                     End If
                                     If t.BaselineStart <> "NA" Then
-                                        ACTarray(x).BStart = t.BaselineStart
+                                        ACTarray(X).BStart = t.BaselineStart
                                     End If
                                     If CAID3_Used = True Then
-                                        ACTarray(x).CAID3 = CAID3
+                                        ACTarray(X).CAID3 = CAID3
                                     End If
-                                    ACTarray(x).ID = ID
-                                    ACTarray(x).CAM = CAM
-                                    ACTarray(x).CAID1 = CAID1
-                                    ACTarray(x).EVT = EVT
-                                    ACTarray(x).FFinish = t.Finish
-                                    ACTarray(x).FStart = t.Start
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = t.Finish
+                                    ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
-                                        ACTarray(x).CAID2 = CAID2
+                                        ACTarray(X).CAID2 = CAID2
                                     End If
-                                    ACTarray(x).WP = WP
+                                    ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
-                                        ACTarray(x).AStart = t.ActualStart
+                                        ACTarray(X).AStart = t.ActualStart
                                     End If
                                     If t.ActualFinish <> "NA" Then
-                                        ACTarray(x).AFinish = t.ActualFinish
+                                        ACTarray(X).AFinish = t.ActualFinish
                                     End If
 
-                                    x = x + 1
+                                    X = X + 1
                                     ActFound = True
 
                                 End If
@@ -1570,7 +1574,7 @@ nrBCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earning Rules" Then
@@ -1589,45 +1593,45 @@ nrBCWP_WP_Match_A:
 
                                 'store ACT info
                                 'WP Data
-                                If x = 1 Then
+                                If X = 1 Then
 
                                     'create new WP line in ACTarrray
-                                    ReDim ACTarray(1 To x)
+                                    ReDim ACTarray(1 To X)
                                     If t.BaselineFinish <> "NA" Then
-                                        ACTarray(x).BFinish = t.BaselineFinish
+                                        ACTarray(X).BFinish = t.BaselineFinish
                                     End If
                                     If t.BaselineStart <> "NA" Then
-                                        ACTarray(x).BStart = t.BaselineStart
+                                        ACTarray(X).BStart = t.BaselineStart
                                     End If
                                     If CAID3_Used = True Then
-                                        ACTarray(x).CAID3 = CAID3
+                                        ACTarray(X).CAID3 = CAID3
                                     End If
-                                    ACTarray(x).ID = ID
-                                    ACTarray(x).CAM = CAM
-                                    ACTarray(x).CAID1 = CAID1
-                                    ACTarray(x).EVT = EVT
-                                    ACTarray(x).FFinish = t.Finish
-                                    ACTarray(x).FStart = t.Start
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = t.Finish
+                                    ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
-                                        ACTarray(x).CAID2 = CAID2
+                                        ACTarray(X).CAID2 = CAID2
                                     End If
-                                    ACTarray(x).WP = WP
+                                    ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
-                                        ACTarray(x).AStart = t.ActualStart
+                                        ACTarray(X).AStart = t.ActualStart
                                     End If
                                     If t.ActualFinish <> "NA" Then
-                                        ACTarray(x).AFinish = t.ActualFinish
+                                        ACTarray(X).AFinish = t.ActualFinish
                                     End If
                                     If t.BaselineWork <> 0 Then
-                                        ACTarray(x).sumBCWS = 1
-                                        ACTarray(x).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
+                                        ACTarray(X).sumBCWS = 1
+                                        ACTarray(X).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
                                     Else
-                                        ACTarray(x).sumBCWS = 1
-                                        ACTarray(x).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
+                                        ACTarray(X).sumBCWS = 1
+                                        ACTarray(X).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
                                     End If
-                                    ACTarray(x).Prog = ACTarray(x).sumBCWP / ACTarray(x).sumBCWS * 100
+                                    ACTarray(X).Prog = ACTarray(X).sumBCWP / ACTarray(X).sumBCWS * 100
 
-                                    x = x + 1
+                                    X = X + 1
                                     ActFound = True
 
                                     GoTo nrBCWP_WP_Match_B
@@ -1693,79 +1697,79 @@ nrBCWP_WP_Match_A:
                                 Next i
 
                                 'No match found, create new WP line in ACTarrray
-                                ReDim Preserve ACTarray(1 To x)
+                                ReDim Preserve ACTarray(1 To X)
                                 If t.BaselineFinish <> "NA" Then
-                                    ACTarray(x).BFinish = t.BaselineFinish
+                                    ACTarray(X).BFinish = t.BaselineFinish
                                 End If
                                 If t.BaselineStart <> "NA" Then
-                                    ACTarray(x).BStart = t.BaselineStart
+                                    ACTarray(X).BStart = t.BaselineStart
                                 End If
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
-                                ACTarray(x).ID = ID
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
+                                ACTarray(X).ID = ID
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).WP = WP
+                                ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
-                                    ACTarray(x).AStart = t.ActualStart
+                                    ACTarray(X).AStart = t.ActualStart
                                 End If
                                 If t.ActualFinish <> "NA" Then
-                                    ACTarray(x).AFinish = t.ActualFinish
+                                    ACTarray(X).AFinish = t.ActualFinish
                                 End If
                                 If t.BaselineWork <> 0 Then
-                                    ACTarray(x).sumBCWS = 1
-                                    ACTarray(x).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
+                                    ACTarray(X).sumBCWS = 1
+                                    ACTarray(X).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
                                 Else
-                                    ACTarray(x).sumBCWS = 1
-                                    ACTarray(x).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
+                                    ACTarray(X).sumBCWS = 1
+                                    ACTarray(X).sumBCWP = 1 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
                                 End If
-                                ACTarray(x).Prog = ACTarray(x).sumBCWP / ACTarray(x).sumBCWS * 100
+                                ACTarray(X).Prog = ACTarray(X).sumBCWP / ACTarray(X).sumBCWS * 100
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                             ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or EVT = "H" Or EVT = "H User Defined" Then
 
                                 'store ACT info
                                 'WP Data
-                                If x = 1 Then
+                                If X = 1 Then
 
                                     'create new WP line in ACTarrray
-                                    ReDim ACTarray(1 To x)
+                                    ReDim ACTarray(1 To X)
                                     If t.BaselineFinish <> "NA" Then
-                                        ACTarray(x).BFinish = t.BaselineFinish
+                                        ACTarray(X).BFinish = t.BaselineFinish
                                     End If
                                     If t.BaselineStart <> "NA" Then
-                                        ACTarray(x).BStart = t.BaselineStart
+                                        ACTarray(X).BStart = t.BaselineStart
                                     End If
                                     If CAID3_Used = True Then
-                                        ACTarray(x).CAID3 = CAID3
+                                        ACTarray(X).CAID3 = CAID3
                                     End If
-                                    ACTarray(x).CAM = CAM
-                                    ACTarray(x).ID = ID
-                                    ACTarray(x).CAID1 = CAID1
-                                    ACTarray(x).EVT = EVT
-                                    ACTarray(x).FFinish = t.Finish
-                                    ACTarray(x).FStart = t.Start
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = t.Finish
+                                    ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
-                                        ACTarray(x).CAID2 = CAID2
+                                        ACTarray(X).CAID2 = CAID2
                                     End If
-                                    ACTarray(x).WP = WP
+                                    ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
-                                        ACTarray(x).AStart = t.ActualStart
+                                        ACTarray(X).AStart = t.ActualStart
                                     End If
                                     If t.ActualFinish <> "NA" Then
-                                        ACTarray(x).AFinish = t.ActualFinish
+                                        ACTarray(X).AFinish = t.ActualFinish
                                     End If
 
-                                    x = x + 1
+                                    X = X + 1
                                     ActFound = True
 
                                     GoTo nrBCWP_WP_Match_B
@@ -1823,34 +1827,34 @@ nrBCWP_WP_Match_A:
                                 Next i
 
                                 'No match found, create new WP line in ACTarrray
-                                ReDim Preserve ACTarray(1 To x)
+                                ReDim Preserve ACTarray(1 To X)
                                 If t.BaselineFinish <> "NA" Then
-                                    ACTarray(x).BFinish = t.BaselineFinish
+                                    ACTarray(X).BFinish = t.BaselineFinish
                                 End If
                                 If t.BaselineStart <> "NA" Then
-                                    ACTarray(x).BStart = t.BaselineStart
+                                    ACTarray(X).BStart = t.BaselineStart
                                 End If
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
-                                ACTarray(x).ID = ID
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
+                                ACTarray(X).ID = ID
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).WP = WP
+                                ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
-                                    ACTarray(x).AStart = t.ActualStart
+                                    ACTarray(X).AStart = t.ActualStart
                                 End If
                                 If t.ActualFinish <> "NA" Then
-                                    ACTarray(x).AFinish = t.ActualFinish
+                                    ACTarray(X).AFinish = t.ActualFinish
                                 End If
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                             End If
@@ -1904,10 +1908,10 @@ nrBCWP_WP_Match_B:
             Print #1, fCAID1t & ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete"
         End If
 
-        x = 1
+        X = 1
         ActFound = False
 
-        If curproj.Subprojects.count > 0 Then
+        If curproj.Subprojects.Count > 0 Then
 
             Set subProjs = curproj.Subprojects
 
@@ -1949,7 +1953,7 @@ nrBCWP_WP_Match_B:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
@@ -1968,45 +1972,45 @@ nrBCWP_WP_Match_B:
 
                                     'store ACT info
                                     'WP Data
-                                    If x = 1 Then
+                                    If X = 1 Then
 
                                         'create new WP line in ACTarrray
-                                        ReDim ACTarray(1 To x)
+                                        ReDim ACTarray(1 To X)
                                         If t.BaselineFinish <> "NA" Then
-                                            ACTarray(x).BFinish = t.BaselineFinish
+                                            ACTarray(X).BFinish = t.BaselineFinish
                                         End If
                                         If t.BaselineStart <> "NA" Then
-                                            ACTarray(x).BStart = t.BaselineStart
+                                            ACTarray(X).BStart = t.BaselineStart
                                         End If
                                         If CAID3_Used = True Then
-                                            ACTarray(x).CAID3 = CAID3
+                                            ACTarray(X).CAID3 = CAID3
                                         End If
-                                        ACTarray(x).CAM = CAM
-                                        ACTarray(x).ID = ID
-                                        ACTarray(x).CAID1 = CAID1
-                                        ACTarray(x).EVT = EVT
-                                        ACTarray(x).FFinish = t.Finish
-                                        ACTarray(x).FStart = t.Start
+                                        ACTarray(X).CAM = CAM
+                                        ACTarray(X).ID = ID
+                                        ACTarray(X).CAID1 = CAID1
+                                        ACTarray(X).EVT = EVT
+                                        ACTarray(X).FFinish = t.Finish
+                                        ACTarray(X).FStart = t.Start
                                         If CAID2_Used = True Then
-                                            ACTarray(x).CAID2 = CAID2
+                                            ACTarray(X).CAID2 = CAID2
                                         End If
-                                        ACTarray(x).WP = WP
+                                        ACTarray(X).WP = WP
                                         If t.ActualStart <> "NA" Then
-                                            ACTarray(x).AStart = t.ActualStart
+                                            ACTarray(X).AStart = t.ActualStart
                                         End If
                                         If t.ActualFinish <> "NA" Then
-                                            ACTarray(x).AFinish = t.ActualFinish
+                                            ACTarray(X).AFinish = t.ActualFinish
                                         End If
                                         If t.BaselineWork <> 0 Then
-                                            ACTarray(x).sumBCWS = t.BaselineWork / 60
-                                            ACTarray(x).sumBCWP = t.BaselineWork / 60 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
+                                            ACTarray(X).sumBCWS = t.BaselineWork / 60
+                                            ACTarray(X).sumBCWP = t.BaselineWork / 60 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
                                         Else
-                                            ACTarray(x).sumBCWS = t.BaselineCost
-                                            ACTarray(x).sumBCWP = t.BaselineCost * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
+                                            ACTarray(X).sumBCWS = t.BaselineCost
+                                            ACTarray(X).sumBCWP = t.BaselineCost * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
                                         End If
-                                        ACTarray(x).Prog = ACTarray(x).sumBCWP / ACTarray(x).sumBCWS * 100
+                                        ACTarray(X).Prog = ACTarray(X).sumBCWP / ACTarray(X).sumBCWS * 100
 
-                                        x = x + 1
+                                        X = X + 1
                                         ActFound = True
 
                                         GoTo BCWP_WP_Match_A
@@ -2073,31 +2077,31 @@ nrBCWP_WP_Match_B:
                                     Next i
 
                                     'No match found, create new WP line in ACTarrray
-                                    ReDim Preserve ACTarray(1 To x)
+                                    ReDim Preserve ACTarray(1 To X)
                                     If t.BaselineFinish <> "NA" Then
-                                        ACTarray(x).BFinish = t.BaselineFinish
+                                        ACTarray(X).BFinish = t.BaselineFinish
                                     End If
                                     If t.BaselineStart <> "NA" Then
-                                        ACTarray(x).BStart = t.BaselineStart
+                                        ACTarray(X).BStart = t.BaselineStart
                                     End If
                                     If CAID3_Used = True Then
-                                        ACTarray(x).CAID3 = CAID3
+                                        ACTarray(X).CAID3 = CAID3
                                     End If
-                                    ACTarray(x).ID = ID
-                                    ACTarray(x).CAM = CAM
-                                    ACTarray(x).CAID1 = CAID1
-                                    ACTarray(x).EVT = EVT
-                                    ACTarray(x).FFinish = t.Finish
-                                    ACTarray(x).FStart = t.Start
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = t.Finish
+                                    ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
-                                        ACTarray(x).CAID2 = CAID2
+                                        ACTarray(X).CAID2 = CAID2
                                     End If
-                                    ACTarray(x).WP = WP
+                                    ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
-                                        ACTarray(x).AStart = t.ActualStart
+                                        ACTarray(X).AStart = t.ActualStart
                                     End If
                                     If t.ActualFinish <> "NA" Then
-                                        ACTarray(x).AFinish = t.ActualFinish
+                                        ACTarray(X).AFinish = t.ActualFinish
                                     End If
                                     If t.BaselineWork <> 0 Then
                                         ACTarray(i).sumBCWS = t.BaselineWork / 60
@@ -2106,46 +2110,46 @@ nrBCWP_WP_Match_B:
                                         ACTarray(i).sumBCWS = t.BaselineCost
                                         ACTarray(i).sumBCWP = t.BaselineCost * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
                                     End If
-                                    ACTarray(x).Prog = ACTarray(x).sumBCWP / ACTarray(x).sumBCWS * 100
+                                    ACTarray(X).Prog = ACTarray(X).sumBCWP / ACTarray(X).sumBCWS * 100
 
-                                    x = x + 1
+                                    X = X + 1
                                     ActFound = True
 
                                 ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or EVT = "H" Or EVT = "H User Defined" Then
 
                                     'store ACT info
                                     'WP Data
-                                    If x = 1 Then
+                                    If X = 1 Then
 
                                         'create new WP line in ACTarrray
-                                        ReDim ACTarray(1 To x)
+                                        ReDim ACTarray(1 To X)
                                         If t.BaselineFinish <> "NA" Then
-                                            ACTarray(x).BFinish = t.BaselineFinish
+                                            ACTarray(X).BFinish = t.BaselineFinish
                                         End If
                                         If t.BaselineStart <> "NA" Then
-                                            ACTarray(x).BStart = t.BaselineStart
+                                            ACTarray(X).BStart = t.BaselineStart
                                         End If
                                         If CAID3_Used = True Then
-                                            ACTarray(x).CAID3 = CAID3
+                                            ACTarray(X).CAID3 = CAID3
                                         End If
-                                        ACTarray(x).CAM = CAM
-                                        ACTarray(x).ID = ID
-                                        ACTarray(x).CAID1 = CAID1
-                                        ACTarray(x).EVT = EVT
-                                        ACTarray(x).FFinish = t.Finish
-                                        ACTarray(x).FStart = t.Start
+                                        ACTarray(X).CAM = CAM
+                                        ACTarray(X).ID = ID
+                                        ACTarray(X).CAID1 = CAID1
+                                        ACTarray(X).EVT = EVT
+                                        ACTarray(X).FFinish = t.Finish
+                                        ACTarray(X).FStart = t.Start
                                         If CAID2_Used = True Then
-                                            ACTarray(x).CAID2 = CAID2
+                                            ACTarray(X).CAID2 = CAID2
                                         End If
-                                        ACTarray(x).WP = WP
+                                        ACTarray(X).WP = WP
                                         If t.ActualStart <> "NA" Then
-                                            ACTarray(x).AStart = t.ActualStart
+                                            ACTarray(X).AStart = t.ActualStart
                                         End If
                                         If t.ActualFinish <> "NA" Then
-                                            ACTarray(x).AFinish = t.ActualFinish
+                                            ACTarray(X).AFinish = t.ActualFinish
                                         End If
 
-                                        x = x + 1
+                                        X = X + 1
                                         ActFound = True
 
                                         GoTo BCWP_WP_Match_A
@@ -2203,34 +2207,34 @@ nrBCWP_WP_Match_B:
                                     Next i
 
                                     'No match found, create new WP line in ACTarrray
-                                    ReDim Preserve ACTarray(1 To x)
+                                    ReDim Preserve ACTarray(1 To X)
                                     If t.BaselineFinish <> "NA" Then
-                                        ACTarray(x).BFinish = t.BaselineFinish
+                                        ACTarray(X).BFinish = t.BaselineFinish
                                     End If
                                     If t.BaselineStart <> "NA" Then
-                                        ACTarray(x).BStart = t.BaselineStart
+                                        ACTarray(X).BStart = t.BaselineStart
                                     End If
                                     If CAID3_Used = True Then
-                                        ACTarray(x).CAID3 = CAID3
+                                        ACTarray(X).CAID3 = CAID3
                                     End If
-                                    ACTarray(x).ID = ID
-                                    ACTarray(x).CAM = CAM
-                                    ACTarray(x).CAID1 = CAID1
-                                    ACTarray(x).EVT = EVT
-                                    ACTarray(x).FFinish = t.Finish
-                                    ACTarray(x).FStart = t.Start
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = t.Finish
+                                    ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
-                                        ACTarray(x).CAID2 = CAID2
+                                        ACTarray(X).CAID2 = CAID2
                                     End If
-                                    ACTarray(x).WP = WP
+                                    ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
-                                        ACTarray(x).AStart = t.ActualStart
+                                        ACTarray(X).AStart = t.ActualStart
                                     End If
                                     If t.ActualFinish <> "NA" Then
-                                        ACTarray(x).AFinish = t.ActualFinish
+                                        ACTarray(X).AFinish = t.ActualFinish
                                     End If
 
-                                    x = x + 1
+                                    X = X + 1
                                     ActFound = True
 
                                 End If
@@ -2284,7 +2288,7 @@ BCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
@@ -2303,45 +2307,45 @@ BCWP_WP_Match_A:
 
                                 'store ACT info
                                 'WP Data
-                                If x = 1 Then
+                                If X = 1 Then
 
                                     'create new WP line in ACTarrray
-                                    ReDim ACTarray(1 To x)
+                                    ReDim ACTarray(1 To X)
                                     If t.BaselineFinish <> "NA" Then
-                                        ACTarray(x).BFinish = t.BaselineFinish
+                                        ACTarray(X).BFinish = t.BaselineFinish
                                     End If
                                     If t.BaselineStart <> "NA" Then
-                                        ACTarray(x).BStart = t.BaselineStart
+                                        ACTarray(X).BStart = t.BaselineStart
                                     End If
                                     If CAID3_Used = True Then
-                                        ACTarray(x).CAID3 = CAID3
+                                        ACTarray(X).CAID3 = CAID3
                                     End If
-                                    ACTarray(x).ID = ID
-                                    ACTarray(x).CAM = CAM
-                                    ACTarray(x).CAID1 = CAID1
-                                    ACTarray(x).EVT = EVT
-                                    ACTarray(x).FFinish = t.Finish
-                                    ACTarray(x).FStart = t.Start
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = t.Finish
+                                    ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
-                                        ACTarray(x).CAID2 = CAID2
+                                        ACTarray(X).CAID2 = CAID2
                                     End If
-                                    ACTarray(x).WP = WP
+                                    ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
-                                        ACTarray(x).AStart = t.ActualStart
+                                        ACTarray(X).AStart = t.ActualStart
                                     End If
                                     If t.ActualFinish <> "NA" Then
-                                        ACTarray(x).AFinish = t.ActualFinish
+                                        ACTarray(X).AFinish = t.ActualFinish
                                     End If
                                     If t.BaselineWork <> 0 Then
-                                        ACTarray(x).sumBCWS = t.BaselineWork / 60
-                                        ACTarray(x).sumBCWP = t.BaselineWork / 60 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
+                                        ACTarray(X).sumBCWS = t.BaselineWork / 60
+                                        ACTarray(X).sumBCWP = t.BaselineWork / 60 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
                                     Else
-                                        ACTarray(x).sumBCWS = t.BaselineCost
-                                        ACTarray(x).sumBCWP = t.BaselineCost * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
+                                        ACTarray(X).sumBCWS = t.BaselineCost
+                                        ACTarray(X).sumBCWP = t.BaselineCost * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
                                     End If
-                                    ACTarray(x).Prog = ACTarray(x).sumBCWP / ACTarray(x).sumBCWS * 100
+                                    ACTarray(X).Prog = ACTarray(X).sumBCWP / ACTarray(X).sumBCWS * 100
 
-                                    x = x + 1
+                                    X = X + 1
                                     ActFound = True
 
                                     GoTo BCWP_WP_Match_B
@@ -2407,79 +2411,79 @@ BCWP_WP_Match_A:
                                 Next i
 
                                 'No match found, create new WP line in ACTarrray
-                                ReDim Preserve ACTarray(1 To x)
+                                ReDim Preserve ACTarray(1 To X)
                                 If t.BaselineFinish <> "NA" Then
-                                    ACTarray(x).BFinish = t.BaselineFinish
+                                    ACTarray(X).BFinish = t.BaselineFinish
                                 End If
                                 If t.BaselineStart <> "NA" Then
-                                    ACTarray(x).BStart = t.BaselineStart
+                                    ACTarray(X).BStart = t.BaselineStart
                                 End If
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
-                                ACTarray(x).ID = ID
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
+                                ACTarray(X).ID = ID
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).WP = WP
+                                ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
-                                    ACTarray(x).AStart = t.ActualStart
+                                    ACTarray(X).AStart = t.ActualStart
                                 End If
                                 If t.ActualFinish <> "NA" Then
-                                    ACTarray(x).AFinish = t.ActualFinish
+                                    ACTarray(X).AFinish = t.ActualFinish
                                 End If
                                 If t.BaselineWork <> 0 Then
-                                    ACTarray(x).sumBCWS = t.BaselineWork / 60
-                                    ACTarray(x).sumBCWP = t.BaselineWork / 60 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
+                                    ACTarray(X).sumBCWS = t.BaselineWork / 60
+                                    ACTarray(X).sumBCWP = t.BaselineWork / 60 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
                                 Else
-                                    ACTarray(x).sumBCWS = t.BaselineCost
-                                    ACTarray(x).sumBCWP = t.BaselineCost * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
+                                    ACTarray(X).sumBCWS = t.BaselineCost
+                                    ACTarray(X).sumBCWP = t.BaselineCost * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
                                 End If
-                                ACTarray(x).Prog = ACTarray(x).sumBCWP / ACTarray(x).sumBCWS * 100
+                                ACTarray(X).Prog = ACTarray(X).sumBCWP / ACTarray(X).sumBCWS * 100
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                             ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or EVT = "H" Or EVT = "H User Defined" Then
 
                                 'store ACT info
                                 'WP Data
-                                If x = 1 Then
+                                If X = 1 Then
 
                                     'create new WP line in ACTarrray
-                                    ReDim ACTarray(1 To x)
+                                    ReDim ACTarray(1 To X)
                                     If t.BaselineFinish <> "NA" Then
-                                        ACTarray(x).BFinish = t.BaselineFinish
+                                        ACTarray(X).BFinish = t.BaselineFinish
                                     End If
                                     If t.BaselineStart <> "NA" Then
-                                        ACTarray(x).BStart = t.BaselineStart
+                                        ACTarray(X).BStart = t.BaselineStart
                                     End If
                                     If CAID3_Used = True Then
-                                        ACTarray(x).CAID3 = CAID3
+                                        ACTarray(X).CAID3 = CAID3
                                     End If
-                                    ACTarray(x).CAM = CAM
-                                    ACTarray(x).ID = ID
-                                    ACTarray(x).CAID1 = CAID1
-                                    ACTarray(x).EVT = EVT
-                                    ACTarray(x).FFinish = t.Finish
-                                    ACTarray(x).FStart = t.Start
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = t.Finish
+                                    ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
-                                        ACTarray(x).CAID2 = CAID2
+                                        ACTarray(X).CAID2 = CAID2
                                     End If
-                                    ACTarray(x).WP = WP
+                                    ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
-                                        ACTarray(x).AStart = t.ActualStart
+                                        ACTarray(X).AStart = t.ActualStart
                                     End If
                                     If t.ActualFinish <> "NA" Then
-                                        ACTarray(x).AFinish = t.ActualFinish
+                                        ACTarray(X).AFinish = t.ActualFinish
                                     End If
 
-                                    x = x + 1
+                                    X = X + 1
                                     ActFound = True
 
                                     GoTo BCWP_WP_Match_B
@@ -2537,34 +2541,34 @@ BCWP_WP_Match_A:
                                 Next i
 
                                 'No match found, create new WP line in ACTarrray
-                                ReDim Preserve ACTarray(1 To x)
+                                ReDim Preserve ACTarray(1 To X)
                                 If t.BaselineFinish <> "NA" Then
-                                    ACTarray(x).BFinish = t.BaselineFinish
+                                    ACTarray(X).BFinish = t.BaselineFinish
                                 End If
                                 If t.BaselineStart <> "NA" Then
-                                    ACTarray(x).BStart = t.BaselineStart
+                                    ACTarray(X).BStart = t.BaselineStart
                                 End If
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
-                                ACTarray(x).ID = ID
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
+                                ACTarray(X).ID = ID
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).WP = WP
+                                ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
-                                    ACTarray(x).AStart = t.ActualStart
+                                    ACTarray(X).AStart = t.ActualStart
                                 End If
                                 If t.ActualFinish <> "NA" Then
-                                    ACTarray(x).AFinish = t.ActualFinish
+                                    ACTarray(X).AFinish = t.ActualFinish
                                 End If
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                             End If
@@ -2613,11 +2617,11 @@ Private Sub ETC_Export(ByVal curproj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT As String
     Dim Milestone As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
-    Dim x As Integer
+    Dim X As Integer
     Dim i As Integer
     Dim aStartString As String
     Dim aFinishString As String
@@ -2642,10 +2646,10 @@ Private Sub ETC_Export(ByVal curproj As Project)
             Print #1, fCAID1t & ",CAM,WP,ID,Forecast Start Date,Forecast Finish Date"
         End If
 
-        x = 1
+        X = 1
         ActFound = False
 
-        If curproj.Subprojects.count > 0 Then
+        If curproj.Subprojects.Count > 0 Then
 
             Set subProjs = curproj.Subprojects
 
@@ -2684,37 +2688,37 @@ Private Sub ETC_Export(ByVal curproj As Project)
 
                                 'store ACT info
                                 'WP Data
-                                If x = 1 Then
+                                If X = 1 Then
 
                                     'create new WP line in ACTarrray
-                                    ReDim ACTarray(1 To x)
+                                    ReDim ACTarray(1 To X)
                                     If t.BaselineFinish <> "NA" Then
-                                        ACTarray(x).BFinish = t.BaselineFinish
+                                        ACTarray(X).BFinish = t.BaselineFinish
                                     End If
                                     If t.BaselineStart <> "NA" Then
-                                        ACTarray(x).BStart = t.BaselineStart
+                                        ACTarray(X).BStart = t.BaselineStart
                                     End If
                                     If CAID3_Used = True Then
-                                        ACTarray(x).CAID3 = CAID3
+                                        ACTarray(X).CAID3 = CAID3
                                     End If
-                                    ACTarray(x).ID = ID
-                                    ACTarray(x).CAM = CAM
-                                    ACTarray(x).CAID1 = CAID1
-                                    ACTarray(x).EVT = EVT
-                                    ACTarray(x).FFinish = t.Finish
-                                    ACTarray(x).FStart = t.Start
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = t.Finish
+                                    ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
-                                        ACTarray(x).CAID2 = CAID2
+                                        ACTarray(X).CAID2 = CAID2
                                     End If
-                                    ACTarray(x).WP = WP
+                                    ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
-                                        ACTarray(x).AStart = t.ActualStart
+                                        ACTarray(X).AStart = t.ActualStart
                                     End If
                                     If t.ActualFinish <> "NA" Then
-                                        ACTarray(x).AFinish = t.ActualFinish
+                                        ACTarray(X).AFinish = t.ActualFinish
                                     End If
 
-                                    x = x + 1
+                                    X = X + 1
                                     ActFound = True
 
                                     GoTo nrETC_WP_Match
@@ -2771,34 +2775,34 @@ Private Sub ETC_Export(ByVal curproj As Project)
                                 Next i
 
                                 'No match found, create new WP line in ACTarrray
-                                ReDim Preserve ACTarray(1 To x)
+                                ReDim Preserve ACTarray(1 To X)
                                 If t.BaselineFinish <> "NA" Then
-                                    ACTarray(x).BFinish = t.BaselineFinish
+                                    ACTarray(X).BFinish = t.BaselineFinish
                                 End If
                                 If t.BaselineStart <> "NA" Then
-                                    ACTarray(x).BStart = t.BaselineStart
+                                    ACTarray(X).BStart = t.BaselineStart
                                 End If
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).ID = ID
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).ID = ID
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).WP = WP
+                                ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
-                                    ACTarray(x).AStart = t.ActualStart
+                                    ACTarray(X).AStart = t.ActualStart
                                 End If
                                 If t.ActualFinish <> "NA" Then
-                                    ACTarray(x).AFinish = t.ActualFinish
+                                    ACTarray(X).AFinish = t.ActualFinish
                                 End If
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                                 'Milestone Data
@@ -2850,37 +2854,37 @@ nrETC_WP_Match:
 
                             'store ACT info
                             'WP Data
-                            If x = 1 Then
+                            If X = 1 Then
 
                                 'create new WP line in ACTarrray
-                                ReDim ACTarray(1 To x)
+                                ReDim ACTarray(1 To X)
                                 If t.BaselineFinish <> "NA" Then
-                                    ACTarray(x).BFinish = t.BaselineFinish
+                                    ACTarray(X).BFinish = t.BaselineFinish
                                 End If
                                 If t.BaselineStart <> "NA" Then
-                                    ACTarray(x).BStart = t.BaselineStart
+                                    ACTarray(X).BStart = t.BaselineStart
                                 End If
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).ID = ID
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).ID = ID
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).WP = WP
+                                ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
-                                    ACTarray(x).AStart = t.ActualStart
+                                    ACTarray(X).AStart = t.ActualStart
                                 End If
                                 If t.ActualFinish <> "NA" Then
-                                    ACTarray(x).AFinish = t.ActualFinish
+                                    ACTarray(X).AFinish = t.ActualFinish
                                 End If
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                                 GoTo nrETC_WP_Match_B
@@ -2938,34 +2942,34 @@ nrETC_WP_Match:
                             Next i
 
                             'No match found, create new WP line in ACTarrray
-                            ReDim Preserve ACTarray(1 To x)
+                            ReDim Preserve ACTarray(1 To X)
                             If t.BaselineFinish <> "NA" Then
-                                ACTarray(x).BFinish = t.BaselineFinish
+                                ACTarray(X).BFinish = t.BaselineFinish
                             End If
                             If t.BaselineStart <> "NA" Then
-                                ACTarray(x).BStart = t.BaselineStart
+                                ACTarray(X).BStart = t.BaselineStart
                             End If
                             If CAID3_Used = True Then
-                                ACTarray(x).CAID3 = CAID3
+                                ACTarray(X).CAID3 = CAID3
                             End If
-                            ACTarray(x).CAM = CAM
-                            ACTarray(x).ID = ID
-                            ACTarray(x).CAID1 = CAID1
-                            ACTarray(x).EVT = EVT
-                            ACTarray(x).FFinish = t.Finish
-                            ACTarray(x).FStart = t.Start
+                            ACTarray(X).CAM = CAM
+                            ACTarray(X).ID = ID
+                            ACTarray(X).CAID1 = CAID1
+                            ACTarray(X).EVT = EVT
+                            ACTarray(X).FFinish = t.Finish
+                            ACTarray(X).FStart = t.Start
                             If CAID2_Used = True Then
-                                ACTarray(x).CAID2 = CAID2
+                                ACTarray(X).CAID2 = CAID2
                             End If
-                            ACTarray(x).WP = WP
+                            ACTarray(X).WP = WP
                             If t.ActualStart <> "NA" Then
-                                ACTarray(x).AStart = t.ActualStart
+                                ACTarray(X).AStart = t.ActualStart
                             End If
                             If t.ActualFinish <> "NA" Then
-                                ACTarray(x).AFinish = t.ActualFinish
+                                ACTarray(X).AFinish = t.ActualFinish
                             End If
 
-                            x = x + 1
+                            X = X + 1
                             ActFound = True
 
 nrETC_WP_Match_B:
@@ -3022,10 +3026,10 @@ nrETC_WP_Match_B:
         End If
         Print #2, "Cobra ID,Resource,Amount,From Date,To Date"
 
-        x = 1
+        X = 1
         ActFound = False
 
-        If curproj.Subprojects.count > 0 Then
+        If curproj.Subprojects.Count > 0 Then
 
             Set subProjs = curproj.Subprojects
 
@@ -3064,37 +3068,37 @@ nrETC_WP_Match_B:
 
                                 'store ACT info
                                 'WP Data
-                                If x = 1 Then
+                                If X = 1 Then
 
                                     'create new WP line in ACTarrray
-                                    ReDim ACTarray(1 To x)
+                                    ReDim ACTarray(1 To X)
                                     If t.BaselineFinish <> "NA" Then
-                                        ACTarray(x).BFinish = t.BaselineFinish
+                                        ACTarray(X).BFinish = t.BaselineFinish
                                     End If
                                     If t.BaselineStart <> "NA" Then
-                                        ACTarray(x).BStart = t.BaselineStart
+                                        ACTarray(X).BStart = t.BaselineStart
                                     End If
                                     If CAID3_Used = True Then
-                                        ACTarray(x).CAID3 = CAID3
+                                        ACTarray(X).CAID3 = CAID3
                                     End If
-                                    ACTarray(x).ID = ID
-                                    ACTarray(x).CAM = CAM
-                                    ACTarray(x).CAID1 = CAID1
-                                    ACTarray(x).EVT = EVT
-                                    ACTarray(x).FFinish = t.Finish
-                                    ACTarray(x).FStart = t.Start
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = t.Finish
+                                    ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
-                                        ACTarray(x).CAID2 = CAID2
+                                        ACTarray(X).CAID2 = CAID2
                                     End If
-                                    ACTarray(x).WP = WP
+                                    ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
-                                        ACTarray(x).AStart = t.ActualStart
+                                        ACTarray(X).AStart = t.ActualStart
                                     End If
                                     If t.ActualFinish <> "NA" Then
-                                        ACTarray(x).AFinish = t.ActualFinish
+                                        ACTarray(X).AFinish = t.ActualFinish
                                     End If
 
-                                    x = x + 1
+                                    X = X + 1
                                     ActFound = True
 
                                     GoTo ETC_WP_Match
@@ -3151,34 +3155,34 @@ nrETC_WP_Match_B:
                                 Next i
 
                                 'No match found, create new WP line in ACTarrray
-                                ReDim Preserve ACTarray(1 To x)
+                                ReDim Preserve ACTarray(1 To X)
                                 If t.BaselineFinish <> "NA" Then
-                                    ACTarray(x).BFinish = t.BaselineFinish
+                                    ACTarray(X).BFinish = t.BaselineFinish
                                 End If
                                 If t.BaselineStart <> "NA" Then
-                                    ACTarray(x).BStart = t.BaselineStart
+                                    ACTarray(X).BStart = t.BaselineStart
                                 End If
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).ID = ID
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).ID = ID
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).WP = WP
+                                ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
-                                    ACTarray(x).AStart = t.ActualStart
+                                    ACTarray(X).AStart = t.ActualStart
                                 End If
                                 If t.ActualFinish <> "NA" Then
-                                    ACTarray(x).AFinish = t.ActualFinish
+                                    ACTarray(X).AFinish = t.ActualFinish
                                 End If
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                                 'Milestone Data
@@ -3283,37 +3287,37 @@ ETC_WP_Match:
 
                             'store ACT info
                             'WP Data
-                            If x = 1 Then
+                            If X = 1 Then
 
                                 'create new WP line in ACTarrray
-                                ReDim ACTarray(1 To x)
+                                ReDim ACTarray(1 To X)
                                 If t.BaselineFinish <> "NA" Then
-                                    ACTarray(x).BFinish = t.BaselineFinish
+                                    ACTarray(X).BFinish = t.BaselineFinish
                                 End If
                                 If t.BaselineStart <> "NA" Then
-                                    ACTarray(x).BStart = t.BaselineStart
+                                    ACTarray(X).BStart = t.BaselineStart
                                 End If
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).ID = ID
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).ID = ID
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).WP = WP
+                                ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
-                                    ACTarray(x).AStart = t.ActualStart
+                                    ACTarray(X).AStart = t.ActualStart
                                 End If
                                 If t.ActualFinish <> "NA" Then
-                                    ACTarray(x).AFinish = t.ActualFinish
+                                    ACTarray(X).AFinish = t.ActualFinish
                                 End If
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                                 GoTo ETC_WP_Match_B
@@ -3371,35 +3375,35 @@ ETC_WP_Match:
                             Next i
 
                             'No match found, create new WP line in ACTarrray
-                            ReDim Preserve ACTarray(1 To x)
+                            ReDim Preserve ACTarray(1 To X)
                             If t.BaselineFinish <> "NA" Then
-                                ACTarray(x).BFinish = t.BaselineFinish
+                                ACTarray(X).BFinish = t.BaselineFinish
                             End If
                             If t.BaselineStart <> "NA" Then
-                                ACTarray(x).BStart = t.BaselineStart
+                                ACTarray(X).BStart = t.BaselineStart
                             End If
                             If CAID3_Used = True Then
-                                ACTarray(x).CAID3 = CAID3
+                                ACTarray(X).CAID3 = CAID3
                             End If
-                            ACTarray(x).CAM = CAM
-                            ACTarray(x).ID = ID
-                            ACTarray(x).CAID1 = CAID1
-                            ACTarray(x).EVT = EVT
-                            ACTarray(x).FFinish = t.Finish
-                            ACTarray(x).FStart = t.Start
+                            ACTarray(X).CAM = CAM
+                            ACTarray(X).ID = ID
+                            ACTarray(X).CAID1 = CAID1
+                            ACTarray(X).EVT = EVT
+                            ACTarray(X).FFinish = t.Finish
+                            ACTarray(X).FStart = t.Start
                             If CAID2_Used = True Then
-                                ACTarray(x).CAID2 = CAID2
+                                ACTarray(X).CAID2 = CAID2
                             End If
-                            ACTarray(x).WP = WP
+                            ACTarray(X).WP = WP
                             If t.ActualStart <> "NA" Then
-                                ACTarray(x).AStart = t.ActualStart
+                                ACTarray(X).AStart = t.ActualStart
                             End If
                             If t.ActualFinish <> "NA" Then
-                                ACTarray(x).AFinish = t.ActualFinish
+                                ACTarray(X).AFinish = t.ActualFinish
                             End If
 
 
-                            x = x + 1
+                            X = X + 1
                             ActFound = True
 
                             'Milestone Data
@@ -3504,12 +3508,12 @@ Private Sub BCWS_Export(ByVal curproj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT As String
     Dim Milestone As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
     Dim WPDescArray() As WP_Descriptions
-    Dim x As Integer
+    Dim X As Integer
     Dim i As Integer
     Dim aStartString As String
     Dim aFinishString As String
@@ -3538,10 +3542,10 @@ Private Sub BCWS_Export(ByVal curproj As Project)
             Print #1, fCAID1t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
         End If
 
-        x = 1
+        X = 1
         ActFound = False
 
-        If curproj.Subprojects.count > 0 Then
+        If curproj.Subprojects.Count > 0 Then
 
             Set subProjs = curproj.Subprojects
 
@@ -3592,33 +3596,33 @@ Private Sub BCWS_Export(ByVal curproj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 'store ACT info
                                 'WP Data
-                                If x = 1 Then
+                                If X = 1 Then
 
                                     'create new WP line in ACTarrray
-                                    ReDim ACTarray(1 To x)
-                                    ACTarray(x).BFinish = t.BaselineFinish
-                                    ACTarray(x).BStart = t.BaselineStart
+                                    ReDim ACTarray(1 To X)
+                                    ACTarray(X).BFinish = t.BaselineFinish
+                                    ACTarray(X).BStart = t.BaselineStart
                                     If CAID3_Used = True Then
-                                        ACTarray(x).CAID3 = CAID3
+                                        ACTarray(X).CAID3 = CAID3
                                     End If
                                     If CAID2_Used = True Then
-                                        ACTarray(x).CAID2 = CAID2
+                                        ACTarray(X).CAID2 = CAID2
                                     End If
-                                    ACTarray(x).ID = ID
-                                    ACTarray(x).CAM = CAM
-                                    ACTarray(x).CAID1 = CAID1
-                                    ACTarray(x).EVT = EVT
-                                    ACTarray(x).FFinish = t.Finish
-                                    ACTarray(x).FStart = t.Start
-                                    ACTarray(x).CAID2 = CAID2
-                                    ACTarray(x).WP = WP
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = t.Finish
+                                    ACTarray(X).FStart = t.Start
+                                    ACTarray(X).CAID2 = CAID2
+                                    ACTarray(X).WP = WP
 
-                                    x = x + 1
+                                    X = X + 1
                                     ActFound = True
 
                                     GoTo nrWP_Match
@@ -3646,25 +3650,25 @@ Private Sub BCWS_Export(ByVal curproj As Project)
                                 Next i
 
                                 'No match found, create new WP line in ACTarrray
-                                ReDim Preserve ACTarray(1 To x)
-                                ACTarray(x).BFinish = t.BaselineFinish
-                                ACTarray(x).BStart = t.BaselineStart
+                                ReDim Preserve ACTarray(1 To X)
+                                ACTarray(X).BFinish = t.BaselineFinish
+                                ACTarray(X).BStart = t.BaselineStart
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).ID = ID
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
-                                ACTarray(x).CAID2 = CAID2
-                                ACTarray(x).WP = WP
+                                ACTarray(X).ID = ID
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
+                                ACTarray(X).CAID2 = CAID2
+                                ACTarray(X).WP = WP
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                                 'Milestone Data
@@ -3735,7 +3739,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -3746,28 +3750,28 @@ Next_nrSProj_Task:
 
                             'store ACT info
                             'WP Data
-                            If x = 1 Then
+                            If X = 1 Then
 
                                 'create new WP line in ACTarrray
-                                ReDim ACTarray(1 To x)
-                                ACTarray(x).BFinish = t.BaselineFinish
-                                ACTarray(x).BStart = t.BaselineStart
+                                ReDim ACTarray(1 To X)
+                                ACTarray(X).BFinish = t.BaselineFinish
+                                ACTarray(X).BStart = t.BaselineStart
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).ID = ID
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
-                                ACTarray(x).CAID2 = CAID2
-                                ACTarray(x).WP = WP
+                                ACTarray(X).ID = ID
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
+                                ACTarray(X).CAID2 = CAID2
+                                ACTarray(X).WP = WP
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                                 GoTo nrWP_Match_B
@@ -3794,25 +3798,25 @@ Next_nrSProj_Task:
                             Next i
 
                             'No match found, create new WP line in ACTarrray
-                            ReDim Preserve ACTarray(1 To x)
-                            ACTarray(x).BFinish = t.BaselineFinish
-                            ACTarray(x).BStart = t.BaselineStart
+                            ReDim Preserve ACTarray(1 To X)
+                            ACTarray(X).BFinish = t.BaselineFinish
+                            ACTarray(X).BStart = t.BaselineStart
                             If CAID3_Used = True Then
-                                ACTarray(x).CAID3 = CAID3
+                                ACTarray(X).CAID3 = CAID3
                             End If
                             If CAID2_Used = True Then
-                                ACTarray(x).CAID2 = CAID2
+                                ACTarray(X).CAID2 = CAID2
                             End If
-                            ACTarray(x).CAM = CAM
-                            ACTarray(x).CAID1 = CAID1
-                            ACTarray(x).EVT = EVT
-                            ACTarray(x).ID = ID
-                            ACTarray(x).FFinish = t.Finish
-                            ACTarray(x).FStart = t.Start
-                            ACTarray(x).CAID2 = CAID2
-                            ACTarray(x).WP = WP
+                            ACTarray(X).CAM = CAM
+                            ACTarray(X).CAID1 = CAID1
+                            ACTarray(X).EVT = EVT
+                            ACTarray(X).ID = ID
+                            ACTarray(X).FFinish = t.Finish
+                            ACTarray(X).FStart = t.Start
+                            ACTarray(X).CAID2 = CAID2
+                            ACTarray(X).WP = WP
 
-                            x = x + 1
+                            X = X + 1
                             ActFound = True
 
                             'Milestone Data
@@ -3882,10 +3886,10 @@ Next_nrTask:
         End If
         Print #2, "Cobra ID,Resource,Amount,From Date,To Date"
 
-        x = 1
+        X = 1
         ActFound = False
 
-        If curproj.Subprojects.count > 0 Then
+        If curproj.Subprojects.Count > 0 Then
 
             Set subProjs = curproj.Subprojects
 
@@ -3930,7 +3934,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -3941,27 +3945,27 @@ Next_nrTask:
 
                                 'store ACT info
                                 'WP Data
-                                If x = 1 Then
+                                If X = 1 Then
 
                                     'create new WP line in ACTarrray
-                                    ReDim ACTarray(1 To x)
-                                    ACTarray(x).BFinish = t.BaselineFinish
-                                    ACTarray(x).BStart = t.BaselineStart
+                                    ReDim ACTarray(1 To X)
+                                    ACTarray(X).BFinish = t.BaselineFinish
+                                    ACTarray(X).BStart = t.BaselineStart
                                     If CAID3_Used = True Then
-                                        ACTarray(x).CAID3 = CAID3
+                                        ACTarray(X).CAID3 = CAID3
                                     End If
-                                    ACTarray(x).ID = ID
-                                    ACTarray(x).CAM = CAM
-                                    ACTarray(x).CAID1 = CAID1
-                                    ACTarray(x).EVT = EVT
-                                    ACTarray(x).FFinish = t.Finish
-                                    ACTarray(x).FStart = t.Start
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = t.Finish
+                                    ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
-                                        ACTarray(x).CAID2 = CAID2
+                                        ACTarray(X).CAID2 = CAID2
                                     End If
-                                    ACTarray(x).WP = WP
+                                    ACTarray(X).WP = WP
 
-                                    x = x + 1
+                                    X = X + 1
                                     ActFound = True
 
                                     GoTo WP_Match
@@ -3989,24 +3993,24 @@ Next_nrTask:
                                 Next i
 
                                 'No match found, create new WP line in ACTarrray
-                                ReDim Preserve ACTarray(1 To x)
-                                ACTarray(x).BFinish = t.BaselineFinish
-                                ACTarray(x).BStart = t.BaselineStart
+                                ReDim Preserve ACTarray(1 To X)
+                                ACTarray(X).BFinish = t.BaselineFinish
+                                ACTarray(X).BStart = t.BaselineStart
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
-                                ACTarray(x).ID = ID
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
+                                ACTarray(X).ID = ID
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).WP = WP
+                                ACTarray(X).WP = WP
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                                 'Milestone Data
@@ -4111,7 +4115,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4122,27 +4126,27 @@ Next_SProj_Task:
 
                             'store ACT info
                             'WP Data
-                            If x = 1 Then
+                            If X = 1 Then
 
                                 'create new WP line in ACTarrray
-                                ReDim ACTarray(1 To x)
-                                ACTarray(x).BFinish = t.BaselineFinish
-                                ACTarray(x).BStart = t.BaselineStart
+                                ReDim ACTarray(1 To X)
+                                ACTarray(X).BFinish = t.BaselineFinish
+                                ACTarray(X).BStart = t.BaselineStart
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
-                                ACTarray(x).ID = ID
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
+                                ACTarray(X).ID = ID
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).WP = WP
+                                ACTarray(X).WP = WP
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                                 GoTo WP_Match_B
@@ -4169,24 +4173,24 @@ Next_SProj_Task:
                             Next i
 
                             'No match found, create new WP line in ACTarrray
-                            ReDim Preserve ACTarray(1 To x)
-                            ACTarray(x).BFinish = t.BaselineFinish
-                            ACTarray(x).BStart = t.BaselineStart
+                            ReDim Preserve ACTarray(1 To X)
+                            ACTarray(X).BFinish = t.BaselineFinish
+                            ACTarray(X).BStart = t.BaselineStart
                             If CAID3_Used = True Then
-                                ACTarray(x).CAID3 = CAID3
+                                ACTarray(X).CAID3 = CAID3
                             End If
-                            ACTarray(x).CAM = CAM
-                            ACTarray(x).CAID1 = CAID1
-                            ACTarray(x).EVT = EVT
-                            ACTarray(x).ID = ID
-                            ACTarray(x).FFinish = t.Finish
-                            ACTarray(x).FStart = t.Start
+                            ACTarray(X).CAM = CAM
+                            ACTarray(X).CAID1 = CAID1
+                            ACTarray(X).EVT = EVT
+                            ACTarray(X).ID = ID
+                            ACTarray(X).FFinish = t.Finish
+                            ACTarray(X).FStart = t.Start
                             If CAID2_Used = True Then
-                                ACTarray(x).CAID2 = CAID2
+                                ACTarray(X).CAID2 = CAID2
                             End If
-                            ACTarray(x).WP = WP
+                            ACTarray(X).WP = WP
 
-                            x = x + 1
+                            X = X + 1
                             ActFound = True
 
                             'Milestone Data
@@ -4283,12 +4287,12 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT As String
     Dim Milestone As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
     Dim WPDescArray() As WP_Descriptions
-    Dim x As Integer
+    Dim X As Integer
     Dim i As Integer
     Dim aStartString As String
     Dim aFinishString As String
@@ -4317,10 +4321,10 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
             Print #1, fCAID1t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
         End If
 
-        x = 1
+        X = 1
         ActFound = False
 
-        If curproj.Subprojects.count > 0 Then
+        If curproj.Subprojects.Count > 0 Then
 
             Set subProjs = curproj.Subprojects
 
@@ -4371,38 +4375,38 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 'store ACT info
                                 'WP Data
-                                If x = 1 Then
+                                If X = 1 Then
 
                                     'create new WP line in ACTarrray
-                                    ReDim ACTarray(1 To x)
+                                    ReDim ACTarray(1 To X)
                                     If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
-                                        ACTarray(x).BFinish = t.BaselineFinish
-                                        ACTarray(x).BStart = t.BaselineStart
+                                        ACTarray(X).BFinish = t.BaselineFinish
+                                        ACTarray(X).BStart = t.BaselineStart
                                     Else
-                                        ACTarray(x).BFinish = t.Finish
-                                        ACTarray(x).BStart = t.Start
+                                        ACTarray(X).BFinish = t.Finish
+                                        ACTarray(X).BStart = t.Start
                                     End If
                                     If CAID3_Used = True Then
-                                        ACTarray(x).CAID3 = CAID3
+                                        ACTarray(X).CAID3 = CAID3
                                     End If
                                     If CAID2_Used = True Then
-                                        ACTarray(x).CAID2 = CAID2
+                                        ACTarray(X).CAID2 = CAID2
                                     End If
-                                    ACTarray(x).ID = ID
-                                    ACTarray(x).CAM = CAM
-                                    ACTarray(x).CAID1 = CAID1
-                                    ACTarray(x).EVT = EVT
-                                    ACTarray(x).FFinish = t.Finish
-                                    ACTarray(x).FStart = t.Start
-                                    ACTarray(x).CAID2 = CAID2
-                                    ACTarray(x).WP = WP
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = t.Finish
+                                    ACTarray(X).FStart = t.Start
+                                    ACTarray(X).CAID2 = CAID2
+                                    ACTarray(X).WP = WP
 
-                                    x = x + 1
+                                    X = X + 1
                                     ActFound = True
 
                                     GoTo nrWP_Match
@@ -4445,30 +4449,30 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
                                 Next i
 
                                 'No match found, create new WP line in ACTarrray
-                                ReDim Preserve ACTarray(1 To x)
+                                ReDim Preserve ACTarray(1 To X)
                                 If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
-                                    ACTarray(x).BFinish = t.BaselineFinish
-                                    ACTarray(x).BStart = t.BaselineStart
+                                    ACTarray(X).BFinish = t.BaselineFinish
+                                    ACTarray(X).BStart = t.BaselineStart
                                 Else
-                                    ACTarray(x).BFinish = t.Finish
-                                    ACTarray(x).BStart = t.Start
+                                    ACTarray(X).BFinish = t.Finish
+                                    ACTarray(X).BStart = t.Start
                                 End If
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).ID = ID
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
-                                ACTarray(x).CAID2 = CAID2
-                                ACTarray(x).WP = WP
+                                ACTarray(X).ID = ID
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
+                                ACTarray(X).CAID2 = CAID2
+                                ACTarray(X).WP = WP
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                                 'Milestone Data
@@ -4549,7 +4553,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4560,33 +4564,33 @@ Next_nrSProj_Task:
 
                             'store ACT info
                             'WP Data
-                            If x = 1 Then
+                            If X = 1 Then
 
                                 'create new WP line in ACTarrray
-                                ReDim ACTarray(1 To x)
+                                ReDim ACTarray(1 To X)
                                 If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
-                                    ACTarray(x).BFinish = t.BaselineFinish
-                                    ACTarray(x).BStart = t.BaselineStart
+                                    ACTarray(X).BFinish = t.BaselineFinish
+                                    ACTarray(X).BStart = t.BaselineStart
                                 Else
-                                    ACTarray(x).BFinish = t.Finish
-                                    ACTarray(x).BStart = t.Start
+                                    ACTarray(X).BFinish = t.Finish
+                                    ACTarray(X).BStart = t.Start
                                 End If
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).ID = ID
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
-                                ACTarray(x).CAID2 = CAID2
-                                ACTarray(x).WP = WP
+                                ACTarray(X).ID = ID
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
+                                ACTarray(X).CAID2 = CAID2
+                                ACTarray(X).WP = WP
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                                 GoTo nrWP_Match_B
@@ -4628,30 +4632,30 @@ Next_nrSProj_Task:
                             Next i
 
                             'No match found, create new WP line in ACTarrray
-                            ReDim Preserve ACTarray(1 To x)
+                            ReDim Preserve ACTarray(1 To X)
                             If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
-                                ACTarray(x).BFinish = t.BaselineFinish
-                                ACTarray(x).BStart = t.BaselineStart
+                                ACTarray(X).BFinish = t.BaselineFinish
+                                ACTarray(X).BStart = t.BaselineStart
                             Else
-                                ACTarray(x).BFinish = t.Finish
-                                ACTarray(x).BStart = t.Start
+                                ACTarray(X).BFinish = t.Finish
+                                ACTarray(X).BStart = t.Start
                             End If
                             If CAID3_Used = True Then
-                                ACTarray(x).CAID3 = CAID3
+                                ACTarray(X).CAID3 = CAID3
                             End If
                             If CAID2_Used = True Then
-                                ACTarray(x).CAID2 = CAID2
+                                ACTarray(X).CAID2 = CAID2
                             End If
-                            ACTarray(x).CAM = CAM
-                            ACTarray(x).CAID1 = CAID1
-                            ACTarray(x).EVT = EVT
-                            ACTarray(x).ID = ID
-                            ACTarray(x).FFinish = t.Finish
-                            ACTarray(x).FStart = t.Start
-                            ACTarray(x).CAID2 = CAID2
-                            ACTarray(x).WP = WP
+                            ACTarray(X).CAM = CAM
+                            ACTarray(X).CAID1 = CAID1
+                            ACTarray(X).EVT = EVT
+                            ACTarray(X).ID = ID
+                            ACTarray(X).FFinish = t.Finish
+                            ACTarray(X).FStart = t.Start
+                            ACTarray(X).CAID2 = CAID2
+                            ACTarray(X).WP = WP
 
-                            x = x + 1
+                            X = X + 1
                             ActFound = True
 
                             'Milestone Data
@@ -4733,10 +4737,10 @@ Next_nrTask:
         End If
         Print #2, "Cobra ID,Resource,Amount,From Date,To Date"
 
-        x = 1
+        X = 1
         ActFound = False
 
-        If curproj.Subprojects.count > 0 Then
+        If curproj.Subprojects.Count > 0 Then
 
             Set subProjs = curproj.Subprojects
 
@@ -4785,7 +4789,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -4796,32 +4800,32 @@ Next_nrTask:
 
                                 'store ACT info
                                 'WP Data
-                                If x = 1 Then
+                                If X = 1 Then
 
                                     'create new WP line in ACTarrray
-                                    ReDim ACTarray(1 To x)
+                                    ReDim ACTarray(1 To X)
                                     If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
-                                        ACTarray(x).BFinish = t.BaselineFinish
-                                        ACTarray(x).BStart = t.BaselineStart
+                                        ACTarray(X).BFinish = t.BaselineFinish
+                                        ACTarray(X).BStart = t.BaselineStart
                                     Else
-                                        ACTarray(x).BFinish = t.Finish
-                                        ACTarray(x).BStart = t.Start
+                                        ACTarray(X).BFinish = t.Finish
+                                        ACTarray(X).BStart = t.Start
                                     End If
                                     If CAID3_Used = True Then
-                                        ACTarray(x).CAID3 = CAID3
+                                        ACTarray(X).CAID3 = CAID3
                                     End If
-                                    ACTarray(x).ID = ID
-                                    ACTarray(x).CAM = CAM
-                                    ACTarray(x).CAID1 = CAID1
-                                    ACTarray(x).EVT = EVT
-                                    ACTarray(x).FFinish = t.Finish
-                                    ACTarray(x).FStart = t.Start
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = t.Finish
+                                    ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
-                                        ACTarray(x).CAID2 = CAID2
+                                        ACTarray(X).CAID2 = CAID2
                                     End If
-                                    ACTarray(x).WP = WP
+                                    ACTarray(X).WP = WP
 
-                                    x = x + 1
+                                    X = X + 1
                                     ActFound = True
 
                                     GoTo WP_Match
@@ -4859,29 +4863,29 @@ Next_nrTask:
                                 Next i
 
                                 'No match found, create new WP line in ACTarrray
-                                ReDim Preserve ACTarray(1 To x)
+                                ReDim Preserve ACTarray(1 To X)
                                 If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
-                                    ACTarray(x).BFinish = t.BaselineFinish
-                                    ACTarray(x).BStart = t.BaselineStart
+                                    ACTarray(X).BFinish = t.BaselineFinish
+                                    ACTarray(X).BStart = t.BaselineStart
                                 Else
-                                    ACTarray(x).BFinish = t.Finish
-                                    ACTarray(x).BStart = t.Start
+                                    ACTarray(X).BFinish = t.Finish
+                                    ACTarray(X).BStart = t.Start
                                 End If
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
-                                ACTarray(x).ID = ID
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
+                                ACTarray(X).ID = ID
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).WP = WP
+                                ACTarray(X).WP = WP
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                                 'Milestone Data
@@ -5035,7 +5039,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5046,32 +5050,32 @@ Next_SProj_Task:
 
                             'store ACT info
                             'WP Data
-                            If x = 1 Then
+                            If X = 1 Then
 
                                 'create new WP line in ACTarrray
-                                ReDim ACTarray(1 To x)
+                                ReDim ACTarray(1 To X)
                                 If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
-                                    ACTarray(x).BFinish = t.BaselineFinish
-                                    ACTarray(x).BStart = t.BaselineStart
+                                    ACTarray(X).BFinish = t.BaselineFinish
+                                    ACTarray(X).BStart = t.BaselineStart
                                 Else
-                                    ACTarray(x).BFinish = t.Finish
-                                    ACTarray(x).BStart = t.Start
+                                    ACTarray(X).BFinish = t.Finish
+                                    ACTarray(X).BStart = t.Start
                                 End If
                                 If CAID3_Used = True Then
-                                    ACTarray(x).CAID3 = CAID3
+                                    ACTarray(X).CAID3 = CAID3
                                 End If
-                                ACTarray(x).ID = ID
-                                ACTarray(x).CAM = CAM
-                                ACTarray(x).CAID1 = CAID1
-                                ACTarray(x).EVT = EVT
-                                ACTarray(x).FFinish = t.Finish
-                                ACTarray(x).FStart = t.Start
+                                ACTarray(X).ID = ID
+                                ACTarray(X).CAM = CAM
+                                ACTarray(X).CAID1 = CAID1
+                                ACTarray(X).EVT = EVT
+                                ACTarray(X).FFinish = t.Finish
+                                ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
-                                    ACTarray(x).CAID2 = CAID2
+                                    ACTarray(X).CAID2 = CAID2
                                 End If
-                                ACTarray(x).WP = WP
+                                ACTarray(X).WP = WP
 
-                                x = x + 1
+                                X = X + 1
                                 ActFound = True
 
                                 GoTo WP_Match_B
@@ -5108,29 +5112,29 @@ Next_SProj_Task:
                             Next i
 
                             'No match found, create new WP line in ACTarrray
-                            ReDim Preserve ACTarray(1 To x)
+                            ReDim Preserve ACTarray(1 To X)
                             If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
-                                ACTarray(x).BFinish = t.BaselineFinish
-                                ACTarray(x).BStart = t.BaselineStart
+                                ACTarray(X).BFinish = t.BaselineFinish
+                                ACTarray(X).BStart = t.BaselineStart
                             Else
-                                ACTarray(x).BFinish = t.Finish
-                                ACTarray(x).BStart = t.Start
+                                ACTarray(X).BFinish = t.Finish
+                                ACTarray(X).BStart = t.Start
                             End If
                             If CAID3_Used = True Then
-                                ACTarray(x).CAID3 = CAID3
+                                ACTarray(X).CAID3 = CAID3
                             End If
-                            ACTarray(x).CAM = CAM
-                            ACTarray(x).CAID1 = CAID1
-                            ACTarray(x).EVT = EVT
-                            ACTarray(x).ID = ID
-                            ACTarray(x).FFinish = t.Finish
-                            ACTarray(x).FStart = t.Start
+                            ACTarray(X).CAM = CAM
+                            ACTarray(X).CAID1 = CAID1
+                            ACTarray(X).EVT = EVT
+                            ACTarray(X).ID = ID
+                            ACTarray(X).FFinish = t.Finish
+                            ACTarray(X).FStart = t.Start
                             If CAID2_Used = True Then
-                                ACTarray(x).CAID2 = CAID2
+                                ACTarray(X).CAID2 = CAID2
                             End If
-                            ACTarray(x).WP = WP
+                            ACTarray(X).WP = WP
 
-                            x = x + 1
+                            X = X + 1
                             ActFound = True
 
                             'Milestone Data
@@ -5291,7 +5295,7 @@ End Sub
 Private Function WP_Desc(ByVal WP_ID As String) As String
 
     Dim tempDesc As String
-    Dim x As Integer
+    Dim X As Integer
 
     tempDesc = ""
 
@@ -5302,13 +5306,13 @@ Private Function WP_Desc(ByVal WP_ID As String) As String
 
     On Error GoTo NoWPMatchFound
 
-    For x = 1 To UBound(WPDescArray)
-        If WPDescArray(x).WP_ID = WP_ID Then
-            tempDesc = WPDescArray(x).Desc
+    For X = 1 To UBound(WPDescArray)
+        If WPDescArray(X).WP_ID = WP_ID Then
+            tempDesc = WPDescArray(X).Desc
             WP_Desc = tempDesc
             Exit Function
         End If
-    Next x
+    Next X
 
 NoWPMatchFound:
 
@@ -5325,10 +5329,10 @@ Private Sub Get_WP_Descriptions(ByVal curproj As Project)
     Dim ID As String
     Dim Desc As String
     Dim i As Integer
-    Dim x As Integer
+    Dim X As Integer
     '<issue47>
     Dim subProjs As Subprojects
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim curSProj As Project
     Dim t As Task '</issue47>
 
@@ -5336,7 +5340,7 @@ Private Sub Get_WP_Descriptions(ByVal curproj As Project)
 
     i = 0
 
-    If curproj.Subprojects.count > 0 Then
+    If curproj.Subprojects.Count > 0 Then
 
         Set subProjs = curproj.Subprojects
 
@@ -5386,12 +5390,12 @@ Private Sub Get_WP_Descriptions(ByVal curproj As Project)
 
                     Else
 
-                        For x = 1 To UBound(WPDescArray)
+                        For X = 1 To UBound(WPDescArray)
 
-                            If WPDescArray(x).WP_ID = ID Then
+                            If WPDescArray(X).WP_ID = ID Then
                                 GoTo Next_SubProj_WPtask
                             End If
-                        Next x
+                        Next X
 
                         ReDim Preserve WPDescArray(1 To i)
                         WPDescArray(i).WP_ID = ID
@@ -5449,12 +5453,12 @@ Next_SubProj_WPtask:
 
                 Else
 
-                    For x = 1 To UBound(WPDescArray)
+                    For X = 1 To UBound(WPDescArray)
 
-                        If WPDescArray(x).WP_ID = ID Then
+                        If WPDescArray(X).WP_ID = ID Then
                             GoTo Next_WPtask
                         End If
-                    Next x
+                    Next X
 
                     ReDim Preserve WPDescArray(1 To i)
                     WPDescArray(i).WP_ID = ID
@@ -5507,15 +5511,15 @@ Private Function Find_BCRs(ByVal curproj As Project, ByVal fWP As String, ByVal 
 
     Dim t As Task
     Dim i As Integer
-    Dim x As Integer
+    Dim X As Integer
     Dim tempBCRstr As String
     Dim subProjs As Subprojects
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim curSProj As Project
 
     i = 0
 
-    If curproj.Subprojects.count > 0 Then
+    If curproj.Subprojects.Count > 0 Then
 
         Set subProjs = curproj.Subprojects
 
@@ -5546,11 +5550,11 @@ Private Function Find_BCRs(ByVal curproj As Project, ByVal fWP As String, ByVal 
 
                         Else
 
-                            For x = 1 To UBound(BCR_WP)
-                                If BCR_WP(x) = t.GetField(FieldNameToFieldConstant(fWP)) Then
+                            For X = 1 To UBound(BCR_WP)
+                                If BCR_WP(X) = t.GetField(FieldNameToFieldConstant(fWP)) Then
                                     GoTo Next_SubProj_WPtask
                                 End If
-                            Next x
+                            Next X
 
                             ReDim Preserve BCR_WP(1 To i)
                             BCR_WP(i) = t.GetField(FieldNameToFieldConstant(fWP))
@@ -5589,11 +5593,11 @@ Next_SubProj_WPtask:
 
                     Else
 
-                        For x = 1 To UBound(BCR_WP)
-                            If BCR_WP(x) = t.GetField(FieldNameToFieldConstant(fWP)) Then
+                        For X = 1 To UBound(BCR_WP)
+                            If BCR_WP(X) = t.GetField(FieldNameToFieldConstant(fWP)) Then
                                 GoTo Next_WPtask
                             End If
-                        Next x
+                        Next X
 
                         ReDim Preserve BCR_WP(1 To i)
                         BCR_WP(i) = t.GetField(FieldNameToFieldConstant(fWP))
@@ -5773,7 +5777,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                             If tempWork <> 0 Then
 
-                                If tsvs.count = 1 Then
+                                If tsvs.Count = 1 Then
 
                                     Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
@@ -5785,7 +5789,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                             Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
 
-                                        Case tsvs.count
+                                        Case tsvs.Count
 
                                             Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
@@ -5810,7 +5814,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                             If TSV.Value <> "" Then
 
-                                If tsvs.count = 1 Then
+                                If tsvs.Count = 1 Then
 
                                     Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
@@ -5822,7 +5826,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                             Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
 
-                                        Case tsvs.count
+                                        Case tsvs.Count
 
                                             Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
@@ -5863,7 +5867,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                         If tempWork <> 0 Then
 
-                            If tsvs.count = 1 Then
+                            If tsvs.Count = 1 Then
 
                                 Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
@@ -5875,7 +5879,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                         Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
 
-                                    Case tsvs.count
+                                    Case tsvs.Count
 
                                         Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
@@ -5900,7 +5904,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                         If TSV.Value <> "" Then
 
-                            If tsvs.count = 1 Then
+                            If tsvs.Count = 1 Then
 
                                 Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
@@ -5912,7 +5916,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                         Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
 
-                                    Case tsvs.count
+                                    Case tsvs.Count
 
                                         Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
@@ -5953,7 +5957,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                             If tempWork <> 0 Then
 
-                                If tsvs.count = 1 Then
+                                If tsvs.Count = 1 Then
 
                                     Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
@@ -5965,7 +5969,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                             Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
 
-                                        Case tsvs.count
+                                        Case tsvs.Count
 
                                             Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
@@ -5990,7 +5994,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                             If TSV.Value <> "" Then
 
-                                If tsvs.count = 1 Then
+                                If tsvs.Count = 1 Then
 
                                     Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
@@ -6002,7 +6006,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                             Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
 
-                                        Case tsvs.count
+                                        Case tsvs.Count
 
                                             Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
@@ -6035,7 +6039,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                         If TSV.Value <> "" Then
 
-                            If tsvs.count = 1 Then
+                            If tsvs.Count = 1 Then
 
                                 Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
 
@@ -6047,7 +6051,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                         Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
 
-                                    Case tsvs.count
+                                    Case tsvs.Count
 
                                         Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
 
@@ -6072,7 +6076,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                     If TSV.Value <> "" Then
 
-                        If tsvs.count = 1 Then
+                        If tsvs.Count = 1 Then
 
                             Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
 
@@ -6084,7 +6088,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                     Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
 
-                                Case tsvs.count
+                                Case tsvs.Count
 
                                     Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
 
@@ -6109,7 +6113,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                     If TSV.Value <> "" Then
 
-                        If tsvs.count = 1 Then
+                        If tsvs.Count = 1 Then
 
                             Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
 
@@ -6121,7 +6125,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                     Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
 
-                                Case tsvs.count
+                                Case tsvs.Count
 
                                     Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
 
