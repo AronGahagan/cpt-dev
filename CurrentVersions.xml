@@ -115,7 +115,7 @@
 	<Module>
 		<Name>cptIMSCobraExport_frm</Name>
 		<FileName>cptIMSCobraExport_frm.frm</FileName>
-		<Version>v3.2.1</Version>
+		<Version>v3.2.2</Version>
 		<Type>3</Type>
 		<Directory>Integration</Directory>
 	</Module>
