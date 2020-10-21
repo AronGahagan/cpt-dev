@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.2.2</cpt_version>
+'<cpt_version>v3.2.3</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -964,7 +964,7 @@ next_task:
 
     Print #1, vbCrLf & vbCrLf & "Task Assignment Discrepancies - The following Tasks have vertical traceability errors with their Assignment Baseline Values and/or Baseline Dates"
 
-    Print #1, vbCrLf & "UID,Task Baseline Work,Assignment Baseline Work,Task Baseline Cost,Assignment Baseline Cost,Task Baseline Start,Assignment Baseline Start,Task Baseline Finish,Assignment Baseline Finish"
+    Print #1, vbCrLf & "UID,Task Baseline Work,Assignment Baseline Work,Task Baseline Cost,Assignment Baseline Cost,Task Baseline Start,Assignment Baseline Start,Task Baseline Finish,Assignment Baseline Finish, Assignment Count"
 
     ErrorCounter = 0
 
@@ -972,7 +972,7 @@ next_task:
 
         With TaskChecks(X)
 
-            If TaskChecks(X).AssignmentCount > 0 Then
+            If .AssignmentCount > 0 Then 'v3.2.3
 
                 If Round(.BCost, 2) <> Round(.AssignmentBCost, 2) Or Round(.BWork, 2) <> Round(.AssignmentBWork, 2) Or .BStart <> .AssignmentBStart Or .BFinish <> .AssignmentBFinish Then
 
@@ -986,7 +986,8 @@ next_task:
                     errorStr = errorStr & .BStart & ","
                     errorStr = errorStr & .AssignmentBStart & ","
                     errorStr = errorStr & .BFinish & ","
-                    errorStr = errorStr & .AssignmentBFinish
+                    errorStr = errorStr & .AssignmentBFinish & "," 'v3.2.3
+                    errorStr = errorStr & .AssignmentCount 'v3.2.3
 
                     Print #1, errorStr
                     errorStr = ""
@@ -994,12 +995,32 @@ next_task:
                 End If
 
             End If
+            
+            If .AssignmentCount = 0 And (.BCost <> 0 Or .BWork <> 0) Then 'v3.2.3
+            
+                ErrorCounter = ErrorCounter + 1
+                
+                errorStr = .UID & ","
+                errorStr = errorStr & .BWork & ","
+                errorStr = errorStr & .AssignmentBWork & ","
+                errorStr = errorStr & .BCost & ","
+                errorStr = errorStr & .AssignmentBCost & ","
+                errorStr = errorStr & .BStart & ","
+                errorStr = errorStr & .AssignmentBStart & ","
+                errorStr = errorStr & .BFinish & ","
+                errorStr = errorStr & .AssignmentBFinish & "," 'v3.2.3
+                errorStr = errorStr & .AssignmentCount 'v3.2.3
+            
+                Print #1, errorStr
+                errorStr = ""
+            
+            End If
 
         End With
 
     Next X
 
-    Print #1, vbCrLf & "Total Work Package Errors Found: " & ErrorCounter
+    Print #1, vbCrLf & "Total Task Assignment Errors Found: " & ErrorCounter 'v3.2.3
 
     MsgBox "Data Check Report saved to " & destFolder
 
