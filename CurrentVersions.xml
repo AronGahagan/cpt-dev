@@ -61,7 +61,7 @@
 		<FileName>cptDataDictionary_bas.bas</FileName>
 		<Version>v1.1.1</Version>
 		<Type>1</Type>
-		<Directory>DataDictionary</Directory>
+		<Directory>CustomFields</Directory>
 	</Module>
 	<Module>
 		<Name>cptDataDictionary_frm</Name>
@@ -159,12 +159,12 @@
 		<FileName>cptSaveLocal_frm.frm</FileName>
 		<Version>v1.0.0</Version>
 		<Type>3</Type>
-		<Directory>SaveLocal</Directory>
+		<Directory>CustomFields</Directory>
 	</Module>
 	<Module>
 		<Name>cptSetup_bas</Name>
 		<FileName>cptSetup_bas.bas</FileName>
-		<Version>v1.3.17</Version>
+		<Version>v1.4.0</Version>
 		<Type>1</Type>
 		<Directory></Directory>
 	</Module>
