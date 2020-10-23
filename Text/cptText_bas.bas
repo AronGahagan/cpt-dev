@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.2.3</cpt_version>
+'<cpt_version>v1.2.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -310,27 +310,50 @@ err_here:
 End Sub
 
 Sub cptTrimTaskNames()
-Dim Task As Task, lgBefore As Long, lgAfter As Long, lgCount As Long
+  'objects
+  Dim oTask As Task
+  'strings
+  'longs
+  Dim lgBefore As Long
+  Dim lgAfter As Long
+  Dim lgCount As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+  cptSpeed True
+
   Application.OpenUndoTransaction "Trim Task Names"
 
-  For Each Task In ActiveProject.Tasks
-    If Not Task Is Nothing Then
-      lgBefore = Len(Task.Name)
-      Task.Name = Trim(Task.Name)
-      lgAfter = Len(Task.Name)
+  For Each oTask In ActiveProject.Tasks
+    If Not oTask Is Nothing Then
+      If oTask.ExternalTask Then GoTo next_task
+      Application.StatusBar = "Trimming Task ID " & oTask.ID
+      DoEvents
+      lgBefore = Len(oTask.Name)
+      'replace multi-spaces with single space
+      oTask.Name = Replace(oTask.Name, cptRegEx(oTask.Name, "\s{2,}"), " ")
+      'trim leading and trailing spaces
+      oTask.Name = Trim(oTask.Name)
+      lgAfter = Len(oTask.Name)
       If lgBefore > lgAfter Then lgCount = lgCount + 1
     End If
-  Next Task
+next_task:
+  Next oTask
+
+  Application.StatusBar = Format(lgCount, "#,##0") & " task names trimmed."
 
   MsgBox Format(lgCount, "#,##0") & " task names trimmed.", vbInformation + vbOKOnly, "Trim Task Names"
 
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
-
+  cptSpeed False
+  Application.StatusBar = ""
   Exit Sub
 err_here:
   Call cptHandleErr("cptText_bas", "cptTrimTaskNames", Err, Erl)

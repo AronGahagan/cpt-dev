@@ -213,7 +213,7 @@
 	<Module>
 		<Name>cptText_bas</Name>
 		<FileName>cptText_bas.bas</FileName>
-		<Version>v1.2.3</Version>
+		<Version>v1.2.4</Version>
 		<Type>1</Type>
 		<Directory>Text</Directory>
 	</Module>
