@@ -124,7 +124,7 @@ exit_here:
   Exit Sub
 
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "CreateCurrentVersionXML", err)
+  Call cptHandleErr("cptAdmin_bas", "CreateCurrentVersionXML", Err)
   Resume exit_here
 
 End Sub
@@ -212,7 +212,7 @@ exit_here:
   Set xlApp = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "Document", err)
+  Call cptHandleErr("cptAdmin_bas", "Document", Err)
   Resume exit_here
 End Sub
 
@@ -239,48 +239,50 @@ Dim strDirectory As String
   'remove the suffix
   If InStr(strDirectory, "_") > 0 Then strDirectory = Left(strDirectory, InStr(strDirectory, "_") - 1)
   Select Case strDirectory
-    'Setup
-    Case "Setup"
-      strDirectory = ""
-    Case "Patch"
-      strDirectory = ""
-    'Core
-    Case "BrowseFolder"
-      strDirectory = "Core"
     Case "About"
       strDirectory = "Core"
-    Case "Upgrades"
+    Case "BrowseFolder"
       strDirectory = "Core"
-    Case "ThisProject"
-      strDirectory = "Core"
-    Case "Events"
-      strDirectory = "Core"
-    'count
     Case "CountTasks"
       strDirectory = "Count"
-    'Integration
-    Case "IMSCobraExport"
+    Case "CriticalPath"
+      strDirectory = "Trace"
+    Case "CriticalPathTools"
+      strDirectory = "Trace"
+    Case "CheckAssignments"
       strDirectory = "Integration"
-	'Metrics
-	Case "Graphics"
-	  strDirectory = "Metrics"
-    'TextTools
+    Case "DataDictionary"
+      strDirectory = "CustomFields"
     Case "DynamicFilter"
       strDirectory = "Text"
-    'Status
+    Case "Events"
+      strDirectory = "Core"
+    Case "Graphics"
+      strDirectory = "Metrics"
+    Case "IMSCobraExport"
+      strDirectory = "Integration"
+    Case "IPMDAR"
+      strDirectory = "Status"
+    Case "Patch"
+      strDirectory = ""
+    Case "SaveLocal"
+      strDirectory = "CustomFields"
+    Case "Setup"
+      strDirectory = ""
     Case "SmartDuration"
       strDirectory = "Status"
     Case "StatusSheet"
       strDirectory = "Status"
     Case "StatusSheetImport"
       strDirectory = "Status"
-    'Trace
-    Case "CriticalPath"
-      strDirectory = "Trace"
-    Case "CriticalPathTools"
-      strDirectory = "Trace"
+    Case "TaskTypeMapping"
+      strDirectory = "Status"
+    Case "ThisProject"
+      strDirectory = "Core"
+    Case "Upgrades"
+      strDirectory = "Core"
     Case Else
-
+      'use module name as directory
 
   End Select
 
@@ -291,7 +293,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "cptSetDirectory()", err)
+  Call cptHandleErr("cptAdmin_bas", "cptSetDirectory()", Err)
   Resume exit_here
 
 End Function
@@ -354,6 +356,55 @@ exit_here:
   Set cn = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "cptSQL", err, Erl)
+  Call cptHandleErr("cptAdmin_bas", "cptSQL", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptLoadModulesFromPath()
+  'objects
+  Dim oSubFolder As Object
+  Dim oFSO As Scripting.FileSystemObject
+  Dim oFolder As Scripting.Folder
+  Dim oFile As Scripting.File
+  'strings
+  Dim strDir As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  strDir = "C:\Users\arong\GitHub\cpt-dev"
+  
+  Set oFSO = CreateObject("Scripting.FileSystemObject")
+  Set oFolder = oFSO.GetFolder(strDir)
+  For Each oFile In oFolder.Files
+    If Len(cptRegEx(oFile.Name, "bas$|frm$|cls$")) > 0 Then
+      Debug.Print "Importing " & oFile.Name & "..."
+      VBE.VBProjects(3).VBComponents.Import oFile.path
+    End If
+  Next oFile
+  For Each oSubFolder In oFolder.SubFolders
+    For Each oFile In oSubFolder.Files
+      If Len(cptRegEx(oFile.Name, "bas$|frm$|cls$")) > 0 Then
+        Debug.Print "Importing " & oFile.Name & "..."
+        VBE.VBProjects(3).VBComponents.Import oFile.path
+      End If
+    Next oFile
+  Next oSubFolder
+  
+exit_here:
+  On Error Resume Next
+  Set oSubFolder = Nothing
+  Set oFolder = Nothing
+  Set oFile = Nothing
+  Set oFSO = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptAdmin_bas", "cptLoadModulesFromPath", Err, Erl)
   Resume exit_here
 End Sub
