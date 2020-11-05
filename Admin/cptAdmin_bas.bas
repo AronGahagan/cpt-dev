@@ -243,6 +243,8 @@ Dim strDirectory As String
       strDirectory = "Core"
     Case "BrowseFolder"
       strDirectory = "Core"
+    Case "CalendarExceptions"
+      strDirectory = "Calendar"
     Case "CountTasks"
       strDirectory = "Count"
     Case "CriticalPath"

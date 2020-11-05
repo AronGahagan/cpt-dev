@@ -29,6 +29,18 @@
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
+		<Name>cptCalendarExceptions_bas</Name>
+		<FileName>cptCalendarExceptions_bas.bas</FileName>
+		<Version>v1.0.0</Version>
+		<Directory>Calendar</Directory>
+	</Module>
+	<Module>
+		<Name>cptCalendarExceptions_frm</Name>
+		<FileName>cptCalendarExceptions_frm.frm</FileName>
+		<Version>v1.0.0</Version>
+		<Directory>Calendar</Directory>
+	</Module>
+	<Module>
 		<Name>cptCore_bas</Name>
 		<FileName>cptCore_bas.bas</FileName>
 		<Version>v1.6.10</Version>
