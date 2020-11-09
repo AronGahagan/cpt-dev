@@ -218,6 +218,7 @@ Sub cptExportCalendarExceptions(ByRef oWorkbook As Excel.Workbook, ByRef oCalend
   Dim strException As String
   Dim strFile As String
   'longs
+  Dim lngDay As Long
   Dim lngWeekDay As Long
   Dim lngCalendarCol As Long
   Dim lngPeriodCol As Long
