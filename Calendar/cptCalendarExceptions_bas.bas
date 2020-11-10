@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptCalendarExceptions_bas"
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowCalendarExceptionsFrm()
@@ -127,7 +127,6 @@ Sub cptExportCalendarExceptionsMain(Optional blnDetail As Boolean = False)
       oWorksheet.Range(oWorksheet.Cells(2, 3), oWorksheet.Cells(lngLastRow, 10)).HorizontalAlignment = xlCenter
       oWorksheet.Range(oWorksheet.Cells(2, 5), oWorksheet.Cells(lngLastRow, 5)).HorizontalAlignment = xlLeft
       oWorksheet.Range(oWorksheet.Cells(2, 13), oWorksheet.Cells(lngLastRow, 13)).HorizontalAlignment = xlCenter
-      If blnDetail Then oWorksheet.Outline.ShowLevels RowLevels:=1
       'make it a listobject
       Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)), , xlYes)
       With oListObject
@@ -177,6 +176,7 @@ Sub cptExportCalendarExceptionsMain(Optional blnDetail As Boolean = False)
           .StopIfTrue = False
         End With
       End With
+      If blnDetail Then oWorksheet.Outline.ShowLevels RowLevels:=1
     End If
   Next oWorksheet
   
