@@ -1,13 +1,14 @@
 Attribute VB_Name = "cptCalendarExceptions_bas"
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowCalendarExceptionsFrm()
   'objects
   Dim oResource As Resource
   'strings
+  Dim strErrors As String
   'longs
   Dim lngItem As Long
   'integers
@@ -25,17 +26,28 @@ Sub cptShowCalendarExceptionsFrm()
       .cboCalendars.AddItem ActiveProject.BaseCalendars(lngItem).Name
     Next lngItem
     For Each oResource In ActiveProject.Resources
+      If oResource.Name <> oResource.Calendar.Name Then Debug.Print oResource.Name & ": " & oResource.Calendar.Name
       If Not oResource.Calendar Is Nothing Then
         If oResource.Calendar.Exceptions.Count > 0 Or oResource.Calendar.WorkWeeks.Count > 0 Then
-          .cboCalendars.AddItem oResource.Calendar.Name
+          If Len(oResource.Calendar.Name) > 0 Then
+            'todo: only add a calendar once
+            'todo: what does it mean when a resource's calendar is named differently then the resource itself?
+            .cboCalendars.AddItem oResource.Calendar.Name
+          Else
+            strErrors = strErrors & "Resource UID " & oResource.UniqueID & " is unnamed." & vbCrLf
+          End If
         End If
       End If
-    Next
+    Next oResource
     .cboCalendars.Value = "All Calendars"
     .optSummary = True
     .optDetailed = False
-    Application.StatusBar = "Ready..."
-    .Show ' False
+    If Len(strErrors) = 0 Then
+      Application.StatusBar = "Ready..."
+      .Show ' False
+    Else
+      MsgBox strErrors & vbCrLf & vbCrLf & "Please name these resources then try again.", vbCritical + vbOKOnly, "Error"
+    End If
   End With
 
 exit_here:
@@ -175,8 +187,9 @@ Sub cptExportCalendarExceptionsMain(Optional blnDetail As Boolean = False)
           .Interior.TintAndShade = 0
           .StopIfTrue = False
         End With
+        'collapse to level one if details
+        If blnDetail Then oWorksheet.Outline.ShowLevels RowLevels:=1
       End With
-      If blnDetail Then oWorksheet.Outline.ShowLevels RowLevels:=1
     End If
   Next oWorksheet
   
@@ -269,12 +282,13 @@ Sub cptExportCalendarExceptions(ByRef oWorkbook As Excel.Workbook, ByRef oCalend
   
   If oCalendar.Exceptions.Count > 0 Then
     For Each oException In oCalendar.Exceptions
-      Application.StatusBar = "Processing Calendar '" & oCalendar.Name & "' Exception '" & oException.Name & "'..."
+      If Len(oException.Name) = 0 Then strException = "[Unnamed]" Else strException = oException.Name
+      Application.StatusBar = "Processing Calendar '" & oCalendar.Name & "' Exception '" & strException & "'..."
       DoEvents
       lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row + 1
       With oException
         oWorksheet.Cells(lngLastRow, lngCalendarCol) = oCalendar.Name
-        oWorksheet.Cells(lngLastRow, lngNameCol) = .Name
+        oWorksheet.Cells(lngLastRow, lngNameCol) = strException
         oWorksheet.Cells(lngLastRow, lngStartCol) = .Start
         oWorksheet.Cells(lngLastRow, lngFinishCol) = .Finish
         oWorksheet.Cells(lngLastRow, lngHoursCol) = cptGetShifts(oException)
@@ -731,7 +745,7 @@ err_here:
 End Sub
 
 Sub cptFormatExceptionDetail(ByRef rng As Excel.Range)
-  rng.InsertIndent 1
+  rng.IndentLevel = 1
   rng.EntireRow.OutlineLevel = 2
   Set rng = rng.Resize(, rng.Worksheet.[A1].End(xlToRight).Column - 1)
   With rng.Font
