@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.0.8</cpt_version>
+'<cpt_version>v1.0.9</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
@@ -111,16 +111,16 @@ exit_here:
   cptSpeed False
   Application.CloseUndoTransaction
   Set oTask = Nothing
-  Set OutlineCode = Nothing
-  Set LookupTable = Nothing
+  Set oOutlineCode = Nothing
+  Set oLookupTable = Nothing
   Set c = Nothing
-  Set rng = Nothing
-  Set FileDialog = Nothing
-  Set Worksheet = Nothing
-  Set Workbook = Nothing
-  Workbook.Close False
-  xlApp.Quit
-  Set xlApp = Nothing
+  Set oRange = Nothing
+  Set oFileDialog = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  oWorkbook.Close False
+  oExcel.Quit
+  Set oExcel = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptBackbone_bas", "cptImportCWBSFromExcel", Err, Erl)
@@ -225,6 +225,7 @@ Sub cptImportCWBSFromServer(lngOutlineCode As Long)
 
 exit_here:
   On Error Resume Next
+  cptSpeed False
   Set c = Nothing
   Set oTask = Nothing
   Set oRange = Nothing
@@ -406,7 +407,6 @@ err_here:
   Resume exit_here
 End Sub
 
-
 Sub cptImportAppendixE(lngOutlineCode As Long)
 'objects
 Dim TaskTable As Object 'TaskTable
@@ -573,12 +573,12 @@ End Sub
 
 Sub cptExportOutlineCodeToExcel(lngOutlineCode As Long)
 'objects
-Dim xlApp As Object 'Excel.Application
-Dim Workbook As Object 'Workbook
-Dim Worksheet As Object 'Worksheet
-Dim ListObject As Object 'ListObject
-Dim LookupTable As LookupTable
-Dim OutlineCode As OutlineCode
+Dim oExcel As Object 'Excel.Application
+Dim oWorkbook As Object 'Workbook
+Dim oWorksheet As Object 'Worksheet
+Dim oListObject As Object 'ListObject
+Dim oLookupTable As LookupTable
+Dim oOutlineCode As OutlineCode
 'strings
 Dim strOutlineCode As String
 'longs
@@ -593,12 +593,12 @@ Dim lngLookupItems As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   strOutlineCode = CustomFieldGetName(lngOutlineCode)
-  Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+  Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
-  Set LookupTable = OutlineCode.LookupTable
+  Set oLookupTable = oOutlineCode.LookupTable
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  If LookupTable Is Nothing Then
+  If oLookupTable Is Nothing Then
     MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbCritical + vbOKOnly, "No Code Defined"
     GoTo exit_here
   End If
@@ -608,23 +608,23 @@ Dim lngLookupItems As Long
   'get excel
   Application.StatusBar = "Setting up Excel..."
   cptBackbone_frm.lblStatus.Caption = Application.StatusBar
-  Set xlApp = CreateObject("Excel.Application")
-  Set Workbook = xlApp.Workbooks.Add
-  xlApp.Calculation = -4135 'xlCalculationManual
-  xlApp.ScreenUpdating = False
-  Set Worksheet = Workbook.Sheets(1)
-  Worksheet.outline.SummaryRow = 0 'xlSummaryAbove
-  Worksheet.[A1:C1] = Array("CODE", "LEVEL", "DESCRIPTION")
+  Set oExcel = CreateObject("Excel.Application")
+  Set oWorkbook = oExcel.Workbooks.Add
+  oExcel.Calculation = -4135 'xlCalculationManual
+  oExcel.ScreenUpdating = False
+  Set oWorksheet = oWorkbook.Sheets(1)
+  oWorksheet.Outline.SummaryRow = 0 'xlSummaryAbove
+  oWorksheet.[A1:C1] = Array("CODE", "LEVEL", "DESCRIPTION")
   
   'export the codes
-  For lngLookupItems = 1 To LookupTable.Count
-    lngLastRow = Worksheet.Cells(Worksheet.Rows.Count, 1).End(-4162).Row + 1 '-4162 = xlUp
-    Worksheet.Cells(lngLastRow, 1).Value = "'" & LookupTable.Item(lngLookupItems).FullName
-    Worksheet.Cells(lngLastRow, 2).Value = LookupTable.Item(lngLookupItems).Level
-    Worksheet.Cells(lngLastRow, 3).Value = LookupTable.Item(lngLookupItems).Description
-    Worksheet.Cells(lngLastRow, 3).IndentLevel = LookupTable.Item(lngLookupItems).Level - 1
-    Worksheet.Rows(lngLastRow).OutlineLevel = LookupTable.Item(lngLookupItems).Level
-    cptBackbone_frm.lblProgress.Width = (lngLookupItems / LookupTable.Count) * cptBackbone_frm.lblStatus.Width
+  For lngLookupItems = 1 To oLookupTable.Count
+    lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(-4162).Row + 1 '-4162 = xlUp
+    oWorksheet.Cells(lngLastRow, 1).Value = "'" & oLookupTable.Item(lngLookupItems).FullName
+    oWorksheet.Cells(lngLastRow, 2).Value = oLookupTable.Item(lngLookupItems).Level
+    oWorksheet.Cells(lngLastRow, 3).Value = oLookupTable.Item(lngLookupItems).Description
+    oWorksheet.Cells(lngLastRow, 3).IndentLevel = oLookupTable.Item(lngLookupItems).Level - 1
+    oWorksheet.Rows(lngLastRow).OutlineLevel = oLookupTable.Item(lngLookupItems).Level
+    cptBackbone_frm.lblProgress.Width = (lngLookupItems / oLookupTable.Count) * cptBackbone_frm.lblStatus.Width
     cptBackbone_frm.lblStatus.Caption = "Exporting Outline Code '" & strOutlineCode & "'...(" & Format((lngLastRow - 1) / lngLookupItems, "0%") & ")"
   Next lngLookupItems
   
@@ -632,76 +632,76 @@ Dim lngLookupItems As Long
   cptBackbone_frm.lblStatus.Caption = Application.StatusBar
   
   'format the table
-  xlApp.ActiveWindow.Zoom = 85
+  oExcel.ActiveWindow.Zoom = 85
   'Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(xlDown)), , xlYes)
-  Set ListObject = Worksheet.ListObjects.Add(1, Worksheet.Range(Worksheet.[A1].End(-4161), Worksheet.[A1].End(-4121)), , 1)
-  ListObject.Name = strOutlineCode
-  ListObject.TableStyle = ""
-  ListObject.HeaderRowRange.Font.Bold = True
-  ListObject.Range.Borders(5).LineStyle = -4142 'xlDiagonalDown = xlNone
-  ListObject.Range.Borders(6).LineStyle = -4142 'xlDiagonalUp = xlNone
-  With ListObject.Range.Borders(7) 'xlEdgeLeft
+  Set oListObject = oWorksheet.ListObjects.Add(1, oWorksheet.Range(oWorksheet.[A1].End(-4161), oWorksheet.[A1].End(-4121)), , 1)
+  oListObject.Name = strOutlineCode
+  oListObject.TableStyle = ""
+  oListObject.HeaderRowRange.Font.Bold = True
+  oListObject.Range.Borders(5).LineStyle = -4142 'xlDiagonalDown = xlNone
+  oListObject.Range.Borders(6).LineStyle = -4142 'xlDiagonalUp = xlNone
+  With oListObject.Range.Borders(7) 'xlEdgeLeft
     .LineStyle = 1 'xlContinuous
     .ThemeColor = 1
     .TintAndShade = -0.499984740745262
     .Weight = 2 'xlThin
   End With
-  With ListObject.Range.Borders(8) 'xlEdgeTop
+  With oListObject.Range.Borders(8) 'xlEdgeTop
     .LineStyle = 1 'xlContinuous
     .ThemeColor = 1
     .TintAndShade = -0.499984740745262
     .Weight = 2 'xlThin
   End With
-  With ListObject.Range.Borders(9) 'xlEdgeBottom
+  With oListObject.Range.Borders(9) 'xlEdgeBottom
     .LineStyle = 1 'xlContinuous
     .ThemeColor = 1
     .TintAndShade = -0.499984740745262
     .Weight = 2 'xlThin
   End With
-  With ListObject.Range.Borders(10) 'xlEdgeRight
+  With oListObject.Range.Borders(10) 'xlEdgeRight
     .LineStyle = 1 'xlContinuous
     .ThemeColor = 1
     .TintAndShade = -0.499984740745262
     .Weight = 2 'xlThin
   End With
-  With ListObject.Range.Borders(11) 'xlInsideVertical
+  With oListObject.Range.Borders(11) 'xlInsideVertical
     .LineStyle = 1 'xlContinuous
     .ThemeColor = 1
     .TintAndShade = -0.249946592608417
     .Weight = 2 'xlThin
   End With
-  With ListObject.Range.Borders(12) 'xlInsideHorizontal
+  With oListObject.Range.Borders(12) 'xlInsideHorizontal
     .LineStyle = 1 'xlContinuous
     .ThemeColor = 1
     .TintAndShade = -0.249946592608417
     .Weight = 2 'xlThin
   End With
-  With ListObject.HeaderRowRange.Interior
+  With oListObject.HeaderRowRange.Interior
     .Pattern = 1 'xlSolid
     .PatternColorIndex = -4105 'xlAutomatic
     .ThemeColor = 1 'xlThemeColorDark1
     .TintAndShade = -0.149998474074526
     .PatternTintAndShade = 0
   End With
-  Worksheet.Name = strOutlineCode
-  Worksheet.[A2].Select
-  xlApp.ActiveWindow.FreezePanes = True
-  Worksheet.Columns.AutoFit
+  oWorksheet.Name = strOutlineCode
+  oWorksheet.[A2].Select
+  oExcel.ActiveWindow.FreezePanes = True
+  oWorksheet.Columns.AutoFit
     
 exit_here:
   On Error Resume Next
-  Set LookupTable = Nothing
+  Set oLookupTable = Nothing
   Application.StatusBar = "Ready..."
   cptBackbone_frm.lblStatus.Caption = Application.StatusBar
   cptBackbone_frm.lblProgress.Width = cptBackbone_frm.lblStatus.Width
-  xlApp.Visible = True
-  xlApp.ScreenUpdating = True
-  xlApp.Calculation = -4105 'xlCalculationAutomatic
-  Set ListObject = Nothing
-  Set Worksheet = Nothing
-  Set Workbook = Nothing
-  Set xlApp = Nothing
-  Set OutlineCode = Nothing
+  oExcel.Visible = True
+  oExcel.ScreenUpdating = True
+  oExcel.Calculation = -4105 'xlCalculationAutomatic
+  Set oListObject = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
+  Set oOutlineCode = Nothing
 
   Exit Sub
   
@@ -713,17 +713,17 @@ End Sub
 
 Sub cptExport81334D(lngOutlineCode As Long)
 'objects
-Dim MailItem As Object 'MailItem
-Dim olApp As Object 'Outlook.Application
-Dim LookupTable As LookupTable
-Dim OutlineCode As OutlineCode
+Dim oMailItem As Object 'MailItem
+Dim oOutlook As Object 'Outlook.Application
+Dim oLookupTable As LookupTable
+Dim oOutlineCode As OutlineCode
 Dim wsDictionary As Object 'Worksheet
 Dim wsIndex As Object 'Worksheet
-Dim Workbook As Object 'Workbok
-Dim xlApp As Object 'Excel.Application
+Dim oWorkbook As Object 'Workbok
+Dim oExcel As Object 'Excel.Application
 Dim oStream As Object 'ADODB.Stream
-Dim xmlHttpDoc As Object
-Dim objShell As Object
+Dim oXMLHttpDoc As Object
+Dim oShell As Object
 'strings
 Dim strOutlineCode As String
 Dim strURL As String
@@ -744,37 +744,37 @@ Dim lngItem As Long
   'get outline code name and export it
   cptBackbone_frm.lblStatus.Caption = "Exporting..."
   strOutlineCode = CustomFieldGetName(lngOutlineCode)
-  Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+  Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
-  Set LookupTable = OutlineCode.LookupTable
+  Set oLookupTable = oOutlineCode.LookupTable
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If LookupTable Is Nothing Then
+  If oLookupTable Is Nothing Then
     MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbCritical + vbOKOnly, "No Code Defined"
     GoTo exit_here
   Else
   
     'first determine if user has the template installed
-    Set objShell = CreateObject("WScript.Shell")
-    strTemplateDir = objShell.SpecialFolders("Templates")
+    Set oShell = CreateObject("WScript.Shell")
+    strTemplateDir = oShell.SpecialFolders("Templates")
     strTemplate = "81334D_CWBS_TEMPLATE.xltm"
     
     If Dir(strTemplateDir & "\" & strTemplate) = vbNullString Then
       'provide user feedback
       cptBackbone_frm.lblStatus.Caption = "Downloading template..."
-      Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
+      Set oXMLHttpDoc = CreateObject("Microsoft.XMLHTTP")
       strURL = strGitHub & "Templates/" & strTemplate
       'todo: remove this
       '===DEBUG===
       'strURL = Replace(strURL, "master", "issue28-outlineCodes")
       '===DEBUG===
-      xmlHttpDoc.Open "GET", strURL, False
-      xmlHttpDoc.Send
-      If xmlHttpDoc.Status = 200 And xmlHttpDoc.readyState = 4 Then
+      oXMLHttpDoc.Open "GET", strURL, False
+      oXMLHttpDoc.Send
+      If oXMLHttpDoc.Status = 200 And oXMLHttpDoc.readyState = 4 Then
         'success: save it to templates directory
         Set oStream = CreateObject("ADODB.Stream")
         oStream.Open
         oStream.Type = 1 'adTypeBinary
-        oStream.Write xmlHttpDoc.responseBody
+        oStream.Write oXMLHttpDoc.responseBody
         oStream.SaveToFile strTemplateDir & "\" & strTemplate
         oStream.Close
       Else
@@ -782,16 +782,16 @@ Dim lngItem As Long
         'fail: prompt to request by email
         If MsgBox("Unable to download template. Request via email?", vbExclamation + vbYesNo, "No Connection") = vbYes Then
           On Error Resume Next
-          Set olApp = GetObject(, "Outlook.Application")
-          If olApp Is Nothing Then
-            Set olApp = CreateObject("Outlook.Application")
+          Set oOutlook = GetObject(, "Outlook.Application")
+          If oOutlook Is Nothing Then
+            Set oOutlook = CreateObject("Outlook.Application")
           End If
-          Set MailItem = olApp.CreateItem(0) '0 = olMailItem
-          MailItem.To = "cpt@ClearPlanConsulting.com"
-          MailItem.Importance = 2 'olImportanceHigh
-          MailItem.Subject = "Template Request: " & strTemplate
-          MailItem.HTMLBody = "Please forward the subject-referenced template. Thank you." & MailItem.HTMLBody
-          MailItem.Display False
+          Set oMailItem = oOutlook.CreateItem(0) '0 = olMailItem
+          oMailItem.To = "cpt@ClearPlanConsulting.com"
+          oMailItem.Importance = 2 'olImportanceHigh
+          oMailItem.Subject = "Template Request: " & strTemplate
+          oMailItem.HTMLBody = "Please forward the subject-referenced template. Thank you." & oMailItem.HTMLBody
+          oMailItem.Display False
         End If
         GoTo exit_here
       End If
@@ -799,28 +799,28 @@ Dim lngItem As Long
     End If
   
     'open excel and create template
-    Set xlApp = CreateObject("Excel.Application")
-    Set Workbook = xlApp.Workbooks.Add(strTemplateDir & "\" & strTemplate)
-    xlApp.Calculation = -4135 'xlManual
-    xlApp.ScreenUpdating = False
-    Set wsIndex = Workbook.Sheets("CWBS Index")
-    wsIndex.outline.SummaryRow = 0 'xlSummaryAbove
-    Set wsDictionary = Workbook.Sheets("CWBS Dictionary")
-    wsDictionary.outline.SummaryRow = 0 'xlSummaryAbove
+    Set oExcel = CreateObject("Excel.Application")
+    Set oWorkbook = oExcel.Workbooks.Add(strTemplateDir & "\" & strTemplate)
+    oExcel.Calculation = -4135 'xlManual
+    oExcel.ScreenUpdating = False
+    Set wsIndex = oWorkbook.Sheets("CWBS Index")
+    wsIndex.Outline.SummaryRow = 0 'xlSummaryAbove
+    Set wsDictionary = oWorkbook.Sheets("CWBS Dictionary")
+    wsDictionary.Outline.SummaryRow = 0 'xlSummaryAbove
     lngRow = 7
-    For lngItem = 1 To LookupTable.Count
+    For lngItem = 1 To oLookupTable.Count
       'index: code=col1; name=col9
-      wsIndex.Cells(lngRow, 1).Value = "'" & LookupTable.Item(lngItem).FullName
-      wsIndex.Cells(lngRow, 10).Value = LookupTable.Item(lngItem).Description
+      wsIndex.Cells(lngRow, 1).Value = "'" & oLookupTable.Item(lngItem).FullName
+      wsIndex.Cells(lngRow, 10).Value = oLookupTable.Item(lngItem).Description
       wsIndex.Cells(lngRow, 10).HorizontalAlignment = -4131 'xlLeft
-      wsIndex.Cells(lngRow, 10).IndentLevel = Len(CStr(LookupTable.Item(lngItem).FullName)) - Len(Replace(CStr(LookupTable.Item(lngItem).FullName), ".", ""))
-      wsIndex.Rows(lngRow).OutlineLevel = Len(CStr(LookupTable.Item(lngItem).FullName)) - Len(Replace(CStr(LookupTable.Item(lngItem).FullName), ".", "")) + 1
+      wsIndex.Cells(lngRow, 10).IndentLevel = Len(CStr(oLookupTable.Item(lngItem).FullName)) - Len(Replace(CStr(oLookupTable.Item(lngItem).FullName), ".", ""))
+      wsIndex.Rows(lngRow).OutlineLevel = Len(CStr(oLookupTable.Item(lngItem).FullName)) - Len(Replace(CStr(oLookupTable.Item(lngItem).FullName), ".", "")) + 1
       If lngRow >= 8 Then
         wsIndex.Range(wsIndex.Cells(lngRow, 10), wsIndex.Cells(lngRow, 19)).Merge
       End If
       'dictionary: code=col1; name=col2
-      wsDictionary.Cells(lngRow, 1).Value = "'" & LookupTable.Item(lngItem).FullName
-      wsDictionary.Cells(lngRow, 2).Value = LookupTable.Item(lngItem).Description
+      wsDictionary.Cells(lngRow, 1).Value = "'" & oLookupTable.Item(lngItem).FullName
+      wsDictionary.Cells(lngRow, 2).Value = oLookupTable.Item(lngItem).Description
       wsDictionary.Cells(lngRow, 2).HorizontalAlignment = -4131 'xlLeft
       wsDictionary.Cells(lngRow, 2).IndentLevel = wsIndex.Cells(lngRow, 10).IndentLevel
       wsDictionary.Rows(lngRow).OutlineLevel = wsIndex.Rows(lngRow).OutlineLevel
@@ -828,15 +828,15 @@ Dim lngItem As Long
         wsDictionary.Range(wsDictionary.Cells(lngRow, 2), wsDictionary.Cells(lngRow, 3)).Merge
         wsDictionary.Range(wsDictionary.Cells(lngRow, 4), wsDictionary.Cells(lngRow, 11)).Merge
       End If
-      cptBackbone_frm.lblStatus.Caption = "Exporting...(" & Format((lngRow - 6) / LookupTable.Count, "0%") & ")"
-      cptBackbone_frm.lblProgress.Width = ((lngRow - 6) / LookupTable.Count) * cptBackbone_frm.lblStatus.Width
+      cptBackbone_frm.lblStatus.Caption = "Exporting...(" & Format((lngRow - 6) / oLookupTable.Count, "0%") & ")"
+      cptBackbone_frm.lblProgress.Width = ((lngRow - 6) / oLookupTable.Count) * cptBackbone_frm.lblStatus.Width
       lngRow = lngRow + 1
     Next
   End If
   
   'format it
   '-4121=-4121; -4161=xlToRight; 1=xlContinuous; 2=xlThin; -4105=xlColorIndexAutomatic
-  wsIndex.[B8:I8].AutoFill Destination:=wsIndex.Range(wsIndex.Cells(8, 2), wsIndex.Cells(7 + LookupTable.Count - 1, 9))
+  wsIndex.[B8:I8].AutoFill Destination:=wsIndex.Range(wsIndex.Cells(8, 2), wsIndex.Cells(7 + oLookupTable.Count - 1, 9))
   For lngBorder = 7 To 12 'left,top,bottom,right,insidevertical,insidehorizontal
     With wsIndex.Range(wsIndex.[A7].End(-4121), wsIndex.Cells(7, 19)).Borders(lngBorder)
       .LineStyle = 1
@@ -854,32 +854,32 @@ Dim lngItem As Long
   'freeze panes
   wsDictionary.Activate
   wsDictionary.[A7].Select
-  xlApp.ActiveWindow.FreezePanes = True
+  oExcel.ActiveWindow.FreezePanes = True
   wsIndex.Activate
   wsIndex.[A7].Select
-  xlApp.ActiveWindow.FreezePanes = True
-  xlApp.Visible = True
+  oExcel.ActiveWindow.FreezePanes = True
+  oExcel.Visible = True
   
   'provide user feedback
   cptBackbone_frm.lblStatus.Caption = "Complete."
   
 exit_here:
   On Error Resume Next
-  Set MailItem = Nothing
-  Set olApp = Nothing
+  Set oMailItem = Nothing
+  Set oExcel = Nothing
   cptBackbone_frm.lblStatus.Caption = "Ready..."
   cptBackbone_frm.lblProgress.Width = cptBackbone_frm.lblStatus.Width
-  Set LookupTable = Nothing
-  Set OutlineCode = Nothing
+  Set oLookupTable = Nothing
+  Set oOutlineCode = Nothing
   Set wsDictionary = Nothing
   Set wsIndex = Nothing
-  Set Workbook = Nothing
-  xlApp.Calculation = -4105 'xlAutomatic
-  xlApp.ScreenUpdating = True
-  Set xlApp = Nothing
+  Set oWorkbook = Nothing
+  oExcel.Calculation = -4105 'xlAutomatic
+  oExcel.ScreenUpdating = True
+  Set oExcel = Nothing
   Set oStream = Nothing
-  Set xmlHttpDoc = Nothing
-  Set objShell = Nothing
+  Set oXMLHttpDoc = Nothing
+  Set oShell = Nothing
 
   Exit Sub
 err_here:
@@ -889,9 +889,9 @@ End Sub
 
 Sub cptExportTemplate()
 'objects
-Dim Worksheet As Object
-Dim Workbook As Object
-Dim xlApp As Object
+Dim oWorksheet As Object
+Dim oWorkbook As Object
+Dim oExcel As Object
 'strings
 Dim strMsg As String
 'longs
@@ -911,27 +911,27 @@ Dim strMsg As String
   strMsg = strMsg & "- IMP SUGGESTION: Include down to an accomplishment criteria milestone." & vbCrLf & vbCrLf
   strMsg = strMsg & "Proceed?"
   If MsgBox(strMsg, vbInformation + vbYesNo, "Instructions:") = vbYes Then
-    Set xlApp = CreateObject("Excel.Application")
-    Set Workbook = xlApp.Workbooks.Add
-    Set Worksheet = Workbook.Sheets(1)
-    Worksheet.Name = "CWBS"
-    Worksheet.[A1:C1] = Array("CODE", "LEVEL", "DESCRIPTION")
-    Worksheet.[A1:C1].Font.Bold = True
-    Worksheet.[A2].Select
-    Worksheet.Columns(1).ColumnWidth = 10
-    Worksheet.Columns(2).ColumnWidth = 5.2
-    Worksheet.Columns(3).ColumnWidth = 59.14
-    xlApp.ActiveWindow.FreezePanes = True
-    xlApp.ActiveWindow.Zoom = 85
-    xlApp.Visible = True
+    Set oExcel = CreateObject("Excel.Application")
+    Set oWorkbook = oExcel.Workbooks.Add
+    Set oWorksheet = oWorkbook.Sheets(1)
+    oWorksheet.Name = "CWBS"
+    oWorksheet.[A1:C1] = Array("CODE", "LEVEL", "DESCRIPTION")
+    oWorksheet.[A1:C1].Font.Bold = True
+    oWorksheet.[A2].Select
+    oWorksheet.Columns(1).ColumnWidth = 10
+    oWorksheet.Columns(2).ColumnWidth = 5.2
+    oWorksheet.Columns(3).ColumnWidth = 59.14
+    oExcel.ActiveWindow.FreezePanes = True
+    oExcel.ActiveWindow.Zoom = 85
+    oExcel.Visible = True
     Application.ActivateMicrosoftApp pjMicrosoftExcel
   End If
   
 exit_here:
   On Error Resume Next
-  Set Worksheet = Nothing
-  Set Workbook = Nothing
-  Set xlApp = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
 
   Exit Sub
 err_here:
@@ -999,8 +999,8 @@ Sub cptCreateCode(lngOutlineCode As Long)
 Dim objOutlineCode As OutlineCode
 Dim objLookupTable As LookupTable
 Dim objLookupTableEntry As LookupTableEntry
-Dim Task As Task
-Dim xlApp As Object 'Excel.Application
+Dim oTask As Task
+Dim oExcel As Object 'Excel.Application
 'strings
 Dim strWBS As String, strParent As String, strChild As String
 'longs
@@ -1025,19 +1025,19 @@ Dim aOutlineCode As Variant, tmr As Date
   
   lngTasks = ActiveProject.Tasks.Count
   
-  For Each Task In ActiveProject.Tasks
-    If Not Task Is Nothing Then
+  For Each oTask In ActiveProject.Tasks
+    If Not oTask Is Nothing Then
       lngTask = lngTask + 1
-      If Task.OutlineLevel = 1 Then
-        Set objLookupTableEntry = objLookupTable.AddChild(Task.WBS)
-        objLookupTableEntry.Description = Task.Name
+      If oTask.OutlineLevel = 1 Then
+        Set objLookupTableEntry = objLookupTable.AddChild(oTask.WBS)
+        objLookupTableEntry.Description = oTask.Name
       End If
-      Task.SetField lngOutlineCode, Task.WBS
-      objLookupTable.Item(lngTask).Description = Task.Name
+      oTask.SetField lngOutlineCode, oTask.WBS
+      objLookupTable.Item(lngTask).Description = oTask.Name
       cptBackbone_frm.lblProgress.Width = ((lngTask - 1) / lngTasks) * cptBackbone_frm.lblStatus.Width
       cptBackbone_frm.lblStatus.Caption = Format(lngTask - 1, "#,##0") & " / " & Format(lngTasks, "#,##0") & " (" & Format((lngTask - 1) / lngTasks, "0%") & ") [" & Format(Now - tmr, "hh:nn:ss") & "]"
     End If 'task is nothing
-  Next Task
+  Next oTask
   CustomOutlineCodeEditEx lngOutlineCode, OnlyLeaves:=True, OnlyLookUpTableCodes:=True
   cptBackbone_frm.lblStatus.Caption = "Complete."
   Application.StatusBar = "Complete."
@@ -1050,9 +1050,9 @@ exit_here:
   Set objOutlineCode = Nothing
   Set objLookupTable = Nothing
   Set objLookupTableEntry = Nothing
-  Set Task = Nothing
-  xlApp.Quit
-  Set xlApp = Nothing
+  Set oTask = Nothing
+  oExcel.Quit
+  Set oExcel = Nothing
   Exit Sub
 err_here:
   MsgBox Err.Number & ": " & Err.Description, vbExclamation + vbOKOnly, "Error"
@@ -1062,26 +1062,26 @@ End Sub
 Sub cptRenameInsideOutlineCode(strOutlineCode As String, strFind As String, strReplace As String)
 'usage: Call RenameOutlineCode("CWBS","BOSS","IBRS")
 'objects
-Dim OutlineCode As OutlineCode, LookupTable As LookupTable, LookupTableEntry As LookupTableEntry
+Dim oOutlineCode As OutlineCode, oLookupTable As LookupTable, oLookupTableEntry As LookupTableEntry
 'longs
 Dim lngEntry As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
-  Set LookupTable = OutlineCode.LookupTable
-  For lngEntry = 1 To LookupTable.Count
-    If InStr(LookupTable(lngEntry).Description, strFind) > 0 Then
-      Debug.Print LookupTable(lngEntry).Description
-      LookupTable(lngEntry).Description = Replace(LookupTable(lngEntry).Description, strFind, strReplace)
-      Debug.Print LookupTable(lngEntry).Description
+  Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+  Set oLookupTable = oOutlineCode.LookupTable
+  For lngEntry = 1 To oLookupTable.Count
+    If InStr(oLookupTable(lngEntry).Description, strFind) > 0 Then
+      Debug.Print oLookupTable(lngEntry).Description
+      oLookupTable(lngEntry).Description = Replace(oLookupTable(lngEntry).Description, strFind, strReplace)
+      Debug.Print oLookupTable(lngEntry).Description
     End If
   Next lngEntry
   
 exit_here:
   On Error Resume Next
-  Set OutlineCode = Nothing
-  Set LookupTable = Nothing
+  Set oOutlineCode = Nothing
+  Set oLookupTable = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptBackbone_bas", "cptRenameInsideOutlineCode", Err, Erl)
@@ -1090,8 +1090,8 @@ End Sub
 
 Sub cptRefreshOutlineCodePreview(strOutlineCode As String)
 'objects
-Dim OutlineCode As OutlineCode, LookupTable As LookupTable, LookupTableEntry As LookupTableEntry
-Dim N As Object 'Node
+Dim oOutlineCode As OutlineCode, oLookupTable As LookupTable, oLookupTableEntry As LookupTableEntry
+Dim oNode As Object 'Node
 'strings
 'longs
 Dim lngEntry As Long
@@ -1103,30 +1103,30 @@ Dim lngEntry As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   strOutlineCode = Replace(Replace(strOutlineCode, cptRegEx(strOutlineCode, "Outline Code[1-10]") & " (", ""), ")", "")
-  Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+  Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
-  Set LookupTable = OutlineCode.LookupTable
+  Set oLookupTable = oOutlineCode.LookupTable
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If Not LookupTable Is Nothing Then
-    If LookupTable.Count > 0 Then
-      For lngEntry = 1 To LookupTable.Count
-        If LookupTable(lngEntry).Level = 1 Then 'add top level
+  If Not oLookupTable Is Nothing Then
+    If oLookupTable.Count > 0 Then
+      For lngEntry = 1 To oLookupTable.Count
+        If oLookupTable(lngEntry).Level = 1 Then 'add top level
           '0 = tvwFirst
-          Set N = cptBackbone_frm.TreeView1.Nodes.Add(, relationship:=0, key:="uid" & LookupTable(lngEntry).UniqueID, Text:=LookupTable(lngEntry).FullName & " - " & LookupTable(lngEntry).Description)
-          N.Expanded = True
+          Set oNode = cptBackbone_frm.TreeView1.Nodes.Add(, relationship:=0, key:="uid" & oLookupTable(lngEntry).UniqueID, Text:=oLookupTable(lngEntry).FullName & " - " & oLookupTable(lngEntry).Description)
+          oNode.Expanded = True
         Else
           '4 = tvwChild
-          Set N = cptBackbone_frm.TreeView1.Nodes.Add("uid" & LookupTable(lngEntry).ParentEntry.UniqueID, 4, "uid" & LookupTable(lngEntry).UniqueID, LookupTable(lngEntry).FullName & " - " & LookupTable(lngEntry).Description)
-          N.Expanded = True
+          Set oNode = cptBackbone_frm.TreeView1.Nodes.Add("uid" & oLookupTable(lngEntry).ParentEntry.UniqueID, 4, "uid" & oLookupTable(lngEntry).UniqueID, oLookupTable(lngEntry).FullName & " - " & oLookupTable(lngEntry).Description)
+          oNode.Expanded = True
         End If
       Next lngEntry
     End If 'lookuptable.count > 0
   End If 'lookuptable is nothing
 exit_here:
   On Error Resume Next
-  Set OutlineCode = Nothing
-  Set LookupTable = Nothing
-  Set LookupTableEntry = Nothing
+  Set oOutlineCode = Nothing
+  Set oLookupTable = Nothing
+  Set oLookupTableEntry = Nothing
   
   Exit Sub
 err_here:
@@ -1138,8 +1138,8 @@ End Sub
 Sub cptExportOutlineCodeForMPM(lngOutlineCode As Long)
 'exports local Outline Code to CSV for MPM Upload
 'objects
-Dim OutlineCode As OutlineCode
-Dim LookupTable As LookupTable
+Dim oOutlineCode As OutlineCode
+Dim oLookupTable As LookupTable
 'longs
 Dim lngItem As Long, lngFile As Long
 'strings
@@ -1153,11 +1153,11 @@ Dim blnCA As Boolean
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   'confirm lookuptable exists
-  Set OutlineCode = ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode))
+  Set oOutlineCode = ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode))
   On Error Resume Next
-  Set LookupTable = OutlineCode.LookupTable
+  Set oLookupTable = oOutlineCode.LookupTable
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If LookupTable Is Nothing Then
+  If oLookupTable Is Nothing Then
     strOutlineCode = CustomFieldGetName(lngOutlineCode)
     MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbExclamation + vbOKOnly, "No LookupTable"
     GoTo exit_here
@@ -1203,10 +1203,10 @@ Dim blnCA As Boolean
   
   'output top level
   Print #lngFile, "*" & "," & Chr(34) & ActiveProject.Name & Chr(34) & String(25, ",")
-  For lngItem = 1 To LookupTable.Count
-    strCode = LookupTable(lngItem).FullName
-    strDescription = LookupTable(lngItem).Description
-    If Not LookupTable(lngItem).IsValid Then
+  For lngItem = 1 To oLookupTable.Count
+    strCode = oLookupTable(lngItem).FullName
+    strDescription = oLookupTable(lngItem).Description
+    If Not oLookupTable(lngItem).IsValid Then
       MsgBox "Invalid Code Found! See " & strCode & " : " & strDescription, vbCritical + vbOKOnly, "Error"
       GoTo kill_file
     End If
@@ -1226,8 +1226,8 @@ Dim blnCA As Boolean
   
 exit_here:
   On Error Resume Next
-  Set LookupTable = Nothing
-  Set OutlineCode = Nothing
+  Set oLookupTable = Nothing
+  Set oOutlineCode = Nothing
   For lngFile = 1 To FreeFile: Close #lngFile: Next lngFile
   Exit Sub
   
@@ -1268,8 +1268,8 @@ End Sub
 
 Sub cptExportOutlineCodeForCOBRA(lngOutlineCode)
 'objects
-Dim LookupTable As LookupTable
-Dim OutlineCode As OutlineCode
+Dim oLookupTable As LookupTable
+Dim oOutlineCode As OutlineCode
 'strings
 Dim strOutlineCode As String
 Dim strDescription As String
@@ -1288,11 +1288,11 @@ Dim lngFile As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   'confirm lookuptable exists
-  Set OutlineCode = ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode))
+  Set oOutlineCode = ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode))
   On Error Resume Next
-  Set LookupTable = OutlineCode.LookupTable
+  Set oLookupTable = oOutlineCode.LookupTable
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If LookupTable Is Nothing Then
+  If oLookupTable Is Nothing Then
     strOutlineCode = CustomFieldGetName(lngOutlineCode)
     MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbExclamation + vbOKOnly, "No LookupTable"
     GoTo exit_here
@@ -1333,10 +1333,10 @@ Dim lngFile As Long
   Print #lngFile, strHeader
   
   'export outline code
-  For lngItem = 1 To LookupTable.Count
-    strCode = LookupTable(lngItem).FullName
-    strDescription = LookupTable(lngItem).Description
-    If Not LookupTable(lngItem).IsValid Then
+  For lngItem = 1 To oLookupTable.Count
+    strCode = oLookupTable(lngItem).FullName
+    strDescription = oLookupTable(lngItem).Description
+    If Not oLookupTable(lngItem).IsValid Then
       MsgBox "Invalid Code Found! See " & strCode & " : " & strDescription, vbCritical + vbOKOnly, "Error"
       GoTo kill_file
     End If
@@ -1349,8 +1349,8 @@ Dim lngFile As Long
 
 exit_here:
   On Error Resume Next
-  Set LookupTable = Nothing
-  Set OutlineCode = Nothing
+  Set oLookupTable = Nothing
+  Set oOutlineCode = Nothing
   For lngFile = 1 To FreeFile: Close #lngFile: Next lngFile
   Exit Sub
   

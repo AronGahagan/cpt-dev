@@ -13,9 +13,9 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.8</cpt_version>
+'<cpt_version>v1.0.9</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboExport_Change()
@@ -268,8 +268,8 @@ End Sub
 
 Private Sub txtReplacement_Change()
 'objects
-Dim OutlineCode As Object 'OutlineCode
-Dim LookupTable As Object 'LookupTable
+Dim oOutlineCode As Object 'OutlineCode
+Dim oLookupTable As Object 'LookupTable
 'strings
 Dim strOutlineCode As String
 'long
@@ -283,26 +283,27 @@ Dim lngEntry As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   strOutlineCode = CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))
-  Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+  Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
-  Set LookupTable = OutlineCode.LookupTable
+  Set oLookupTable = oOutlineCode.LookupTable
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If LookupTable Is Nothing Then GoTo exit_here
+  If oLookupTable Is Nothing Then GoTo exit_here
   If Len(Me.txtReplace.Text) > 0 Then
     If Len(Me.txtReplacement.Text) > 0 Then
       For lngEntry = 1 To Me.TreeView1.Nodes.Count
-        Me.TreeView1.Nodes(lngEntry).Text = Replace(LookupTable.Item(lngEntry).Description, Me.txtReplace.Text, Me.txtReplacement.Text)
+        Me.TreeView1.Nodes(lngEntry).Text = Replace(oLookupTable.Item(lngEntry).Description, Me.txtReplace.Text, Me.txtReplacement.Text)
       Next lngEntry
     Else
       For lngEntry = 1 To Me.TreeView1.Nodes.Count
-        Me.TreeView1.Nodes(lngEntry).Text = LookupTable.Item(lngEntry).Description
+        Me.TreeView1.Nodes(lngEntry).Text = oLookupTable.Item(lngEntry).Description
       Next lngEntry
     End If
   End If
   
 exit_here:
   On Error Resume Next
-
+  Set oOutlineCode = Nothing
+  Set oLookupTable = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptBackbone_frm", "txtReplacement_Change", Err, Erl)
@@ -343,10 +344,10 @@ err_here:
   
 End Sub
 
-Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal x As Single, ByVal y As Single)
+Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
 'objects
-Dim OutlineCode As Object 'OutlineCode
-Dim LookupTable As Object 'LookupTable
+Dim oOutlineCode As Object 'OutlineCode
+Dim oLookupTable As Object 'LookupTable
 'strings
 Dim strNewName As String
 Dim strCustomName As String
@@ -391,16 +392,16 @@ Dim lngSelected As Long
   Next
   'has the currently selected outline code been edited?
   strOutlineCode = CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))
-  Set OutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+  Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
-  Set LookupTable = OutlineCode.LookupTable
+  Set oLookupTable = oOutlineCode.LookupTable
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If Not LookupTable Is Nothing Then
+  If Not oLookupTable Is Nothing Then
     If Me.TreeView1.Nodes.Count = 0 Then
       Call cptRefreshOutlineCodePreview(strOutlineCode)
     Else
-      For lngItem = 1 To LookupTable.Count
-        If Me.TreeView1.Nodes(lngItem).Text <> LookupTable.Item(lngItem).FullName & " - " & LookupTable.Item(lngItem).Description Then
+      For lngItem = 1 To oLookupTable.Count
+        If Me.TreeView1.Nodes(lngItem).Text <> oLookupTable.Item(lngItem).FullName & " - " & oLookupTable.Item(lngItem).Description Then
           Me.TreeView1.Nodes.Clear
           Call cptRefreshOutlineCodePreview(strOutlineCode)
           Exit For
@@ -411,8 +412,8 @@ Dim lngSelected As Long
 
 exit_here:
   On Error Resume Next
-  Set OutlineCode = Nothing
-  Set LookupTable = Nothing
+  Set oOutlineCode = Nothing
+  Set oLookupTable = Nothing
 
   Exit Sub
 err_here:
