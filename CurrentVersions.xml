@@ -68,7 +68,7 @@
 		<FileName>cptDataDictionary_frm.frm</FileName>
 		<Version>v1.1.1</Version>
 		<Type>3</Type>
-		<Directory>DataDictionary</Directory>
+		<Directory>CustomFields</Directory>
 	</Module>
 	<Module>
 		<Name>cptDynamicFilter_bas</Name>
@@ -152,7 +152,7 @@
 		<FileName>cptSaveLocal_bas.bas</FileName>
 		<Version>v1.0.0</Version>
 		<Type>1</Type>
-		<Directory>SaveLocal</Directory>
+		<Directory>CustomFields</Directory>
 	</Module>
 	<Module>
 		<Name>cptSaveLocal_frm</Name>
