@@ -38,7 +38,7 @@
 	<Module>
 		<Name>cptCalendarExceptions_frm</Name>
 		<FileName>cptCalendarExceptions_frm.frm</FileName>
-		<Version>v1.0.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>3</Type>
 		<Directory>Calendar</Directory>
 	</Module>
