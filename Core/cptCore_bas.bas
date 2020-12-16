@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.9</cpt_version>
+'<cpt_version>v1.6.10</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -201,7 +201,7 @@ err_here:
 
 End Sub '<issue31>
 
-Sub ShowCptAbout_frm()
+Sub cptShowAbout_frm()
 'objects
 'Dim frmAbout As UserForm
 'Dim ctl As control
@@ -249,7 +249,7 @@ exit_here:
   
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "ShowCptAbout_frm", Err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptShowAbout_frm", Err, Erl)
   Resume exit_here '</issue19>
 
 End Sub
@@ -638,7 +638,7 @@ err_here:
 
 End Sub
 
-Sub ShowCptUpgrades_frm()
+Sub cptShowUpgrades_frm()
 'objects
 Dim REMatch As Object
 Dim REMatches As Object
@@ -807,7 +807,7 @@ exit_here:
   Set FindRecord = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "ShowCptUpgrades_frm", Err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptShowUpgrades_frm", Err, Erl)
   Resume exit_here
 
 End Sub

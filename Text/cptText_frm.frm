@@ -41,7 +41,7 @@ Dim lngItem As Long
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     If Task Is Nothing Then
       If MsgBox("UID " & cptText_frm.lboOutput.List(lngItem, 0) & " not found in Project: '" & ActiveProject.Name & "'! Proceed?", vbCritical + vbYesNo, "Task Not Found") = vbNo Then
-        err.Clear
+        Err.Clear
         GoTo exit_here
       Else
         GoTo next_item
@@ -58,7 +58,7 @@ exit_here:
   Call cptStartEvents
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "cmdApply_Click()", err, Erl)
+  Call cptHandleErr("cptText_frm", "cmdApply_Click()", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -88,7 +88,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "cmdClear_Click", err, Erl)
+  Call cptHandleErr("cptText_frm", "cmdClear_Click", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -111,7 +111,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "lblURL_Click", err, Erl)
+  Call cptHandleErr("cptText_frm", "lblURL_Click", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -142,7 +142,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtAppend_Change", err, Erl)
+  Call cptHandleErr("cptText_frm", "txtAppend_Change", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -171,7 +171,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtCharacters_Change", err, Erl)
+  Call cptHandleErr("cptText_frm", "txtCharacters_Change", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -200,7 +200,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtCountBy_Change", err, Erl)
+  Call cptHandleErr("cptText_frm", "txtCountBy_Change", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -221,7 +221,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtPrefix_Change", err, Erl)
+  Call cptHandleErr("cptText_frm", "txtPrefix_Change", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -249,7 +249,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtPrepend_Change", err, Erl)
+  Call cptHandleErr("cptText_frm", "txtPrepend_Change", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -270,7 +270,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtReplaceWhat_Change", err, Erl)
+  Call cptHandleErr("cptText_frm", "txtReplaceWhat_Change", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -290,7 +290,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtReplaceWith_Change", err, Erl)
+  Call cptHandleErr("cptText_frm", "txtReplaceWith_Change", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -318,7 +318,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtStartAt_Change", err, Erl)
+  Call cptHandleErr("cptText_frm", "txtStartAt_Change", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -339,7 +339,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_frm", "txtSuffix_Change", err, Erl)
+  Call cptHandleErr("cptText_frm", "txtSuffix_Change", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -365,7 +365,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptText_frm", "CheckDirty", err, Erl)
+  Call cptHandleErr("cptText_frm", "CheckDirty", Err, Erl)
   Resume exit_here
   
 End Function

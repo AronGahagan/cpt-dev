@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveLocal_bas"
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.0.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -8,7 +8,7 @@ Public strStartTable As String
 Public strStartFilter As String
 Public strStartGroup As String
 
-Sub cptShowSaveLocalForm()
+Sub cptShowSaveLocal_frm()
 'objects
 Dim oRange As Excel.Range
 Dim oListObject As ListObject
@@ -351,7 +351,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptShowSaveLocalForm", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptShowSaveLocal_frm", Err, Erl)
   Resume exit_here
 End Sub
 
