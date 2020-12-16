@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.2.8</cpt_version>
+'<cpt_version>v1.2.9</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -10,7 +10,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 
-Sub ShowCptStatusSheet_frm()
+Sub cptShowStatusSheet_frm()
 'populate all outline codes, text, and number fields
 'populate UID,[user selections],Task Name,Duration,Forecast Start,Forecast Finish,Total Slack,[EVT],EV%,New EV%,BLW,Remaining Work,Revised ETC,BLS,BLF,Reason/Impact/Action
 'add pick list for EV% or default to Physical % Complete
@@ -235,7 +235,7 @@ err_here:
     Err.Clear
     Resume next_field
   Else
-    Call cptHandleErr("cptStatusSheet_frm", "ShowCptStatusSheet_frm", Err, Erl)
+    Call cptHandleErr("cptStatusSheet_frm", "cptShowStatusSheet_frm", Err, Erl)
     Resume exit_here
   End If
 

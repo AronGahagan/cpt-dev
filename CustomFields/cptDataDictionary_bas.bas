@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDataDictionary_bas"
-'<cpt_version>v1.1.1</cpt_version>
+'<cpt_version>v1.1.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -363,7 +363,7 @@ err_here:
   
 End Sub
 
-Sub ShowFrmCptDataDictionary()
+Sub cptShowDataDictionary_frm()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -377,7 +377,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDataDictionary_bas", "ShowFrmCptDataDictionary()", Err, Erl)
+  Call cptHandleErr("cptDataDictionary_bas", "cptShowDataDictionary_frm()", Err, Erl)
   Resume exit_here
 End Sub
 

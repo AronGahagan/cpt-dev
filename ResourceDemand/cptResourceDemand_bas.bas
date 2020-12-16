@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.2.2</cpt_version>
+'<cpt_version>v1.2.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -629,7 +629,7 @@ err_here:
 
 End Sub
 
-Sub ShowFrmExportResourceDemand()
+Sub cptShowExportResourceDemand_frm()
 'objects
 Dim rst As Object
 Dim arrResources As Object
@@ -829,7 +829,7 @@ err_here:
     Err.Clear
     Resume next_field
   Else
-    Call cptHandleErr("cptResourceDemand_bas", "ShowCptResourceDemand_frm", Err, Erl)
+    Call cptHandleErr("cptResourceDemand_bas", "cptShowExportResourceDemand_frm", Err, Erl)
     Resume exit_here
   End If
 

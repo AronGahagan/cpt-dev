@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.2.4</cpt_version>
+'<cpt_version>v1.2.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -361,7 +361,7 @@ err_here:
 
 End Sub
 
-Sub ShowCptText_frm()
+Sub cptShowText_frm()
 'objects
 Dim Tasks As Tasks, Task As Task
 'strings
@@ -398,7 +398,7 @@ exit_here:
   Set Tasks = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptText_bas", "ShowcptText_frm", Err, Erl)
+  Call cptHandleErr("cptText_bas", "cptShowText_frm", Err, Erl)
   Resume exit_here
   
 End Sub

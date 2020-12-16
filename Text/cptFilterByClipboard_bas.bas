@@ -1,10 +1,10 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>1.0.6</cpt_version>
+'<cpt_version>1.0.7</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Sub cptShowFilterByClipboardFrm()
+Sub cptShowFilterByClipboard_frm()
 'objects
 'strings
 'longs
@@ -66,7 +66,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFilterByClipboard_bas", "cptShowFilterByClipboardFrm", Err, Erl)
+  Call cptHandleErr("cptFilterByClipboard_bas", "cptShowFilterByClipboard_frm", Err, Erl)
   Resume exit_here
   
 End Sub
