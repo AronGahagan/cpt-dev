@@ -1,10 +1,10 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.0.2</cpt_version>
+'<cpt_version>v1.0.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Sub ShowCptStatusSheetImport_frm()
+Sub cptShowStatusSheetImport_frm()
 'objects
 Dim rst As ADODB.Recordset
 'strings
@@ -125,7 +125,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheetImport_bas", "ShowCptStatusSheetImport_frm", err, Erl)
+  Call cptHandleErr("cptStatusSheetImport_bas", "cptShowStatusSheetImport_frm", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -367,7 +367,7 @@ next_task:
         'get status date
         On Error Resume Next
         dtStatus = Worksheet.Range("STATUS_DATE")
-        If err.Number = 1004 Then 'invalid workbook
+        If Err.Number = 1004 Then 'invalid workbook
           If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
           Print #lngFile, "INVALID WORKSHEET - UID HEADER NOT FOUND IN COLUMN 1 OF WORKSHEET"
           GoTo next_worksheet
@@ -524,7 +524,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheetImport_bas", "cptStatusSheetImport", err, Erl)
+  Call cptHandleErr("cptStatusSheetImport_bas", "cptStatusSheetImport", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -664,8 +664,8 @@ exit_here:
   cptSpeed False
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheetImport_bas", "cptRefreshStatusImportTable", err, Erl)
-  err.Clear
+  Call cptHandleErr("cptStatusSheetImport_bas", "cptRefreshStatusImportTable", Err, Erl)
+  Err.Clear
   Resume exit_here
 End Sub
 

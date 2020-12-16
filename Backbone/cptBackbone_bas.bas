@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.0.9</cpt_version>
+'<cpt_version>v1.0.10</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
@@ -939,7 +939,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptShowcptBackbone_frm()
+Sub cptShowBackbone_frm()
 'longs
 Dim lngCode As Long, lngOutlineCode As Long
 'strings
@@ -990,7 +990,7 @@ exit_here:
   
   Exit Sub
 err_here:
-  Call cptHandleErr("cptBackbone_bas", "cptShowcptBackbone_frm", Err, Erl)
+  Call cptHandleErr("cptBackbone_bas", "cptShowBackbone_frm", Err, Erl)
   Resume exit_here
 End Sub
 
