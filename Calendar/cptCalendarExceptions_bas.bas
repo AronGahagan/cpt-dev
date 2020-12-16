@@ -1,10 +1,10 @@
 Attribute VB_Name = "cptCalendarExceptions_bas"
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.0.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Sub cptShowCalendarExceptionsFrm()
+Sub cptShowCalendarExceptions_frm()
   'objects
   Dim oResource As Resource
   'strings
@@ -26,6 +26,8 @@ Sub cptShowCalendarExceptionsFrm()
       .cboCalendars.AddItem ActiveProject.BaseCalendars(lngItem).Name
     Next lngItem
     For Each oResource In ActiveProject.Resources
+      If oResource Is Nothing Then GoTo next_resource
+      If oResource.Type <> pjResourceTypeWork Then GoTo next_resource
       If oResource.Name <> oResource.Calendar.Name Then Debug.Print oResource.Name & ": " & oResource.Calendar.Name
       If Not oResource.Calendar Is Nothing Then
         If oResource.Calendar.Exceptions.Count > 0 Or oResource.Calendar.WorkWeeks.Count > 0 Then
@@ -38,6 +40,7 @@ Sub cptShowCalendarExceptionsFrm()
           End If
         End If
       End If
+next_resource:
     Next oResource
     .cboCalendars.Value = "All Calendars"
     .optSummary = True
