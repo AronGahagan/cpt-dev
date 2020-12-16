@@ -31,7 +31,7 @@
 	<Module>
 		<Name>cptCore_bas</Name>
 		<FileName>cptCore_bas.bas</FileName>
-		<Version>v1.6.8</Version>
+		<Version>v1.6.9</Version>
 		<Type>1</Type>
 		<Directory>Core</Directory>
 	</Module>
@@ -132,6 +132,13 @@
 		<Version>19.06.29</Version>
 		<Type>1</Type>
 		<Directory></Directory>
+	</Module>
+	<Module>
+		<Name>cptResetAll_frm</Name>
+		<FileName>cptResetAll_frm.frm</FileName>
+		<Version>v1.0.0</Version>
+		<Type>3</Type>
+		<Directory>Core</Directory>
 	</Module>
 	<Module>
 		<Name>cptResourceDemand_bas</Name>

@@ -340,7 +340,15 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:FilterClear"" visible=""true""/>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:SplitViewCreate"" visible=""true""/>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetAll"" label=""Reset All"" imageMso=""FilterClear"" onAction=""cptResetAll"" visible=""true"" size=""large"" screentip=""Reset All"" supertip=""Clear filter, clear group, sort by ID, and show all tasks.""/>"  'in basCore_bas
+  
+  ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbResetAll"" size=""large"" >"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetAll"" label=""Reset All"" imageMso=""FilterClear"" onAction=""cptResetAll"" screentip=""Reset All"" supertip=""Reset the current view based on your saved settings.""/>"  'in basCore_bas 'visible=""true""
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mResetAll"">"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Settings"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetAllSettings"" label=""Settings"" imageMso=""AdministrationHome"" onAction=""cptShowResetAll_frm"" visible=""true"" screentip=""Reset All Settings"" supertip=""Tweak your saved 'Reset All' settings.""/>"  'in basCore_bas
+  ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+  ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
+  
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bWrapItUp"" label=""WrapItUp"" imageMso=""CollapseAll"" onAction=""cptWrapItUp"" visible=""true"" size=""large"" supertip=""Collapse summary tasks starting from lowest level up to level 2."" />"   'in basCore_bas;w
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 

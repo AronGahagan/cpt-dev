@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.8</cpt_version>
+'<cpt_version>v1.6.9</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -446,12 +446,24 @@ err_here:
 End Function
 
 Sub cptResetAll()
+  Dim rstSettings As ADODB.Recordset
+  'strings
+  Dim strFile As String
+  'longs
+  Dim lngSettings As Long
+  Dim lngOutlineLevel As Long
+  Dim lngLevel As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   '===
   'Validate users selected view type
   If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
-    MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "Dynamic Filter"
+    MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "Reset All"
     GoTo exit_here
   End If
   'Validate users selected window pane - select the task table if not active
@@ -459,23 +471,169 @@ Sub cptResetAll()
     ActiveProject.Application.ActiveWindow.TopPane.Activate
   End If
   '===
-  Application.OpenUndoTransaction "Reset All"
 
-  FilterClear
-  GroupClear
-  OptionsViewEx displaynameindent:=True, displaysummarytasks:=True, displayoutlinesymbols:=True
-  SelectAll 'needed for master/sub projects
-  Sort "ID"
-  OutlineShowAllTasks
-  SelectBeginning
+  cptSpeed True
+
+  strFile = cptDir & "\settings\cpt-reset-all.adtg"
+  If Dir(strFile) <> vbNullString Then
+    Set rstSettings = CreateObject("ADODB.Recordset")
+    rstSettings.Open strFile
+    rstSettings.MoveFirst
+    lngSettings = rstSettings(0)
+    lngOutlineLevel = rstSettings(1)
+    rstSettings.Close
+    'parse and apply
+    If lngSettings >= 128 Then
+      OptionsViewEx displayoutlinesymbols:=True
+      lngSettings = lngSettings - 128
+    End If
+    If lngSettings >= 64 Then
+      OptionsViewEx displaynameindent:=True
+      lngSettings = lngSettings - 64
+    End If
+    If lngSettings >= 32 Then
+      SetAutoFilter "Active", pjAutoFilterFlagYes
+      lngSettings = lngSettings - 32
+    End If
+    If lngSettings >= 16 Then
+      Sort "ID"
+      lngSettings = lngSettings - 16
+    End If
+    If lngSettings >= 8 Then
+      OptionsViewEx displaysummarytasks:=True
+      OutlineShowAllTasks
+      lngSettings = lngSettings - 8
+    Else
+      OptionsViewEx displaysummarytasks:=True
+      OutlineShowAllTasks
+      OutlineShowTasks pjTaskOutlineShowLevelMax
+      For lngLevel = 20 To lngOutlineLevel Step -1
+        OutlineShowTasks lngLevel
+      Next lngLevel
+    End If
+    If lngSettings >= 4 Then
+      OptionsViewEx displaysummarytasks:=True
+      lngSettings = lngSettings - 4
+    Else
+      OptionsViewEx displaysummarytasks:=False
+    End If
+    If lngSettings >= 2 Then
+      GroupClear
+      lngSettings = lngSettings - 2
+    End If
+    If lngSettings >= 1 Then
+      FilterClear
+    End If
+  Else 'prompt for defaults
+    Call cptShowResetAll_frm
+  End If
+  
 
 exit_here:
   On Error Resume Next
-  Application.CloseUndoTransaction
+  If rstSettings.State Then rstSettings.Close
+  Set rstSettings = Nothing
+  cptSpeed False
 
   Exit Sub
 err_here:
   Call cptHandleErr("cptCore_bas", "cptResetAll", Err, Erl)
+  Resume exit_here
+
+End Sub
+
+Sub cptShowResetAll_frm()
+  'objects
+  Dim rstSettings As ADODB.Recordset
+  'strings
+  Dim strFile As String
+  'longs
+  Dim lngSettings As Long
+  Dim lngOutlineLevel As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  '===
+  'Validate users selected view type
+  If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
+    MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "Reset All"
+    GoTo exit_here
+  End If
+  'Validate users selected window pane - select the task table if not active
+  If ActiveProject.Application.ActiveWindow.ActivePane.Index <> 1 Then
+    ActiveProject.Application.ActiveWindow.TopPane.Activate
+  End If
+  '===
+  
+  'populate the outline level picklist
+  For lngOutlineLevel = 1 To 20
+    cptResetAll_frm.cboOutlineLevel.AddItem lngOutlineLevel
+  Next lngOutlineLevel
+  'default to 2
+  cptResetAll_frm.cboOutlineLevel.Value = 2
+  
+  strFile = cptDir & "\settings\cpt-reset-all.adtg"
+  If Dir(strFile) <> vbNullString Then
+    'get saved settings
+    Set rstSettings = CreateObject("ADODB.Recordset")
+    rstSettings.Open strFile
+    rstSettings.MoveFirst
+    lngSettings = rstSettings(0)
+    lngOutlineLevel = rstSettings(1)
+    rstSettings.Close
+    'parse and update the form
+    With cptResetAll_frm
+      If lngSettings >= 128 Then
+        .chkOutlineSymbols = True
+        lngSettings = lngSettings - 128
+      End If
+      If lngSettings >= 64 Then
+        .chkIndent = True
+        lngSettings = lngSettings - 64
+      End If
+      If lngSettings >= 32 Then
+        .chkActiveOnly = True
+        lngSettings = lngSettings - 32
+      End If
+      If lngSettings >= 16 Then
+        .chkSort = True
+        lngSettings = lngSettings - 16
+      End If
+      If lngSettings >= 8 Then
+        .optShowAllTasks = True
+        lngSettings = lngSettings - 8
+      Else
+        .optOutlineLevel = True
+        .cboOutlineLevel.Value = lngOutlineLevel
+      End If
+      If lngSettings >= 5 Then
+        .chkSummaries = True
+        lngSettings = lngSettings - 4
+      End If
+      If lngSettings >= 2 Then
+        .chkGroup = True
+        lngSettings = lngSettings - 2
+      End If
+      If lngSettings >= 1 Then
+        .chkFilter = True
+      End If
+    End With
+  End If
+  
+  cptResetAll_frm.Show False
+  
+exit_here:
+  On Error Resume Next
+  Set rstSettings = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptShowResetAll_frm", Err, Erl)
   Resume exit_here
 
 End Sub
