@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.2.5</cpt_version>
+'<cpt_version>v1.2.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -513,7 +513,7 @@ Sub cptResetRowHeight()
     '===
   'Validate users selected view type
   If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
-    MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "Dynamic Filter"
+    MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "ResetRowHeight"
     GoTo exit_here
   End If
   'Validate users selected window pane - select the task table if not active
