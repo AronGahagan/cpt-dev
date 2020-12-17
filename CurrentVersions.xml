@@ -45,7 +45,7 @@
 	<Module>
 		<Name>cptCore_bas</Name>
 		<FileName>cptCore_bas.bas</FileName>
-		<Version>v1.6.10</Version>
+		<Version>v1.6.11</Version>
 		<Type>1</Type>
 		<Directory>Core</Directory>
 	</Module>
@@ -185,7 +185,7 @@
 	<Module>
 		<Name>cptSetup_bas</Name>
 		<FileName>cptSetup_bas.bas</FileName>
-		<Version>v1.4.2</Version>
+		<Version>v1.4.3</Version>
 		<Type>1</Type>
 		<Directory></Directory>
 	</Module>
@@ -234,7 +234,7 @@
 	<Module>
 		<Name>cptText_bas</Name>
 		<FileName>cptText_bas.bas</FileName>
-		<Version>v1.2.5</Version>
+		<Version>v1.2.6</Version>
 		<Type>1</Type>
 		<Directory>Text</Directory>
 	</Module>
