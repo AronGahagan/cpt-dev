@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.10</cpt_version>
+'<cpt_version>v1.6.11</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -984,11 +984,11 @@ Function cptRemoveIllegalCharacters(strText As String) As String
 
 End Function
 
-Sub cptWrapItUp()
+Sub cptWrapItUp(Optional lngOutlineLevel As Long)
 'objects
 'strings
 'longs
-Dim lgLevel As Long
+Dim lngLevel As Long
 'booleans
 'variants
 'dates
@@ -998,7 +998,7 @@ Dim lgLevel As Long
   '===
   'Validate users selected view type
   If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
-    MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "Dynamic Filter"
+    MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "WrapItUp"
     GoTo exit_here
   End If
   'Validate users selected window pane - select the task table if not active
@@ -1006,7 +1006,21 @@ Dim lgLevel As Long
     ActiveProject.Application.ActiveWindow.TopPane.Activate
   End If
   '===
-
+  
+  If lngOutlineLevel = 0 Then
+    'check for a saved setting
+    If Dir(cptDir & "\settings\cpt-reset-all.adtg") <> vbNullString Then
+      With CreateObject("ADODB.Recordset")
+        .Open cptDir & "\settings\cpt-reset-all.adtg"
+        .MoveFirst
+        lngOutlineLevel = .Fields(1)
+        .Close
+      End With
+    End If
+  Else
+    lngOutlineLevel = 2
+  End If
+  
   cptSpeed True 'speed up
   Application.OpenUndoTransaction "WrapItUp"
   'FilterClear 'do not reset, keep autofilters
@@ -1016,9 +1030,9 @@ Dim lgLevel As Long
   OutlineShowAllTasks
   OutlineShowTasks pjTaskOutlineShowLevelMax
   'pjTaskOutlineShowLevelMax = 65,535 = do not use
-  For lgLevel = 20 To pjTaskOutlineShowLevel2 Step -1
-    OutlineShowTasks lgLevel
-  Next lgLevel
+  For lngLevel = 20 To lngOutlineLevel Step -1
+    OutlineShowTasks lngLevel
+  Next lngLevel
   SelectBeginning
 
 exit_here:
@@ -1034,6 +1048,49 @@ exit_here:
 err_here:
   Call cptHandleErr("cptCore_bas", "cptWrapItUp", Err, Erl)
   Resume exit_here
+End Sub
+
+Sub cptWrapItUpAll()
+  '===
+  'Validate users selected view type
+  If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
+    MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "WrapItUp"
+    Exit Sub
+  End If
+  'Validate users selected window pane - select the task table if not active
+  If ActiveProject.Application.ActiveWindow.ActivePane.Index <> 1 Then
+    ActiveProject.Application.ActiveWindow.TopPane.Activate
+  End If
+  '===
+  OptionsViewEx displaysummarytasks:=True
+  OutlineShowAllTasks
+End Sub
+Sub cptWrapItUp1()
+  Call cptWrapItUp(1)
+End Sub
+Sub cptWrapItUp2()
+  Call cptWrapItUp(2)
+End Sub
+Sub cptWrapItUp3()
+  Call cptWrapItUp(3)
+End Sub
+Sub cptWrapItUp4()
+  Call cptWrapItUp(4)
+End Sub
+Sub cptWrapItUp5()
+  Call cptWrapItUp(5)
+End Sub
+Sub cptWrapItUp6()
+  Call cptWrapItUp(6)
+End Sub
+Sub cptWrapItUp7()
+  Call cptWrapItUp(7)
+End Sub
+Sub cptWrapItUp8()
+  Call cptWrapItUp(8)
+End Sub
+Sub cptWrapItUp9()
+  Call cptWrapItUp(9)
 End Sub
 
 Function cptVersionStatus(strInstalled As String, strCurrent As String) As String

@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.4.2</cpt_version>
+'<cpt_version>v1.4.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -349,7 +349,24 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
   
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bWrapItUp"" label=""WrapItUp"" imageMso=""CollapseAll"" onAction=""cptWrapItUp"" visible=""true"" size=""large"" supertip=""Collapse summary tasks starting from lowest level up to level 2."" />"   'in basCore_bas;w
+  ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbWrapItUp"" size=""large"" >"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bWrapItUp"" label=""WrapItUp"" imageMso=""CollapseAll"" onAction=""cptWrapItUp"" supertip=""Collapse summary tasks starting from lowest level up to level 2."" />"   'in basCore_bas;visible=""true"" size=""large""
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mWrapItUp"">"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""WrapItUp to Level:"" />"
+  'ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:OutlineShowAllTasks"" visible=""true""/>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bLevelAll"" label=""All Subtasks"" imageMso=""OutlineTasksShowAll"" onAction=""cptWrapItUpAll"" visible=""true"" screentip=""Show All Subtasks"" supertip=""Show All Subtasks""/>"  'in basCore_bas
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bLevel1"" label=""Level 1"" imageMso=""_1"" onAction=""cptWrapItUp1"" visible=""true"" screentip=""WrapItUp to Level 1"" supertip=""WrapItUp to Level 1""/>"  'in basCore_bas
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bLevel2"" label=""Level 2"" imageMso=""_2"" onAction=""cptWrapItUp2"" visible=""true"" screentip=""WrapItUp to Level 2"" supertip=""WrapItUp to Level 2""/>"  'in basCore_bas
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bLevel3"" label=""Level 3"" imageMso=""_3"" onAction=""cptWrapItUp3"" visible=""true"" screentip=""WrapItUp to Level 3"" supertip=""WrapItUp to Level 3""/>"  'in basCore_bas
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bLevel4"" label=""Level 4"" imageMso=""_4"" onAction=""cptWrapItUp4"" visible=""true"" screentip=""WrapItUp to Level 4"" supertip=""WrapItUp to Level 4""/>"  'in basCore_bas
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bLevel5"" label=""Level 5"" imageMso=""_5"" onAction=""cptWrapItUp5"" visible=""true"" screentip=""WrapItUp to Level 5"" supertip=""WrapItUp to Level 5""/>"  'in basCore_bas
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bLevel6"" label=""Level 6"" imageMso=""_6"" onAction=""cptWrapItUp6"" visible=""true"" screentip=""WrapItUp to Level 6"" supertip=""WrapItUp to Level 6""/>"  'in basCore_bas
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bLevel7"" label=""Level 7"" imageMso=""_7"" onAction=""cptWrapItUp7"" visible=""true"" screentip=""WrapItUp to Level 7"" supertip=""WrapItUp to Level 7""/>"  'in basCore_bas
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bLevel8"" label=""Level 8"" imageMso=""_8"" onAction=""cptWrapItUp8"" visible=""true"" screentip=""WrapItUp to Level 8"" supertip=""WrapItUp to Level 8""/>"  'in basCore_bas
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bLevel9"" label=""Level 9"" imageMso=""_9"" onAction=""cptWrapItUp9"" visible=""true"" screentip=""WrapItUp to Level 9"" supertip=""WrapItUp to Level 9""/>"  'in basCore_bas
+  ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+  ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
+  
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
   'task counters
@@ -447,9 +464,6 @@ Dim lngCleanUp As Long
     End If
     If cptModuleExists("cptCalendarExceptions_frm") And cptModuleExists("cptCalendarExceptions_bas") Then
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCalDetails"" label=""Details"" imageMso=""MonthlyView"" onAction=""cptShowCalendarExceptions_frm"" visible=""true"" supertip=""Export Calendar Exceptions, WorkWeeks, and settings."" />"
-    End If
-    If cptModuleExists("cptCalendarExceptions_frm") And cptModuleExists("cptCalendarExceptions_bas") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCalDetails"" label=""Details"" imageMso=""MonthlyView"" onAction=""cptShowCalendarExceptionsFrm"" visible=""true"" supertip=""Export Calendar Exceptions, WorkWeeks, and settings."" />"
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
