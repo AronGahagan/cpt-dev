@@ -150,7 +150,7 @@
 	<Module>
 		<Name>cptResetAll_frm</Name>
 		<FileName>cptResetAll_frm.frm</FileName>
-		<Version>v1.0.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>
