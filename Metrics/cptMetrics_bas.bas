@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.0.1</cpt_version>
+'<cpt_version>v1.0.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -25,16 +25,16 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptMetrics_bas", "cptExportMetricsExcel", err, Erl)
+  Call cptHandleErr("cptMetrics_bas", "cptExportMetricsExcel", Err, Erl)
   Resume exit_here
 End Sub
 
 Sub cptGetBAC()
-  MsgBox Format(cptGetMetric("bac"), "#,##0.00"), vbInformation + vbOKOnly, "Budget at Complete (BAC) - hours"
+  MsgBox Format(cptGetMetric("bac"), "#,##0.00h"), vbInformation + vbOKOnly, "Budget at Complete (BAC) - hours"
 End Sub
 
 Sub cptGetETC()
-  MsgBox Format(cptGetMetric("etc"), "#,##0.00"), vbInformation + vbOKOnly, "Estimate to Complete (ETC) - hours"
+  MsgBox Format(cptGetMetric("etc"), "#,##0.00h"), vbInformation + vbOKOnly, "Estimate to Complete (ETC) - hours"
 End Sub
 
 Sub cptGetBCWS()
@@ -111,7 +111,7 @@ End Sub
 
 Sub cptGetCPLI()
 'objects
-Dim Pred As Task
+Dim pred As Task
 Dim Task As Task
 'strings
 Dim strMsg As String
@@ -193,15 +193,15 @@ Dim dtConstraintDate As Date
   If Task.Summary Then GoTo exit_here
   If Not Task.Active Then GoTo exit_here
   HighlightDrivingPredecessors Set:=True
-  For Each Pred In ActiveProject.Tasks
-    If Pred.PathDrivingPredecessor Then
-      If IsDate(Pred.ActualStart) Then
-        If Pred.Stop < dtStart Then dtStart = Pred.Stop
+  For Each pred In ActiveProject.Tasks
+    If pred.PathDrivingPredecessor Then
+      If IsDate(pred.ActualStart) Then
+        If pred.Stop < dtStart Then dtStart = pred.Stop
       Else
-        If Pred.Start < dtStart Then dtStart = Pred.Start
+        If pred.Start < dtStart Then dtStart = pred.Start
       End If
     End If
-  Next Pred
+  Next pred
   'calculate the CPL
   lngCPL = Application.DateDifference(dtStart, dtFinish)
   'convert values to days
@@ -222,13 +222,13 @@ Dim dtConstraintDate As Date
     
 exit_here:
   On Error Resume Next
-  Set Pred = Nothing
+  Set pred = Nothing
   Application.CloseUndoTransaction
   Set Task = Nothing
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptMetrics_bas", "cptGetCPLI", err, Erl)
+  Call cptHandleErr("cptMetrics_bas", "cptGetCPLI", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -314,7 +314,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptMerics_Bas", "cptGet", err, Erl)
+  Call cptHandleErr("cptMerics_Bas", "cptGet", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -377,7 +377,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptMetrics_bas", "cptGetHitTask", err, Erl)
+  Call cptHandleErr("cptMetrics_bas", "cptGetHitTask", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -385,7 +385,7 @@ Function cptGetMetric(strGet As String) As Double
 'todo: no screen changes!
 'objects
 Dim TSV As Object 'TimeScaleValue
-Dim TSVS As Object 'TimeScaleValues
+Dim tsvs As Object 'TimeScaleValues
 Dim Tasks As Object 'Tasks
 Dim Task As Object 'Task
 'strings
@@ -412,7 +412,10 @@ Dim dtStatus As Date
   End If
   
   cptSpeed True
-  Call cptResetAll
+  FilterClear
+  GroupClear
+  OptionsViewEx displaysummarytasks:=True, displaynameindent:=True
+  OutlineShowAllTasks
   SelectAll
   Set Tasks = ActiveSelection.Tasks
   For Each Task In Tasks
@@ -420,7 +423,7 @@ Dim dtStatus As Date
       If Task.ExternalTask Then GoTo next_task
       If Task.Summary Then GoTo next_task
       If Not Task.Active Then GoTo next_task
-      If Task.BaselineWork > 0 Then 'idea here was to limit tasksk to PMB tasks only
+      If Task.BaselineWork > 0 Then 'idea here was to limit tasks to PMB tasks only
                                     'but won't work for non-resource loaded schedules
         Select Case strGet
           Case "bac"
@@ -431,8 +434,8 @@ Dim dtStatus As Date
             
           Case "bcws"
             If Task.Start < dtStatus Then
-              Set TSVS = Task.TimeScaleData(Task.Start, dtStatus, pjTaskTimescaledBaselineWork, pjTimescaleWeeks)
-              For Each TSV In TSVS
+              Set tsvs = Task.TimeScaleData(Task.Start, dtStatus, pjTaskTimescaledBaselineWork, pjTimescaleWeeks)
+              For Each TSV In tsvs
                 dblResult = dblResult + IIf(TSV.Value = "", 0, TSV.Value) / 60
               Next
             End If
@@ -464,14 +467,14 @@ exit_here:
   Application.StatusBar = ""
   cptSpeed False
   Set TSV = Nothing
-  Set TSVS = Nothing
+  Set tsvs = Nothing
   Set Tasks = Nothing
   Set Task = Nothing
 
   Exit Function
 err_here:
   'Debug.Print Task.UniqueID & ": " & Task.Name
-  Call cptHandleErr("cptMetrics_bas", "cptGetMetric", err, Erl)
+  Call cptHandleErr("cptMetrics_bas", "cptGetMetric", Err, Erl)
   Resume exit_here
 
 End Function
