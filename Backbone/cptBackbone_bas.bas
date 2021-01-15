@@ -1,31 +1,31 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.0.10</cpt_version>
+'<cpt_version>v1.0.11</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
-'objects
-Dim oTask As Task
-Dim oLookupTable As LookupTable
-Dim oOutlineCode As OutlineCode
-Dim c As Object
-Dim oRange As Object
-Dim oFileDialog As Object 'FileDialog
-Dim oWorksheet As Object
-Dim oWorkbook As Object
-Dim oExcel As Object 'Excel.Application
-'strings
-Dim strOutlineCode As String
-'longs
-Dim lngItems As Long
-Dim lngOutlineLevel As Long
-Dim lngItem As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim oTask As Task
+  Dim oLookupTable As LookupTable
+  Dim oOutlineCode As OutlineCode
+  Dim c As Object
+  Dim oRange As Object
+  Dim oFileDialog As Object 'FileDialog
+  Dim oWorksheet As Object
+  Dim oWorkbook As Object
+  Dim oExcel As Object 'Excel.Application
+  'strings
+  Dim strOutlineCode As String
+  'longs
+  Dim lngItems As Long
+  Dim lngOutlineLevel As Long
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     
@@ -245,19 +245,19 @@ err_here:
 End Sub
 
 Sub cptImportAppendixB(lngOutlineCode As Long)
-'objects
-Dim TaskTable As Object 'TaskTable
-Dim Task As Task
-'strings
-'longs
-Dim lngItem As Long
-Dim lngField As Long
-Dim lngOutlineLevel As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim TaskTable As Object 'TaskTable
+  Dim Task As Task
+  'strings
+  'longs
+  Dim lngItem As Long
+  Dim lngField As Long
+  Dim lngOutlineLevel As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -408,19 +408,19 @@ err_here:
 End Sub
 
 Sub cptImportAppendixE(lngOutlineCode As Long)
-'objects
-Dim TaskTable As Object 'TaskTable
-Dim Task As Task
-'strings
-'longs
-Dim lngItem As Long
-Dim lngField As Long
-Dim lngOutlineLevel As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim TaskTable As Object 'TaskTable
+  Dim Task As Task
+  'strings
+  'longs
+  Dim lngItem As Long
+  Dim lngField As Long
+  Dim lngOutlineLevel As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -570,25 +570,24 @@ err_here:
   Resume exit_here
 End Sub
 
-
 Sub cptExportOutlineCodeToExcel(lngOutlineCode As Long)
-'objects
-Dim oExcel As Object 'Excel.Application
-Dim oWorkbook As Object 'Workbook
-Dim oWorksheet As Object 'Worksheet
-Dim oListObject As Object 'ListObject
-Dim oLookupTable As LookupTable
-Dim oOutlineCode As OutlineCode
-'strings
-Dim strOutlineCode As String
-'longs
-Dim lngLastRow As Long
-Dim lngLookupItems As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim oExcel As Object 'Excel.Application
+  Dim oWorkbook As Object 'Workbook
+  Dim oWorksheet As Object 'Worksheet
+  Dim oListObject As Object 'ListObject
+  Dim oLookupTable As LookupTable
+  Dim oOutlineCode As OutlineCode
+  'strings
+  Dim strOutlineCode As String
+  'longs
+  Dim lngLastRow As Long
+  Dim lngLookupItems As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -712,32 +711,32 @@ err_here:
 End Sub
 
 Sub cptExport81334D(lngOutlineCode As Long)
-'objects
-Dim oMailItem As Object 'MailItem
-Dim oOutlook As Object 'Outlook.Application
-Dim oLookupTable As LookupTable
-Dim oOutlineCode As OutlineCode
-Dim wsDictionary As Object 'Worksheet
-Dim wsIndex As Object 'Worksheet
-Dim oWorkbook As Object 'Workbok
-Dim oExcel As Object 'Excel.Application
-Dim oStream As Object 'ADODB.Stream
-Dim oXMLHttpDoc As Object
-Dim oShell As Object
-'strings
-Dim strOutlineCode As String
-Dim strURL As String
-Dim strTemplateDir As String
-Dim strTemplate As String
-'longs
-Dim lngBorder As Long
-Dim lngRow As Long
-Dim lngItem As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim oMailItem As Object 'MailItem
+  Dim oOutlook As Object 'Outlook.Application
+  Dim oLookupTable As LookupTable
+  Dim oOutlineCode As OutlineCode
+  Dim wsDictionary As Object 'Worksheet
+  Dim wsIndex As Object 'Worksheet
+  Dim oWorkbook As Object 'Workbok
+  Dim oExcel As Object 'Excel.Application
+  Dim oStream As Object 'ADODB.Stream
+  Dim oXMLHttpDoc As Object
+  Dim oShell As Object
+  'strings
+  Dim strOutlineCode As String
+  Dim strURL As String
+  Dim strTemplateDir As String
+  Dim strTemplate As String
+  'longs
+  Dim lngBorder As Long
+  Dim lngRow As Long
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -763,10 +762,6 @@ Dim lngItem As Long
       cptBackbone_frm.lblStatus.Caption = "Downloading template..."
       Set oXMLHttpDoc = CreateObject("Microsoft.XMLHTTP")
       strURL = strGitHub & "Templates/" & strTemplate
-      'todo: remove this
-      '===DEBUG===
-      'strURL = Replace(strURL, "master", "issue28-outlineCodes")
-      '===DEBUG===
       oXMLHttpDoc.Open "GET", strURL, False
       oXMLHttpDoc.Send
       If oXMLHttpDoc.Status = 200 And oXMLHttpDoc.readyState = 4 Then
@@ -888,18 +883,18 @@ err_here:
 End Sub
 
 Sub cptExportTemplate()
-'objects
-Dim oWorksheet As Object
-Dim oWorkbook As Object
-Dim oExcel As Object
-'strings
-Dim strMsg As String
-'longs
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim oWorksheet As Object
+  Dim oWorkbook As Object
+  Dim oExcel As Object
+  'strings
+  Dim strMsg As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -940,10 +935,10 @@ err_here:
 End Sub
 
 Sub cptShowBackbone_frm()
-'longs
-Dim lngCode As Long, lngOutlineCode As Long
-'strings
-Dim strOutlineCode As String, strOutlineCodeName As String
+  'longs
+  Dim lngCode As Long, lngOutlineCode As Long
+  'strings
+  Dim strOutlineCode As String, strOutlineCodeName As String
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -995,18 +990,17 @@ err_here:
 End Sub
 
 Sub cptCreateCode(lngOutlineCode As Long)
-'objects
-Dim objOutlineCode As OutlineCode
-Dim objLookupTable As LookupTable
-Dim objLookupTableEntry As LookupTableEntry
-Dim oTask As Task
-Dim oExcel As Object 'Excel.Application
-'strings
-Dim strWBS As String, strParent As String, strChild As String
-'longs
-Dim lngUID As Long, lngTasks As Long, lngTask As Long, lngLevel As Long
-'variants
-Dim aOutlineCode As Variant, tmr As Date
+  'objects
+  Dim objOutlineCode As OutlineCode
+  Dim objLookupTable As LookupTable
+  Dim objLookupTableEntry As LookupTableEntry
+  Dim oTask As Task
+  'strings
+  Dim strWBS As String, strParent As String, strChild As String
+  'longs
+  Dim lngUID As Long, lngTasks As Long, lngTask As Long, lngLevel As Long
+  'variants
+  Dim aOutlineCode As Variant, tmr As Date
 
   tmr = Now
   
@@ -1028,10 +1022,6 @@ Dim aOutlineCode As Variant, tmr As Date
   For Each oTask In ActiveProject.Tasks
     If Not oTask Is Nothing Then
       lngTask = lngTask + 1
-      If oTask.OutlineLevel = 1 Then
-        Set objLookupTableEntry = objLookupTable.AddChild(oTask.WBS)
-        objLookupTableEntry.Description = oTask.Name
-      End If
       oTask.SetField lngOutlineCode, oTask.WBS
       objLookupTable.Item(lngTask).Description = oTask.Name
       cptBackbone_frm.lblProgress.Width = ((lngTask - 1) / lngTasks) * cptBackbone_frm.lblStatus.Width
@@ -1051,20 +1041,18 @@ exit_here:
   Set objLookupTable = Nothing
   Set objLookupTableEntry = Nothing
   Set oTask = Nothing
-  oExcel.Quit
-  Set oExcel = Nothing
   Exit Sub
 err_here:
-  MsgBox Err.Number & ": " & Err.Description, vbExclamation + vbOKOnly, "Error"
+  Call cptHandleErr("cptBackbone_bas", "cptCreateCode", Err, Erl)
   Resume exit_here
 End Sub
 
 Sub cptRenameInsideOutlineCode(strOutlineCode As String, strFind As String, strReplace As String)
-'usage: Call RenameOutlineCode("CWBS","BOSS","IBRS")
-'objects
-Dim oOutlineCode As OutlineCode, oLookupTable As LookupTable, oLookupTableEntry As LookupTableEntry
-'longs
-Dim lngEntry As Long
+  'usage: Call RenameOutlineCode("CWBS","BOSS","IBRS")
+  'objects
+  Dim oOutlineCode As OutlineCode, oLookupTable As LookupTable, oLookupTableEntry As LookupTableEntry
+  'longs
+  Dim lngEntry As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -1089,17 +1077,17 @@ err_here:
 End Sub
 
 Sub cptRefreshOutlineCodePreview(strOutlineCode As String)
-'objects
-Dim oOutlineCode As OutlineCode, oLookupTable As LookupTable, oLookupTableEntry As LookupTableEntry
-Dim oNode As Object 'Node
-'strings
-'longs
-Dim lngEntry As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim oOutlineCode As OutlineCode, oLookupTable As LookupTable, oLookupTableEntry As LookupTableEntry
+  Dim oNode As Object 'Node
+  'strings
+  'longs
+  Dim lngEntry As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   strOutlineCode = Replace(Replace(strOutlineCode, cptRegEx(strOutlineCode, "Outline Code[1-10]") & " (", ""), ")", "")
@@ -1136,19 +1124,19 @@ err_here:
 End Sub
 
 Sub cptExportOutlineCodeForMPM(lngOutlineCode As Long)
-'exports local Outline Code to CSV for MPM Upload
-'objects
-Dim oOutlineCode As OutlineCode
-Dim oLookupTable As LookupTable
-'longs
-Dim lngItem As Long, lngFile As Long
-'strings
-Dim strHeader As String
-Dim strMsg As String
-Dim strCode As String, strDescription As String, strParent As String
-Dim strDir As String, strFile As String, strOutlineCode As String
-'booleans
-Dim blnCA As Boolean
+  'exports local Outline Code to CSV for MPM Upload
+  'objects
+  Dim oOutlineCode As OutlineCode
+  Dim oLookupTable As LookupTable
+  'longs
+  Dim lngItem As Long, lngFile As Long
+  'strings
+  Dim strHeader As String
+  Dim strMsg As String
+  Dim strCode As String, strDescription As String, strParent As String
+  Dim strDir As String, strFile As String, strOutlineCode As String
+  'booleans
+  Dim blnCA As Boolean
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -1267,23 +1255,23 @@ Sub cptBackboneHideControls()
 End Sub
 
 Sub cptExportOutlineCodeForCOBRA(lngOutlineCode)
-'objects
-Dim oLookupTable As LookupTable
-Dim oOutlineCode As OutlineCode
-'strings
-Dim strOutlineCode As String
-Dim strDescription As String
-Dim strCode As String
-Dim strFile As String
-Dim strHeader As String
-'longs
-Dim lngItem As Long
-Dim lngFile As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim oLookupTable As LookupTable
+  Dim oOutlineCode As OutlineCode
+  'strings
+  Dim strOutlineCode As String
+  Dim strDescription As String
+  Dim strCode As String
+  Dim strFile As String
+  Dim strHeader As String
+  'longs
+  Dim lngItem As Long
+  Dim lngFile As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
