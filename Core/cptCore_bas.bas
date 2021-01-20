@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.11</cpt_version>
+'<cpt_version>v1.6.12</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -446,7 +446,7 @@ err_here:
 End Function
 
 Sub cptResetAll()
-  Dim rstSettings As ADODB.Recordset
+  Dim rstSettings As Object 'ADODB.Recordset
   'strings
   Dim strFile As String
   'longs
@@ -492,7 +492,7 @@ Sub cptResetAll()
       lngSettings = lngSettings - 64
     End If
     If lngSettings >= 32 Then
-      SetAutoFilter "Active", pjAutoFilterFlagYes
+      FilterClear
       lngSettings = lngSettings - 32
     End If
     If lngSettings >= 16 Then
@@ -522,7 +522,7 @@ Sub cptResetAll()
       lngSettings = lngSettings - 2
     End If
     If lngSettings >= 1 Then
-      FilterClear
+      SetAutoFilter "Active", pjAutoFilterFlagYes
     End If
   Else 'prompt for defaults
     Call cptShowResetAll_frm
@@ -544,7 +544,7 @@ End Sub
 
 Sub cptShowResetAll_frm()
   'objects
-  Dim rstSettings As ADODB.Recordset
+  Dim rstSettings As Object 'ADODB.Recordset
   'strings
   Dim strFile As String
   'longs
@@ -597,7 +597,7 @@ Sub cptShowResetAll_frm()
         lngSettings = lngSettings - 64
       End If
       If lngSettings >= 32 Then
-        .chkActiveOnly = True
+        .chkFilter = True
         lngSettings = lngSettings - 32
       End If
       If lngSettings >= 16 Then
@@ -620,7 +620,7 @@ Sub cptShowResetAll_frm()
         lngSettings = lngSettings - 2
       End If
       If lngSettings >= 1 Then
-        .chkFilter = True
+        .chkActiveOnly = True
       End If
     End With
   End If
