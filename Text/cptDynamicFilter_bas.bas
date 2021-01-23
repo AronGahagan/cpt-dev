@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDynamicFilter_bas"
-'<cpt_version>v1.2.3</cpt_version>
+'<cpt_version>v1.2.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -44,11 +44,11 @@ Sub cptShowDynamicFilter_frm()
       .AddItem "does not contain"
     End With
     .cboField = "Task Name"
-    .cboOperator = "contains"
-    .chkKeepSelected = False
-    .chkHideSummaries = False
-    .chkShowRelatedSummaries = False
-    .chkHighlight = False
+    .cboOperator = GetSetting("ClearPlanToolbar", "DynamicFilter", "Operator")
+    .chkKeepSelected = GetSetting("ClearPlanToolbar", "DynamicFilter", "KeepSelected") = "1"
+    .chkHideSummaries = GetSetting("ClearPlanToolbar", "DynamicFilter", "IncludeSummaries") = "1"
+    .chkShowRelatedSummaries = GetSetting("ClearPlanToolbar", "DynamicFilter", "RelatedSummaries") = "1"
+    .chkHighlight = GetSetting("ClearPlanToolbar", "DynamicFilter", "Highlight") = "1"
     .Show False
     .txtFilter.SetFocus
   End With

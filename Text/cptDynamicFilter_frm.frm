@@ -6,14 +6,14 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptDynamicFilter_frm
    ClientTop       =   330
    ClientWidth     =   4245
    OleObjectBlob   =   "cptDynamicFilter_frm.frx":0000
-   StartUpPosition =   2  'CenterScreen
+   StartUpPosition =   1  'CenterOwner
 End
 Attribute VB_Name = "cptDynamicFilter_frm"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.5</cpt_version>
+'<cpt_version>v1.3.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -64,10 +64,6 @@ End Sub
 Private Sub cmdClear_Click()
   If ActiveWindow.ActivePane <> ActiveWindow.TopPane Then ActiveWindow.TopPane.Activate
   FilterClear
-End Sub
-
-Private Sub cmdDone_Click()
-  Me.Hide
 End Sub
 
 Private Sub lblURL_Click()
@@ -176,4 +172,12 @@ err_here:
   Call cptHandleErr("cptDynamicFilter_frm", "txtFilter_Change", Err, Erl)
   Resume exit_here
 
+End Sub
+
+Private Sub UserForm_Terminate()
+  SaveSetting "ClearPlanToolbar", "DynamicFilter", "Operator", Me.cboOperator
+  SaveSetting "ClearPlanToolbar", "DynamicFilter", "KeepSelected", CStr(IIf(Me.chkKeepSelected, "1", "0"))
+  SaveSetting "ClearPlanToolbar", "DynamicFilter", "IncludeSummaries", CStr(IIf(Me.chkHideSummaries, "1", "0"))
+  SaveSetting "ClearPlanToolbar", "DynamicFilter", "RelatedSummaries", CStr(IIf(Me.chkShowRelatedSummaries, "1", "0"))
+  SaveSetting "ClearPlanToolbar", "DynamicFilter", "Highlight", CStr(IIf(Me.chkHighlight, "1", "0"))
 End Sub
