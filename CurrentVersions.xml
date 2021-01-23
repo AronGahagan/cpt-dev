@@ -87,14 +87,14 @@
 	<Module>
 		<Name>cptDynamicFilter_bas</Name>
 		<FileName>cptDynamicFilter_bas.bas</FileName>
-		<Version>v1.2.3</Version>
+		<Version>v1.2.4</Version>
 		<Type>1</Type>
 		<Directory>Text</Directory>
 	</Module>
 	<Module>
 		<Name>cptDynamicFilter_frm</Name>
 		<FileName>cptDynamicFilter_frm.frm</FileName>
-		<Version>v1.3.5</Version>
+		<Version>v1.3.6</Version>
 		<Type>3</Type>
 		<Directory>Text</Directory>
 	</Module>
