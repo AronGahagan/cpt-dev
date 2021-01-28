@@ -23,7 +23,10 @@ Private Sub cboField_Change()
 End Sub
 
 Private Sub cboOperator_Change()
-  If Me.Visible Then Me.txtFilter_Change
+  If Me.Visible Then
+    If Me.ActiveControl.Name = "tglRegEx" Then Exit Sub
+    Me.txtFilter_Change
+  End If
 End Sub
 
 Private Sub chkHideSummaries_Click()
