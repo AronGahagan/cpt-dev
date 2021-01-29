@@ -1,0 +1,9 @@
+*.mpp
+*.docx
+!ClearPlan IMS Export Utility_*.docx
+*.pdf
+*.bak
+*.csv
+*.xlsm
+status.plx
+todo.txt
