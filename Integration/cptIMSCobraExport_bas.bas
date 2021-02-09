@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.2.3</cpt_version>
+'<cpt_version>v3.2.4</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -168,14 +168,13 @@ Sub Export_IMS()
             .bcrBox.AddItem CustTextFields(i)
             .whatifBox.AddItem CustTextFields(i) 'v3.2
         Next i
-        For i = 1 To UBound(CustOLCodeFields)
+        For i = 1 To UBound(CustOLCodeFields) 'v3.2.4 - removed duplicate CAID2 OL Codes
             .caID1Box.AddItem CustOLCodeFields(i)
             .caID3Box.AddItem CustOLCodeFields(i)
             .wpBox.AddItem CustOLCodeFields(i)
             .camBox.AddItem CustOLCodeFields(i)
             .caID2Box.AddItem CustOLCodeFields(i)
             .evtBox.AddItem CustOLCodeFields(i)
-            .caID2Box.AddItem CustOLCodeFields(i)
             .msidBox.AddItem CustOLCodeFields(i)
             .bcrBox.AddItem CustOLCodeFields(i)
             .whatifBox.AddItem CustOLCodeFields(i) 'v3.2
