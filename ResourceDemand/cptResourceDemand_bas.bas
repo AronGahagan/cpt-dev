@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.2.3</cpt_version>
+'<cpt_version>v1.2.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -236,7 +236,7 @@ Dim blnIncludeCosts As Boolean
             'get custom field values
             For lgExport = 0 To cptResourceDemand_frm.lboExport.ListCount - 1
               lgField = cptResourceDemand_frm.lboExport.List(lgExport, 0)
-              strRecord = strRecord & Task.GetField(lgField) & ","
+              strRecord = strRecord & Chr(34) & Trim(Replace(Task.GetField(lgField), ",", "-")) & Chr(34) & ","
             Next lgExport
             
             'apply user settings for week identification
