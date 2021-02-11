@@ -4,7 +4,7 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptUpgrades_frm
    ClientHeight    =   5415
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   9465
+   ClientWidth     =   9465.001
    OleObjectBlob   =   "cptUpgrades_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -13,34 +13,34 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.4.0</cpt_version>
+'<cpt_version>v1.4.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboBranches_Change()
-'objects
-Dim FindRecord As Object
-Dim vbComponent As Object
-Dim arrInstalled As Object
-Dim xmlNode As Object
-Dim xmlDoc As Object
-Dim arrDirectories As Object
-Dim arrCurrent As Object
-'strings
-Dim strInstVer As String
-Dim strCurVer As String
-Dim strVersion As String
-Dim strURL As String
-'longs
-Dim lngItem As Long
-'integers
-'doubles
-'booleans
-Dim blnUpdatesAreAvailable As Boolean
-'variants
-Dim vCol As Variant
-'dates
+  'objects
+  Dim FindRecord As Object
+  Dim vbComponent As Object
+  Dim arrInstalled As Object
+  Dim xmlNode As Object
+  Dim xmlDoc As Object
+  Dim arrDirectories As Object
+  Dim arrCurrent As Object
+  'strings
+  Dim strInstVer As String
+  Dim strCurVer As String
+  Dim strVersion As String
+  Dim strURL As String
+  'longs
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnUpdatesAreAvailable As Boolean
+  'variants
+  Dim vCol As Variant
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -92,17 +92,17 @@ Dim vCol As Variant
   Me.lboModules.Clear
   For lngItem = 0 To arrCurrent.Count - 1
     'If arrCurrent.getKey(lngItem) = "ThisProject" Then GoTo next_lngItem '</issue25'
-    strCurVer = arrCurrent.getvaluelist()(lngItem)
-    If arrInstalled.Contains(arrCurrent.GetKey(lngItem)) Then
-      strInstVer = arrInstalled.getvaluelist()(arrInstalled.indexofkey(arrCurrent.GetKey(lngItem)))
+    strCurVer = arrCurrent.getValueList()(lngItem)
+    If arrInstalled.Contains(arrCurrent.getKey(lngItem)) Then
+      strInstVer = arrInstalled.getValueList()(arrInstalled.indexOfKey(arrCurrent.getKey(lngItem)))
     Else
       strInstVer = "<not installed>"
     End If
     Me.lboModules.AddItem
-    Me.lboModules.List(lngItem, 0) = arrCurrent.GetKey(lngItem) 'module name
-    Me.lboModules.List(lngItem, 1) = arrDirectories.getvaluelist()(lngItem) 'directory
+    Me.lboModules.List(lngItem, 0) = arrCurrent.getKey(lngItem) 'module name
+    Me.lboModules.List(lngItem, 1) = arrDirectories.getValueList()(lngItem) 'directory
     Me.lboModules.List(lngItem, 2) = strCurVer 'arrCurrent.getValueList()(lngItem) 'current version
-    If arrInstalled.Contains(arrCurrent.GetKey(lngItem)) Then 'installed version
+    If arrInstalled.Contains(arrCurrent.getKey(lngItem)) Then 'installed version
       Me.lboModules.List(lngItem, 3) = strInstVer 'arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.getKey(lngItem)))
     Else
       Me.lboModules.List(lngItem, 3) = "<not installed>"
@@ -134,7 +134,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptUpgrades_frm", "cboBranches_Change", err, Erl)
+  Call cptHandleErr("cptUpgrades_frm", "cboBranches_Change", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -247,12 +247,12 @@ get_frx:
       If cptModuleExists(strModule) Then
         '<issue19>
         Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
-        vbComponent.Name = vbComponent.Name & "_" & Format(Now, "hhnnss")
+        vbComponent.Name = "remove_" & Format(Now, "hhnnss")
         DoEvents
-        ThisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(strModule)
+        ThisProject.VBProject.VBComponents.Remove vbComponent 'ThisProject.VBProject.VBComponents(strModule)
         DoEvents '</issue19>
       End If
-      ThisProject.VBProject.VBComponents.import cptDir & "\" & strFileName
+      ThisProject.VBProject.VBComponents.Import cptDir & "\" & strFileName
       
       '<issue24> remove the whitespace added by VBE import/export
       With ThisProject.VBProject.VBComponents(strModule).CodeModule
@@ -292,7 +292,7 @@ next_module:     '</issue25>
     'rename file and import it
     strCptFileName = Replace(strFileName, "ThisProject", "cptThisProject")
     Name strFileName As strCptFileName
-    Set cmCptThisProject = ThisProject.VBProject.VBComponents.import(strCptFileName).CodeModule
+    Set cmCptThisProject = ThisProject.VBProject.VBComponents.Import(strCptFileName).CodeModule
     'grab and insert the updated version
     strVersion = cptRegEx(cmCptThisProject.Lines(1, cmCptThisProject.CountOfLines), "<cpt_version>.*</cpt_version>")
     cmThisProject.InsertLines 1, "'" & strVersion
@@ -304,7 +304,7 @@ next_module:     '</issue25>
         arrCode.Add CStr(vEvent), .Lines(.ProcStartLine(CStr(vEvent), 0) + 2, .ProcCountLines(CStr(vEvent), 0) - 3) '0 = vbext_pk_Proc
       Next vEvent
     End With
-    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
+    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
     '<issue19> added
     DoEvents '</issue19>
 
@@ -372,7 +372,7 @@ exit_here:
   Set oStream = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptUpgrades_frm", "cmdUpdate_Click", err, Erl)
+  Call cptHandleErr("cptUpgrades_frm", "cmdUpdate_Click", Err, Erl)
   Me.lboModules.List(lngItem - 1, 3) = "<error>" '</issue25>
   Resume exit_here
 
@@ -401,6 +401,6 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptUpgrades_frm", "lblURL_Click", err, Erl)
+  Call cptHandleErr("cptUpgrades_frm", "lblURL_Click", Err, Erl)
   Resume exit_here
 End Sub
