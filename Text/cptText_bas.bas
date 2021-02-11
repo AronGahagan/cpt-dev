@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.2.6</cpt_version>
+'<cpt_version>v1.2.7</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -419,6 +419,7 @@ Dim lngItem As Long, lgEnumerate As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   For lngItem = 0 To cptText_frm.lboOutput.ListCount - 1
+    If IsNull(cptText_frm.lboOutput.List(lngItem, 0)) Then GoTo exit_here
     On Error Resume Next
     Set Task = ActiveProject.Tasks.UniqueID(cptText_frm.lboOutput.List(lngItem, 0))
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0

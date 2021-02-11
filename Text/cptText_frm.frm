@@ -14,7 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.3</cpt_version>
+'<cpt_version>v1.0.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -36,6 +36,7 @@ Dim lngItem As Long
   
   Application.OpenUndoTransaction "Advanced Text Action"
   For lngItem = 0 To Me.lboOutput.ListCount - 1
+    If IsNull(cptText_frm.lboOutput.List(lngItem, 0)) Then GoTo exit_here
     On Error Resume Next
     Set Task = ActiveProject.Tasks.UniqueID(Me.lboOutput.List(lngItem, 0))
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
