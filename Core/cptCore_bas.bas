@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.12</cpt_version>
+'<cpt_version>v1.6.13</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -609,7 +609,7 @@ Sub cptShowResetAll_frm()
         lngSettings = lngSettings - 8
       Else
         .optOutlineLevel = True
-        .cboOutlineLevel.Value = lngOutlineLevel
+        .cboOutlineLevel.Value = Iif(lngOutlineLevel = 0, 2, lngOutlineLevel)
       End If
       If lngSettings >= 5 Then
         .chkSummaries = True
