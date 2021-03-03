@@ -247,11 +247,22 @@ next_record:
         strNewRange = ""
         lngFrom = CLng(Left(strRange, InStr(strRange, "-") - 1))
         lngTo = CLng(Mid(strRange, InStr(strRange, "-") + 1))
+        If lngTo = lngFrom Then
+          strFilter = Replace(strFilter, strRange, lngTo & Chr(lngDelimiter))
+          GoTo skip_it
+        ElseIf lngTo < lngFrom Then
+          Stop
+          'switch it
+          lngInsert = lngFrom
+          lngFrom = lngTo
+          lngTo = lngInsert
+        End If
         For lngInsert = lngFrom To lngTo
           strNewRange = strNewRange & lngInsert & Chr(lngDelimiter)
         Next
         strFilter = Replace(strFilter, strRange, strNewRange)
       End If
+skip_it:
     Next lngItem
     
     vRecord = Split(strFilter, Chr(lngDelimiter))
