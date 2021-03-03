@@ -183,6 +183,7 @@ End Sub
 Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, ByVal Action As MSForms.fmAction, ByVal Data As MSForms.DataObject, ByVal X As Single, ByVal Y As Single, ByVal Effect As MSForms.ReturnEffect, ByVal Shift As Integer)
   'objects
   'strings
+  Dim strDelimiter As String
   Dim strNewRange As String
   Dim strRange As String
   Dim strFilter As String
@@ -213,6 +214,14 @@ Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, B
   vData = Split(Data.GetText, vbCrLf)
   'guess the delimiter
   lngDelimiter = cptGuessDelimiter(vData, "^([^\t\,\;]*[\t\,\;])+")
+  If lngDelimiter = 0 Then 'couldn't figure it out
+    strDelimiter = InputBox("Please enter delimiter, without apostrophes (',' or ';' or '\t' for tab):", "Delimiter Undetermined", ",")
+    If strDelimiter = "\t" Then
+      lngDelimiter = 32
+    Else
+      lngDelimiter = Asc(strDelimiter)
+    End If
+  End If
   'populate lboFilter
   If UBound(vData) > 1 Then 'user pasted a column of data
     Me.lboFilter.Clear

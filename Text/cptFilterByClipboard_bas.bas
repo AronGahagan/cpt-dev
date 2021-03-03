@@ -251,8 +251,8 @@ Dim REMatch As Variant
     Next
   Next lngItem
   
-  'check only valid "^([0-9]*[\t\,\;])"
-  RE.Pattern = "^([0-9]*[\t\,\;])+"
+  'check only valid "^([0-9]{1,}[\t\,\;])"
+  RE.Pattern = "^([0-9]{1,}[\t\,\;])+"
   For lngItem = 0 To UBound(vData)
     On Error GoTo skip_it
     Set REMatches = RE.Execute(CStr(vData(lngItem)))
@@ -274,7 +274,7 @@ skip_it:
   'todo: this doesn't work if there is a 'tie'
   lngMatch = aScores.GetKeyList()(aScores.IndexOfValue(lngMax))
   If Err.Number > 0 Then
-    Stop
+    cptGuessDelimiter = 0
   Else
     cptGuessDelimiter = lngMatch
   End If
