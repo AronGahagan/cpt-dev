@@ -251,7 +251,6 @@ next_record:
           strFilter = Replace(strFilter, strRange, lngTo & Chr(lngDelimiter))
           GoTo skip_it
         ElseIf lngTo < lngFrom Then
-          Stop
           'switch it
           lngInsert = lngFrom
           lngFrom = lngTo
