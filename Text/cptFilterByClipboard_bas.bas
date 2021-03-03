@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>1.0.7</cpt_version>
+'<cpt_version>1.1.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -146,6 +146,7 @@ Dim vUID As Variant
   If IsEmpty(vUID) Then GoTo exit_here
   For lngItem = 0 To UBound(vUID)
     If vUID(lngItem) = "" Then GoTo next_item
+
     If Not IsNumeric(vUID(lngItem)) Then GoTo next_item
     lngUID = vUID(lngItem)
     cptFilterByClipboard_frm.lboFilter.AddItem lngUID
@@ -227,7 +228,7 @@ Dim REMatch As Variant
   With RE
       .MultiLine = True
       .Global = True
-      .ignorecase = True
+      .IgnoreCase = True
       .Pattern = strRegEx
   End With
   
@@ -250,8 +251,8 @@ Dim REMatch As Variant
     Next
   Next lngItem
   
-  'check only valid "^([0-9]*[\t\,\;])"
-  RE.Pattern = "^([0-9]*[\t\,\;])+"
+  'check only valid "^([0-9]{1,}[\t\,\;])"
+  RE.Pattern = "^([0-9]{1,}[\t\,\;])+"
   For lngItem = 0 To UBound(vData)
     On Error GoTo skip_it
     Set REMatches = RE.Execute(CStr(vData(lngItem)))
@@ -273,7 +274,7 @@ skip_it:
   'todo: this doesn't work if there is a 'tie'
   lngMatch = aScores.GetKeyList()(aScores.IndexOfValue(lngMax))
   If Err.Number > 0 Then
-    Stop
+    cptGuessDelimiter = 0
   Else
     cptGuessDelimiter = lngMatch
   End If

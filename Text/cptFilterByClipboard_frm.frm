@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>1.0.7</cpt_version>
+'<cpt_version>v1.1.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -183,9 +183,15 @@ End Sub
 Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, ByVal Action As MSForms.fmAction, ByVal Data As MSForms.DataObject, ByVal X As Single, ByVal Y As Single, ByVal Effect As MSForms.ReturnEffect, ByVal Shift As Integer)
   'objects
   'strings
+  Dim strDelimiter As String
+  Dim strNewRange As String
+  Dim strRange As String
   Dim strFilter As String
   Dim strItem As String
   'longs
+  Dim lngInsert As Long
+  Dim lngTo As Long
+  Dim lngFrom As Long
   Dim lngDelimiter As Long
   Dim lngField As Long
   Dim lngRecord As Long
@@ -208,8 +214,16 @@ Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, B
   vData = Split(Data.GetText, vbCrLf)
   'guess the delimiter
   lngDelimiter = cptGuessDelimiter(vData, "^([^\t\,\;]*[\t\,\;])+")
+  If lngDelimiter = 0 Then 'couldn't figure it out
+    strDelimiter = InputBox("Please enter delimiter, without apostrophes (',' or ';' or '\t' for tab):", "Delimiter Undetermined", ",")
+    If strDelimiter = "\t" Then
+      lngDelimiter = 32
+    Else
+      lngDelimiter = Asc(strDelimiter)
+    End If
+  End If
   'populate lboFilter
-  If UBound(vData) > 1 Then
+  If UBound(vData) > 1 Then 'user pasted a column of data
     Me.lboFilter.Clear
     For lngRecord = 0 To UBound(vData)
       If vData(lngRecord) = "" Then GoTo next_record
@@ -225,17 +239,44 @@ Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, B
 next_record:
     Next lngRecord
     
-  Else
+  Else 'user pasted single line of delimited values, possibly including ranges
 
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     
     strFilter = Data.GetText
+        
     vRecord = Split(strFilter, Chr(lngDelimiter))
         
     If IsEmpty(vRecord) Then GoTo exit_here
+            
+    'expand ranges
+    For lngItem = 0 To UBound(vRecord)
+      strRange = cptRegEx(CStr(vRecord(lngItem)), "[0-9]{1,}-[0-9]{1,}")
+      If Len(strRange) > 0 Then
+        strNewRange = ""
+        lngFrom = CLng(Left(strRange, InStr(strRange, "-") - 1))
+        lngTo = CLng(Mid(strRange, InStr(strRange, "-") + 1))
+        If lngTo = lngFrom Then
+          strFilter = Replace(strFilter, strRange, lngTo & Chr(lngDelimiter))
+          GoTo skip_it
+        ElseIf lngTo < lngFrom Then
+          'switch it
+          lngInsert = lngFrom
+          lngFrom = lngTo
+          lngTo = lngInsert
+        End If
+        For lngInsert = lngFrom To lngTo
+          strNewRange = strNewRange & lngInsert & Chr(lngDelimiter)
+        Next
+        strFilter = Replace(strFilter, strRange, strNewRange)
+      End If
+skip_it:
+    Next lngItem
+    
+    vRecord = Split(strFilter, Chr(lngDelimiter))
     
     For lngItem = 0 To UBound(vRecord)
-      strItem = cptRegEx(CStr(vRecord(lngItem)), "[0-9]*")
+      strItem = cptRegEx(CStr(vRecord(lngItem)), "[0-9]{1,}")
       If Len(strItem) > 0 Then
         'ignore UID 0
         If CLng(strItem) = 0 Then GoTo next_item
