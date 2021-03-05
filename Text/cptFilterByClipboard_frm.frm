@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.0</cpt_version>
+'<cpt_version>v1.1.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -212,16 +212,7 @@ Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, B
   
   'scrub the incoming data
   vData = Split(Data.GetText, vbCrLf)
-  'guess the delimiter
-  lngDelimiter = cptGuessDelimiter(vData, "^([^\t\,\;]*[\t\,\;])+")
-  If lngDelimiter = 0 Then 'couldn't figure it out
-    strDelimiter = InputBox("Please enter delimiter, without apostrophes (',' or ';' or '\t' for tab):", "Delimiter Undetermined", ",")
-    If strDelimiter = "\t" Then
-      lngDelimiter = 32
-    Else
-      lngDelimiter = Asc(strDelimiter)
-    End If
-  End If
+
   'populate lboFilter
   If UBound(vData) > 1 Then 'user pasted a column of data
     Me.lboFilter.Clear
@@ -244,7 +235,18 @@ next_record:
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     
     strFilter = Data.GetText
-        
+       
+    'guess the delimiter
+    lngDelimiter = cptGuessDelimiter(vData, "^([^\t\,\;]*[\t\,\;])+")
+    If lngDelimiter = -1 Then 'couldn't figure it out
+      strDelimiter = InputBox("Please enter delimiter, without apostrophes (',' or ';' or '\t' for tab):", "Delimiter Undetermined", ",")
+      If strDelimiter = "\t" Then
+        lngDelimiter = 32
+      Else
+        lngDelimiter = Asc(strDelimiter)
+      End If
+    End If
+       
     vRecord = Split(strFilter, Chr(lngDelimiter))
         
     If IsEmpty(vRecord) Then GoTo exit_here
