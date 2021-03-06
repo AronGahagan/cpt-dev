@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.2.9</cpt_version>
+'<cpt_version>v1.2.10</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -7,7 +7,7 @@ Option Explicit
   Declare Function GetTickCount Lib "kernel32" () As Long
 #End If '<issue53>
 Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+'If BLN_TRAP_ERRORS Then On Error GoTo err_heref Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 
 Sub cptShowStatusSheet_frm()
@@ -343,9 +343,12 @@ Dim blnEmail As Boolean
   'set up an excel workbook
   If blnPerformanceTest Then t = GetTickCount
   Set xlApp = CreateObject("Excel.Application")
+  '/=== debug ==\
+  'xlApp.Visible = True
+  '\=== debug ===/
   Set Workbook = xlApp.Workbooks.Add
   xlApp.Calculation = xlCalculationManual
-  xlApp.ScreenUpdating = False
+  'xlApp.ScreenUpdating = False
   Set Worksheet = Workbook.Sheets(1)
   Worksheet.Name = "Status Sheet"
   Set xlCells = Worksheet.Cells
@@ -539,7 +542,7 @@ next_field:
     End If
 
     lngRow = lngRow + 1
-
+    
     'retain-grouping
     If Task.GroupBySummary Then
       aSummaries.Add lngRow 'capture for formatting
@@ -1374,6 +1377,7 @@ conditional_formatting_skipped:
   
     'cycle through each option and create sheet
     For lngItem = aEach.Count - 1 To 0 Step -1
+      cptStatusSheet_frm.lblStatus.Caption = "Creating " & aEach.getKey(lngItem) & "..."
       Workbook.Sheets(1).Copy After:=Workbook.Sheets(1)
       Set Worksheet = Workbook.Sheets("Status Sheet (2)")
       Worksheet.Name = aEach.getKey(lngItem)
@@ -1414,12 +1418,14 @@ conditional_formatting_skipped:
       rngKeep.Formula = "=IFERROR(VLOOKUP(A" & lngHeaderRow + 1 & ",KEEP,1,FALSE),""DELETE"")"
       xlApp.Calculate
       Worksheet.Cells(lngHeaderRow, 1).AutoFilter
-      Worksheet.Range(Worksheet.Cells(lngHeaderRow - 1, 1), Worksheet.Cells(lngRow, lngLastCol)).AutoFilter Field:=lngLastCol, Criteria1:="DELETE"
-      'if there are results from the filter, then delete them
-      If Worksheet.AutoFilter.Range.Columns(1).SpecialCells(xlCellTypeVisible).Cells.Count - 1 > 0 Then
-        Worksheet.Rows(CStr(lngHeaderRow + 1 & ":" & lngRow)).Delete Shift:=xlUp
-      End If
-      Worksheet.Cells(lngHeaderRow, 1).AutoFilter
+      For lngRow = lngLastRow To lngHeaderRow + 1 Step -1
+        If Worksheet.Cells(lngRow, rngKeep.Column) = "DELETE" Then Worksheet.Rows(lngRow).Delete Shift:=xlUp
+        cptStatusSheet_frm.lblProgress.Width = ((lngLastRow - lngRow - lngHeader) / (lngRow + lngHeader)) * cptStatusSheet_frm.lblStatus.Width
+      Next lngRow
+      cptStatusSheet_frm.lblProgress.Width = cptStatusSheet_frm.lblStatus.Width
+      lngRow = lngLastRow
+      Worksheet.Cells(lngHeaderRow, 1).Select
+      xlApp.Selection.AutoFilter
       Worksheet.Columns(lngLastCol).Delete
       Worksheet.Range("KEEP").Clear
       Workbook.Names("KEEP").Delete
@@ -1457,6 +1463,7 @@ conditional_formatting_skipped:
       End If
     ElseIf cptStatusSheet_frm.cboCreate.Value = "2" Then 'workbook for each
       For lngItem = aEach.Count - 1 To 0 Step -1
+        cptStatusSheet_frm.lblStatus.Caption = "Saving " & aEach.getKey(lngItem) & "..."
         Workbook.Sheets(aEach.getKey(lngItem)).Copy
         '<issue80> save in folder for status date
         On Error Resume Next
@@ -1483,6 +1490,8 @@ conditional_formatting_skipped:
       Workbook.Close False
     End If
 
+    cptStatusSheet_frm.lblStatus.Caption = "Wrapping up..."
+    
     'reset autofilter
     strFieldName = cptStatusSheet_frm.cboEach.Value
     For lngItem = 0 To aEach.Count - 1
