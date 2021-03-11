@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.4.3</cpt_version>
+'<cpt_version>v1.4.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -484,7 +484,7 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gMetrics"" label=""Metrics"" visible=""true"" >"
     ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mSchedule"" label=""Schedule"" imageMso=""UpdateAsScheduled"" visible=""true"" size=""large"" >"
     ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Schedule Metrics"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCPLI"" label=""Critical Path Length Index (CPLI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCPLI"" visible=""true"" supertip=""Select a target task, clik to get the CPLI. Raw calculation based on time now and total slack; Schedule Margin not considered."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCPLI"" label=""Critical Path Length Index (CPLI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCPLI"" visible=""true"" supertip=""Select a target task, click to get the CPLI. Raw calculation based on time now and total slack; Schedule Margin not considered."" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBEI"" label=""Baseline Execution Index (BEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBEI"" visible=""true"" supertip=""Just what it sounds like."" />"
     'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCEI"" label=""Current Execution Index (CEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCEI"" visible=""true""/>"
     'todo: TFCI
