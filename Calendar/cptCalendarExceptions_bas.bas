@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCalendarExceptions_bas"
-'<cpt_version>v1.0.2</cpt_version>
+'<cpt_version>v1.0.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -107,6 +107,7 @@ Sub cptExportCalendarExceptionsMain(Optional blnDetail As Boolean = False)
   Next oCalendar
   'export resource calendars
   For Each oResource In ActiveProject.Resources
+    If oResource Is Nothing Then GoTo next_resource
     If Not oResource.Calendar Is Nothing Then
       If cptCalendarExceptions_frm.cboCalendars.Value = "All Calendars" Then
         cptExportCalendarExceptions oWorkbook, oResource.Calendar, blnDetail
@@ -114,7 +115,8 @@ Sub cptExportCalendarExceptionsMain(Optional blnDetail As Boolean = False)
         cptExportCalendarExceptions oWorkbook, oResource.Calendar, blnDetail
       End If
     End If
-  Next
+next_resource:
+  Next oResource
   'export application settings
   Application.StatusBar = "Formatting Worksheet..."
   DoEvents
