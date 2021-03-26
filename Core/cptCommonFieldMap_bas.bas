@@ -28,27 +28,27 @@ Option Explicit
     
 #End If
 
-Function GetCustomFieldName(ByVal FieldName As String) As String
+Function cptGetCustomFieldName(ByVal FieldName As String) As String
 
     Dim settingsFile As String
     
     settingsFile = GetSettingsFile
 
-    GetCustomFieldName = GetPrivateProfileString(settingsFile, FieldName, "Name")
+    cptGetCustomFieldName = GetPrivateProfileString(settingsFile, FieldName, "Name")
     
 End Function
 
-Function GetCustomFieldGUID(ByVal FieldName As String) As String
+Function cptGetCustomFieldGUID(ByVal FieldName As String) As String
 
     Dim settingsFile As String
     
     settingsFile = GetSettingsFile
 
-    GetCustomFieldName = GetPrivateProfileString(settingsFile, FieldName, "GUID")
+    cptGetCustomFieldName = GetPrivateProfileString(settingsFile, FieldName, "GUID")
     
 End Function
 
-Sub StoreCustomFieldName(ByVal FieldName As String, MSP_FieldName As String, MSP_FieldGUID As String)
+Sub cptStoreCustomFieldName(ByVal FieldName As String, MSP_FieldName As String, MSP_FieldGUID As String)
 
     On Error GoTo ErrorHandler
 
