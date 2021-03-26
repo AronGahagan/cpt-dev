@@ -22,15 +22,38 @@ Private Sub RunBtn_Click()
         Exit Sub
     End If
     
-    StoreCustomFieldName "Driving Paths", "CP Driving Paths", FieldNameToFieldConstant(PathField_Combobox.Text)
-    StoreCustomFieldName "Driving Path Group", "CP Driving Path Group ID", FieldNameToFieldConstant(GroupField_Combobox.Text)
+    cptStoreCustomFieldName "Driving Paths", "CP Driving Paths", FieldNameToFieldConstant(PathField_Combobox.Text)
+    cptStoreCustomFieldName "Driving Path Group", "CP Driving Path Group ID", FieldNameToFieldConstant(GroupField_Combobox.Text)
     
     'Store Field Names
+    On Error GoTo Driving_FieldExists
     CustomFieldRename FieldID:=FieldNameToFieldConstant(PathField_Combobox.Text), newname:="CP Driving Paths"
+    
+Group_Field_Rename:
+    
+    On Error GoTo Group_FieldExists
     CustomFieldRename FieldID:=FieldNameToFieldConstant(GroupField_Combobox.Text), newname:="CP Driving Path Group ID"
+    
+End_Field_Rename:
     
     Me.Tag = "run"
     Me.Hide
+    
+    Exit Sub
+    
+Driving_FieldExists:
+
+    CustomFieldRename FieldID: FieldNameToFieldConstant ("CP Driving Paths"), newname:="CP Driving Paths_" & FieldNameToFieldConstant("CP Driving Paths")
+    CustomFieldRename FieldID:=FieldNameToFieldConstant(PathField_Combobox.Text), newname:="CP Driving Paths"
+    
+    Resume Group_Field_Rename
+    
+Group_FieldExists:
+
+    CustomFieldRename FieldID: FieldNameToFieldConstant ("CP Driving Path Group ID"), newname:="CP Driving Path Group ID_" & FieldNameToFieldConstant("CP Driving Path Group ID")
+    CustomFieldRename FieldID:=FieldNameToFieldConstant(GroupField_Combobox.Text), newname:="CP Driving Path Group ID"
+
+    Resume End_Field_Rename
     
 End Sub
 
@@ -39,8 +62,8 @@ Private Sub UserForm_Initialize()
     Dim drivingPathField As String
     Dim groupPathField As String
 
-    drivingPathField = GetCustomFieldName("Driving Paths")
-    groupPathField = GetCustomFieldName("Driving Path Group")
+    drivingPathField = cptGetCustomFieldName("Driving Paths")
+    groupPathField = cptGetCustomFieldName("Driving Path Group")
     
     DisplayUserCustomFields drivingPathField, groupPathField
     
