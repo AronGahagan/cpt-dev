@@ -1,9 +1,16 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.6.13</cpt_version>
+'<cpt_version>v1.7.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private oMSPEvents As cptEvents_cls
+#If Win64 And VBA7 Then
+  Private Declare PtrSafe Function GetPrivateProfileString Lib "kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
+  Private Declare PtrSafe Function SetPrivateProfileString Lib "kernel32" Alias "WritePrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpString As Any, ByVal lpFileName As String) As Long
+#Else
+  Private Declare Function GetPrivateProfileString lib "kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
+  Private Declare Function SetPrivateProfileString lib "kernel32" Alias "WritePrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpString As Any, ByVal lpFileName As String) As Long
+#End If
 
 Sub cptStartEvents()
   Set oMSPEvents = New cptEvents_cls
@@ -609,7 +616,7 @@ Sub cptShowResetAll_frm()
         lngSettings = lngSettings - 8
       Else
         .optOutlineLevel = True
-        .cboOutlineLevel.Value = Iif(lngOutlineLevel = 0, 2, lngOutlineLevel)
+        .cboOutlineLevel.Value = IIf(lngOutlineLevel = 0, 2, lngOutlineLevel)
       End If
       If lngSettings >= 5 Then
         .chkSummaries = True
@@ -691,7 +698,6 @@ Dim vCol As Variant
   Else
     For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
       arrCurrent.Add xmlNode.SelectSingleNode("Name").Text, xmlNode.SelectSingleNode("Version").Text
-      'Debug.Print xmlNode.SelectSingleNode("Name").Text & " - " & xmlNode.SelectSingleNode("Directory").Text
       arrDirectories.Add xmlNode.SelectSingleNode("Name").Text, xmlNode.SelectSingleNode("Directory").Text
     Next
   End If
@@ -709,14 +715,25 @@ Dim vCol As Variant
   Next vbComponent
   Set vbComponent = Nothing
 
-  '<issue31> if cptUpgrade_frm is updated, install it automatically
+  'if cptUpgrade_frm is updated, install it automatically
   If arrInstalled.Contains("cptUpgrades_frm") And arrCurrent.Contains("cptUpgrades_frm") Then
     If cptVersionStatus(arrInstalled("cptUpgrades_frm"), arrCurrent("cptUpgrades_frm")) <> "ok" Then
       Call cptUpgrade(arrDirectories("cptUpgrades_frm") & "/cptUpgrades_frm.frm") 'uri slash
       'update the version number in the array
       arrInstalled.Item("cptUpgrades_frm") = arrCurrent("cptUpgrades_frm")
     End If
-  End If '</issue31>
+  End If
+  
+  'cannot auto upgrade cptCore_bas because this is the cptCore_bas module so use cptPatch_bas
+  'if cptPatch_bas is updated, install it automatically and run it
+  If arrInstalled.Contains("cptPatch_bas") And arrCurrent.Contains("cptPatch_bas") Then
+    If cptVersionStatus(arrInstalled("cptPatch_bas"), arrCurrent("cptPatch_bas")) <> "ok" Then
+      Call cptUpgrade(arrDirectories("cptPatch_bas") & "/cptPatch_bas") 'uri slash
+      'update the version numer in the array
+      arrInstalled.Item("cptPatch_bas") = arrCurrent("cptPatch_bas")
+      Call cptApplyPatch
+    End If
+  End If
 
   'populate the listbox header
   lngItem = 0
@@ -773,7 +790,7 @@ next_lngItem:
     With RE
       .MultiLine = False
       .Global = True
-      .ignorecase = True
+      .IgnoreCase = True
       '.Pattern = Chr(34) & "name" & Chr(34) & ":" & Chr(34) & "[A-z0-9\-]*"
       .Pattern = Chr(34) & "name" & Chr(34) & ":" & Chr(34) & "[A-z0-9-.]*"
     End With
@@ -874,12 +891,16 @@ Dim strRegEx As String
   End If
   If Not cptReferenceExists("mscorlib") Then
     ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\Microsoft.NET\Framework\v4.0.30319\mscorlib.tlb"
+    ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\Microsoft.NET\Framework\v4.0.30319\mscorlib.dll"
   End If
   If Not cptReferenceExists("MSComctlLib") Then
     ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\SysWOW64\MSCOMCTL.OCX"
   End If
   If Not cptReferenceExists("MSXML2") Then
     ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\SysWOW64\msxml3.dll"
+  End If
+  If Not cptReferenceExists("VBScript_RegExp_55") Then
+    ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\System32\vbscript.dll\3"
   End If
 
 End Sub
@@ -1154,4 +1175,55 @@ err_here:
   Call cptHandleErr("cptCore_bas", "cptVersionStatus", Err, Erl)
   Resume exit_here
 
+End Function
+
+Sub cptFilterReapply()
+  Dim strCurrentFilter As String
+  strCurrentFilter = ActiveProject.CurrentFilter
+  ScreenUpdating = False
+  FilterApply "All Tasks"
+  'todo: how to reapply a custom AutoFilter?
+  On Error Resume Next
+  If Not FilterApply(strCurrentFilter) Then
+    MsgBox "Cannot reapply a Custom AutoFilter", vbInformation + vbOKCancel, "Reapply Filter"
+  End If
+  ScreenUpdating = True
+End Sub
+
+Sub cptGroupReapply()
+  Dim strCurrentGroup As String
+  strCurrentGroup = ActiveProject.CurrentGroup
+  ScreenUpdating = False
+  ActiveWindow.TopPane.Activate
+  GroupApply "No Group"
+  'todo: how to reapply an AutoFilter group?
+  On Error Resume Next
+  If Not GroupApply(strCurrentGroup) Then
+    MsgBox "Cannot reapply a Custom AutoFilter Group", vbInformation + vbOKCancel, "Reapply Group"
+  End If
+  ScreenUpdating = True
+End Sub
+
+Function cptSaveSetting(strFeature As String, strSetting As String, strValue As String) As Boolean
+  Dim strSettingsFile As String, lngWorked As Long
+  strSettingsFile = cptDir & "\settings\cpt-settings.ini"
+  lngWorked = SetPrivateProfileString(strFeature, strSetting, strValue, strSettingsFile)
+  If lngWorked Then
+    cptSaveSetting = True
+  Else
+    cptSaveSetting = False
+  End If
+End Function
+
+Function cptGetSetting(strFeature As String, strSetting As String) As String
+  Dim strSettingsFile As String, strReturned As String, lngSize As Long, lngWorked As Long
+  strSettingsFile = cptDir & "\settings\cpt-settings.ini"
+  strReturned = Space(128)
+  lngSize = Len(strReturned)
+  lngWorked = GetPrivateProfileString(strFeature, strSetting, "", strReturned, lngSize, strSettingsFile)
+  If lngWorked Then
+    cptGetSetting = Left$(strReturned, lngWorked)
+  Else
+    cptGetSetting = ""
+  End If
 End Function

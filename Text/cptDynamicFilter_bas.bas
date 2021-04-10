@@ -33,9 +33,7 @@ Sub cptShowDynamicFilter_frm()
     With .cboField
       .Clear
       .AddItem "Task Name"
-      '.AddItem "Work Package"
-      '.AddItem "CAM"
-      '.AddItem "WPM"
+      'todo: add all local custom text fields
     End With
     With .cboOperator
       .Clear
@@ -45,12 +43,13 @@ Sub cptShowDynamicFilter_frm()
       .AddItem "does not contain"
     End With
     .cboField = "Task Name"
-    .chkKeepSelected = GetSetting("ClearPlanToolbar", "DynamicFilter", "KeepSelected") = "1"
-    .chkHideSummaries = GetSetting("ClearPlanToolbar", "DynamicFilter", "IncludeSummaries") = "1"
-    .chkShowRelatedSummaries = GetSetting("ClearPlanToolbar", "DynamicFilter", "RelatedSummaries") = "1"
-    .chkHighlight = GetSetting("ClearPlanToolbar", "DynamicFilter", "Highlight") = "1"
-    .tglRegEx = GetSetting("ClearPlanToolbar", "DynamicFilter", "geekMode") = "1"
-    .cboOperator.Value = GetSetting("ClearPlanToolbar", "DynamicFilter", "Operator")
+    .chkKeepSelected = cptGetSetting("DynamicFilter", "KeepSelected") = "1"
+    .chkHideSummaries = cptGetSetting("DynamicFilter", "IncludeSummaries") = "1"
+    .chkShowRelatedSummaries = cptGetSetting("DynamicFilter", "RelatedSummaries") = "1"
+    .chkHighlight = cptGetSetting("DynamicFilter", "Highlight") = "1"
+    .tglRegEx = cptGetSetting("DynamicFilter", "geekMode") = "1"
+    .chkHighlight.Visible = Not .tglRegEx
+    .cboOperator.Value = cptGetSetting("DynamicFilter", "Operator")
     If .cboOperator.Value = "" Then
       If .tglRegEx Then .cboOperator.Value = "matches" Else .cboOperator = "contains"
     End If
@@ -72,6 +71,7 @@ Sub cptGoRegEx(strRegEx As String)
   Dim oTask As Task
   'strings
   'longs
+  Dim lngUID As Long
   'integers
   'doubles
   'booleans
@@ -87,14 +87,35 @@ Sub cptGoRegEx(strRegEx As String)
     GoTo exit_here
   End If
   
+  lngUID = 0
+  If cptDynamicFilter_frm.chkKeepSelected Then
+    On Error Resume Next
+    Set oTask = ActiveSelection.Tasks(1)
+    lngUID = oTask.UniqueID
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  End If
+  
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.Marked Then oTask.Marked = False
-    If Len(RxMatch(oTask.Name, strRegEx)) > 0 Then oTask.Marked = True
+    If cptDynamicFilter_frm.chkHideSummaries And oTask.Summary Then
+      If Len(cptRxMatch(oTask.Name, strRegEx)) > 0 Then oTask.Marked = True
+    ElseIf Not oTask.Summary Then
+      If Len(cptRxMatch(oTask.Name, strRegEx)) > 0 Then oTask.Marked = True
+    End If
 next_task:
   Next oTask
-
+  
+  If lngUID > 0 Then ActiveProject.Tasks.UniqueID(lngUID).Marked = True
+  
+  FilterClear 'in case Dynamic Filter is applied
+  OptionsViewEx displaysummarytasks:=True
+  OutlineShowAllTasks
+  OptionsViewEx displaysummarytasks:=cptDynamicFilter_frm.chkShowRelatedSummaries
+  
   SetAutoFilter "Marked", pjAutoFilterFlagYes
+  'todo: allow user-selected Flag or Marked
+  'todo: if Dependency Browser is visible then do not allow use of Marked
 
 exit_here:
   On Error Resume Next
@@ -103,21 +124,20 @@ exit_here:
 
   Exit Sub
 err_here:
-  'Call HandleErr("cptDynamicFilter_bas", "cptGoRegEx", Err)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Call cptHandleErr("cptDynamicFilter_bas", "cptGoRegEx", Err, Erl)
   Resume exit_here
 End Sub
 
 '===============================================================================
 'attribution: https://bytecomb.com/increasing-performance-of-regular-expressions-in-vba/
-'Private pCachedRegexes As Dictionary
+'Private pCachedRegexes As Dictionary 'moved to top of module - AG
  
-Public Function GetRegex( _
+Public Function cptGetRegex( _
     ByVal Pattern As String, _
     Optional ByVal IgnoreCase As Boolean = True, _
     Optional ByVal MultiLine As Boolean = True, _
     Optional ByVal MatchGlobal As Boolean = True) As RegExp
-    
+      
     ' Ensure the dictionary has been initialized
     If pCachedRegexes Is Nothing Then Set pCachedRegexes = New Dictionary
     
@@ -142,39 +162,40 @@ Public Function GetRegex( _
     End If
  
     ' Fetch and return the pre-compiled RegExp object
-    Set GetRegex = pCachedRegexes(rxKey)
+    Set cptGetRegex = pCachedRegexes(rxKey)
 End Function
 
-Public Function RxTest( _
+Public Function cptRxTest( _
     ByVal SourceString As String, _
     ByVal Pattern As String, _
     Optional ByVal IgnoreCase As Boolean = True, _
     Optional ByVal MultiLine As Boolean = True) As Boolean
  
     ' Wow, that was easy:
-    RxTest = GetRegex(Pattern, IgnoreCase, MultiLine, False).test(SourceString)
+    cptRxTest = cptGetRegex(Pattern, IgnoreCase, MultiLine, False).test(SourceString)
     
 End Function
 
-Public Function RxMatch( _
+Public Function cptRxMatch( _
     ByVal SourceString As String, _
     ByVal Pattern As String, _
     Optional ByVal IgnoreCase As Boolean = True, _
     Optional ByVal MultiLine As Boolean = True) As Variant
- 
+    
     Dim oMatches As MatchCollection
-    With GetRegex(Pattern, IgnoreCase, MultiLine, False)
+    
+    With cptGetRegex(Pattern, IgnoreCase, MultiLine, False)
         Set oMatches = .Execute(SourceString)
         If oMatches.Count > 0 Then
-            RxMatch = oMatches(0).Value
+            cptRxMatch = oMatches(0).Value
         Else
-            RxMatch = Null
+            cptRxMatch = Null
         End If
     End With
  
 End Function
 
-Public Function RxMatches( _
+Public Function cptRxMatches( _
     ByVal SourceString As String, _
     ByVal Pattern As String, _
     Optional ByVal IgnoreCase As Boolean = True, _
@@ -186,7 +207,7 @@ Public Function RxMatches( _
     Dim lngCount As Long
     
     arrMatches = Array()
-    With GetRegex(Pattern, IgnoreCase, MultiLine, MatchGlobal)
+    With cptGetRegex(Pattern, IgnoreCase, MultiLine, MatchGlobal)
         For Each oMatch In .Execute(SourceString)
             ReDim Preserve arrMatches(lngCount)
             arrMatches(lngCount) = oMatch.Value
@@ -194,5 +215,5 @@ Public Function RxMatches( _
         Next
     End With
  
-    RxMatches = arrMatches
+    cptRxMatches = arrMatches
 End Function
