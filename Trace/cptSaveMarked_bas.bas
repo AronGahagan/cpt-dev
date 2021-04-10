@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveMarked_bas"
-'<cpt_version>v1.0.0</version>
+'<cpt_version>v1.0.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -24,7 +24,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveMarked_bas", "cptShowSaveMarked_frm", Err, Erl)
+  Call cptHandleErr("cptSaveMarked_bas", "cptShowSaveMarked_frm", err, Erl)
   Resume exit_here
 End Sub
 
@@ -107,7 +107,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveMarked_bas", "cptUpdateMarked", Err, Erl)
+  Call cptHandleErr("cptSaveMarked_bas", "cptUpdateMarked", err, Erl)
   Resume exit_here
 End Sub
 
@@ -202,7 +202,7 @@ exit_here:
   
   Exit Sub
 err_here:
-  Call cptHandleErr("cptNetworkBrowser_bas", "cptSaveMarked", Err, Erl)
+  Call cptHandleErr("cptNetworkBrowser_bas", "cptSaveMarked", err, Erl)
   Resume exit_here
 End Sub
 
@@ -254,7 +254,6 @@ Sub cptImportMarked()
     GoTo exit_here
   End If
   'todo: form has combobox of project ids; selecting filters marked setes
-  'todo: form shows preview UID,Task Name [or < task not found >]
   With rstSaved
     .Open strSaved
     If .RecordCount > 0 Then
@@ -274,7 +273,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptNetworkBrowser_bas", "cptImportMarked", Err, Erl)
+  Call cptHandleErr("cptNetworkBrowser_bas", "cptImportMarked", err, Erl)
   Resume exit_here
 End Sub
 
