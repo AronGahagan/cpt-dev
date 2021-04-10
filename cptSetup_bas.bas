@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.4.4</cpt_version>
+'<cpt_version>v1.5.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -22,14 +22,14 @@ Sub cptSetup()
 'objects
 Dim Project As Object
 Dim vbComponent As Object 'vbComponent
-Dim arrCode As Object
+Dim rstCode As ADODB.Recordset
 Dim cmThisProject As Object 'CodeModule
 Dim cmCptThisProject As Object 'CodeModule
 Dim oStream As Object 'ADODB.Stream
 Dim xmlHttpDoc As Object
 Dim xmlNode As Object
 Dim xmlDoc As Object
-Dim arrCore As Object
+Dim rstCore As ADODB.Recordset 'Object
 'strings
 Dim strMsg As String
 Dim strError As String
@@ -41,7 +41,6 @@ Dim strURL As String
 'longs
 Dim lngLine As Long
 Dim lngEvent As Long
-'Dim lngFile As Long
 'integers
 'booleans
 Dim blnImportModule As Boolean
@@ -70,13 +69,13 @@ Dim vEvent As Variant
   If MsgBox(strMsg, vbQuestion + vbYesNo, "Before you proceed...") = vbNo Then GoTo exit_here
 
   'capture list of files to download
+  'why?
   On Error Resume Next
-  Set arrCore = CreateObject("System.Collections.SortedList")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If arrCore Is Nothing Then
-    MsgBox "Please be sure that .NET 3.5 is enabled. Go to Start > Windows Features > check .NET 3.5. If .NET 3.5 is enabled, then please Email cpt@ClearPlanConsulting.com for further assistance.", vbInformation + vbOKOnly, "Install Unsuccessful"
-    GoTo exit_here
-  End If
+  Set rstCore = CreateObject("ADODB.Recordset")
+  rstCore.Fields.Append "FileName", adVarChar, 255
+  rstCore.Fields.Append "FileType", adInteger
+  rstCore.Open
+  
   Application.StatusBar = "Identifying latest core CPT modules..."
   'get CurrentVersions.xml
   'get file list in cpt\Core
@@ -95,15 +94,14 @@ Dim vEvent As Variant
       strMsg = strMsg & "If the ClearPlan ribbon doesn't show up, please contact cpt@ClearPlanConsulting.com for assistance." '</issue35>
       MsgBox strMsg, vbExclamation + vbOKOnly, "XML Error" '</issue35>
     End If
-    'GoTo exit_here '</issue35> redirected
-    GoTo this_project '</issue35> redirected
+    GoTo this_project
   Else
     'download cpt/core/*.* to user's tmp directory
-    arrCore.Clear
     For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
       If xmlNode.SelectSingleNode("Directory").Text = "Core" Then
         Application.StatusBar = "Fetching " & xmlNode.SelectSingleNode("Name").Text & "..."
-        arrCore.Add xmlNode.SelectSingleNode("FileName").Text, xmlNode.SelectSingleNode("Type").Text
+        rstCore.AddNew Array(0, 1), Array(xmlNode.SelectSingleNode("FileName").Text, xmlNode.SelectSingleNode("Type").Text)
+        rstCore.Update
         'get ThisProject status for later
         If xmlNode.SelectSingleNode("FileName").Text = "ThisProject.cls" Then
           strVersion = xmlNode.SelectSingleNode("Version").Text
@@ -230,10 +228,14 @@ this_project:
     strVersion = cptRegEx(ThisProject.VBProject.VBComponents("cptThisProject_cls").CodeModule.Lines(1, 1000), "<cpt_version>.*</cpt_version>")
     strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
   End If '</issue35>
-  Set arrCode = CreateObject("System.Collections.SortedList")
+  Set rstCode = CreateObject("ADODB.Recordset")
+  rstCode.Fields.Append "EVENT", adVarChar, 255
+  rstCode.Fields.Append "LINES", adLongVarChar
+  rstCode.Open
   With cmCptThisProject
     For Each vEvent In Array("Project_Activate", "Project_Open")
-      arrCode.Add CStr(vEvent), .Lines(.ProcStartLine(CStr(vEvent), 0) + 2, .ProcCountLines(CStr(vEvent), 0) - 3) '0 = vbext_pk_Proc
+      rstCode.AddNew Array(0, 1), Array(CStr(vEvent), .Lines(.ProcStartLine(CStr(vEvent), 0) + 2, .ProcCountLines(CStr(vEvent), 0) - 3)) '0 = vbext_pk_Proc
+      rstCode.Update
     Next
   End With
   ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
@@ -247,26 +249,27 @@ this_project:
     'if event exists then insert code else create new event handler
     With cmThisProject
       If .CountOfLines > .CountOfDeclarationLines Then 'complications
+        rstCode.MoveFirst
+        rstCode.Find "EVENT='" & vEvent & "'"
         If .Find("Sub " & CStr(vEvent), 1, 1, .CountOfLines, 1000) = True Then
-        'find its line number
+          'find its line number
           lngEvent = .ProcBodyLine(CStr(vEvent), 0) '= vbext_pk_Proc
           'import them if they *as a group* don't exist
-          If .Find(arrCode(CStr(vEvent)), .ProcStartLine(CStr(vEvent), 0), 1, .ProcCountLines(CStr(vEvent), 0), 1000) = False Then 'vbext_pk_Proc
-            .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
-          Else
-            'Debug.Print CStr(vEvent) & " code exists."
+          If .Find(rstCode(1), .ProcStartLine(CStr(vEvent), 0), 1, .ProcCountLines(CStr(vEvent), 0), 1000) = False Then  'vbext_pk_Proc
+            .InsertLines lngEvent + 1, rstCode(1)
           End If
+          rstCode.Filter = ""
         Else 'create it
           'create it, returning its line number
           lngEvent = .CreateEventProc(Replace(CStr(vEvent), "Project_", ""), "Project")
           'insert cpt code after line number
-          .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
+          .InsertLines lngEvent + 1, rstCode(1)
         End If
       Else 'easy
         'create it, returning its line number
         lngEvent = .CreateEventProc(Replace(CStr(vEvent), "Project_", ""), "Project")
         'insert cpt code after line number
-        .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
+        .InsertLines lngEvent + 1, rstCode(1)
       End If 'lines exist
     End With 'thisproject.codemodule
 
@@ -309,14 +312,14 @@ exit_here:
   '<issue23> added
   Application.ScreenUpdating = True '</issue23>
   Set vbComponent = Nothing
-  Set arrCode = Nothing
+  Set rstCode = Nothing
   Set cmThisProject = Nothing
   Set cmCptThisProject = Nothing
   Set oStream = Nothing
   Set xmlHttpDoc = Nothing
   Set xmlNode = Nothing
   Set xmlDoc = Nothing
-  Set arrCore = Nothing
+  Set rstCore = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptSetup_bas", "cptSetup", Err, Erl)
@@ -349,10 +352,10 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
   
-  ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbWrapItUp"" size=""large"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bWrapItUp"" label=""WrapItUp"" imageMso=""CollapseAll"" onAction=""cptWrapItUp"" supertip=""Collapse summary tasks starting from lowest level up to level 2."" />"   'in basCore_bas;visible=""true"" size=""large""
+  ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbWrapItUp"" >" 'size=""large""
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bWrapItUp"" label=""WrapItUp"" imageMso=""CollapseAll"" onAction=""cptWrapItUp"" supertip=""Collapse summary tasks starting from lowest level up to level 2. Defaults to your saved setting from Reset All or 2 if you don't have a saved setting yet."" />"   'in basCore_bas;visible=""true"" size=""large""
   ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mWrapItUp"">"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""WrapItUp to Level:"" />"
+  'ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""WrapItUp to Level:"" />"
   'ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:OutlineShowAllTasks"" visible=""true""/>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bLevelAll"" label=""All Subtasks"" imageMso=""OutlineTasksShowAll"" onAction=""cptWrapItUpAll"" visible=""true"" screentip=""Show All Subtasks"" supertip=""Show All Subtasks""/>"  'in basCore_bas
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bLevel1"" label=""Level 1"" imageMso=""_1"" onAction=""cptWrapItUp1"" visible=""true"" screentip=""WrapItUp to Level 1"" supertip=""WrapItUp to Level 1""/>"  'in basCore_bas
@@ -367,6 +370,9 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
   
+  'ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bGroupReapply""  label=""ReGroup"" imageMso=""RefreshWebView"" onAction=""cptGroupReapply"" visible=""true"" supertip=""Reapply Group"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFilterReapply"" label=""ReFilter"" imageMso=""RefreshWebView"" onAction=""cptFilterReapply"" visible=""true"" supertip=""Reapply Filter"" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
   'task counters
@@ -419,8 +425,8 @@ Dim lngCleanUp As Long
   End If
 
   'trace tools
-  If cptModuleExists("cptCriticalPathTools_bas") Or cptModuleExists("cptCriticalPath_bas") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCPA"" label=""Trace"" visible=""true"">"
+  If cptModuleExists("cptCriticalPathTools_bas") Or cptModuleExists("cptCriticalPath_bas") Or cptModuleExists("cptNetworkBrowser_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCPA"" label=""Trace and Mark"" visible=""true"">"
     If cptModuleExists("cptCriticalPathTools_bas") And cptModuleExists("cptCriticalPath_bas") Then
       ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbTrace"" size=""large"" >"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrace"" imageMso=""TaskDrivers"" label=""Driving Paths"" onAction=""DrivingPaths"" supertip=""Select a target task, get the primary, secondary, and tertiary driving paths to that task."" />"
@@ -437,6 +443,19 @@ Dim lngCleanUp As Long
       If cptModuleExists("cptCriticalPathTools_bas") Then
         ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExport"" label="">> PowerPoint"" imageMso=""SlideNew"" onAction=""cptExportCriticalPathSelected"" visible=""true"" size=""large"" />"
       End If
+    End If
+    If cptModuleExists("cptNetworkBrowser_bas") And cptModuleExists("cptNetworkBrowser_frm") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bNetworkBrowser"" label=""Network Browser"" imageMso=""ViewPredecessorsSuccessorsShow"" onAction=""cptShowNetworkBrowser_frm"" visible=""true"" size=""large"" supertip=""Jump to, and/or trace, predecessors and successors using the Network Diagram view in full screen or in the details pane."" />"
+    End If
+    If cptModuleExists("cptSaveMarked_bas") And cptModuleExists("cptSaveMarked_frm") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""mark_selected"" label=""Mark"" imageMso=""ApproveApprovalRequest"" onAction=""cptMarkSelected"" visible=""true"" supertip=""Mark selected task(s)"" />" 'size=""large""
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""unmark_selected"" label=""Unmark"" imageMso=""RejectApprovalRequest"" onAction=""cptUnmarkSelected"" visible=""true"" supertip=""Unmark selected task(s)"" />" 'size=""large""
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""btnMarkedApply"" label=""Filter"" imageMso=""FilterToggleFilter"" onAction=""cptMarked"" visible=""true"" supertip=""Filter Marked Tasks"" />" 'size=""large""
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""btnSaveMarked"" label=""Save"" imageMso=""Archive"" onAction=""cptSaveMarked"" visible=""true"" supertip=""Save currently marked tasks for later import."" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""btnImportMarked"" label=""Import"" imageMso=""ApproveApprovalRequest"" onAction=""cptShowSaveMarked_frm"" visible=""true"" supertip=""Import saved sets of marked tasks."" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""clear_marked"" label=""Clear"" imageMso=""FilterClear"" onAction=""cptClearMarked"" visible=""true"" supertip=""Clear all currently marked tasks."" />"
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
@@ -460,7 +479,7 @@ Dim lngCleanUp As Long
   If (cptModuleExists("cptFiscal_frm") And cptModuleExists("cptFiscal_bas")) Or (cptModuleExists("cptCalendarExceptions_frm") And cptModuleExists("cptCalendarExceptions_bas")) Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCalendars"" label=""Calendars"" visible=""true"" >"
     If cptModuleExists("cptFiscal_frm") And cptModuleExists("cptFiscal_bas") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFiscal"" label=""Fiscal Calendar"" imageMso=""MonthlyView"" onAction=""cptShowFiscal_frm"" visible=""true"" supertip=""Maintain a fiscal calendar for various reports."" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFiscal"" label=""Fiscal"" imageMso=""MonthlyView"" onAction=""cptShowFiscal_frm"" visible=""true"" supertip=""Maintain a fiscal calendar for various reports."" />"
     End If
     If cptModuleExists("cptCalendarExceptions_frm") And cptModuleExists("cptCalendarExceptions_bas") Then
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCalDetails"" label=""Details"" imageMso=""MonthlyView"" onAction=""cptShowCalendarExceptions_frm"" visible=""true"" supertip=""Export Calendar Exceptions, WorkWeeks, and settings."" />"
@@ -484,7 +503,7 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gMetrics"" label=""Metrics"" visible=""true"" >"
     ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mSchedule"" label=""Schedule"" imageMso=""UpdateAsScheduled"" visible=""true"" size=""large"" >"
     ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Schedule Metrics"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCPLI"" label=""Critical Path Length Index (CPLI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCPLI"" visible=""true"" supertip=""Select a target task, click to get the CPLI. Raw calculation based on time now and total slack; Schedule Margin not considered."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCPLI"" label=""Critical Path Length Index (CPLI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCPLI"" visible=""true"" supertip=""Select a target task, clik to get the CPLI. Raw calculation based on time now and total slack; Schedule Margin not considered."" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBEI"" label=""Baseline Execution Index (BEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBEI"" visible=""true"" supertip=""Just what it sounds like."" />"
     'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCEI"" label=""Current Execution Index (CEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCEI"" visible=""true""/>"
     'todo: TFCI
@@ -603,7 +622,7 @@ Dim strMatch As String
     With RE
         .MultiLine = False
         .Global = True
-        .ignorecase = True
+        .IgnoreCase = True
         .Pattern = strRegEx
     End With
 
