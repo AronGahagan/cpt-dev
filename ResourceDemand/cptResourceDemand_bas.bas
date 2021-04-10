@@ -1,53 +1,59 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.2.5</cpt_version>
+'<cpt_version>v1.3.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptExportResourceDemand(Optional lngTaskCount As Long)
-'objects
-Dim oSettings As Object
-Dim oListObject As Object
-Dim oSubProject As Object
-Dim oTask As Task, oResource As Resource, oAssignment As Assignment
-Dim TSV As TimeScaleValue, TSVS_BCWS As TimeScaleValues
-Dim TSVS_WORK As TimeScaleValues, TSVS_AW As TimeScaleValues
-Dim TSVS_COST As TimeScaleValues, TSVS_AC As TimeScaleValues
-Dim oCostRateTable As CostRateTable, oPayRate As PayRate
-Dim oExcel As Object
-Dim oWorksheet As Object
-Dim oWorkbook As Object
-Dim oRange As Object
-Dim oPivotTable As Object
-'dates
-Dim dtWeek As Date
-Dim dtStart As Date, dtFinish As Date, dtMin As Date, dtMax As Date
-'doubles
-Dim dblWork As Double, dblCost As Double
-'strings
-Dim strSettings As String
-Dim strTask As String
-Dim strMsg As String
-Dim strView As String
-Dim strFile As String, strRange As String
-Dim strTitle As String, strHeaders As String
-Dim strRecord As String, strFileName As String
-Dim strCost As String
-'longs
-Dim lngOffset As Long
-Dim lngRateSets As Long
-Dim lngCol As Long
-Dim lngOriginalRateSet As Long
-Dim lngFile As Long, lngTasks As Long, lngTask As Long
-Dim lngWeekCol As Long, lngExport As Long, lngField As Long
-Dim lngRateSet As Long
-Dim lngRow As Long
-'variants
-Dim vChk As Variant
-Dim vRateSet As Variant
-Dim aUserFields() As Variant
-'booleans
-Dim blnIncludeCosts As Boolean
+  'objects
+  Dim oSettings As Object
+  Dim oListObject As Object
+  Dim oSubProject As Object
+  Dim oTask As Task
+  Dim oResource As Resource
+  Dim oAssignment As Assignment
+  Dim TSV As TimeScaleValue
+  Dim TSVS_BCWS As TimeScaleValues
+  Dim TSVS_WORK As TimeScaleValues
+  Dim TSVS_AW As TimeScaleValues
+  Dim TSVS_COST As TimeScaleValues
+  Dim TSVS_AC As TimeScaleValues
+  Dim oCostRateTable As CostRateTable
+  Dim oPayRate As PayRate
+  Dim oExcel As Object
+  Dim oWorksheet As Object
+  Dim oWorkbook As Object
+  Dim oRange As Object
+  Dim oPivotTable As Object
+  'dates
+  Dim dtWeek As Date
+  Dim dtStart As Date, dtFinish As Date, dtMin As Date, dtMax As Date
+  'doubles
+  Dim dblWork As Double, dblCost As Double
+  'strings
+  Dim strSettings As String
+  Dim strTask As String
+  Dim strMsg As String
+  Dim strView As String
+  Dim strFile As String, strRange As String
+  Dim strTitle As String, strHeaders As String
+  Dim strRecord As String, strFileName As String
+  Dim strCost As String
+  'longs
+  Dim lngOffset As Long
+  Dim lngRateSets As Long
+  Dim lngCol As Long
+  Dim lngOriginalRateSet As Long
+  Dim lngFile As Long, lngTasks As Long, lngTask As Long
+  Dim lngWeekCol As Long, lngExport As Long, lngField As Long
+  Dim lngRateSet As Long
+  Dim lngRow As Long
+  'variants
+  Dim vChk As Variant
+  Dim vRateSet As Variant
+  Dim aUserFields() As Variant
+  'booleans
+  Dim blnIncludeCosts As Boolean
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -187,7 +193,7 @@ Dim blnIncludeCosts As Boolean
             'optionally capture baseline work and cost
             If cptResourceDemand_frm.chkBaseline Then
               Set TSVS_BCWS = oAssignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks, 1)
-              If oAssignment.oResourceType = pjResourceTypeWork Then
+              If oAssignment.ResourceType = pjResourceTypeWork Then
                 strRecord = strRecord & Val(TSVS_BCWS(1).Value) / 60 & ","
               Else
                 strRecord = strRecord & "0,"
@@ -206,7 +212,7 @@ Dim blnIncludeCosts As Boolean
             'get costs
             If blnIncludeCosts Then
               'rate set
-              strRecord = strRecord & Choose(oAssignment.oCostRateTable + 1, "A", "B", "C", "D", "E") & ","
+              strRecord = strRecord & Choose(oAssignment.CostRateTable + 1, "A", "B", "C", "D", "E") & ","
               Set TSVS_COST = oAssignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledCost, pjTimescaleWeeks, 1)
               'get actual cost
               Set TSVS_AC = oAssignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledActualCost, pjTimescaleWeeks, 1)
@@ -222,19 +228,19 @@ Dim blnIncludeCosts As Boolean
             
             'if default rate set is included then include it
             If cptResourceDemand_frm.chkA Then
-              strRecord = strRecord & IIf(oAssignment.oCostRateTable = 0, dblCost, 0) & ","
+              strRecord = strRecord & IIf(oAssignment.CostRateTable = 0, dblCost, 0) & ","
             End If
             If cptResourceDemand_frm.chkB Then
-              strRecord = strRecord & IIf(oAssignment.oCostRateTable = 1, dblCost, 0) & ","
+              strRecord = strRecord & IIf(oAssignment.CostRateTable = 1, dblCost, 0) & ","
             End If
             If cptResourceDemand_frm.chkC Then
-              strRecord = strRecord & IIf(oAssignment.oCostRateTable = 2, dblCost, 0) & ","
+              strRecord = strRecord & IIf(oAssignment.CostRateTable = 2, dblCost, 0) & ","
             End If
             If cptResourceDemand_frm.chkD Then
-              strRecord = strRecord & IIf(oAssignment.oCostRateTable = 3, dblCost, 0) & ","
+              strRecord = strRecord & IIf(oAssignment.CostRateTable = 3, dblCost, 0) & ","
             End If
             If cptResourceDemand_frm.chkE Then
-              strRecord = strRecord & IIf(oAssignment.oCostRateTable = 4, dblCost, 0) & ","
+              strRecord = strRecord & IIf(oAssignment.CostRateTable = 4, dblCost, 0) & ","
             End If
             
             'get custom field values
@@ -272,13 +278,13 @@ Dim blnIncludeCosts As Boolean
             If cptResourceDemand_frm.Controls(Choose(lngRateSet + 1, "chkA", "chkB", "chkC", "chkD", "chkE")).Value = True Then
               If lngRateSet = lngOriginalRateSet Then GoTo next_rate_set
               Application.StatusBar = "Exporting Rate Set " & Replace(Choose(lngRateSet + 1, "chkA", "chkB", "chkC", "chkD", "chkE"), "chk", "") & "..."
-              If oAssignment.oCostRateTable <> lngRateSet Then oAssignment.oCostRateTable = lngRateSet 'recalculation not needed
+              If oAssignment.CostRateTable <> lngRateSet Then oAssignment.CostRateTable = lngRateSet 'recalculation not needed
               'extract timephased date
               'get work
               Set TSVS_WORK = oAssignment.TimeScaleData(dtStart, dtFinish, pjAssignmentTimescaledWork, pjTimescaleWeeks, 1)
               For Each TSV In TSVS_WORK
                 strRecord = oTask.Project & "," & Chr(34) & "[" & oTask.UniqueID & "] " & Replace(oTask.Name, Chr(34), Chr(39)) & Chr(34) & ","
-                strRecord = strRecord & oAssignment.oResourceName & ","
+                strRecord = strRecord & oAssignment.ResourceName & ","
                 If cptResourceDemand_frm.chkBaseline Then strRecord = strRecord & "0,0," 'baseline placeholder
                 strRecord = strRecord & "0," 'hours
                 strRecord = strRecord & Choose(lngOriginalRateSet + 1, "A", "B", "C", "D", "E") & ","
@@ -355,7 +361,7 @@ next_task:
   'close the CSV
   Close #lngFile
 
-  Application.StatusBar = "Creating oWorkbook..."
+  Application.StatusBar = "Creating Workbook..."
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
 
   'set reference to Excel
@@ -373,7 +379,7 @@ next_task:
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If Not oWorkbook Is Nothing Then oWorkbook.Close False
   On Error Resume Next
-  Set oWorkbook = oExcel.oWorkbooks(Environ("TEMP") & "\ExportoResourceDemand.xlsx")
+  Set oWorkbook = oExcel.Workbooks(Environ("TEMP") & "\ExportResourceDemand.xlsx")
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If Not oWorkbook Is Nothing Then 'add timestamp to existing file
     If oWorkbook.Application.Visible = False Then oWorkbook.Application.Visible = True
@@ -386,14 +392,13 @@ next_task:
   'create a new Workbook
   Set oWorkbook = oExcel.Workbooks.Open(strFile)
 
-  '<issue14-15> added
   On Error Resume Next
-  If Dir(Environ("TEMP") & "\ExportoResourceDemand.xlsx") <> vbNullString Then Kill Environ("TEMP") & "\ExportoResourceDemand.xlsx"
+  If Dir(Environ("TEMP") & "\ExportResourceDemand.xlsx") <> vbNullString Then Kill Environ("TEMP") & "\ExportResourceDemand.xlsx"
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If Dir(Environ("TEMP") & "\ExportoResourceDemand.xlsx") <> vbNullString Then 'kill failed, rename it
-    oWorkbook.SaveAs Environ("TEMP") & "\ExportoResourceDemand_" & Format(Now, "yyyy-mm-dd-hh-nn-ss") & ".xlsx", 51
+  If Dir(Environ("TEMP") & "\ExportResourceDemand.xlsx") <> vbNullString Then 'kill failed, rename it
+    oWorkbook.SaveAs Environ("TEMP") & "\ExportResourceDemand_" & Format(Now, "yyyy-mm-dd-hh-nn-ss") & ".xlsx", 51
   Else
-    oWorkbook.SaveAs Environ("TEMP") & "\ExportoResourceDemand.xlsx", 51
+    oWorkbook.SaveAs Environ("TEMP") & "\ExportResourceDemand.xlsx", 51
   End If
   If Dir(strFile) <> vbNullString Then Kill strFile '</issue14-15>
 
@@ -418,12 +423,23 @@ next_task:
     oWorksheet.Cells(1, lngCol).AddComment "Rate Table Applied in the Project"
   End If
   
-  'create FTE column
+  'todo: export exceptions
+  'todo: setup HPM Table
+  
+  'create FTE_WEEK column
   Set oRange = oWorksheet.[A1].End(xlToRight).End(xlDown).Offset(0, 1)
   Set oRange = oWorksheet.Range(oRange, oWorksheet.[A1].End(xlToRight).Offset(1, 1))
   lngCol = oWorksheet.Rows(1).Find("HOURS", lookat:=1).Column
   oRange.FormulaR1C1 = "=RC" & lngCol & "/40"
-  oWorksheet.[A1].End(xlToRight).Offset(0, 1) = "FTE"
+  oWorksheet.[A1].End(xlToRight).Offset(0, 1) = "FTE_WEEK"
+  
+  'create FTE_MONTH column
+  Set oRange = oWorksheet.[A1].End(xlToRight).End(xlDown).Offset(0, 1)
+  Set oRange = oWorksheet.Range(oRange, oWorksheet.[A1].End(xlToRight).Offset(1, 1))
+  lngCol = oWorksheet.Rows(1).Find("HOURS", lookat:=1).Column
+  'todo: allow for Holidays, Fiscal Periods
+  oRange.FormulaR1C1 = "=RC" & lngCol & "/160"
+  oWorksheet.[A1].End(xlToRight).Offset(0, 1) = "FTE_MONTH"
   
   'capture the range of data to feed as variable to PivotTable
   Set oRange = oWorksheet.Range(oWorksheet.[A1].End(xlDown), oWorksheet.[A1].End(xlToRight))
@@ -437,13 +453,12 @@ next_task:
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
 
   'create the PivotTable
-  oWorkbook.PivotCaches.Create(SourceType:=1, SourceData:= _
-        strRange, Version:= _
-        3).CreatePivotTable TableDestination:="ResourceDemand!R3C1", _
-        TableName:="RESOURCE_DEMAND", DefaultVersion:=3
+  oWorkbook.PivotCaches.Create(SourceType:=1, _
+        SourceData:=strRange, VERSION:= _
+        3).CreatePivotTable TableDestination:="ResourceDemand!R3C1", TableName:="RESOURCE_DEMAND", DefaultVersion:=3
   Set oPivotTable = oWorksheet.PivotTables(1)
   oPivotTable.AddFields Array("RESOURCE_NAME", "PROJECT", "[UID] TASK"), Array("WEEK") 'Array("FISCAL_YEAR", "FISCAL_MONTH", "WEEK")
-  oPivotTable.AddDataField oPivotTable.PivotFields("FTE"), "FTE ", -4157
+  oPivotTable.AddDataField oPivotTable.PivotFields("FTE_WEEK"), "FTE_WEEK ", -4157
   'format the oPivotTable
   oPivotTable.PivotFields("RESOURCE_NAME").ShowDetail = False
   oPivotTable.TableStyle2 = "PivotStyleMedium2"
@@ -468,6 +483,24 @@ next_task:
 
   'make it nice
   oExcel.ActiveWindow.Zoom = 85
+  'todo: add 'heatmap' like coloring
+'    Cells.FormatConditions.Delete
+'    Range("B5:HT25").Select
+'    Range("B8").Activate
+'    Selection.FormatConditions.AddColorScale ColorScaleType:=2
+'    Selection.FormatConditions(Selection.FormatConditions.Count).SetFirstPriority
+'    Selection.FormatConditions(1).ColorScaleCriteria(1).Type = xlConditionValueLowestValue
+'    With Selection.FormatConditions(1).ColorScaleCriteria(1).FormatColor
+'        .Color = 10285055
+'        .TintAndShade = 0
+'    End With
+'    Selection.FormatConditions(1).ColorScaleCriteria(2).Type = xlConditionValueHighestValue
+'    With Selection.FormatConditions(1).ColorScaleCriteria(2).FormatColor
+'        .Color = 2650623
+'        .TintAndShade = 0
+'    End With
+'    Selection.FormatConditions(1).ScopeType = xlFieldsScope
+'    ActiveSheet.PivotTables("RESOURCE_DEMAND").TableStyle2 = "PivotStyleLight22"
 
   Application.StatusBar = "Creating PivotChart..."
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
@@ -531,12 +564,12 @@ next_task:
     oWorksheet.[A1:I1].Value = Array("PROJECT", "RESOURCE_NAME", "RESOURCE_TYPE", "ENTERPRISE", "RATE_TABLE", "EFFECTIVE_DATE", "STANDARD_RATE", "OVERTIME_RATE", "PER_USE_COST")
     lngRow = 2
     'make compatible with master/sub projects
-    If ActiveProject.oResourceCount > 0 Then
-      For Each oResource In ActiveProject.oResources
+    If ActiveProject.ResourceCount > 0 Then
+      For Each oResource In ActiveProject.Resources
         oWorksheet.Cells(lngRow, 1) = oResource.Name
-        For Each oCostRateTable In oResource.oCostRateTables
+        For Each oCostRateTable In oResource.CostRateTables
           If cptResourceDemand_frm.Controls(Choose(oCostRateTable.Index, "chkA", "chkB", "chkC", "chkD", "chkE")).Value = True Then
-            For Each oPayRate In oCostRateTable.oPayRates
+            For Each oPayRate In oCostRateTable.PayRates
               oWorksheet.Cells(lngRow, 1) = ActiveProject.Name
               oWorksheet.Cells(lngRow, 2) = oResource.Name
               oWorksheet.Cells(lngRow, 3) = Choose(oResource.Type + 1, "Work", "Material", "Cost")
@@ -553,11 +586,11 @@ next_task:
       Next oResource
     ElseIf ActiveProject.oSubProjects.Count > 0 Then
       For Each oSubProject In ActiveProject.oSubProjects
-        For Each oResource In oSubProject.SourceProject.oResources
+        For Each oResource In oSubProject.SourceProject.Resources
           oWorksheet.Cells(lngRow, 1) = oResource.Name
-          For Each oCostRateTable In oResource.oCostRateTables
+          For Each oCostRateTable In oResource.CostRateTables
             If cptResourceDemand_frm.Controls(Choose(oCostRateTable.Index, "chkA", "chkB", "chkC", "chkD", "chkE")).Value = True Then
-              For Each oPayRate In oCostRateTable.oPayRates
+              For Each oPayRate In oCostRateTable.PayRates
                 oWorksheet.Cells(lngRow, 1) = oSubProject.SourceProject.Name
                 oWorksheet.Cells(lngRow, 2) = oResource.Name
                 oWorksheet.Cells(lngRow, 3) = Choose(oResource.Type + 1, "Work", "Material", "Cost")
@@ -577,7 +610,7 @@ next_task:
   
     'make it a oListObject
     Set oListObject = oWorksheet.oListObjects.Add(1, oWorksheet.Range(oWorksheet.[A1].End(-4161), oWorksheet.[A1].End(-4121)).Address, , 1)
-    oListObject.Name = "oCostRateTables"
+    oListObject.Name = "CostRateTables"
     oListObject.TableStyle = ""
     oExcel.ActiveWindow.Zoom = 85
     oWorksheet.[A2].Select
@@ -592,7 +625,7 @@ next_task:
   'todo: add conditional formatting?
   
   'provide user feedback
-  Application.StatusBar = "Saving the oWorkbook..."
+  Application.StatusBar = "Saving the Workbook..."
   cptResourceDemand_frm.lblStatus.Caption = Application.StatusBar
   
   'save the file
@@ -631,16 +664,26 @@ exit_here:
   Set oTask = Nothing
   Set oResource = Nothing
   Set oAssignment = Nothing
+  Set oCostRateTable = Nothing
+  Set oPayRate = Nothing
   Set oExcel = Nothing
   Set oPivotTable = Nothing
   Set oListObject = Nothing
   Set oWorkbook = Nothing
   Set oWorksheet = Nothing
+  Set TSV = Nothing 'As TimeScaleValue
+  Set TSVS_BCWS = Nothing ' TimeScaleValues
+  Set TSVS_WORK = Nothing ' TimeScaleValues
+  Set TSVS_AW = Nothing ' TimeScaleValues
+  Set TSVS_COST = Nothing ' TimeScaleValues
+  Set TSVS_AC = Nothing ' TimeScaleValues
+  Set oRange = Nothing ' Object
+
   If Not oWorkbook Is Nothing Then oWorkbook.Close False
   If Not oExcel Is Nothing Then oExcel.Quit
   Exit Sub
 err_here:
-  Call cptHandleErr("cptoResourceDemand_bas", "cptExportoResourceDemand", Err, Erl)
+  Call cptHandleErr("cptResourceDemand_bas", "cptExportResourceDemand", Err, Erl)
   On Error Resume Next
   Resume exit_here
 
@@ -712,6 +755,11 @@ Dim vFieldType As Variant
   arrFields.Fields.Append "CONSTANT", adInteger
   arrFields.Fields.Append "CUSTOM_NAME", adVarChar, 200
   arrFields.Open
+  
+  'add the 'Critical' field
+  arrFields.AddNew Array(0, 1), Array(FieldNameToFieldConstant("Critical"), "Critical")
+  
+  'todo: add the TrueFloat Fields - get from ini?
   
   For Each vFieldType In Array("Text", "Outline Code")
     On Error GoTo err_here
@@ -850,8 +898,8 @@ exit_here:
   Exit Sub
 
 err_here:
-  If Err.Number = 1101 Or Err.Number = 1004 Then
-    Err.Clear
+  If err.Number = 1101 Or err.Number = 1004 Then
+    err.Clear
     Resume next_field
   Else
     Call cptHandleErr("cptResourceDemand_bas", "cptShowExportResourceDemand_frm", Err, Erl)
