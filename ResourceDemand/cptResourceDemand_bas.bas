@@ -53,6 +53,7 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
   Dim vRateSet As Variant
   Dim aUserFields() As Variant
   'booleans
+  Dim blnExportBaseline As Boolean
   Dim blnIncludeCosts As Boolean
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -105,6 +106,7 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
     If .chkBaseline Then
       strHeaders = strHeaders & "BL_HOURS,BL_COST,"
     End If
+    blnExportBaseline = .chkBaseline = True
     strHeaders = strHeaders & "HOURS,"
     'get rate sets
     blnIncludeCosts = .chkA Or .chkB Or .chkC Or .chkD Or .chkE
@@ -164,8 +166,8 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
         
         'get earliest start and latest finish
         If cptResourceDemand_frm.chkBaseline Then
-          dtStart = oExcel.oWorksheetFunction.Min(oTask.Start, IIf(oTask.BaselineStart = "NA", oTask.Start, oTask.BaselineStart)) 'works with forecast, actual, and baseline start
-          dtFinish = oExcel.oWorksheetFunction.Max(oTask.Finish, IIf(oTask.BaselineFinish = "NA", oTask.Finish, oTask.BaselineFinish)) 'works with forecast, actual, and baseline finish
+          dtStart = oExcel.WorksheetFunction.Min(oTask.Start, IIf(oTask.BaselineStart = "NA", oTask.Start, oTask.BaselineStart)) 'works with forecast, actual, and baseline start
+          dtFinish = oExcel.WorksheetFunction.Max(oTask.Finish, IIf(oTask.BaselineFinish = "NA", oTask.Finish, oTask.BaselineFinish)) 'works with forecast, actual, and baseline finish
         Else
           If IsDate(oTask.Stop) Then 'capture the unstatused / remaining portion
             dtStart = oTask.Stop
@@ -429,17 +431,33 @@ next_task:
   'create FTE_WEEK column
   Set oRange = oWorksheet.[A1].End(xlToRight).End(xlDown).Offset(0, 1)
   Set oRange = oWorksheet.Range(oRange, oWorksheet.[A1].End(xlToRight).Offset(1, 1))
-  lngCol = oWorksheet.Rows(1).Find("HOURS", lookat:=1).Column
+  lngCol = oWorksheet.Rows(1).Find("HOURS", lookat:=1).Column '1=xlWhole
   oRange.FormulaR1C1 = "=RC" & lngCol & "/40"
-  oWorksheet.[A1].End(xlToRight).Offset(0, 1) = "FTE_WEEK"
+  oWorksheet.[A1].End(xlToRight).Offset(0, 1).Value = "FTE_WEEK"
   
   'create FTE_MONTH column
   Set oRange = oWorksheet.[A1].End(xlToRight).End(xlDown).Offset(0, 1)
   Set oRange = oWorksheet.Range(oRange, oWorksheet.[A1].End(xlToRight).Offset(1, 1))
-  lngCol = oWorksheet.Rows(1).Find("HOURS", lookat:=1).Column
+  lngCol = oWorksheet.Rows(1).Find("HOURS", lookat:=1).Column '1=xlWhole
   'todo: allow for Holidays, Fiscal Periods
   oRange.FormulaR1C1 = "=RC" & lngCol & "/160"
-  oWorksheet.[A1].End(xlToRight).Offset(0, 1) = "FTE_MONTH"
+  oWorksheet.[A1].End(xlToRight).Offset(0, 1).Value = "FTE_MONTH"
+  
+  If blnExportBaseline Then
+    'include FTE_BL_WEEK
+    Set oRange = oWorksheet.[A1].End(xlToRight).End(xlDown).Offset(0, 1)
+    Set oRange = oWorksheet.Range(oRange, oWorksheet.[A1].End(xlToRight).Offset(1, 1))
+    lngCol = oWorksheet.Rows(1).Find("BL_HOURS", lookat:=1).Column '1=xlWhole
+    oRange.FormulaR1C1 = "=RC" & lngCol & "/40"
+    oWorksheet.[A1].End(xlToRight).Offset(0, 1).Value = "FTE_BL_WEEK"
+    
+    'include FTE_BL_MONTH
+    Set oRange = oWorksheet.[A1].End(xlToRight).End(xlDown).Offset(0, 1)
+    Set oRange = oWorksheet.Range(oRange, oWorksheet.[A1].End(xlToRight).Offset(1, 1))
+    lngCol = oWorksheet.Rows(1).Find("BL_HOURS", lookat:=1).Column '1=xlWhole
+    oRange.FormulaR1C1 = "=RC" & lngCol & "/160"
+    oWorksheet.[A1].End(xlToRight).Offset(0, 1).Value = "FTE_BL_MONTH"
+  End If
   
   'capture the range of data to feed as variable to PivotTable
   Set oRange = oWorksheet.Range(oWorksheet.[A1].End(xlDown), oWorksheet.[A1].End(xlToRight))
@@ -898,8 +916,8 @@ exit_here:
   Exit Sub
 
 err_here:
-  If err.Number = 1101 Or err.Number = 1004 Then
-    err.Clear
+  If Err.Number = 1101 Or Err.Number = 1004 Then
+    Err.Clear
     Resume next_field
   Else
     Call cptHandleErr("cptResourceDemand_bas", "cptShowExportResourceDemand_frm", Err, Erl)
