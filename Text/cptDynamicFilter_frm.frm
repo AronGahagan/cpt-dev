@@ -74,7 +74,22 @@ Private Sub cmdClear_Click()
 End Sub
 
 Private Sub cmdGoRegEx_Click()
+  Dim strMsg As String, lngResponse As Long
+  If cptGetSetting("DynamicFilter", "IgnoreOverwriteWarning") = "" Then
+    strMsg = "OK to overwrite the 'Marked' field?" & vbCrLf & vbCrLf
+    strMsg = strMsg & "Abort = No it is not OK" & vbCrLf
+    strMsg = strMsg & "Retry = Yes this is fine" & vbCrLf
+    strMsg = strMsg & "Ignore = Yes and stop bugging me about it"
+    lngResponse = MsgBox(strMsg, vbQuestion + vbAbortRetryIgnore, "geeks of the world, unite")
+    If lngResponse = vbAbort Then
+      'todo: switch to normie view
+      GoTo exit_here
+    ElseIf lngResponse = vbIgnore Then
+      If cptSaveSetting("DynamicFilter", "IgnoreOverwriteWarning", "1") Then Debug.Print "that worked fin"
+    End If
+  End If
   Call cptGoRegEx(Me.txtFilter)
+exit_here:
   Me.txtFilter.SetFocus
 End Sub
 
