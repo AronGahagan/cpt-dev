@@ -1,11 +1,14 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
+'<cpt_version>v0.0.0</version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-Sub cptShowFrmPreds()
+Sub cptShowNetworkBrowser_frm()
+  If Not cptFilterExists("Marked") Then cptCreateFilter ("Marked")
+  Call cptStartEvents
   Call cptShowPreds
-  cptNetworkBrowser_frm.show False
+  cptNetworkBrowser_frm.Show False
 End Sub
 
 Sub cptShowPreds()
@@ -26,7 +29,7 @@ Dim lngTasks As Long
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  lngTasks = ActiveSelection.Tasks.count
+  lngTasks = ActiveSelection.Tasks.Count
   
   With cptNetworkBrowser_frm
     Select Case lngTasks
@@ -104,22 +107,91 @@ Dim lngTasks As Long
 exit_here:
   Exit Sub
 err_here:
-  If err.Number <> 424 Then MsgBox err.Number & ": " & err.Description, vbExclamation, "Dependency Browser: Error"
+  If Err.Number <> 424 Then MsgBox Err.Number & ": " & Err.Description, vbExclamation, "Dependency Browser: Error"
   Resume exit_here
   
 End Sub
 
+Sub cptMarkSelected()
+  'todo: separate network browser and make it cptMarkSelected(Optional blnRefilter as Boolean)
+  Dim oTask As Task, oTasks As Tasks
+  On Error Resume Next
+  Set oTasks = ActiveSelection.Tasks
+  If Not oTasks Is Nothing Then
+    For Each oTask In oTasks
+      oTask.Marked = True
+    Next oTask
+  End If
+  If ActiveWindow.TopPane.View.Name = "Network Diagram" Then
+    'todo: call cptFilterReapply
+    cptSpeed True
+    FilterApply "All Tasks"
+    FilterApply "Marked"
+    cptSpeed False
+  Else
+    'todo
+  End If
+  Set oTask = Nothing
+  Set oTasks = Nothing
+End Sub
+
 Sub cptUnmarkSelected()
+'todo: make cptMark(blnMark as Boolean)
+'todo: separate network browser and make it cptUnmarkSelected(Optional blnRefilter as Boolean)
 Dim Task As Task
 
   For Each Task In ActiveSelection.Tasks
-    Task.Marked = False
+    If Not Task Is Nothing Then Task.Marked = False
   Next Task
+  
+  If cptNetworkBrowser_frm.Visible Then
+    'todo: from here down from network browser only
+    ActiveWindow.TopPane.Activate
+    FilterApply "Marked"
+    If ActiveWindow.TopPane.View.Name <> "Network Diagram" Then
+      SelectAll
+      ActiveWindow.BottomPane.Activate
+      ViewApply "Network Diagram"
+    Else
+      'todo: call cptFilterReapply
+      cptSpeed True
+      FilterApply "All Tasks"
+      FilterApply "Marked"
+      cptSpeed False
+    End If
+  End If
+End Sub
+
+Sub cptMarked()
   ActiveWindow.TopPane.Activate
+  On Error Resume Next
+  If Not FilterApply("Marked") Then
+    FilterEdit "Marked", True, True, True, , , "Marked", , "equals", "Yes", , True, False
+  End If
   FilterApply "Marked"
-  SelectAll
-  ActiveWindow.BottomPane.Activate
-  ViewApply "Network Diagram"
+End Sub
+
+Sub cptClearMarked()
+Dim oTask As Task
+
+  For Each oTask In ActiveProject.Tasks
+    If oTask.ExternalTask Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If Not oTask Is Nothing Then oTask.Marked = False
+next_task:
+  Next oTask
+  ActiveProject.Tasks.UniqueID(0).Marked = False
+  'todo: fix this
+  If ActiveWindow.TopPane.View.Name = "Network Diagram" Then
+    cptSpeed True
+    FilterApply "Active Tasks"
+    FilterApply "Marked"
+    cptSpeed False
+  Else
+    'todo: if lower pane
+  End If
+  Set oTask = Nothing
+
 End Sub
 
 Sub cptHistoryDoubleClick()
@@ -129,29 +201,26 @@ Dim lngTaskID As Long
   
   lngTaskID = CLng(cptNetworkBrowser_frm.lboHistory.Value)
   WindowActivate TopPane:=True
-  If IsNumeric(lngTaskID) Then EditGoTo lngTaskID
-
+  If IsNumeric(lngTaskID) Then
+    On Error Resume Next
+    If Not EditGoTo(lngTaskID, ActiveProject.Tasks(lngTaskID).Start) Then
+      If ActiveWindow.TopPane.View.Name = "Network Diagram" Then
+        ActiveProject.Tasks(lngTaskID).Marked = True
+        FilterApply "Marked"
+        GoTo exit_here
+      End If
+      If MsgBox("Task is hidden - remove filters and show it?", vbQuestion + vbYesNo, "Confirm Apocalypse") = vbYes Then
+        FilterClear
+        OptionsViewEx displaysummarytasks:=True
+        OutlineShowAllTasks
+        EditGoTo lngTaskID, ActiveProject.Tasks(lngTaskID).Start
+      End If
+    End If
+  End If
+  
 exit_here:
   Exit Sub
 err_here:
-  If err.Number = 1101 Then
-    Call cptRemoveFilters(lngTaskID)
-  Else
-    Call cptHandleErr("cptNetworkBrowser_bas", "cptHistoryDoubleClick", err, Erl)
-  End If
+  Call cptHandleErr("cptNetworkBrowser_bas", "cptHistoryDoubleClick", Err, Erl)
   Resume exit_here
-End Sub
-
-Sub cptRemoveFilters(lngTaskID As Long)
-Dim msg As String
-  msg = "ID " & lngTaskID & " is not currently visible." & vbCrLf & vbCrLf & "Remove filters and go to " & lngTaskID & "?"
-  If MsgBox(msg, vbExclamation + vbYesNo, "Hidden") = vbYes Then
-    Application.FilterApply "All Tasks"
-    If ActiveProject.AutoFilter Then AutoFilter
-    Sort Key1:="ID"
-    On Error Resume Next
-    If err.Number = 1100 Then SummaryTasksShow
-    Application.OutlineShowAllTasks
-    EditGoTo lngTaskID
-  End If
 End Sub
