@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.7.1</cpt_version>
+'<cpt_version>v1.8.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -1236,3 +1236,41 @@ Function cptGetSetting(strFeature As String, strSetting As String) As String
     cptGetSetting = ""
   End If
 End Function
+
+Function cptFilterExists(strFilter As String) As Boolean
+  'objects
+  Dim oFilter As MSProject.Filter
+
+  On Error Resume Next
+  Set oFilter = ActiveProject.TaskFilters(strFilter)
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  cptFilterExists = Not oFilter Is Nothing
+  
+exit_here:
+  On Error Resume Next
+  Set oFilter = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptFilterExists", Err, Erl)
+  Resume exit_here
+End Function
+
+Sub cptCreateFilter(strFilter As String)
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  Select Case strFilter
+    Case "Marked"
+      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
+      
+  End Select
+  
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptCreateFilter", Err, Erl)
+  Resume exit_here
+End Sub
