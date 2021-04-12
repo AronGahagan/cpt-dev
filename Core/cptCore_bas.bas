@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.7.0</cpt_version>
+'<cpt_version>v1.7.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -731,7 +731,16 @@ Dim vCol As Variant
       Call cptUpgrade(arrDirectories("cptPatch_bas") & "/cptPatch_bas") 'uri slash
       'update the version numer in the array
       arrInstalled.Item("cptPatch_bas") = arrCurrent("cptPatch_bas")
-      Call cptApplyPatch
+      'Call cptApplyPatch
+      
+      '/=== temp fix to cptPatch_bas private/public issue ===\
+      'patch code goes here
+      Application.StatusBar = "Applying patch 21.04.10..."
+      If Not cptReferenceExists("VBScript_RegExp_55") Then
+        ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\System32\vbscript.dll\3"
+      End If
+      '\=== temp fix to cptPatch_bas private/public issue ===/
+      
     End If
   End If
 
