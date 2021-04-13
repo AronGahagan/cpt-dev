@@ -45,7 +45,7 @@
 	<Module>
 		<Name>cptCore_bas</Name>
 		<FileName>cptCore_bas.bas</FileName>
-		<Version>v1.7.1</Version>
+		<Version>v1.8.0</Version>
 		<Type>1</Type>
 		<Directory>Core</Directory>
 	</Module>
@@ -139,6 +139,20 @@
 		<Version>v1.0.2</Version>
 		<Type>1</Type>
 		<Directory>Metrics</Directory>
+	</Module>
+	<Module>
+		<Name>cptNetworkBrowser_bas</Name>
+		<FileName>cptNetworkBrowser_bas.bas</FileName>
+		<Version>v0.0.0</Version>
+		<Type>1</Type>
+		<Directory>Trace</Directory>
+	</Module>
+	<Module>
+		<Name>cptNetworkBrowser_frm</Name>
+		<FileName>cptNetworkBrowser_frm.frm</FileName>
+		<Version>v0.0.0</Version>
+		<Type>3</Type>
+		<Directory>Trace</Directory>
 	</Module>
 	<Module>
 		<Name>cptPatch_bas</Name>
