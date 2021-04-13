@@ -1,31 +1,89 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
 '<cpt_version>v0.0.0</version>
 Option Explicit
+Public oInsertedIndex As Object
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowNetworkBrowser_frm()
+  'objects
+  Dim oTask As Task, oLink As TaskDependency
+  'strings
+  'longs
+  Dim lngInsertedIndex As Long
+  Dim lngInsertedUID As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+    
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
   If Not cptFilterExists("Marked") Then cptCreateFilter ("Marked")
+
+  'get multiplier 'todo: do this once on form load, not every stinking time
+  Set oInsertedIndex = CreateObject("Scripting.Dictionary")
+  If ActiveProject.Subprojects.Count > 0 Then
+    For Each oTask In ActiveProject.Tasks
+      If Not oTask.Summary Then
+        lngInsertedUID = ActiveProject.Subprojects(oTask.Project).InsertedProjectSummary.UniqueID
+        lngInsertedIndex = Round(oTask.UniqueID / 4194304, 0)
+        If Not oInsertedIndex.Exists(lngInsertedUID) Then
+          oInsertedIndex.Add lngInsertedUID, lngInsertedIndex
+        End If
+      End If
+    Next
+  End If
+  
   Call cptStartEvents
   Call cptShowPreds
-  cptNetworkBrowser_frm.Show False
+  With cptNetworkBrowser_frm
+    .tglTrace = False
+    .tglTrace.Caption = "Jump"
+    .lboPredecessors.MultiSelect = fmMultiSelectSingle
+    .lboSuccessors.MultiSelect = fmMultiSelectSingle
+    .Show False
+  End With
+
+exit_here:
+  On Error Resume Next
+  Set oTask = Nothing
+  Set oLink = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptNetworkBrowser_bas", "cptShowNetworkBrowser_frm", Err, Erl)
+  Resume exit_here
 End Sub
 
 Sub cptShowPreds()
 'objects
-Dim Pred As Object, Succ As Object, Task As Task, Tasks As Tasks
+Dim oTaskDependencies As TaskDependencies
+Dim oSubProject As SubProject
+Dim oLink As TaskDependency, oTask As Task
 'strings
+Dim strProject As String
 'longs
+Dim lngLinkUID As Long
+Dim lngSuccIndex As Long
+Dim lngPredIndex As Long
+Dim lngItem As Long
+Dim lngFactor As Long
 Dim lngTasks As Long
 'integers
 'doubles
 'booleans
+Dim blnSubprojects As Boolean
 'variants
+Dim vSuccessors As Variant
+Dim vControl As Variant
+Dim vPredecessors As Variant
 'dates
   
   On Error Resume Next
-  Set Task = ActiveSelection.Tasks(1)
-  If Task Is Nothing Then GoTo exit_here
+  Set oTask = ActiveSelection.Tasks(1)
+  If oTask Is Nothing Then GoTo exit_here
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -34,14 +92,16 @@ Dim lngTasks As Long
   With cptNetworkBrowser_frm
     Select Case lngTasks
       Case Is < 1
+        .lboCurrent.Clear
         .lboPredecessors.Clear
         .lboPredecessors.ColumnCount = 1
         .lboPredecessors.AddItem "Please select a task."
         .lboSuccessors.Clear
-        .lboSuccessors.Column = 1
+        .lboSuccessors.ColumnCount = 1
         .lboSuccessors.AddItem "Please select a task."
         GoTo exit_here
       Case Is > 1
+        .lboCurrent.Clear
         .lboPredecessors.Clear
         .lboPredecessors.ColumnCount = 1
         .lboPredecessors.AddItem "Please select only one task."
@@ -50,64 +110,151 @@ Dim lngTasks As Long
         .lboSuccessors.AddItem "Please select only one task."
         GoTo exit_here
     End Select
+    If .tglTrace Then
+      .tglTrace.Caption = "Trace"
+      .lboPredecessors.MultiSelect = fmMultiSelectMulti
+      .lboPredecessors.MultiSelect = fmMultiSelectMulti
+    Else
+      .tglTrace.Caption = "Jump"
+      .lboSuccessors.MultiSelect = fmMultiSelectSingle
+      .lboSuccessors.MultiSelect = fmMultiSelectSingle
+    End If
+    If ActiveProject.Subprojects.Count > 0 Then
+      .lboCurrent.ColumnWidths = "50 pt"
+    Else
+      .lboCurrent.ColumnWidths = "24.95 pt"
+    End If
+    With .lboCurrent
+      .Clear
+      .ColumnCount = 2
+      .AddItem
+      .Column(0, .ListCount - 1) = oTask.UniqueID
+      .Column(1, .ListCount - 1) = IIf(oTask.Marked, "[m] ", "") & oTask.Name
+    End With
   End With
     
   'only 1 is selected
-  With cptNetworkBrowser_frm.lboPredecessors
-    .Clear
-    .ColumnCount = 7
-    .AddItem
-    .Column(0, .ListCount - 1) = "ID"
-    .Column(1, .ListCount - 1) = "UID"
-    .Column(2, .ListCount - 1) = "Lag"
-    .Column(3, .ListCount - 1) = "Finish"
-    .Column(4, .ListCount - 1) = "Slack"
-    .Column(5, .ListCount - 1) = "Task"
-    .Column(6, .ListCount - 1) = "Critical"
+  On Error Resume Next
+  Set oTaskDependencies = oTask.TaskDependencies
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If oTaskDependencies Is Nothing Then
+    cptNetworkBrowser_frm.lboPredecessors.Clear
+    cptNetworkBrowser_frm.lboSuccessors.Clear
+    GoTo exit_here
+  End If
+  
+  'reset both lbos once in an array here
+  For Each vControl In Array("lboPredecessors", "lboSuccessors")
+    With cptNetworkBrowser_frm.Controls(vControl)
+      .Clear
+      .ColumnCount = 6
+      .AddItem
+      If ActiveProject.Subprojects.Count > 0 Then
+        .ColumnWidths = "50 pt;24.95 pt;24.95 pt;45 pt;35 pt;225 pt;24.95 pt"
+      Else
+        .ColumnWidths = "24.95 pt;24.95 pt;24.95 pt;45 pt;35 pt;225 pt;24.95 pt"
+      End If
+      .Column(0, .ListCount - 1) = "UID"
+      .Column(1, .ListCount - 1) = "ID"
+      .Column(2, .ListCount - 1) = "Lag"
+      .Column(3, .ListCount - 1) = IIf(vControl = "lboPredecessors", "Finish", "Start")
+      .Column(4, .ListCount - 1) = "Slack"
+      .Column(5, .ListCount - 1) = "Task"
+      .Column(6, .ListCount - 1) = "Critical"
+    End With
+  Next
+  
+  'determine if there are subprojects loaded (this affects displayed UIDs)
+  blnSubprojects = ActiveProject.Subprojects.Count > 0
+  
+  'capture list of preds with valid native UIDs
+  vPredecessors = Split(oTask.UniqueIDPredecessors, ",")
+  lngPredIndex = 0 'make my own index TEST
+  vSuccessors = Split(oTask.UniqueIDSuccessors, ",")
+  lngSuccIndex = 0
+  For Each oLink In oTask.TaskDependencies
+    'limit to only predecessors
+    If oLink.To.Name = oTask.Name Then 'todo: this won't work if there are duplicate task names
+      lngPredIndex = lngPredIndex + 1
+      'handle external tasks
+      If blnSubprojects And oLink.From.ExternalTask Then
+        'fix the returned UID
+        lngLinkUID = CLng(Mid(vPredecessors(lngPredIndex - 1), InStrRev(vPredecessors(lngPredIndex - 1), "\") + 1))
+        strProject = oLink.From.Project
+        If InStr(oLink.From.Project, "<>\") > 0 Then
+          strProject = Replace(strProject, "<>\", "")
+        ElseIf InStr(oLink.From.Project, "\") > 0 Then
+          strProject = Replace(Dir(strProject), ".mpp", "")
+        Else
+          'todo: what if it's on a network drive
+        End If
+        lngFactor = oInsertedIndex(ActiveProject.Subprojects(strProject).InsertedProjectSummary.UniqueID)
+        lngLinkUID = (lngFactor * 4194304) + lngLinkUID
+      Else
+        If blnSubprojects Then
+          lngFactor = Round(oTask / 4194304, 0)
+          lngLinkUID = (lngFactor * 4194304) + oLink.From.UniqueID
+        Else
+          lngLinkUID = oLink.From.UniqueID
+        End If
+      End If
+      With cptNetworkBrowser_frm.lboPredecessors
+        .AddItem
+        .Column(0, .ListCount - 1) = lngLinkUID
+        .Column(1, .ListCount - 1) = oLink.From.ID
+        .Column(2, .ListCount - 1) = Round(oLink.Lag / (ActiveProject.HoursPerDay * 60), 2) & "d"
+        .Column(3, .ListCount - 1) = Format(oLink.From.Finish, "mm/dd/yy")
+        .Column(4, .ListCount - 1) = Round(oLink.From.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
+        .Column(5, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
+        .Column(6, .ListCount - 1) = IIf(oLink.From.Critical, "X", "")
+      End With
+    ElseIf oLink.To.Name <> oTask.Name Then 'todo: this won't work if there are duplicate task names
+      lngSuccIndex = lngSuccIndex + 1
+      'handle external tasks
+      If blnSubprojects And oLink.To.ExternalTask Then
+        'fix the returned UID
+        lngLinkUID = CLng(Mid(vSuccessors(lngSuccIndex - 1), InStrRev(vSuccessors(lngSuccIndex - 1), "\") + 1))
+        strProject = oLink.To.Project
+        If InStr(oLink.To.Project, "<>\") > 0 Then
+          strProject = Replace(strProject, "<>\", "")
+        ElseIf InStr(oLink.To.Project, "\") > 0 Then
+          strProject = Replace(Dir(strProject), ".mpp", "")
+        Else
+          'todo: what if it's on a network drive
+        End If
+        lngFactor = oInsertedIndex(ActiveProject.Subprojects(strProject).InsertedProjectSummary.UniqueID)
+        lngLinkUID = (lngFactor * 4194304) + lngLinkUID
+      Else
+        If blnSubprojects Then
+          lngFactor = Round(oTask / 4194304, 0)
+          lngLinkUID = (lngFactor * 4194304) + oLink.To.UniqueID
+        Else
+          lngLinkUID = oLink.To.UniqueID
+        End If
+      End If
+      With cptNetworkBrowser_frm.lboSuccessors
+        .AddItem
+        .Column(0, .ListCount - 1) = lngLinkUID
+        .Column(1, .ListCount - 1) = oLink.To.ID
+        .Column(2, .ListCount - 1) = Round(oLink.Lag / (ActiveProject.HoursPerDay * 60), 2) & "d"
+        .Column(3, .ListCount - 1) = Format(oLink.To.Start, "mm/dd/yy")
+        .Column(4, .ListCount - 1) = Round(oLink.To.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
+        .Column(5, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.To.Name) > 65, Left(oLink.To.Name, 65) & "... ", oLink.To.Name)
+        .Column(6, .ListCount - 1) = IIf(oLink.To.Critical, "X", "")
+      End With
+    End If
+  Next oLink
     
-    For Each Pred In Task.TaskDependencies
-      If Pred.From.ID <> Task.ID Then
-        .AddItem
-        .Column(0, .ListCount - 1) = Pred.From.ID
-        .Column(1, .ListCount - 1) = Pred.From.UniqueID
-        .Column(2, .ListCount - 1) = Round(Pred.Lag / (ActiveProject.HoursPerDay * 60), 2) & "d"
-        .Column(3, .ListCount - 1) = Format(Pred.From.Finish, "mm/dd/yy")
-        .Column(4, .ListCount - 1) = Round(Pred.From.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
-        .Column(5, .ListCount - 1) = IIf(Pred.From.Marked, "[m] ", "") & IIf(Len(Pred.From.Name) > 65, Left(Pred.From.Name, 65) & "... ", Pred.From.Name)
-        .Column(6, .ListCount - 1) = IIf(Pred.From.Critical, "CRITICAL", "")
-      End If
-    Next
-  End With
-  
-  With cptNetworkBrowser_frm.lboSuccessors
-    .Clear
-    .ColumnCount = 7
-    .AddItem
-    .Column(0, .ListCount - 1) = "ID"
-    .Column(1, .ListCount - 1) = "UID"
-    .Column(2, .ListCount - 1) = "Lag"
-    .Column(3, .ListCount - 1) = "Start"
-    .Column(4, .ListCount - 1) = "Slack"
-    .Column(5, .ListCount - 1) = "Task"
-    .Column(6, .ListCount - 1) = "Critical"
-    For Each Succ In Task.TaskDependencies
-      If Succ.To.ID <> Task.ID Then
-        .AddItem
-        .Column(0, .ListCount - 1) = Succ.To.ID
-        .Column(1, .ListCount - 1) = Succ.To.UniqueID
-        .Column(2, .ListCount - 1) = Round(Succ.Lag / (ActiveProject.HoursPerDay * 60), 2) & "d"
-        .Column(3, .ListCount - 1) = Format(Succ.To.Finish, "mm/dd/yy")
-        .Column(4, .ListCount - 1) = Round(Succ.To.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
-        .Column(5, .ListCount - 1) = IIf(Succ.To.Marked, "[m] ", "") & IIf(Len(Succ.To.Name) > 65, Left(Succ.To.Name, 65) & "... ", Succ.To.Name)
-        .Column(6, .ListCount - 1) = IIf(Succ.To.Critical, "CRITICAL", "")
-      End If
-    Next
-  End With
-  
 exit_here:
+  On Error Resume Next
+  cptSpeed False
+  Set oTaskDependencies = Nothing
+  Set oSubProject = Nothing
+  Set oLink = Nothing
+  Set oTask = Nothing
   Exit Sub
 err_here:
-  If Err.Number <> 424 Then MsgBox Err.Number & ": " & Err.Description, vbExclamation, "Dependency Browser: Error"
+  If Err.Number <> 424 Then Call cptHandleErr("cptNetworkBrowser_bas", "cptShowPreds", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -195,17 +342,17 @@ next_task:
 End Sub
 
 Sub cptHistoryDoubleClick()
-Dim lngTaskID As Long
+  Dim lngTaskUID As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  lngTaskID = CLng(cptNetworkBrowser_frm.lboHistory.Value)
+  lngTaskUID = CLng(cptNetworkBrowser_frm.lboHistory.Value)
   WindowActivate TopPane:=True
-  If IsNumeric(lngTaskID) Then
+  If IsNumeric(lngTaskUID) Then
     On Error Resume Next
-    If Not EditGoTo(lngTaskID, ActiveProject.Tasks(lngTaskID).Start) Then
+    If Not Find("Unique ID", "equals", lngTaskUID) Then
       If ActiveWindow.TopPane.View.Name = "Network Diagram" Then
-        ActiveProject.Tasks(lngTaskID).Marked = True
+        ActiveProject.Tasks.UniqueID(lngTaskUID).Marked = True
         FilterApply "Marked"
         GoTo exit_here
       End If
@@ -213,7 +360,9 @@ Dim lngTaskID As Long
         FilterClear
         OptionsViewEx displaysummarytasks:=True
         OutlineShowAllTasks
-        EditGoTo lngTaskID, ActiveProject.Tasks(lngTaskID).Start
+        If Not Find("Unique ID", "equals", lngTaskUID) Then
+          MsgBox "Unable to find Task UID " & lngTaskUID & "...", vbExclamation + vbOKOnly, "Task Not Found"
+        End If
       End If
     End If
   End If
