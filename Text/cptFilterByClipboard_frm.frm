@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.1</cpt_version>
+'<cpt_version>v1.1.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -158,6 +158,7 @@ Private Sub optUID_Click()
   Me.txtFilter.Text = ""
   Me.txtFilter.Value = strFilter
   Me.lboHeader.List(0, 0) = "UID"
+  ActiveWindow.TopPane.Activate
   FilterClear
   Call cptUpdateClipboard
 End Sub
