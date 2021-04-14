@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptNetworkBrowser_frm 
-   Caption         =   "Network Browser (v0-beta)"
+   Caption         =   "Network Browser (v0.0.0-beta)"
    ClientHeight    =   6330
    ClientLeft      =   45
    ClientTop       =   330
@@ -14,7 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v0.0.0</version>
+'<cpt_version>v0.0.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0

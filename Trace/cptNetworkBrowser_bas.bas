@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
-'<cpt_version>v0.0.0</version>
+'<cpt_version>v0.0.1</cpt_version>
 Option Explicit
 Public oInsertedIndex As Object
 Private Const BLN_TRAP_ERRORS As Boolean = True
