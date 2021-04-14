@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.2.10</cpt_version>
+'<cpt_version>v1.2.11</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -1420,7 +1420,7 @@ conditional_formatting_skipped:
       Worksheet.Cells(lngHeaderRow, 1).AutoFilter
       For lngRow = lngLastRow To lngHeaderRow + 1 Step -1
         If Worksheet.Cells(lngRow, rngKeep.Column) = "DELETE" Then Worksheet.Rows(lngRow).Delete Shift:=xlUp
-        cptStatusSheet_frm.lblProgress.Width = ((lngLastRow - lngRow - lngHeader) / (lngRow + lngHeader)) * cptStatusSheet_frm.lblStatus.Width
+        cptStatusSheet_frm.lblProgress.Width = ((lngLastRow - lngRow - lngHeaderRow) / (lngRow + lngHeaderRow)) * cptStatusSheet_frm.lblStatus.Width
       Next lngRow
       cptStatusSheet_frm.lblProgress.Width = cptStatusSheet_frm.lblStatus.Width
       lngRow = lngLastRow
