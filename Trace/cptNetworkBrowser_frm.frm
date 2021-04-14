@@ -14,7 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v0.0.1</cpt_version>
+'<cpt_version>v0.0.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -35,10 +35,10 @@ Private Sub cmdBack_Click()
 exit_here:
   Exit Sub
 err_here:
-  If Err.Number = 380 Then
-    Err.Clear
+  If err.Number = 380 Then
+    err.Clear
   Else
-    Call cptHandleErr("cptNetworkBrowser_frm", "cmdBack_Click", Err, Erl)
+    Call cptHandleErr("cptNetworkBrowser_frm", "cmdBack_Click", err, Erl)
   End If
   Resume exit_here
   
@@ -71,18 +71,27 @@ Private Sub cmdFwd_Click()
 exit_here:
   Exit Sub
 err_here:
-  If Err.Number = 380 Then
-    Err.Clear
+  If err.Number = 380 Then
+    err.Clear
   Else
-    Call cptHandleErr("cptNetworkBrowser_frm", "cmdFwd_Click", Err, Erl)
+    Call cptHandleErr("cptNetworkBrowser_frm", "cmdFwd_Click", err, Erl)
   End If
   Resume exit_here
 
 End Sub
 
 Private Sub cmdMark_Click()
+  'objects
+  Dim oTask As Task
+  'strings
+  'longs
   Dim lngUID As Long
   Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
   
   'cptSpeed True
   If ActiveSelection.Tasks.Count = 1 Then
@@ -91,13 +100,25 @@ Private Sub cmdMark_Click()
     For lngItem = 0 To Me.lboPredecessors.ListCount - 1
       If Me.lboPredecessors.Selected(lngItem) Then
         If Me.lboPredecessors.Column(0, lngItem) = "UID" Then GoTo exit_here
-        ActiveProject.Tasks.UniqueID(CLng(Me.lboPredecessors.Column(0, lngItem))).Marked = True
+        Set oTask = ActiveProject.Tasks.UniqueID(CLng(Me.lboPredecessors.Column(0, lngItem)))
+        If Not oTask.ExternalTask Then
+          oTask.Marked = True
+        Else
+          MsgBox "Cannot Mark an External Task", vbExclamation + vbOKOnly, "Unavailable"
+          GoTo exit_here
+        End If
       End If
     Next lngItem
     For lngItem = 0 To Me.lboSuccessors.ListCount - 1
       If Me.lboSuccessors.Selected(lngItem) Then
         If Me.lboSuccessors.Column(0, lngItem) = "UID" Then GoTo exit_here
-        ActiveProject.Tasks.UniqueID(CLng(Me.lboSuccessors.Column(0, lngItem))).Marked = True
+        Set oTask = ActiveProject.Tasks.UniqueID(CLng(Me.lboSuccessors.Column(0, lngItem)))
+        If Not oTask.ExternalTask Then
+          oTask.Marked = True
+        Else
+          MsgBox "Cannot Mark an External Task", vbExclamation + vbOKOnly, "Unavailable"
+          GoTo exit_here
+        End If
       End If
     Next lngItem
   Else
@@ -119,11 +140,12 @@ Private Sub cmdMark_Click()
   'Find "Unique ID", "equals", lngUID
 exit_here:
   On Error Resume Next
+  Set oTask = Nothing
   cptSpeed False
   Exit Sub
 err_here:
   On Error Resume Next
-  Call cptHandleErr("cptNetworkBrowser_frm", "cmdMark_Click", Err, Erl)
+  Call cptHandleErr("cptNetworkBrowser_frm", "cmdMark_Click", err, Erl)
   Resume exit_here
 End Sub
 
@@ -133,8 +155,17 @@ Private Sub cmdRefresh_Click()
 End Sub
 
 Private Sub cmdUnmark_Click()
+  'objects
+  Dim oTask As Object
+  'strings
+  'longs
   Dim lngUID As Long
   Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -143,12 +174,26 @@ Private Sub cmdUnmark_Click()
     lngUID = ActiveSelection.Tasks(1).UniqueID
     For lngItem = 0 To Me.lboPredecessors.ListCount - 1
       If Me.lboPredecessors.Selected(lngItem) Then
-        ActiveProject.Tasks.UniqueID(CLng(Me.lboPredecessors.Column(0, lngItem))).Marked = False
+         If Me.lboPredecessors.Column(0, lngItem) = "UID" Then GoTo exit_here
+        Set oTask = ActiveProject.Tasks.UniqueID(CLng(Me.lboPredecessors.Column(0, lngItem)))
+        If Not oTask.ExternalTask Then
+          oTask.Marked = False
+        Else
+          MsgBox "Cannot Mark an External Task", vbExclamation + vbOKOnly, "Unavailable"
+          GoTo exit_here
+        End If
       End If
     Next lngItem
     For lngItem = 0 To Me.lboSuccessors.ListCount - 1
       If Me.lboSuccessors.Selected(lngItem) Then
-        ActiveProject.Tasks.UniqueID(CLng(Me.lboSuccessors.Column(0, lngItem))).Marked = False
+        If Me.lboSuccessors.Column(0, lngItem) = "UID" Then GoTo exit_here
+        Set oTask = ActiveProject.Tasks.UniqueID(CLng(Me.lboSuccessors.Column(0, lngItem)))
+        If Not oTask.ExternalTask Then
+          oTask.Marked = False
+        Else
+          MsgBox "Cannot Mark an External Task", vbExclamation + vbOKOnly, "Unavailable"
+          GoTo exit_here
+        End If
       End If
     Next lngItem
   Else
@@ -171,10 +216,11 @@ Private Sub cmdUnmark_Click()
     
 exit_here:
   On Error Resume Next
+  Set oTask = Nothing
   cptSpeed False
   Exit Sub
 err_here:
-  Call cptHandleErr("cptNetworkBrowser_frm", "cmdUnmark_Click", Err, Erl)
+  Call cptHandleErr("cptNetworkBrowser_frm", "cmdUnmark_Click", err, Erl)
   Resume exit_here
 End Sub
 
@@ -206,7 +252,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptNetworkBrowser_frm", "cmdUnmarkAll_Click", Err, Erl)
+  Call cptHandleErr("cptNetworkBrowser_frm", "cmdUnmarkAll_Click", err, Erl)
   Resume exit_here
   
 End Sub
@@ -247,7 +293,7 @@ Dim lngTaskID As Long
 exit_here:
   Exit Sub
 err_here:
-  Call cptHandleErr("cptNetworkBrowser_frm", "lboPredecesors_DblClick", Err, Erl)
+  Call cptHandleErr("cptNetworkBrowser_frm", "lboPredecesors_DblClick", err, Erl)
   Resume exit_here
 End Sub
 
@@ -296,7 +342,7 @@ Dim lngTaskID As Long, Task As Task
 exit_here:
   Exit Sub
 err_here:
-  Call cptHandleErr("cptNetworkBrowser_frm", "lboSuccessors_DblClick", Err, Erl)
+  Call cptHandleErr("cptNetworkBrowser_frm", "lboSuccessors_DblClick", err, Erl)
   Resume exit_here
 End Sub
 
