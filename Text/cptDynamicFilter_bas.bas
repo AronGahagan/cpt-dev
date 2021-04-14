@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDynamicFilter_bas"
-'<cpt_version>v1.5.0</cpt_version>
+'<cpt_version>v1.5.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -139,7 +139,7 @@ Public Function cptGetRegex( _
     Optional ByVal MatchGlobal As Boolean = True) As RegExp
       
     ' Ensure the dictionary has been initialized
-    If pCachedRegexes Is Nothing Then Set pCachedRegexes = New Dictionary
+    If pCachedRegexes Is Nothing Then Set pCachedRegexes = CreateObject("Scripting.Dictionary")
     
     ' Build the unique key for the regex: a combination
     ' of the boolean properties and the pattern itself
