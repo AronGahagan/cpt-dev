@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCriticalPath_bas"
-'<cpt_version>v2.8.2</cpt_version>
+'<cpt_version>v2.9.1</cpt_version>
 Option Explicit
 Private CritField As String 'Stores comma seperated values for each task showing which paths they are a part of
 Private GroupField As String 'Stores a single value - used to group/sort tasks in final CP view
@@ -27,25 +27,23 @@ Private DrivingTasks() As DrivingTask 'var to store DrivingTask type
 Private drivingTasksCount As Integer 'count of DrivingTasks
 Public singlePath As Boolean 'cpt controlled var for limited results to a single path
 Public export_to_PPT As Boolean 'cpt controlled var for controlling user notification of completed analysis
+Private CustTextFields() As String 'v2.9.0 Array of custTextFields
+Private CustNumFields() As String 'v2.9.0 Array of custNumFields
+Private curproj As Project 'Stores active user project - not compatible with Master/Sub Architecture v2.9.0 - set as module var for cust field mapping
 
 Sub DrivingPaths()
 'Primary analysis module that controls analysis
 'workflow through Primary, Secondary and Tertiary
 'driving paths.
 
-    Dim curproj As Project 'Stores active user project - not compatible with Master/Sub Architecture
     Dim t As Task 'Stores initial user selected task
     Dim tdp As TaskDependency
     Dim tdps As TaskDependencies
     Dim i As Integer 'Used to iterate through Primary/Secondary/Tertiary driver arrays
     Dim analysisTaskUID As String 'Stores user selected task for recall and selection after setting final view
     
-    'Hardcoded field requirements
-    CritField = "Text29"
-    GroupField = "Number19"
-    
     'Store users active project
-    Set curproj = ActiveProject
+    Set curproj = ActiveProject 'v2.9.0 get active project before displaying field selection form
     
     'used to avoid code break during intial error checks
     On Error Resume Next
@@ -92,6 +90,37 @@ Sub DrivingPaths()
         curproj = Nothing
         Exit Sub
     End If
+    
+    'v2.9.0 Diplay Field Selection dialog
+    Dim critPathFieldMapForm As cptCritPathFields_frm
+    Set critPathFieldMapForm = New cptCritPathFields_frm
+    
+    With critPathFieldMapForm
+    
+        ReadCustomFields curproj
+    
+        For i = 1 To UBound(CustNumFields)
+            .GroupField_Combobox.AddItem CustNumFields(i)
+        Next i
+        For i = 1 To UBound(CustTextFields)
+            .GroupField_Combobox.AddItem CustTextFields(i)
+            .PathField_Combobox.AddItem CustTextFields(i)
+        Next i
+        
+        .Show
+        
+        If .Tag = "cancel" Then
+            Set critPathFieldMapForm = Nothing
+            Set curproj = Nothing
+            Exit Sub
+        End If
+        
+        'Hardcoded field requirements
+        'v2.9.0 - get user field map
+        CritField = .PathField_Combobox.Text
+        GroupField = .GroupField_Combobox.Text
+    
+    End With
     
     'Suspend calculations and screen updating
     curproj.Application.Calculation = pjManual
@@ -334,10 +363,6 @@ End Sub
 
 Private Sub SetGroupCPFieldLookupTable(ByVal GroupField As String, ByVal curproj As Project)
 'Set Crit and Group field names, assign lookup table to Group Field
-
-    'Store Field Names
-    curproj.Application.CustomFieldRename FieldID:=FieldNameToFieldConstant(CritField), newname:="CP Driving Paths"
-    curproj.Application.CustomFieldRename FieldID:=FieldNameToFieldConstant(GroupField), newname:="CP Driving Path Group ID"
     
     'Setup Lookup Table Properties
     curproj.Application.CustomFieldPropertiesEx FieldID:=FieldNameToFieldConstant(GroupField), Attribute:=pjFieldAttributeNone
@@ -384,7 +409,7 @@ Private Sub SetupCPView(ByVal GroupField As String, ByVal curproj As Project, By
     curproj.Application.ViewApply Name:="*ClearPlan Driving Path View"
     
     'Sort the View by Finish, then by Duration to produce Waterfall Gantt
-    curproj.Application.Sort Key1:="Finish", Ascending1:=True, Key2:="Duration", Ascending2:=False, outline:=False
+    curproj.Application.Sort Key1:="Finish", Ascending1:=True, Key2:="Duration", Ascending2:=False, Outline:=False
     
     'Select all tasks and zoom the Gantt to display all tasks in view
     curproj.Application.SelectAll
@@ -808,7 +833,7 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
     Else 'If no task calendar, store project cal
         Set sCalObj = ActiveProject.Calendar
     End If
-
+    
     'if dependency lag is greater than or equal to 0
     If dLag >= 0 Then
     
@@ -821,7 +846,17 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
                 pDate = Application.DateAdd(tPred.Finish, Application.DurationFormat(dLag, dlagtype), sCalObj)
                 
                 'successor date equals the succ finish
-                sDate = tSucc.Finish
+                'includes leveling delay test v2.9.0
+                
+                If tSucc.LevelingDelay > 0 Then
+                    
+                    sDate = tSucc.EarlyFinish
+                    
+                Else
+                
+                    sDate = tSucc.Finish
+                
+                End If
             
             Case 1 'Finish to Start
             
@@ -829,7 +864,17 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
                 pDate = Application.DateAdd(tPred.Finish, Application.DurationFormat(dLag, dlagtype), sCalObj)
                 
                 'successor date equals the succ start
-                sDate = tSucc.Start
+                'includes leveling delay test v2.9.0
+                
+                If tSucc.LevelingDelay > 0 Then
+                
+                    sDate = tSucc.EarlyStart
+                
+                Else
+                
+                    sDate = tSucc.Start
+                
+                End If
             
             Case 2 'Start to Finish
             
@@ -837,7 +882,17 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
                 pDate = Application.DateAdd(tPred.Start, Application.DurationFormat(dLag, dlagtype), sCalObj)
                 
                 'successor date equals the succ finish
-                sDate = tSucc.Finish
+                'includes leveling delay test v2.9.0
+                
+                If tSucc.LevelingDelay > 0 Then
+                
+                    sDate = tSucc.EarlyFinish
+                
+                Else
+                
+                    sDate = tSucc.Finish
+                
+                End If
             
             Case 3 'Start to Start
             
@@ -845,7 +900,18 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
                 pDate = Application.DateAdd(tPred.Start, Application.DurationFormat(dLag, dlagtype), sCalObj)
                 
                 'successor date equals the succ start
-                sDate = tSucc.Start
+                'includes leveling delay test v2.9.0
+                
+                If tSucc.LevelingDelay > 0 Then
+                
+                    sDate = tSucc.EarlyStart
+                
+                Else
+                
+                    sDate = tSucc.Start
+                
+                End If
+                
             Case Else
         End Select
     
@@ -862,7 +928,18 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
                 
                 'succ date equals the succ finish plus the absolute value of the lag (considering any succ task cal)
                 'adding the lead to the succ date is the same as subtracting it from the pred date (DateAdd cannot handle negative values)
-                sDate = Application.DateAdd(tSucc.Finish, Application.DurationFormat(Abs(dLag), dlagtype), sCalObj)
+                
+                'includes leveling delay test v2.9.0
+                
+                If tSucc.LevelingDelay > 0 Then
+                
+                    sDate = Application.DateAdd(tSucc.EarlyFinish, Application.DurationFormat(Abs(dLag), dlagtype), sCalObj)
+                
+                Else
+                
+                    sDate = Application.DateAdd(tSucc.Finish, Application.DurationFormat(Abs(dLag), dlagtype), sCalObj)
+            
+                End If
             
             Case 1 'Finish to Start
             
@@ -871,7 +948,18 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
                 
                 'succ date equals the succ start plus the absolute value of the lag (considering any succ task cal)
                 'adding the lead to the succ date is the same as subtracting it from the pred date (DateAdd cannot handle negative values)
-                sDate = Application.DateAdd(tSucc.Start, Application.DurationFormat(Abs(dLag), dlagtype), sCalObj)
+                
+                'includes leveling delay test v2.9.0
+                
+                If tSucc.LevelingDelay > 0 Then
+                
+                    sDate = Application.DateAdd(tSucc.EarlyStart, Application.DurationFormat(Abs(dLag), dlagtype), sCalObj)
+                
+                Else
+                
+                    sDate = Application.DateAdd(tSucc.Start, Application.DurationFormat(Abs(dLag), dlagtype), sCalObj)
+            
+                End If
             
             Case 2 'Start to Finish
             
@@ -880,7 +968,18 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
                 
                 'succ date equals the succ finish plus the absolute value of the lag (considering any succ task cal)
                 'adding the lead to the succ date is the same as subtracting it from the pred date (DateAdd cannot handle negative values)
-                sDate = Application.DateAdd(tSucc.Finish, Application.DurationFormat(Abs(dLag), dlagtype), sCalObj)
+                
+                'includes leveling delay test v2.9.0
+                
+                If tSucc.LevelingDelay > 0 Then
+                
+                    sDate = Application.DateAdd(tSucc.Finish, Application.DurationFormat(Abs(dLag), dlagtype), sCalObj)
+                
+                Else
+                
+                    sDate = Application.DateAdd(tSucc.Finish, Application.DurationFormat(Abs(dLag), dlagtype), sCalObj)
+            
+                End If
             
             Case 3 'Start to Start
             
@@ -889,7 +988,18 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
                 
                 'succ date equals the succ start plus the absolute value of the lag (considering any succ task cal)
                 'adding the lead to the succ date is the same as subtracting it from the pred date (DateAdd cannot handle negative values)
-                sDate = Application.DateAdd(tSucc.Start, Application.DurationFormat(Abs(dLag), dlagtype), sCalObj)
+                
+                'includes leveling delay test v2.9.0
+                
+                If tSucc.LevelingDelay > 0 Then
+                
+                    sDate = Application.DateAdd(tSucc.EarlyStart, Application.DurationFormat(Abs(dLag), dlagtype), sCalObj)
+                
+                Else
+                
+                    sDate = Application.DateAdd(tSucc.Start, Application.DurationFormat(Abs(dLag), dlagtype), sCalObj)
+                
+                End If
                 
             Case Else
         End Select
@@ -945,3 +1055,37 @@ Function GetLettersOnly(str As String) As String
     Next
     GetLettersOnly = letters
 End Function
+
+Private Sub ReadCustomFields(ByVal curproj As Project)
+'v2.9.0 - added to allow user selection of custom fields
+
+    Dim i As Integer
+
+    'Read local Custom Text Fields
+    For i = 1 To 30
+
+        If Len(curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Text" & i))) > 0 Then
+            ReDim Preserve CustTextFields(1 To i)
+            CustTextFields(i) = curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Text" & i))
+        Else
+            ReDim Preserve CustTextFields(1 To i)
+            CustTextFields(i) = "Text" & i
+        End If
+
+    Next i
+
+    'Read local Custom Number Fields
+    For i = 1 To 20
+
+        If Len(curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Number" & i))) > 0 Then
+            ReDim Preserve CustNumFields(1 To i)
+            CustNumFields(i) = curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Number" & i))
+        Else
+            ReDim Preserve CustNumFields(1 To i)
+            CustNumFields(i) = "Number" & i
+        End If
+
+    Next i
+
+
+End Sub

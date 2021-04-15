@@ -43,6 +43,13 @@
 		<Directory>Calendar</Directory>
 	</Module>
 	<Module>
+		<Name>cptCommonFieldMap_bas</Name>
+		<FileName>cptCommonFieldMap_bas.frm</FileName>
+		<Version>v1.0.1</Version>
+		<Type>1</Type>
+		<Directory>Core</Directory>
+	</Module>
+	<Module>
 		<Name>cptCore_bas</Name>
 		<FileName>cptCore_bas.bas</FileName>
 		<Version>v1.8.0</Version>
@@ -59,7 +66,7 @@
 	<Module>
 		<Name>cptCriticalPath_bas</Name>
 		<FileName>cptCriticalPath_bas.bas</FileName>
-		<Version>v2.8.2</Version>
+		<Version>v2.9.1</Version>
 		<Type>1</Type>
 		<Directory>Trace</Directory>
 	</Module>
@@ -68,6 +75,13 @@
 		<FileName>cptCriticalPathTools_bas.bas</FileName>
 		<Version>v1.0.3</Version>
 		<Type>1</Type>
+		<Directory>Trace</Directory>
+	</Module>
+	<Module>
+		<Name>cptCritPathFields_frm</Name>
+		<FileName>cptCritPathFields_frm.frm</FileName>
+		<Version>v2.9.1</Version>
+		<Type>3</Type>
 		<Directory>Trace</Directory>
 	</Module>
 	<Module>
