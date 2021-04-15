@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.0.2</cpt_version>
+'<cpt_version>v1.0.3</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 'add disclaimer: unburdened hours - not meant to be precise - generally within +/- 1%
@@ -111,8 +111,9 @@ End Sub
 
 Sub cptGetCPLI()
 'objects
-Dim pred As Task
-Dim Task As Task
+Dim oTasks As Tasks
+Dim oPred As Task
+Dim oTask As Task
 'strings
 Dim strMsg As String
 Dim strTitle As String
@@ -129,53 +130,59 @@ Dim lngCPL As Long
 Dim dtStart As Date, dtFinish As Date
 Dim dtConstraintDate As Date
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
   strTitle = "Critical Path Length Index (CPLI)"
 
-  'confirm a single, target task is selected
-  If ActiveSelection.Tasks.Count <> 1 Then
-    MsgBox "Please select a single, active, and non-summary target task.", vbExclamation + vbOKOnly, strTitle
+  On Error Resume Next
+  Set oTasks = ActiveSelection.Tasks
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If oTasks Is Nothing Then
+    MsgBox "No Target Task selected.", vbExclamation + vbOKOnly, "Oops"
+    GoTo exit_here
+  End If
+
+  'confirm a single, target oTask is selected
+  If oTasks.Count <> 1 Then
+    MsgBox "Please select a single, active, and non-summary target oTask.", vbExclamation + vbOKOnly, strTitle
     GoTo exit_here
   End If
   
-  Set Task = ActiveSelection.Tasks(1)
+  Set oTask = oTasks(1)
   
   'use MFO or MSO constraint
-  If Task.ConstraintType <> pjMFO And Task.ConstraintType <> pjMSO Then
+  If oTask.ConstraintType <> pjMFO And oTask.ConstraintType <> pjMSO Then
     strMsg = "No MSO/MFO constraint found; temporarily using Deadline..." & vbCrLf
     'if no MFO then use deadline as MFO
-    If IsDate(Task.Deadline) Then
-      If IsDate(Task.ConstraintDate) Then dtConstraintDate = Task.ConstraintDate
-      lngConstraintType = Task.ConstraintType
-      Task.ConstraintDate = Task.Deadline
-      Task.ConstraintType = pjMFO
-      lngTS = Task.TotalSlack
-      dtFinish = Task.Finish
-      If CLng(dtConstraintDate) > 0 Then Task.ConstraintDate = dtConstraintDate
-      Task.ConstraintType = lngConstraintType
+    If IsDate(oTask.Deadline) Then
+      If IsDate(oTask.ConstraintDate) Then dtConstraintDate = oTask.ConstraintDate
+      lngConstraintType = oTask.ConstraintType
+      oTask.ConstraintDate = oTask.Deadline
+      oTask.ConstraintType = pjMFO
+      lngTS = oTask.TotalSlack
+      dtFinish = oTask.Finish
+      If CLng(dtConstraintDate) > 0 Then oTask.ConstraintDate = dtConstraintDate
+      oTask.ConstraintType = lngConstraintType
     Else
       strMsg = strMsg & "No Deadline found; temporarily using Baseline Finish..." & vbCrLf
-      If Not IsDate(Task.BaselineFinish) Then
+      If Not IsDate(oTask.BaselineFinish) Then
         strMsg = strMsg & "No Baseline Finish found." & vbCrLf & vbCrLf
-        strMsg = strMsg & "In order to calculate the CPLI, the target task should be (at least temporarily) constrained with a MFO or Deadline." & vbCrLf & vbCrLf
-        strMsg = strMsg & "Please constrain the task and try again."
+        strMsg = strMsg & "In order to calculate the CPLI, the target Task should be (at least temporarily) constrained with a MFO or Deadline." & vbCrLf & vbCrLf
+        strMsg = strMsg & "Please constrain the Target Task and try again."
         MsgBox strMsg, vbExclamation + vbOKOnly, strTitle
         GoTo exit_here
       Else
-        If IsDate(Task.ConstraintDate) Then dtConstraintDate = Task.ConstraintDate
-        lngConstraintType = Task.ConstraintType
-        Task.ConstraintDate = Task.BaselineFinish
-        Task.ConstraintType = pjMFO
-        lngTS = Task.TotalSlack
-        dtFinish = Task.Finish
-        If CLng(dtConstraintDate) > 0 Then Task.ConstraintDate = dtConstraintDate
-        Task.ConstraintType = lngConstraintType
+        If IsDate(oTask.ConstraintDate) Then dtConstraintDate = oTask.ConstraintDate
+        lngConstraintType = oTask.ConstraintType
+        oTask.ConstraintDate = oTask.BaselineFinish
+        oTask.ConstraintType = pjMFO
+        lngTS = oTask.TotalSlack
+        dtFinish = oTask.Finish
+        If CLng(dtConstraintDate) > 0 Then oTask.ConstraintDate = dtConstraintDate
+        oTask.ConstraintType = lngConstraintType
       End If
     End If
   Else
-    lngTS = Task.TotalSlack
-    dtFinish = Task.Finish
+    lngTS = oTask.TotalSlack
+    dtFinish = oTask.Finish
   End If
       
   'use status date if exists
@@ -187,21 +194,21 @@ Dim dtConstraintDate As Date
   
   'use earliest start date
   'NOTE: cannot account for schedule margin due to possibility
-  'of dual paths, one with and one without, a particular SM task
+  'of dual paths, one with and one without, a particular SM Task
   
-  If Task Is Nothing Then GoTo exit_here
-  If Task.Summary Then GoTo exit_here
-  If Not Task.Active Then GoTo exit_here
+  If oTask Is Nothing Then GoTo exit_here
+  If oTask.Summary Then GoTo exit_here
+  If Not oTask.Active Then GoTo exit_here
   HighlightDrivingPredecessors Set:=True
-  For Each pred In ActiveProject.Tasks
-    If pred.PathDrivingPredecessor Then
-      If IsDate(pred.ActualStart) Then
-        If pred.Stop < dtStart Then dtStart = pred.Stop
+  For Each oPred In ActiveProject.Tasks
+    If oPred.PathDrivingPredecessor Then
+      If IsDate(oPred.ActualStart) Then
+        If oPred.Stop < dtStart Then dtStart = oPred.Stop
       Else
-        If pred.Start < dtStart Then dtStart = pred.Start
+        If oPred.Start < dtStart Then dtStart = oPred.Start
       End If
     End If
-  Next pred
+  Next oPred
   'calculate the CPL
   lngCPL = Application.DateDifference(dtStart, dtFinish)
   'convert values to days
@@ -216,15 +223,16 @@ Dim dtConstraintDate As Date
   strMsg = strMsg & "CPLI = ( CPL + TS ) / CPL" & vbCrLf
   strMsg = strMsg & "CPLI = ( " & lngCPL & " + " & lngTS & " ) / " & lngCPL & vbCrLf & vbCrLf
   strMsg = strMsg & "CPLI = " & Round((lngCPL + lngTS) / lngCPL, 3) & vbCrLf & vbCrLf
-  strMsg = strMsg & "Note: schedule margin tasks are not considered."
+  strMsg = strMsg & "Note: Schedule Margin Tasks are not considered."
   
   MsgBox strMsg, vbInformation + vbOKOnly, "Critical Path Length Index (CPLI)"
     
 exit_here:
   On Error Resume Next
-  Set pred = Nothing
+  Set oTasks = Nothing
+  Set oPred = Nothing
   Application.CloseUndoTransaction
-  Set Task = Nothing
+  Set oTask = Nothing
 
   Exit Sub
 err_here:
