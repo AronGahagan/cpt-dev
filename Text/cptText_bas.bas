@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.2.7</cpt_version>
+'<cpt_version>v1.3.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -14,11 +14,20 @@ Sub cptReplicateProcess()
 End Sub
 
 Sub cptBulkAppend()
-Dim Tasks As Tasks, Task As Task, strAppend As String
+  'objects
+  Dim oTasks As Tasks, oTask As Task
+  'strings
+  Dim strAppend As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   On Error Resume Next
-  Set Tasks = ActiveSelection.Tasks
-  If Tasks Is Nothing Then Exit Sub
+  Set oTasks = ActiveSelection.Tasks
+  If oTasks Is Nothing Then Exit Sub
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   strAppend = InputBox("Append what text to selected tasks?", "Append Text")
@@ -27,19 +36,19 @@ Dim Tasks As Tasks, Task As Task, strAppend As String
   
   Application.OpenUndoTransaction "Bulk Append"
   
-  For Each Task In Tasks
-    If Task.ExternalTask Then GoTo next_task
-    If Not Task Is Nothing Then
-      Task.Name = Trim(Task.Name) & " " & Trim(strAppend)
+  For Each oTask In oTasks
+    If oTask.ExternalTask Then GoTo next_task
+    If Not oTask Is Nothing Then
+      oTask.Name = Trim(oTask.Name) & " " & Trim(strAppend)
     End If
 next_task:
-  Next Task
+  Next oTask
   
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
-  Set Task = Nothing
-  Set Tasks = Nothing
+  Set oTask = Nothing
+  Set oTasks = Nothing
   Exit Sub
   
 err_here:
@@ -49,11 +58,20 @@ err_here:
 End Sub
 
 Sub cptBulkPrepend()
-Dim Tasks As Tasks, Task As Task, strPrepend As String
-
+  'objects
+  Dim oTasks As Tasks, oTask As Task
+  'strings
+  Dim strPrepend As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
   On Error Resume Next
-  Set Tasks = ActiveSelection.Tasks
-  If Tasks Is Nothing Then Exit Sub
+  Set oTasks = ActiveSelection.Tasks
+  If oTasks Is Nothing Then Exit Sub
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   strPrepend = InputBox("Prepend what text to selected tasks?", "Prepend Text")
@@ -62,77 +80,87 @@ Dim Tasks As Tasks, Task As Task, strPrepend As String
   
   Application.OpenUndoTransaction "Bulk Prepend"
   
-  For Each Task In ActiveSelection.Tasks
-    If Task.ExternalTask Then GoTo next_task
-    If Not Task Is Nothing Then
-       Task.Name = Trim(strPrepend) & " " & Trim(Task.Name)
+  For Each oTask In oTasks
+    If oTask.ExternalTask Then GoTo next_task
+    If Not oTask Is Nothing Then
+       oTask.Name = Trim(strPrepend) & " " & Trim(oTask.Name)
     End If
 next_task:
-  Next Task
+  Next oTask
   
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
-  Set Task = Nothing
-  Set Tasks = Nothing
+  Set oTask = Nothing
+  Set oTasks = Nothing
   Exit Sub
   
 err_here:
-  Call cptHandleErr("basTextTool", "cptBulkPrepend", Err, Erl)
+  Call cptHandleErr("cptText_bas", "cptBulkPrepend", Err, Erl)
   Resume exit_here
   
 End Sub
 
 Sub cptEnumerate()
-Dim Tasks As Tasks, Task As Task, lgDigits As Long
-Dim vbResponse As Variant, lgEnumerate As Long
+  'objects
+  Dim oTasks As Tasks, oTask As Task
+  'strings
+  'longs
+  Dim lngDigits As Long
+  Dim lngResponse As Long
+  Dim lngEnumerate As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   On Error Resume Next
-  Set Tasks = ActiveSelection.Tasks
-  If Tasks Is Nothing Then Exit Sub
+  Set oTasks = ActiveSelection.Tasks
+  If oTasks Is Nothing Then Exit Sub
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  vbResponse = InputBox("How many digits (number input only)?", "Format Enueration", 3)
-  If StrPtr(vbResponse) = 0 Then
+  lngResponse = InputBox("How many digits (number input only)?", "Format Enueration", 3)
+  If StrPtr(lngResponse) = 0 Then
     'user hit cancel
     GoTo exit_here
-  ElseIf vbResponse = vbNullString Then
+  ElseIf lngResponse = vbNullString Then
     'user entered null value
     GoTo exit_here
   End If
-  lgDigits = CLng(vbResponse)
+  lngDigits = CLng(lngResponse)
   
-  vbResponse = InputBox("Start at what number (number input only)?", "Format Enumeration", 1)
-  If StrPtr(vbResponse) = 0 Then
+  lngResponse = InputBox("Start at what number (number input only)?", "Format Enumeration", 1)
+  If StrPtr(lngResponse) = 0 Then
     'user hit cancel
     GoTo exit_here
-  ElseIf vbResponse = vbNullString Then
+  ElseIf lngResponse = vbNullString Then
     'user entered null value
     GoTo exit_here
   End If
-  lgEnumerate = CLng(vbResponse)
+  lngEnumerate = CLng(lngResponse)
   
   cptSpeed True
   
   Application.OpenUndoTransaction "Enumeration"
   
-  If Tasks.Count > 2 Then
-    For Each Task In Tasks
-      If Task.ExternalTask Then GoTo next_task
-      If Not Task Is Nothing Then
-        Task.Name = Task.Name & " (" & Format(lgEnumerate, String(lgDigits, "0")) & ")"
-        lgEnumerate = lgEnumerate + 1
+  If oTasks.Count > 2 Then
+    For Each oTask In oTasks
+      If oTask.ExternalTask Then GoTo next_task
+      If Not oTask Is Nothing Then
+        oTask.Name = oTask.Name & " (" & Format(lngEnumerate, String(lngDigits, "0")) & ")"
+        lngEnumerate = lngEnumerate + 1
       End If
 next_task:
-    Next
+    Next oTask
   End If
   cptSpeed False
 
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
-  Set Task = Nothing
-  Set Tasks = Nothing
+  Set oTask = Nothing
+  Set oTasks = Nothing
   Exit Sub
   
 err_here:
@@ -142,26 +170,26 @@ err_here:
 End Sub
 
 Sub cptMyReplace()
-'fields affected: Marked, Task Name, Text Fields, Outline Code Fields
-'objects
-Dim arrReplaced As Object
-Dim Tasks As Tasks, Task As Task
-'strings
-Dim strMsg As String
-'longs
-Dim lngItem As Long
-Dim lngFound As Long
-'integers
-'doubles
-'booleans
-'variants
-Dim vField As Variant, vFind As Variant, vReplace As Variant
-'dates
+  'fields affected: Marked, Task Name, Text Fields, Outline Code Fields
+  'objects
+  Dim rstReplaced As ADODB.Recordset 'object
+  Dim oTasks As Tasks, oTask As Task
+  'strings
+  Dim strMsg As String
+  'longs
+  Dim lngItem As Long
+  Dim lngFound As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vField As Variant, vFind As Variant, vReplace As Variant
+  'dates
 
   On Error Resume Next
   cptSpeed True
-  Set Tasks = ActiveSelection.Tasks
-  If Tasks Is Nothing Then Exit Sub
+  Set oTasks = ActiveSelection.Tasks
+  If oTasks Is Nothing Then Exit Sub
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   'get string to find
@@ -176,51 +204,58 @@ Dim vField As Variant, vFind As Variant, vReplace As Variant
   
   Application.OpenUndoTransaction "MyReplace"
 
-  Set arrReplaced = CreateObject("System.Collections.SortedList")
+  Set rstReplaced = CreateObject("ADODB.Recordset")
+  rstReplaced.Fields.Append "UID", adBigInt
+  rstReplaced.Open
 
-  For Each Task In Tasks
-    If Task Is Nothing Then GoTo next_task
-    If Task.ExternalTask Then GoTo next_task
+  For Each oTask In Tasks
+    If oTask Is Nothing Then GoTo next_task
+    If oTask.ExternalTask Then GoTo next_task
     For Each vField In ActiveSelection.FieldIDList
       'limit to text fields
       If Len(cptRegEx(FieldConstantToFieldName(vField), "Text|Name")) > 0 Then
-        If InStr(Task.GetField(vField), CStr(vFind)) > 0 Then
-          Task.SetField vField, Replace(Task.GetField(vField), CStr(vFind), CStr(vReplace))
-          arrReplaced.Add Task.UniqueID, Task.UniqueID
+        If InStr(oTask.GetField(vField), CStr(vFind)) > 0 Then
+          oTask.SetField vField, Replace(oTask.GetField(vField), CStr(vFind), CStr(vReplace))
+          rstReplaced.AddNew Array("UID"), Array(oTask.UniqueID)
+          rstReplaced.Update
           lngFound = lngFound + 1
         End If
       End If
     Next vField
 next_task:
-  Next Task
+  Next oTask
 
   If lngFound = 0 Then
     MsgBox "No instances of '" & CStr(vFind) & "' found in selected cells.", vbExclamation + vbOKOnly, "MyReplace"
   Else
-    FilterEdit "cptMyReplace", True, True, True, False, , "Unique ID", , "equals", arrReplaced.getKey(0), "Or", True
-    For lngItem = 1 To arrReplaced.Count - 1
-      FilterEdit "cptMyReplace", TaskFilter:=True, FieldName:="", NewFieldName:="Unique ID", test:="equals", Value:=arrReplaced.getKey(lngItem), Operation:="Or", ShowInMenu:=True
-    Next lngItem
+    rstReplaced.MoveFirst
+    FilterEdit "cptMyReplace", True, True, True, False, , "Unique ID", , "equals", rstReplaced(0), "Or", True
+    Do While Not rstReplaced.EOF
+      FilterEdit "cptMyReplace", TaskFilter:=True, FieldName:="", NewFieldName:="Unique ID", test:="equals", Value:=rstReplaced(0), Operation:="Or", ShowInMenu:=True
+      rstReplaced.MoveNext
+    Loop
     FilterApply "cptMyReplace", True
-    Application.Find "Unique ID", "equals", arrReplaced.getKey(0)
+    rstReplaced.MoveFirst
+    Application.Find "Unique ID", "equals", rstReplaced(0)
     cptSpeed False
     strMsg = "Replaced " & Format(lngFound, "#,##0") & " instance" & IIf(lngFound = 1, "", "s") & " of '" & CStr(vFind) & "' with '" & CStr(vReplace) & "'" & vbCrLf & vbCrLf
     strMsg = strMsg & "Keep highlighted?"
     If MsgBox(strMsg, vbQuestion + vbYesNo, "Replace") = vbNo Then
       cptSpeed True
       FilterApply "All Tasks", True
-      Application.Find "Unique ID", "equals", arrReplaced.getKey(0)
+      Application.Find "Unique ID", "equals", rstReplaced(0)
       cptSpeed False
     End If
   End If
   
 exit_here:
   On Error Resume Next
+  If rstReplaced.State Then rstReplaced.Close
+  Set rstReplaced = Nothing
   Application.CloseUndoTransaction
   cptSpeed False
-  Set arrReplaced = Nothing
-  Set Tasks = Nothing
-  Set Task = Nothing
+  Set oTasks = Nothing
+  Set oTask = Nothing
   Exit Sub
   
 err_here:
@@ -230,15 +265,22 @@ err_here:
 End Sub
 
 Sub cptFindDuplicateTaskNames()
-'requires: msexcel
-'objects
-Dim xlApp As Excel.Application, Workbook As Workbook, Worksheet As Worksheet, rng As Excel.Range, ListObject As ListObject
-'string
-Dim strFileName As String
-'boolean
-Dim blnMaster As Boolean
-'longs
-Dim lgNameCol As Long
+  'objects
+  Dim oExcel As Excel.Application
+  Dim oWorkbook As Workbook
+  Dim oWorksheet As Worksheet
+  Dim oRange As Excel.Range
+  Dim oListObject As ListObject
+  'strings
+  Dim strFileName As String
+  'longs
+  Dim lgNameCol As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnMaster As Boolean
+  'variants
+  'dates
 
   If ActiveProject.Tasks.Count = 0 Then GoTo exit_here
   If ActiveProject.Subprojects.Count > 0 Then blnMaster = True
@@ -246,7 +288,7 @@ Dim lgNameCol As Long
   If Not cptCheckReference("Excel") Then GoTo exit_here
 
   On Error GoTo err_here
-  MapEdit Name:="ExportTaskNames", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="All Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
+  MapEdit Name:="ExportTaskNames", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="Active Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
   If blnMaster Then
     MapEdit Name:="ExportTaskNames", DataCategory:=0, FieldName:="Project", ExternalFieldName:="Project"
   End If
@@ -256,36 +298,36 @@ Dim lgNameCol As Long
   If Dir(strFileName) <> vbNullString Then Kill strFileName
   FileSaveAs Name:=strFileName, FormatID:="MSProject.ACE", Map:="ExportTaskNames"
   
-  Set xlApp = CreateObject("Excel.Application")
-  Set Workbook = xlApp.Workbooks.Open(strFileName)
-  Set Worksheet = Workbook.Sheets(1)
+  Set oExcel = CreateObject("Excel.Application")
+  Set oWorkbook = oExcel.Workbooks.Open(strFileName)
+  Set oWorksheet = oWorkbook.Sheets(1)
   
-  Set ListObject = Worksheet.ListObjects.Add(xlSrcRange, Worksheet.Range(Worksheet.[A1].End(xlToRight), Worksheet.[A1].End(-4121)), , xlYes)
+  Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(-4121)), , xlYes)
   
-  xlApp.ActiveWindow.Zoom = 85
-  ListObject.Range.Columns.AutoFit
-  ListObject.TableStyle = ""
-  Set rng = Worksheet.Range("Table1[Name]")
-  rng.FormatConditions.AddUniqueValues
-  rng.FormatConditions(rng.FormatConditions.Count).SetFirstPriority
-  rng.FormatConditions(1).DupeUnique = xlDuplicate
-  With rng.FormatConditions(1).Font
+  oExcel.ActiveWindow.Zoom = 85
+  oListObject.Range.Columns.AutoFit
+  oListObject.TableStyle = ""
+  Set oRange = oWorksheet.Range("Table1[Name]")
+  oRange.FormatConditions.AddUniqueValues
+  oRange.FormatConditions(oRange.FormatConditions.Count).SetFirstPriority
+  oRange.FormatConditions(1).DupeUnique = xlDuplicate
+  With oRange.FormatConditions(1).Font
     .Color = -16383844
     .TintAndShade = 0
   End With
-  With rng.FormatConditions(1).Interior
+  With oRange.FormatConditions(1).Interior
     .PatternColorIndex = xlAutomatic
     .Color = 13551615
     .TintAndShade = 0
   End With
-  rng.FormatConditions(1).StopIfTrue = False
+  oRange.FormatConditions(1).StopIfTrue = False
   'filter for duplicates
-  lgNameCol = Worksheet.Rows(1).Find("Name", lookat:=xlWhole).Column
-  ListObject.Range.AutoFilter Field:=lgNameCol, Criteria1:=RGB(255, 199, 206), Operator:=xlFilterCellColor
+  lgNameCol = oWorksheet.Rows(1).Find("Name", lookat:=xlWhole).Column
+  oListObject.Range.AutoFilter Field:=lgNameCol, Criteria1:=RGB(255, 199, 206), Operator:=xlFilterCellColor
   'sort by task name (to put duplicates together)
-  ListObject.Sort.SortFields.Clear
-  ListObject.Sort.SortFields.Add2 key:=Worksheet.Range("Table1[[#All],[Name]]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortTextAsNumbers
-  With ListObject.Sort
+  oListObject.Sort.SortFields.Clear
+  oListObject.Sort.SortFields.Add2 key:=oWorksheet.Range("Table1[[#All],[Name]]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortTextAsNumbers
+  With oListObject.Sort
     .Header = xlYes
     .MatchCase = False
     .Orientation = xlTopToBottom
@@ -295,12 +337,12 @@ Dim lgNameCol As Long
 
 exit_here:
   On Error Resume Next
-  Set Workbook = Nothing
-  Set Worksheet = Nothing
-  Set rng = Nothing
-  If Not xlApp Is Nothing Then xlApp.Visible = True
-  Set xlApp = Nothing
-  Set ListObject = Nothing
+  Set oWorkbook = Nothing
+  Set oWorksheet = Nothing
+  Set oRange = Nothing
+  If Not oExcel Is Nothing Then oExcel.Visible = True
+  Set oExcel = Nothing
+  Set oListObject = Nothing
   Exit Sub
   
 err_here:
@@ -314,9 +356,9 @@ Sub cptTrimTaskNames()
   Dim oTask As Task
   'strings
   'longs
-  Dim lgBefore As Long
-  Dim lgAfter As Long
-  Dim lgCount As Long
+  Dim lngBefore As Long
+  Dim lngAfter As Long
+  Dim lngCount As Long
   'integers
   'doubles
   'booleans
@@ -334,20 +376,20 @@ Sub cptTrimTaskNames()
       If oTask.ExternalTask Then GoTo next_task
       Application.StatusBar = "Trimming Task ID " & oTask.ID
       DoEvents
-      lgBefore = Len(oTask.Name)
+      lngBefore = Len(oTask.Name)
       'replace multi-spaces with single space
       oTask.Name = Replace(oTask.Name, cptRegEx(oTask.Name, "\s{2,}"), " ")
       'trim leading and trailing spaces
       oTask.Name = Trim(oTask.Name)
-      lgAfter = Len(oTask.Name)
-      If lgBefore > lgAfter Then lgCount = lgCount + 1
+      lngAfter = Len(oTask.Name)
+      If lngBefore > lngAfter Then lngCount = lngCount + 1
     End If
 next_task:
   Next oTask
 
-  Application.StatusBar = Format(lgCount, "#,##0") & " task names trimmed."
+  Application.StatusBar = Format(lngCount, "#,##0") & " task names trimmed."
 
-  MsgBox Format(lgCount, "#,##0") & " task names trimmed.", vbInformation + vbOKOnly, "Trim Task Names"
+  MsgBox Format(lngCount, "#,##0") & " task names trimmed.", vbInformation + vbOKOnly, "Trim Task Names"
 
 exit_here:
   On Error Resume Next
@@ -363,7 +405,8 @@ End Sub
 
 Sub cptShowText_frm()
 'objects
-Dim Tasks As Tasks, Task As Task
+Dim oTasks As Tasks
+Dim oTask As Task
 'strings
 'longs
 Dim lngItem As Long
@@ -377,16 +420,16 @@ Dim lngItem As Long
   If Not cptModuleExists("cptText_frm") Then GoTo exit_here
 
   On Error Resume Next
-  Set Tasks = ActiveSelection.Tasks
+  Set oTasks = ActiveSelection.Tasks
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If Not Tasks Is Nothing Then
+  If Not oTasks Is Nothing Then
     cptText_frm.lboOutput.Clear
-    For Each Task In Tasks
+    For Each oTask In oTasks
       cptText_frm.lboOutput.AddItem
-      cptText_frm.lboOutput.List(lngItem, 0) = Task.UniqueID
-      cptText_frm.lboOutput.List(lngItem, 1) = Task.Name
+      cptText_frm.lboOutput.List(lngItem, 0) = oTask.UniqueID
+      cptText_frm.lboOutput.List(lngItem, 1) = oTask.Name
       lngItem = lngItem + 1
-    Next Task
+    Next oTask
   End If
 
   Call cptStartEvents
@@ -394,8 +437,8 @@ Dim lngItem As Long
   
 exit_here:
   On Error Resume Next
-  Set Task = Nothing
-  Set Tasks = Nothing
+  Set oTask = Nothing
+  Set oTasks = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptText_bas", "cptShowText_frm", Err, Erl)
@@ -403,27 +446,29 @@ err_here:
   
 End Sub
 
-Sub cptUpdatePreview(Optional strPrepend As String, Optional strAppend As String, Optional strPrefix As String, Optional lgCharacters As Long, Optional lgStartAt As Long, _
-                  Optional lgCountBy As Long, Optional strSuffix As String, Optional strReplaceWhat As String, Optional strReplaceWith As String)
-'objects
-Dim Task As Object
-'strings
-Dim strTaskName As String, strEnumerate As String
-'longs
-Dim lngItem As Long, lgEnumerate As Long
-'integers
-'booleans
-'variants
-'dates
+Sub cptUpdatePreview(Optional strPrepend As String, Optional strAppend As String, Optional strPrefix As String, Optional lngCharacters As Long, Optional lngStartAt As Long, _
+                  Optional lngCountBy As Long, Optional strSuffix As String, Optional strReplaceWhat As String, Optional strReplaceWith As String)
+  'objects
+  Dim oTask As Object
+  'strings
+  Dim strTaskName As String
+  Dim strEnumerate As String
+  'longs
+  Dim lngItem As Long
+  Dim lngEnumerate As Long
+  'integers
+  'booleans
+  'variants
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   For lngItem = 0 To cptText_frm.lboOutput.ListCount - 1
     If IsNull(cptText_frm.lboOutput.List(lngItem, 0)) Then GoTo exit_here
     On Error Resume Next
-    Set Task = ActiveProject.Tasks.UniqueID(cptText_frm.lboOutput.List(lngItem, 0))
+    Set oTask = ActiveProject.Tasks.UniqueID(cptText_frm.lboOutput.List(lngItem, 0))
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-    If Task Is Nothing Then
+    If oTask Is Nothing Then
       If MsgBox("UID " & cptText_frm.lboOutput.List(lngItem, 0) & " not found in " & UCase(ActiveProject.Name) & "! Proceed?", vbCritical + vbYesNo, "Task Not Found") = vbNo Then
         Err.Clear
         GoTo exit_here
@@ -433,7 +478,7 @@ Dim lngItem As Long, lgEnumerate As Long
     End If
     
     'start with the task name
-    strTaskName = Task.Name
+    strTaskName = oTask.Name
     
     If Len(strPrepend) > 0 Then
       strTaskName = Trim(strPrepend) & " " & strTaskName
@@ -449,36 +494,36 @@ Dim lngItem As Long, lgEnumerate As Long
     If cptText_frm.chkIsDirty Then
       strEnumerate = IIf(Len(strPrefix) > 0, strPrefix, cptText_frm.txtPrefix.Value)
 
-      If lgStartAt = 0 Then
+      If lngStartAt = 0 Then
         If cptText_frm.txtStartAt.Value = "" Then
-          lgStartAt = 1
+          lngStartAt = 1
           'cptText_frm.txtStartAt.Value = 1
         Else
-          lgStartAt = CLng(cptText_frm.txtStartAt.Value)
+          lngStartAt = CLng(cptText_frm.txtStartAt.Value)
         End If
       End If
 
-      If lgCountBy = 0 Then
+      If lngCountBy = 0 Then
         If cptText_frm.txtCountBy.Value = "" Then
-          lgCountBy = 1
+          lngCountBy = 1
           'cptText_frm.txtCountBy.Value = 1
         Else
-          lgCountBy = CLng(cptText_frm.txtCountBy.Value)
+          lngCountBy = CLng(cptText_frm.txtCountBy.Value)
         End If
       End If
 
-      lgEnumerate = lgStartAt + (lngItem * lgCountBy)
+      lngEnumerate = lngStartAt + (lngItem * lngCountBy)
 
-      If lgCharacters = 0 Then
+      If lngCharacters = 0 Then
         If cptText_frm.txtCharacters.Value = "" Then
-          lgCharacters = 1
+          lngCharacters = 1
           'cptText_frm.txtCharacters.Value = 1
         Else
-          lgCharacters = CLng(cptText_frm.txtCharacters.Value)
+          lngCharacters = CLng(cptText_frm.txtCharacters.Value)
         End If
       End If
 
-      strEnumerate = strEnumerate & Format(lgEnumerate, String(lgCharacters, "0"))
+      strEnumerate = strEnumerate & Format(lngEnumerate, String(lngCharacters, "0"))
       strEnumerate = strEnumerate & IIf(Len(strSuffix) > 0, strSuffix, cptText_frm.txtSuffix.Value)
       cptText_frm.lboOutput.List(lngItem, 1) = strTaskName & " " & strEnumerate
     Else
@@ -498,7 +543,7 @@ next_item:
 
 exit_here:
   On Error Resume Next
-  Set Task = Nothing
+  Set oTask = Nothing
 
   Exit Sub
 err_here:
