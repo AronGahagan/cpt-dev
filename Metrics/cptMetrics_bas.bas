@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptMetrics_bas"
 '<cpt_version>v1.0.3</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 'add disclaimer: unburdened hours - not meant to be precise - generally within +/- 1%
