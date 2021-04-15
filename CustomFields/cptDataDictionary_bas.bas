@@ -124,7 +124,6 @@ Dim vFieldScope As Variant
       For intField = 1 To dFields.Item(vFieldType)
         lngField = FieldNameToFieldConstant(vFieldType & intField, vFieldScope)
         strFieldName = CustomFieldGetName(lngField)
-        If strFieldName = "CAM" Then Stop
         If Len(strFieldName) > 0 Then
           lngRow = lngRow + 1
           oWorksheet.Cells(lngRow, 1).Value = False
