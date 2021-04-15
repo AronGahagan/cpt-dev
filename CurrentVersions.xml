@@ -269,7 +269,7 @@
 	<Module>
 		<Name>cptText_frm</Name>
 		<FileName>cptText_frm.frm</FileName>
-		<Version>v1.0.4</Version>
+		<Version>v1.1.0</Version>
 		<Type>3</Type>
 		<Directory>Text</Directory>
 	</Module>
