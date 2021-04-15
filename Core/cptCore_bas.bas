@@ -1,12 +1,12 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.8.0</cpt_version>
+'<cpt_version>v1.9.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
-  Private Declare PtrSafe Function GetPrivateProfileString Lib "kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
-  Private Declare PtrSafe Function SetPrivateProfileString Lib "kernel32" Alias "WritePrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpString As Any, ByVal lpFileName As String) As Long
+  Private Declare PtrSafe Function GetPrivateProfileString Lib "Kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
+  Private Declare PtrSafe Function SetPrivateProfileString Lib "Kernel32" Alias "WritePrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpString As Any, ByVal lpFileName As String) As Long
 #Else
   Private Declare Function GetPrivateProfileString lib "kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
   Private Declare Function SetPrivateProfileString lib "kernel32" Alias "WritePrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpString As Any, ByVal lpFileName As String) As Long
@@ -652,9 +652,8 @@ Dim REMatches As Object
 Dim RE As Object
 Dim oStream As Object
 Dim xmlHttpDoc As Object
-Dim arrDirectories As Object
+Dim rstStatus As ADODB.Recordset
 Dim vbComponent As Object
-Dim arrCurrent As Object, arrInstalled As Object
 Dim xmlDoc As Object
 Dim xmlNode As Object
 Dim FindRecord As Object
@@ -677,15 +676,20 @@ Dim vCol As Variant
   'update references needed before downloading updates
   Call cptSetReferences
 
-  'todo:user should still be able to check currently installed versions
+  'todo: user should still be able to check currently installed versions
   If Not cptInternetIsConnected Then
     MsgBox "You must be connected to the internet to perform updates.", vbInformation + vbOKOnly, "No Connection"
     GoTo exit_here
   End If
 
   'get current versions
-  Set arrCurrent = CreateObject("System.Collections.SortedList")
-  Set arrDirectories = CreateObject("System.Collections.SortedList")
+  Set rstStatus = CreateObject("ADODB.Recordset")
+  rstStatus.Fields.Append "Name", 200, 200
+  rstStatus.Fields.Append "Directory", 200, 200
+  rstStatus.Fields.Append "Current", 200, 200
+  rstStatus.Fields.Append "Installed", 200, 200
+  rstStatus.Fields.Append "Status", 200, 200
+  rstStatus.Open
   Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
   xmlDoc.async = False
   xmlDoc.validateOnParse = False
@@ -697,52 +701,62 @@ Dim vCol As Variant
     GoTo exit_here
   Else
     For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
-      arrCurrent.Add xmlNode.SelectSingleNode("Name").Text, xmlNode.SelectSingleNode("Version").Text
-      arrDirectories.Add xmlNode.SelectSingleNode("Name").Text, xmlNode.SelectSingleNode("Directory").Text
-    Next
+      rstStatus.AddNew
+      rstStatus(0) = xmlNode.SelectSingleNode("Name").Text
+      rstStatus(1) = xmlNode.SelectSingleNode("Directory").Text
+      rstStatus(2) = xmlNode.SelectSingleNode("Version").Text
+      rstStatus.Update
+    Next xmlNode
   End If
 
   'get installed versions
-  Set arrInstalled = CreateObject("System.Collections.SortedList")
   blnUpdatesAreAvailable = False
   For Each vbComponent In ThisProject.VBProject.VBComponents
     'is the vbComponent one of ours?
-    If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
+    If vbComponent.CodeModule.Find("'<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
       strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
       strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
-      arrInstalled.Add vbComponent.Name, strVersion
+      rstStatus.MoveFirst
+      rstStatus.Find "Name='" & vbComponent.Name & "'", , 1
+      rstStatus(3) = strVersion
+      rstStatus(4) = cptVersionStatus(rstStatus(2), strVersion)
+      rstStatus.Update
     End If
   Next vbComponent
   Set vbComponent = Nothing
 
   'if cptUpgrade_frm is updated, install it automatically
-  If arrInstalled.Contains("cptUpgrades_frm") And arrCurrent.Contains("cptUpgrades_frm") Then
-    If cptVersionStatus(arrInstalled("cptUpgrades_frm"), arrCurrent("cptUpgrades_frm")) <> "ok" Then
-      Call cptUpgrade(arrDirectories("cptUpgrades_frm") & "/cptUpgrades_frm.frm") 'uri slash
-      'update the version number in the array
-      arrInstalled.Item("cptUpgrades_frm") = arrCurrent("cptUpgrades_frm")
-    End If
+
+
+
+  rstStatus.MoveFirst
+  rstStatus.Find "Name='cptUpgrades_frm'", , 1
+  If cptVersionStatus(rstStatus(2), rstStatus(3)) <> "ok" Then
+    Call cptUpgrade(rstStatus(1) & "/cptUpgrades_frm.frm")
+    rstStatus(3) = rstStatus(2)
+    rstStatus.Update
   End If
   
   'cannot auto upgrade cptCore_bas because this is the cptCore_bas module so use cptPatch_bas
   'if cptPatch_bas is updated, install it automatically and run it
-  If arrInstalled.Contains("cptPatch_bas") And arrCurrent.Contains("cptPatch_bas") Then
-    If cptVersionStatus(arrInstalled("cptPatch_bas"), arrCurrent("cptPatch_bas")) <> "ok" Then
-      Call cptUpgrade(arrDirectories("cptPatch_bas") & "/cptPatch_bas") 'uri slash
-      'update the version numer in the array
-      arrInstalled.Item("cptPatch_bas") = arrCurrent("cptPatch_bas")
-      'Call cptApplyPatch
-      
-      '/=== temp fix to cptPatch_bas private/public issue ===\
-      'patch code goes here
-      Application.StatusBar = "Applying patch 21.04.10..."
-      If Not cptReferenceExists("VBScript_RegExp_55") Then
-        ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\System32\vbscript.dll\3"
-      End If
-      '\=== temp fix to cptPatch_bas private/public issue ===/
-      
+  rstStatus.MoveFirst
+  rstStatus.Find "Name='cptPatch_bas'", , 1
+  If cptVersionStatus(rstStatus(2), rstStatus(3)) <> "ok" Then
+    Call cptUpgrade(rstStatus(1) & "/cptPatch_bas.bas")
+    rstStatus(3) = rstStatus(2)
+    rstStatus.Update
+    
+    '/=== temp fix to cptPatch_bas private/public issue ===\
+    'patch code goes here
+    Application.StatusBar = "Applying patch 21.04.10..."
+    If Not cptReferenceExists("VBScript_RegExp_55") Then
+      ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\System32\vbscript.dll\3"
     End If
+    '\=== temp fix to cptPatch_bas private/public issue ===/
+    
   End If
+
+
 
   'populate the listbox header
   lngItem = 0
@@ -755,37 +769,36 @@ Dim vCol As Variant
 
   'populate the listbox
   cptUpgrades_frm.lboModules.Clear
-  For lngItem = 0 To arrCurrent.Count - 1
-    'If arrCurrent.getKey(lngItem) = "ThisProject" Then GoTo next_lngItem '</issue25'
-    strCurVer = arrCurrent.getValueList()(lngItem)
-    If arrInstalled.Contains(arrCurrent.getKey(lngItem)) Then
-      strInstVer = arrInstalled.getValueList()(arrInstalled.indexOfKey(arrCurrent.getKey(lngItem)))
+  rstStatus.MoveFirst
+  lngItem = 0
+  Do While Not rstStatus.EOF
+    strCurVer = rstStatus(2)
+    If Not IsNull(rstStatus(3)) Then
+      strInstVer = rstStatus(3)
     Else
       strInstVer = "<not installed>"
     End If
     cptUpgrades_frm.lboModules.AddItem
-    cptUpgrades_frm.lboModules.List(lngItem, 0) = arrCurrent.getKey(lngItem) 'module name
-    cptUpgrades_frm.lboModules.List(lngItem, 1) = arrDirectories.getValueList()(lngItem) 'directory
-    cptUpgrades_frm.lboModules.List(lngItem, 2) = strCurVer 'arrCurrent.getValueList()(lngItem) 'current version
-    If arrInstalled.Contains(arrCurrent.getKey(lngItem)) Then 'installed version
-      cptUpgrades_frm.lboModules.List(lngItem, 3) = strInstVer 'arrInstalled.getValueList()(arrInstalled.indexOfKey(arrCurrent.getKey(lngItem)))
-    Else
-      cptUpgrades_frm.lboModules.List(lngItem, 3) = "<not installed>"
-    End If
-
-    Select Case strInstVer 'cptUpgrades_frm.lboModules.List(lngItem, 3)
-      Case Is = strCurVer 'cptUpgrades_frm.lboModules.List(lngItem, 2)
+    cptUpgrades_frm.lboModules.List(lngItem, 0) = rstStatus(0) 'module name
+    cptUpgrades_frm.lboModules.List(lngItem, 1) = rstStatus(1) 'directory
+    cptUpgrades_frm.lboModules.List(lngItem, 2) = strCurVer 'current version
+    cptUpgrades_frm.lboModules.List(lngItem, 3) = strInstVer 'installed version
+    
+    Select Case strInstVer
+      Case Is = strCurVer
         cptUpgrades_frm.lboModules.List(lngItem, 4) = "< ok >"
       Case Is = "<not installed>"
         cptUpgrades_frm.lboModules.List(lngItem, 4) = "< install >"
-      Case Is <> strCurVer 'cptUpgrades_frm.lboModules.List(lngItem, 2)
+      Case Is <> strCurVer
         cptUpgrades_frm.lboModules.List(lngItem, 4) = "< " & cptVersionStatus(strInstVer, strCurVer) & " >"
     End Select
     'capture the type while we're at it - could have just pulled the FileName
     Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + cptUpgrades_frm.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
     cptUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
 next_lngItem:
-  Next lngItem
+    lngItem = lngItem + 1
+    rstStatus.MoveNext
+  Loop
   
   'populate branches
   Set xmlHttpDoc = CreateObject("MSXML2.XMLHTTP.6.0")
@@ -818,16 +831,15 @@ next_lngItem:
 
 exit_here:
   On Error Resume Next
+  If rstStatus.State Then rstStatus.Close
+  Set rstStatus = Nothing
   Set REMatch = Nothing
   Set REMatches = Nothing
   Set RE = Nothing
   Set oStream = Nothing
   Set xmlHttpDoc = Nothing
   Application.StatusBar = ""
-  Set arrDirectories = Nothing
   Set vbComponent = Nothing
-  Set arrCurrent = Nothing
-  Set arrInstalled = Nothing
   Set xmlDoc = Nothing
   Set xmlNode = Nothing
   Set FindRecord = Nothing
