@@ -682,14 +682,16 @@ Dim vCol As Variant
     GoTo exit_here
   End If
 
-  'get current versions
+  'set up the recordset
   Set rstStatus = CreateObject("ADODB.Recordset")
-  rstStatus.Fields.Append "Name", 200, 200
+  rstStatus.Fields.Append "Module", 200, 200
   rstStatus.Fields.Append "Directory", 200, 200
   rstStatus.Fields.Append "Current", 200, 200
   rstStatus.Fields.Append "Installed", 200, 200
   rstStatus.Fields.Append "Status", 200, 200
   rstStatus.Open
+  
+  'get current versions
   Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
   xmlDoc.async = False
   xmlDoc.validateOnParse = False
@@ -717,10 +719,12 @@ Dim vCol As Variant
       strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
       strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
       rstStatus.MoveFirst
-      rstStatus.Find "Name='" & vbComponent.Name & "'", , 1
-      rstStatus(3) = strVersion
-      rstStatus(4) = cptVersionStatus(rstStatus(2), strVersion)
-      rstStatus.Update
+      rstStatus.Find "Module='" & vbComponent.Name & "'", , 1
+      If Not rstStatus.EOF Then
+        rstStatus(3) = strVersion
+        rstStatus(4) = cptVersionStatus(rstStatus(2), strVersion)
+        rstStatus.Update
+      End If
     End If
   Next vbComponent
   Set vbComponent = Nothing
@@ -730,7 +734,7 @@ Dim vCol As Variant
 
 
   rstStatus.MoveFirst
-  rstStatus.Find "Name='cptUpgrades_frm'", , 1
+  rstStatus.Find "Module='cptUpgrades_frm'", , 1
   If cptVersionStatus(rstStatus(2), rstStatus(3)) <> "ok" Then
     Call cptUpgrade(rstStatus(1) & "/cptUpgrades_frm.frm")
     rstStatus(3) = rstStatus(2)
@@ -740,7 +744,7 @@ Dim vCol As Variant
   'cannot auto upgrade cptCore_bas because this is the cptCore_bas module so use cptPatch_bas
   'if cptPatch_bas is updated, install it automatically and run it
   rstStatus.MoveFirst
-  rstStatus.Find "Name='cptPatch_bas'", , 1
+  rstStatus.Find "Module='cptPatch_bas'", , 1
   If cptVersionStatus(rstStatus(2), rstStatus(3)) <> "ok" Then
     Call cptUpgrade(rstStatus(1) & "/cptPatch_bas.bas")
     rstStatus(3) = rstStatus(2)
@@ -769,6 +773,7 @@ Dim vCol As Variant
 
   'populate the listbox
   cptUpgrades_frm.lboModules.Clear
+  rstStatus.Sort = "Module"
   rstStatus.MoveFirst
   lngItem = 0
   Do While Not rstStatus.EOF
