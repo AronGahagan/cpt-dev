@@ -44,7 +44,7 @@ Function cptGetCustomFieldGUID(ByVal FieldName As String) As String
     
     settingsFile = GetSettingsFile
 
-    cptGetCustomFieldName = GetPrivateProfileString(settingsFile, FieldName, "GUID")
+    cptGetCustomFieldGUID = GetPrivateProfileString(settingsFile, FieldName, "GUID")
     
 End Function
 
