@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>v1.1.2</cpt_version>
+'<cpt_version>v1.1.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -66,7 +66,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFilterByClipboard_bas", "cptShowFilterByClipboard_frm", Err, Erl)
+  Call cptHandleErr("cptFilterByClipboard_bas", "cptShowFilterByClipboard_frm", err, Erl)
   Resume exit_here
   
 End Sub
@@ -100,7 +100,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFilterByClipboard_bas", "cptCliipboardJump", Err, Erl)
+  Call cptHandleErr("cptFilterByClipboard_bas", "cptCliipboardJump", err, Erl)
   Resume exit_here
 End Sub
 
@@ -200,13 +200,13 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFilterByClipboard_bas", "cptUpdateClipboard", Err, Erl)
+  Call cptHandleErr("cptFilterByClipboard_bas", "cptUpdateClipboard", err, Erl)
   Resume exit_here
 End Sub
 
 Function cptGuessDelimiter(ByRef vData As Variant, strRegEx As String) As Long
 'objects
-Dim aScores As SortedList
+Dim dScores As Scripting.Dictionary
 Dim RE As Object
 Dim REMatches As Object
 'strings
@@ -232,21 +232,20 @@ Dim REMatch As Variant
       .Pattern = strRegEx
   End With
   
-  Set aScores = CreateObject("System.Collections.SortedList")
+  Set dScores = CreateObject("Scripting.Dictionary")
   
   'check all "^([^\t\,\;]*[\t\,\;])"
   RE.Pattern = "^([^\t\,\;]*[\t\,\;])"
-  
   For lngItem = 0 To UBound(vData)
     Set REMatches = RE.Execute(CStr(vData(lngItem)))
     For Each REMatch In REMatches
       lngMatch = Asc(Right(REMatch, 1))
-      If aScores.Contains(lngMatch) Then
+      If dScores.Exists(lngMatch) Then
         'add a point
-        aScores.Item(lngMatch) = aScores.Item(lngMatch) + 1
-        If aScores.Item(lngMatch) > lngMax Then lngMax = aScores.Item(lngMatch)
+        dScores.Item(lngMatch) = dScores.Item(lngMatch) + 1
+        If dScores.Item(lngMatch) > lngMax Then lngMax = dScores.Item(lngMatch)
       Else
-        aScores.Add lngMatch, 1
+        dScores.Add lngMatch, 1
       End If
     Next
   Next lngItem
@@ -258,22 +257,28 @@ Dim REMatch As Variant
     Set REMatches = RE.Execute(CStr(vData(lngItem)))
     For Each REMatch In REMatches
       lngMatch = Asc(Right(REMatch, 1))
-      If aScores.Contains(lngMatch) Then
+      If dScores.Exists(lngMatch) Then
         'add a point
-        aScores.Item(lngMatch) = aScores.Item(lngMatch) + 1
-        If aScores.Item(lngMatch) > lngMax Then lngMax = aScores.Item(lngMatch)
+        dScores.Item(lngMatch) = dScores.Item(lngMatch) + 1
+        If dScores.Item(lngMatch) > lngMax Then lngMax = dScores.Item(lngMatch)
       Else
-        aScores.Add lngMatch, 1
+        dScores.Add lngMatch, 1
       End If
     Next
 skip_it:
   Next lngItem
-  Err.Clear
+  err.Clear
   
   On Error Resume Next
-  'todo: this doesn't work if there is a 'tie'
-  lngMatch = aScores.GetKeyList()(aScores.IndexOfValue(lngMax))
-  If Err.Number > 0 Then
+  'which delimiter got the most points?
+  'todo: this doesn't work if there is a tie
+  For lngItem = 0 To dScores.Count - 1
+    If dScores.Items(lngItem) = lngMax Then
+      lngMatch = dScores.Keys(lngItem)
+      Exit For
+    End If
+  Next lngItem
+  If err.Number > 0 Then
     cptGuessDelimiter = 0
   Else
     cptGuessDelimiter = lngMatch
@@ -281,16 +286,16 @@ skip_it:
 
 exit_here:
   On Error Resume Next
-  Set aScores = Nothing
+  Set dScores = Nothing
   Set RE = Nothing
   Set REMatches = Nothing
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptFilterByClipboard_bas", "cptGuessDelimiter", Err, Erl)
-  If Err.Number = 5 Then
+  Call cptHandleErr("cptFilterByClipboard_bas", "cptGuessDelimiter", err, Erl)
+  If err.Number = 5 Then
     cptGuessDelimiter = 0
-    Err.Clear
+    err.Clear
   End If
   Resume exit_here
 End Function
@@ -377,7 +382,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptFilterByClipboard", "cptGetFreeField", Err)
+  Call cptHandleErr("cptFilterByClipboard", "cptGetFreeField", err)
   Resume exit_here
 End Function
 
@@ -422,7 +427,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFilterByClipboard_bas", "cptClearFreeField", Err, Erl)
+  Call cptHandleErr("cptFilterByClipboard_bas", "cptClearFreeField", err, Erl)
   Resume exit_here
   
 End Sub
