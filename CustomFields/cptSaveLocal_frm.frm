@@ -60,7 +60,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "cmdCustomFields_Click()", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "cmdCustomFields_Click()", err, Erl)
   Resume exit_here
   
 End Sub
@@ -167,7 +167,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "cmdUnmap", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "cmdUnmap", err, Erl)
   Resume exit_here
 End Sub
 
@@ -205,7 +205,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "lblURL_Click", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "lblURL_Click", err, Erl)
   Resume exit_here
 
 End Sub
@@ -261,7 +261,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "lboECF_Change", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "lboECF_Change", err, Erl)
   Resume exit_here
 End Sub
 
@@ -344,7 +344,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "lboECF_Click", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "lboECF_Click", err, Erl)
   Resume exit_here
 End Sub
 
@@ -403,7 +403,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "tglAutoMap_Click", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "tglAutoMap_Click", err, Erl)
   Resume exit_here
 End Sub
 
@@ -417,12 +417,24 @@ End Sub
 
 Private Sub UserForm_Terminate()
 
-If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  If Len(strStartView) > 0 Then ViewApply strStartView, True
-  If Len(strStartTable) > 0 Then TableApply strStartTable
-  If Len(strStartFilter) > 0 Then FilterApply strStartFilter
-  If Len(strStartGroup) > 0 Then GroupApply strStartGroup
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  On Error Resume Next
+  If Len(strStartView) > 0 Then
+    If Not ViewApply(strStartView, True) Then ViewApply "Gantt Chart"
+  End If
+  If Len(strStartTable) > 0 Then
+    If strStartTable = ".cptSaveLocal Task Table" Then
+      TableApply "Entry"
+    Else
+      If Not TableApply(strStartTable) Then TableApply "Entry"
+    End If
+  End If
+  If Len(strStartFilter) > 0 Then
+    If Not FilterApply(strStartFilter) Then FilterApply "All Tasks"
+  End If
+  If Len(strStartGroup) > 0 Then
+    If Not GroupApply(strStartGroup) Then GroupApply "No Group"
+  End If
   
   If ActiveProject.CurrentView = ".cptSaveLocal Task View" Then ViewApply "Gantt Chart"
   On Error Resume Next
@@ -436,6 +448,6 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "Terminate", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "Terminate", err, Erl)
   Resume exit_here
 End Sub

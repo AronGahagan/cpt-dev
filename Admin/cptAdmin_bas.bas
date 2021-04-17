@@ -6,9 +6,10 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
 
 Sub cptCreateCurrentVersionsXML(Optional strRepo As String)
 'objects
-Dim arrModules As Object
-Dim arrTypes As Object
-Dim oStream As Object, vbComponent As Object 'adodb.stream
+Dim rstModules As ADODB.Recordset
+Dim dTypes As Scripting.Dictionary
+Dim oStream As Object
+Dim vbComponent As Object 'adodb.stream
 'strings
 Dim strMsg As String
 Dim strModule As String
@@ -25,7 +26,10 @@ Dim lngFile As Long
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
+  'do not use this
+  Exit Sub
+  
   'confirm repo selected
   If Len(frmGitVBA.cboRepo.Value) = 0 Or Dir(frmGitVBA.cboRepo.Value & "\.git\", vbDirectory) = vbNullString Then
     MsgBox "Please select a valid git repo.", vbExclamation + vbOKOnly, "Nope"
@@ -49,51 +53,48 @@ Dim lngFile As Long
   'measure twice...
   If MsgBox("Writing to repo (branch): " & vbCrLf & strRepo & " (" & strBranch & ")", vbQuestion + vbYesNo, "Please Confirm") = vbNo Then GoTo exit_here
 
-  'use arrTypes
-  Set arrTypes = CreateObject("System.Collections.SortedList")
-  arrTypes.Add 1, ".bas"
-  arrTypes.Add 2, ".cls"
-  arrTypes.Add 3, ".frm"
-  arrTypes.Add 100, ".cls"
-
+  'use dTypes
+  Set dTypes = CreateObject("Scripting.Dictionary")
+  dTypes.Add 1, ".bas"
+  dTypes.Add 2, ".cls"
+  dTypes.Add 3, ".frm"
+  dTypes.Add 100, ".cls"
+  
   '<issue18> sort the list to limit merge conflicts - added
-  Set arrModules = CreateObject("System.Collections.SortedList")
+  Set rstModules = CreateObject("ADODB.Recordset")
+  rstModules.Fields.Append "Module", adVarChar, 200
+  rstModules.Open
   For Each vbComponent In ThisProject.VBProject.VBComponents
     If vbComponent.Name = "cptAdmin_bas" Then GoTo next_vbComponent
     If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
-      arrModules.Add vbComponent.Name, vbComponent.Name
+      rstModules.AddNew Array(0), Array(vbComponent.Name)
+      rstModules.Update
     End If
 next_vbComponent:
   Next vbComponent
-  '</issue18>
 
   'write xml
   strXML = "<?xml version=""1.0"" encoding=""utf-8"" ?>" & vbCrLf
   strXML = strXML & "<Modules>" & vbCrLf
-  '<issue18>removed
-  'For Each vbComponent In ThisProject.VBProject.VBComponents - removed
-  '  If vbComponent.Name = "cptAdmin_bas" Then GoTo next_vbComponent - removed
-  '  If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then - removed
-  '</issue18>
-  For lngItem = 0 To arrModules.Count - 1
-    Set vbComponent = ThisProject.VBProject.VBComponents(arrModules.getKey(lngItem))
-    Debug.Print arrModules.getKey(lngItem)
+  lngItem = 0
+  rstModules.Sort = "Module"
+  rstModules.MoveFirst
+  Do While Not rstModules.EOF
+    Set vbComponent = ThisProject.VBProject.VBComponents(rstModules(lngItem))
+    Debug.Print rstModules(lngItem)
     strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
     strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
     strXML = strXML & String(1, vbTab) & "<Module>" & vbCrLf
     strModule = Replace(vbComponent.Name, cptRegEx(vbComponent.Name, "_frm|_bas|_cls"), "")
     strXML = strXML & String(2, vbTab) & "<Name>" & vbComponent.Name & "</Name>" & vbCrLf
-    strXML = strXML & String(2, vbTab) & "<FileName>" & vbComponent.Name & arrTypes(CInt(vbComponent.Type)) & "</FileName>" & vbCrLf
+    strXML = strXML & String(2, vbTab) & "<FileName>" & vbComponent.Name & dTypes(CInt(vbComponent.Type)) & "</FileName>" & vbCrLf
     strXML = strXML & String(2, vbTab) & "<Version>" & strVersion & "</Version>" & vbCrLf
     strXML = strXML & String(2, vbTab) & "<Type>" & vbComponent.Type & "</Type>" & vbCrLf
     strDirectory = Replace(vbComponent.Name, cptRegEx(vbComponent.Name, "_frm|_bas|_cls"), "")
     strXML = strXML & String(2, vbTab) & "<Directory>" & Replace(cptSetDirectory(CStr(vbComponent.Name)), "\", "") & "</Directory>" & vbCrLf
     strXML = strXML & String(1, vbTab) & "</Module>" & vbCrLf
-  Next lngItem
-  '<issue18>  End If - removed
-'next_vbComponent: - removed
-  'Next vbComponent - removed
-  '</issue18>
+    lngItem = lngItem + 1
+  Loop
   strXML = strXML & "</Modules>" & vbCrLf
 
   'ensure correct branch is active
@@ -102,12 +103,12 @@ next_vbComponent:
 
   'write to the file
   Set oStream = CreateObject("ADODB.Stream")
-  oStream.Type = 2 'adTypeText
+  oStream.Type = adTypeText
   oStream.Charset = "utf-8"
   strFileName = strRepo & "CurrentVersions.xml"
   oStream.Open
   oStream.WriteText strXML
-  oStream.SaveToFile strFileName, 2 'adSaveCreateOverWrite
+  oStream.SaveToFile strFileName, adSaveCreateOverWrite
   oStream.Close
   Set oStream = Nothing
 
@@ -116,15 +117,16 @@ next_vbComponent:
 
 exit_here:
   On Error Resume Next
-  Set arrModules = Nothing
-  Set arrTypes = Nothing
+  If rstModules.State Then rstModules.Close
+  Set rstModules = Nothing
+  Set dTypes = Nothing
   Set vbComponent = Nothing
   If oStream.State <> adStateClosed Then oStream.Close
   Set oStream = Nothing
   Exit Sub
 
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "CreateCurrentVersionXML", Err)
+  Call cptHandleErr("cptAdmin_bas", "cptCreateCurrentVersionXML", err)
   Resume exit_here
 
 End Sub
@@ -212,7 +214,7 @@ exit_here:
   Set xlApp = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "Document", Err)
+  Call cptHandleErr("cptAdmin_bas", "Document", err)
   Resume exit_here
 End Sub
 
@@ -251,6 +253,8 @@ Dim strDirectory As String
       strDirectory = "Trace"
     Case "CriticalPathTools"
       strDirectory = "Trace"
+    Case "CritPathFields"
+      strDirectory = "Trace"
     Case "CheckAssignments"
       strDirectory = "Integration"
     Case "DataDictionary"
@@ -259,16 +263,24 @@ Dim strDirectory As String
       strDirectory = "Text"
     Case "Events"
       strDirectory = "Core"
+    Case "FilterByClipboard"
+      strDirectory = "Text"
     Case "Graphics"
       strDirectory = "Metrics"
     Case "IMSCobraExport"
       strDirectory = "Integration"
     Case "IPMDAR"
       strDirectory = "Status"
+    Case "IPMDARMapping"
+      strDirectory = "Status"
+    Case "NetworkBrowser"
+      strDirectory = "Trace"
     Case "Patch"
       strDirectory = ""
     Case "SaveLocal"
       strDirectory = "CustomFields"
+    Case "SaveMarked"
+      strDirectory = "Trace"
     Case "Setup"
       strDirectory = ""
     Case "SmartDuration"
@@ -295,7 +307,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "cptSetDirectory()", Err)
+  Call cptHandleErr("cptAdmin_bas", "cptSetDirectory()", err)
   Resume exit_here
 
 End Function
@@ -358,7 +370,7 @@ exit_here:
   Set cn = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "cptSQL", Err, Erl)
+  Call cptHandleErr("cptAdmin_bas", "cptSQL", err, Erl)
   Resume exit_here
 End Sub
 
@@ -368,6 +380,7 @@ Sub cptLoadModulesFromPath()
   Dim oFSO As Scripting.FileSystemObject
   Dim oFolder As Scripting.Folder
   Dim oFile As Scripting.File
+  Dim oVBProject As VBProject
   'strings
   Dim strDir As String
   'longs
@@ -379,24 +392,33 @@ Sub cptLoadModulesFromPath()
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  strDir = "C:\Users\arong\GitHub\cpt-dev"
+  'update this before running - NOT THE GLOBAL!
+  Set oVBProject = VBE.VBProjects(3)
+
+  If MsgBox("Did you update the VBProjects(x)?", vbQuestion + vbYesNo, "Confirm") = vbNo Then GoTo exit_here
+
+  strDir = Environ("USERPROFILE") & "\GitHub\cpt-dev"
   
   Set oFSO = CreateObject("Scripting.FileSystemObject")
   Set oFolder = oFSO.GetFolder(strDir)
   For Each oFile In oFolder.Files
     If Len(cptRegEx(oFile.Name, "bas$|frm$|cls$")) > 0 Then
       Debug.Print "Importing " & oFile.Name & "..."
-      VBE.VBProjects(3).VBComponents.Import oFile.path
+      oVBProject.VBComponents.Import oFile.path
     End If
   Next oFile
   For Each oSubFolder In oFolder.SubFolders
+    If oSubFolder.Name = "Admin" Then GoTo next_subfolder
     For Each oFile In oSubFolder.Files
       If Len(cptRegEx(oFile.Name, "bas$|frm$|cls$")) > 0 Then
         Debug.Print "Importing " & oFile.Name & "..."
-        VBE.VBProjects(3).VBComponents.Import oFile.path
+        oVBProject.VBComponents.Import oFile.path
       End If
     Next oFile
+next_subfolder:
   Next oSubFolder
+  
+  MsgBox "Run cptSetReferences in newly created file.", vbExclamation + vbOKOnly, "Don't Forget:"
   
 exit_here:
   On Error Resume Next
@@ -404,9 +426,33 @@ exit_here:
   Set oFolder = Nothing
   Set oFile = Nothing
   Set oFSO = Nothing
-
+  Set oVBProject = Nothing
+  
   Exit Sub
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "cptLoadModulesFromPath", Err, Erl)
+  Call cptHandleErr("cptAdmin_bas", "cptLoadModulesFromPath", err, Erl)
   Resume exit_here
 End Sub
+
+Function cptGetAllSettings(strSection)
+  Dim vSettings As Variant
+  Dim intSetting As Integer
+  vSettings = GetAllSettings("ClearPlanToolbar", strSection)
+  For intSetting = LBound(vSettings, 1) To UBound(vSettings, 1)
+    Debug.Print vSettings(intSetting, 0) & "=" & vSettings(intSetting, 1)
+  Next
+End Function
+
+Function cptGetLongestLine() As Long
+  Dim vbComponent As vbComponent, lngLine As Long, lngMax As Long, lngLineLength As Long
+  For Each vbComponent In ThisProject.VBProject.VBComponents
+    For lngLine = 1 To vbComponent.CodeModule.CountOfLines
+      lngLineLength = Len(vbComponent.CodeModule.Lines(lngLine, 1))
+      If lngLineLength > lngMax Then
+        lngMax = lngLineLength
+      End If
+    Next lngLine
+  Next vbComponent
+  cptGetLongestLine = lngMax
+  Set vbComponent = Nothing
+End Function

@@ -14,14 +14,14 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.0</cpt_version>
+'<cpt_version>v1.3.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cmdApply_Click()
 'objects
-Dim Task As Object
+Dim oTask As Task
 'strings
 'longs
 Dim lngItem As Long
@@ -38,9 +38,9 @@ Dim lngItem As Long
   For lngItem = 0 To Me.lboOutput.ListCount - 1
     If IsNull(cptText_frm.lboOutput.List(lngItem, 0)) Then GoTo exit_here
     On Error Resume Next
-    Set Task = ActiveProject.Tasks.UniqueID(Me.lboOutput.List(lngItem, 0))
+    Set oTask = ActiveProject.Tasks.UniqueID(Me.lboOutput.List(lngItem, 0))
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-    If Task Is Nothing Then
+    If oTask Is Nothing Then
       If MsgBox("UID " & cptText_frm.lboOutput.List(lngItem, 0) & " not found in Project: '" & ActiveProject.Name & "'! Proceed?", vbCritical + vbYesNo, "Task Not Found") = vbNo Then
         Err.Clear
         GoTo exit_here
@@ -48,14 +48,14 @@ Dim lngItem As Long
         GoTo next_item
       End If
     End If
-    Task.Name = Me.lboOutput.List(lngItem, 1)
+    oTask.Name = Me.lboOutput.List(lngItem, 1)
 next_item:
   Next lngItem
 
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
-  Set Task = Nothing
+  Set oTask = Nothing
   Call cptStartEvents
   Exit Sub
 err_here:
@@ -154,7 +154,7 @@ Dim strCharacters As String
     Me.txtCharacters.Text = strCharacters
     Me.chkIsDirty = True
     If Len(strCharacters) > 0 Then
-      Call cptUpdatePreview(lgCharacters:=CLng(strCharacters))
+      Call cptUpdatePreview(lngCharacters:=CLng(strCharacters))
     Else
       Call cptUpdatePreview
     End If
@@ -183,7 +183,7 @@ Dim strCountBy As String
     Me.txtCountBy.Text = strCountBy
     Me.chkIsDirty = True
     If Len(strCountBy) > 0 Then
-      Call cptUpdatePreview(lgCountBy:=CLng(strCountBy))
+      Call cptUpdatePreview(lngCountBy:=CLng(strCountBy))
     Else
       Call cptUpdatePreview
     End If
@@ -301,7 +301,7 @@ Dim strStartAt As String
     strStartAt = cptRegEx(Me.txtStartAt.Text, "[0-9]*")
     Me.txtStartAt.Text = strStartAt
     If Len(strStartAt) > 0 Then
-      Call cptUpdatePreview(lgStartAt:=CLng(strStartAt))
+      Call cptUpdatePreview(lngStartAt:=CLng(strStartAt))
     Else
       Call cptUpdatePreview
     End If

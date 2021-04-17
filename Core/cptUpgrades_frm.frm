@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.4.1</cpt_version>
+'<cpt_version>v1.5.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -22,11 +22,9 @@ Private Sub cboBranches_Change()
   'objects
   Dim FindRecord As Object
   Dim vbComponent As Object
-  Dim arrInstalled As Object
+  Dim rstStatus As ADODB.Recordset
   Dim xmlNode As Object
   Dim xmlDoc As Object
-  Dim arrDirectories As Object
-  Dim arrCurrent As Object
   'strings
   Dim strInstVer As String
   Dim strCurVer As String
@@ -43,10 +41,17 @@ Private Sub cboBranches_Change()
   'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
+  'set up the recordset
+  Set rstStatus = CreateObject("ADODB.Recordset")
+  rstStatus.Fields.Append "Module", 200, 200
+  rstStatus.Fields.Append "Directory", 200, 200
+  rstStatus.Fields.Append "Current", 200, 200
+  rstStatus.Fields.Append "Installed", 200, 200
+  rstStatus.Fields.Append "Status", 200, 200
+  rstStatus.Open
+  
   'get current versions
-  Set arrCurrent = CreateObject("System.Collections.SortedList")
-  Set arrDirectories = CreateObject("System.Collections.SortedList")
   Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
   xmlDoc.async = False
   xmlDoc.validateOnParse = False
@@ -61,20 +66,28 @@ Private Sub cboBranches_Change()
     GoTo exit_here
   Else
     For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
-      arrCurrent.Add xmlNode.SelectSingleNode("Name").Text, xmlNode.SelectSingleNode("Version").Text
-      arrDirectories.Add xmlNode.SelectSingleNode("Name").Text, xmlNode.SelectSingleNode("Directory").Text
+      rstStatus.AddNew
+      rstStatus(0) = xmlNode.SelectSingleNode("Name").Text
+      rstStatus(1) = xmlNode.SelectSingleNode("Directory").Text
+      rstStatus(2) = xmlNode.SelectSingleNode("Version").Text
+      rstStatus.Update
     Next
   End If
 
   'get installed versions
-  Set arrInstalled = CreateObject("System.Collections.SortedList")
   blnUpdatesAreAvailable = False
   For Each vbComponent In ThisProject.VBProject.VBComponents
     'is the vbComponent one of ours?
     If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
       strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
       strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
-      arrInstalled.Add vbComponent.Name, strVersion
+      rstStatus.MoveFirst
+      rstStatus.Find "Module='" & vbComponent.Name & "'", , 1
+      If Not rstStatus.EOF Then
+        rstStatus(3) = strVersion
+        rstStatus(4) = cptVersionStatus(rstStatus(2), strVersion)
+        rstStatus.Update
+      End If
     End If
   Next vbComponent
   Set vbComponent = Nothing
@@ -90,47 +103,46 @@ Private Sub cboBranches_Change()
 
   'populate the listbox
   Me.lboModules.Clear
-  For lngItem = 0 To arrCurrent.Count - 1
-    'If arrCurrent.getKey(lngItem) = "ThisProject" Then GoTo next_lngItem '</issue25'
-    strCurVer = arrCurrent.getValueList()(lngItem)
-    If arrInstalled.Contains(arrCurrent.getKey(lngItem)) Then
-      strInstVer = arrInstalled.getValueList()(arrInstalled.indexOfKey(arrCurrent.getKey(lngItem)))
+  rstStatus.Sort = "Module"
+  rstStatus.MoveFirst
+  lngItem = 0
+  Do While Not rstStatus.EOF
+    strCurVer = rstStatus(2)
+    If Not IsNull(rstStatus(3)) Then
+      strInstVer = rstStatus(3)
     Else
       strInstVer = "<not installed>"
     End If
-    Me.lboModules.AddItem
-    Me.lboModules.List(lngItem, 0) = arrCurrent.getKey(lngItem) 'module name
-    Me.lboModules.List(lngItem, 1) = arrDirectories.getValueList()(lngItem) 'directory
-    Me.lboModules.List(lngItem, 2) = strCurVer 'arrCurrent.getValueList()(lngItem) 'current version
-    If arrInstalled.Contains(arrCurrent.getKey(lngItem)) Then 'installed version
-      Me.lboModules.List(lngItem, 3) = strInstVer 'arrInstalled.getValueList()(arrInstalled.indexofkey(arrCurrent.getKey(lngItem)))
-    Else
-      Me.lboModules.List(lngItem, 3) = "<not installed>"
-    End If
-
-    Select Case strInstVer 'cptUpgrades_frm.lboModules.List(lngItem, 3)
-      Case Is = strCurVer 'cptUpgrades_frm.lboModules.List(lngItem, 2)
-        Me.lboModules.List(lngItem, 4) = "< ok >"
+    cptUpgrades_frm.lboModules.AddItem
+    cptUpgrades_frm.lboModules.List(lngItem, 0) = rstStatus(0) 'module name
+    cptUpgrades_frm.lboModules.List(lngItem, 1) = rstStatus(1) 'directory
+    cptUpgrades_frm.lboModules.List(lngItem, 2) = strCurVer 'current version
+    cptUpgrades_frm.lboModules.List(lngItem, 3) = strInstVer 'installed version
+    
+    Select Case strInstVer
+      Case Is = strCurVer
+        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< ok >"
       Case Is = "<not installed>"
-        Me.lboModules.List(lngItem, 4) = "< install >"
-      Case Is <> strCurVer 'cptUpgrades_frm.lboModules.List(lngItem, 2)
-        Me.lboModules.List(lngItem, 4) = "< " & cptVersionStatus(strInstVer, strCurVer) & " >"
+        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< install >"
+      Case Is <> strCurVer
+        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< " & cptVersionStatus(strInstVer, strCurVer) & " >"
     End Select
     'capture the type while we're at it - could have just pulled the FileName
-    Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + Me.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
-    Me.lboModules.List(lngItem, 5) = FindRecord.Text
+    Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + cptUpgrades_frm.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
+    cptUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
 next_lngItem:
-  Next lngItem
+    lngItem = lngItem + 1
+    rstStatus.MoveNext
+  Loop
 
 exit_here:
   On Error Resume Next
+  If rstStatus.State Then rstStatus.Close
+  Set rstStatus = Nothing
   Set FindRecord = Nothing
   Set vbComponent = Nothing
-  Set arrInstalled = Nothing
   Set xmlNode = Nothing
   Set xmlDoc = Nothing
-  Set arrDirectories = Nothing
-  Set arrCurrent = Nothing
 
   Exit Sub
 err_here:
@@ -157,17 +169,15 @@ End Sub
 
 Private Sub cmdUpgradeSelected_Click()
 'objects
-Dim arrCode As Object
-Dim cmCptThisProject As Object
-Dim cmThisProject As Object
+Dim rstCode As Object 'ADODB.Recordset
+Dim cmCptThisProject As Object 'VBCodeModule
+Dim cmThisProject As Object 'VBCodeModule
 Dim Project As Object
 Dim vbComponent As Object
 Dim xmlHttpDoc As Object
 Dim oStream As Object 'ADODB.Stream
-Dim arrCurrent As Object
-Dim arrInstalled As Object
-Dim arrTypes As Object
 'strings
+Dim strFileType As String
 Dim lngEvent As String
 Dim strVersion As String
 Dim strMsg As String
@@ -184,12 +194,6 @@ Dim vEvent As Variant
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  Set arrTypes = CreateObject("System.Collections.SortedList")
-  arrTypes.Add 1, ".bas"
-  arrTypes.Add 2, ".cls"
-  arrTypes.Add 3, ".frm"
-  arrTypes.Add 100, ".cls"
 
   For lngItem = 0 To Me.lboModules.ListCount - 1
 
@@ -209,8 +213,13 @@ Dim vEvent As Variant
       'get the repo directory
       'get the filename
       Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
-      strFileName = strModule & arrTypes.Item(CInt(cptUpgrades_frm.lboModules.List(lngItem, 5)))
       strDirectory = cptUpgrades_frm.lboModules.List(lngItem, 1)
+      strFileType = Me.lboModules.List(lngItem, 5)
+      strFileName = strModule & Switch(strFileType = "1", ".bas", _
+                                  strFileType = "2", ".cls", _
+                                  strFileType = "3", ".frm", _
+                                  strFileType = "100", ".cls")
+      strDirectory = Me.lboModules.List(lngItem, 1)
 get_frx:
       strURL = strGitHub
       If Me.cboBranches <> "master" Then
@@ -274,7 +283,7 @@ next_module:     '</issue25>
 
     'notify user that modifications are about to be made to the ThisProject module
     strMsg = "This upgrade requires a revision to your ThisProject module. "
-    strMsg = strMsg & "If you have made modifications, your code will not be lost, but it may need to be rearanged." & vbCrLf & vbCrLf
+    strMsg = strMsg & "If you have made modifications, your code will not be lost, but it may need to be rearranged." & vbCrLf & vbCrLf
     strMsg = strMsg & "Please contact cpt@ClearPlanConsulting.com if you require assistance."
     MsgBox strMsg, vbInformation + vbOKOnly, "Notice"
     'ideally this would prompt user to proceed or rollback...
@@ -298,10 +307,16 @@ next_module:     '</issue25>
     cmThisProject.InsertLines 1, "'" & strVersion
 
     'grab the imported code
-    Set arrCode = CreateObject("System.Collections.SortedList")
+    Set rstCode = CreateObject("ADODB.Recordset")
+    rstCode.Fields.Append "Event", 200, 120
+    rstCode.Fields.Append "SLOC", 203, 5000
+    rstCode.Open
     With cmCptThisProject
       For Each vEvent In Array("Project_Activate", "Project_Open")
-        arrCode.Add CStr(vEvent), .Lines(.ProcStartLine(CStr(vEvent), 0) + 2, .ProcCountLines(CStr(vEvent), 0) - 3) '0 = vbext_pk_Proc
+        rstCode.AddNew
+        rstCode(0) = CStr(vEvent)
+        rstCode(1) = .Lines(.ProcStartLine(CStr(vEvent), 0) + 2, .ProcCountLines(CStr(vEvent), 0) - 3) '0=vbext_pl_Proc
+        rstCode.Update
       Next vEvent
     End With
     ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
@@ -311,7 +326,11 @@ next_module:     '</issue25>
     'add the events, or insert new text
     'three cases: empty or not (code exists or not)
     For Each vEvent In Array("Project_Activate", "Project_Open")
-
+      
+      'find the record
+      rstCode.MoveFirst
+      rstCode.Find "Event='" & CStr(vEvent) & "'", , 1
+      
       'if event exists then insert code else create new event handler
       With cmThisProject
         If .CountOfLines > .CountOfDeclarationLines Then 'complications
@@ -319,8 +338,8 @@ next_module:     '</issue25>
           'find its line number
             lngEvent = .ProcBodyLine(CStr(vEvent), 0)  '= vbext_pk_Proc
             'import them if they *as a group* don't exist
-            If .Find(arrCode(CStr(vEvent)), .ProcStartLine(CStr(vEvent), 0), 1, .ProcCountLines(CStr(vEvent), 0), 1000) = False Then 'vbext_pk_Proc
-              .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
+            If .Find(rstCode(1), .ProcStartLine(CStr(vEvent), 0), 1, .ProcCountLines(CStr(vEvent), 0), 1000) = False Then 'vbext_pk_Proc
+              .InsertLines lngEvent + 1, rstCode(1)
             Else
               'Debug.Print CStr(vEvent) & " code exists."
             End If
@@ -328,13 +347,13 @@ next_module:     '</issue25>
             'create it, returning its line number
             lngEvent = .CreateEventProc(Replace(CStr(vEvent), "Project_", ""), "Project")
             'insert cpt code after line number
-            .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
+            .InsertLines lngEvent + 1, rstCode(1)
           End If
         Else 'easy
           'create it, returning its line number
           lngEvent = .CreateEventProc(Replace(CStr(vEvent), "Project_", ""), "Project")
           'insert cpt code after line number
-          .InsertLines lngEvent + 1, arrCode(CStr(vEvent))
+          .InsertLines lngEvent + 1, rstCode(1)
         End If 'lines exist
       End With 'thisproject.codemodule
 
@@ -358,17 +377,15 @@ next_module:     '</issue25>
 
 exit_here:
   On Error Resume Next
-  Set arrCode = Nothing
+  If rstCode.State Then rstCode.Close
+  Set rstCode = Nothing
   Set cmCptThisProject = Nothing
   Set cmThisProject = Nothing
   Application.ScreenUpdating = True
   Set Project = Nothing
   Set vbComponent = Nothing
   Application.StatusBar = ""
-  Set arrTypes = Nothing
   Set xmlHttpDoc = Nothing
-  Set arrCurrent = Nothing
-  Set arrInstalled = Nothing
   Set oStream = Nothing
   Exit Sub
 err_here:
