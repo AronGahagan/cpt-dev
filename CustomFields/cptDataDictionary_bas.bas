@@ -382,8 +382,8 @@ End Sub
 
 Sub cptRefreshDictionary()
 'objects
-Dim aTypes As Object
-Dim rst As Object 'ADODB.Recordset
+Dim dTypes As Scripting.Dictionary 'Object
+Dim rstSaved As ADODB.Recordset 'Object
 'strings
 Dim strFieldName As String
 Dim strCustomName As String
@@ -420,8 +420,8 @@ Dim vFieldScope As Variant
   End If
   
   'if data file exists then use it else create it
-  Set rst = CreateObject("ADODB.Recordset")
-  With rst
+  Set rstSaved = CreateObject("ADODB.Recordset")
+  With rstSaved
     If Dir(cptDir & "\settings\cpt-data-dictionary.adtg") = vbNullString Then
       blnCreate = True
       .Fields.Append "PROJECT_ID", 200, 50 'adVarChar
@@ -439,20 +439,20 @@ Dim vFieldScope As Variant
     'get local custom fields
     'export local custom fields
     
-    Set aTypes = CreateObject("System.Collections.SortedList")
-    aTypes.Add "Cost", 10
-    aTypes.Add "Date", 10
-    aTypes.Add "Duration", 10
-    aTypes.Add "Flag", 20
-    aTypes.Add "Finish", 10
-    aTypes.Add "Number", 20
-    aTypes.Add "Start", 10
-    aTypes.Add "Text", 30
-    aTypes.Add "Outline Code", 10
+    Set dTypes = CreateObject("Scripting.Dictionary")
+    dTypes.Add "Cost", 10
+    dTypes.Add "Date", 10
+    dTypes.Add "Duration", 10
+    dTypes.Add "Flag", 20
+    dTypes.Add "Finish", 10
+    dTypes.Add "Number", 20
+    dTypes.Add "Start", 10
+    dTypes.Add "Text", 30
+    dTypes.Add "Outline Code", 10
         
     For Each vFieldScope In Array(0, 1) '0 = pjTask; 1 = pjResource; 2 = pjProject
       For Each vFieldType In Array("Cost", "Date", "Duration", "Flag", "Finish", "Number", "Start", "Text", "Outline Code")
-        For intField = 1 To aTypes.Item(vFieldType) 'lngMax
+        For intField = 1 To dTypes(vFieldType) 'lngMax
           lngField = FieldNameToFieldConstant(vFieldType & intField, vFieldScope)
           strFieldName = FieldConstantToFieldName(lngField)
           strCustomName = CustomFieldGetName(lngField)
@@ -520,9 +520,9 @@ Dim vFieldScope As Variant
   
 exit_here:
   On Error Resume Next
-  Set aTypes = Nothing
-  If rst.State = 1 Then rst.Close
-  Set rst = Nothing
+  Set dTypes = Nothing
+  If rstSaved.State = 1 Then rstSaved.Close
+  Set rstSaved = Nothing
 
   Exit Sub
 err_here:
@@ -532,12 +532,11 @@ End Sub
 
 Sub cptImportDataDictionary(Optional strFile As String)
 'objects
-Dim rst As Object 'ADODB.Recordset
-Dim xlApp As Object
-Dim Workbook As Object
-Dim Worksheet As Object
-Dim rng As Object
-Dim ListObject As Object
+Dim rstSaved As Object 'ADODB.Recordset
+Dim oExcel As Object
+Dim oWorkbook As Object
+Dim oWorksheet As Object
+Dim oRange As Object
 'strings
 Dim strMsg As String
 Dim strNewDescription As String
@@ -568,13 +567,13 @@ Dim vFile As Variant
 
   'prompt user to select a file
   On Error Resume Next
-  Set xlApp = GetObject(, "Excel.Application")
+  Set oExcel = GetObject(, "Excel.Application")
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If xlApp Is Nothing Then
-    Set xlApp = CreateObject("Excel.Application")
+  If oExcel Is Nothing Then
+    Set oExcel = CreateObject("Excel.Application")
     blnClose = True
   Else
-    'xlApp.WindowState = xlMaximized
+    'oExcel.WindowState = xlMaximized
     'Application.ActivateMicrosoftApp pjMicrosoftExcel
     blnClose = False
   End If
@@ -582,12 +581,12 @@ Dim vFile As Variant
     vFile = strFile
     GoTo skip_that
   Else
-    vFile = xlApp.GetOpenFilename(FileFilter:="Microsoft Excel *.xls* (*.xls*),", _
+    vFile = oExcel.GetOpenFilename(FileFilter:="Microsoft Excel *.xls* (*.xls*),", _
                                   Title:="Select a Populated IMS Data Dictionary:", _
                                   ButtonText:="Import", MultiSelect:=False)
     If vFile = False Then GoTo exit_here
   End If
-  xlApp.ActivateMicrosoftApp 6 'xlMicrosoftProject
+  oExcel.ActivateMicrosoftApp 6 'xlMicrosoftProject
   
 skip_that:
   
@@ -600,60 +599,60 @@ skip_that:
   
   'validate the file by its headers
   On Error Resume Next
-  xlApp.ScreenUpdating = False
-  Set Workbook = xlApp.Workbooks(vFile)
-  If Workbook Is Nothing Then Set Workbook = xlApp.Workbooks.Open(vFile)
-  Set Worksheet = Workbook.Sheets("Data Dictionary")
-  If Worksheet Is Nothing Then
+  oExcel.ScreenUpdating = False
+  Set oWorkbook = oExcel.Workbooks(vFile)
+  If oWorkbook Is Nothing Then Set oWorkbook = oExcel.Workbooks.Open(vFile)
+  Set oWorksheet = oWorkbook.Sheets("Data Dictionary")
+  If oWorksheet Is Nothing Then
     MsgBox strFile & " does not appear to be a valid IMS Data Dictionary workbook. The wheet named 'Data Dictionary' not found.", vbExclamation + vbOKOnly, "Invalid Workbook"
     GoTo exit_here
   End If
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  lngHeaderRow = Worksheet.Columns(1).Find("Enterprise", lookat:=1).Row
-  lngLastRow = Worksheet.Cells(lngHeaderRow, 1).End(-4121).Row
-  lngNameCol = Worksheet.Rows(lngHeaderRow).Find("Custom Name", lookat:=1).Column
-  lngLastCol = Worksheet.Rows(lngHeaderRow).End(-4161).Column
-  lngDescriptionCol = Worksheet.Rows(lngHeaderRow).Find("Description", lookat:=1).Column
+  lngHeaderRow = oWorksheet.Columns(1).Find("Enterprise", lookat:=1).Row
+  lngLastRow = oWorksheet.Cells(lngHeaderRow, 1).End(-4121).Row
+  lngNameCol = oWorksheet.Rows(lngHeaderRow).Find("Custom Name", lookat:=1).Column
+  lngLastCol = oWorksheet.Rows(lngHeaderRow).End(-4161).Column
+  lngDescriptionCol = oWorksheet.Rows(lngHeaderRow).Find("Description", lookat:=1).Column
   
   'get saved dictionary settings
   strSavedSettings = cptDir & "\settings\cpt-data-dictionary.adtg"
   If Dir(strSavedSettings) = vbNullString Then Call cptRefreshDictionary
   
-  Set rst = CreateObject("ADODB.Recordset")
-  With rst
+  Set rstSaved = CreateObject("ADODB.Recordset")
+  With rstSaved
     .Open strSavedSettings
     .Filter = "PROJECT_ID='" & strGUID & "'"
     .MoveFirst
     For lngRow = lngHeaderRow + 1 To lngLastRow
       'reset validation on description cell
-      Worksheet.Cells(lngRow, lngDescriptionCol).Style = "Normal"
-      Worksheet.Cells(lngRow, lngDescriptionCol).HorizontalAlignment = xlCenter
-      strCustomName = Worksheet.Cells(lngRow, lngNameCol).Value
-      strNewDescription = Worksheet.Cells(lngRow, lngDescriptionCol).Value
-      If Len(Worksheet.Cells(lngRow, lngDescriptionCol).Value) > 500 Then
+      oWorksheet.Cells(lngRow, lngDescriptionCol).Style = "Normal"
+      oWorksheet.Cells(lngRow, lngDescriptionCol).HorizontalAlignment = xlCenter
+      strCustomName = oWorksheet.Cells(lngRow, lngNameCol).Value
+      strNewDescription = oWorksheet.Cells(lngRow, lngDescriptionCol).Value
+      If Len(oWorksheet.Cells(lngRow, lngDescriptionCol).Value) > 500 Then
         lngTooLong = lngTooLong + 1
-        Worksheet.Cells(lngRow, lngDescriptionCol).Style = "Neutral"
+        oWorksheet.Cells(lngRow, lngDescriptionCol).Style = "Neutral"
       End If
       If strNewDescription = "<missing>" Then GoTo next_row
       .Find "CUSTOM_NAME='" & strCustomName & "'", , 1 'adSearchForward
       If Not .EOF Then
-        If rst("DESCRIPTION").Value <> strNewDescription Then
-          Worksheet.Cells(lngRow, lngDescriptionCol).Style = "Good"
+        If rstSaved("DESCRIPTION").Value <> strNewDescription Then
+          oWorksheet.Cells(lngRow, lngDescriptionCol).Style = "Good"
           lngNew = lngNew + 1
         End If
       Else
-        Worksheet.Cells(lngRow, lngDescriptionCol).Style = "Bad"
-        Worksheet.Cells(lngRow, lngLastCol + 1).Value = "NOT FOUND"
-        Worksheet.Cells(lngRow, lngLastCol + 1).Style = "Bad"
+        oWorksheet.Cells(lngRow, lngDescriptionCol).Style = "Bad"
+        oWorksheet.Cells(lngRow, lngLastCol + 1).Value = "NOT FOUND"
+        oWorksheet.Cells(lngRow, lngLastCol + 1).Style = "Bad"
         lngNotFound = lngNotFound + 1
       End If
 next_row:
     Next lngRow
     
     'show the selected file
-    If Not xlApp.Visible Then xlApp.Visible = True
-    xlApp.ScreenUpdating = True
-    xlApp.WindowState = -4140 'xlMinimized
+    If Not oExcel.Visible Then oExcel.Visible = True
+    oExcel.ScreenUpdating = True
+    oExcel.WindowState = -4140 'xlMinimized
     
     'notify of missing custom fields
     If lngNotFound > 0 Then
@@ -691,23 +690,23 @@ next_row:
       lngNew = 0 'reset the counter
       .MoveFirst
       For lngRow = lngHeaderRow + 1 To lngLastRow
-        If Worksheet.Cells(lngRow, lngDescriptionCol).Style <> "Bad" Then
-          strCustomName = Worksheet.Cells(lngRow, lngNameCol).Value
-          strNewDescription = Worksheet.Cells(lngRow, lngDescriptionCol).Value
+        If oWorksheet.Cells(lngRow, lngDescriptionCol).Style <> "Bad" Then
+          strCustomName = oWorksheet.Cells(lngRow, lngNameCol).Value
+          strNewDescription = oWorksheet.Cells(lngRow, lngDescriptionCol).Value
           If strNewDescription = "<missing>" Then GoTo next_row2
           .Find "CUSTOM_NAME='" & strCustomName & "'", , 1 'adSearchForward
           If Not .EOF Then
-            If rst("DESCRIPTION").Value <> strNewDescription Then
-              If rst("DESCRIPTION") <> "<missing>" Then
-                Worksheet.Cells(lngRow, lngLastCol + 1).Value = "DESCRIPTION WAS: " & rst("DESCRIPTION").Value
+            If rstSaved("DESCRIPTION").Value <> strNewDescription Then
+              If rstSaved("DESCRIPTION") <> "<missing>" Then
+                oWorksheet.Cells(lngRow, lngLastCol + 1).Value = "DESCRIPTION WAS: " & rstSaved("DESCRIPTION").Value
               End If
-              rst("DESCRIPTION").Value = strNewDescription
+              rstSaved("DESCRIPTION").Value = strNewDescription
               .Update
               lngNew = lngNew + 1
             End If
           End If
         Else
-          Worksheet.Cells(lngRow, lngLastCol + 1).Value = Worksheet.Cells(lngRow, lngLastCol + 1).Value & " - SKIPPED"
+          oWorksheet.Cells(lngRow, lngLastCol + 1).Value = oWorksheet.Cells(lngRow, lngLastCol + 1).Value & " - SKIPPED"
         End If
 next_row2:
       Next
@@ -726,16 +725,16 @@ next_row2:
   
 exit_here:
   On Error Resume Next
-  Set rst = Nothing
-  If rst.State Then rst.Close
-  Set rng = Nothing
-  Set ListObject = Nothing
-  Set Worksheet = Nothing
-  Set Workbook = Nothing
-  If Not xlApp.Visible Then xlApp.Visible = True
-  xlApp.ScreenUpdating = True
-  Set xlApp = Nothing
+  If rstSaved.State Then rstSaved.Close
+  Set rstSaved = Nothing
+  Set oRange = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  If Not oExcel.Visible Then oExcel.Visible = True
+  oExcel.ScreenUpdating = True
+  Set oExcel = Nothing
   Exit Sub
+  
 err_here:
   Call cptHandleErr("cptDataDictionary_bas", "cptImportDataDictionary", err, Erl)
   Resume exit_here
