@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.1</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -69,7 +69,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDataDictionary_frm", "cmdCustomFields_Click()", Err, Erl)
+  Call cptHandleErr("cptDataDictionary_frm", "cmdCustomFields_Click()", err, Erl)
   Resume exit_here
   
 End Sub
@@ -131,7 +131,7 @@ exit_here:
   Set xlApp = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDataDictionary_frm", "cmdImport_Click", Err, Erl)
+  Call cptHandleErr("cptDataDictionary_frm", "cmdImport_Click", err, Erl)
   Resume exit_here
   
 End Sub
@@ -147,7 +147,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDataDictionary_frm", "lblURL_Click()", Err, Erl)
+  Call cptHandleErr("cptDataDictionary_frm", "lblURL_Click()", err, Erl)
   Resume exit_here
 
 End Sub
@@ -199,7 +199,7 @@ exit_here:
   Me.lblStatus.Caption = "Ready..."
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDataDictionary_frm", "txtDescription_Change()", Err, Erl)
+  Call cptHandleErr("cptDataDictionary_frm", "txtDescription_Change()", err, Erl)
   Resume exit_here
 End Sub
 
@@ -217,7 +217,7 @@ End Sub
 
 Private Sub txtFilter_Change()
 'objects
-Dim rst As ADODB.Recordset
+Dim rst As Object 'ADODB.Recordset
 'strings
 Dim strDictionary As String, strFilter As String, strText As String, strGUID As String
 'longs
@@ -273,6 +273,6 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDataDictionary_frm", "txtFilter_Change()", Err, Erl)
+  Call cptHandleErr("cptDataDictionary_frm", "txtFilter_Change()", err, Erl)
   Resume exit_here
 End Sub

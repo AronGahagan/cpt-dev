@@ -12,16 +12,16 @@ Sub cptShowSaveLocal_frm()
 'objects
 Dim oRange As Excel.Range
 Dim oListObject As ListObject
-Dim aProjects As ArrayList
-Dim oSubproject As SubProject
+Dim rstProjects As ADODB.Recordset
+Dim oSubProject As SubProject
 Dim oMasterProject As Project
 Dim oWorksheet As Worksheet
 Dim oWorkbook As Workbook
 Dim oExcel As Excel.Application
 Dim oTask As Task
 Dim rstSavedMap As ADODB.Recordset
-Dim aTypes As Object
-Dim rst As ADODB.Recordset
+Dim dTypes As Scripting.Dictionary
+Dim rstECF As ADODB.Recordset
 'strings
 Dim strURL As String
 Dim strSaved As String
@@ -61,14 +61,14 @@ Dim vType As Variant
   End If
   
   'setup array of types/counts
-  Set aTypes = CreateObject("System.Collections.SortedList")
+  Set dTypes = CreateObject("Scripting.Dictionary")
   'record: field type, number of available custom fields
   For Each vType In Array("Cost", "Date", "Duration", "Finish", "Start", "Outline Code")
-    aTypes.Add vType, 10
+    dTypes.Add vType, 10
   Next
-  aTypes.Add "Flag", 20
-  aTypes.Add "Number", 20
-  aTypes.Add "Text", 30
+  dTypes.Add "Flag", 20
+  dTypes.Add "Number", 20
+  dTypes.Add "Text", 30
   
   'if master/sub then ensure LCFs match
   lngSubprojectCount = ActiveProject.Subprojects.Count
@@ -95,41 +95,45 @@ Dim vType As Variant
     oWorksheet.Columns.AutoFit
     cptSpeed True
     Application.StatusBar = "Opening subprojects..."
-    Set aProjects = CreateObject("System.Collections.ArrayList")
-    aProjects.Add oMasterProject.Name
-    For Each oSubproject In oMasterProject.Subprojects
-      FileOpenEx oSubproject.SourceProject.FullName, True
-      aProjects.Add ActiveProject.Name
-    Next oSubproject
-    For lngProject = 0 To aProjects.Count - 1
-      Application.StatusBar = "Analyzing " & aProjects(lngProject) & "..."
+    Set rstProjects = CreateObject("ADODB.Recordset")
+    rstProjects.Fields.Append "PROJECT", adVarChar, 200
+    rstProjects.Open
+    rstProjects.AddNew Array(0), Array(oMasterProject.Name)
+    For Each oSubProject In oMasterProject.Subprojects
+      FileOpenEx oSubProject.SourceProject.FullName, True
+      rstProjects.AddNew Array(0), Array(ActiveProject.Name)
+    Next oSubProject
+    rstProjects.MoveFirst
+    Do While Not rstProjects.EOF
+      Application.StatusBar = "Analyzing " & rstProjects(0) & "..."
       DoEvents
       lngLastRow = 1
-      Projects(aProjects(lngProject)).Activate
-      oWorksheet.Cells(1, 5 + lngProject) = aProjects(lngProject)
+      Projects(CStr(rstProjects(0))).Activate
+      oWorksheet.Cells(1, 5 + CLng(rstProjects.AbsolutePosition) - 1) = rstProjects(0)
       For Each vEntity In Array(pjTask, pjResource)
-        For lngType = 0 To aTypes.Count - 1
-          For lngField = 1 To aTypes.getByIndex(lngType)
+        For lngType = 0 To dTypes.Count - 1
+          For lngField = 1 To dTypes.Items(lngType)
             lngLastRow = lngLastRow + 1
             If lngProject = 0 Then
               oWorksheet.Cells(lngLastRow, 1) = Choose(vEntity + 1, "Task", "Resource")
-              oWorksheet.Cells(lngLastRow, 2) = aTypes.getKey(lngType)
+              oWorksheet.Cells(lngLastRow, 2) = dTypes.Keys(lngType)
             End If
-            lngLCF = FieldNameToFieldConstant(aTypes.getKey(lngType) & lngField, vEntity)
+            lngLCF = FieldNameToFieldConstant(dTypes.Keys(lngType) & lngField, vEntity)
             If lngProject = 0 Then
               oWorksheet.Cells(lngLastRow, 3) = lngLCF
               oWorksheet.Cells(lngLastRow, 4) = FieldConstantToFieldName(lngLCF)
             End If
             oExcel.ActiveWindow.ScrollRow = lngLastRow
-            oWorksheet.Cells(lngLastRow, 5 + lngProject) = CustomFieldGetName(lngLCF)
+            oWorksheet.Cells(lngLastRow, 5 + CLng(rstProjects.AbsolutePosition) - 1) = CustomFieldGetName(lngLCF)
             oWorksheet.Cells.Columns.AutoFit
           Next lngField
         Next lngType
       Next vEntity
-    Next lngProject
+      rstProjects.MoveNext
+    Loop
     'add a formula
-    oWorksheet.Cells(1, 5 + lngProject) = "MATCH"
-    oWorksheet.Range(oWorksheet.Cells(2, 5 + lngProject), oWorksheet.Cells(lngLastRow, 5 + lngProject)).FormulaR1C1 = "=AND(EXACT(RC[-5],RC[-4]),EXACT(RC[-4],RC[-3]),EXACT(RC[-3],RC[-2]),EXACT(RC[-2],RC[-1]))"
+    oWorksheet.Cells(1, 5 + rstProjects.RecordCount) = "MATCH"
+    oWorksheet.Range(oWorksheet.Cells(2, 5 + rstProjects.RecordCount), oWorksheet.Cells(lngLastRow, 5 + rstProjects.RecordCount)).FormulaR1C1 = "=AND(EXACT(RC[-5],RC[-4]),EXACT(RC[-4],RC[-3]),EXACT(RC[-3],RC[-2]),EXACT(RC[-2],RC[-1]))"
     Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)), , xlYes)
     oListObject.TableStyle = ""
     oListObject.HeaderRowRange.Font.Bold = True
@@ -184,12 +188,14 @@ Dim vType As Variant
     oWorksheet.Columns.AutoFit
     oExcel.ActiveWindow.ScrollRow = 1
     oMasterProject.Activate
-    For lngProject = 0 To aProjects.Count - 1
-      If aProjects(lngProject) <> oMasterProject.Name Then
-        Projects(aProjects(lngProject)).Activate
+    rstProjects.MoveFirst
+    Do While Not rstProjects.EOF
+      If CStr(rstProjects(0)) <> oMasterProject.Name Then
+        Projects(CStr(rstProjects(0))).Activate
         Application.FileCloseEx pjDoNotSave
       End If
-    Next lngProject
+      rstProjects.MoveNext
+    Loop
     cptSpeed False
     oExcel.ScreenUpdating = True
     oExcel.Visible = True
@@ -204,7 +210,7 @@ Dim vType As Variant
       oWorkbook.Close False
       oExcel.Quit
     End If
-    
+    rstProjects.Close
   End If
   
 skip_it:
@@ -227,16 +233,16 @@ skip_it:
   cptUpdateSaveLocalView
   
   'prepare to capture all ECFs
-  Set rst = CreateObject("ADODB.Recordset")
-  rst.Fields.Append "URL", adVarChar, 255
-  rst.Fields.Append "GUID", adGUID
-  rst.Fields.Append "pjType", adInteger
-  rst.Fields.Append "ENTITY", adVarChar, 50
-  rst.Fields.Append "ECF", adInteger
-  rst.Fields.Append "ECF_Name", adVarChar, 120
-  rst.Fields.Append "LCF", adInteger
-  rst.Fields.Append "LCF_Name", adVarChar, 120
-  rst.Open
+  Set rstECF = CreateObject("ADODB.Recordset")
+  rstECF.Fields.Append "URL", adVarChar, 255
+  rstECF.Fields.Append "GUID", adGUID
+  rstECF.Fields.Append "pjType", adInteger
+  rstECF.Fields.Append "ENTITY", adVarChar, 50
+  rstECF.Fields.Append "ECF", adInteger
+  rstECF.Fields.Append "ECF_Name", adVarChar, 120
+  rstECF.Fields.Append "LCF", adInteger
+  rstECF.Fields.Append "LCF_Name", adVarChar, 120
+  rstECF.Open
   
   'create a dummy task to interrogate the ECFs
   Set oTask = ActiveProject.Tasks.Add("<dummy for cpt-save-local>")
@@ -247,14 +253,14 @@ skip_it:
     .cboLCF.Clear
     .cboECF.Clear
     .cboECF.AddItem "All Types"
-    For lngType = 0 To aTypes.Count - 1
-      If aTypes.getKey(lngType) = "Start" Or aTypes.getKey(lngType) = "Finish" Then GoTo next_type
+    For lngType = 0 To dTypes.Count - 1
+      If dTypes.Keys(lngType) = "Start" Or dTypes.Keys(lngType) = "Finish" Then GoTo next_type
       .cboLCF.AddItem
-      .cboLCF.List(.cboLCF.ListCount - 1, 0) = aTypes.getKey(lngType)
-      .cboLCF.List(.cboLCF.ListCount - 1, 1) = aTypes.getByIndex(lngType)
+      .cboLCF.List(.cboLCF.ListCount - 1, 0) = dTypes.Keys(lngType)
+      .cboLCF.List(.cboLCF.ListCount - 1, 1) = dTypes.Items(lngType)
       .cboECF.AddItem
-      .cboECF.List(.cboECF.ListCount - 1, 0) = aTypes.getKey(lngType)
-      .cboECF.List(.cboECF.ListCount - 1, 1) = aTypes.getByIndex(lngType)
+      .cboECF.List(.cboECF.ListCount - 1, 0) = dTypes.Keys(lngType)
+      .cboECF.List(.cboECF.ListCount - 1, 1) = dTypes.Items(lngType)
 next_type:
     Next lngType
     .cboECF.AddItem "undetermined"
@@ -272,7 +278,7 @@ next_type:
       If FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
         strECF = FieldConstantToFieldName(lngField)
         strEntity = cptInterrogateECF(oTask, lngField)
-        rst.AddNew Array("URL", "GUID", "pjType", "ENTITY", "ECF", "ECF_Name"), Array(strURL, strGUID, pjTask, strEntity, lngField, FieldConstantToFieldName(lngField))
+        rstECF.AddNew Array("URL", "GUID", "pjType", "ENTITY", "ECF", "ECF_Name"), Array(strURL, strGUID, pjTask, strEntity, lngField, FieldConstantToFieldName(lngField))
         lngECFCount = lngECFCount + 1
       End If
       .lblStatus.Caption = "Analyzing Task ECFs...(" & Format(((lngField - 188776000) / (188778000 - 188776000)), "0%") & ")"
@@ -280,27 +286,27 @@ next_type:
       DoEvents
     Next lngField
 
-    'get enterprise custom resource fields
-    For lngField = 205553664 To 205555664 '2000 should do it for now
-      If FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
-        strECF = FieldConstantToFieldName(lngField)
-        strEntity = cptInterrogateECF(oTask, lngField)
-        rst.AddNew Array("URL", "GUID", "pjType", "ENTITY", "ECF", "ECF_Name"), Array(strURL, strGUID, pjResource, strEntity, lngField, FieldConstantToFieldName(lngField))
-        lngECFCount = lngECFCount + 1
-      End If
-      .lblStatus.Caption = "Analyzing Resource ECFs...(" & Format((lngField - 205553664) / (205555664 - 205553664), "0%") & ")"
-      .lblProgress.Width = ((lngField - 205553664) / (205555664 - 205553664)) * .lblStatus.Width
-      DoEvents
-    Next lngField
+'    'get enterprise custom resource fields - skipped for now
+'    For lngField = 205553664 To 205555664 '2000 should do it for now
+'      If FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
+'        strECF = FieldConstantToFieldName(lngField)
+'        strEntity = cptInterrogateECF(oTask, lngField)
+'        rstECF.AddNew Array("URL", "GUID", "pjType", "ENTITY", "ECF", "ECF_Name"), Array(strURL, strGUID, pjResource, strEntity, lngField, FieldConstantToFieldName(lngField))
+'        lngECFCount = lngECFCount + 1
+'      End If
+'      .lblStatus.Caption = "Analyzing Resource ECFs...(" & Format((lngField - 205553664) / (205555664 - 205553664), "0%") & ")"
+'      .lblProgress.Width = ((lngField - 205553664) / (205555664 - 205553664)) * .lblStatus.Width
+'      DoEvents
+'    Next lngField
   
     oTask.Delete
   
     If Dir(cptDir & "\settings\cpt-ecf.adtg") <> vbNullString Then
       Kill cptDir & "\settings\cpt-ecf.adtg"
     End If
-    rst.Sort = "ECF_Name"
-    rst.Save cptDir & "\settings\cpt-ecf.adtg"
-    rst.Close
+    rstECF.Sort = "ECF_Name"
+    rstECF.Save cptDir & "\settings\cpt-ecf.adtg"
+    rstECF.Close
   
     'trigger lboECF refresh
     .cboECF.Value = "All Types"
@@ -328,10 +334,11 @@ exit_here:
   On Error Resume Next
   Set oRange = Nothing
   Set oListObject = Nothing
-  Set aProjects = Nothing
-  Set oSubproject = Nothing
+  Set rstProjects = Nothing
+  Set oSubProject = Nothing
   Set oMasterProject = Nothing
-  Set aProjects = Nothing
+  If rstProjects.State Then rstProjects.Close
+  Set rstProjects = Nothing
   Application.StatusBar = ""
   Set oWorksheet = Nothing
   oExcel.Calculation = xlCalculationAutomatic
@@ -344,14 +351,13 @@ exit_here:
   Set oTask = Nothing
   Set rstSavedMap = Nothing
   Set vType = Nothing
-  aTypes.Clear
-  Set aTypes = Nothing
-  If rst.State Then rst.Close
-  Set rst = Nothing
+  Set dTypes = Nothing
+  If rstECF.State Then rstECF.Close
+  Set rstECF = Nothing
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptShowSaveLocal_frm", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptShowSaveLocal_frm", err, Erl)
   Resume exit_here
 End Sub
 
@@ -553,7 +559,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptSaveLocal", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptSaveLocal", err, Erl)
   Resume exit_here
 End Sub
 
@@ -598,36 +604,38 @@ Function cptInterrogateECF(ByRef oTask As Task, lngField As Long)
    
   oTask.SetField lngField, "xxx"
 
-  If Err.Description = "This field only supports positive numbers." Then
+  If err.Description = "This field only supports positive numbers." Then
     cptInterrogateECF = "Cost"
-  ElseIf Err.Description = "The date you entered isn't supported for this field." Then
+  ElseIf err.Description = "The date you entered isn't supported for this field." Then
     cptInterrogateECF = "Date"
-  ElseIf Err.Description = "The duration you entered isn't supported for this field." Then
+  ElseIf err.Description = "The duration you entered isn't supported for this field." Then
     cptInterrogateECF = "Duration"
-  ElseIf Err.Description = "Select either Yes or No from the list." Then
+  ElseIf err.Description = "Select either Yes or No from the list." Then
     cptInterrogateECF = "Flag"
-  ElseIf Err.Description = "This field only supports numbers." Then
+  ElseIf err.Description = "This field only supports numbers." Then
     cptInterrogateECF = "Number"
-  ElseIf Err.Description = "This is not a valid lookup table value." Or Err.Description = "The value you entered does not exist in the lookup table of this code" Then
+  ElseIf err.Description = "This is not a valid lookup table value." Or err.Description = "The value you entered does not exist in the lookup table of this code" Then
     'select the first value and check it
     oTask.SetField lngField, oOutlineCode.LookupTable(1).Name
     strVal = oTask.GetField(lngField)
     GoTo enhanced_interrogation
-  ElseIf Err.Description = "The argument value is not valid." Then
+  ElseIf err.Description = "The argument value is not valid." Then
     'figure out formula
     If Len(CustomFieldGetFormula(lngField)) > 0 Then
       strVal = oTask.GetField(lngField)
       GoTo enhanced_interrogation
     End If
-  ElseIf Err.Description = "" Then
+  ElseIf err.Description = "" Then
     cptInterrogateECF = "Text"
+  Else
+    GoTo enhanced_interrogation
   End If
   
   GoTo exit_here
   
 enhanced_interrogation:
   
-  Err.Clear
+  err.Clear
   
   'check for cost
   If InStr(strVal, ActiveProject.CurrencySymbol) > 0 Then
@@ -638,7 +646,7 @@ enhanced_interrogation:
   'check for number
   On Error Resume Next
   lngVal = oTask.GetField(lngField)
-  If Err.Number = 0 And Len(oTask.GetField(lngField)) = Len(CStr(lngVal)) Then
+  If err.Number = 0 And Len(oTask.GetField(lngField)) = Len(CStr(lngVal)) Then
     cptInterrogateECF = "Number"
     GoTo exit_here
   End If
@@ -646,7 +654,7 @@ enhanced_interrogation:
   'check for date
   On Error Resume Next
   dtVal = oTask.GetField(lngField)
-  If Err.Number = 0 Then
+  If err.Number = 0 Then
     cptInterrogateECF = "Date"
     GoTo exit_here
   End If
@@ -667,7 +675,7 @@ enhanced_interrogation:
   strVal = oTask.GetField(lngField)
   'could be duration
   If strVal = DurationFormat(DurationValue(strVal), ActiveProject.DefaultDurationUnits) Then
-    If Err.Number = 0 Then
+    If err.Number = 0 Then
       cptInterrogateECF = "Duration"
       GoTo exit_here
     End If
@@ -682,8 +690,8 @@ exit_here:
   
   Exit Function
 err_here:
-  Call cptHandleErr("foo", "bar", Err, Erl)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Call cptHandleErr("foo", "bar", err, Erl)
+  MsgBox err.Number & ": " & err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Function
 
@@ -757,14 +765,14 @@ exit_here:
   Close #lngFile
   Exit Sub
 err_here:
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  MsgBox err.Number & ": " & err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
 
 Sub cptAnalyzeAutoMap()
   'objects
   Dim rstAvailable As ADODB.Recordset
-  Dim aTypes As SortedList
+  Dim dTypes As Scripting.Dictionary
   'strings
   Dim strMsg As String
   'longs
@@ -787,17 +795,17 @@ Sub cptAnalyzeAutoMap()
     .Fields.Append "LCF", adInteger
     .Open
 
-    Set aTypes = CreateObject("System.Collections.SortedList")
+    Set dTypes = CreateObject("Scripting.Dictionary")
     'record: field type, number of available custom fields
     For Each vType In Array("Cost", "Date", "Duration", "Finish", "Start", "Outline Code")
-      aTypes.Add vType, 10
+      dTypes.Add vType, 10
       .AddNew Array(0, 1, 2), Array(vType, 0, 10)
     Next
-    aTypes.Add "Flag", 20
+    dTypes.Add "Flag", 20
     .AddNew Array(0, 1, 2), Array("Flag", 0, 20)
-    aTypes.Add "Number", 20
+    dTypes.Add "Number", 20
     .AddNew Array(0, 1, 2), Array("Number", 0, 20)
-    aTypes.Add "Text", 30
+    dTypes.Add "Text", 30
     .AddNew Array(0, 1, 2), Array("Text", 0, 30)
     .Update
     .Sort = "TYPE"
@@ -805,12 +813,12 @@ Sub cptAnalyzeAutoMap()
     'todo: start->date;finish->date;date->date
     
     'get available LCF
-    For lngItem = 0 To aTypes.Count - 1
-      For lngItem2 = 1 To aTypes.getValueList()(lngItem)
+    For lngItem = 0 To dTypes.Count - 1
+      For lngItem2 = 1 To dTypes.Items(lngItem)
         'todo: account for both pjTask and pjResource
-        If Len(CustomFieldGetName(FieldNameToFieldConstant(aTypes.getKey(lngItem) & lngItem2))) > 0 Then
+        If Len(CustomFieldGetName(FieldNameToFieldConstant(dTypes.Keys(lngItem) & lngItem2))) > 0 Then
           .MoveFirst
-          .Find "TYPE='" & aTypes.getKey(lngItem) & "'"
+          .Find "TYPE='" & dTypes.Keys(lngItem) & "'"
           If Not .EOF Then
             .Fields(2) = .Fields(2) - 1
           End If
@@ -874,15 +882,14 @@ Sub cptAnalyzeAutoMap()
   
 exit_here:
   On Error Resume Next
-  rstAvailable.Close
+  If rstAvailable.State Then rstAvailable.Close
   Set rstAvailable = Nothing
-  aTypes.Clear
-  Set aTypes = Nothing
+  Set dTypes = Nothing
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptAutoMap", Err, Erl)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Call cptHandleErr("cptSaveLocal_bas", "cptAutoMap", err, Erl)
+  MsgBox err.Number & ": " & err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
 
@@ -942,8 +949,8 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptAutoMap", Err, Erl)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Call cptHandleErr("cptSaveLocal_bas", "cptAutoMap", err, Erl)
+  MsgBox err.Number & ": " & err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
 
@@ -1165,7 +1172,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptMapECFtoLCF", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptMapECFtoLCF", err, Erl)
   Resume exit_here
 End Sub
 
@@ -1239,7 +1246,7 @@ exit_here:
   Close #lngFile
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptSaveLocal_frm", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptSaveLocal_frm", err, Erl)
   Resume exit_here
 End Sub
 
@@ -1342,7 +1349,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptImportCFMap", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptImportCFMap", err, Erl)
   Resume exit_here
 End Sub
 
@@ -1440,7 +1447,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptUpdateECF", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptUpdateECF", err, Erl)
   Resume exit_here
 End Sub
 
@@ -1489,7 +1496,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cboLCF_Change", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cboLCF_Change", err, Erl)
   Resume exit_here
 End Sub
 
@@ -1569,6 +1576,6 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptUpdateSaveLocalView", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptUpdateSaveLocalView", err, Erl)
   Resume exit_here
 End Sub
