@@ -302,8 +302,8 @@ End Function
 
 Function cptGetFreeField(strDataType As String, Optional lngType As Long) As Long
 'objects
-Dim aTypes As Object
-Dim aFree As Object
+Dim dTypes As Scripting.Dictionary 'Object
+Dim rstFree As ADODB.Recordset 'Object
 Dim oTask As Task
 'strings
 'longs
@@ -326,47 +326,56 @@ Dim blnFree As Boolean
   If lngType = 0 Then lngType = pjTask
   
   'hash of local custom field counts
-  Set aTypes = CreateObject("System.Collections.SortedList")
-  aTypes.Add "Flag", 20
-  aTypes.Add "Number", 20
-  aTypes.Add "Text", 30
-  If aTypes.Contains(strDataType) Then lngItems = aTypes.Item(strDataType) Else lngItems = 10
+  Set dTypes = CreateObject("Scripting.Dictionary")
+  dTypes.Add "Flag", 20
+  dTypes.Add "Number", 20
+  dTypes.Add "Text", 30
+  If dTypes.Exists(strDataType) Then lngItems = dTypes(strDataType) Else lngItems = 10
   
   'prep to capture free fields
-  Set aFree = CreateObject("System.Collections.ArrayList")
+  Set rstFree = CreateObject("ADODB.Recordset")
+  rstFree.Fields.Append "FieldConstant", adBigInt
+  rstFree.Fields.Append "Available", adBoolean
+  rstFree.Open
   
-  'examine last to first
+  'start with custom fields witout custom field names, examine last to first
   For lngItem = lngItems To 1 Step -1
     lngField = FieldNameToFieldConstant(strDataType & lngItem, lngType)
     If CustomFieldGetName(lngField) = "" Then
-      aFree.Add Array(lngField, lngField)
+      rstFree.AddNew Array(0, 1), Array(lngField, True)
     End If
   Next lngItem
-
+  
+  'next ensure there is no data in that field on the tasks
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
-    For lngItem = 0 To aFree.Count - 1
+    rstFree.MoveFirst
+    Do While Not rstFree.EOF
       blnFree = True
-      If Val(oTask.GetField(aFree(lngItem)(0))) > 0 Then
+      If Val(oTask.GetField(rstFree(0))) > 0 Then
         blnFree = False
+        rstFree.Update Array(1), Array(blnFree)
         Exit For
       End If
-      aFree(lngItem) = Array(aFree(lngItem)(0), blnFree)
-    Next lngItem
+      rstFree.MoveNext
+    Loop
 next_task:
   Next oTask
 
-  For lngItem = 0 To aFree.Count - 1
-    If aFree(lngItem)(1) = True Then
+  rstFree.MoveFirst
+  Do While Not rstFree.EOF
+    If rstFree(1) = True Then
       With cptFilterByClipboard_frm.cboFreeField
-        lngFree = aFree(lngItem)(0)
+        lngFree = rstFree(0)
         .AddItem lngFree
         .List(.ListCount - 1, 1) = FieldConstantToFieldName(lngFree)
-        Exit For
+        Exit Do
       End With
     End If
-  Next lngItem
-
+    rstFree.MoveNext
+  Loop
+  rstFree.Close
+  
   If lngFree > 0 Then
     cptGetFreeField = lngFree
   Else
@@ -375,9 +384,10 @@ next_task:
 
 exit_here:
   On Error Resume Next
-  Set aTypes = Nothing
+  Set dTypes = Nothing
   Calculation = pjAutomatic
-  Set aFree = Nothing
+  If rstFree.State Then rstFree.Close
+  Set rstFree = Nothing
   Set oTask = Nothing
 
   Exit Function
