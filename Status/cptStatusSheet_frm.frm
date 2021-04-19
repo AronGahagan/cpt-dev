@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptStatusSheet_frm 
-   Caption         =   "Create Status Sheet"
+   Caption         =   "Create Status Sheet (v1.3.0)"
    ClientHeight    =   7230
    ClientLeft      =   120
    ClientTop       =   465
@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.2.11</cpt_version>
+'<cpt_version>v1.3.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -32,7 +32,7 @@ Dim lngField As Long
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
   Select Case Me.cboCreate
     Case 0 'A single workbook
       Me.lboItems.ForeColor = -2147483630
@@ -71,7 +71,8 @@ End Sub
 
 Private Sub cboEach_Change()
 'objects
-Dim Task As Task
+Dim rstItems As ADODB.Recordset
+Dim oTask As Task
 'strings
 Dim strFieldName As String
 'longs
@@ -87,6 +88,7 @@ Dim lngField As Long
 
   Me.lboItems.Clear
   Me.lboItems.ForeColor = -2147483630
+  ActiveWindow.TopPane.Activate
   FilterClear
   
   On Error Resume Next
@@ -94,17 +96,26 @@ Dim lngField As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   If lngField > 0 Then
-    With CreateObject("System.Collections.SortedList")
-      For Each Task In ActiveProject.Tasks
-        If Task Is Nothing Then GoTo next_task
-        If Task.Summary Then GoTo next_task
-        If Len(Task.GetField(lngField)) > 0 Then
-          If Not .Contains(Task.GetField(lngField)) Then .Add Task.GetField(lngField), Task.GetField(lngField)
+    Set rstItems = CreateObject("ADODB.Recordset")
+    With rstItems
+      .Fields.Append Me.cboEach.Value, adVarChar, 255
+      .Open
+      For Each oTask In ActiveProject.Tasks
+        If oTask Is Nothing Then GoTo next_task
+        If Not oTask.Active Then GoTo next_task
+        If oTask.ExternalTask Then GoTo next_task
+        If oTask.Summary Then GoTo next_task
+        If Len(oTask.GetField(lngField)) > 0 Then
+          If .RecordCount > 0 Then .MoveFirst
+          .Find Me.cboEach.Value & "='" & oTask.GetField(lngField) & "'"
+          If .EOF Then
+            .AddNew Array(0), Array(oTask.GetField(lngField))
+          End If
         End If
 next_task:
-      Next Task
+      Next oTask
       'validate field has items
-      If .Count = 0 Then
+      If .RecordCount = 0 Then
         If Len(CustomFieldGetName(lngField)) > 0 Then
           strFieldName = CustomFieldGetName(lngField)
         Else
@@ -112,16 +123,21 @@ next_task:
         End If
         MsgBox "The field '" & strFieldName & "' contains no values.", vbExclamation + vbOKOnly, "Invalid Selection"
       Else
-        For lngItem = 0 To .Count - 1
-          Me.lboItems.AddItem .getByIndex(lngItem)
-        Next lngItem
+        .Sort = Me.cboEach.Value
+        .MoveFirst
+        Do While Not .EOF
+          Me.lboItems.AddItem .Fields(0)
+          .MoveNext
+        Loop
       End If
     End With
   End If 'lngField > 0
   
 exit_here:
   On Error Resume Next
-  Set Task = Nothing
+  If rstItems.State = 1 Then rstItems.Close
+  Set rstItems = Nothing
+  Set oTask = Nothing
 
   Exit Sub
 err_here:
@@ -578,8 +594,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub lboItems_MouseUp(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
-'objects
+Private Sub lboItems_Change()
 'strings
 Dim strCriteria As String
 Dim strFieldName As String
@@ -607,11 +622,7 @@ Dim lngItem As Long
   
   strCriteria = Left(strCriteria, Len(strCriteria) - 1)
   
-  If lngSelectedItems < Me.lboItems.ListCount Then
-    SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
-  Else
-    FilterClear
-  End If
+  SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
   
   ActiveWindow.TopPane.Activate
   SelectBeginning
@@ -694,7 +705,7 @@ Private Sub txtHideCompleteBefore_Change()
 Dim stxt As String
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  If Not Me.Visible Then GoTo exit_here
   stxt = cptRegEx(Me.txtHideCompleteBefore.Text, "[0-9\/]*")
   Me.txtHideCompleteBefore.Text = stxt
   If Len(Me.txtHideCompleteBefore.Text) > 0 Then
@@ -722,7 +733,7 @@ Private Sub txtStatusDate_Change()
 Dim stxt As String
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  If Not Me.Visible Then GoTo exit_here
   stxt = cptRegEx(Me.txtStatusDate.Text, "[0-9\/]*")
   Me.txtStatusDate.Text = stxt
   If Len(Me.txtStatusDate.Text) > 0 Then
