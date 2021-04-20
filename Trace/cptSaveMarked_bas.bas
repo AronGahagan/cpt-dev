@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveMarked_bas"
-'<cpt_version>v1.0.1</cpt_version>
+'<cpt_version>v1.0.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -24,7 +24,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveMarked_bas", "cptShowSaveMarked_frm", err, Erl)
+  Call cptHandleErr("cptSaveMarked_bas", "cptShowSaveMarked_frm", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -107,7 +107,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveMarked_bas", "cptUpdateMarked", err, Erl)
+  Call cptHandleErr("cptSaveMarked_bas", "cptUpdateMarked", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -145,7 +145,7 @@ Sub cptSaveMarked()
   If rstMarked.State <> 1 Then rstMarked.Open strMarked
   
   'todo: launch a form to capture
-  If Application.VERSION < 12 Then
+  If Application.Version < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
@@ -202,7 +202,7 @@ exit_here:
   
   Exit Sub
 err_here:
-  Call cptHandleErr("cptNetworkBrowser_bas", "cptSaveMarked", err, Erl)
+  Call cptHandleErr("cptNetworkBrowser_bas", "cptSaveMarked", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -273,7 +273,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptNetworkBrowser_bas", "cptImportMarked", err, Erl)
+  Call cptHandleErr("cptNetworkBrowser_bas", "cptImportMarked", Err, Erl)
   Resume exit_here
 End Sub
 
