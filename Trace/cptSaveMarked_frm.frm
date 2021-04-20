@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.1</cpt_version>
+'<cpt_version>v1.0.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -80,7 +80,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveMarked_frm", "cmdImport_Click", err, Erl)
+  Call cptHandleErr("cptSaveMarked_frm", "cmdImport_Click", Err, Erl)
   Resume exit_here
     
 End Sub
@@ -131,7 +131,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveMarked_frm", "cmdRemove", err, Erl)
+  Call cptHandleErr("cptSaveMarked_frm", "cmdRemove", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -147,11 +147,10 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptBackbone_frm", "lblURL_Click", err, Erl)
+  Call cptHandleErr("cptBackbone_frm", "lblURL_Click", Err, Erl)
   Resume exit_here
 
 End Sub
-
 
 Private Sub lboMarked_Click()
   'objects
@@ -220,7 +219,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveMarked_frm", "lboMarked_Click", err, Erl)
+  Call cptHandleErr("cptSaveMarked_frm", "lboMarked_Click", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -247,7 +246,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveMarked_frm", "txtFilter_Change", err, Erl)
+  Call cptHandleErr("cptSaveMarked_frm", "txtFilter_Change", Err, Erl)
   Resume exit_here
 End Sub
 
