@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.2.4</cpt_version>
+'<cpt_version>v3.2.5</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -463,7 +463,7 @@ Private Sub DataChecks(ByVal curproj As Project)
                             .MSID = t.GetField(FieldNameToFieldConstant(fMilestone))
                             .MSWeight = t.GetField(FieldNameToFieldConstant(fMilestoneWeight))
                         End If
-                        .BWork = t.BaselineWork / 60 / curproj.HoursPerDay
+                        .BWork = t.BaselineWork / 60 '/ curproj.HoursPerDay v3.2.5
                         .BCost = t.BaselineCost
                         .CAM = t.GetField(FieldNameToFieldConstant(fCAM))
                         .AssignmentBStart = "NA"
@@ -504,7 +504,7 @@ Private Sub DataChecks(ByVal curproj As Project)
                             Else
                                 tempBWork = tAss.BaselineWork
                             End If
-                            .AssignmentBWork = .AssignmentBWork + tempBWork / 60 / curproj.HoursPerDay
+                            .AssignmentBWork = .AssignmentBWork + tempBWork / 60 '/ curproj.HoursPerDay 'v3.2.5
 
                         Next tAss
 
@@ -1120,7 +1120,7 @@ Private Sub CSV_Export(ByVal curproj As Project)
     '****BCR Review*****
     '*******************
 
-    If BCRxport = True Then
+    If BCWSxport = True And BCRxport = True Then
         If Find_BCRs(curproj, fWP, fBCR, BCR_ID) = 0 Then
             MsgBox "BCR ID " & Chr(34) & BCR_ID & Chr(34) & " was not found in the IMS." & vbCr & vbCr & "Please try again."
             BCR_Error = True
