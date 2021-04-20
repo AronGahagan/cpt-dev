@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIMSCobraExport_frm 
-   Caption         =   "IMS Export Utility v3.2.4"
+   Caption         =   "IMS Export Utility v3.2.5"
    ClientHeight    =   7284
    ClientLeft      =   120
    ClientTop       =   468
@@ -14,7 +14,8 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-'<cpt_version>v3.2.4</cpt_version>
+
+'<cpt_version>v3.2.5</cpt_version>
 Private Sub bcrBox_Change()
 
     If checkDuplicate(bcrBox) = True Then
@@ -919,7 +920,7 @@ Private Function PopulateCustFieldUsage() As Boolean
     Dim docProp As DocumentProperty
     Dim docProps As DocumentProperties
     Dim fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fEVT, fCAID2, fCAID2t, fMSID, fMSW, fBCR, fWhatIf, fPCNT, fResID As Boolean 'v3.2
-    Dim NameTest As Double
+    Dim nameTest As Double
     
     Set curproj = ActiveProject
     Set docProps = curproj.CustomDocumentProperties
@@ -932,7 +933,7 @@ Private Function PopulateCustFieldUsage() As Boolean
         
             Case "fCAID1"
             
-                NameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                nameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
                 fCAID1 = True
                 Me.caID1Box.Value = docProp.Value
                 
@@ -947,7 +948,7 @@ Private Function PopulateCustFieldUsage() As Boolean
                     fCAID3 = True
                     Me.caID3Box.Value = docProp.Value
                 Else
-                    NameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                    nameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
                     fCAID3 = True
                     Me.caID3Box.Value = docProp.Value
                 End If
@@ -963,7 +964,7 @@ Private Function PopulateCustFieldUsage() As Boolean
                     fCAID2 = True
                     Me.caID2Box.Value = docProp.Value
                 Else
-                    NameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                    nameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
                     fCAID2 = True
                     Me.caID2Box.Value = docProp.Value
                 End If
@@ -975,25 +976,25 @@ Private Function PopulateCustFieldUsage() As Boolean
                 
             Case "fWP"
                 
-                NameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                nameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
                 fWP = True
                 Me.wpBox.Value = docProp.Value
                 
             Case "fCAM"
                 
-                NameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                nameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
                 fCAM = True
                 Me.camBox.Value = docProp.Value
                 
             Case "fEVT"
                 
-                NameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                nameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
                 fEVT = True
                 Me.evtBox.Value = docProp.Value
                 
             Case "fCAID2"
             
-                NameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                nameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
                 fCAID2 = True
                 Me.caID2Box.Value = docProp.Value
                 
@@ -1008,7 +1009,7 @@ Private Function PopulateCustFieldUsage() As Boolean
                     fMSID = True
                     Me.msidBox.Value = docProp.Value
                 Else
-                    NameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                    nameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
                     fMSID = True
                     Me.msidBox.Value = docProp.Value
                 End If
@@ -1019,7 +1020,7 @@ Private Function PopulateCustFieldUsage() As Boolean
                     fMSW = True
                     Me.mswBox.Value = docProp.Value
                 Else
-                    NameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                    nameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
                     fMSW = True
                     Me.mswBox.Value = docProp.Value
                 End If
@@ -1030,7 +1031,7 @@ Private Function PopulateCustFieldUsage() As Boolean
                     fBCR = True
                     Me.bcrBox.Value = docProp.Value
                 Else
-                    NameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                    nameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
                     fBCR = True
                     Me.bcrBox.Value = docProp.Value
                 End If
@@ -1041,14 +1042,14 @@ Private Function PopulateCustFieldUsage() As Boolean
                     fWhatIf = True
                     Me.whatifBox.Value = docProp.Value
                 Else
-                    NameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                    nameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
                     fWhatIf = True
                     Me.whatifBox.Value = docProp.Value
                 End If
                 
             Case "fPCNT"
             
-                NameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                nameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
                 fPCNT = True
                 Me.PercentBox.Value = docProp.Value
                 
@@ -1068,7 +1069,7 @@ NextDocProp:
     Set docProps = Nothing
     Set curpro = Nothing
     
-    If fCAID1 And fCAID2 And fWP And fCAM And fEVT And fCAID3 And fMSID And fMSW And fPCNT And fResID And fBCR And fWhatIf Then 'v3.2
+    If fCAID1 And fCAID2 And fWP And fCAM And fEVT And fCAID3 And fMSID And fMSW And fPCNT And fResID Then 'v3.2.5
     
         PopulateCustFieldUsage = True
     
