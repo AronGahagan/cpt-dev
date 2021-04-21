@@ -44,8 +44,8 @@
 ---
 
 ## Prerequisites
-1. Microsoft Project Standard or Professional 2013+
-1. Microsoft Office (Outlook, Excel, Word, PowerPoint)
+1. Microsoft Project Standard or Professional 2013+ (32-bit or 64-bit, but must match Office version for some features to work properly)
+1. Microsoft Office (Outlook, Excel, Word, PowerPoint) (32-bit or 64-bit, but must match MS Project version for some features to work propertly)
 1. Internet Connection preferred, but not required
 1. Some features may require that `.NET 3.5` be enabled. From your start menu, search for 'Turn Windows Features On or Off' (a control panel setting) and be sure `.NET 3.5` is enabled.
 
