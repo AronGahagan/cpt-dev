@@ -44,7 +44,7 @@
 	</Module>
 	<Module>
 		<Name>cptCommonFieldMap_bas</Name>
-		<FileName>cptCommonFieldMap_bas.frm</FileName>
+		<FileName>cptCommonFieldMap_bas.bas</FileName>
 		<Version>v1.0.1</Version>
 		<Type>1</Type>
 		<Directory>Core</Directory>
