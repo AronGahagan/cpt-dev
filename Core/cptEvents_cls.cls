@@ -7,7 +7,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.3</cpt_version>
+'<cpt_version>v1.1.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -24,6 +24,7 @@ Private Sub MyMSPApplication_WindowSelectionChange(ByVal Window As Window, ByVal
 'objects
 Dim ctl As Object
 Dim frmText As Object 'UserForm
+Dim oUserForm As Object 'UserForm
 Dim Tasks As Tasks, Task As Task, Resources As Resources
 'strings
 'longs
@@ -39,10 +40,9 @@ Dim lngItem As Long, lngItems As Long
   'Validate users selected view type
   If ActiveProject.Application.ActiveWindow.ActivePane.View.Type = pjTaskItem Then
     If Not IsError(ActiveSelection.Tasks) Then
-      Set frmText = cptGetUserForm("cptText_frm")
+      Set frmText = cptGetUserForm("cptText_frm") 'returns Nothing if form is not loaded
       Set ctl = cptGetControl(frmText, "lboOutput")
       If Not frmText Is Nothing Then
-        'If frmText.Visible Then
           frmText.Controls("lboOutput").Clear
           For Each Task In ActiveSelection.Tasks
             frmText.Controls("lboOutput").AddItem
@@ -77,10 +77,12 @@ Dim lngItem As Long, lngItems As Long
     End If
   End If
   
-  If cptNetworkBrowser_frm.Visible Then Call cptShowPreds
+  Set oUserForm = cptGetUserForm("cptNetworkBrowser_frm") 'returns Nothing if form is not loaded
+  If Not oUserForm Is Nothing Then Call cptShowPreds
   
 exit_here:
   On Error Resume Next
+  Set oUserForm = Nothing
   Set ctl = Nothing
   Set frmText = Nothing
   Set Tasks = Nothing
