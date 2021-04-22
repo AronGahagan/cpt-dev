@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>v1.1.3</cpt_version>
+'<cpt_version>v1.1.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -66,7 +66,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFilterByClipboard_bas", "cptShowFilterByClipboard_frm", err, Erl)
+  Call cptHandleErr("cptFilterByClipboard_bas", "cptShowFilterByClipboard_frm", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -100,7 +100,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFilterByClipboard_bas", "cptCliipboardJump", err, Erl)
+  Call cptHandleErr("cptFilterByClipboard_bas", "cptCliipboardJump", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -200,7 +200,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFilterByClipboard_bas", "cptUpdateClipboard", err, Erl)
+  Call cptHandleErr("cptFilterByClipboard_bas", "cptUpdateClipboard", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -267,7 +267,7 @@ Dim REMatch As Variant
     Next
 skip_it:
   Next lngItem
-  err.Clear
+  Err.Clear
   
   On Error Resume Next
   'which delimiter got the most points?
@@ -278,7 +278,7 @@ skip_it:
       Exit For
     End If
   Next lngItem
-  If err.Number > 0 Then
+  If Err.Number > 0 Then
     cptGuessDelimiter = 0
   Else
     cptGuessDelimiter = lngMatch
@@ -292,10 +292,10 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptFilterByClipboard_bas", "cptGuessDelimiter", err, Erl)
-  If err.Number = 5 Then
+  Call cptHandleErr("cptFilterByClipboard_bas", "cptGuessDelimiter", Err, Erl)
+  If Err.Number = 5 Then
     cptGuessDelimiter = 0
-    err.Clear
+    Err.Clear
   End If
   Resume exit_here
 End Function
@@ -303,7 +303,7 @@ End Function
 Function cptGetFreeField(strDataType As String, Optional lngType As Long) As Long
 'objects
 Dim dTypes As Scripting.Dictionary 'Object
-Dim rstFree As ADODB.Recordset 'Object
+Dim rstFree As Object 'ADODB.Recordset 'Object
 Dim oTask As Task
 'strings
 'longs
@@ -392,7 +392,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptFilterByClipboard", "cptGetFreeField", err)
+  Call cptHandleErr("cptFilterByClipboard", "cptGetFreeField", Err)
   Resume exit_here
 End Function
 
@@ -437,7 +437,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFilterByClipboard_bas", "cptClearFreeField", err, Erl)
+  Call cptHandleErr("cptFilterByClipboard_bas", "cptClearFreeField", Err, Erl)
   Resume exit_here
   
 End Sub

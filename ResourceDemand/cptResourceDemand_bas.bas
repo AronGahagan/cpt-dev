@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.3.0</cpt_version>
+'<cpt_version>v1.3.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -472,7 +472,7 @@ next_task:
 
   'create the PivotTable
   oWorkbook.PivotCaches.Create(SourceType:=1, _
-        SourceData:=strRange, VERSION:= _
+        SourceData:=strRange, Version:= _
         3).CreatePivotTable TableDestination:="ResourceDemand!R3C1", TableName:="RESOURCE_DEMAND", DefaultVersion:=3
   Set oPivotTable = oWorksheet.PivotTables(1)
   oPivotTable.AddFields Array("RESOURCE_NAME", "PROJECT", "[UID] TASK"), Array("WEEK") 'Array("FISCAL_YEAR", "FISCAL_MONTH", "WEEK")
@@ -709,10 +709,10 @@ End Sub
 
 Sub cptShowExportResourceDemand_frm()
 'objects
-Dim rst As ADODB.Recordset 'Object
-Dim arrResources As ADODB.Recordset 'Object
+Dim rst As Object 'ADODB.Recordset
+Dim rstResources As Object 'ADODB.Recordset
 Dim objProject As Object
-Dim arrFields As ADODB.Recordset 'Object
+Dim rstFields As Object 'ADODB.Recordset
 'strings
 Dim strMissing As String
 Dim strActiveView As String
@@ -742,16 +742,16 @@ Dim vFieldType As Variant
   Else
     cptSpeed True
     lngResourceCount = ActiveProject.ResourceCount
-    Set arrResources = CreateObject("ADODB.Recordset")
-    arrResources.Fields.Append "RESOURCE_NAME", adVarChar, 200
-    arrResources.Open
+    Set rstResources = CreateObject("ADODB.Recordset")
+    rstResources.Fields.Append "RESOURCE_NAME", adVarChar, 200
+    rstResources.Open
     For lngItem = 1 To ActiveProject.Subprojects.Count
       Set objProject = ActiveProject.Subprojects(lngItem).SourceProject
       Application.StatusBar = "Loading " & objProject.Name & "..."
       For lngResource = 1 To objProject.Resources.Count
-        With arrResources
+        With rstResources
           .Filter = "[RESOURCE_NAME]='" & objProject.Resources(lngResource).Name & "'"
-          If arrResources.RecordCount = 0 Then
+          If rstResources.RecordCount = 0 Then
             .AddNew Array(0), Array("'" & objProject.Resources(lngResource).Name & "'")
           Else
             Debug.Print "duplicate found"
@@ -761,7 +761,7 @@ Dim vFieldType As Variant
       Next lngResource
       Set objProject = Nothing
     Next lngItem
-    arrResources.Close 'todo: save for later?
+    rstResources.Close 'todo: save for later?
     Application.StatusBar = ""
     cptSpeed False
   End If
@@ -769,13 +769,13 @@ Dim vFieldType As Variant
   cptResourceDemand_frm.lboFields.Clear
   cptResourceDemand_frm.lboExport.Clear
 
-  Set arrFields = CreateObject("ADODB.Recordset")
-  arrFields.Fields.Append "CONSTANT", adInteger
-  arrFields.Fields.Append "CUSTOM_NAME", adVarChar, 200
-  arrFields.Open
+  Set rstFields = CreateObject("ADODB.Recordset")
+  rstFields.Fields.Append "CONSTANT", adInteger
+  rstFields.Fields.Append "CUSTOM_NAME", adVarChar, 200
+  rstFields.Open
   
   'add the 'Critical' field
-  arrFields.AddNew Array(0, 1), Array(FieldNameToFieldConstant("Critical"), "Critical")
+  rstFields.AddNew Array(0, 1), Array(FieldNameToFieldConstant("Critical"), "Critical")
   
   'todo: add the TrueFloat Fields - get from ini?
   
@@ -786,8 +786,8 @@ Dim vFieldType As Variant
       strFieldName = CustomFieldGetName(lngField)
       If Len(strFieldName) > 0 Then
         'todo: handle duplicates if master/subprojects
-        arrFields.AddNew Array(0, 1), Array(lngField, strFieldName)
-        arrFields.Update
+        rstFields.AddNew Array(0, 1), Array(lngField, strFieldName)
+        rstFields.Update
       End If
 next_field:
     Next lngItem
@@ -798,39 +798,39 @@ next_field:
     If FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
       strFieldName = Application.FieldConstantToFieldName(lngField)
       'todo: avoid conflicts between local and custom fields?
-      'If arrFields.Contains(strFieldName) Then
+      'If rstFields.Contains(strFieldName) Then
       '  MsgBox "An Enterprise Field named '" & strFieldName & "' conflicts with a local custom field of the same name. The local field will be ignored.", vbExclamation + vbOKOnly, "Conflict"
-        'arrFields.Remove Application.FieldConstantToFieldName(lngField)
+        'rstFields.Remove Application.FieldConstantToFieldName(lngField)
       'End If
-      arrFields.AddNew Array(0, 1), Array(lngField, strFieldName)
-      arrFields.Update
+      rstFields.AddNew Array(0, 1), Array(lngField, strFieldName)
+      rstFields.Update
     End If
 next_field1:
   Next lngField
 
   'add fields to listbox
-  arrFields.Sort = "CUSTOM_NAME"
-  arrFields.MoveFirst
+  rstFields.Sort = "CUSTOM_NAME"
+  rstFields.MoveFirst
   lngItem = 0
-  Do While Not arrFields.EOF
+  Do While Not rstFields.EOF
     cptResourceDemand_frm.lboFields.AddItem
-    cptResourceDemand_frm.lboFields.List(lngItem, 0) = arrFields(0)
-    If arrFields(0) > 188776000 Then
-      cptResourceDemand_frm.lboFields.List(lngItem, 1) = arrFields(1) & " (Enterprise)"
+    cptResourceDemand_frm.lboFields.List(lngItem, 0) = rstFields(0)
+    If rstFields(0) > 188776000 Then
+      cptResourceDemand_frm.lboFields.List(lngItem, 1) = rstFields(1) & " (Enterprise)"
     Else
-      cptResourceDemand_frm.lboFields.List(lngItem, 1) = arrFields(1) & " (" & FieldConstantToFieldName(arrFields(0)) & ")"
+      cptResourceDemand_frm.lboFields.List(lngItem, 1) = rstFields(1) & " (" & FieldConstantToFieldName(rstFields(0)) & ")"
     End If
-    arrFields.MoveNext
+    rstFields.MoveNext
     lngItem = lngItem + 1
   Loop
 
   'save the fields to a file for fast searching
-  If arrFields.RecordCount > 0 Then
+  If rstFields.RecordCount > 0 Then
     strFileName = Environ("tmp") & "\cpt-resource-demand-search.adtg"
     If Dir(strFileName) <> vbNullString Then Kill strFileName
-    arrFields.Save strFileName, adPersistADTG
+    rstFields.Save strFileName, adPersistADTG
   End If
-  arrFields.Close
+  rstFields.Close
   
   'populate options and set defaults
   With cptResourceDemand_frm
@@ -910,9 +910,11 @@ next_saved_field:
 exit_here:
   On Error Resume Next
   Set rst = Nothing
-  Set arrResources = Nothing
+  If rstResources.State Then rstResources.Close
+  Set rstResources = Nothing
   Set objProject = Nothing
-  Set arrFields = Nothing
+  If rstFields.State Then rstFields.Close
+  Set rstFields = Nothing
   Exit Sub
 
 err_here:

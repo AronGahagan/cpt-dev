@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDataDictionary_bas"
-'<cpt_version>v1.2.0</cpt_version>
+'<cpt_version>v1.2.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -178,8 +178,8 @@ Dim vFieldScope As Variant
                   If blnLookups Then wsLookups.Cells(2 + intListItem, lngLookupCol) = strValue
                 End If
               End If
-              If err > 0 Then
-                err.Clear
+              If Err > 0 Then
+                Err.Clear
                 Exit For
               End If
             Next intListItem
@@ -353,11 +353,11 @@ exit_here:
   Exit Sub
   
 err_here:
-  If err.Number = 1101 Or err.Number = 1004 Then
-    err.Clear
+  If Err.Number = 1101 Or Err.Number = 1004 Then
+    Err.Clear
     Resume next_field
   Else
-    Call cptHandleErr("cptExportCustomFields_bas", "cptExportDataDictionary", err, Erl)
+    Call cptHandleErr("cptExportCustomFields_bas", "cptExportDataDictionary", Err, Erl)
   End If
   
 End Sub
@@ -376,14 +376,14 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDataDictionary_bas", "cptShowDataDictionary_frm()", err, Erl)
+  Call cptHandleErr("cptDataDictionary_bas", "cptShowDataDictionary_frm()", Err, Erl)
   Resume exit_here
 End Sub
 
 Sub cptRefreshDictionary()
 'objects
-Dim dTypes As Scripting.Dictionary 'Object
-Dim rstSaved As ADODB.Recordset 'Object
+Dim dTypes As Object 'Scripting.Dictionary
+Dim rstSaved As Object 'ADODB.Recordset
 'strings
 Dim strFieldName As String
 Dim strCustomName As String
@@ -526,7 +526,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDataDictionary_bas", "cptRefreshDictionary", err, Erl)
+  Call cptHandleErr("cptDataDictionary_bas", "cptRefreshDictionary", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -736,6 +736,6 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptDataDictionary_bas", "cptImportDataDictionary", err, Erl)
+  Call cptHandleErr("cptDataDictionary_bas", "cptImportDataDictionary", Err, Erl)
   Resume exit_here
 End Sub
