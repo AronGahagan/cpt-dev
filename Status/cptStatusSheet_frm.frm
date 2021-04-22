@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.0</cpt_version>
+'<cpt_version>v1.2.13</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -71,7 +71,7 @@ End Sub
 
 Private Sub cboEach_Change()
 'objects
-Dim rstItems As ADODB.Recordset
+Dim rstItems As Object 'ADODB.Recordset
 Dim oTask As Task
 'strings
 Dim strFieldName As String
@@ -107,7 +107,7 @@ Dim lngField As Long
         If oTask.Summary Then GoTo next_task
         If Len(oTask.GetField(lngField)) > 0 Then
           If .RecordCount > 0 Then .MoveFirst
-          .Find Me.cboEach.Value & "='" & oTask.GetField(lngField) & "'"
+          .Find "[" & Me.cboEach.Value & "]='" & oTask.GetField(lngField) & "'"
           If .EOF Then
             .AddNew Array(0), Array(oTask.GetField(lngField))
           End If
@@ -123,7 +123,7 @@ next_task:
         End If
         MsgBox "The field '" & strFieldName & "' contains no values.", vbExclamation + vbOKOnly, "Invalid Selection"
       Else
-        .Sort = Me.cboEach.Value
+        .Sort = "[" & Me.cboEach.Value & "]"
         .MoveFirst
         Do While Not .EOF
           Me.lboItems.AddItem .Fields(0)
