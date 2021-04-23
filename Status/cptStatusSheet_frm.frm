@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.2.13</cpt_version>
+'<cpt_version>v1.3.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -40,7 +40,7 @@ Dim lngField As Long
       Me.lblForEach.Visible = False
       Me.cboEach.Enabled = False
       Me.lboItems.Enabled = False
-      FilterClear
+      FilterApply "cptStatusSheet Filter"
 
     Case 1 'A worksheet for each
       Me.lboItems.ForeColor = -2147483630
@@ -88,8 +88,10 @@ Dim lngField As Long
 
   Me.lboItems.Clear
   Me.lboItems.ForeColor = -2147483630
-  ActiveWindow.TopPane.Activate
-  FilterClear
+  If Me.Visible Then
+    ActiveWindow.TopPane.Activate
+    FilterApply "cptStatusSheet Filter"
+  End If
   
   On Error Resume Next
   lngField = FieldNameToFieldConstant(Me.cboEach)
@@ -409,12 +411,10 @@ Dim lngItem As Long
 'integers
 'doubles
 'booleans
+Dim blnError As Boolean
 Dim blnIncluded As Boolean
 'variants
 'dates
-
-Dim blnError As Boolean, intOutput As Integer, intHide As Integer
-Dim strFileName As String
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -505,28 +505,20 @@ Dim strFileName As String
     Me.lblStatus.Caption = " Please complete all required fields."
   Else
     'save settings
-    strFileName = cptDir & "\settings\cpt-status-sheet.adtg"
-    With CreateObject("ADODB.Recordset")
-      .Fields.Append "cboEVT", adVarChar, 100
-      .Fields.Append "cboEVP", adVarChar, 100
-      .Fields.Append "chkOutput", adInteger
-      .Fields.Append "chkHide", adInteger
-      .Fields.Append "cboCostTool", adVarChar, 100
-      .Fields.Append "cboEach", adVarChar, 100
-      .Open
-      If Me.chkHide Then intHide = 1 Else intHide = 0
-      intOutput = Me.cboCreate.Value + 1
-      .AddNew Array(0, 1, 2, 3, 4), Array(Me.cboEVT.Value, Me.cboEVP.Value, intOutput, intHide, Me.cboCostTool.Value)
-      .Update
-      .MoveFirst
-      If Not IsNull(Me.cboEach.Value) Then
-        .Fields("cboEach") = Me.cboEach.Value
-      End If
-      .Update
-      If Dir(strFileName) <> vbNullString Then Kill strFileName
-      .Save strFileName
-      .Close
-    End With
+    cptSaveSetting "StatusSheet", "cboEVP", Me.cboEVP.Value
+    cptSaveSetting "StatusSheet", "cboCostTool", Me.cboCostTool.Value
+    cptSaveSetting "StatusSheet", "cboEVT", Me.cboEVT.Value
+    cptSaveSetting "StatusSheet", "chkHide", IIf(Me.chkHide, 1, 0)
+    cptSaveSetting "StatusSheet", "cboCreate", Me.cboCreate + 1
+    If Me.cboCostTool.Value <> 0 Then
+      cptSaveSetting "StatusSheet", "cboEach", Me.cboEach.Value
+    Else
+      cptSaveSetting "StatusSheet", "cboEach", "" 'todo: handle '<none>'
+    End If
+    cptSaveSetting "StatusSheet", "chkEmail", IIf(Me.chkSendEmails, 1, 0)
+    cptSaveSetting "StatusSheet", "chkConditionalFormatting", IIf(Me.chkAddConditionalFormats, 1, 0)
+    cptSaveSetting "StatusSheet", "chkDataValidation", IIf(Me.chkValidation, 1, 0)
+    cptSaveSetting "StatusSheet", "chkLocked", IIf(Me.chkLocked, 1, 0)
     'create the sheet
     Call cptCreateStatusSheet
   End If

@@ -69,13 +69,16 @@ Dim vFieldType As Variant
     .cboCostTool.AddItem "COBRA"
     .cboCostTool.AddItem "MPM"
     .cboCostTool.AddItem "<none>"
-    .cboCreate.AddItem
     For lngItem = 0 To 2
       .cboCreate.AddItem
       .cboCreate.List(lngItem, 0) = lngItem
       .cboCreate.List(lngItem, 1) = Choose(lngItem + 1, "A Single Workbook", "A Worksheet for each", "A Workbook for each")
     Next lngItem
     .chkSendEmails.Enabled = cptCheckReference("Outlook")
+    .chkHide = True
+    .chkAddConditionalFormats = False
+    .chkValidation = True
+    .chkLocked = True
   End With
 
   'set up arrays to capture values
@@ -94,10 +97,8 @@ Dim vFieldType As Variant
       If Len(strFieldName) > 0 Then
         If vFieldType = "Number" Then
           rstFields.AddNew Array(0, 1, 2), Array(lngField, strFieldName, "Number")
-          'todo: what if this is an enterprise field?
         Else
           rstFields.AddNew Array(0, 1, 2), Array(lngField, strFieldName, "Text")
-          'todo: what if this is an enterprise field?
         End If
       End If
 next_field:
@@ -111,7 +112,7 @@ next_field:
   rstFields.AddNew Array(0, 1, 2), Array(FieldNameToFieldConstant("Contact"), "Contact", "Text")
   
   'get enterprise custom fields
-  Application.StatusBar = "Getting Enterprise Custom Fields..."
+  Application.StatusBar = "Getting Enterprise custom fields..."
   DoEvents
   For lngField = 188776000 To 188778000 '2000 should do it for now
     If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
@@ -140,6 +141,9 @@ next_field:
         .cboEVT.AddItem rstFields(1)
       ElseIf rstFields(2) = "Number" Then 'add to EVP
         .cboEVP.AddItem rstFields(1)
+      Else 'todo: add to both?
+        .cboEVT.AddItem rstFields(1)
+        .cboEVP.AddItem rstFields(1)
       End If
       rstFields.MoveNext
     Loop
@@ -153,7 +157,7 @@ next_field:
     With CreateObject("ADODB.Recordset")
       .Open strFileName
       .MoveFirst
-      cptSaveSetting "StatusSheet", "cboEVT", .Fields(0) 'todo: if not cptSaveSetting then 'could not save setting
+      cptSaveSetting "StatusSheet", "cboEVT", .Fields(0)
       cptSaveSetting "StatusSheet", "cboEVP", .Fields(1)
       cptSaveSetting "StatusSheet", "cboCreate", .Fields(2) - 1
       cptSaveSetting "StatusSheet", "chkHide", .Fields(3)
@@ -190,19 +194,21 @@ next_field:
     If strHide <> "" Then .chkHide = strHide = "1"
     strCostTool = cptGetSetting("StatusSheet", "cboCostTool")
     If strCostTool <> "" Then .cboCostTool.Value = strCostTool
-    strEach = cptGetSetting("StatusSheet", "cboEach")
-    If strEach <> "" Then
-      rstFields.MoveNext
-      rstFields.Find "NAME='" & strEach & "'"
-      If Not rstFields.EOF Then .cboEach.Value = strEach
+    If .cboCreate <> 0 Then
+      strEach = cptGetSetting("StatusSheet", "cboEach")
+      If strEach <> "" Then
+        rstFields.MoveNext
+        rstFields.Find "NAME='" & strEach & "'"
+        If Not rstFields.EOF Then .cboEach.Value = strEach '<none> would not be found
+      End If
     End If
     strEmail = cptGetSetting("StatusSheet", "chkEmail")
     If strEmail <> "" Then .chkSendEmails = strEmail = "1"
-    strConditionalFormats = cptGetSetting("StatusSheet", "ConditionalFormatting")
+    strConditionalFormats = cptGetSetting("StatusSheet", "chkConditionalFormatting")
     If strConditionalFormats <> "" Then .chkAddConditionalFormats = strConditionalFormats = "1"
-    strDataValidation = cptGetSetting("StatusSheet", "DataValidation")
+    strDataValidation = cptGetSetting("StatusSheet", "chkDataValidation")
     If strDataValidation <> "" Then .chkValidation = strDataValidation = "1"
-    strLocked = cptGetSetting("StatusSheet", "Protection")
+    strLocked = cptGetSetting("StatusSheet", "chkLocked")
     If strLocked <> "" Then .chkLocked = strLocked = "1"
   End With
 
@@ -234,6 +240,7 @@ next_field:
   End If
 
   'reset the view - must be of type pjTaskItem
+  'todo: capture/restore starting table, filter, and group (but keep existing view)
   If ActiveWindow.TopPane.View.Name <> "Gantt Chart" Then
     If MsgBox("Current view must be changed for successful export.", vbInformation + vbOKCancel, "Incompatible View") = vbOK Then
       ViewApply "Gantt Chart"
@@ -329,9 +336,9 @@ Sub cptCreateStatusSheet()
   Dim lngNotesCol As Long, lngColumnWidth As Long
   Dim lngASCol As Long, lngAFCol As Long, lngETCCol As Long, lngEVPCol As Long
   #If Win64 And VBA7 Then '<issue53>
-          Dim t As LongPtr, tTotal As LongPtr '<issue53>
+    Dim t As LongPtr, tTotal As LongPtr '<issue53>
   #Else '<issue53>
-          Dim t As Long, tTotal As Long '<issue53>
+    Dim t As Long, tTotal As Long '<issue53>
   #End If '<issue53>
   Dim lngItem As Long
   'strings
@@ -377,18 +384,14 @@ Sub cptCreateStatusSheet()
     MsgBox "This project has no tasks.", vbExclamation + vbOKOnly, "Create Status Sheet"
     GoTo exit_here
   End If
-  
-  'If ActiveWindow.TopPane.View.Name <> "Gantt Chart" Then ViewApply "Gantt Chart"
-  'If ActiveProject.CurrentTable <> "cptStatusSheet Table" Then TableApply "cptStatusSheet Table"
-  'todo: reapply filter? or make form modal?
-  
+    
   cptStatusSheet_frm.lblStatus.Caption = " Analyzing project..."
   Application.StatusBar = "Analyzing project..."
   blnValidation = cptStatusSheet_frm.chkValidation = True
   blnLocked = cptStatusSheet_frm.chkLocked = True
+  
   'get task count
   If blnPerformanceTest Then t = GetTickCount
-  
   SelectAll
   Set oTasks = ActiveSelection.Tasks
   lngTaskCount = oTasks.Count
