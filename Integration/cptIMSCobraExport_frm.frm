@@ -13,9 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-
-'<cpt_version>v3.2.5</cpt_version>
+'<cpt_version>v3.2.6</cpt_version>
 Private Sub bcrBox_Change()
 
     If checkDuplicate(bcrBox) = True Then
@@ -1069,7 +1067,7 @@ NextDocProp:
     Set docProps = Nothing
     Set curpro = Nothing
     
-    If fCAID1 And fCAID2 And fWP And fCAM And fEVT And fCAID3 And fMSID And fMSW And fPCNT And fResID Then 'v3.2.5
+    If fCAID1 And fCAID2 And fWP And fCAM And fEVT And fCAID3 And fPCNT And fResID Then 'v3.2.6
     
         PopulateCustFieldUsage = True
     
