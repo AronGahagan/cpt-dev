@@ -9,6 +9,11 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_heref Else On Error GoTo 0
 Private Const adVarChar As Long = 200
+Private strStartingViewTopPane As String
+Private strStartingViewBottomPane As String
+Private strStartingTable As String
+Private strStartingFilter As String
+Private strStartingGroup As String
 
 Sub cptShowStatusSheet_frm()
 'populate all outline codes, text, and number fields
@@ -83,6 +88,7 @@ Dim vFieldType As Variant
 
   'set up arrays to capture values
   Application.StatusBar = "Getting local custom fields..."
+  DoEvents
   Set rstFields = CreateObject("ADODB.Recordset")
   rstFields.Fields.Append "CONSTANT", adBigInt
   rstFields.Fields.Append "NAME", adVarChar, 200
@@ -240,7 +246,20 @@ next_field:
   End If
 
   'reset the view - must be of type pjTaskItem
-  'todo: capture/restore starting table, filter, and group (but keep existing view)
+  'todo: restore starting table, filter, and group (but keep existing view)
+  ActiveWindow.TopPane.Activate
+  strStartingViewTopPane = ActiveWindow.TopPane.View.Name
+  If Not ActiveWindow.BottomPane Is Nothing Then
+    strStartingViewBottomPane = ActiveWindow.BottomPane.View.Name
+  Else
+    strStartingViewBottomPane = "None"
+  End If
+  strStartingTable = ActiveProject.CurrentTable
+  strStartingFilter = ActiveProject.CurrentFilter
+  strStartingGroup = ActiveProject.CurrentGroup
+  
+  'cptSpeed True
+  If strStartingGroup <> "No Group" Then GroupApply "No Group"
   If ActiveWindow.TopPane.View.Name <> "Gantt Chart" Then
     If MsgBox("Current view must be changed for successful export.", vbInformation + vbOKCancel, "Incompatible View") = vbOK Then
       ActiveWindow.TopPane.Activate
@@ -269,14 +288,22 @@ next_field:
   DoEvents
   FilterClear
   OptionsViewEx displaysummarytasks:=True, displaynameindent:=True
-  On Error Resume Next
-  Sort "ID", , , , , , False, True 'OutlineShowAllTasks won't work without this
+  If strStartingGroup = "No Group" Then
+    Application.StatusBar = "Ensuring Sort by ID keeping Outline Structure..."
+    DoEvents
+    Sort "ID", , , , , , False, True 'OutlineShowAllTasks won't work without this
+  Else
+    GroupApply strStartingGroup
+  End If
+  Application.StatusBar = "Showing all tasks..."
+  DoEvents
   OutlineShowAllTasks
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  Application.StatusBar = "Ready..."
-  DoEvents
+  cptSpeed False
   cptStatusSheet_frm.Show False
   cptRefreshStatusTable 'this only runs when form is visible
+  Application.StatusBar = "Ready..."
+  DoEvents
 
   If Len(strFieldNamesChanged) > 0 Then
     strFieldNamesChanged = "The following saved export field names have changed:" & vbCrLf & vbCrLf & strFieldNamesChanged
@@ -316,7 +343,6 @@ Sub cptCreateStatusSheet()
   Dim oOutlook As Outlook.Application, oMailItem As MailItem, oDoc As Word.Document, oWord As Word.Application, oSel As Word.Selection, oETemp As Word.Template
   Dim aSummaries As Object, aMilestones As Object, aNormal As Object, aAssignments As Object
   Dim rstEach As ADODB.Recordset, aTaskRow As Object, rstColumns As ADODB.Recordset
-  Dim aCentered As Object, aEntryHeaders As Object
   'late binding:
 '  Dim oExcel As Object, oWorkbook As Object, oWorksheet As Object, rng As Object
 '  Dim rSummaryTasks As Object, rMilestones As Object, rNormal As Object, rAssignments As Object, rLockedCells As Object
@@ -409,51 +435,113 @@ Sub cptCreateStatusSheet()
   'set up an excel Workbook
   If blnPerformanceTest Then t = GetTickCount
   Set oExcel = CreateObject("Excel.Application")
+  oExcel.WindowState = xlMinimized
   '/=== debug ==\
-  'oExcel.Visible = True
+  If Not BLN_TRAP_ERRORS Then oExcel.Visible = True
   '\=== debug ===/
-  Set oWorkbook = oExcel.Workbooks.Add
-  oExcel.Calculation = xlCalculationManual
-  'oExcel.ScreenUpdating = False
-  Set oWorksheet = oWorkbook.Sheets(1)
-  oWorksheet.Name = "Status Sheet"
-  Set xlCells = oWorksheet.Cells
+  
   If blnPerformanceTest Then Debug.Print "set up excel Workbook: " & (GetTickCount - t) / 1000
 
-  'set up legend
-  If blnPerformanceTest Then t = GetTickCount
-  xlCells(1, 1).Value = "Status Date:"
-  xlCells(1, 1).Font.Bold = True
+  'get status date
   If ActiveProject.StatusDate = "NA" Then
     dtStatus = Now()
   Else
     dtStatus = ActiveProject.StatusDate
   End If
-  xlCells(1, 2) = FormatDateTime(dtStatus, vbShortDate)
-  oWorksheet.Names.Add "STATUS_DATE", oWorksheet.[B1]
-  xlCells(1, 2).Font.Bold = True
-  xlCells(1, 2).Font.Size = 14
-  'current
-  xlCells(3, 1).Style = "Input" '<issue58>
-  xlCells(3, 2) = "Task is active or within current status window. Cell requires update."
-  'within two weeks
-  xlCells(4, 1).Style = "Neutral" '<issue58>
-  xlCells(4, 1).BorderAround xlContinuous, xlThin, , -8421505
-  xlCells(4, 2) = "Task is within two week look-ahead. Please review forecast dates."
-  'complete
-  xlCells(5, 1) = "AaBbCc"
-  xlCells(5, 1).Font.Italic = True
-  xlCells(5, 1).Font.ColorIndex = 16
-  xlCells(5, 2) = "Task is complete."
-  'summary
-  xlCells(6, 1) = "AaBbCc"
-  xlCells(6, 1).Font.Bold = True
-  xlCells(6, 1).Interior.ThemeColor = xlThemeColorDark1
-  xlCells(6, 1).Interior.TintAndShade = -0.149998474074526
-  xlCells(6, 2) = "MS Project Summary Task (Rollup).  No update required."
-  If blnPerformanceTest Then Debug.Print "set up legend: " & (GetTickCount - t) / 1000
 
+  'copy/paste the data
   lngHeaderRow = 8
+  With cptStatusSheet_frm
+    If .cboCreate.Value = "0" Then 'single workbook
+      Set oWorkbook = oExcel.Workbooks.Add
+      oExcel.Calculation = xlCalculationManual
+      oExcel.ScreenUpdating = False
+      Set oWorksheet = oWorkbook.Sheets(1)
+      oWorksheet.Name = "Status Sheet"
+      'copy data
+      If blnPerformanceTest Then t = GetTickCount
+      .lblStatus = "Exracting Task Data..."
+      cptCopyData oWorksheet, lngHeaderRow
+      If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
+      'add legend
+      If blnPerformanceTest Then t = GetTickCount
+      cptAddLegend oWorksheet, dtStatus
+      If blnPerformanceTest Then Debug.Print "set up legend: " & (GetTickCount - t) / 1000
+      'get assignment data
+      If blnPerformanceTest Then t = GetTickCount
+      .lblStatus = "Exracting Assignment Data..."
+      cptGetAssignmentData oWorksheet
+      If blnPerformanceTest Then Debug.Print "get assignment data: " & (GetTickCount - t) / 1000
+      
+      'final formatting
+      cptFinalFormats oWorksheet
+    ElseIf .cboCreate.Value = "1" Then  'worksheet for each
+      Set oWorkbook = oExcel.Workbooks.Add
+      oExcel.Calculation = xlCalculationManual
+      oExcel.ScreenUpdating = False
+      For lngItem = 0 To .lboItems.ListCount - 1
+        If .lboItems.Selected(lngItem) Then
+          strItem = .lboItems.List(lngItem, 0)
+          Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
+          oWorksheet.Name = strItem
+          SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", strItem
+          'copy data
+          If blnPerformanceTest Then t = GetTickCount
+          .lblStatus = "Exracting Task Data for " & strItem & "..."
+          cptCopyData oWorksheet, lngHeaderRow
+          If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
+          'add legend
+          If blnPerformanceTest Then t = GetTickCount
+          cptAddLegend oWorksheet, dtStatus
+          If blnPerformanceTest Then Debug.Print "set up legend: " & (GetTickCount - t) / 1000
+          'get assignment data
+          If blnPerformanceTest Then t = GetTickCount
+          .lblStatus = "Exracting Assignment Data for " & strItem & "..."
+          cptGetAssignmentData oWorksheet
+          If blnPerformanceTest Then Debug.Print "get assignment data: " & (GetTickCount - t) / 1000
+          
+          'final formatting
+          cptFinalFormats oWorksheet
+        End If
+      Next lngItem
+    ElseIf .cboCreate.Value = "2" Then  'workbook for each
+      For lngItem = 0 To .lboItems.ListCount - 1
+        If .lboItems.Selected(lngItem) Then
+          strItem = .lboItems.List(lngItem, 0)
+          Set oWorkbook = oExcel.Workbooks.Add
+          oExcel.Calculation = xlCalculationManual
+          oExcel.ScreenUpdating = False
+          Set oWorksheet = oWorkbook.Sheets(1)
+          oWorksheet.Name = "Status Request"
+          SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", .lboItems.List(lngItem, 0)
+          'copy data
+          If blnPerformanceTest Then t = GetTickCount
+          .lblStatus = "Exracting Task Data for " & strItem & "..."
+          cptCopyData oWorksheet, lngHeaderRow
+          If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
+          'add legend
+          If blnPerformanceTest Then t = GetTickCount
+          cptAddLegend oWorksheet, dtStatus
+          If blnPerformanceTest Then Debug.Print "set up legend: " & (GetTickCount - t) / 1000
+          'get assignment data
+          If blnPerformanceTest Then t = GetTickCount
+          .lblStatus = "Exracting Assignment Data for " & strItem & "..."
+          cptGetAssignmentData oWorksheet
+          If blnPerformanceTest Then Debug.Print "get assignment data: " & (GetTickCount - t) / 1000
+          
+          'final formatting
+          cptFinalFormats oWorksheet
+        End If
+      Next lngItem
+    End If
+  End With
+
+  oExcel.Calculation = xlCalculationAutomatic
+  oExcel.ScreenUpdating = True
+  oExcel.Visible = True
+
+
+  GoTo exit_here
 
   'set up header
   If blnPerformanceTest Then t = GetTickCount
@@ -913,19 +1001,6 @@ next_task:
   cptStatusSheet_frm.lblStatus.Caption = " Formatting columns..."
   Application.StatusBar = "Formatting Columns..."
   DoEvents
-
-  'columns to center
-  Set aCentered = CreateObject("System.Collections.ArrayList")
-  For Each vCol In Array("UID", "Duration", "Total Slack", strEVT, strEVP, "New EV%")
-    aCentered.Add vCol
-  Next vCol
-
-  'entry headers
-  Set aEntryHeaders = CreateObject("System.Collections.ArrayList")
-  For Each vCol In Array("Actual Start", "Actual Finish", "New EV%", "Revised ETC", "Notes")
-    aEntryHeaders.Add vCol
-  Next vCol
-  If blnPerformanceTest Then Debug.Print "define aCentered and aEntryHeaders: " & (GetTickCount - t) / 1000
 
   If blnPerformanceTest Then t = GetTickCount
   'define bulk column ranges for formatting
@@ -1798,8 +1873,6 @@ exit_here:
   Set aTaskRow = Nothing
   If rstColumns.State Then rstColumns.Close
   Set rstColumns = Nothing
-  Set aCentered = Nothing
-  Set aEntryHeaders = Nothing
   Set xlCells = Nothing
   Set oOutlook = Nothing
   Set oMailItem = Nothing
@@ -1837,30 +1910,32 @@ Dim lngItem As Long
 
   'reset the table
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Unique ID", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   lngItem = 0
   If cptStatusSheet_frm.lboExport.ListCount > 0 Then
     For lngItem = 0 To cptStatusSheet_frm.lboExport.ListCount - 1
       TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(cptStatusSheet_frm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
     Next lngItem
   End If
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Name", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Duration", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Actual Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Actual Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Name", Title:="Task Name / Scope", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Duration", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Total Slack", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Start", Title:="Previous Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Finish", Title:="Previous Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Actual Start", Title:="Actual/Current Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Actual Finish", Title:="Actual/Current Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   If cptStatusSheet_frm.cboEVT <> 0 Then
     TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVT.Value, Title:="", Width:=5, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   End If
   If cptStatusSheet_frm.cboEVP <> 0 Then
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVP.Value, Title:="EV%", Width:=5, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVP.Value, Title:="Previous EV%", Width:=5, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVP.Value, Title:="Current EV%", Width:=5, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   End If
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False, ShowAddNewColumn:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Work", Title:="BAC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Previous ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Current ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Start", Title:="BL Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Finish", Title:="BL Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False, ShowAddNewColumn:=False
   TableApply Name:="cptStatusSheet Table"
 
   'reset the filter
@@ -1879,4 +1954,227 @@ err_here:
   Call cptHandleErr("cptStatusSheet_bas", "cptRefreshStatusView", Err, Erl)
   Err.Clear
   Resume exit_here
+End Sub
+
+Private Sub cptAddLegend(ByRef oWorksheet As Worksheet, dtStatus As Date)
+  'objects
+  'strings
+  'longs
+  'todo: delete this
+  Dim lngCol As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    
+  oWorksheet.Cells(1, 1).Value = "Status Date:"
+  oWorksheet.Cells(1, 1).Font.Bold = True
+  oWorksheet.Cells(1, 2) = FormatDateTime(dtStatus, vbShortDate)
+  oWorksheet.Names.Add "STATUS_DATE", oWorksheet.[B1]
+  oWorksheet.Cells(1, 2).Font.Bold = True
+  oWorksheet.Cells(1, 2).Font.Size = 14
+  'current
+  oWorksheet.Cells(3, 1).Style = "Input" '<issue58>
+  oWorksheet.Cells(3, 2) = "Task is active or within current status window. Cell requires update."
+  'within two weeks
+  oWorksheet.Cells(4, 1).Style = "Neutral" '<issue58>
+  oWorksheet.Cells(4, 1).BorderAround xlContinuous, xlThin, , -8421505
+  oWorksheet.Cells(4, 2) = "Task is within two week look-ahead. Please review forecast dates."
+  'complete
+  oWorksheet.Cells(5, 1) = "AaBbCc"
+  oWorksheet.Cells(5, 1).Font.Italic = True
+  oWorksheet.Cells(5, 1).Font.ColorIndex = 16
+  oWorksheet.Cells(5, 2) = "Task is complete."
+  'summary
+  oWorksheet.Cells(6, 1) = "AaBbCc"
+  oWorksheet.Cells(6, 1).Font.Bold = True
+  oWorksheet.Cells(6, 1).Interior.ThemeColor = xlThemeColorDark1
+  oWorksheet.Cells(6, 1).Interior.TintAndShade = -0.149998474074526
+  oWorksheet.Cells(6, 2) = "MS Project Summary Task (Rollup).  No update required."
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptAddLegend", Err, Erl)
+  Resume exit_here
+
+End Sub
+
+Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
+  'objects
+  'strings
+  'longs
+  Dim lngCol As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  ActiveWindow.TopPane.Activate
+  SelectAll
+  EditCopy
+  oWorksheet.Application.Wait 2000
+  On Error Resume Next
+  oWorksheet.Paste oWorksheet.Cells(lngHeaderRow, 1), False
+  If Err.Number = 1004 Then
+    oWorksheet.Application.Wait 5000
+    oWorksheet.Paste oWorksheet.Cells(lngHeaderRow, 1), False
+    oWorksheet.Application.Wait 5000
+  End If
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  oWorksheet.Application.Wait 5000
+  oWorksheet.Cells.WrapText = False
+  oWorksheet.Application.ActiveWindow.Zoom = 85
+  oWorksheet.Cells.Font.Name = "Calibri"
+  oWorksheet.Cells.Font.Size = 11
+  oWorksheet.Rows(lngHeaderRow).Font.Bold = True
+  oWorksheet.Columns.AutoFit
+  'format the columns
+  For lngCol = 1 To ActiveSelection.FieldIDList.Count
+    If InStr(oWorksheet.Cells(lngHeaderRow, lngCol), "Start") > 0 Then
+      oWorksheet.Columns(lngCol).Replace "NA", ""
+      oWorksheet.Columns(lngCol).NumberFormat = "mm/dd/yyyy"
+    ElseIf InStr(oWorksheet.Cells(lngHeaderRow, lngCol), "Finish") > 0 Then
+      oWorksheet.Columns(lngCol).Replace "NA", ""
+      oWorksheet.Columns(lngCol).NumberFormat = "mm/dd/yyyy"
+    End If
+  Next lngCol
+  
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptCopyData", Err, Erl)
+  Resume exit_here
+End Sub
+
+Private Sub cptGetAssignmentData(ByRef oWorksheet As Worksheet)
+  'objects
+  Dim oAssignment As Assignment
+  Dim oTask As Task
+  'strings
+  'longs
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  Dim lngRemainingWorkCol As Long
+  Dim lngHeaderRow As Long
+  Dim lngRow As Long
+  Dim lngNameCol As Long
+  Dim lngIndent As Long
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vAssignment As Variant
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  lngHeaderRow = oWorksheet.Columns(1).Find("UID", lookat:=xlWhole).Row
+  lngNameCol = oWorksheet.Rows(lngHeaderRow).Find("Task Name / Scope", lookat:=xlWhole).Column
+  lngRemainingWorkCol = oWorksheet.Rows(lngHeaderRow).Find("Previous ETC", lookat:=xlWhole).Column
+  
+  lngTasks = ActiveSelection.Tasks.Count
+  
+  For Each oTask In ActiveSelection.Tasks
+    If oTask Is Nothing Then GoTo next_task
+    If oTask.Summary Then GoTo next_task
+    If oTask.ExternalTask Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If oTask.ActualFinish <> "NA" Then GoTo next_task
+    lngRow = oWorksheet.Columns(1).Find(oTask.UniqueID, lookat:=xlWhole).Row
+    lngIndent = Len(cptRegEx(oWorksheet.Cells(lngRow, lngNameCol).Value, "^\s*"))
+    lngItem = 0
+    For Each oAssignment In oTask.Assignments
+      lngItem = lngItem + 1
+      oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+      oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, ActiveSelection.FieldIDList.Count)).Font.Italic = True 'todo: limit to columns
+      'todo: format gray
+      vAssignment = oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, ActiveSelection.FieldIDList.Count)).Value
+      vAssignment(1, 1) = oTask.UniqueID
+      vAssignment(1, lngNameCol) = String(lngIndent + 3, " ") & oAssignment.ResourceName
+      If oAssignment.ResourceType = pjWork Then
+        vAssignment(1, lngRemainingWorkCol) = oAssignment.RemainingWork / 60
+        vAssignment(1, lngRemainingWorkCol + 1) = oAssignment.RemainingWork / 60
+        'todo: format cell for double
+      Else
+        vAssignment(1, lngRemainingWorkCol) = oAssignment.RemainingWork
+        vAssignment(1, lngRemainingWorkCol + 1) = oAssignment.RemainingWork
+      End If
+      'add validation
+      If cptGetSetting("StatusSheet", "chkValidation") = "1" Then
+        oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1).Style = "Input"
+      End If
+      oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1).Locked = False
+      oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, ActiveSelection.FieldIDList.Count)).Value = vAssignment
+    Next oAssignment
+    'add formulae
+    If oTask.Assignments.Count > 0 Then
+      oWorksheet.Cells(lngRow, lngRemainingWorkCol + 1).FormulaR1C1 = "=SUM(R" & lngRow + 1 & "C" & lngRemainingWorkCol + 1 & ":R" & lngRow + lngItem & "C" & lngRemainingWorkCol + 1 & ")"
+    End If
+next_task:
+
+    lngTask = lngTask + 1
+    cptStatusSheet_frm.lblProgress.Width = (lngTask / lngTasks) * cptStatusSheet_frm.lblStatus.Width
+  Next oTask
+
+  oWorksheet.Columns(1).AutoFit
+
+exit_here:
+  On Error Resume Next
+  Set oAssignment = Nothing
+  Set oTask = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptGetAssignmentData", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptAddStatusFormats(ByRef oWorksheet As Worksheet)
+  'objects
+  'strings
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  'Call HandleErr("cptStatusSheet_bas", "cptAddStatusFormats", Err)
+  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Resume exit_here
+End Sub
+
+Sub cptAddConditionalFormatting(oWorksheet As Worksheet)
+
+End Sub
+
+Sub cptFinalFormats(ByRef oWorksheet As Worksheet)
+  oWorksheet.Application.WindowState = xlNormal
+  oWorksheet.Application.Calculation = xlCalculationAutomatic
+  oWorksheet.Application.ScreenUpdating = True
+  oWorksheet.Application.ActiveWindow.DisplayGridLines = False
+  oWorksheet.Application.ActiveWindow.SplitRow = 8
+  oWorksheet.Application.ActiveWindow.SplitColumn = 0
+  oWorksheet.Application.ActiveWindow.FreezePanes = True
+  oWorksheet.Application.WindowState = xlMinimized
 End Sub
