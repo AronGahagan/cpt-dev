@@ -1,12 +1,12 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.2.13</cpt_version>
+'<cpt_version>v1.3.0</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
 #Else '<issue53>
   Declare Function GetTickCount Lib "kernel32" () As Long
 #End If '<issue53>
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_heref Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 
@@ -15,12 +15,24 @@ Sub cptShowStatusSheet_frm()
 'populate UID,[user selections],Task Name,Duration,Forecast Start,Forecast Finish,Total Slack,[EVT],EV%,New EV%,BLW,Remaining Work,Revised ETC,BLS,BLF,Reason/Impact/Action
 'add pick list for EV% or default to Physical % Complete
 'objects
-Dim arrFields As Object, arrEVT As Object, arrEVP As Object
+Dim rstFields As ADODB.Recordset 'Object
+Dim rstEVT As ADODB.Recordset 'Object
+Dim rstEVP As ADODB.Recordset 'Object
 'longs
 Dim lngField As Long, lngItem As Long
 'integers
 Dim intField As Integer
 'strings
+Dim strLocked As String
+Dim strDataValidation As String
+Dim strConditionalFormats As String
+Dim strEmail As String
+Dim strEach As String
+Dim strCostTool As String
+Dim strHide As String
+Dim strCreate As String
+Dim strEVP As String
+Dim strEVT As String
 Dim strFieldNamesChanged As String
 Dim strFieldName As String, strFileName As String
 'dates
@@ -68,22 +80,23 @@ Dim vFieldType As Variant
 
   'set up arrays to capture values
   Application.StatusBar = "Getting local custom fields..."
-  Set arrFields = CreateObject("System.Collections.SortedList")
-  Set arrEVT = CreateObject("System.Collections.SortedList")
-  Set arrEVP = CreateObject("System.Collections.SortedList")
-
+  Set rstFields = CreateObject("ADODB.Recordset")
+  rstFields.Fields.Append "CONSTANT", adBigInt
+  rstFields.Fields.Append "NAME", adVarChar, 200
+  rstFields.Fields.Append "TYPE", adVarChar, 50
+  rstFields.Open
+  
   For Each vFieldType In Array("Text", "Outline Code", "Number")
     On Error GoTo err_here
     For intField = 1 To 30
       lngField = FieldNameToFieldConstant(vFieldType & intField, pjTask)
       strFieldName = CustomFieldGetName(lngField)
       If Len(strFieldName) > 0 Then
-        arrFields.Add strFieldName, lngField
-        If vFieldType = "Text" Then
-          arrEVT.Add strFieldName, lngField
+        If vFieldType = "Number" Then
+          rstFields.AddNew Array(0, 1, 2), Array(lngField, strFieldName, "Number")
           'todo: what if this is an enterprise field?
-        ElseIf vFieldType = "Number" Then
-          arrEVP.Add strFieldName, lngField
+        Else
+          rstFields.AddNew Array(0, 1, 2), Array(lngField, strFieldName, "Text")
           'todo: what if this is an enterprise field?
         End If
       End If
@@ -92,87 +105,106 @@ next_field:
   Next vFieldType
   
   'add Physical % Complete
-  arrEVP.Add "Physical % Complete", FieldNameToFieldConstant("Physical % Complete")
+  rstFields.AddNew Array(0, 1, 2), Array(FieldNameToFieldConstant("Physical % Complete"), "Physical % Complete", "Number")
   
   'add Contact field
-  arrFields.Add "Contact", FieldNameToFieldConstant("Contact")
+  rstFields.AddNew Array(0, 1, 2), Array(FieldNameToFieldConstant("Contact"), "Contact", "Text")
   
   'get enterprise custom fields
   Application.StatusBar = "Getting Enterprise Custom Fields..."
   DoEvents
   For lngField = 188776000 To 188778000 '2000 should do it for now
     If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
-      arrFields.Add Application.FieldConstantToFieldName(lngField), lngField
+      rstFields.AddNew Array(0, 1, 2), Array(lngField, Application.FieldConstantToFieldName(lngField), "Enterprise")
     End If
   Next lngField
 
   'add custom fields
-  'col0 = constant
-  'col1 = name
   Application.StatusBar = "Populating Export Field list box..."
   DoEvents
-  For intField = 0 To arrFields.Count - 1
-    cptStatusSheet_frm.lboFields.AddItem
-    cptStatusSheet_frm.lboFields.List(intField, 0) = arrFields.getByIndex(intField)
-    cptStatusSheet_frm.lboFields.List(intField, 1) = arrFields.getKey(intField)
-    If FieldNameToFieldConstant(arrFields.getKey(intField)) >= 188776000 Then
-      cptStatusSheet_frm.lboFields.List(intField, 2) = "Enterprise"
-    Else
-      cptStatusSheet_frm.lboFields.List(intField, 2) = FieldConstantToFieldName(arrFields.getByIndex(intField))
-    End If
-    cptStatusSheet_frm.cboEach.AddItem arrFields.getKey(intField)
-  Next
-  'add EVT values
-  For intField = 0 To arrEVT.Count - 1
-    cptStatusSheet_frm.cboEVT.AddItem arrEVT.getKey(intField)
-  Next
-  'add EVP values
-  For intField = 0 To arrEVP.Count - 1 'UBound(st)
-    cptStatusSheet_frm.cboEVP.AddItem arrEVP.getKey(intField) 'st(intField)(1)
-  Next
-
-  'add saved settings if they exist
+  rstFields.Sort = "NAME"
+  rstFields.MoveFirst
+  With cptStatusSheet_frm
+    Do While Not rstFields.EOF
+      .lboFields.AddItem
+      .lboFields.List(.lboFields.ListCount - 1, 0) = rstFields(0)
+      .lboFields.List(.lboFields.ListCount - 1, 1) = rstFields(1)
+      If FieldNameToFieldConstant(rstFields(1)) >= 188776000 Then
+        .lboFields.List(.lboFields.ListCount - 1, 2) = "Enterprise"
+      Else
+        .lboFields.List(.lboFields.ListCount - 1, 2) = FieldConstantToFieldName(rstFields(0))
+      End If
+      'add to Each
+      .cboEach.AddItem rstFields(1)
+      If rstFields(2) = "Text" Then 'add to EVT
+        .cboEVT.AddItem rstFields(1)
+      ElseIf rstFields(2) = "Number" Then 'add to EVP
+        .cboEVP.AddItem rstFields(1)
+      End If
+      rstFields.MoveNext
+    Loop
+  End With
+  
+  'convert saved settings if they exist
   strFileName = cptDir & "\settings\cpt-status-sheet.adtg"
   If Dir(strFileName) <> vbNullString Then
-    Application.StatusBar = "Importing saved settings..."
+    Application.StatusBar = "Converting saved settings..."
     DoEvents
     With CreateObject("ADODB.Recordset")
       .Open strFileName
       .MoveFirst
-      
-      On Error Resume Next
-      lngField = FieldNameToFieldConstant(.Fields(0))
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-      'auto-select if saved setting exists and if saved field exists in the comboBox
-      If lngField > 0 And arrEVT.Contains(CStr(.Fields(0))) Then cptStatusSheet_frm.cboEVT.Value = .Fields(0) 'cboEVT
-      lngField = 0
-      
-      On Error Resume Next
-      lngField = FieldNameToFieldConstant(.Fields(1))
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-      'auto-select if saved setting exists and if saved field exists in the comboBox
-      If lngField > 0 And arrEVP.Contains(CStr(.Fields(1))) Then cptStatusSheet_frm.cboEVP.Value = .Fields(1) 'cboEVP
-      lngField = 0
-      
-      cptStatusSheet_frm.cboCreate = .Fields(2) - 1 'cboCreate
-      
-      cptStatusSheet_frm.chkHide = .Fields(3) = 1 'chkHide
-      
+      cptSaveSetting "StatusSheet", "cboEVT", .Fields(0) 'todo: if not cptSaveSetting then 'could not save setting
+      cptSaveSetting "StatusSheet", "cboEVP", .Fields(1)
+      cptSaveSetting "StatusSheet", "cboCreate", .Fields(2) - 1
+      cptSaveSetting "StatusSheet", "chkHide", .Fields(3)
       If .Fields.Count >= 5 Then
-        If Not IsNull(.Fields(4)) Then cptStatusSheet_frm.cboCostTool.Value = .Fields(4) 'cboCostTool
+        cptSaveSetting "StatusSheet", "cboCostTool", .Fields(4)
       End If
       If .Fields.Count >= 6 Then
-        If Not IsNull(.Fields(5)) Then
-          On Error Resume Next
-          lngField = FieldNameToFieldConstant(.Fields(5))
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-          If lngField > 0 Then cptStatusSheet_frm.cboEach.Value = .Fields(5) 'cboEach
-          lngField = 0
-        End If
+        cptSaveSetting "StatusSheet", "cboEach", .Fields(5)
       End If
       .Close
+      Kill strFileName
     End With
   End If
+  
+  'import saved settings
+  With cptStatusSheet_frm
+    Application.StatusBar = "Getting saved settings..."
+    DoEvents
+    strEVT = cptGetSetting("StatusSheet", "cboEVT")
+    If strEVT <> "" Then
+      rstFields.MoveFirst
+      rstFields.Find "NAME='" & strEVT & "'"
+      If Not rstFields.EOF Then .cboEVT.Value = strEVT
+    End If
+    strEVP = cptGetSetting("StatusSheet", "cboEVP")
+    If strEVP <> "" Then
+      rstFields.MoveFirst
+      rstFields.Find "NAME='" & strEVP & "'"
+      If Not rstFields.EOF Then .cboEVP.Value = strEVP
+    End If
+    strCreate = cptGetSetting("StatusSheet", "cboCreate")
+    If strCreate <> "" Then .cboCreate.Value = CLng(strCreate)
+    strHide = cptGetSetting("StatusSheet", "chkHide")
+    If strHide <> "" Then .chkHide = strHide = "1"
+    strCostTool = cptGetSetting("StatusSheet", "cboCostTool")
+    If strCostTool <> "" Then .cboCostTool.Value = strCostTool
+    strEach = cptGetSetting("StatusSheet", "cboEach")
+    If strEach <> "" Then
+      rstFields.MoveNext
+      rstFields.Find "NAME='" & strEach & "'"
+      If Not rstFields.EOF Then .cboEach.Value = strEach
+    End If
+    strEmail = cptGetSetting("StatusSheet", "chkEmail")
+    If strEmail <> "" Then .chkSendEmails = strEmail = "1"
+    strConditionalFormats = cptGetSetting("StatusSheet", "ConditionalFormatting")
+    If strConditionalFormats <> "" Then .chkAddConditionalFormats = strConditionalFormats = "1"
+    strDataValidation = cptGetSetting("StatusSheet", "DataValidation")
+    If strDataValidation <> "" Then .chkValidation = strDataValidation = "1"
+    strLocked = cptGetSetting("StatusSheet", "Protection")
+    If strLocked <> "" Then .chkLocked = strLocked = "1"
+  End With
 
   'add saved export fields if they exist
   strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
@@ -209,10 +241,6 @@ next_field:
       GoTo exit_here
     End If
   End If
-  'Call cptRefreshStatusTable
-  'FilterClear
-  'OptionsViewEx displaysummarytasks:=True, displaynameindent:=True
-  'OutlineShowAllTasks
 
   'set the status date / hide complete
   If ActiveProject.StatusDate = "NA" Then
@@ -239,7 +267,7 @@ next_field:
   Application.StatusBar = "Ready..."
   DoEvents
   cptStatusSheet_frm.Show False
-  cptRefreshStatusTable
+  cptRefreshStatusTable 'this only runs when form is visible
 
   If Len(strFieldNamesChanged) > 0 Then
     strFieldNamesChanged = "The following saved export field names have changed:" & vbCrLf & vbCrLf & strFieldNamesChanged
@@ -249,9 +277,8 @@ next_field:
 
 exit_here:
   On Error Resume Next
-  Set arrFields = Nothing
-  Set arrEVT = Nothing
-  Set arrEVP = Nothing
+  If rstFields.State Then rstFields.Close
+  Set rstFields = Nothing
   Exit Sub
 
 err_here:
