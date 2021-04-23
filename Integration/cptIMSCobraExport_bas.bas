@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.2.5</cpt_version>
+'<cpt_version>v3.2.6</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -329,7 +329,7 @@ Private Sub DataChecks(ByVal curproj As Project)
         fCAID2 = docProps("fCAID2").Value
         fCAID2t = docProps("fCAID2t").Value
     End If
-    If Milestones_Used = True Then
+    If Milestones_Used = True Then 'v3.2.6
         fMilestone = docProps("fMSID").Value
         fMilestoneWeight = docProps("fMSW").Value
     End If
@@ -1107,8 +1107,10 @@ Private Sub CSV_Export(ByVal curproj As Project)
     fWP = docProps("fWP").Value
     fCAM = docProps("fCAM").Value
     fEVT = docProps("fEVT").Value
-    fMilestone = docProps("fMSID").Value
-    fMilestoneWeight = docProps("fMSW").Value
+    If Milestones_Used Then
+        fMilestone = docProps("fMSID").Value
+        fMilestoneWeight = docProps("fMSW").Value
+    End If
     fPCNT = docProps("fPCNT").Value
     fResID = docProps("fResID").Value
 
