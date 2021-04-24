@@ -69,7 +69,7 @@ Dim vFieldType As Variant
     .lboExport.Clear
     .cboEVT.Clear
     .cboEVP.Clear
-    .cboEVP.AddItem "Physical % Complete"
+    '.cboEVP.AddItem "Physical % Complete"
     .cboCostTool.Clear
     .cboCostTool.AddItem "COBRA"
     .cboCostTool.AddItem "MPM"
@@ -130,30 +130,37 @@ next_field:
   Application.StatusBar = "Populating Export Field list box..."
   DoEvents
   rstFields.Sort = "NAME"
-  rstFields.MoveFirst
-  With cptStatusSheet_frm
-    Do While Not rstFields.EOF
-      .lboFields.AddItem
-      .lboFields.List(.lboFields.ListCount - 1, 0) = rstFields(0)
-      .lboFields.List(.lboFields.ListCount - 1, 1) = rstFields(1)
-      If FieldNameToFieldConstant(rstFields(1)) >= 188776000 Then
-        .lboFields.List(.lboFields.ListCount - 1, 2) = "Enterprise"
-      Else
-        .lboFields.List(.lboFields.ListCount - 1, 2) = FieldConstantToFieldName(rstFields(0))
-      End If
-      'add to Each
-      .cboEach.AddItem rstFields(1)
-      If rstFields(2) = "Text" Then 'add to EVT
-        .cboEVT.AddItem rstFields(1)
-      ElseIf rstFields(2) = "Number" Then 'add to EVP
-        .cboEVP.AddItem rstFields(1)
-      Else 'todo: add to both?
-        .cboEVT.AddItem rstFields(1)
-        .cboEVP.AddItem rstFields(1)
-      End If
-      rstFields.MoveNext
-    Loop
-  End With
+  If rstFields.RecordCount > 0 Then
+    rstFields.MoveFirst
+    With cptStatusSheet_frm
+      Do While Not rstFields.EOF
+        If rstFields(1) = "Physical % Complete" Then GoTo skip_fields
+        .lboFields.AddItem
+        .lboFields.List(.lboFields.ListCount - 1, 0) = rstFields(0)
+        .lboFields.List(.lboFields.ListCount - 1, 1) = rstFields(1)
+        If FieldNameToFieldConstant(rstFields(1)) >= 188776000 Then
+          .lboFields.List(.lboFields.ListCount - 1, 2) = "Enterprise"
+        Else
+          .lboFields.List(.lboFields.ListCount - 1, 2) = FieldConstantToFieldName(rstFields(0))
+        End If
+skip_fields:
+        'add to Each
+        If rstFields(1) <> "Physical % Complete" Then .cboEach.AddItem rstFields(1)
+        If rstFields(2) = "Text" Then 'add to EVT
+          .cboEVT.AddItem rstFields(1)
+        ElseIf rstFields(2) = "Number" Or rstFields(1) = "Physical % Complete" Then 'add to EVP
+          .cboEVP.AddItem rstFields(1)
+        Else 'todo: add to both?
+          .cboEVT.AddItem rstFields(1)
+          .cboEVP.AddItem rstFields(1)
+        End If
+        rstFields.MoveNext
+      Loop
+    End With
+  Else
+    MsgBox "No Custom Fields have been set up in this file.", vbInformation + vbOKOnly, "No Fields Found"
+    GoTo exit_here
+  End If
   
   'convert saved settings if they exist
   strFileName = cptDir & "\settings\cpt-status-sheet.adtg"
@@ -162,16 +169,18 @@ next_field:
     DoEvents
     With CreateObject("ADODB.Recordset")
       .Open strFileName
-      .MoveFirst
-      cptSaveSetting "StatusSheet", "cboEVT", .Fields(0)
-      cptSaveSetting "StatusSheet", "cboEVP", .Fields(1)
-      cptSaveSetting "StatusSheet", "cboCreate", .Fields(2) - 1
-      cptSaveSetting "StatusSheet", "chkHide", .Fields(3)
-      If .Fields.Count >= 5 Then
-        cptSaveSetting "StatusSheet", "cboCostTool", .Fields(4)
-      End If
-      If .Fields.Count >= 6 Then
-        cptSaveSetting "StatusSheet", "cboEach", .Fields(5)
+      If Not .EOF Then
+        .MoveFirst
+        cptSaveSetting "StatusSheet", "cboEVT", .Fields(0)
+        cptSaveSetting "StatusSheet", "cboEVP", .Fields(1)
+        cptSaveSetting "StatusSheet", "cboCreate", .Fields(2) - 1
+        cptSaveSetting "StatusSheet", "chkHide", .Fields(3)
+        If .Fields.Count >= 5 Then
+          cptSaveSetting "StatusSheet", "cboCostTool", .Fields(4)
+        End If
+        If .Fields.Count >= 6 Then
+          cptSaveSetting "StatusSheet", "cboEach", .Fields(5)
+        End If
       End If
       .Close
       Kill strFileName
@@ -184,15 +193,35 @@ next_field:
     DoEvents
     strEVT = cptGetSetting("StatusSheet", "cboEVT")
     If strEVT <> "" Then
-      rstFields.MoveFirst
-      rstFields.Find "NAME='" & strEVT & "'"
-      If Not rstFields.EOF Then .cboEVT.Value = strEVT
+      If rstFields.RecordCount > 0 Then
+        rstFields.MoveFirst
+        rstFields.Find "NAME='" & strEVT & "'"
+        If Not rstFields.EOF Then
+          On Error Resume Next
+          .cboEVT.Value = strEVT
+          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If Err.Number > 0 Then
+            MsgBox "Unable to set EVT Field to '" & rstFields(1) & "' - contact cpt@ClearPlanConsulting.com if you need assistance.", vbExclamation + vbOKOnly, "Cannot assign EVT"
+            Err.Clear
+          End If
+        End If
+      End If
     End If
     strEVP = cptGetSetting("StatusSheet", "cboEVP")
     If strEVP <> "" Then
-      rstFields.MoveFirst
-      rstFields.Find "NAME='" & strEVP & "'"
-      If Not rstFields.EOF Then .cboEVP.Value = strEVP
+      If rstFields.RecordCount > 0 Then
+        rstFields.MoveFirst
+        rstFields.Find "NAME='" & strEVP & "'"
+        If Not rstFields.EOF Then
+          On Error Resume Next
+          .cboEVP.Value = strEVP
+          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If Err.Number > 0 Then
+            MsgBox "Unable to set EV% Field to '" & rstFields(1) & "' - contact cpt@ClearPlanConsulting.com if you need assistance.", vbExclamation + vbOKOnly, "Cannot assign EVP"
+            Err.Clear
+          End If
+        End If
+      End If
     End If
     strCreate = cptGetSetting("StatusSheet", "cboCreate")
     If strCreate <> "" Then .cboCreate.Value = CLng(strCreate)
@@ -203,9 +232,19 @@ next_field:
     If .cboCreate <> 0 Then
       strEach = cptGetSetting("StatusSheet", "cboEach")
       If strEach <> "" Then
-        rstFields.MoveNext
-        rstFields.Find "NAME='" & strEach & "'"
-        If Not rstFields.EOF Then .cboEach.Value = strEach '<none> would not be found
+        If rstFields.RecordCount > 0 Then
+          rstFields.MoveFirst
+          rstFields.Find "NAME='" & strEach & "'"
+          If Not rstFields.EOF Then
+            On Error Resume Next
+            .cboEach.Value = strEach '<none> would not be found
+            If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+            If Err.Number > 0 Then
+              MsgBox "Unable to set 'For Each' Field to '" & rstFields(1) & "' - contact cpt@ClearPlanConsulting.com if you need assistance.", vbExclamation + vbOKOnly, "Cannot assign For Each"
+              Err.Clear
+            End If
+          End If
+        End If
       End If
     End If
     strEmail = cptGetSetting("StatusSheet", "chkEmail")
@@ -223,24 +262,26 @@ next_field:
   If Dir(strFileName) <> vbNullString Then
     With CreateObject("ADODB.Recordset")
       .Open strFileName
-      .MoveFirst
-      lngItem = 0
-      Do While Not .EOF
-        cptStatusSheet_frm.lboExport.AddItem
-        cptStatusSheet_frm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
-        cptStatusSheet_frm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
-        cptStatusSheet_frm.lboExport.List(lngItem, 2) = .Fields(2) 'Local Field Name
-        If CustomFieldGetName(.Fields(0)) <> CStr(.Fields(1)) Then
-          strFieldNamesChanged = strFieldNamesChanged & .Fields(2) & " '" & .Fields(1) & "' is now "
-          If Len(CustomFieldGetName(.Fields(0))) > 0 Then
-            strFieldNamesChanged = strFieldNamesChanged & "'" & CustomFieldGetName(.Fields(0)) & "'" & vbCrLf
-          Else
-            strFieldNamesChanged = strFieldNamesChanged & "<unnamed>" & vbCrLf
+      If .RecordCount > 0 Then
+        .MoveFirst
+        lngItem = 0
+        Do While Not .EOF
+          cptStatusSheet_frm.lboExport.AddItem
+          cptStatusSheet_frm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
+          cptStatusSheet_frm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
+          cptStatusSheet_frm.lboExport.List(lngItem, 2) = .Fields(2) 'Local Field Name
+          If CustomFieldGetName(.Fields(0)) <> CStr(.Fields(1)) Then
+            strFieldNamesChanged = strFieldNamesChanged & .Fields(2) & " '" & .Fields(1) & "' is now "
+            If Len(CustomFieldGetName(.Fields(0))) > 0 Then
+              strFieldNamesChanged = strFieldNamesChanged & "'" & CustomFieldGetName(.Fields(0)) & "'" & vbCrLf
+            Else
+              strFieldNamesChanged = strFieldNamesChanged & "<unnamed>" & vbCrLf
+            End If
           End If
-        End If
-        lngItem = lngItem + 1
-        .MoveNext
-      Loop
+          lngItem = lngItem + 1
+          .MoveNext
+        Loop
+      End If
       .Close
     End With
   End If
@@ -1918,24 +1959,24 @@ Dim lngItem As Long
     Next lngItem
   End If
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Name", Title:="Task Name / Scope", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Duration", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Duration", Title:="", Width:=12, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Total Slack", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Start", Title:="Previous Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Finish", Title:="Previous Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Actual Start", Title:="Actual/Current Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Actual Finish", Title:="Actual/Current Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False, ShowAddNewColumn:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Start", Title:="Forecast Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Finish", Title:="Forecast Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Actual Start", Title:="New Forecast/ Actual Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Actual Finish", Title:="New Forecast/ Actual Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   If cptStatusSheet_frm.cboEVT <> 0 Then
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVT.Value, Title:="", Width:=5, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVT.Value, Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   End If
   If cptStatusSheet_frm.cboEVP <> 0 Then
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVP.Value, Title:="Previous EV%", Width:=5, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVP.Value, Title:="Current EV%", Width:=5, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVP.Value, Title:="EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVP.Value, Title:="New EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   End If
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Work", Title:="BAC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Previous ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Current ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Start", Title:="BL Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Finish", Title:="BL Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False, ShowAddNewColumn:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Revised ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableApply Name:="cptStatusSheet Table"
 
   'reset the filter
@@ -2038,6 +2079,9 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   oWorksheet.Columns.AutoFit
   'format the columns
   For lngCol = 1 To ActiveSelection.FieldIDList.Count
+    oWorksheet.Columns(lngCol).ColumnWidth = ActiveProject.TaskTables("cptStatusSheet Table").TableFields(lngCol + 1).Width + 2
+    
+    oWorksheet.Cells(lngHeaderRow, lngCol).WrapText = True
     If InStr(oWorksheet.Cells(lngHeaderRow, lngCol), "Start") > 0 Then
       oWorksheet.Columns(lngCol).Replace "NA", ""
       oWorksheet.Columns(lngCol).NumberFormat = "mm/dd/yyyy"
