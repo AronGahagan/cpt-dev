@@ -15,6 +15,10 @@ Private strStartingTable As String
 Private strStartingFilter As String
 Private strStartingGroup As String
 Private oAssignmentRange As Excel.Range
+Private oNumberValidationRange As Excel.Range
+Private oInputRange As Excel.Range
+Private oUnlockedRange As Excel.Range
+Private oEntryHeaderRange As Excel.Range
 
 Sub cptShowStatusSheet_frm()
 'populate all outline codes, text, and number fields
@@ -477,6 +481,7 @@ Sub cptCreateStatusSheet()
   'set up an excel Workbook
   If blnPerformanceTest Then t = GetTickCount
   Set oExcel = CreateObject("Excel.Application")
+  'oExcel.Visible = False
   oExcel.WindowState = xlMinimized
   '/=== debug ==\
   If Not BLN_TRAP_ERRORS Then oExcel.Visible = True
@@ -506,7 +511,7 @@ Sub cptCreateStatusSheet()
       oWorksheet.Name = "Status Sheet"
       'copy data
       If blnPerformanceTest Then t = GetTickCount
-      .lblStatus = "Extracting Task Data..."
+      .lblStatus = "Creating Workbook..."
       cptCopyData oWorksheet, lngHeaderRow
       If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
       'add legend
@@ -524,6 +529,8 @@ Sub cptCreateStatusSheet()
         oWorksheet.EnableSelection = xlNoRestrictions
       End If
       
+      .lblStatus = "Creating Workbook...done"
+      
       'todo: save workbook
       
     ElseIf .cboCreate.Value = "1" Then  'worksheet for each
@@ -538,7 +545,7 @@ Sub cptCreateStatusSheet()
           SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", strItem
           'copy data
           If blnPerformanceTest Then t = GetTickCount
-          .lblStatus = "Extracting Task Data..."
+          .lblStatus = "Creating Worksheet for " & strItem & "..."
           cptCopyData oWorksheet, lngHeaderRow
           If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
           'add legend
@@ -556,6 +563,13 @@ Sub cptCreateStatusSheet()
             oWorksheet.EnableSelection = xlNoRestrictions
           End If
           
+          Set oInputRange = Nothing
+          Set oNumberValidationRange = Nothing
+          Set oUnlockedRange = Nothing
+          Set oAssignmentRange = Nothing
+          
+          .lblStatus = "Creating Worksheet for " & strItem & "...done"
+
         End If
       Next lngItem
       
@@ -573,7 +587,7 @@ Sub cptCreateStatusSheet()
           SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", .lboItems.List(lngItem, 0)
           'copy data
           If blnPerformanceTest Then t = GetTickCount
-          .lblStatus = "Extracting Task Data..."
+          .lblStatus = "Creating Workbook for " & strItem & "..."
           cptCopyData oWorksheet, lngHeaderRow
           If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
           'add legend
@@ -591,18 +605,27 @@ Sub cptCreateStatusSheet()
             oWorksheet.EnableSelection = xlNoRestrictions
           End If
           
+          Set oInputRange = Nothing
+          Set oNumberValidationRange = Nothing
+          Set oUnlockedRange = Nothing
+          Set oAssignmentRange = Nothing
+                    
+          .lblStatus = "Creating Workbook for " & strItem & "...done"
+          
           'todo: save workbook for each
           
         End If
       Next lngItem
     End If
+    .lblStatus.Caption = Choose(.cboCreate + 1, "Workbook", "Workbook", "Workbooks") & " Complete"
   End With
 
   oExcel.Calculation = xlCalculationAutomatic
   oExcel.ScreenUpdating = True
   oExcel.Visible = True
-
-
+  
+  
+  
   GoTo exit_here
 
   'set up header
@@ -2068,16 +2091,19 @@ End Sub
 
 Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   'objects
+  Dim oComment As Excel.Comment
+  Dim oEVTRange As Excel.Range
+  Dim oCompleted As Excel.Range
   Dim oMilestoneRange As Excel.Range
   Dim oClearRange As Excel.Range
   Dim oSummaryRange As Excel.Range
-  Dim oNumberValidationRange As Excel.Range
   Dim oDateValidationRange As Excel.Range
   Dim oTwoWeekWindowRange As Excel.Range
-  Dim oInputRange As Excel.Range
   Dim oTask As Task
   'strings
+  Dim strEVTList As String
   'longs
+  Dim lngEVTCol As Long
   Dim lngLastCol As Long
   Dim lngETCCol As Long
   Dim lngTask As Long
@@ -2105,6 +2131,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   blnValidation = cptStatusSheet_frm.chkValidation
   blnConditionalFormats = cptStatusSheet_frm.chkAddConditionalFormats
   ActiveWindow.TopPane.Activate
+try_again:
   SelectAll
   EditCopy
   oWorksheet.Application.Wait 5000
@@ -2134,11 +2161,24 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
     ElseIf InStr(oWorksheet.Cells(lngHeaderRow, lngCol), "Finish") > 0 Then
       oWorksheet.Columns(lngCol).Replace "NA", ""
       oWorksheet.Columns(lngCol).NumberFormat = "mm/dd/yyyy"
+    ElseIf InStr(oWorksheet.Cells(lngHeaderRow, lngCol), "Work") > 0 Or InStr(oWorksheet.Cells(lngHeaderRow, lngCol), "ETC") > 0 Then
+      oWorksheet.Columns(lngCol).Style = "Comma"
+    End If
+    If Len(cptRegEx(oWorksheet.Cells(lngHeaderRow, lngCol), "New|Revised")) > 0 Then
+      If oEntryHeaderRange Is Nothing Then
+        Set oEntryHeaderRange = oWorksheet.Cells(lngHeaderRow, lngCol)
+      Else
+        Set oEntryHeaderRange = oWorksheet.Application.Union(oEntryHeaderRange, oWorksheet.Cells(lngHeaderRow, lngCol))
+      End If
     End If
     'todo: replace "h"
   Next lngCol
   
   'format the header
+  lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
+  If lngLastCol > ActiveProject.TaskTables("cptStatusSheet Table").TableFields.Count + 10 Then GoTo try_again
+  oWorksheet.Columns(lngLastCol + 1).Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+  oWorksheet.Columns(lngLastCol + 1).ColumnWidth = 40
   oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Offset(0, 1).Value = "Comment / Action / Impact"
   With oWorksheet.Cells(lngHeaderRow, 1).Resize(, ActiveProject.TaskTables(ActiveProject.CurrentTable).TableFields.Count)
     .Interior.ThemeColor = xlThemeColorLight2
@@ -2150,12 +2190,13 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
     .VerticalAlignment = xlCenter
     .WrapText = True
   End With
+  
   'format the data rows
   lngNameCol = oWorksheet.Rows(lngHeaderRow).Find("Task Name / Scope", lookat:=xlWhole).Column
   lngASCol = oWorksheet.Rows(lngHeaderRow).Find("Actual Start", lookat:=xlPart).Column
   lngAFCol = oWorksheet.Rows(lngHeaderRow).Find("Actual Finish", lookat:=xlPart).Column
   lngEVPCol = oWorksheet.Rows(lngHeaderRow).Find("New EV%", lookat:=xlWhole).Column
-  'todo: change this to lngETCCol
+  lngEVTCol = oWorksheet.Rows(lngHeaderRow).Find("EVT", lookat:=xlWhole).Column
   lngETCCol = oWorksheet.Rows(lngHeaderRow).Find("Revised ETC", lookat:=xlWhole).Column
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
   lngTasks = ActiveSelection.Tasks.Count
@@ -2185,15 +2226,20 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
       Else
         Set oMilestoneRange = oWorksheet.Application.Union(oMilestoneRange, oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol)))
       End If
-      If oClearRange Is Nothing Then
-        Set oClearRange = oWorksheet.Range(oWorksheet.Cells(lngRow, lngNameCol + 1), oWorksheet.Cells(lngRow, lngLastCol))
-      Else
-        Set oClearRange = oWorksheet.Application.Union(oClearRange, oWorksheet.Range(oWorksheet.Cells(lngRow, lngNameCol + 1), oWorksheet.Cells(lngRow, lngLastCol)))
-      End If
+'      If oClearRange Is Nothing Then
+'        Set oClearRange = oWorksheet.Range(oWorksheet.Cells(lngRow, lngNameCol + 1), oWorksheet.Cells(lngRow, lngLastCol))
+'      Else
+'        Set oClearRange = oWorksheet.Application.Union(oClearRange, oWorksheet.Range(oWorksheet.Cells(lngRow, lngNameCol + 1), oWorksheet.Cells(lngRow, lngLastCol)))
+'      End If
       GoTo next_task
     End If
     'format completed
     If IsDate(oTask.ActualFinish) Then
+      If oCompleted Is Nothing Then
+        Set oCompleted = oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol))
+      Else
+        Set oCompleted = oWorksheet.Application.Union(oCompleted, oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol)))
+      End If
       GoTo next_task
     End If
     'capture status formating:
@@ -2214,7 +2260,13 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
       End If
       Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngEVPCol))
     End If
-    
+    If IsDate(oTask.ActualStart) And Not IsDate(oTask.ActualFinish) Then
+      If oInputRange Is Nothing Then
+        Set oInputRange = oWorksheet.Cells(lngRow, lngEVPCol)
+      Else
+        Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngEVPCol))
+      End If
+    End If
     'two week window
     If oTask.Start > dtStatus And oTask.Start <= DateAdd("d", 14, dtStatus) Then
       If oTwoWeekWindowRange Is Nothing Then
@@ -2231,7 +2283,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
       End If
     End If
     
-    'todo: capture data validation
+    'capture data validation
     If blnValidation Then
       If Not IsDate(oTask.ActualStart) Then
         If oDateValidationRange Is Nothing Then
@@ -2252,16 +2304,19 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
       Else
         Set oNumberValidationRange = oWorksheet.Application.Union(oNumberValidationRange, oWorksheet.Cells(lngRow, lngEVPCol))
       End If
-      Set oNumberValidationRange = oWorksheet.Application.Union(oNumberValidationRange, oWorksheet.Cells(lngRow, lngETCCol))
     End If 'blnValidation
-      
-        
     
-    'todo: apply conditional formatting
+    If oEVTRange Is Nothing Then
+      Set oEVTRange = oWorksheet.Cells(lngRow, lngEVTCol)
+    Else
+      Set oEVTRange = oWorksheet.Application.Union(oEVTRange, oWorksheet.Cells(lngRow, lngEVTCol))
+    End If
     
     If oTask.Assignments.Count > 0 Then
-      cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol
+      cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
     End If
+    
+    'todo: apply conditional formatting
     
     oWorksheet.Columns(1).AutoFit
 
@@ -2280,29 +2335,38 @@ next_task:
     oMilestoneRange.Font.ThemeColor = xlThemeColorAccent6
     oMilestoneRange.Font.TintAndShade = -0.249977111117893
   End If
+  If Not oCompleted Is Nothing Then
+    oCompleted.Font.Italic = True
+    oCompleted.Font.ColorIndex = 16
+  End If
   If blnValidation Then
     'date validation range
-    oDateValidationRange.Validation.Delete
-    oDateValidationRange.Validation.Add Type:=xlValidateDate, AlertStyle:=xlValidAlertStop, Operator:=xlGreaterEqual, Formula1:=FormatDateTime(ActiveProject.ProjectStart, vbShortDate)
-    oDateValidationRange.Validation.IgnoreBlank = True
-    oDateValidationRange.Validation.InCellDropdown = True
-    oDateValidationRange.Validation.InputTitle = "Date Only"
-    oDateValidationRange.Validation.ErrorTitle = "Date Only"
-    oDateValidationRange.Validation.InputMessage = "Please enter a date in format mm/dd/yyyy."
-    oDateValidationRange.Validation.ErrorMessage = "Please enter a date in format mm/dd/yyyy."
-    oDateValidationRange.Validation.ShowInput = True
-    oDateValidationRange.Validation.ShowError = True
+    With oDateValidationRange.Validation
+      .Delete
+      oWorksheet.Application.WindowState = xlNormal
+      .Add Type:=xlValidateDate, AlertStyle:=xlValidAlertStop, Operator:=xlGreaterEqual, Formula1:=FormatDateTime(ActiveProject.ProjectStart, vbShortDate)
+      .IgnoreBlank = True
+      .InCellDropdown = True
+      .InputTitle = "Date Only"
+      .ErrorTitle = "Date Only"
+      .InputMessage = "Please enter a date in format mm/dd/yyyy."
+      .ErrorMessage = "Please enter a date in format mm/dd/yyyy."
+      .ShowInput = True
+      .ShowError = True
+    End With
     'number validation range
-    oNumberValidationRange.Validation.Delete
-    oNumberValidationRange.Validation.Add Type:=xlValidateDecimal, AlertStyle:=xlValidAlertStop, Operator:=xlGreaterEqual, Formula1:="0"
-    oNumberValidationRange.Validation.IgnoreBlank = True
-    oNumberValidationRange.Validation.InCellDropdown = True
-    oNumberValidationRange.Validation.InputTitle = "Number Only"
-    oNumberValidationRange.Validation.ErrorTitle = "Number Only"
-    oNumberValidationRange.Validation.InputMessage = "Please enter a number greater than or equal to zero. Decimals permitted."
-    oNumberValidationRange.Validation.ErrorMessage = "Please enter a number greater than or equal to zero. Decimals permitted."
-    oNumberValidationRange.Validation.ShowInput = True
-    oNumberValidationRange.Validation.ShowError = True
+    With oNumberValidationRange.Validation
+      .Delete
+      .Add Type:=xlValidateDecimal, AlertStyle:=xlValidAlertStop, Operator:=xlGreaterEqual, Formula1:="0"
+      .IgnoreBlank = True
+      .InCellDropdown = True
+      .InputTitle = "Number Only"
+      .ErrorTitle = "Number Only"
+      .InputMessage = "Please enter a number greater than or equal to zero. Decimals permitted."
+      .ErrorMessage = "Please enter a number greater than or equal to zero. Decimals permitted."
+      .ShowInput = True
+      .ShowError = True
+    End With
   End If
   If Not oAssignmentRange Is Nothing Then
     With oAssignmentRange.Interior
@@ -2313,22 +2377,54 @@ next_task:
       .PatternTintAndShade = 0
     End With
   End If
-  Set oAssignmentRange = Nothing
   If Not oInputRange Is Nothing Then oInputRange.Style = "Input"
   If Not oTwoWeekWindowRange Is Nothing Then oTwoWeekWindowRange.Style = "Neutral"
+  
+  'add EVT gloassary - test comment
+  'todo: drop full list of EVTs for COBRA and MPM into ListObject
+  'todo: add comment for individual EVT
+  If Not oEVTRange Is Nothing Then
+    If cptStatusSheet_frm.cboCostTool = "COBRA" Then
+      strEVTList = "A - Level of Effort,"
+      strEVTList = strEVTList & "B - Milestones,"
+      strEVTList = strEVTList & "C - % Complete,"
+      strEVTList = strEVTList & "D - Units Complete,"
+      strEVTList = strEVTList & "E - 50-50,"
+      strEVTList = strEVTList & "F - 0-100,"
+      strEVTList = strEVTList & "G - 100-0,"
+      strEVTList = strEVTList & "H - User Defined,"
+      strEVTList = strEVTList & "J - Apportioned,"
+      strEVTList = strEVTList & "K - Planning Package,"
+      strEVTList = strEVTList & "L - Assignment % Complete,"
+      strEVTList = strEVTList & "M - Calculated Apportionment,"
+      strEVTList = strEVTList & "N - Steps,"
+      strEVTList = strEVTList & "O - Earned As Spent,"
+      strEVTList = strEVTList & "P - % Complete Manual Entry,"
+    ElseIf cptStatusSheet_frm.cboCostTool = "MPM" Then
+      
+    End If
+    oWorksheet.Cells(lngHeaderRow, lngLastCol + 2).Value = "Earned Value Techniques (EVT)"
+    oWorksheet.Cells(lngHeaderRow, lngLastCol).Copy
+    oWorksheet.Cells(lngHeaderRow, lngLastCol + 2).PasteSpecial xlPasteFormats
+    oWorksheet.Range(oWorksheet.Cells(lngHeaderRow + 1, lngLastCol + 2), oWorksheet.Cells(lngHeaderRow + 1, lngLastCol + 2).Offset(UBound(Split(strEVTList, ",")), 0)).Value = oWorksheet.Application.Transpose(Split(strEVTList, ","))
+
+  End If
+  
   If blnConditionalFormats Then
     'todo: conditional formats
   End If
   
 exit_here:
   On Error Resume Next
+  Set oComment = Nothing
+  Set oEVTRange = Nothing
+  Set oCompleted = Nothing
   Set oMilestoneRange = Nothing
   Set oClearRange = Nothing
   Set oSummaryRange = Nothing
   Set oNumberValidationRange = Nothing
   Set oDateValidationRange = Nothing
   Set oTwoWeekWindowRange = Nothing
-  Set oInputRange = Nothing
   Set oInputRange = Nothing
   Set oTask = Nothing
 
@@ -2347,6 +2443,8 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   'longs
   Dim lngIndent As Long
   Dim lngItem As Long
+  Dim lngLastCol As Long
+  Dim lngLastRow As Long
   'integers
   'doubles
   'booleans
@@ -2357,14 +2455,14 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   lngIndent = Len(cptRegEx(oWorksheet.Cells(lngRow, lngNameCol).Value, "^\s*"))
-    
+  lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
+  lngLastRow = oWorksheet.Cells(1048576, 1).End(xlUp).Row
   lngItem = 0
   For Each oAssignment In oTask.Assignments
     lngItem = lngItem + 1
     oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
-    oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, ActiveSelection.FieldIDList.Count)).Font.Italic = True 'todo: limit to columns
-    'todo: format gray
-    vAssignment = oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, ActiveSelection.FieldIDList.Count)).Value
+    oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.Italic = True 'todo: limit to columns
+    vAssignment = oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Value
     vAssignment(1, 1) = oTask.UniqueID
     vAssignment(1, lngNameCol) = String(lngIndent + 3, " ") & oAssignment.ResourceName
     If oAssignment.ResourceType = pjWork Then
@@ -2375,24 +2473,29 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
       vAssignment(1, lngRemainingWorkCol + 1) = oAssignment.RemainingWork
     End If
     'add validation
-    strDataValidation = cptGetSetting("StatusSheet", "chkDataValidation")
-    If Len(strDataValidation) > 0 Then
-      If CBool(strDataValidation) Then
-        oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1).Style = "Input"
+    If oNumberValidationRange Is Nothing Then
+      Set oNumberValidationRange = oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1)
+    Else
+      Set oNumberValidationRange = oWorksheet.Application.Union(oNumberValidationRange, oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1))
+    End If
+    If (Not IsDate(oTask.ActualStart) And oTask.Start <= ActiveProject.StatusDate) Or (IsDate(oTask.ActualStart) And Not IsDate(oTask.ActualFinish)) Then
+      If oInputRange Is Nothing Then
+        Set oInputRange = oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1)
+      Else
+        Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1))
       End If
     End If
     'add protection
-    strProtect = cptGetSetting("StatusSheet", "chkLocked")
-    If Len(strProtect) > 0 Then
-      If CBool(strProtect) Then
-        oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1).Locked = False
-      End If
-    End If
-    oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, ActiveSelection.FieldIDList.Count)).Value = vAssignment
-    If oAssignmentRange Is Nothing Then
-      Set oAssignmentRange = oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, ActiveSelection.FieldIDList.Count))
+    If oUnlockedRange Is Nothing Then
+      Set oUnlockedRange = oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1)
     Else
-      Set oAssignmentRange = oWorksheet.Application.Union(oAssignmentRange, oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, ActiveSelection.FieldIDList.Count)))
+      Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1))
+    End If
+    oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Value = vAssignment
+    If oAssignmentRange Is Nothing Then
+      Set oAssignmentRange = oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol))
+    Else
+      Set oAssignmentRange = oWorksheet.Application.Union(oAssignmentRange, oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)))
     End If
   Next oAssignment
   'add formulae
@@ -2459,7 +2562,29 @@ err_here:
 End Sub
 
 Sub cptFinalFormats(ByRef oWorksheet As Worksheet)
+Dim lngHeaderRow As Long
+Dim vBorder As Variant
+  lngHeaderRow = 8
   oWorksheet.Columns(1).AutoFit
+  With oWorksheet.Range(oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight), oWorksheet.Cells(lngHeaderRow, 1).End(xlDown))
+    .Borders(xlDiagonalDown).LineStyle = xlNone
+    .Borders(xlDiagonalUp).LineStyle = xlNone
+    For Each vBorder In Array(xlEdgeLeft, xlEdgeTop, xlEdgeBottom, xlEdgeRight, xlInsideVertical, xlInsideHorizontal)
+      With .Borders(vBorder)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.249946592608417
+        .Weight = xlThin
+      End With
+    Next vBorder
+  End With
+'  'format entry headers
+'  With oEntryHeaderRange
+'    .Interior.ThemeColor = xlThemeColorAccent3
+'    .Interior.TintAndShade = 0.399975585192419
+'    .Font.ColorIndex = xlAutomatic
+'    .BorderAround xlContinuous, xlMedium
+'  End With
   oWorksheet.Application.WindowState = xlNormal
   oWorksheet.Application.Calculation = xlCalculationAutomatic
   oWorksheet.Application.ScreenUpdating = True
@@ -2468,4 +2593,5 @@ Sub cptFinalFormats(ByRef oWorksheet As Worksheet)
   oWorksheet.Application.ActiveWindow.SplitColumn = 0
   oWorksheet.Application.ActiveWindow.FreezePanes = True
   oWorksheet.Application.WindowState = xlMinimized
+  Set oEntryHeaderRange = Nothing
 End Sub
