@@ -306,10 +306,14 @@ skip_fields:
   
   'cptSpeed True
   If strStartingGroup <> "No Group" Then GroupApply "No Group"
-  If ActiveWindow.TopPane.View.Name <> "Gantt Chart" Then
+  If ActiveWindow.TopPane.View.Name <> "Gantt Chart" And ActiveWindow.TopPane.View.Name <> "Task Usage" Then
     If MsgBox("Current view must be changed for successful export.", vbInformation + vbOKCancel, "Incompatible View") = vbOK Then
       ActiveWindow.TopPane.Activate
-      ViewApply "Gantt Chart"
+      If strStartingGroup <> "No Group" Then
+        ViewApply "Task Usage" 'required to prevent inaccurate UIDs getting into the sheet
+      Else
+        ViewApply "Gantt Chart"
+      End If
     Else
       GoTo exit_here
     End If
@@ -2407,7 +2411,7 @@ next_task:
     oWorksheet.Cells(lngHeaderRow, lngLastCol).Copy
     oWorksheet.Cells(lngHeaderRow, lngLastCol + 2).PasteSpecial xlPasteFormats
     oWorksheet.Range(oWorksheet.Cells(lngHeaderRow + 1, lngLastCol + 2), oWorksheet.Cells(lngHeaderRow + 1, lngLastCol + 2).Offset(UBound(Split(strEVTList, ",")), 0)).Value = oWorksheet.Application.Transpose(Split(strEVTList, ","))
-
+    oWorksheet.Columns(lngLastCol + 2).AutoFit
   End If
   
   If blnConditionalFormats Then
@@ -2565,6 +2569,7 @@ Sub cptFinalFormats(ByRef oWorksheet As Worksheet)
 Dim lngHeaderRow As Long
 Dim vBorder As Variant
   lngHeaderRow = 8
+  oWorksheet.Cells(lngHeaderRow, 1).AutoFilter
   oWorksheet.Columns(1).AutoFit
   With oWorksheet.Range(oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight), oWorksheet.Cells(lngHeaderRow, 1).End(xlDown))
     .Borders(xlDiagonalDown).LineStyle = xlNone
