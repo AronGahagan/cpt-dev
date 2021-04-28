@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveLocal_bas"
-'<cpt_version>v1.1.0</cpt_version>
+'<cpt_version>v1.1.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -12,16 +12,16 @@ Sub cptShowSaveLocal_frm()
 'objects
 Dim oRange As Excel.Range
 Dim oListObject As ListObject
-Dim rstProjects As ADODB.Recordset
+Dim rstProjects As Object 'ADODB.Recordset
 Dim oSubProject As SubProject
 Dim oMasterProject As Project
 Dim oWorksheet As Worksheet
 Dim oWorkbook As Workbook
 Dim oExcel As Excel.Application
 Dim oTask As Task
-Dim rstSavedMap As ADODB.Recordset
+Dim rstSavedMap As Object 'ADODB.Recordset
 Dim dTypes As Scripting.Dictionary
-Dim rstECF As ADODB.Recordset
+Dim rstECF As Object 'ADODB.Recordset
 'strings
 Dim strURL As String
 Dim strSaved As String
@@ -357,13 +357,13 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptShowSaveLocal_frm", err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptShowSaveLocal_frm", Err, Erl)
   Resume exit_here
 End Sub
 
 Sub cptSaveLocal()
 'objects
-Dim rstSavedMap As ADODB.Recordset
+Dim rstSavedMap As Object 'ADODB.Recordset
 Dim oTasks As Tasks
 Dim oTask As Task
 Dim oResources As Resources
@@ -559,7 +559,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptSaveLocal", err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptSaveLocal", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -604,28 +604,28 @@ Function cptInterrogateECF(ByRef oTask As Task, lngField As Long)
    
   oTask.SetField lngField, "xxx"
 
-  If err.Description = "This field only supports positive numbers." Then
+  If Err.Description = "This field only supports positive numbers." Then
     cptInterrogateECF = "Cost"
-  ElseIf err.Description = "The date you entered isn't supported for this field." Then
+  ElseIf Err.Description = "The date you entered isn't supported for this field." Then
     cptInterrogateECF = "Date"
-  ElseIf err.Description = "The duration you entered isn't supported for this field." Then
+  ElseIf Err.Description = "The duration you entered isn't supported for this field." Then
     cptInterrogateECF = "Duration"
-  ElseIf err.Description = "Select either Yes or No from the list." Then
+  ElseIf Err.Description = "Select either Yes or No from the list." Then
     cptInterrogateECF = "Flag"
-  ElseIf err.Description = "This field only supports numbers." Then
+  ElseIf Err.Description = "This field only supports numbers." Then
     cptInterrogateECF = "Number"
-  ElseIf err.Description = "This is not a valid lookup table value." Or err.Description = "The value you entered does not exist in the lookup table of this code" Then
+  ElseIf Err.Description = "This is not a valid lookup table value." Or Err.Description = "The value you entered does not exist in the lookup table of this code" Then
     'select the first value and check it
     oTask.SetField lngField, oOutlineCode.LookupTable(1).Name
     strVal = oTask.GetField(lngField)
     GoTo enhanced_interrogation
-  ElseIf err.Description = "The argument value is not valid." Then
+  ElseIf Err.Description = "The argument value is not valid." Then
     'figure out formula
     If Len(CustomFieldGetFormula(lngField)) > 0 Then
       strVal = oTask.GetField(lngField)
       GoTo enhanced_interrogation
     End If
-  ElseIf err.Description = "" Then
+  ElseIf Err.Description = "" Then
     cptInterrogateECF = "Text"
   Else
     GoTo enhanced_interrogation
@@ -635,7 +635,7 @@ Function cptInterrogateECF(ByRef oTask As Task, lngField As Long)
   
 enhanced_interrogation:
   
-  err.Clear
+  Err.Clear
   
   'check for cost
   If InStr(strVal, ActiveProject.CurrencySymbol) > 0 Then
@@ -646,7 +646,7 @@ enhanced_interrogation:
   'check for number
   On Error Resume Next
   lngVal = oTask.GetField(lngField)
-  If err.Number = 0 And Len(oTask.GetField(lngField)) = Len(CStr(lngVal)) Then
+  If Err.Number = 0 And Len(oTask.GetField(lngField)) = Len(CStr(lngVal)) Then
     cptInterrogateECF = "Number"
     GoTo exit_here
   End If
@@ -654,7 +654,7 @@ enhanced_interrogation:
   'check for date
   On Error Resume Next
   dtVal = oTask.GetField(lngField)
-  If err.Number = 0 Then
+  If Err.Number = 0 Then
     cptInterrogateECF = "Date"
     GoTo exit_here
   End If
@@ -675,7 +675,7 @@ enhanced_interrogation:
   strVal = oTask.GetField(lngField)
   'could be duration
   If strVal = DurationFormat(DurationValue(strVal), ActiveProject.DefaultDurationUnits) Then
-    If err.Number = 0 Then
+    If Err.Number = 0 Then
       cptInterrogateECF = "Duration"
       GoTo exit_here
     End If
@@ -690,8 +690,7 @@ exit_here:
   
   Exit Function
 err_here:
-  Call cptHandleErr("foo", "bar", err, Erl)
-  MsgBox err.Number & ": " & err.Description, vbInformation + vbOKOnly, "Error"
+  Call cptHandleErr("cptSaveLocal_bas", "cptInterrogateECF", Err, Erl)
   Resume exit_here
 End Function
 
@@ -699,7 +698,7 @@ Sub cptGetAllFields(lngFrom As Long, lngTo As Long)
   'objects
   Dim oWorksheet As Worksheet
   Dim oWorkbook As Workbook
-  Dim rst As ADODB.Recordset
+  Dim rst As Object 'ADODB.Recordset
   Dim oExcel As Excel.Application
   'strings
   Dim strCustomName As String
@@ -765,13 +764,13 @@ exit_here:
   Close #lngFile
   Exit Sub
 err_here:
-  MsgBox err.Number & ": " & err.Description, vbInformation + vbOKOnly, "Error"
+  Call cptHandleErr("cptSaveLocal_bas", "cptGetAllFields", Err, Erl)
   Resume exit_here
 End Sub
 
 Sub cptAnalyzeAutoMap()
   'objects
-  Dim rstAvailable As ADODB.Recordset
+  Dim rstAvailable As Object 'ADODB.Recordset
   Dim dTypes As Scripting.Dictionary
   'strings
   Dim strMsg As String
@@ -888,8 +887,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptAutoMap", err, Erl)
-  MsgBox err.Number & ": " & err.Description, vbInformation + vbOKOnly, "Error"
+  Call cptHandleErr("cptSaveLocal_bas", "cptAutoMap", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -949,14 +947,13 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptAutoMap", err, Erl)
-  MsgBox err.Number & ": " & err.Description, vbInformation + vbOKOnly, "Error"
+  Call cptHandleErr("cptSaveLocal_bas", "cptAutoMap", Err, Erl)
   Resume exit_here
 End Sub
 
 Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
   'objects
-  Dim rstSavedMap As ADODB.Recordset
+  Dim rstSavedMap As Object 'ADODB.Recordset
   Dim oLookupTableEntry As LookupTableEntry
   Dim oOutlineCodeLocal As OutlineCode
   Dim oOutlineCode As OutlineCode
@@ -1172,13 +1169,13 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptMapECFtoLCF", err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptMapECFtoLCF", Err, Erl)
   Resume exit_here
 End Sub
 
 Sub cptExportCFMap()
   'objects
-  Dim rstSavedMap As ADODB.Recordset
+  Dim rstSavedMap As Object 'ADODB.Recordset
   'strings
   Dim strMsg As String
   Dim strSavedMapExport As String
@@ -1246,13 +1243,13 @@ exit_here:
   Close #lngFile
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptSaveLocal_frm", err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptSaveLocal_frm", Err, Erl)
   Resume exit_here
 End Sub
 
 Sub cptImportCFMap()
   'objects
-  Dim rstSavedMap As ADODB.Recordset
+  Dim rstSavedMap As Object 'ADODB.Recordset
   Dim oStream As Scripting.TextStream
   Dim oFile As Scripting.File
   Dim oFSO As Scripting.FileSystemObject
@@ -1349,14 +1346,14 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptImportCFMap", err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptImportCFMap", Err, Erl)
   Resume exit_here
 End Sub
 
 Sub cptUpdateECF(Optional strFilter As String)
   'objects
-  Dim rstECF As ADODB.Recordset
-  Dim rstSavedMap As ADODB.Recordset
+  Dim rstECF As Object 'ADODB.Recordset
+  Dim rstSavedMap As Object 'ADODB.Recordset
   'strings
   Dim strGUID As String
   Dim strSavedMap As String
@@ -1447,7 +1444,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptUpdateECF", err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptUpdateECF", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -1496,7 +1493,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cboLCF_Change", err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cboLCF_Change", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -1576,6 +1573,6 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_bas", "cptUpdateSaveLocalView", err, Erl)
+  Call cptHandleErr("cptSaveLocal_bas", "cptUpdateSaveLocalView", Err, Erl)
   Resume exit_here
 End Sub
