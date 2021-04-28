@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
-'<cpt_version>v0.0.2</cpt_version>
+'<cpt_version>v0.0.3</cpt_version>
 Option Explicit
 Public oInsertedIndex As Object
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -53,7 +53,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptNetworkBrowser_bas", "cptShowNetworkBrowser_frm", err, Erl)
+  Call cptHandleErr("cptNetworkBrowser_bas", "cptShowNetworkBrowser_frm", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -254,7 +254,7 @@ exit_here:
   Set oTask = Nothing
   Exit Sub
 err_here:
-  If err.Number <> 424 Then Call cptHandleErr("cptNetworkBrowser_bas", "cptShowPreds", err, Erl)
+  If Err.Number <> 424 Then Call cptHandleErr("cptNetworkBrowser_bas", "cptShowPreds", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -370,6 +370,6 @@ Sub cptHistoryDoubleClick()
 exit_here:
   Exit Sub
 err_here:
-  Call cptHandleErr("cptNetworkBrowser_bas", "cptHistoryDoubleClick", err, Erl)
+  Call cptHandleErr("cptNetworkBrowser_bas", "cptHistoryDoubleClick", Err, Erl)
   Resume exit_here
 End Sub
