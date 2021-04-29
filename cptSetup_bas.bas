@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.5.2</cpt_version>
+'<cpt_version>v1.5.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -72,8 +72,8 @@ Dim vEvent As Variant
   'why?
   On Error Resume Next
   Set rstCore = CreateObject("ADODB.Recordset")
-  rstCore.Fields.Append "FileName", adVarChar, 255
-  rstCore.Fields.Append "FileType", adInteger
+  rstCore.Fields.Append "FileName", 200, 255 '200=adVarChar
+  rstCore.Fields.Append "FileType", 3 '3=adInteger
   rstCore.Open
   
   Application.StatusBar = "Identifying latest core CPT modules..."
@@ -229,8 +229,8 @@ this_project:
     strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
   End If '</issue35>
   Set rstCode = CreateObject("ADODB.Recordset")
-  rstCode.Fields.Append "EVENT", adVarChar, 255
-  rstCode.Fields.Append "LINES", adLongVarChar
+  rstCode.Fields.Append "EVENT", 200, 255 '200=adVarChar
+  rstCode.Fields.Append "LINES", 201 '201=adLongVarChar
   rstCode.Open
   With cmCptThisProject
     For Each vEvent In Array("Project_Activate", "Project_Open")

@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.3.0</cpt_version>
+'<cpt_version>v1.3.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -172,7 +172,7 @@ End Sub
 Sub cptMyReplace()
   'fields affected: Marked, Task Name, Text Fields, Outline Code Fields
   'objects
-  Dim rstReplaced As ADODB.Recordset 'object
+  Dim rstReplaced As Object 'ADODB.Recordset
   Dim oTasks As Tasks, oTask As Task
   'strings
   Dim strMsg As String

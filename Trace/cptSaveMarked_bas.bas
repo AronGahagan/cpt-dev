@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveMarked_bas"
-'<cpt_version>v1.0.2</cpt_version>
+'<cpt_version>v1.0.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -30,7 +30,7 @@ End Sub
 
 Sub cptUpdateMarked(Optional strFilter As String)
   'objects
-  Dim rstMarked As ADODB.Recordset 'Object
+  Dim rstMarked As Object 'ADODB.Recordset 'Object
   'strings
   Dim strMarked As String
   'longs
@@ -114,7 +114,7 @@ End Sub
 Sub cptSaveMarked()
   'objects
   Dim oTask As Task 'Object
-  Dim rstMarked As ADODB.Recordset 'Object
+  Dim rstMarked As Object 'ADODB.Recordset 'Object
   'strings
   Dim strProject As String
   Dim strGUID As String
@@ -208,7 +208,7 @@ End Sub
 
 Sub cptImportMarked()
   'objects
-  Dim rstSaved As ADODB.Recordset 'Object
+  Dim rstSaved As Object 'ADODB.Recordset 'Object
   'strings
   Dim strSaved As String
   'longs
