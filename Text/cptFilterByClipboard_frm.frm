@@ -50,7 +50,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFilterByClipboard_frm", "lblURL", err, Erl)
+  Call cptHandleErr("cptFilterByClipboard_frm", "lblURL", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -138,7 +138,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFilterByClipboard_frm", "lboFilter_Click", err, Erl)
+  Call cptHandleErr("cptFilterByClipboard_frm", "lboFilter_Click", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -302,7 +302,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFilterByClipboard_frm", "txtFilter_BeforeDropOrPaste", err, Erl)
+  Call cptHandleErr("cptFilterByClipboard_frm", "txtFilter_BeforeDropOrPaste", Err, Erl)
   Resume exit_here
 
 End Sub

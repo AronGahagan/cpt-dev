@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.9.0</cpt_version>
+'<cpt_version>v1.9.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -352,7 +352,6 @@ Dim lgIndex As Long
   Next
 
 End Sub
-
 Function cptCheckReference(strReference As String) As Boolean
 'this routine will be called ahead of any subroutine requiring a reference
 'returns boolean and subroutine only proceeds if true
@@ -451,7 +450,6 @@ err_here:
   Resume exit_here
 
 End Function
-
 Sub cptResetAll()
   Dim rstSettings As Object 'ADODB.Recordset
   'strings
@@ -652,7 +650,7 @@ Dim REMatches As Object
 Dim RE As Object
 Dim oStream As Object
 Dim xmlHttpDoc As Object
-Dim rstStatus As ADODB.Recordset
+Dim rstStatus As Object 'ADODB.Recordset
 Dim vbComponent As Object
 Dim xmlDoc As Object
 Dim xmlNode As Object
@@ -884,6 +882,10 @@ Dim strRegEx As String
   'office applications
   strRegEx = "C\:.*Microsoft Office[A-z0-9\\]*Office[0-9]{2}"
   strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "") '<issue99>
+  If Len(strDir) = 0 Then 'MS Office path not in the environment variable!
+    MsgBox "Microsoft Office is not in the Environment Path variable. Some features may not operate as expected." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for specialized assistance.", vbCritical + vbOKOnly, "Microsoft Office Compatibility"
+    GoTo windows_common
+  End If
   If Not cptReferenceExists("Excel") Then
     strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
     ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
@@ -906,6 +908,7 @@ Dim strRegEx As String
   End If
 
   'Windows Common
+windows_common:
   If Not cptReferenceExists("MSForms") Then
     ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\SysWOW64\FM20.DLL"
   End If
