@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.0</cpt_version>
+'<cpt_version>v1.1.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -60,7 +60,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "cmdCustomFields_Click()", err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "cmdCustomFields_Click()", Err, Erl)
   Resume exit_here
   
 End Sub
@@ -86,7 +86,7 @@ End Sub
 Private Sub cmdUnmap_Click()
   'objects
   Dim oTableField As Object
-  Dim rstSavedMap As ADODB.Recordset
+  Dim rstSavedMap As Object 'ADODB.Recordset
   'strings
   Dim strGUID As String
   Dim strSavedMap As String
@@ -167,7 +167,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "cmdUnmap", err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "cmdUnmap", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -205,7 +205,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "lblURL_Click", err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "lblURL_Click", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -261,7 +261,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "lboECF_Change", err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "lboECF_Change", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -344,7 +344,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "lboECF_Click", err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "lboECF_Click", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -403,7 +403,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "tglAutoMap_Click", err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "tglAutoMap_Click", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -448,6 +448,6 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "Terminate", err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "Terminate", Err, Erl)
   Resume exit_here
 End Sub
