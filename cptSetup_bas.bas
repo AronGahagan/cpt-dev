@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.5.3</cpt_version>
+'<cpt_version>v1.5.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -16,7 +16,6 @@ Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/
                                                                         ByVal dwNameLen As Integer, _
                                                                         ByVal dwReserved As Long) As Long
 #End If
-
 Sub cptSetup()
 'setup only needs to be run once
 'objects
@@ -230,15 +229,21 @@ this_project:
   End If '</issue35>
   Set rstCode = CreateObject("ADODB.Recordset")
   rstCode.Fields.Append "EVENT", 200, 255 '200=adVarChar
-  rstCode.Fields.Append "LINES", 201 '201=adLongVarChar
+  rstCode.Fields.Append "LINES", 201, 1 '201=adLongVarChar;1=adParamInput
   rstCode.Open
   With cmCptThisProject
     For Each vEvent In Array("Project_Activate", "Project_Open")
       rstCode.AddNew Array(0, 1), Array(CStr(vEvent), .Lines(.ProcStartLine(CStr(vEvent), 0) + 2, .ProcCountLines(CStr(vEvent), 0) - 3)) '0 = vbext_pk_Proc
       rstCode.Update
-    Next
+    Next vEvent
   End With
   ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
+  If cptModuleExists("ThisProject1") Then
+    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents("ThisProject1")
+  End If
+  If cptModuleExists("cptThisProject_cls") Then
+    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents("cptThisProject_cls")
+  End If
   '<issue19> added
   DoEvents '</issue19>
 
@@ -291,7 +296,7 @@ skip_import:
     MsgBox strError, vbCritical + vbOKOnly, "Unknown Error"
     'Debug.Print strError
   End If
-
+    
   'reset the toolbar
   strMsg = "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>" & vbCrLf
   strMsg = strMsg + "<mso:customUI "
