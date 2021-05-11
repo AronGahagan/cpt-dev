@@ -7,7 +7,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.4</cpt_version>
+'<cpt_version>v1.1.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -78,7 +78,7 @@ Dim lngItem As Long, lngItems As Long
   End If
   
   Set oUserForm = cptGetUserForm("cptNetworkBrowser_frm") 'returns Nothing if form is not loaded
-  If Not oUserForm Is Nothing Then Call cptShowPreds
+  If Not oUserForm Is Nothing Then Application.Run "cptShowPreds"
   
 exit_here:
   On Error Resume Next

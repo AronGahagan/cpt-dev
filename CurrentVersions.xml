@@ -115,7 +115,7 @@
 	<Module>
 		<Name>cptEvents_cls</Name>
 		<FileName>cptEvents_cls.cls</FileName>
-		<Version>v1.1.4</Version>
+		<Version>v1.1.5</Version>
 		<Type>2</Type>
 		<Directory>Core</Directory>
 	</Module>
