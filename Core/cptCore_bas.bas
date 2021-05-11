@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.9.1</cpt_version>
+'<cpt_version>v1.9.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -170,7 +170,7 @@ frx:
 
   'remove if exists
   strModule = Left(strFileName, InStr(strFileName, ".") - 1)
-  blnExists = Not ThisProject.VBProject.VBComponents(strModule) Is Nothing
+  blnExists = cptModuleExists(strModule)
   If blnExists Then
     'Set vbComponent = ThisProject.VBProject.VBComponents("cptUpgrades_frm")
     Application.StatusBar = "Removing obsolete version of " & strModule
@@ -1181,7 +1181,9 @@ Dim vLevel As Variant
   For Each vLevel In Array(0, 1, 2)
     If aCurrent(vLevel) <> aInstalled(vLevel) Then
       cptVersionStatus = Choose(vLevel + 1, "major", "minor", "patch")
-      If CLng(aCurrent(vLevel)) > CLng(aInstalled(vLevel)) Then '<issue62>
+      If Len(aInstalled(vLevel)) = 0 Then
+        cptVersionStatus = cptVersionStatus & " upgrade"
+      ElseIf CLng(aCurrent(vLevel)) > CLng(aInstalled(vLevel)) Then '<issue62>
         cptVersionStatus = cptVersionStatus & " upgrade"
       Else
         cptVersionStatus = cptVersionStatus & " downgrade"
@@ -1221,6 +1223,10 @@ End Sub
 
 Sub cptGroupReapply()
   Dim strCurrentGroup As String
+  Dim lngUID As Long
+  lngUID = 0
+  On Error Resume Next
+  lngUID = ActiveSelection.Tasks(1).UniqueID
   strCurrentGroup = ActiveProject.CurrentGroup
   ScreenUpdating = False
   ActiveWindow.TopPane.Activate
@@ -1231,6 +1237,7 @@ Sub cptGroupReapply()
     MsgBox "Cannot reapply a Custom AutoFilter Group", vbInformation + vbOKCancel, "Reapply Group"
   End If
   ScreenUpdating = True
+  If lngUID > 0 Then EditGoTo ActiveProject.Tasks.UniqueID(lngUID).ID
 End Sub
 
 Function cptSaveSetting(strFeature As String, strSetting As String, strValue As String) As Boolean
@@ -1282,7 +1289,7 @@ Sub cptCreateFilter(strFilter As String)
 
   Select Case strFilter
     Case "Marked"
-      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
+      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=False
       
   End Select
   
