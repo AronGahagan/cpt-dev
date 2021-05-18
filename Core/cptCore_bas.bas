@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.9.2</cpt_version>
+'<cpt_version>v1.9.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -855,6 +855,7 @@ End Sub
 
 Sub cptSetReferences()
 'this is a one-time shot to set all references currently required by the cp toolbar
+Dim oExcel As Object
 Dim strDir As String
 Dim strRegEx As String
 
@@ -880,11 +881,12 @@ Dim strRegEx As String
   End If
 
   'office applications
-  strRegEx = "C\:.*Microsoft Office[A-z0-9\\]*Office[0-9]{2}"
-  strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "") '<issue99>
-  If Len(strDir) = 0 Then 'MS Office path not in the environment variable!
-    MsgBox "Microsoft Office is not in the Environment Path variable. Some features may not operate as expected." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for specialized assistance.", vbCritical + vbOKOnly, "Microsoft Office Compatibility"
+  Set oExcel = CreateObject("Excel.Application")
+  If oExcel Is Nothing Then 'weird installation or Excel not installed
+    MsgBox "Microsoft Office installation is not detetcted. Some features may not operate as expected." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for specialized assistance.", vbCritical + vbOKOnly, "Microsoft Office Compatibility"
     GoTo windows_common
+  Else
+    strDir = oExcel.path
   End If
   If Not cptReferenceExists("Excel") Then
     strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
@@ -931,6 +933,16 @@ windows_common:
   If Not cptReferenceExists("VBScript_RegExp_55") Then
     ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\System32\vbscript.dll\3"
   End If
+  
+exit_here:
+  On Error Resume Next
+  If Not oExcel Is Nothing Then oExcel.Quit
+  Set oExcel = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptSetReferences", Err, Erl)
+  Resume exit_here
 
 End Sub
 
