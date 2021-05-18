@@ -889,23 +889,18 @@ Dim strRegEx As String
     strDir = oExcel.path
   End If
   If Not cptReferenceExists("Excel") Then
-    strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
     ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
   End If
   If Not cptReferenceExists("Outlook") Then
-    strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
     ThisProject.VBProject.References.AddFromFile strDir & "\MSOUTL.OLB"
   End If
   If Not cptReferenceExists("PowerPoint") Then
-    strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
     ThisProject.VBProject.References.AddFromFile strDir & "\MSPPT.OLB"
   End If
   If Not cptReferenceExists("MSProject") Then
-    strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
     ThisProject.VBProject.References.AddFromFile strDir & "\MSPRJ.OLB"
   End If
   If Not cptReferenceExists("Word") Then
-    strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
     ThisProject.VBProject.References.AddFromFile strDir & "\MSWORD.OLB"
   End If
 
