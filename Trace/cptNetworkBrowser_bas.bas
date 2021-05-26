@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
-'<cpt_version>v0.0.3</cpt_version>
+'<cpt_version>v0.0.4</cpt_version>
 Option Explicit
 Public oInsertedIndex As Object
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -359,7 +359,17 @@ Sub cptHistoryDoubleClick()
       If MsgBox("Task is hidden - remove filters and show it?", vbQuestion + vbYesNo, "Confirm Apocalypse") = vbYes Then
         FilterClear
         OptionsViewEx displaysummarytasks:=True
-        OutlineShowAllTasks
+        On Error Resume Next
+        If Not OutlineShowAllTasks Then
+          If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
+            Sort "ID", , , , , , False, True
+            OutlineShowAllTasks
+          Else
+            SelectBeginning
+            GoTo exit_here
+          End If
+        End If
+        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
         If Not Find("Unique ID", "equals", lngTaskUID) Then
           MsgBox "Unable to find Task UID " & lngTaskUID & "...", vbExclamation + vbOKOnly, "Task Not Found"
         End If

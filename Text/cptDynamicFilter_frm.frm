@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.5.2</cpt_version>
+'<cpt_version>v1.5.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -344,21 +344,21 @@ Dim lgOriginalUID As Long
   'build custom filter on the fly and apply it
   If Len(strFilterText) > 0 And Len(strOperator) > 0 Then
     If strField = "Task Name" Then strField = "Name"
-    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=strField, test:=strOperator, Value:=strFilterText, Operation:=IIf(blnKeepSelected Or blnHideSummaryTasks, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
+    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=strField, test:=strOperator, Value:=strFilterText, Operation:=IIf(blnKeepSelected Or blnHideSummaryTasks, "Or", "None"), ShowInMenu:=False, showsummarytasks:=blnShowRelatedSummaries
   End If
   If blnKeepSelected Then
-    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Unique ID", test:="equals", Value:=lgOriginalUID, Operation:="Or"
+    FilterEdit Name:=strFilter, TaskFilter:=True, newfieldname:="Unique ID", test:="equals", Value:=lgOriginalUID, Operation:="Or"
   End If
   If blnHideSummaryTasks Then
-    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Summary", test:="equals", Value:="No", Operation:="And", parenthesis:=blnKeepSelected
+    FilterEdit Name:=strFilter, TaskFilter:=True, newfieldname:="Summary", test:="equals", Value:="No", Operation:="And", parenthesis:=blnKeepSelected
   End If
 
   If Len(strFilterText) > 0 Then
-    FilterEdit Name:=strFilter, ShowSummaryTasks:=blnShowRelatedSummaries
+    FilterEdit Name:=strFilter, showsummarytasks:=blnShowRelatedSummaries
   Else
     'build a sterile filter to retain existing autofilters
-    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Summary", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True
-    FilterEdit Name:=strFilter, TaskFilter:=True, FieldName:="", NewFieldName:="Summary", test:="equals", Value:="No", Operation:="Or", ShowSummaryTasks:=True
+    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Summary", test:="equals", Value:="Yes", ShowInMenu:=False, showsummarytasks:=True
+    FilterEdit Name:=strFilter, TaskFilter:=True, FieldName:="", newfieldname:="Summary", test:="equals", Value:="No", Operation:="Or", showsummarytasks:=True
   End If
   FilterApply strFilter, blnHighlight
 
