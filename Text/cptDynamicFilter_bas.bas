@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDynamicFilter_bas"
-'<cpt_version>v1.5.2</cpt_version>
+'<cpt_version>v1.5.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -110,7 +110,12 @@ next_task:
   
   FilterClear 'in case Dynamic Filter is applied
   OptionsViewEx displaysummarytasks:=True
-  OutlineShowAllTasks
+  On Error Resume Next
+  If Not OutlineShowAllTasks Then
+    Sort "ID", , , , , , False, True
+    OutlineShowAllTasks
+  End If
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   OptionsViewEx displaysummarytasks:=cptDynamicFilter_frm.chkShowRelatedSummaries
   
   SetAutoFilter "Marked", pjAutoFilterFlagYes

@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.9.3</cpt_version>
+'<cpt_version>v1.9.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -488,45 +488,65 @@ Sub cptResetAll()
     lngOutlineLevel = rstSettings(1)
     rstSettings.Close
     'parse and apply
-    If lngSettings >= 128 Then
+    If lngSettings >= 128 Then 'outline symbols
       OptionsViewEx displayoutlinesymbols:=True
       lngSettings = lngSettings - 128
     End If
-    If lngSettings >= 64 Then
+    If lngSettings >= 64 Then 'display name indent
       OptionsViewEx displaynameindent:=True
       lngSettings = lngSettings - 64
     End If
-    If lngSettings >= 32 Then
+    If lngSettings >= 32 Then 'clear filter
       FilterClear
       lngSettings = lngSettings - 32
     End If
-    If lngSettings >= 16 Then
-      Sort "ID"
+    If lngSettings >= 16 Then 'sort by ID
+      Sort "ID", , , , , , False, True
       lngSettings = lngSettings - 16
     End If
-    If lngSettings >= 8 Then
+    If lngSettings >= 8 Then 'expand all tasks
       OptionsViewEx displaysummarytasks:=True
-      OutlineShowAllTasks
+      On Error Resume Next
+      If Not OutlineShowAllTasks Then
+        If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
+          Sort "ID", , , , , , False, True
+          OutlineShowAllTasks
+        Else
+          SelectBeginning
+          GoTo exit_here
+        End If
+      End If
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
       lngSettings = lngSettings - 8
-    Else
+    Else 'expand to specific level
       OptionsViewEx displaysummarytasks:=True
-      OutlineShowAllTasks
+      On Error Resume Next
+      If Not OutlineShowAllTasks Then
+        If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
+          Sort "ID", , , , , , False, True
+          OutlineShowAllTasks
+        Else
+          SelectBeginning
+          GoTo exit_here
+        End If
+      End If
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
       OutlineShowTasks pjTaskOutlineShowLevelMax
       For lngLevel = 20 To lngOutlineLevel Step -1
         OutlineShowTasks lngLevel
       Next lngLevel
     End If
-    If lngSettings >= 4 Then
+    If lngSettings >= 4 Then 'show summaries
       OptionsViewEx displaysummarytasks:=True
       lngSettings = lngSettings - 4
     Else
       OptionsViewEx displaysummarytasks:=False
     End If
-    If lngSettings >= 2 Then
+    If lngSettings >= 2 Then 'clear group
       GroupClear
       lngSettings = lngSettings - 2
     End If
-    If lngSettings >= 1 Then
+    If lngSettings >= 1 Then 'hide inactive
       SetAutoFilter "Active", pjAutoFilterFlagYes
     End If
   Else 'prompt for defaults
@@ -1084,7 +1104,18 @@ Dim lngLevel As Long
   'GroupClear 'do not reset, applies to groups to
   OptionsViewEx displaysummarytasks:=True
   SelectAll
-  OutlineShowAllTasks
+  On Error Resume Next
+  If Not OutlineShowAllTasks Then
+    If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
+      Sort "ID", , , , , , False, True
+      OutlineShowAllTasks
+    Else
+      SelectBeginning
+      GoTo exit_here
+    End If
+  End If
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
   OutlineShowTasks pjTaskOutlineShowLevelMax
   'pjTaskOutlineShowLevelMax = 65,535 = do not use
   For lngLevel = 20 To lngOutlineLevel Step -1
@@ -1120,7 +1151,16 @@ Sub cptWrapItUpAll()
   End If
   '===
   OptionsViewEx displaysummarytasks:=True
-  OutlineShowAllTasks
+  On Error Resume Next
+  If Not OutlineShowAllTasks Then
+    If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
+      Sort "ID", , , , , , False, True
+      OutlineShowAllTasks
+    Else
+      SelectBeginning
+    End If
+  End If
+
 End Sub
 Sub cptWrapItUp1()
   Call cptWrapItUp(1)
