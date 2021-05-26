@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.2</cpt_version>
+'<cpt_version>v1.0.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -63,14 +63,28 @@ Sub cmdDoIt_Click()
   End If
   If Me.optShowAllTasks Then
     OptionsViewEx displaysummarytasks:=True
-    OutlineShowAllTasks
+    On Error Resume Next
+    If Not OutlineShowAllTasks Then
+      If MsgBox("Outline Structure must be retained in order to expand all tasks. OK to re-sort?", vbExclamation + vbYesNo, "Conflict") = vbYes Then
+        Sort "ID", , , , , , False, True
+        OutlineShowAllTasks
+      End If
+    End If
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     If Not Me.chkSummaries Then
       OptionsViewEx displaysummarytasks:=False
     End If
     lngSettings = lngSettings + 8
   ElseIf Me.optOutlineLevel Then
     OptionsViewEx displaysummarytasks:=True
-    OutlineShowAllTasks
+    On Error Resume Next
+    If Not OutlineShowAllTasks Then
+      If MsgBox("Outline Structure must be retained in order to expand all tasks. OK to re-sort?", vbExclamation + vbYesNo, "Conflict") = vbYes Then
+        Sort "ID", , , , , , False, True
+        OutlineShowAllTasks
+      End If
+    End If
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     lngOutlineLevel = Me.cboOutlineLevel
     OutlineShowTasks pjTaskOutlineShowLevelMax
     For lngLevel = 20 To lngOutlineLevel Step -1

@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.3.1</cpt_version>
+'<cpt_version>v1.3.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -134,7 +134,11 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
     'get custom fields
     For lngExport = 0 To .lboExport.ListCount - 1
       lngField = .lboExport.List(lngExport, 0)
-      strHeaders = strHeaders & CustomFieldGetName(lngField) & ","
+      If Len(CustomFieldGetName(lngField)) > 0 Then
+        strHeaders = strHeaders & CustomFieldGetName(lngField) & ","
+      Else
+        strHeaders = strHeaders & FieldConstantToFieldName(lngField) & ","
+      End If
     Next lngExport
     strHeaders = strHeaders & "WEEK"
   End With '</issue42>
@@ -150,7 +154,12 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
     GroupClear
     SelectAll
     OptionsViewEx displaysummarytasks:=True
-    OutlineShowAllTasks
+      On Error Resume Next
+      If Not OutlineShowAllTasks Then
+        Sort "ID", , , , , , False, True
+        OutlineShowAllTasks
+      End If
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     SelectAll
     lngTasks = ActiveSelection.Tasks.Count
     ViewApply strView
@@ -689,13 +698,13 @@ exit_here:
   Set oListObject = Nothing
   Set oWorkbook = Nothing
   Set oWorksheet = Nothing
-  Set TSV = Nothing 'As TimeScaleValue
-  Set TSVS_BCWS = Nothing ' TimeScaleValues
-  Set TSVS_WORK = Nothing ' TimeScaleValues
-  Set TSVS_AW = Nothing ' TimeScaleValues
-  Set TSVS_COST = Nothing ' TimeScaleValues
-  Set TSVS_AC = Nothing ' TimeScaleValues
-  Set oRange = Nothing ' Object
+  Set TSV = Nothing
+  Set TSVS_BCWS = Nothing
+  Set TSVS_WORK = Nothing
+  Set TSVS_AW = Nothing
+  Set TSVS_COST = Nothing
+  Set TSVS_AC = Nothing
+  Set oRange = Nothing
 
   If Not oWorkbook Is Nothing Then oWorkbook.Close False
   If Not oExcel Is Nothing Then oExcel.Quit
@@ -884,8 +893,11 @@ next_field1:
             End If
           Else 'check local field
             If CustomFieldGetName(.Fields(0)) <> Trim(Replace(.Fields(1), cptRegEx(.Fields(1), "\([^\(].*\)$"), "")) Then
-              strMissing = strMissing & "- " & .Fields(1) & vbCrLf
-              GoTo next_saved_field
+              'limit this check to Custom Fields
+              If IsNumeric(Right(FieldConstantToFieldName(.Fields(0)), 1)) Then
+                strMissing = strMissing & "- " & .Fields(1) & vbCrLf
+                GoTo next_saved_field
+              End If
             End If
           End If
 

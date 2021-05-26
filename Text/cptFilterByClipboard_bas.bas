@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>v1.1.4</cpt_version>
+'<cpt_version>v1.1.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -181,7 +181,12 @@ next_item:
     ScreenUpdating = False
     OptionsViewEx displaysummarytasks:=True
     SelectAll
-    OutlineShowAllTasks
+    On Error Resume Next
+    If Not OutlineShowAllTasks Then
+      Sort "ID", , , , , , False, True
+      OutlineShowAllTasks
+    End If
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     SelectBeginning
     strFilter = Left(strFilter, Len(strFilter) - 1)
     If cptFilterByClipboard_frm.optUID Then

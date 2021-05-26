@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveLocal_bas"
-'<cpt_version>v1.1.2</cpt_version>
+'<cpt_version>v1.1.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -428,7 +428,12 @@ Dim lngItem As Long
   GroupClear
   On Error Resume Next
   If lngType = pjTask Then
-    OutlineShowAllTasks
+    On Error Resume Next
+    If Not OutlineShowAllTasks Then
+      Sort "ID", , , , , , False, True
+      OutlineShowAllTasks
+    End If
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     SelectAll
     Set oTasks = ActiveSelection.Tasks
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
