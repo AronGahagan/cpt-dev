@@ -33,6 +33,13 @@ Dim lngField As Long, lngItem As Long
 'integers
 Dim intField As Integer
 'strings
+Dim strFileNamingConvention As String
+Dim strDir As String
+Dim strAllItems As String
+Dim strAppendStatusDate As String
+Dim strQuickPart As String
+Dim strCC As String
+Dim strSubject As String
 Dim strLocked As String
 Dim strDataValidation As String
 Dim strConditionalFormats As String
@@ -89,6 +96,9 @@ Dim vFieldType As Variant
     .chkAddConditionalFormats = False
     .chkValidation = True
     .chkLocked = True
+    .chkAllItems = False
+    .txtDir = ActiveProject.Path & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
+    .txtFileName = "StatusRequest_[yyyy-mm-dd]"
   End With
 
   'set up arrays to capture values
@@ -243,6 +253,7 @@ skip_fields:
           If Not rstFields.EOF Then
             On Error Resume Next
             .cboEach.Value = strEach '<none> would not be found
+            .txtFileName = "StatusRequest_[item]_[yyyy-mm-dd]"
             If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
             If Err.Number > 0 Then
               MsgBox "Unable to set 'For Each' Field to '" & rstFields(1) & "' - contact cpt@ClearPlanConsulting.com if you need assistance.", vbExclamation + vbOKOnly, "Cannot assign For Each"
@@ -252,14 +263,43 @@ skip_fields:
         End If
       End If
     End If
+    strDir = cptGetSetting("StatusSheet", "txtDir")
+    If strDir <> "" Then .txtDir = strDir
+    strFileNamingConvention = cptGetSetting("StatusSheet", "txtFileName")
+    If strFileNamingConvention <> "" Then .txtFileName = strFileNamingConvention
+    
     strEmail = cptGetSetting("StatusSheet", "chkEmail")
     If strEmail <> "" Then .chkSendEmails = CBool(strEmail)
+    If .chkSendEmails Then
+      strSubject = cptGetSetting("StatusSheet", "txtSubject")
+      If strSubject <> "" Then
+        .txtSubject.Value = strSubject
+      Else
+        .txtSubject = "Status Request WE [yyyy-mm-dd]"
+      End If
+      strCC = cptGetSetting("StatusSheet", "txtCC")
+      If strCC <> "" Then .txtCC.Value = strCC
+      strQuickPart = cptGetSetting("StatusSheet", "cboQuickPart")
+      If strQuickPart <> "" Then
+        For lngItem = 0 To .cboQuickParts.ListCount - 1
+          If .cboQuickParts.List(lngItem, 0) = strQuickPart Then
+            .cboQuickParts.Value = strQuickPart
+            Exit For
+          End If
+        Next lngItem
+        If IsNull(.cboQuickParts.Value) Then
+          MsgBox "A QuickPart named '" & strQuickPart & "' was not found.", vbExclamation + vbOKOnly, "Missing Quick Part?"
+        End If
+      End If
+    End If
     strConditionalFormats = cptGetSetting("StatusSheet", "chkConditionalFormatting")
     If strConditionalFormats <> "" Then .chkAddConditionalFormats = CBool(strConditionalFormats)
     strDataValidation = cptGetSetting("StatusSheet", "chkDataValidation")
     If strDataValidation <> "" Then .chkValidation = CBool(strDataValidation)
     strLocked = cptGetSetting("StatusSheet", "chkLocked")
     If strLocked <> "" Then .chkLocked = CBool(strLocked)
+    strAllItems = cptGetSetting("StatusSheet", "chkAllItems")
+    If strAllItems <> "" Then .chkAllItems = CBool(strAllItems)
   End With
 
   'add saved export fields if they exist
@@ -329,6 +369,9 @@ skip_fields:
   'default to one week prior to status date
   cptStatusSheet_frm.txtHideCompleteBefore.Value = DateAdd("d", -7, dtStatus)
 
+  strAppendStatusDate = cptGetSetting("StatusSheet", "chkAppendStatusDate")
+  If strAppendStatusDate <> "" Then cptStatusSheet_frm.chkAppendStatusDate = CBool(strAppendStatusDate)
+
   'delete pre-existing search file
   strFileName = cptDir & "\settings\cpt-status-sheet-search.adtg"
   If Dir(strFileName) <> vbNullString Then Kill strFileName
@@ -347,7 +390,11 @@ skip_fields:
   End If
   Application.StatusBar = "Showing all tasks..."
   DoEvents
-  OutlineShowAllTasks
+  On Error Resume Next
+  If Not OutlineShowAllTasks Then
+    Sort "ID", , , , , , False, True
+    OutlineShowAllTasks
+  End If
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   cptSpeed False
   cptStatusSheet_frm.Show False
@@ -471,7 +518,14 @@ Sub cptCreateStatusSheet()
   Application.StatusBar = "Analyzing project..."
   blnValidation = cptStatusSheet_frm.chkValidation = True
   blnLocked = cptStatusSheet_frm.chkLocked = True
-  
+  blnEmail = cptStatusSheet_frm.chkSendEmails = True
+  If blnEmail Then
+    On Error Resume Next
+    Set oOutlook = GetObject(, "Outlook.Application")
+    If oOutlook Is Nothing Then
+      Set oOutlook = CreateObject("Outlook.Application")
+    End If
+  End If
   'get task count
   If blnPerformanceTest Then t = GetTickCount
   SelectAll
@@ -535,7 +589,13 @@ Sub cptCreateStatusSheet()
       
       .lblStatus = "Creating Workbook...done"
       
-      'todo: save workbook
+      'save the workbook
+      strFileName = cptSaveStatusSheet(oWorkbook)
+      
+      'send the workbook
+      If blnEmail Then
+        cptSendStatusSheet strFileName
+      End If
       
     ElseIf .cboCreate.Value = "1" Then  'worksheet for each
       Set oWorkbook = oExcel.Workbooks.Add
@@ -577,7 +637,11 @@ Sub cptCreateStatusSheet()
         End If
       Next lngItem
       
-      'todo: save workbook
+      'save the workbook
+      strFileName = cptSaveStatusSheet(oWorkbook)
+      
+      'send the workbook
+      Call cptSendStatusSheet(strFileName)
       
     ElseIf .cboCreate.Value = "2" Then  'workbook for each
       For lngItem = 0 To .lboItems.ListCount - 1
@@ -614,9 +678,17 @@ Sub cptCreateStatusSheet()
           Set oUnlockedRange = Nothing
           Set oAssignmentRange = Nothing
                     
+          'save the workbook
+          strFileName = cptSaveStatusSheet(oWorkbook, strItem)
           .lblStatus = "Creating Workbook for " & strItem & "...done"
           
-          'todo: save workbook for each
+          'must close before attaching to email
+          oWorkbook.Close True
+          
+          'send email
+          .lblStatus = "Creating Email for " & strItem & "..."
+          cptSendStatusSheet strFileName, strItem
+          .lblStatus = "Creating Email for " & strItem & "...done"
           
         End If
       Next lngItem
@@ -2343,7 +2415,7 @@ next_task:
     oCompleted.Font.Italic = True
     oCompleted.Font.ColorIndex = 16
   End If
-  If blnValidation Then
+  If blnValidation And Not oDateValidationRange Is Nothing Then
     'date validation range
     With oDateValidationRange.Validation
       .Delete
@@ -2517,54 +2589,6 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptAddStatusFormats(ByRef oWorksheet As Worksheet)
-  'objects
-  'strings
-  'longs
-  'integers
-  'doubles
-  'booleans
-  'variants
-  'dates
-  
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  'Call HandleErr("cptStatusSheet_bas", "cptAddStatusFormats", Err)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
-  Resume exit_here
-End Sub
-
-Sub cptAddConditionalFormatting(oWorksheet As Worksheet)
-  'objects
-  'strings
-  'longs
-  'integers
-  'doubles
-  'booleans
-  'variants
-  'dates
-  
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  'Call HandleErr("cptStatusSheet_bas", "cptAddConditionalFormatting", Err)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
-  Resume exit_here
-End Sub
-
 Sub cptFinalFormats(ByRef oWorksheet As Worksheet)
 Dim lngHeaderRow As Long
 Dim vBorder As Variant
@@ -2599,4 +2623,232 @@ Dim vBorder As Variant
   oWorksheet.Application.ActiveWindow.FreezePanes = True
   oWorksheet.Application.WindowState = xlMinimized
   Set oEntryHeaderRange = Nothing
+End Sub
+
+Sub cptListQuickParts(Optional blnRefreshOutlook As Boolean = False)
+'objects
+Dim olApp As Outlook.Application
+Dim oMailItem As MailItem
+Dim objDoc As Word.Document
+Dim objWord As Word.Application
+Dim objSel As Word.Selection
+Dim objETemp As Word.Template
+Dim oBuildingBlockEntries As BuildingBlockEntries
+Dim oBuildingBlock As BuildingBlock
+'longs
+Dim lngItem As Long
+'strings
+Dim strSQL As String
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If blnRefreshOutlook Then
+    'refresh QuickParts in Outlook
+    cptStatusSheet_frm.cboQuickParts.Clear
+    'get outlook
+    On Error Resume Next
+    Set olApp = GetObject(, "Outlook.Application")
+    If olApp Is Nothing Then
+      Set olApp = CreateObject("Outlook.Application")
+    End If
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    'create MailItem, insert quickparts, update links, dates
+    Set oMailItem = olApp.CreateItem(olMailItem)
+    'keep mailitem hidden
+    If oMailItem.BodyFormat <> olFormatHTML Then oMailItem.BodyFormat = olFormatHTML
+    Set objDoc = oMailItem.GetInspector.WordEditor
+    Set objWord = objDoc.Application
+    Set objSel = objDoc.Windows(1).Selection
+    Set objETemp = objWord.Templates(1)
+    Set oBuildingBlockEntries = objETemp.BuildingBlockEntries
+    'loop through them
+    For lngItem = 1 To oBuildingBlockEntries.Count
+      Set oBuildingBlock = oBuildingBlockEntries(lngItem)
+      If oBuildingBlock.Type.Name = "Quick Parts" Then
+        cptStatusSheet_frm.cboQuickParts.AddItem oBuildingBlock.Name
+      End If
+    Next
+    oMailItem.Close olDiscard
+  End If
+    
+exit_here:
+  On Error Resume Next
+  Set olApp = Nothing
+  Set oMailItem = Nothing
+  Set objDoc = Nothing
+  Set objWord = Nothing
+  Set objSel = Nothing
+  Set objETemp = Nothing
+  Set oBuildingBlockEntries = Nothing
+  Set oBuildingBlock = Nothing
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptListQuickParts", Err)
+  Resume exit_here
+End Sub
+
+Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem As String) As String
+  'objects
+  'strings
+  Dim strMsg As String
+  Dim strFileName As String
+  Dim strDir As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  Dim dtStatus As Date
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  dtStatus = ActiveProject.StatusDate
+
+  With cptStatusSheet_frm
+    strDir = .lblDirSample.Caption
+    'create the status date directory
+    If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
+    strFileName = .txtFileName.Value & ".xlsx"
+    strFileName = Replace(strFileName, "[yyyy-mm-dd]", Format(dtStatus, "yyyy-mm-dd"))
+    'todo: strFileName = cptRemoveIllegalCharacters(ActiveProject.Name)
+    If Len(strItem) > 0 Then
+      strFileName = Replace(strFileName, "[item]", strItem)
+    End If
+    On Error Resume Next
+    If Dir(strDir & strFileName) <> vbNullString Then Kill strDir & strFileName
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    'account for if the file exists and is open in the background
+    If Dir(strDir & strFileName) <> vbNullString Then  'delete failed, rename with timestamp
+      strMsg = "'" & strFileName & "' already exists, and is likely open." & vbCrLf
+      strFileName = Replace(strFileName, ".xlsx", "_" & Format(Now, "hh-nn-ss") & ".xlsx")
+      strMsg = strMsg & "The file you are now creating will be named '" & strFileName & "'"
+      MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
+      oWorkbook.SaveAs strDir & strFileName, 51
+    Else
+      oWorkbook.SaveAs strDir & strFileName, 51
+    End If
+  End With
+
+  cptSaveStatusSheet = strDir & strFileName
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptSaveStatusSheet", Err, Erl)
+  Resume exit_here
+End Function
+
+Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
+  'objects
+  Dim oBuildingBlock As Word.BuildingBlock
+  Dim oOutlook As Outlook.Application
+  Dim oMailItem As Outlook.MailItem
+  Dim oDocument As Word.Document
+  Dim oWord As Word.Application
+  Dim oSelection As Word.Selection
+  Dim oEmailTemplate As Word.Template
+  'strings
+  Dim strSubject As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  On Error Resume Next
+  Set oOutlook = GetObject(, "Outlook.Application")
+  If oOutlook Is Nothing Then
+    Set oOutlook = CreateObject("Outlook.Application")
+  End If
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  Set oMailItem = oOutlook.CreateItem(0) '0 = oloMailItem
+  oMailItem.Display False
+  oMailItem.Attachments.Add strFullName
+  With cptStatusSheet_frm
+    strSubject = .txtSubject
+    strSubject = Replace(strSubject, "[yyyy-mm-dd]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
+    strSubject = Replace(strSubject, "[item]", strItem)
+    oMailItem.Subject = strSubject
+    oMailItem.CC = .txtCC
+  
+    If oMailItem.BodyFormat <> olFormatHTML Then oMailItem.BodyFormat = olFormatHTML
+    If Not IsNull(.cboQuickParts.Value) Then
+      Set oDocument = oMailItem.GetInspector.WordEditor
+      Set oWord = oDocument.Application
+      Set oSelection = oDocument.Windows(1).Selection
+      Set oEmailTemplate = oWord.Templates(1)
+      On Error Resume Next
+      Set oBuildingBlock = oEmailTemplate.BuildingBlockEntries(.cboQuickParts)
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If oBuildingBlock Is Nothing Then
+        MsgBox "Quick Part '" & .cboQuickParts & "' not found!", vbExclamation + vbOKOnly, "Missing Quick Part"
+      Else
+        .Insert oSelection.Range, True
+      End If
+      oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, "[STATUS_DATE]", Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+    End If
+  End With
+exit_here:
+  On Error Resume Next
+  Set oBuildingBlock = Nothing
+  Set oOutlook = Nothing
+  Set oMailItem = Nothing
+  Set oDocument = Nothing
+  Set oWord = Nothing
+  Set oSelection = Nothing
+  Set oEmailTemplate = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptSendStatusSheet", Err, Erl)
+  Resume exit_here
+
+End Sub
+
+Sub cptSaveStatusSheetSettings()
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  With cptStatusSheet_frm
+    'save settings
+    cptSaveSetting "StatusSheet", "cboEVP", .cboEVP.Value
+    cptSaveSetting "StatusSheet", "cboCostTool", .cboCostTool.Value
+    cptSaveSetting "StatusSheet", "cboEVT", .cboEVT.Value
+    cptSaveSetting "StatusSheet", "chkHide", IIf(.chkHide, 1, 0)
+    cptSaveSetting "StatusSheet", "cboCreate", .cboCreate
+    cptSaveSetting "StatusSheet", "txtDir", .txtDir
+    cptSaveSetting "StatusSheet", "chkAppendStatusDate", IIf(.chkAppendStatusDate, 1, 0)
+    If .cboEach.Value <> 0 Then
+      cptSaveSetting "StatusSheet", "cboEach", .cboEach.Value
+    Else
+      cptSaveSetting "StatusSheet", "cboEach", "" 'todo: handle '<none>'
+    End If
+    cptSaveSetting "StatusSheet", "txtFileName", .txtFileName
+    cptSaveSetting "StatusSheet", "chkAllItems", IIf(.chkAllItems, 1, 0)
+    cptSaveSetting "StatusSheet", "chkDataValidation", IIf(.chkValidation, 1, 0)
+    cptSaveSetting "StatusSheet", "chkLocked", IIf(.chkLocked, 1, 0)
+    cptSaveSetting "StatusSheet", "chkConditionalFormatting", IIf(.chkAddConditionalFormats, 1, 0)
+    cptSaveSetting "StatusSheet", "chkEmail", IIf(.chkSendEmails, 1, 0)
+    If .chkSendEmails Then
+      cptSaveSetting "StatusSheet", "txtSubject", .txtSubject
+      cptSaveSetting "StatusSheet", "txtCC", .txtCC
+      If Not IsNull(.cboQuickParts.Value) Then
+        cptSaveSetting "StatusSheet", "cboQuickPart", .cboQuickParts.Value
+      End If
+    End If
+  End With
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptSaveStatusSheetSettings", Err, Erl)
+  Resume exit_here
+  
 End Sub

@@ -15,7 +15,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.3.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 Private Const adInteger As Long = 3
@@ -37,23 +37,27 @@ Dim lngField As Long
     Case 0 'A single workbook
       Me.lboItems.ForeColor = -2147483630
       Me.chkSendEmails.Caption = "Create Email"
-      Me.lblForEach.Visible = False
+      Me.chkLocked.Caption = "Protect Workbook"
+      'Me.lblForEach.Visible = False
       Me.cboEach.Enabled = False
       Me.lboItems.Enabled = False
+      FilterClear
       FilterApply "cptStatusSheet Filter"
-
+      
     Case 1 'A worksheet for each
       Me.lboItems.ForeColor = -2147483630
       Me.chkSendEmails.Caption = "Create Email"
-      Me.lblForEach.Visible = True
+      Me.chkLocked.Caption = "Protect Workheets"
+      'Me.lblForEach.Visible = True
       Me.cboEach.Enabled = True
       Me.lboItems.Enabled = True
       If Me.Visible Then Me.cboEach.DropDown
 
     Case 2 'A workbook for each
       Me.lboItems.ForeColor = -2147483630
-      Me.chkSendEmails.Caption = "Create Email(s)"
-      Me.lblForEach.Visible = True
+      Me.chkSendEmails.Caption = "Create Emails"
+      Me.chkLocked.Caption = "Protect Workbooks"
+      'Me.lblForEach.Visible = True
       Me.cboEach.Enabled = True
       Me.lboItems.Enabled = True
       If Me.Visible Then Me.cboEach.DropDown
@@ -214,6 +218,29 @@ err_here:
   Resume exit_here
 End Sub
 
+Private Sub chkAllItems_Click()
+  Dim lngItem As Long
+  
+  If Me.chkAllItems Then
+    For lngItem = 0 To Me.lboItems.ListCount - 1
+      Me.lboItems.Selected(lngItem) = True
+    Next lngItem
+  Else
+    For lngItem = 0 To Me.lboItems.ListCount - 1
+      Me.lboItems.Selected(lngItem) = False
+    Next lngItem
+  End If
+  
+End Sub
+
+Private Sub chkAppendStatusDate_Click()
+  If Me.chkAppendStatusDate Then
+    Me.lblDirSample.Caption = Me.txtDir & Format(CDate(Me.txtStatusDate), "yyyy-mm-dd") & "\"
+  Else
+    Me.lblDirSample.Caption = Me.txtDir
+  End If
+End Sub
+
 Private Sub chkHide_Click()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -229,6 +256,17 @@ err_here:
   Call cptHandleErr("chkHide_Click", "chkHide_Click", Err, Erl)
   Resume exit_here
   
+End Sub
+
+Private Sub chkSendEmails_Click()
+
+  Me.txtSubject.Enabled = Me.chkSendEmails
+  Me.txtCC.Enabled = Me.chkSendEmails
+  Me.cboQuickParts.Enabled = Me.chkSendEmails
+  If Me.chkSendEmails Then
+    Call cptListQuickParts(True)
+  End If
+
 End Sub
 
 Sub cmdAdd_Click()
@@ -321,32 +359,35 @@ err_here:
 End Sub
 
 Private Sub cmdDown_Click()
-Dim lgExport As Long
+Dim lngExport As Long
 Dim lgField As Long, strField As String, strField2 As String
-  
+Dim blnSelected As Boolean
+
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  For lgExport = Me.lboExport.ListCount - 1 To 0 Step -1
-    If lgExport < Me.lboExport.ListCount - 1 Then
-      If Me.lboExport.Selected(lgExport) Then
+  blnSelected = False
+  For lngExport = Me.lboExport.ListCount - 1 To 0 Step -1
+    If lngExport < Me.lboExport.ListCount - 1 Then
+      If Me.lboExport.Selected(lngExport) Then
+        blnSelected = True
         'capture values
-        lgField = Me.lboExport.List(lgExport + 1, 0)
-        strField = Me.lboExport.List(lgExport + 1, 1)
-        strField2 = Me.lboExport.List(lgExport + 1, 2)
+        lgField = Me.lboExport.List(lngExport + 1, 0)
+        strField = Me.lboExport.List(lngExport + 1, 1)
+        strField2 = Me.lboExport.List(lngExport + 1, 2)
         'move selected values
-        Me.lboExport.List(lgExport + 1, 0) = Me.lboExport.List(lgExport, 0)
-        Me.lboExport.List(lgExport + 1, 1) = Me.lboExport.List(lgExport, 1)
-        Me.lboExport.List(lgExport + 1, 2) = Me.lboExport.List(lgExport, 2)
-        Me.lboExport.Selected(lgExport + 1) = True
-        Me.lboExport.List(lgExport, 0) = lgField
-        Me.lboExport.List(lgExport, 1) = strField
-        Me.lboExport.List(lgExport, 2) = strField2
-        Me.lboExport.Selected(lgExport) = False
+        Me.lboExport.List(lngExport + 1, 0) = Me.lboExport.List(lngExport, 0)
+        Me.lboExport.List(lngExport + 1, 1) = Me.lboExport.List(lngExport, 1)
+        Me.lboExport.List(lngExport + 1, 2) = Me.lboExport.List(lngExport, 2)
+        Me.lboExport.Selected(lngExport + 1) = True
+        Me.lboExport.List(lngExport, 0) = lgField
+        Me.lboExport.List(lngExport, 1) = strField
+        Me.lboExport.List(lngExport, 2) = strField2
+        Me.lboExport.Selected(lngExport) = False
       End If
     End If
-  Next lgExport
+  Next lngExport
 
-  Call cptRefreshStatusTable
+  If blnSelected Then Call cptRefreshStatusTable
 
 exit_here:
   On Error Resume Next
@@ -429,7 +470,9 @@ Dim blnIncluded As Boolean
   Me.cboCostTool.ForeColor = -2147483630
   Me.cboCreate.ForeColor = -2147483630
   Me.cboEach.BorderColor = -2147483642
-  
+  Me.lblDirectory.ForeColor = -2147483630
+  Me.txtDir.BorderColor = -2147483642
+
   'validation
   If Not IsDate(Me.txtStatusDate.Value) Then
     Me.lblStatusDate.ForeColor = 192  'Red
@@ -500,25 +543,17 @@ Dim blnIncluded As Boolean
       End If
     End If
   End If
+  If Dir(Me.txtDir, vbDirectory) = vbNullString Then
+    Me.lblDirectory.ForeColor = 192
+    Me.txtDir.BorderColor = 192
+    blnError = True
+  End If
   If blnError Then
     Me.lblStatus.ForeColor = 192 'red
     Me.lblStatus.Caption = " Please complete all required fields."
   Else
     'save settings
-    cptSaveSetting "StatusSheet", "cboEVP", Me.cboEVP.Value
-    cptSaveSetting "StatusSheet", "cboCostTool", Me.cboCostTool.Value
-    cptSaveSetting "StatusSheet", "cboEVT", Me.cboEVT.Value
-    cptSaveSetting "StatusSheet", "chkHide", IIf(Me.chkHide, 1, 0)
-    cptSaveSetting "StatusSheet", "cboCreate", Me.cboCreate + 1
-    If Me.cboCostTool.Value <> 0 Then
-      cptSaveSetting "StatusSheet", "cboEach", Me.cboEach.Value
-    Else
-      cptSaveSetting "StatusSheet", "cboEach", "" 'todo: handle '<none>'
-    End If
-    cptSaveSetting "StatusSheet", "chkEmail", IIf(Me.chkSendEmails, 1, 0)
-    cptSaveSetting "StatusSheet", "chkConditionalFormatting", IIf(Me.chkAddConditionalFormats, 1, 0)
-    cptSaveSetting "StatusSheet", "chkDataValidation", IIf(Me.chkValidation, 1, 0)
-    cptSaveSetting "StatusSheet", "chkLocked", IIf(Me.chkLocked, 1, 0)
+    Call cptSaveStatusSheetSettings
     'create the sheet
     Call cptCreateStatusSheet
   End If
@@ -534,32 +569,35 @@ err_here:
 End Sub
 
 Private Sub cmdUp_Click()
-Dim lgExport As Long
-Dim lgField As Long, strField As String, strField2 As String
+  Dim lngExport As Long
+  Dim lgField As Long, strField As String, strField2 As String
+  Dim blnSelected As Boolean
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  For lgExport = 0 To Me.lboExport.ListCount - 1
-    If lgExport > 0 Then
-      If Me.lboExport.Selected(lgExport) Then
+  blnSelected = False
+  For lngExport = 0 To Me.lboExport.ListCount - 1
+    If lngExport > 0 Then
+      If Me.lboExport.Selected(lngExport) Then
+        blnSelected = True
         'capture values
-        lgField = Me.lboExport.List(lgExport - 1, 0)
-        strField = Me.lboExport.List(lgExport - 1, 1)
-        strField2 = Me.lboExport.List(lgExport - 1, 2)
+        lgField = Me.lboExport.List(lngExport - 1, 0)
+        strField = Me.lboExport.List(lngExport - 1, 1)
+        strField2 = Me.lboExport.List(lngExport - 1, 2)
         'move selected values
-        Me.lboExport.List(lgExport - 1, 0) = Me.lboExport.List(lgExport, 0)
-        Me.lboExport.List(lgExport - 1, 1) = Me.lboExport.List(lgExport, 1)
-        Me.lboExport.List(lgExport - 1, 2) = Me.lboExport.List(lgExport, 2)
-        Me.lboExport.Selected(lgExport - 1) = True
-        Me.lboExport.List(lgExport, 0) = lgField
-        Me.lboExport.List(lgExport, 1) = strField
-        Me.lboExport.List(lgExport, 2) = strField2
-        Me.lboExport.Selected(lgExport) = False
+        Me.lboExport.List(lngExport - 1, 0) = Me.lboExport.List(lngExport, 0)
+        Me.lboExport.List(lngExport - 1, 1) = Me.lboExport.List(lngExport, 1)
+        Me.lboExport.List(lngExport - 1, 2) = Me.lboExport.List(lngExport, 2)
+        Me.lboExport.Selected(lngExport - 1) = True
+        Me.lboExport.List(lngExport, 0) = lgField
+        Me.lboExport.List(lngExport, 1) = strField
+        Me.lboExport.List(lngExport, 2) = strField2
+        Me.lboExport.Selected(lngExport) = False
       End If
     End If
-  Next lgExport
+  Next lngExport
   
-  Call cptRefreshStatusTable
+  If blnSelected Then Call cptRefreshStatusTable
 
 exit_here:
   On Error Resume Next
@@ -612,9 +650,12 @@ Dim lngItem As Long
     End If
   Next lngItem
   
-  strCriteria = Left(strCriteria, Len(strCriteria) - 1)
-  
-  SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
+  If Len(strCriteria) = 0 Then
+    SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterClear
+  Else
+    strCriteria = Left(strCriteria, Len(strCriteria) - 1)
+    SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
+  End If
   
   ActiveWindow.TopPane.Activate
   SelectBeginning
@@ -693,6 +734,47 @@ err_here:
   
 End Sub
 
+Private Sub txtDir_Change()
+  Dim strDir As String
+  
+  strDir = Me.txtDir.Text
+  If InStr(strDir, "[yyyy-mm-dd]") > 0 Then
+    strDir = Replace(strDir, "[yyyy-mm-dd]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
+  End If
+  If Right(strDir, 1) <> "\" Then
+    strDir = strDir & "\"
+  End If
+  Me.lblDirSample.Caption = strDir
+
+  If Dir(strDir, vbDirectory) = vbNullString Then
+    Me.lblDirectory.ForeColor = 192
+  Else
+    Me.lblDirectory.ForeColor = -2147483630
+  End If
+
+End Sub
+
+Private Sub txtFileName_Change()
+  Dim strFileName As String
+  strFileName = Me.txtFileName.Text
+  If InStr(strFileName, "[yyyy-mm-dd]") > 0 Then
+    strFileName = Replace(strFileName, "[yyyy-mm-dd]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
+  End If
+  If Me.cboCreate.Value > 0 Then 'for each
+    If InStr(strFileName, "[item]") > 0 Then
+      If Me.lboItems.ListCount > 0 Then
+        Me.lblFileNameSample.Caption = Replace(strFileName, "[item]", Me.lboItems.List(0, 0)) & ".xlsx"
+      Else
+        Me.lblFileNameSample.Caption = "< no item found >"
+      End If
+    Else
+      Me.lblFileNameSample.Caption = strFileName & ".xlsx"
+    End If
+  Else
+    Me.lblFileNameSample.Caption = strFileName & ".xlsx"
+  End If
+End Sub
+
 Private Sub txtHideCompleteBefore_Change()
 Dim stxt As String
   
@@ -747,4 +829,29 @@ err_here:
   Call cptHandleErr("cptStatusSheet_frm", "txtStatusDate_Change", Err, Erl)
   Resume exit_here
   
+End Sub
+
+Private Sub txtSubject_Change()
+Dim strSubject As String
+  strSubject = Me.txtSubject.Text
+  strSubject = Replace(strSubject, "[yyyy-mm-dd]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
+  If Me.cboCreate > 0 And Me.lboItems.ListCount > 0 Then
+    strSubject = Replace(strSubject, "[item]", Me.lboItems.List(0, 0))
+  End If
+  Me.lblSubjectPreview.Caption = strSubject
+  
+End Sub
+
+Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+  Dim strQuickPart As String, dtStatus As Date, lngDiff As Long
+  If IsDate(ActiveProject.StatusDate) Then
+    dtStatus = FormatDateTime(Me.txtStatusDate, vbShortDate)
+    If dtStatus <> CDate(ActiveProject.StatusDate) Then
+      lngDiff = DateDiff("d", CDate(Me.txtHideCompleteBefore), CDate(Me.txtStatusDate))
+      Me.txtStatusDate = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
+      Me.txtHideCompleteBefore = DateAdd("d", -lngDiff, ActiveProject.StatusDate)
+    End If
+  Else
+    Me.txtStatusDate = ""
+  End If
 End Sub
