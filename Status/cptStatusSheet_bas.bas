@@ -2167,6 +2167,7 @@ End Sub
 
 Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   'objects
+  Dim oUnlockedRange As Excel.Range
   Dim oComment As Excel.Comment
   Dim oEVTRange As Excel.Range
   Dim oCompleted As Excel.Range
@@ -2195,6 +2196,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   'integers
   'doubles
   'booleans
+  Dim blnLocked As Boolean
   Dim blnValidation As Boolean
   Dim blnConditionalFormats As Boolean
   'variants
@@ -2204,8 +2206,9 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   dtStatus = ActiveProject.StatusDate
-  blnValidation = cptStatusSheet_frm.chkValidation
-  blnConditionalFormats = cptStatusSheet_frm.chkAddConditionalFormats
+  blnValidation = cptStatusSheet_frm.chkValidation = True
+  blnConditionalFormats = cptStatusSheet_frm.chkAddConditionalFormats = True
+  blnLocked = cptStatusSheet_frm.chkLocked = True
   ActiveWindow.TopPane.Activate
 try_again:
   SelectAll
@@ -2320,7 +2323,7 @@ try_again:
     End If
     'capture status formating:
     'tasks requiring status:
-    If oTask.Start < dtStatus And Not IsDate(oTask.ActualStart) Then
+    If oTask.Start < dtStatus And Not IsDate(oTask.ActualStart) Then 'should have started
       If oInputRange Is Nothing Then
         Set oInputRange = oWorksheet.Cells(lngRow, lngASCol)
       Else
@@ -2328,7 +2331,7 @@ try_again:
       End If
       Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngEVPCol))
     End If
-    If oTask.Finish <= dtStatus And Not IsDate(oTask.ActualFinish) Then
+    If oTask.Finish <= dtStatus And Not IsDate(oTask.ActualFinish) Then 'should have finished
       If oInputRange Is Nothing Then
         Set oInputRange = oWorksheet.Cells(lngRow, lngAFCol)
       Else
@@ -2336,12 +2339,13 @@ try_again:
       End If
       Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngEVPCol))
     End If
-    If IsDate(oTask.ActualStart) And Not IsDate(oTask.ActualFinish) Then
+    If IsDate(oTask.ActualStart) And Not IsDate(oTask.ActualFinish) Then 'in progress
       If oInputRange Is Nothing Then
         Set oInputRange = oWorksheet.Cells(lngRow, lngEVPCol)
       Else
         Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngEVPCol))
       End If
+      Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngAFCol))
     End If
     'two week window
     If oTask.Start > dtStatus And oTask.Start <= DateAdd("d", 14, dtStatus) Then
@@ -2350,6 +2354,11 @@ try_again:
       Else
         Set oTwoWeekWindowRange = oWorksheet.Application.Union(oTwoWeekWindowRange, oWorksheet.Cells(lngRow, lngASCol))
       End If
+      If oUnlockedRange Is Nothing Then
+        Set oUnlockedRange = oWorksheet.Cells(lngRow, lngASCol)
+      Else
+        Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngASCol))
+      End If
     End If
     If oTask.Finish > dtStatus And oTask.Finish <= DateAdd("d", 14, dtStatus) Then
       If oTwoWeekWindowRange Is Nothing Then
@@ -2357,6 +2366,20 @@ try_again:
       Else
         Set oTwoWeekWindowRange = oWorksheet.Application.Union(oTwoWeekWindowRange, oWorksheet.Cells(lngRow, lngAFCol))
       End If
+      If oUnlockedRange Is Nothing Then
+        Set oUnlockedRange = oWorksheet.Cells(lngRow, lngAFCol)
+      Else
+        Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngAFCol))
+      End If
+    End If
+    'unstarted
+    If Not IsDate(oTask.ActualStart) And Not IsDate(oTask.ActualFinish) Then 'unstarted
+      If oUnlockedRange Is Nothing Then
+        Set oUnlockedRange = oWorksheet.Cells(lngRow, lngASCol)
+      Else
+        Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngASCol))
+      End If
+      Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngAFCol))
     End If
     
     'capture data validation
@@ -2453,7 +2476,11 @@ next_task:
       .PatternTintAndShade = 0
     End With
   End If
-  If Not oInputRange Is Nothing Then oInputRange.Style = "Input"
+  If Not oInputRange Is Nothing Then
+    oInputRange.Style = "Input"
+    oInputRange.Locked = False
+  End If
+  If blnLocked And Not oUnlockedRange Is Nothing Then oUnlockedRange.Locked = False
   If Not oTwoWeekWindowRange Is Nothing Then oTwoWeekWindowRange.Style = "Neutral"
   
   'add EVT gloassary - test comment
@@ -2492,6 +2519,7 @@ next_task:
   
 exit_here:
   On Error Resume Next
+  Set oUnlockedRange = Nothing
   Set oComment = Nothing
   Set oEVTRange = Nothing
   Set oCompleted = Nothing
@@ -2788,7 +2816,7 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
       If oBuildingBlock Is Nothing Then
         MsgBox "Quick Part '" & .cboQuickParts & "' not found!", vbExclamation + vbOKOnly, "Missing Quick Part"
       Else
-        .Insert oSelection.Range, True
+        oBuildingBlock.Insert oSelection.Range, True
       End If
       oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, "[STATUS_DATE]", Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
     End If
