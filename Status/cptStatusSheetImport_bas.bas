@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
 '<cpt_version>v1.1.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowStatusSheetImport_frm()
@@ -164,17 +164,17 @@ End Sub
 
 Sub cptStatusSheetImport()
 'objects
-Dim SubProject As Object
-Dim Task As Task
-Dim Resource As Resource
-Dim Assignment As Assignment
-Dim xlApp As Object 'Excel.Application
-Dim Workbook As Object 'Workbook
-Dim Worksheet As Object 'Worksheet
-Dim ListObject As Object 'ListObject
-Dim rng As Object 'Excel.Range
-Dim c As Object 'Excel.Range
-Dim cbo As ComboBox
+Dim oSubproject As SubProject
+Dim oTask As Task
+Dim oResource As Resource
+Dim oAssignment As Assignment
+Dim oExcel As Object 'Excel.Application
+Dim oWorkbook As Object 'Excel.Workbook
+Dim oWorksheet As Object 'Excel.Worksheet
+Dim oListObject As Object 'Excel.ListObject
+Dim oRange As Object 'Excel.Range
+Dim oCell As Object 'Excel.Range
+Dim oComboBox As ComboBox
 Dim rst As Object 'ADODB.Recordset
 'strings
 Dim strImportLog As String
@@ -218,7 +218,7 @@ Dim dtStatus As Date
   
   'todo: save current dates to selected fields
   'todo: age the dates X periods - carry back names
-  'todo: view should be gantt on top and task usage below (but with custom table having only UID,{user fields},Task/Resource Name, Remaining Work, New ETC
+  'todo: view should be gantt on top and oTask usage below (but with custom table having only UID,{user fields},oTask/oResource Name, Remaining Work, New ETC
   
   'validate choices for all
   With cptStatusSheetImport_frm
@@ -235,10 +235,10 @@ Dim dtStatus As Date
     'ensure import fields are selected
     For Each vControl In Array("cboAS", "cboAF", "cboFS", "cboFF", "cboEV", "cboETC", "cboAppendTo")
       'reset border color
-      Set cbo = .Controls(vControl)
-      cbo.BorderColor = -2147483642
-      If IsNull(cbo) And cbo.Enabled Then
-        cbo.BorderColor = 192 'red
+      Set oComboBox = .Controls(vControl)
+      oComboBox.BorderColor = -2147483642
+      If IsNull(oComboBox) And oComboBox.Enabled Then
+        oComboBox.BorderColor = 192 'red
         blnValid = False
       End If
     Next vControl
@@ -266,6 +266,7 @@ Dim dtStatus As Date
   End With
   
   'save user settings
+  'todo: convert to .ini
   strSettings = cptDir & "\settings\cpt-status-sheet-import.adtg"
   If Application.Version < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
@@ -326,205 +327,245 @@ Dim dtStatus As Date
   'log action
   Print #lngFile, "START STATUS SHEET IMPORT - " & Format(Now(), "mm/dd/yyyy hh:nn:ss")
 
-  'clear existing values from selected import fields -- but not Task.ActualStart or Task.ActualFinish
+  'clear existing values from selected import fields -- but not oTask.ActualStart or oTask.ActualFinish
   cptStatusSheetImport_frm.lblStatus = "Clearing existing values..."
   cptSpeed True
   If ActiveProject.Subprojects.Count > 0 Then
-    For Each SubProject In ActiveProject.Subprojects
-      lngTasks = lngTasks + SubProject.SourceProject.Tasks.Count
+    For Each oSubproject In ActiveProject.Subprojects
+      lngTasks = lngTasks + oSubproject.SourceProject.Tasks.Count
     Next
   Else
     lngTasks = ActiveProject.Tasks.Count
   End If
-  For Each Task In ActiveProject.Tasks
+  For Each oTask In ActiveProject.Tasks
     lngTask = lngTask + 1
-    If Task Is Nothing Then GoTo next_task
-    If Task.Summary Then GoTo next_task
-    If Task.ExternalTask Then GoTo next_task
-    If Not Task.Active Then GoTo next_task
+    If oTask Is Nothing Then GoTo next_task
+    If oTask.Summary Then GoTo next_task
+    If oTask.ExternalTask Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
     'clear dates
     For Each vField In Array(lngAS, lngAF, lngFS, lngFF)
       If vField = 188743721 Then GoTo next_field 'DO NOT clear out Actual Start
       If vField = 188743722 Then GoTo next_field 'DO NOT clear out Actual Finish
-      If Not Task.GetField(vField) = "NA" Then
-        Task.SetField vField, ""
+      If Not oTask.GetField(vField) = "NA" Then
+        oTask.SetField vField, ""
       End If
 next_field:
     Next vField
     'clear EV
-    Task.SetField lngEV, CStr(0)
+    oTask.SetField lngEV, CStr(0)
     'clear ETC
-    For Each Assignment In Task.Assignments
-      If lngETC = FieldNameToFieldConstant("Number1") Then Assignment.Number1 = 0
-      If lngETC = FieldNameToFieldConstant("Number2") Then Assignment.Number2 = 0
-      If lngETC = FieldNameToFieldConstant("Number3") Then Assignment.Number3 = 0
-      If lngETC = FieldNameToFieldConstant("Number4") Then Assignment.Number4 = 0
-      If lngETC = FieldNameToFieldConstant("Number5") Then Assignment.Number5 = 0
-      If lngETC = FieldNameToFieldConstant("Number6") Then Assignment.Number6 = 0
-      If lngETC = FieldNameToFieldConstant("Number7") Then Assignment.Number7 = 0
-      If lngETC = FieldNameToFieldConstant("Number8") Then Assignment.Number8 = 0
-      If lngETC = FieldNameToFieldConstant("Number9") Then Assignment.Number9 = 0
-      If lngETC = FieldNameToFieldConstant("Number10") Then Assignment.Number10 = 0
-      If lngETC = FieldNameToFieldConstant("Number11") Then Assignment.Number11 = 0
-      If lngETC = FieldNameToFieldConstant("Number12") Then Assignment.Number12 = 0
-      If lngETC = FieldNameToFieldConstant("Number13") Then Assignment.Number13 = 0
-      If lngETC = FieldNameToFieldConstant("Number14") Then Assignment.Number14 = 0
-      If lngETC = FieldNameToFieldConstant("Number15") Then Assignment.Number15 = 0
-      If lngETC = FieldNameToFieldConstant("Number16") Then Assignment.Number16 = 0
-      If lngETC = FieldNameToFieldConstant("Number17") Then Assignment.Number17 = 0
-      If lngETC = FieldNameToFieldConstant("Number18") Then Assignment.Number18 = 0
-      If lngETC = FieldNameToFieldConstant("Number19") Then Assignment.Number19 = 0
-      If lngETC = FieldNameToFieldConstant("Number20") Then Assignment.Number20 = 0
-    Next Assignment
+    For Each oAssignment In oTask.Assignments
+      If lngETC = FieldNameToFieldConstant("Number1") Then
+        oAssignment.Number1 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number2") Then
+        oAssignment.Number2 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number3") Then
+        oAssignment.Number3 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number4") Then
+        oAssignment.Number4 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number5") Then
+        oAssignment.Number5 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number6") Then
+        oAssignment.Number6 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number7") Then
+        oAssignment.Number7 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number8") Then
+        oAssignment.Number8 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number9") Then
+        oAssignment.Number9 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number10") Then
+        oAssignment.Number10 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number11") Then
+        oAssignment.Number11 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number12") Then
+        oAssignment.Number12 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number13") Then
+        oAssignment.Number13 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number14") Then
+        oAssignment.Number14 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number15") Then
+        oAssignment.Number15 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number16") Then
+        oAssignment.Number16 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number17") Then
+        oAssignment.Number17 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number18") Then
+        oAssignment.Number18 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number19") Then
+        oAssignment.Number19 = 0
+      ElseIf lngETC = FieldNameToFieldConstant("Number20") Then
+        oAssignment.Number20 = 0
+      End If
+    Next oAssignment
 next_task:
     cptStatusSheetImport_frm.lblStatus.Caption = "Clearing Previous Values...(" & Format(lngTask / lngTasks, "0%") & ")"
     cptStatusSheetImport_frm.lblProgress.Width = (lngTask / lngTasks) * cptStatusSheetImport_frm.lblStatus.Width
     DoEvents
-  Next Task
+  Next oTask
     
   'set up excel
-  Set xlApp = CreateObject("Excel.Application")
+  Set oExcel = CreateObject("Excel.Application")
   With cptStatusSheetImport_frm
     For lngFiles = 1 To .TreeView1.Nodes.Count
-      Set Workbook = xlApp.Workbooks.Open(.TreeView1.Nodes(lngFiles).Text, ReadOnly:=True)
-      cptStatusSheetImport_frm.lblStatus.Caption = "Importing " & Workbook.Name & "..."
+      Set oWorkbook = oExcel.Workbooks.Open(.TreeView1.Nodes(lngFiles).Text, ReadOnly:=True)
+      cptStatusSheetImport_frm.lblStatus.Caption = "Importing " & oWorkbook.Name & "..."
       DoEvents
       Print #lngFile, String(25, "=")
-      Print #lngFile, "IMPORTING WORKBOOK: " & .TreeView1.Nodes(lngFiles).Text & " (" & Workbook.Sheets.Count & " worksheets)"
+      Print #lngFile, "IMPORTING Workbook: " & .TreeView1.Nodes(lngFiles).Text & " (" & oWorkbook.Sheets.Count & " Worksheets)"
       Print #lngFile, String(25, "-")
-      For Each Worksheet In Workbook.Sheets
-        Print #lngFile, "IMPORTING WORKSHEET: " & Worksheet.Name
-        cptStatusSheetImport_frm.lblStatus.Caption = "Importing Worksheets...(" & Format(Worksheet.Index / Workbook.Sheets.Count, "0%") & ")"
-        cptStatusSheetImport_frm.lblProgress.Width = (Worksheet.Index / Workbook.Sheets.Count) * cptStatusSheetImport_frm.lblStatus.Width
+      For Each oWorksheet In oWorkbook.Sheets
+        Print #lngFile, "IMPORTING oWorksheet: " & oWorksheet.Name
+        cptStatusSheetImport_frm.lblStatus.Caption = "Importing Worksheets...(" & Format(oWorksheet.Index / oWorkbook.Sheets.Count, "0%") & ")"
+        cptStatusSheetImport_frm.lblProgress.Width = (oWorksheet.Index / oWorkbook.Sheets.Count) * cptStatusSheetImport_frm.lblStatus.Width
         DoEvents
         'get status date
         On Error Resume Next
-        dtStatus = Worksheet.Range("STATUS_DATE")
-        If Err.Number = 1004 Then 'invalid workbook
+        dtStatus = oWorksheet.Range("STATUS_DATE")
+        If Err.Number = 1004 Then 'invalid oWorkbook
           If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-          Print #lngFile, "INVALID WORKSHEET - UID HEADER NOT FOUND IN COLUMN 1 OF WORKSHEET"
+          Print #lngFile, "INVALID Worksheet - UID HEADER NOT FOUND IN COLUMN 1 OF WORKSHEET"
           GoTo next_worksheet
         End If
         If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
         'get header row
         lngUIDCol = 1
-        lngHeaderRow = Worksheet.Columns(lngUIDCol).Find(what:="UID").Row
+        lngHeaderRow = oWorksheet.Columns(lngUIDCol).Find(what:="UID").Row
         'get header columns
-        lngTaskNameCol = Worksheet.Rows(lngHeaderRow).Find(what:="Task Name", lookat:=xlWhole).Column
-        lngASCol = Worksheet.Rows(lngHeaderRow).Find(what:="Actual Start", lookat:=xlPart).Column
-        lngAFCol = Worksheet.Rows(lngHeaderRow).Find(what:="Actual Finish", lookat:=xlPart).Column
-        lngEVCol = Worksheet.Rows(lngHeaderRow).Find(what:="New EV%", lookat:=xlWhole).Column
-        lngETCCol = Worksheet.Rows(lngHeaderRow).Find(what:="Revised ETC", lookat:=xlWhole).Column
-        lngCommentsCol = Worksheet.Rows(lngHeaderRow).Find(what:="Reason / Action / Impact", lookat:=xlWhole).Column
+        lngTaskNameCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Task Name", lookat:=xlPart).Column
+        lngASCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Start", lookat:=xlPart).Column
+        lngAFCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Finish", lookat:=xlPart).Column
+        lngEVCol = oWorksheet.Rows(lngHeaderRow).Find(what:="New EV%", lookat:=xlWhole).Column
+        lngETCCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Revised ETC", lookat:=xlWhole).Column
+        lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Reason / Action / Impact", lookat:=xlWhole).Column
         'get last row
-        lngLastRow = Worksheet.Cells(Worksheet.Rows.Count, 1).End(xlUp).Row
+        lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row
         'pull in the data
         For lngRow = lngHeaderRow + 1 To lngLastRow
-          'only summaries have interior color
-          If Worksheet.Cells(lngRow, lngUIDCol).Interior.Color <> 16777215 Then GoTo next_row
-          'determine if row is a task or an assignment
-          If Worksheet.Cells(lngRow, lngUIDCol).Font.Color = 0 Then
+          'determine if row is a oTask or an oAssignment
+          If oWorksheet.Cells(lngRow, lngUIDCol).Font.Italic Then
             blnTask = False
-          ElseIf Worksheet.Cells(lngRow, lngUIDCol).Font.Color = 6567712 Then
+          ElseIf oWorksheet.Cells(lngRow, lngUIDCol).Interior.Color = 16777215 Then
             blnTask = True
           Else
             GoTo next_row
           End If
-          'set task
+          'set Task
           On Error Resume Next
-          Set Task = ActiveProject.Tasks.UniqueID(Worksheet.Cells(lngRow, lngUIDCol))
+          Set oTask = ActiveProject.Tasks.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol))
           If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-          If Task Is Nothing Then
-            Print #lngFile, "UID " & Worksheet.Cells(lngRow, lngUIDCol) & " not found in IMS."
+          If oTask Is Nothing Then
+            Print #lngFile, "UID " & oWorksheet.Cells(lngRow, lngUIDCol) & " not found in IMS."
             GoTo next_row
           End If
           If blnTask Then
             'new start date
-            If Worksheet.Cells(lngRow, lngASCol).Value > 0 And Not Worksheet.Cells(lngRow, lngASCol).Locked Then
-              dtNewDate = CDate(Worksheet.Cells(lngRow, lngASCol).Value)
+            If oWorksheet.Cells(lngRow, lngASCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngASCol).Locked Then
+              dtNewDate = CDate(oWorksheet.Cells(lngRow, lngASCol).Value)
               'determine actual or forecast
               If dtNewDate <= dtStatus Then 'actual start
-                Task.SetField lngAS, dtNewDate
+                oTask.SetField lngAS, dtNewDate
               ElseIf dtNewDate > dtStatus Then 'forecast start
-                Task.SetField lngFS, dtNewDate
+                oTask.SetField lngFS, dtNewDate
               End If
             End If
             'new finish date
-            If Worksheet.Cells(lngRow, lngAFCol).Value > 0 And Not Worksheet.Cells(lngRow, lngAFCol).Locked Then
-              dtNewDate = CDate(Worksheet.Cells(lngRow, lngAFCol))
+            If oWorksheet.Cells(lngRow, lngAFCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngAFCol).Locked Then
+              dtNewDate = CDate(oWorksheet.Cells(lngRow, lngAFCol))
               If dtNewDate <= dtStatus Then 'actual finish
-                Task.SetField lngAF, CDate(Worksheet.Cells(lngRow, lngAFCol))
+                oTask.SetField lngAF, dtNewDate
               ElseIf dtNewDate > dtStatus Then 'forecast finish
-                Task.SetField lngFF, CDate(Worksheet.Cells(lngRow, lngAFCol))
+                oTask.SetField lngFF, dtNewDate
               End If
             End If
             'ev
-            If (Worksheet.Cells(lngRow, lngEVCol) * 100) <> Task.GetField(lngEV) Then
-              Task.SetField lngEV, Worksheet.Cells(lngRow, lngEVCol) * 100
+            If (oWorksheet.Cells(lngRow, lngEVCol) * 100) <> oTask.GetField(lngEV) Then
+              oTask.SetField lngEV, oWorksheet.Cells(lngRow, lngEVCol) * 100
             End If
             'comments
-            If .chkAppend And Worksheet.Cells(lngRow, lngCommentsCol).Value <> "" Then
+            If .chkAppend And oWorksheet.Cells(lngRow, lngCommentsCol).Value <> "" Then
               If .cboAppendTo = "Top of Task Note" Then
-                Task.Notes = Format(Now, "mm/dd/yyyy") & " - " & Worksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & Task.Notes
+                oTask.Notes = Format(Now, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & oTask.Notes
               ElseIf .cboAppendTo = "Bottom of Task Note" Then
-                Task.AppendNotes String(25, "-") & vbCrLf & Format(Now, "mm/dd/yyyy") & " - " & Worksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
+                oTask.AppendNotes String(25, "-") & vbCrLf & Format(Now, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
               End If
             End If
-            'if user is importing to AS and AF then mark task on track
+            'if user is importing to AS and AF then mark oTask on track
 '            'todo: decide if this is a good idea
 '            If lngAS = FieldNameToFieldConstant("Actual Start") And lngAF = FieldNameToFieldConstant("Actual Finish") Then
 '              'todo: what if user has it filtered? or collapsed?
-'              EditGoTo Task.ID
+'              EditGoTo oTask.ID
 '              UpdateProject All:=False, UpdateDate:=CStr(dtStatus & " 5 PM"), Action:=1
 '            End If
-          ElseIf Not blnTask Then 'it's an assignment
+          ElseIf Not blnTask Then 'it's an Assignment
             On Error Resume Next
-            Set Assignment = Task.Assignments.UniqueID(Worksheet.Cells(lngRow, lngUIDCol))
+            Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
             If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-            If Assignment Is Nothing Then
-              Print #lngFile, "ASSIGNMENT MISSING: " & Worksheet.Cells(lngRow, lngTaskNameCol).Value
+            If oAssignment Is Nothing Then
+              Print #lngFile, "ASSIGNMENT MISSING: " & oWorksheet.Cells(lngRow, lngTaskNameCol).Value
             Else
-              If lngETC = FieldNameToFieldConstant("Number1") Then Assignment.Number1 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number2") Then Assignment.Number2 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number3") Then Assignment.Number3 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number4") Then Assignment.Number4 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number5") Then Assignment.Number5 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number6") Then Assignment.Number6 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number7") Then Assignment.Number7 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number8") Then Assignment.Number8 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number9") Then Assignment.Number9 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number10") Then Assignment.Number10 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number11") Then Assignment.Number11 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number12") Then Assignment.Number12 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number13") Then Assignment.Number13 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number14") Then Assignment.Number14 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number15") Then Assignment.Number15 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number16") Then Assignment.Number16 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number17") Then Assignment.Number17 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number18") Then Assignment.Number18 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number19") Then Assignment.Number19 = Worksheet.Cells(lngRow, lngETCCol)
-              If lngETC = FieldNameToFieldConstant("Number20") Then Assignment.Number20 = Worksheet.Cells(lngRow, lngETCCol)
-              Set Assignment = Nothing
+              If lngETC = FieldNameToFieldConstant("Number1") Then
+                oAssignment.Number1 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number2") Then
+                oAssignment.Number2 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number3") Then
+                oAssignment.Number3 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number4") Then
+                oAssignment.Number4 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number5") Then
+                oAssignment.Number5 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number6") Then
+                oAssignment.Number6 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number7") Then
+                oAssignment.Number7 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number8") Then
+                oAssignment.Number8 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number9") Then
+                oAssignment.Number9 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number10") Then
+                oAssignment.Number10 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number11") Then
+                oAssignment.Number11 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number12") Then
+                oAssignment.Number12 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number13") Then
+                oAssignment.Number13 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number14") Then
+                oAssignment.Number14 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number15") Then
+                oAssignment.Number15 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number16") Then
+                oAssignment.Number16 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number17") Then
+                oAssignment.Number17 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number18") Then
+                oAssignment.Number18 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number19") Then
+                oAssignment.Number19 = oWorksheet.Cells(lngRow, lngETCCol)
+              ElseIf lngETC = FieldNameToFieldConstant("Number20") Then
+                oAssignment.Number20 = oWorksheet.Cells(lngRow, lngETCCol)
+              End If
+              Set oAssignment = Nothing
             End If
           End If
 next_row:
         Next lngRow
 next_worksheet:
         Print #lngFile, String(25, "-")
-      Next Worksheet
+      Next oWorksheet
 next_file:
-      Workbook.Close False
+      oWorkbook.Close False
     Next lngFiles
   End With 'cptStatusSheetImport_frm
   
   'reset view
   ActiveWindow.TopPane.Activate
-  ViewApply "Task Usage"
-  Call cptRefreshStatusImportTable
+  ViewApply "Task Usage" 'todo: use custom view with assignment shading?
+  Call cptRefreshStatusImportTable 'todo: include EV% and Type
   
 exit_here:
   On Error Resume Next
-  Set SubProject = Nothing
+  Set oSubproject = Nothing
   cptStatusSheetImport_frm.lblStatus.Caption = "Import Complete."
   cptStatusSheetImport_frm.lblProgress.Width = cptStatusSheetImport_frm.lblStatus.Width
   DoEvents
@@ -538,20 +579,19 @@ exit_here:
   End If
   cptStatusSheetImport_frm.lblStatus.Caption = "Ready..."
   cptSpeed False
-  Set Assignment = Nothing
-  Set Resource = Nothing
-  Set Task = Nothing
+  Set oAssignment = Nothing
+  Set oResource = Nothing
+  Set oTask = Nothing
   For lngFile = 1 To FreeFile
     Close #lngFile
   Next lngFile
-  Set c = Nothing
-  Set rng = Nothing
-  Set ListObject = Nothing
-  Set Worksheet = Nothing
-  If Not Workbook Is Nothing Then Workbook.Close False
-  Set Workbook = Nothing
-  Set xlApp = Nothing
-  Set cbo = Nothing
+  Set oRange = Nothing
+  Set oListObject = Nothing
+  Set oWorksheet = Nothing
+  If Not oWorkbook Is Nothing Then oWorkbook.Close False
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
+  Set oComboBox = Nothing
   If rst.State = 1 Then rst.Close
   Set rst = Nothing
 
