@@ -2258,7 +2258,7 @@ try_again:
   If lngLastCol > ActiveProject.TaskTables("cptStatusSheet Table").TableFields.Count + 10 Then GoTo try_again
   oWorksheet.Columns(lngLastCol + 1).Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
   oWorksheet.Columns(lngLastCol + 1).ColumnWidth = 40
-  oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Offset(0, 1).Value = "Comment / Action / Impact"
+  oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Offset(0, 1).Value = "Reason / Action / Impact"
   With oWorksheet.Cells(lngHeaderRow, 1).Resize(, ActiveProject.TaskTables(ActiveProject.CurrentTable).TableFields.Count)
     .Interior.ThemeColor = xlThemeColorLight2
     .Interior.TintAndShade = 0
@@ -2567,7 +2567,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
     oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
     oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.Italic = True 'todo: limit to columns
     vAssignment = oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Value
-    vAssignment(1, 1) = oTask.UniqueID
+    vAssignment(1, 1) = oAssignment.UniqueID 'todo: import assumes this is oAssignment.UniqueID, but oTask.UniqueID makes more sense to a user, perhaps?
     vAssignment(1, lngNameCol) = String(lngIndent + 3, " ") & oAssignment.ResourceName
     If oAssignment.ResourceType = pjWork Then
       vAssignment(1, lngRemainingWorkCol) = oAssignment.RemainingWork / 60
@@ -2589,7 +2589,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
         Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1))
       End If
     End If
-    'add protection
+    'add protection - todo: is this even used?
     If oUnlockedRange Is Nothing Then
       Set oUnlockedRange = oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1)
     Else

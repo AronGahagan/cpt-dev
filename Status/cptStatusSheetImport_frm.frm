@@ -15,7 +15,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.0.2</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboAF_Change()
@@ -87,6 +87,20 @@ Private Sub cmdImport_Click()
     Me.lblETC.ForeColor = 192
     MsgBox "Cannot import EVP and ETC to the same field.", vbExclamation + vbOKOnly, "Invalid Selections"
   Else
+    'capture user settings
+    cptSaveSetting "StatusSheetImport", "cboAS", Me.cboAS.Value
+    cptSaveSetting "StatusSheetImport", "cboAF", Me.cboAF.Value
+    cptSaveSetting "StatusSheetImport", "cboFS", Me.cboFS.Value
+    cptSaveSetting "StatusSheetImport", "cboFF", Me.cboFF.Value
+    cptSaveSetting "StatusSheetImport", "cboEVP", Me.cboEV.Value
+    cptSaveSetting "StatusSheetImport", "cboETC", Me.cboETC.Value
+    cptSaveSetting "StatusSheetImport", "chkNotes", CStr(Me.chkAppend)
+    If Me.chkAppend Then
+      cptSaveSetting "StatusSheetImport", "cboAppendTo", Me.cboAppendTo.Value
+    Else
+      cptSaveSetting "StatusSheetImport", "cboAppendTo", ""
+    End If
+    
     Call cptStatusSheetImport
   End If
   
@@ -113,7 +127,7 @@ Dim lngItem As Long
     .AllowMultiSelect = True
     .ButtonName = "Import"
     .InitialView = msoFileDialogViewDetails
-    .InitialFileName = Environ("USERPROFILE") & "\"
+    .InitialFileName = ActiveProject.Path & "\"
     .Title = "Select Returned Status Sheet(s):"
     .Filters.Add "Microsoft Excel Workbook (xlsx)", "*.xlsx"
     
@@ -133,7 +147,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheetImport_frm", "cmdSelectFiles_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheetImport_frm", "cmdSelectFiles_Click", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -148,7 +162,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "lblURL", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "lblURL", Err, Erl)
   Resume exit_here
 End Sub
 
