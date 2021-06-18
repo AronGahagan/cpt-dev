@@ -2070,33 +2070,33 @@ Dim lngItem As Long
   cptSpeed True
 
   'reset the table
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   lngItem = 0
   If cptStatusSheet_frm.lboExport.ListCount > 0 Then
     For lngItem = 0 To cptStatusSheet_frm.lboExport.ListCount - 1
-      TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(cptStatusSheet_frm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+      TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(cptStatusSheet_frm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     Next lngItem
   End If
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Name", Title:="Task Name / Scope", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Duration", Title:="", Width:=12, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Total Slack", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False, ShowAddNewColumn:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Start", Title:="Forecast Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Finish", Title:="Forecast Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Actual Start", Title:="New Forecast/ Actual Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Actual Finish", Title:="New Forecast/ Actual Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Name", Title:="Task Name / Scope", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Duration", Title:="", Width:=12, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Total Slack", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False, ShowAddNewColumn:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Start", Title:="Forecast Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Finish", Title:="Forecast Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Actual Start", Title:="New Forecast/ Actual Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Actual Finish", Title:="New Forecast/ Actual Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   If cptStatusSheet_frm.cboEVT <> 0 Then
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVT.Value, Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVT.Value, Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   End If
   If cptStatusSheet_frm.cboEVP <> 0 Then
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVP.Value, Title:="EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVP.Value, Title:="New EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVP.Value, Title:="EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVP.Value, Title:="New EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   End If
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Previous ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Revised ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Previous ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Revised ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   TableApply Name:="cptStatusSheet Table"
 
   'reset the filter
