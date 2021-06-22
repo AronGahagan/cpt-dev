@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.2.6</cpt_version>
+'<cpt_version>v3.3.1</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -14,7 +14,7 @@ Private BCR_WP() As String
 Private BCR_ID As String
 Private BCRxport As Boolean
 Private BCR_Error As Boolean
-Private fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fPCNT, fEVT, fCAID2, fCAID2t, fMilestone, fMilestoneWeight, fBCR, fWhatIf, fResID As String 'v3.2
+Private fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fPCNT, fAssignPcnt, fEVT, fCAID2, fCAID2t, fMilestone, fMilestoneWeight, fBCR, fWhatIf, fResID As String 'v3.3.0
 Private CustTextFields() As String
 Private EntFields() As String
 Private CustNumFields() As String
@@ -39,6 +39,7 @@ Private Type ACTrowWP
     Desc As String
     CAM As String
     WP As String
+    Resource As String
     ID As String
     BStart As Date
     BFinish As Date
@@ -74,12 +75,20 @@ Private Type TaskDataCheck
     CAM As String
     BStart As String
     BFinish As String
+    FStart As String 'v3.3.0
+    FFinish As String 'v3.3.0
     BWork As Double
     BCost As Double
+    FWork As Double 'v3.3.0
+    FCost As Double 'v3.3.0
     AssignmentBStart As String
     AssignmentBFinish As String
+    AssignmentFStart As String 'v3.3.0
+    AssignmentFFinish As String 'v3.3.0
     AssignmentBWork As Double
     AssignmentBCost As Double
+    AssignmentFWork As Double 'v3.3.0
+    AssignmentFCost As Double 'v3.3.0
     EVT As String
     MSID As String
     MSWeight As String
@@ -134,6 +143,7 @@ Sub Export_IMS()
         .mswBox.AddItem "<None>"
         .PercentBox.AddItem "Physical % Complete"
         .PercentBox.AddItem "% Complete"
+        .AsgnPcntBox.AddItem "<None>" 'v3.3.0
 
         .resBox.AddItem "Name"
         .resBox.AddItem "Code"
@@ -143,6 +153,7 @@ Sub Export_IMS()
             .msidBox.AddItem CustNumFields(i)
             .mswBox.AddItem CustNumFields(i)
             .PercentBox.AddItem CustNumFields(i)
+            .AsgnPcntBox.AddItem CustNumFields(i) 'v3.3.0
         Next i
         For i = 1 To UBound(EntFields)
             .caID1Box.AddItem EntFields(i)
@@ -291,7 +302,7 @@ Private Sub DataChecks(ByVal curproj As Project)
     Dim taskFound As Boolean
     Dim t As Task
     Dim tAss As Assignment
-    Dim tAsses As Assignments
+    Dim tasses As Assignments
     Dim tAssBStart As String
     Dim tAssBFin As String
     Dim tAssBWork As String
@@ -308,6 +319,7 @@ Private Sub DataChecks(ByVal curproj As Project)
     Dim ErrorCounter As Integer
     Dim tempBValue As Double
     Dim tempBWork As Double
+    Dim tempFWork As Double 'v3.3.0
 
     Dim docProps As DocumentProperties
 
@@ -380,18 +392,26 @@ Private Sub DataChecks(ByVal curproj As Project)
                             End If
                             .BWork = t.BaselineWork / 60 / curSProj.HoursPerDay
                             .BCost = t.BaselineCost
+                            .FWork = t.Work / 60 / curSProj.HoursPerDay 'v3.3.0
+                            .FCost = t.Cost 'v3.3.0
                             .CAM = t.GetField(FieldNameToFieldConstant(fCAM))
                             .AssignmentBStart = "NA"
                             .AssignmentBFinish = "NA"
+                            .AssignmentFStart = "NA" 'v3.3.0
+                            .AssignmentFFinish = "NA" 'v3.3.0
                             .AssignmentBCost = 0
                             .AssignmentBWork = 0
+                            .AssignmentFCost = 0 'v3.3.0
+                            .AssignmentFWork = 0 'v3.3.0
                             .BStart = t.BaselineStart
                             .BFinish = t.BaselineFinish
+                            .FStart = t.Start 'v3.3.0
+                            .FFinish = t.Finish 'v3.3.0
 
-                            Set tAsses = t.Assignments
-                            .AssignmentCount = tAsses.Count
+                            Set tasses = t.Assignments
+                            .AssignmentCount = tasses.Count
 
-                            For Each tAss In tAsses
+                            For Each tAss In tasses
 
                                 If tAss.BaselineStart <> "NA" Then
                                     If .AssignmentBStart = "NA" Then
@@ -412,14 +432,39 @@ Private Sub DataChecks(ByVal curproj As Project)
                                         End If
                                     End If
                                 End If
+                                
+                                If .AssignmentFStart = "NA" Then 'v3.3.0
+                                    .AssignmentFStart = tAss.Start
+                                Else
+                                    If tAss.FStart < .AssignmentFStart Then
+                                        .AssignmentFStart = tAss.Start
+                                    End If
+                                End If
+
+                                If .AssignmentFFinish = "NA" Then 'v3.3.0
+                                    .AssignmentFFinish = tAss.Finish
+                                Else
+                                    If tAss.Finish > .AssignmentFFinish Then
+                                        .AssignmentFFinish = tAss.Finish
+                                    End If
+                                End If
 
                                 .AssignmentBCost = .AssignmentBCost + tAss.BaselineCost
+                                .AssignmentFCost = .AssignmentFCost + tAss.Cost 'v3.3.0
+                                
                                 If tAss.BaselineWork = "" Or tAss.ResourceType <> pjResourceTypeWork Then 'v3.2.1
                                     tempBWork = 0
                                 Else
                                     tempBWork = tAss.BaselineWork
                                 End If
                                 .AssignmentBWork = .AssignmentBWork + tempBWork / 60 / curSProj.HoursPerDay
+                                
+                                If tAss.Work = "" Or tAss.ResourceType <> pjResourceTypeWork Then 'v3.3.0
+                                    tempFWork = 0
+                                Else
+                                    tempFWork = tAss.Work
+                                End If
+                                .AssignmentFWork = .AssignmentFWork + tempFWork / 60 / curSProj.HoursPerDay
 
                             Next tAss
 
@@ -450,63 +495,96 @@ Private Sub DataChecks(ByVal curproj As Project)
                     With TaskChecks(taskCount)
 
                         .UID = t.UniqueID
-                        .WP = t.GetField(FieldNameToFieldConstant(fWP))
-                        .CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
-                        If CAID2_Used = True Then
-                            .CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
-                        End If
-                        If CAID3_Used = True Then
-                            .CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
-                        End If
-                        .EVT = t.GetField(FieldNameToFieldConstant(fEVT))
-                        If Milestones_Used = True Then
-                            .MSID = t.GetField(FieldNameToFieldConstant(fMilestone))
-                            .MSWeight = t.GetField(FieldNameToFieldConstant(fMilestoneWeight))
-                        End If
-                        .BWork = t.BaselineWork / 60 '/ curproj.HoursPerDay v3.2.5
-                        .BCost = t.BaselineCost
-                        .CAM = t.GetField(FieldNameToFieldConstant(fCAM))
-                        .AssignmentBStart = "NA"
-                        .AssignmentBFinish = "NA"
-                        .AssignmentBCost = 0
-                        .AssignmentBWork = 0
-                        .BStart = t.BaselineStart
-                        .BFinish = t.BaselineFinish
+                            .WP = t.GetField(FieldNameToFieldConstant(fWP))
+                            .CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                            If CAID2_Used = True Then
+                                .CAID2 = t.GetField(FieldNameToFieldConstant(fCAID2))
+                            End If
+                            If CAID3_Used = True Then
+                                .CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
+                            End If
+                            .EVT = t.GetField(FieldNameToFieldConstant(fEVT))
+                            If Milestones_Used = True Then
+                                .MSID = t.GetField(FieldNameToFieldConstant(fMilestone))
+                                .MSWeight = t.GetField(FieldNameToFieldConstant(fMilestoneWeight))
+                            End If
+                            .BWork = t.BaselineWork / 60 / curproj.HoursPerDay
+                            .BCost = t.BaselineCost
+                            .FWork = t.Work / 60 / curproj.HoursPerDay 'v3.3.0
+                            .FCost = t.Cost 'v3.3.0
+                            .CAM = t.GetField(FieldNameToFieldConstant(fCAM))
+                            .AssignmentBStart = "NA"
+                            .AssignmentBFinish = "NA"
+                            .AssignmentFStart = "NA" 'v3.3.0
+                            .AssignmentFFinish = "NA" 'v3.3.0
+                            .AssignmentBCost = 0
+                            .AssignmentBWork = 0
+                            .AssignmentFCost = 0 'v3.3.0
+                            .AssignmentFWork = 0 'v3.3.0
+                            .BStart = t.BaselineStart
+                            .BFinish = t.BaselineFinish
+                            .FStart = t.Start 'v3.3.0
+                            .FFinish = t.Finish 'v3.3.0
 
-                        Set tAsses = t.Assignments
-                        .AssignmentCount = tAsses.Count
+                            Set tasses = t.Assignments
+                            .AssignmentCount = tasses.Count
 
-                        For Each tAss In tAsses
+                            For Each tAss In tasses
 
-                            If tAss.BaselineStart <> "NA" Then
-                                If .AssignmentBStart = "NA" Then
-                                    .AssignmentBStart = tAss.BaselineStart
-                                Else
-                                    If tAss.BaselineStart < .AssignmentBStart Then
+                                If tAss.BaselineStart <> "NA" Then
+                                    If .AssignmentBStart = "NA" Then
                                         .AssignmentBStart = tAss.BaselineStart
+                                    Else
+                                        If tAss.BaselineStart < .AssignmentBStart Then
+                                            .AssignmentBStart = tAss.BaselineStart
+                                        End If
                                     End If
                                 End If
-                            End If
 
-                            If tAss.BaselineFinish <> "NA" Then
-                                If .AssignmentBFinish = "NA" Then
-                                    .AssignmentBFinish = tAss.BaselineFinish
-                                Else
-                                    If tAss.BaselineFinish > .AssignmentBFinish Then
+                                If tAss.BaselineFinish <> "NA" Then
+                                    If .AssignmentBFinish = "NA" Then
                                         .AssignmentBFinish = tAss.BaselineFinish
+                                    Else
+                                        If tAss.BaselineFinish > .AssignmentBFinish Then
+                                            .AssignmentBFinish = tAss.BaselineFinish
+                                        End If
                                     End If
                                 End If
-                            End If
+                                
+                                If .AssignmentFStart = "NA" Then 'v3.3.0
+                                    .AssignmentFStart = tAss.Start
+                                Else
+                                    If tAss.Start < .AssignmentFStart Then
+                                        .AssignmentFStart = tAss.Start
+                                    End If
+                                End If
 
-                            .AssignmentBCost = .AssignmentBCost + tAss.BaselineCost
-                            If tAss.BaselineWork = "" Or tAss.ResourceType <> pjResourceTypeWork Then 'v3.2.1
-                                tempBWork = 0
-                            Else
-                                tempBWork = tAss.BaselineWork
-                            End If
-                            .AssignmentBWork = .AssignmentBWork + tempBWork / 60 '/ curproj.HoursPerDay 'v3.2.5
+                                If .AssignmentFFinish = "NA" Then 'v3.3.0
+                                    .AssignmentFFinish = tAss.Finish
+                                Else
+                                    If tAss.Finish > .AssignmentFFinish Then
+                                        .AssignmentFFinish = tAss.Finish
+                                    End If
+                                End If
 
-                        Next tAss
+                                .AssignmentBCost = .AssignmentBCost + tAss.BaselineCost
+                                .AssignmentFCost = .AssignmentFCost + tAss.Cost 'v3.3.0
+                                
+                                If tAss.BaselineWork = "" Or tAss.ResourceType <> pjResourceTypeWork Then 'v3.2.1
+                                    tempBWork = 0
+                                Else
+                                    tempBWork = tAss.BaselineWork
+                                End If
+                                .AssignmentBWork = .AssignmentBWork + tempBWork / 60 / curproj.HoursPerDay
+                                
+                                If tAss.Work = "" Or tAss.ResourceType <> pjResourceTypeWork Then 'v3.3.0
+                                    tempFWork = 0
+                                Else
+                                    tempFWork = tAss.Work
+                                End If
+                                .AssignmentFWork = .AssignmentFWork + tempFWork / 60 / curproj.HoursPerDay
+
+                            Next tAss
 
                     End With
 
@@ -961,7 +1039,7 @@ next_task:
 
     '**Reporting Assignment Baseline Issues (Values and Dates)**
 
-    Print #1, vbCrLf & vbCrLf & "Task Assignment Discrepancies - The following Tasks have vertical traceability errors with their Assignment Baseline Values and/or Baseline Dates"
+    Print #1, vbCrLf & vbCrLf & "Task Assignment Baseline Discrepancies - The following Tasks have vertical traceability errors with their Assignment Baseline Values and/or Baseline Dates" 'v3.3.0
 
     Print #1, vbCrLf & "UID,Task Baseline Work,Assignment Baseline Work,Task Baseline Cost,Assignment Baseline Cost,Task Baseline Start,Assignment Baseline Start,Task Baseline Finish,Assignment Baseline Finish, Assignment Count"
 
@@ -1019,7 +1097,69 @@ next_task:
 
     Next X
 
-    Print #1, vbCrLf & "Total Task Assignment Errors Found: " & ErrorCounter 'v3.2.3
+    Print #1, vbCrLf & "Total Task Assignment Baseline Errors Found: " & ErrorCounter 'v3.3.0
+
+    '**Reporting Assignment Forecast Issues (Values and Dates)**
+
+    Print #1, vbCrLf & vbCrLf & "Task Assignment Forecast Discrepancies - The following Tasks have potential vertical traceability errors with their Assignment Forecast Values and/or Forecast Dates"
+
+    Print #1, vbCrLf & "UID,Task Work,Assignment Work,Task Cost,Assignment Cost,Task Start,Assignment Start,Task Finish,Assignment Finish, Assignment Count"
+
+    ErrorCounter = 0
+
+    For X = 1 To taskCount
+
+        With TaskChecks(X)
+
+            If .AssignmentCount > 0 Then
+
+                If Round(.FCost, 2) <> Round(.AssignmentFCost, 2) Or Round(.FWork, 2) <> Round(.AssignmentFWork, 2) Or .FStart <> .AssignmentFStart Or .FFinish <> .AssignmentFFinish Then
+
+                    ErrorCounter = ErrorCounter + 1
+
+                    errorStr = .UID & ","
+                    errorStr = errorStr & .FWork & ","
+                    errorStr = errorStr & .AssignmentFWork & ","
+                    errorStr = errorStr & .FCost & ","
+                    errorStr = errorStr & .AssignmentFCost & ","
+                    errorStr = errorStr & .FStart & ","
+                    errorStr = errorStr & .AssignmentFStart & ","
+                    errorStr = errorStr & .FFinish & ","
+                    errorStr = errorStr & .AssignmentFFinish & ","
+                    errorStr = errorStr & .AssignmentCount
+
+                    Print #1, errorStr
+                    errorStr = ""
+
+                End If
+
+            End If
+            
+            If .AssignmentCount = 0 And (.FCost <> 0 Or .FWork <> 0) Then
+            
+                ErrorCounter = ErrorCounter + 1
+                
+                errorStr = .UID & ","
+                errorStr = errorStr & .FWork & ","
+                errorStr = errorStr & .AssignmentFWork & ","
+                errorStr = errorStr & .FCost & ","
+                errorStr = errorStr & .AssignmentFCost & ","
+                errorStr = errorStr & .FStart & ","
+                errorStr = errorStr & .AssignmentFStart & ","
+                errorStr = errorStr & .FFinish & ","
+                errorStr = errorStr & .AssignmentFFinish & ","
+                errorStr = errorStr & .AssignmentCount
+            
+                Print #1, errorStr
+                errorStr = ""
+            
+            End If
+
+        End With
+
+    Next X
+    
+    Print #1, vbCrLf & "Total Task Assignment Forecast Errors Found: " & ErrorCounter
 
     MsgBox "Data Check Report saved to " & destFolder
 
@@ -1112,6 +1252,7 @@ Private Sub CSV_Export(ByVal curproj As Project)
         fMilestoneWeight = docProps("fMSW").Value
     End If
     fPCNT = docProps("fPCNT").Value
+    fAssignPcnt = docProps("fAssignPcnt").Value 'v3.3.0
     fResID = docProps("fResID").Value
 
     BCR_Error = False
@@ -1189,7 +1330,7 @@ Private Sub BCWP_Export(ByVal curproj As Project)
     Dim t As Task
     Dim tAss As Assignments
     Dim tAssign As Assignment
-    Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT As String
+    Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, ResName, MSWeight, ID, PCNT As String 'v3.3.0
     Dim Milestone As String
     Dim subProj As SubProject
     Dim subProjs As Subprojects
@@ -1921,13 +2062,13 @@ nrBCWP_WP_Match_B:
         Open ACTfilename For Output As #1
 
         If CAID3_Used = True And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID3t & "," & fCAID2t & ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete"
+            Print #1, fCAID1t & "," & fCAID3t & "," & fCAID2t & ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete,Resource" 'v3.3.0
         End If
         If CAID3_Used = False And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID2t & ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete"
+            Print #1, fCAID1t & "," & fCAID2t & ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete,Resource" 'v3.3.0
         End If
         If CAID3_Used = False And CAID2_Used = False Then
-            Print #1, fCAID1t & ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete"
+            Print #1, fCAID1t & ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete,Resource" 'v3.3.0
         End If
 
         X = 1
@@ -1972,11 +2113,13 @@ nrBCWP_WP_Match_B:
                                 End If
                                 CAM = CleanCamName(t.GetField(FieldNameToFieldConstant(fCAM)))
                                 EVT = t.GetField(FieldNameToFieldConstant(fEVT))
+                                ResName = "" 'v3.3.0
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
                                     err.Raise 1
                                 End If
+                                
 
                                 If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
 
@@ -1989,7 +2132,139 @@ nrBCWP_WP_Match_B:
                                     If CAID3_Used = False And CAID2_Used = False Then
                                         Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & "," & Format(t.ActualStart, "M/D/YYYY") & "," & Format(t.ActualFinish, "M/D/YYYY") & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
                                     End If
+    
+                                ElseIf EVT = "L" Or EVT = "L Assignment % Complete" Then 'v3.3.0
+                                
+                                    'store ACT info
+                                    'WP Data
+                                    
+                                    Set tAss = t.Assignments
+                                        
+                                    For Each tAssign In tAss
+                                    
+                                        ResName = tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource))
+                                        ID = ID & "/" & ResName
+                                        
+                                        If X = 1 Then
+    
+                                            'create new WP line in ACTarrray
+                                            ReDim ACTarray(1 To X)
+                                            If CAID3_Used = True Then
+                                                ACTarray(X).CAID3 = CAID3
+                                            End If
+                                            ACTarray(X).CAM = CAM
+                                            ACTarray(X).Resource = ResName
+                                            ACTarray(X).ID = ID
+                                            ACTarray(X).CAID1 = CAID1
+                                            ACTarray(X).EVT = EVT
+                                            If CAID2_Used = True Then
+                                                ACTarray(X).CAID2 = CAID2
+                                            End If
+                                            ACTarray(X).WP = WP
+                                            ACTarray(X).FFinish = tAssign.Finish
+                                            ACTarray(X).FStart = tAssign.Start
+                                            If tAssign.ActualStart <> "NA" Then ACTarray(X).AStart = tAssign.ActualStart
+                                            If tAssign.ActualFinish <> "NA" Then ACTarray(X).AFinish = tAssign.ActualFinish
+                                            
+                                            If tAssign.BaselineWork <> 0 Then
+                                                ACTarray(X).sumBCWS = tAssign.BaselineWork / 60
+                                                ACTarray(X).sumBCWP = tAssign.BaselineWork / 60 * PercentfromString(get_Assignment_Pcnt(tAssign)) / 100
+                                            Else
+                                                ACTarray(X).sumBCWS = tAssign.BaselineCost
+                                                ACTarray(X).sumBCWP = tAssign.BaselineCost * PercentfromString(get_Assignment_Pcnt(tAssign)) / 100
+                                            End If
+                                            
+                                            If ACTarray(X).sumBCWS > 0 Then ACTarray(X).Prog = ACTarray(X).sumBCWP / ACTarray(X).sumBCWS * 100
+    
+                                            X = X + 1
+                                            ActFound = True
+    
+                                            GoTo Next_Assign_A
+    
+                                        End If
+    
+                                        For i = 1 To UBound(ACTarray)
+                                            If ACTarray(i).ID = ID Then
+                                                'Found an existing matching WP line
+                                                If ACTarray(i).FStart > tAssign.Start Then
+                                                    ACTarray(i).FStart = tAssign.Start
+                                                End If
+                                                If ACTarray(i).FFinish < tAssign.Finish Then
+                                                    ACTarray(i).FFinish = tAssign.Finish
+                                                End If
+                                                If tAssign.ActualStart <> "NA" Then
+                                                    If ACTarray(i).AStart = 0 Then
+                                                        ACTarray(i).AStart = tAssign.ActualStart
+                                                    Else
+                                                        If tAssign.ActualStart < ACTarray(i).AStart Then
+                                                            ACTarray(i).AStart = tAssign.ActualStart
+                                                        End If
+                                                    End If
+                                                End If
+                                                If tAssign.ActualFinish <> "NA" Then
+                                                    If ACTarray(i).AFinish = 0 Then
+                                                        ACTarray(i).AFinish = tAssign.ActualFinish
+                                                    Else
+                                                        If tAssign.ActualFinish > ACTarray(i).AFinish Then
+                                                            ACTarray(i).AFinish = tAssign.ActualFinish
+                                                        End If
+                                                    End If
+                                                End If
+                                                If tAssign.BaselineWork <> 0 Then
+                                                    ACTarray(i).sumBCWS = ACTarray(i).sumBCWS + tAssign.BaselineWork / 60
+                                                    ACTarray(i).sumBCWP = ACTarray(i).sumBCWP + (tAssign.BaselineWork / 60 * PercentfromString(get_Assignment_Pcnt(tAssign)) / 100)
+                                                Else
+                                                    ACTarray(i).sumBCWS = ACTarray(i).sumBCWS + tAssign.BaselineCost
+                                                    ACTarray(i).sumBCWP = ACTarray(i).sumBCWP + (tAssign.BaselineCost * PercentfromString(get_Assignment_Pcnt(tAssign)) / 100)
+                                                End If
+    
+                                                If ACTarray(i).sumBCWS > 0 Then ACTarray(i).Prog = ACTarray(i).sumBCWP / ACTarray(i).sumBCWS * 100
+    
+                                                GoTo Next_Assign_A
+                                            End If
+                                        Next i
+    
+                                        'No match found, create new WP line in ACTarrray
+                                        ReDim Preserve ACTarray(1 To X)
+                                        
+                                        If CAID3_Used = True Then
+                                            ACTarray(X).CAID3 = CAID3
+                                        End If
+                                        ACTarray(X).Resource = ResName
+                                        ACTarray(X).ID = ID
+                                        ACTarray(X).CAM = CAM
+                                        ACTarray(X).CAID1 = CAID1
+                                        ACTarray(X).EVT = EVT
+                                        ACTarray(X).FFinish = tAssign.Finish
+                                        ACTarray(X).FStart = tAssign.Start
+                                        If CAID2_Used = True Then
+                                            ACTarray(X).CAID2 = CAID2
+                                        End If
+                                        ACTarray(X).WP = WP
+                                        If tAssign.ActualStart <> "NA" Then
+                                            ACTarray(X).AStart = tAssign.ActualStart
+                                        End If
+                                        If tAssign.ActualFinish <> "NA" Then
+                                            ACTarray(X).AFinish = tAssign.ActualFinish
+                                        End If
+                                        If tAssign.BaselineWork <> 0 Then
+                                            ACTarray(X).sumBCWS = tAssign.BaselineWork / 60
+                                            ACTarray(X).sumBCWP = tAssign.BaselineWork / 60 * PercentfromString(get_Assignment_Pcnt(tAssign)) / 100
+                                        Else
+                                            ACTarray(X).sumBCWS = tAssign.BaselineCost
+                                            ACTarray(X).sumBCWP = tAssign.BaselineCost * PercentfromString(get_Assignment_Pcnt(tAssign)) / 100
+                                        End If
+                                        
+                                        If ACTarray(X).sumBCWS > 0 Then ACTarray(X).Prog = ACTarray(X).sumBCWP / ACTarray(X).sumBCWS * 100
 
+                                        X = X + 1
+                                        
+                                        ActFound = True
+                                        
+Next_Assign_A:
+
+                                    Next tAssign
+                                
                                 ElseIf EVT = "C" Or EVT = "C % Work Complete" Then
 
                                     'store ACT info
@@ -2126,11 +2401,11 @@ nrBCWP_WP_Match_B:
                                         ACTarray(X).AFinish = t.ActualFinish
                                     End If
                                     If t.BaselineWork <> 0 Then
-                                        ACTarray(i).sumBCWS = t.BaselineWork / 60
-                                        ACTarray(i).sumBCWP = t.BaselineWork / 60 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
+                                        ACTarray(X).sumBCWS = t.BaselineWork / 60 'v3.3.0
+                                        ACTarray(X).sumBCWP = t.BaselineWork / 60 * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100 'v3.3.0
                                     Else
-                                        ACTarray(i).sumBCWS = t.BaselineCost
-                                        ACTarray(i).sumBCWP = t.BaselineCost * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100
+                                        ACTarray(X).sumBCWS = t.BaselineCost
+                                        ACTarray(X).sumBCWP = t.BaselineCost * PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) / 100 'v3.3.0
                                     End If
                                     ACTarray(X).Prog = ACTarray(X).sumBCWP / ACTarray(X).sumBCWS * 100
 
@@ -2307,6 +2582,7 @@ BCWP_WP_Match_A:
                                 ID = CAID1 & "/" & WP
                             End If
                             EVT = t.GetField(FieldNameToFieldConstant(fEVT))
+                            ResName = "" 'v3.3.0
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
@@ -2324,6 +2600,140 @@ BCWP_WP_Match_A:
                                 If CAID3_Used = False And CAID2_Used = False Then
                                     Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & "," & Format(t.ActualStart, "M/D/YYYY") & "," & Format(t.ActualFinish, "M/D/YYYY") & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
                                 End If
+                                
+                            ElseIf EVT = "L" Or EVT = "L Assignment % Complete" Then 'v3.3.0
+                                
+                                'store ACT info
+                                'WP Data
+                                
+                                Set tAss = t.Assignments
+                                    
+                                For Each tAssign In tAss
+                                
+                                    ResName = tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource))
+                                    ID = ID & "/" & ResName
+                                    
+                                    If X = 1 Then
+
+                                        'create new WP line in ACTarrray
+                                        ReDim ACTarray(1 To X)
+                                        If CAID3_Used = True Then
+                                            ACTarray(X).CAID3 = CAID3
+                                        End If
+                                        ACTarray(X).CAM = CAM
+                                        ACTarray(X).Resource = ResName
+                                        ACTarray(X).ID = ID
+                                        ACTarray(X).CAID1 = CAID1
+                                        ACTarray(X).EVT = EVT
+                                        If CAID2_Used = True Then
+                                            ACTarray(X).CAID2 = CAID2
+                                        End If
+                                        ACTarray(X).WP = WP
+                                        ACTarray(X).FFinish = tAssign.Finish
+                                        ACTarray(X).FStart = tAssign.Start
+                                        If tAssign.ActualStart <> "NA" Then ACTarray(X).AStart = tAssign.ActualStart
+                                        If tAssign.ActualFinish <> "NA" Then ACTarray(X).AFinish = tAssign.ActualFinish
+                                        
+                                        If tAssign.BaselineWork <> 0 Then
+                                            ACTarray(X).sumBCWS = tAssign.BaselineWork / 60
+                                            ACTarray(X).sumBCWP = tAssign.BaselineWork / 60 * PercentfromString(get_Assignment_Pcnt(tAssign)) / 100
+                                        Else
+                                            ACTarray(X).sumBCWS = tAssign.BaselineCost
+                                            ACTarray(X).sumBCWP = tAssign.BaselineCost * PercentfromString(get_Assignment_Pcnt(tAssign)) / 100
+                                        End If
+                                        
+                                        If ACTarray(X).sumBCWS > 0 Then ACTarray(X).Prog = ACTarray(X).sumBCWP / ACTarray(X).sumBCWS * 100
+
+                                        X = X + 1
+                                        
+                                        ActFound = True
+
+                                        GoTo Next_Assign_B
+
+                                    End If
+
+                                    For i = 1 To UBound(ACTarray)
+                                        If ACTarray(i).ID = ID Then
+                                            'Found an existing matching WP line
+                                            If ACTarray(i).FStart > tAssign.Start Then
+                                                ACTarray(i).FStart = tAssign.Start
+                                            End If
+                                            If ACTarray(i).FFinish < tAssign.Finish Then
+                                                ACTarray(i).FFinish = tAssign.Finish
+                                            End If
+                                            If tAssign.ActualStart <> "NA" Then
+                                                If ACTarray(i).AStart = 0 Then
+                                                    ACTarray(i).AStart = tAssign.ActualStart
+                                                Else
+                                                    If tAssign.ActualStart < ACTarray(i).AStart Then
+                                                        ACTarray(i).AStart = tAssign.ActualStart
+                                                    End If
+                                                End If
+                                            End If
+                                            If tAssign.ActualFinish <> "NA" Then
+                                                If ACTarray(i).AFinish = 0 Then
+                                                    ACTarray(i).AFinish = tAssign.ActualFinish
+                                                Else
+                                                    If tAssign.ActualFinish > ACTarray(i).AFinish Then
+                                                        ACTarray(i).AFinish = tAssign.ActualFinish
+                                                    End If
+                                                End If
+                                            End If
+                                            If tAssign.BaselineWork <> 0 Then
+                                                ACTarray(i).sumBCWS = ACTarray(i).sumBCWS + tAssign.BaselineWork / 60
+                                                ACTarray(i).sumBCWP = ACTarray(i).sumBCWP + (tAssign.BaselineWork / 60 * PercentfromString(get_Assignment_Pcnt(tAssign)) / 100)
+                                            Else
+                                                ACTarray(i).sumBCWS = ACTarray(i).sumBCWS + tAssign.BaselineCost
+                                                ACTarray(i).sumBCWP = ACTarray(i).sumBCWP + (tAssign.BaselineCost * PercentfromString(get_Assignment_Pcnt(tAssign)) / 100)
+                                            End If
+
+                                            If ACTarray(i).sumBCWS > 0 Then ACTarray(i).Prog = ACTarray(i).sumBCWP / ACTarray(i).sumBCWS * 100
+
+                                            GoTo Next_Assign_B
+                                            
+                                        End If
+                                    Next i
+
+                                    'No match found, create new WP line in ACTarrray
+                                    ReDim Preserve ACTarray(1 To X)
+                                    
+                                    If CAID3_Used = True Then
+                                        ACTarray(X).CAID3 = CAID3
+                                    End If
+                                    ACTarray(X).Resource = ResName
+                                    ACTarray(X).ID = ID
+                                    ACTarray(X).CAM = CAM
+                                    ACTarray(X).CAID1 = CAID1
+                                    ACTarray(X).EVT = EVT
+                                    ACTarray(X).FFinish = tAssign.Finish
+                                    ACTarray(X).FStart = tAssign.Start
+                                    If CAID2_Used = True Then
+                                        ACTarray(X).CAID2 = CAID2
+                                    End If
+                                    ACTarray(X).WP = WP
+                                    If tAssign.ActualStart <> "NA" Then
+                                        ACTarray(X).AStart = tAssign.ActualStart
+                                    End If
+                                    If tAssign.ActualFinish <> "NA" Then
+                                        ACTarray(X).AFinish = tAssign.ActualFinish
+                                    End If
+                                    If tAssign.BaselineWork <> 0 Then
+                                        ACTarray(X).sumBCWS = tAssign.BaselineWork / 60
+                                        ACTarray(X).sumBCWP = tAssign.BaselineWork / 60 * PercentfromString(get_Assignment_Pcnt(tAssign)) / 100
+                                    Else
+                                        ACTarray(X).sumBCWS = tAssign.BaselineCost
+                                        ACTarray(X).sumBCWP = tAssign.BaselineCost * PercentfromString(get_Assignment_Pcnt(tAssign)) / 100
+                                    End If
+                                    
+                                    If ACTarray(X).sumBCWS > 0 Then ACTarray(X).Prog = ACTarray(X).sumBCWP / ACTarray(X).sumBCWS * 100
+
+                                    X = X + 1
+                                    
+                                    ActFound = True
+                                    
+Next_Assign_B:
+                                
+                                Next tAssign
 
                             ElseIf EVT = "C" Or EVT = "C % Work Complete" Then
 
@@ -2614,13 +3024,13 @@ BCWP_WP_Match_B:
                 If ACTarray(i).AFinish = 0 Or ACTarray(i).AFinish < ACTarray(i).FFinish Then aFinishString = "NA" Else aFinishString = Format(ACTarray(i).AFinish, "M/D/YYYY")
 
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY") & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY") & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog & "," & ACTarray(i).Resource 'v3.3.0
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY") & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY") & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog & "," & ACTarray(i).Resource 'v3.3.0
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY") & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY") & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog & "," & ACTarray(i).Resource 'v3.3.0
                 End If
 
             Next i
@@ -6174,3 +6584,131 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
     End Select
 
 End Sub
+
+Private Function get_Assignment_Pcnt(ByVal tAssignment As Assignment) As String
+
+    Dim pcntField As String
+
+    If fAssignPcnt = "<None>" Then
+    
+        get_Assignment_Pcnt = tAssignment.Task.GetField(FieldNameToFieldConstant(fPCNT))
+        Exit Function
+    
+    Else
+    
+        pcntField = fAssignPcnt
+        
+    End If
+
+    Select Case FieldNameToFieldConstant(pcntField)
+    
+        Case FieldNameToFieldConstant("Number1")
+        
+            get_Assignment_Pcnt = tAssignment.Number1
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number2")
+        
+            get_Assignment_Pcnt = tAssignment.Number2
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number3")
+        
+            get_Assignment_Pcnt = tAssignment.Number3
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number4")
+        
+            get_Assignment_Pcnt = tAssignment.Number4
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number5")
+        
+            get_Assignment_Pcnt = tAssignment.Number5
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number6")
+        
+            get_Assignment_Pcnt = tAssignment.Number6
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number7")
+        
+            get_Assignment_Pcnt = tAssignment.Number7
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number8")
+        
+            get_Assignment_Pcnt = tAssignment.Number8
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number9")
+        
+            get_Assignment_Pcnt = tAssignment.Number9
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number10")
+        
+            get_Assignment_Pcnt = tAssignment.Number10
+            Exit Function
+            
+        Case FieldNameToFieldConstant("Number11")
+        
+            get_Assignment_Pcnt = tAssignment.Number11
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number12")
+        
+            get_Assignment_Pcnt = tAssignment.Number12
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number13")
+        
+            get_Assignment_Pcnt = tAssignment.Number13
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number14")
+        
+            get_Assignment_Pcnt = tAssignment.Number14
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number15")
+        
+            get_Assignment_Pcnt = tAssignment.Number15
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number16")
+        
+            get_Assignment_Pcnt = tAssignment.Number16
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number17")
+        
+            get_Assignment_Pcnt = tAssignment.Number17
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number18")
+        
+            get_Assignment_Pcnt = tAssignment.Number18
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number19")
+        
+            get_Assignment_Pcnt = tAssignment.Number19
+            Exit Function
+        
+        Case FieldNameToFieldConstant("Number20")
+        
+            get_Assignment_Pcnt = tAssignment.Number20
+            Exit Function
+        
+        Case Else
+        
+            get_Assignment_Pcnt = 0
+            Exit Function
+            
+    End Select
+    
+    get_Assignment_Pcnt = 0
+
+End Function
