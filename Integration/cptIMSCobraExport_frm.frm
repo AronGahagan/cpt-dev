@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIMSCobraExport_frm 
-   Caption         =   "IMS Export Utility v3.2.5"
-   ClientHeight    =   7284
+   Caption         =   "IMS Export Utility v3.3.1"
+   ClientHeight    =   7296
    ClientLeft      =   120
    ClientTop       =   468
    ClientWidth     =   4392
@@ -13,7 +13,40 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v3.2.6</cpt_version>
+Private Sub AsgnPcntBox_Change() 'v3.3.1
+    
+    If isIMSfield(AsgnPcntBox.Value) = False And AsgnPcntBox.Value <> "" And AsgnPcntBox.Value <> "<None>" Then
+        MsgBox "Please select a valid IMS Field."
+        bcrBox.Value = ""
+        Exit Sub
+    End If
+    
+    Dim docProps As DocumentProperties
+    Dim curproj As Project
+    
+    Set curproj = ActiveProject
+    Set docProps = curproj.CustomDocumentProperties
+    
+    On Error GoTo PropMissing
+    
+    docProps("fAssignPcnt").Value = Me.AsgnPcntBox.Value
+
+PropFound:
+
+    Me.TabButtons(1).Tag = VerifyCustFieldUsage
+    
+    Set docProps = Nothing
+    Set curproj = Nothing
+    
+    Exit Sub
+    
+PropMissing:
+
+    docProps.Add "fAssignPcnt", False, msoPropertyTypeString, Me.AsgnPcntBox.Value
+    Resume PropFound
+End Sub
+
+'<cpt_version>v3.3.0</cpt_version>
 Private Sub bcrBox_Change()
 
     If checkDuplicate(bcrBox) = True Then
@@ -917,7 +950,7 @@ Private Function PopulateCustFieldUsage() As Boolean
     Dim curproj As Project
     Dim docProp As DocumentProperty
     Dim docProps As DocumentProperties
-    Dim fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fEVT, fCAID2, fCAID2t, fMSID, fMSW, fBCR, fWhatIf, fPCNT, fResID As Boolean 'v3.2
+    Dim fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fEVT, fCAID2, fCAID2t, fMSID, fMSW, fBCR, fWhatIf, fPCNT, fAssignPcnt, fResID As Boolean 'v3.3.0
     Dim nameTest As Double
     
     Set curproj = ActiveProject
@@ -928,6 +961,12 @@ Private Function PopulateCustFieldUsage() As Boolean
     For Each docProp In docProps
     
         Select Case docProp.Name
+        
+            Case "fAssignPcnt"
+            
+                nameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                fAssignPcnt = True
+                Me.AsgnPcntBox.Value = docProp.Value
         
             Case "fCAID1"
             
