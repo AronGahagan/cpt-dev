@@ -19,6 +19,7 @@ Private oNumberValidationRange As Excel.Range
 Private oInputRange As Excel.Range
 Private oUnlockedRange As Excel.Range
 Private oEntryHeaderRange As Excel.Range
+Public oEVTs As Scripting.Dictionary
 
 Sub cptShowStatusSheet_frm()
 'populate all outline codes, text, and number fields
@@ -1245,254 +1246,6 @@ evt_vs_evp:
 
 conditional_formatting_skipped:
 
-  'unlock Revised ETC at assignment level
-  lngCol = oWorksheet.Rows(lngHeaderRow).Find("Revised ETC", lookat:=xlWhole).Column
-  For lngItem = 0 To aAssignments.Count - 1
-    xlCells(aAssignments(lngItem), lngCol).Locked = False
-  Next lngItem
-
-  'optionallly set reference to Outlook and prepare to email
-  blnEmail = cptStatusSheet_frm.chkSendEmails = True
-  If blnEmail Then
-    On Error Resume Next
-    Set oOutlook = GetObject(, "Outlook.Application")
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-    If oOutlook Is Nothing Then Set oOutlook = CreateObject("Outlook.Application")
-    cptStatusSheet_frm.lblStatus.Caption = "Getting Outlook..."
-    Application.StatusBar = "Getting Outlook..."
-    DoEvents
-  End If
-
-  If blnPerformanceTest Then t = GetTickCount
-  cptStatusSheet_frm.lblStatus.Caption = "Saving Workbook" & IIf(cptStatusSheet_frm.cboCreate.Value = "1", "s", "") & "..."
-  Application.StatusBar = "Saving Workbook" & IIf(cptStatusSheet_frm.cboCreate.Value = "1", "s", "") & "..."
-  strDir = Environ("USERPROFILE") & "\CP_Status_Sheets\"
-  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
-  'get clean project name
-  strFileName = cptRemoveIllegalCharacters(ActiveProject.Name)
-  strFileName = Replace(strFileName, ".mpp", "")
-  'create project status folder
-  strDir = strDir & Replace(strFileName, " ", "") & "\"
-  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
-  'create project status date folder
-  strDir = strDir & Format(dtStatus, "yyyy-mm-dd") & "\"
-  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
-  strFileName = "SS_" & strFileName & "_" & Format(dtStatus, "yyyy-mm-dd") & ".xlsx"
-  strFileName = Replace(strFileName, " ", "")
-  
-  'create single Workbook
-  If cptStatusSheet_frm.cboCreate.Value = "0" Then
-  
-    oExcel.Visible = True '<issue81> - move this below if option = (0|other)
-    oExcel.WindowState = xlMaximized
-    oExcel.ScreenUpdating = True
-    
-    If oWorksheet.AutoFilterMode Then oWorksheet.ShowAllData
-    
-    oExcel.ActiveWindow.ScrollColumn = 1
-    oExcel.ActiveWindow.ScrollRow = 1 '<issue54>
-    xlCells(lngHeaderRow + 1, lngNameCol + 1).Select
-    oExcel.ActiveWindow.FreezePanes = True
-    'prettify the task name column
-    oWorksheet.Columns(lngNameCol).AutoFit
-  
-    If blnLocked Then 'protect the sheet
-      oWorksheet.Protect Password:="NoTouching!", AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
-      oWorksheet.EnableSelection = xlNoRestrictions
-    End If
-    'save to desktop in folder for status date
-    On Error Resume Next
-    If Dir(strDir & strFileName) <> vbNullString Then Kill strDir & strFileName
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-    'account for if the file exists and is open in the background
-    If Dir(strDir & strFileName) <> vbNullString Then  'delete failed, rename with timestamp
-      strMsg = "'" & strFileName & "' already exists, and is likely open." & vbCrLf
-      strFileName = Replace(strFileName, ".xlsx", "_" & Format(Now, "hh-nn-ss") & ".xlsx")
-      strMsg = strMsg & "The file you are now creating will be named '" & strFileName & "'"
-      MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
-      oWorkbook.SaveAs strDir & strFileName, 51
-    Else
-      oWorkbook.SaveAs strDir & strFileName, 51
-    End If
-    If blnEmail Then
-      Set oMailItem = oOutlook.CreateItem(0) '0 = oloMailItem
-      oMailItem.Attachments.Add strDir & strFileName
-      oMailItem.Subject = "Status Request - " & Format(dtStatus, "yyyy-mm-dd")
-      oMailItem.Display False
-    End If
-  Else
-  
-    xlCells(lngHeaderRow + 1, lngNameCol + 1).Select
-    oExcel.ActiveWindow.FreezePanes = True
-    'prettify the task name column
-    oWorksheet.Columns(lngNameCol).AutoFit
-  
-    'cycle through each option and create sheet
-    lngItem = 0
-    rstEach.MoveFirst
-    Do While Not rstEach.EOF
-      cptStatusSheet_frm.lblStatus.Caption = "Extracting data for " & rstEach(0) & "..."
-      Application.StatusBar = "Extracting data for " & rstEach(0) & "..."
-      DoEvents
-      lngLastRow = oWorkbook.Worksheets(1).[A8].End(xlDown).Row
-      lngRow = oWorkbook.Worksheets(1).[A8].End(xlDown).Row
-      oWorkbook.Sheets(1).Copy After:=oWorkbook.Sheets(oWorkbook.Sheets.Count) 'Set = Copy( doesn't work
-      Set oWorksheet = oWorkbook.Sheets(oWorkbook.Sheets.Count)
-      oWorksheet.Name = rstEach(0)
-      SetAutoFilter FieldName:=cptStatusSheet_frm.cboEach, FilterType:=pjAutoFilterIn, Criteria1:=rstEach(0)
-      'get array of task and assignment unique ids
-      oWorksheet.Cells(lngRow + 2, 1).Value = "KEEP"
-      'get group by summaries
-      SelectBeginning
-      Do
-        On Error Resume Next
-        Set oTask = ActiveCell.Task
-        If Not oTask Is Nothing Then
-          If oTask.GroupBySummary Or oTask.Summary Then
-            oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Offset(1, 0) = oTask.UniqueID 'aGroups.getValueList()(aGroups.indexOfKey(oTask.Name))
-          End If
-        'todo: else skip it and move to next
-        End If
-        If Err.Number > 0 Then
-          Err.Number = 0
-          Err.Clear
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-          Exit Do
-        End If
-        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-        SelectCellDown
-      Loop
-      'now get assignment uids to keep
-      SelectAll
-      For Each oTask In ActiveSelection.Tasks
-        oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Offset(1, 0).Value = oTask.UniqueID
-        For Each oAssignment In oTask.Assignments
-          oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Offset(1, 0) = oAssignment.UniqueID
-        Next oAssignment
-      Next oTask
-      'name the range of uids to keep
-      Set rngKeep = oWorksheet.Cells(lngRow + 2, 1)
-      Set rngKeep = oWorksheet.Range(rngKeep, rngKeep.End(xlDown))
-      oWorkbook.Names.Add Name:="KEEP", RefersToR1C1:="='" & rstEach(0) & "'!" & rngKeep.Address(True, True, xlR1C1)
-      'add a formula to find which rows to keep
-      lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Offset(1, 1).Column
-      Set rngKeep = oWorksheet.Range(oWorksheet.Cells(lngHeaderRow + 1, lngLastCol), oWorksheet.Cells(lngRow, lngLastCol))
-      rngKeep(1).Offset(-1, 0).Value = "KEEP"
-      rngKeep.Formula = "=IFERROR(VLOOKUP(A" & lngHeaderRow + 1 & ",KEEP,1,FALSE),""DELETE"")"
-      oExcel.Calculate
-      'oWorksheet.Cells(lngHeaderRow, 1).AutoFilter
-      lngLastRow = lngRow
-      For lngRow = lngLastRow To lngHeaderRow + 1 Step -1
-        If oWorksheet.Cells(lngRow, rngKeep.Column) = "DELETE" Then oWorksheet.Rows(lngRow).Delete Shift:=xlUp
-        cptStatusSheet_frm.lblStatus.Caption = "Creating " & rstEach(0) & "...(" & Format(((lngLastRow - lngRow) / (lngLastRow - lngHeaderRow)), "0%") & ")"
-        cptStatusSheet_frm.lblProgress.Width = ((lngLastRow - lngRow) / (lngLastRow - lngHeaderRow)) * cptStatusSheet_frm.lblStatus.Width
-        Application.StatusBar = "Creating " & rstEach(0) & "...(" & Format(((lngLastRow - lngRow) / (lngLastRow - lngHeaderRow)), "0%") & ")"
-        DoEvents
-      Next lngRow
-      cptStatusSheet_frm.lblProgress.Width = cptStatusSheet_frm.lblStatus.Width
-      oWorksheet.Cells(lngHeaderRow, 1).Select
-      oExcel.Selection.AutoFilter
-      oWorksheet.Columns(lngLastCol).Delete
-      oWorksheet.Range("KEEP").Clear
-      oWorkbook.Names("KEEP").Delete
-      oWorksheet.[B1].Select
-      If blnLocked Then
-        oWorksheet.Protect Password:="NoTouching!", AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
-        oWorksheet.EnableSelection = xlNoRestrictions
-      End If
-      DoEvents
-      rstEach.MoveNext
-    Loop 'rstEach
-
-    oExcel.ScreenUpdating = True
-    oExcel.Calculation = True
-
-    'handle for each
-    If cptStatusSheet_frm.cboCreate.Value = "1" Then  'Worksheet for each
-      'oWorkbook.SaveAs strDir & strFileName, 51 '</issue80>
-      'save in folder for status date '<issue80>
-      On Error Resume Next
-      If Dir(strDir & strFileName) <> vbNullString Then Kill strDir & strFileName
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-      'account for if the file exists and is open in the background
-      If Dir(strDir & strFileName) <> vbNullString Then  'delete failed, rename with timestamp
-        strMsg = "'" & strFileName & "' already exists, and is likely open." & vbCrLf
-        strFileName = Replace(strFileName, ".xlsx", "_" & Format(Now, "hh-nn-ss") & ".xlsx")
-        strMsg = strMsg & "The file you are now creating will be named '" & strFileName & "'"
-        MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
-        oWorkbook.SaveAs strDir & strFileName, 51
-      Else
-        oWorkbook.SaveAs strDir & strFileName, 51
-      End If
-      If blnEmail Then
-        Set oMailItem = oOutlook.CreateItem(0) '0 = oloMailItem
-        oMailItem.Attachments.Add strDir & strFileName
-        oMailItem.Subject = "Status Request - " & Format(dtStatus, "yyyy-mm-dd")
-        oMailItem.Display False
-      End If
-    ElseIf cptStatusSheet_frm.cboCreate.Value = "2" Then 'Workbook for each
-      rstEach.MoveLast 'start from the bottom
-      Do While Not rstEach.BOF
-        cptStatusSheet_frm.lblStatus.Caption = "Saving " & rstEach(0) & "..."
-        Application.StatusBar = "Saving " & rstEach(0) & "..."
-        oWorkbook.Sheets(CStr(rstEach(0))).Copy
-        On Error Resume Next
-        If Dir(strDir & Replace(strFileName, ".xlsx", "_" & rstEach(0) & ".xlsx")) <> vbNullString Then Kill strDir & Replace(strFileName, ".xlsx", "_" & rstEach(0) & ".xlsx")
-        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-        'account for if the file exists and is open in the background
-        If Dir(strDir & Replace(strFileName, ".xlsx", "_" & rstEach(0) & ".xlsx")) <> vbNullString Then  'delete failed, rename with timestamp
-          strMsg = "'" & Replace(strFileName, ".xlsx", "_" & rstEach(0) & ".xlsx") & "' already exists, and is likely open." & vbCrLf
-          strFileName = Replace(Replace(strFileName, ".xlsx", "_" & rstEach(0) & ".xlsx"), ".xlsx", "_" & Format(Now, "hh-nn-ss") & ".xlsx")
-          strMsg = strMsg & "The file you are now creating will be named '" & Replace(strFileName, ".xlsx", "_" & rstEach(0) & ".xlsx") & "'"
-          MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
-          oExcel.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & rstEach(0) & ".xlsx"), 51
-        Else
-          oExcel.ActiveWorkbook.SaveAs strDir & Replace(strFileName, ".xlsx", "_" & rstEach(0) & ".xlsx"), 51
-        End If
-        If blnLocked Then 'protect the worksheet
-          oExcel.ActiveWorkbook.Worksheets(1).Protect Password:="NoTouching!", AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
-          oExcel.ActiveWorkbook.Worksheets(1).EnableSelection = xlNoRestrictions
-        End If
-        If blnEmail Then
-          Set oMailItem = oOutlook.CreateItem(0) '0 = olMailItem
-          oMailItem.Attachments.Add strDir & Replace(strFileName, ".xlsx", "_" & rstEach(0) & ".xlsx")
-          oMailItem.Subject = "Status Request [" & rstEach(0) & "] " & Format(dtStatus, "yyyy-mm-dd")
-          oMailItem.Display False
-        End If
-        rstEach.MovePrevious
-      Loop
-      oWorkbook.Close False
-    End If
-
-    cptStatusSheet_frm.lblStatus.Caption = "Wrapping up..."
-    Application.StatusBar = "Wrapping up..."
-    DoEvents
-    
-    'reset autofilter
-    strFieldName = cptStatusSheet_frm.cboEach.Value
-    strCriteria = ""
-    rstEach.MoveFirst
-    Do While Not rstEach.EOF
-      strCriteria = strCriteria & rstEach(0) & Chr$(9)
-      rstEach.MoveNext
-    Loop
-    strCriteria = Left(strCriteria, Len(strCriteria) - 1)
-    SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
-    SelectBeginning
-
-  End If
-  If blnPerformanceTest Then Debug.Print "save Workbook: " & (GetTickCount - t) / 1000
-  If blnPerformanceTest Then Debug.Print "</=====PERFORMANCE TEST=====>"
-
-  cptStatusSheet_frm.lblProgress.Width = cptStatusSheet_frm.lblStatus.Width
-  cptStatusSheet_frm.lblStatus.Caption = " Complete."
-  Application.StatusBar = "Complete."
-  MsgBox "Status Sheet(s) Created", vbInformation + vbOKOnly, "ClearPlan Status Sheet"
-  oExcel.Visible = True
-  cptStatusSheet_frm.lblStatus.Caption = " Ready..."
-  Application.StatusBar = "Ready..."
-  DoEvents
-
 exit_here:
   On Error Resume Next
   Application.DefaultDateFormat = lngDateFormat
@@ -1510,6 +1263,7 @@ exit_here:
   Set oTasks = Nothing
   Set oTask = Nothing
   Set oAssignment = Nothing
+  oExcel.Quit
   Set oExcel = Nothing
   Set oWorkbook = Nothing
   Set oWorksheet = Nothing
@@ -1836,7 +1590,7 @@ try_again:
       Else
         Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngASCol))
       End If
-      Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngEVPCol))
+      If Not blnLOE Then Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngEVPCol))
     End If
     If oTask.Finish <= dtStatus And Not IsDate(oTask.ActualFinish) Then 'should have finished
       If oInputRange Is Nothing Then
@@ -1844,7 +1598,7 @@ try_again:
       Else
         Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngAFCol))
       End If
-      Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngEVPCol))
+      If Not blnLOE Then Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngEVPCol))
     End If
     If IsDate(oTask.ActualStart) And Not IsDate(oTask.ActualFinish) Then 'in progress
       'highlight EVP for discrete only
@@ -1919,46 +1673,18 @@ try_again:
       End If
     End If 'blnValidation
     
-    If oEVTRange Is Nothing Then
+    If oEVTRange Is Nothing Then 'todo: probably not needed
       Set oEVTRange = oWorksheet.Cells(lngRow, lngEVTCol)
     Else
       Set oEVTRange = oWorksheet.Application.Union(oEVTRange, oWorksheet.Cells(lngRow, lngEVTCol))
     End If
     
-    'todo: add EVT comment
-    
-'    If cptStatusSheet_frm.cboCostTool = "COBRA" Then
-'      strEVTList = "A - Level of Effort,"
-'      strEVTList = strEVTList & "B - Milestones,"
-'      strEVTList = strEVTList & "C - % Complete,"
-'      strEVTList = strEVTList & "D - Units Complete,"
-'      strEVTList = strEVTList & "E - 50-50,"
-'      strEVTList = strEVTList & "F - 0-100,"
-'      strEVTList = strEVTList & "G - 100-0,"
-'      strEVTList = strEVTList & "H - User Defined,"
-'      strEVTList = strEVTList & "J - Apportioned,"
-'      strEVTList = strEVTList & "K - Planning Package,"
-'      strEVTList = strEVTList & "L - Assignment % Complete,"
-'      strEVTList = strEVTList & "M - Calculated Apportionment,"
-'      strEVTList = strEVTList & "N - Steps,"
-'      strEVTList = strEVTList & "O - Earned As Spent,"
-'      strEVTList = strEVTList & "P - % Complete Manual Entry,"
-'    ElseIf cptStatusSheet_frm.cboCostTool = "MPM" Then
-'      strEVTList = strEVTList & "0 - No EVM required"
-'      strEVTList = strEVTList & "1 - 0/100"
-'      strEVTList = strEVTList & "2 - 25/75"
-'      strEVTList = strEVTList & "3 - 40/60"
-'      strEVTList = strEVTList & "4 - 50/50"
-'      strEVTList = strEVTList & "5 - % Complete"
-'      strEVTList = strEVTList & "6 - LOE"
-'      strEVTList = strEVTList & "7 - Earned Standards"
-'      strEVTList = strEVTList & "8 - Milestone Weights"
-'      strEVTList = strEVTList & "9 - BCWP Entry"
-'      strEVTList = strEVTList & "A - Apportioned"
-'      strEVTList = strEVTList & "P - Milestone Weights with % Complete"
-'      strEVTList = strEVTList & "K - Key Event"
-'    End If
-    
+''    'add EVT comment - this is slow, and often fails
+'    oWorksheet.Application.ScreenUpdating = True
+'    Set oComment = oWorksheet.Cells(lngRow, lngEVTCol).AddComment(oEVTs.Item(oTask.GetField(FieldNameToFieldConstant(cptStatusSheet_frm.cboEVT.Value))))
+'    oComment.Shape.TextFrame.Characters.Font.Bold = False
+'    oComment.Shape.TextFrame.AutoSize = True
+'    oWorksheet.Application.ScreenUpdating = False
     
     If oTask.Assignments.Count > 0 Then
       cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
@@ -2078,6 +1804,7 @@ next_task:
   
 exit_here:
   On Error Resume Next
+  Set oComment = Nothing
   Set oUnlockedRange = Nothing
   Set oComment = Nothing
   Set oEVTRange = Nothing

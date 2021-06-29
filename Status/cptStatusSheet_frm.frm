@@ -20,6 +20,67 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 Private Const adVarChar As Long = 200
 Private Const adInteger As Long = 3
 
+Private Sub cboCostTool_Change()
+  'objects
+  'strings
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  'setup EVT dictionary
+  Set oEVTs = CreateObject("Scripting.Dictionary")
+  If Not oEVTs Is Nothing Then
+    If oEVTs.Count > 0 Then oEVTs.RemoveAll
+  End If
+  If Not IsNull(cptStatusSheet_frm.cboCostTool.Value) Then
+    If cptStatusSheet_frm.cboCostTool.Value = "COBRA" Then
+      oEVTs.Add "A", "Level of Effort"
+      oEVTs.Add "B", "Milestones"
+      oEVTs.Add "C", "% Complete"
+      oEVTs.Add "D", "Units Complete"
+      oEVTs.Add "E", "50-50"
+      oEVTs.Add "F", "0-100"
+      oEVTs.Add "G", "100-0"
+      oEVTs.Add "H", "User Defined"
+      oEVTs.Add "J", "Apportioned"
+      oEVTs.Add "K", "Planning Package"
+      oEVTs.Add "L", "Assignment % Complete"
+      oEVTs.Add "M", "Calculated Apportionment"
+      oEVTs.Add "N", "Steps"
+      oEVTs.Add "O", "Earned As Spent"
+      oEVTs.Add "P", "% Complete Manual Entry"
+    ElseIf cptStatusSheet_frm.cboCostTool.Value = "MPM" Then
+      oEVTs.Add "0", "No EVM required"
+      oEVTs.Add "1", "0/100"
+      oEVTs.Add "2", "25/75"
+      oEVTs.Add "3", "40/60"
+      oEVTs.Add "4", "50/50"
+      oEVTs.Add "5", "% Complete"
+      oEVTs.Add "6", "LOE"
+      oEVTs.Add "7", "Earned Standards"
+      oEVTs.Add "8", "Milestone Weights"
+      oEVTs.Add "9", "BCWP Entry"
+      oEVTs.Add "A", "Apportioned"
+      oEVTs.Add "P", "Milestone Weights with % Complete"
+      oEVTs.Add "K", "Key Event"
+    End If
+  End If
+
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_frm", "cboCostTool_Change", Err, Erl)
+  Resume exit_here
+End Sub
+
 Private Sub cboCreate_Change()
 'objects
 'strings
@@ -349,6 +410,8 @@ Dim strFileName As String
 
   strFileName = cptDir & "\settings\cpt-status-sheet-search.adtg"
   If Dir(strFileName) <> vbNullString Then Kill strFileName
+  oEVTs.RemoveAll
+  Set oEVTs = Nothing
   Unload Me
 
 exit_here:
