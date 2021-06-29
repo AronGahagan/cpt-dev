@@ -605,10 +605,12 @@ Sub cptRefreshStatusImportTable()
 'objects
 Dim rst As Object 'ADODB.Recordset 'Object
 'strings
+Dim strEVT As String
 Dim strEVP As String
 Dim strSettings As String
 Dim strGUID As String
 'longs
+Dim lngEVT As Long
 Dim lngETC As Long
 Dim lngEVP As Long
 Dim lngNewEVP As Long
