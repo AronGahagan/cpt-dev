@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.2</cpt_version>
+'<cpt_version>v1.1.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -174,6 +174,45 @@ End Sub
 '                                  y As Single)
 '  Call cptAddFiles(Data)
 'End Sub
+
+Private Sub TreeView1_DblClick()
+  'objects
+  Dim oExcel As Object
+  'strings
+  Dim strPath As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If Me.TreeView1.Nodes.Count > 0 Then
+    If Me.TreeView1.SelectedItem Is Nothing Then GoTo exit_here
+    strPath = Me.TreeView1.SelectedItem.Text
+    If Dir(strPath) <> vbNullString Then
+      On Error Resume Next
+      Set oExcel = GetObject(, "Excel.Application")
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
+      oExcel.Workbooks.Open strPath
+      oExcel.Visible = True
+      Application.ActivateMicrosoftApp pjMicrosoftExcel
+    End If
+  End If
+  
+exit_here:
+  On Error Resume Next
+  Set oExcel = Nothing
+
+  Exit Sub
+err_here:
+  'Call HandleErr("cptStatusSheetImport_frm", "TreeView1.DblClick", Err)
+  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Resume exit_here
+End Sub
 
 Private Sub UserForm_Initialize()
   'Me.TreeView1.OLEDropMode = ccOLEDropManual

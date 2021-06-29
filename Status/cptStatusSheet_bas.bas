@@ -1370,8 +1370,6 @@ Private Sub cptAddLegend(ByRef oWorksheet As Worksheet, dtStatus As Date)
   'objects
   'strings
   'longs
-  'todo: delete this
-  Dim lngCol As Long
   'integers
   'doubles
   'booleans
@@ -1853,7 +1851,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
     oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
     oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.Italic = True 'todo: limit to columns
     vAssignment = oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Value
-    vAssignment(1, 1) = oAssignment.UniqueID 'todo: import assumes this is oAssignment.UniqueID, but oTask.UniqueID makes more sense to a user, perhaps?
+    vAssignment(1, 1) = oAssignment.UniqueID 'import assumes this is oAssignment.UniqueID
     vAssignment(1, lngNameCol) = String(lngIndent + 3, " ") & oAssignment.ResourceName
     If oAssignment.ResourceType = pjWork Then
       vAssignment(1, lngRemainingWorkCol) = oAssignment.RemainingWork / 60
@@ -1875,7 +1873,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
         Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1))
       End If
     End If
-    'add protection - todo: is this even used?
+    'add protection
     If oUnlockedRange Is Nothing Then
       Set oUnlockedRange = oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1)
     Else

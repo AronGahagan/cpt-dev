@@ -424,6 +424,41 @@ err_here:
 
 End Sub
 
+Private Sub cmdDir_Click()
+  'objects
+  Dim oFileDialog As FileDialog
+  Dim oExcel As Excel.Application
+  'strings
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  Set oExcel = CreateObject("Excel.Application")
+  Set oFileDialog = oExcel.FileDialog(msoFileDialogFolderPicker)
+  With oFileDialog
+    .AllowMultiSelect = False
+    .InitialFileName = ActiveProject.Path
+    If .Show Then
+      Me.txtDir = .SelectedItems(1) & "\"
+    End If
+  End With
+  
+exit_here:
+  On Error Resume Next
+  Set oFileDialog = Nothing
+  Set oExcel = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_frm", "cmdDir_Click", Err, Erl)
+  Resume exit_here
+End Sub
+
 Private Sub cmdDown_Click()
 Dim lngExport As Long
 Dim lgField As Long, strField As String, strField2 As String
