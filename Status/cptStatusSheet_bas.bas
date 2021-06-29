@@ -29,7 +29,7 @@ Dim rstFields As ADODB.Recordset 'Object
 Dim rstEVT As ADODB.Recordset 'Object
 Dim rstEVP As ADODB.Recordset 'Object
 'longs
-Dim lngField As Long, lngItem As Long
+Dim lngField As Long, lngItem As Long, lngSelectedItems As Long
 'integers
 Dim intField As Integer
 'strings
@@ -379,7 +379,11 @@ skip_fields:
   'set up the view/table/filter
   Application.StatusBar = "Preparing View/Table/Filter..."
   DoEvents
-  FilterClear
+  lngSelectedItems = 0
+  For lngItem = 0 To cptStatusSheet_frm.lboItems.ListCount - 1
+    If cptStatusSheet_frm.lboItems.Selected(lngItem) Then lngSelectedItems = lngSelectedItems + 1
+  Next lngItem
+  If lngSelectedItems = 0 Then FilterClear
   OptionsViewEx displaysummarytasks:=True, displaynameindent:=True
   If strStartingGroup = "No Group" Then
     Application.StatusBar = "Ensuring Sort by ID keeping Outline Structure..."
@@ -398,6 +402,7 @@ skip_fields:
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   cptSpeed False
   cptStatusSheet_frm.Show False
+  DoEvents
   cptRefreshStatusTable 'this only runs when form is visible
   Application.StatusBar = "Ready..."
   DoEvents
@@ -1686,6 +1691,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   'integers
   'doubles
   'booleans
+  Dim blnLOE As Boolean
   Dim blnLocked As Boolean
   Dim blnValidation As Boolean
   Dim blnConditionalFormats As Boolean
@@ -1776,6 +1782,17 @@ try_again:
     If Not oTask.Active Then GoTo next_task
     'todo: use Task Usage view if a group is applied there are no duplicate UIDs
     lngRow = oWorksheet.Columns(1).Find(oTask.UniqueID, lookat:=xlWhole).Row
+    'capture if task is LOE
+    blnLOE = False
+    With cptStatusSheet_frm
+      If Not IsNull(.cboCostTool.Value) Then
+        If .cboCostTool = "MPM" Then
+          If oTask.GetField(FieldNameToFieldConstant(.cboEVT.Value)) = "6" Then blnLOE = True
+        ElseIf cptStatusSheet_frm.cboCostTool = "COBRA" Then
+          If oTask.GetField(FieldNameToFieldConstant(.cboEVT.Value)) = "A" Then blnLOE = True
+        End If
+      End If
+    End With
     If oTask.Summary Then
       If oSummaryRange Is Nothing Then
         Set oSummaryRange = oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol))
@@ -1830,12 +1847,19 @@ try_again:
       Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngEVPCol))
     End If
     If IsDate(oTask.ActualStart) And Not IsDate(oTask.ActualFinish) Then 'in progress
-      If oInputRange Is Nothing Then
-        Set oInputRange = oWorksheet.Cells(lngRow, lngEVPCol)
-      Else
-        Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngEVPCol))
+      'highlight EVP for discrete only
+      If Not blnLOE Then
+        If oInputRange Is Nothing Then
+          Set oInputRange = oWorksheet.Cells(lngRow, lngEVPCol)
+        Else
+          Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngEVPCol))
+        End If
       End If
-      Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngAFCol))
+      If oInputRange Is Nothing Then
+        Set oInputRange = oWorksheet.Cells(lngRow, lngAFCol)
+      Else
+        Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngAFCol))
+      End If
     End If
     'two week window
     If oTask.Start > dtStatus And oTask.Start <= DateAdd("d", 14, dtStatus) Then
@@ -1901,7 +1925,7 @@ try_again:
       Set oEVTRange = oWorksheet.Application.Union(oEVTRange, oWorksheet.Cells(lngRow, lngEVTCol))
     End If
     
-    Stop 'todo: add EVT comment
+    'todo: add EVT comment
     
 '    If cptStatusSheet_frm.cboCostTool = "COBRA" Then
 '      strEVTList = "A - Level of Effort,"
