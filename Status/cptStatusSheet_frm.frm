@@ -220,7 +220,7 @@ End Sub
 
 Private Sub chkAllItems_Click()
   Dim lngItem As Long
-  
+    
   If Me.chkAllItems Then
     For lngItem = 0 To Me.lboItems.ListCount - 1
       Me.lboItems.Selected(lngItem) = True
@@ -245,8 +245,9 @@ End Sub
 
 Private Sub chkHide_Click()
 
+  If Not Me.Visible Then GoTo exit_here
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
   Me.txtHideCompleteBefore.Enabled = Me.chkHide
   If Me.Visible Then Call cptRefreshStatusTable
   
@@ -641,8 +642,6 @@ Dim lngItem As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  'If Not Me.Visible Then GoTo exit_here
-  
   cptSpeed True
   
   strFieldName = Me.cboEach.Value
@@ -661,8 +660,10 @@ Dim lngItem As Long
     SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
   End If
   
-  If Me.ActiveControl.Name = Me.lboItems.Name Then
-    Me.chkAllItems.Value = lngSelectedItems = Me.lboItems.ListCount
+  If Me.Visible Then
+    If Me.ActiveControl.Name = Me.lboItems.Name Then
+      Me.chkAllItems.Value = lngSelectedItems = Me.lboItems.ListCount
+    End If
   End If
   
   ActiveWindow.TopPane.Activate
