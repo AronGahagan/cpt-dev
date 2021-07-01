@@ -103,7 +103,9 @@ Dim lngField As Long
       Me.cboEach.Enabled = False
       Me.lboItems.Enabled = False
       FilterClear
-      FilterApply "cptStatusSheet Filter"
+      If Not FilterApply("cptStatusSheet Filter") Then
+        Call cptRefreshStatusTable
+      End If
       
     Case 1 'A worksheet for each
       Me.lboItems.ForeColor = -2147483630
