@@ -103,7 +103,7 @@ Dim lngField As Long
       Me.cboEach.Enabled = False
       Me.lboItems.Enabled = False
       FilterClear
-      If Not FilterApply("cptStatusSheet Filter") Then
+      If Not cptFilterExists("cptStatusSheet Filter") Then
         Call cptRefreshStatusTable
       End If
       
@@ -952,15 +952,15 @@ Dim strSubject As String
 End Sub
 
 Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
-  Dim strQuickPart As String, dtStatus As Date, lngDiff As Long
+  Dim dtStatus As Date, lngDiff As Long
   If IsDate(ActiveProject.StatusDate) Then
-    dtStatus = FormatDateTime(Me.txtStatusDate, vbShortDate)
+    dtStatus = FormatDateTime(CDate(Me.txtStatusDate), vbShortDate)
     If dtStatus <> CDate(ActiveProject.StatusDate) Then
       lngDiff = DateDiff("d", CDate(Me.txtHideCompleteBefore), CDate(Me.txtStatusDate))
       Me.txtStatusDate = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
       Me.txtHideCompleteBefore = DateAdd("d", -lngDiff, ActiveProject.StatusDate)
     End If
   Else
-    Me.txtStatusDate = ""
+    cptStatusSheet_frm.txtStatusDate.Value = FormatDateTime(DateAdd("d", 6 - Weekday(Now), Now), vbShortDate)
   End If
 End Sub
