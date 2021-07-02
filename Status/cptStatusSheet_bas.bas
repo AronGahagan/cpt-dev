@@ -1248,9 +1248,9 @@ conditional_formatting_skipped:
 
 exit_here:
   On Error Resume Next
-  Application.DefaultDateFormat = lngDateFormat
-  ActiveProject.SpaceBeforeTimeLabels = blnSpace
-  ActiveProject.DayLabelDisplay = lngDayLabelDisplay
+'  Application.DefaultDateFormat = lngDateFormat
+'  ActiveProject.SpaceBeforeTimeLabels = blnSpace
+'  ActiveProject.DayLabelDisplay = lngDayLabelDisplay
   If oExcel.Workbooks.Count > 0 Then oExcel.Calculation = xlAutomatic
   oExcel.ScreenUpdating = True
   oExcel.EnableEvents = True
