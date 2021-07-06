@@ -620,19 +620,19 @@ Dim blnIncluded As Boolean
   End If
   'ensure unique filenames
   If Me.cboCreate.Value = "0" Then 'one workbook
-    If InStr(Me.txtFileName, "item") > 0 Then
+    If InStr(Me.txtFileName, "[item]") > 0 Then
       Me.lblNamingConvention.ForeColor = 192 'red
-      MsgBox "Cannot use [item] field when creating a single workbook.", vbExclamation + vbOKOnly, "Invalid Naming Convention"
+      MsgBox "Cannot use '[item]' in naming convention when creating a single workbook.", vbExclamation + vbOKOnly, "Invalid Naming Convention"
       blnError = True
     End If
   ElseIf Me.cboCreate.Value = "1" Then 'worksheet for each
-    If InStr(Me.txtFileName, "item") = 0 Then
+    If InStr(Me.txtFileName, "[item]") > 0 Then
       Me.lblNamingConvention.ForeColor = 192 'red
-      MsgBox "Must include '[item]' in naming convention when creating worksheet for each.", vbExclamation + vbOKOnly, "Invalid Naming Convention"
+      MsgBox "Cannot use '[item]' in naming convention when creating worksheet for each.", vbExclamation + vbOKOnly, "Invalid Naming Convention"
       blnError = True
     End If
   ElseIf Me.cboCreate.Value = "2" Then 'workbook for each
-    If InStr(Me.txtFileName, "item") = 0 Then
+    If InStr(Me.txtFileName, "[item]") = 0 Then
       Me.lblNamingConvention.ForeColor = 192 'red
       MsgBox "Must include '[item]' in naming convention when creating workbook for each.", vbExclamation + vbOKOnly, "Invalid Naming Convention"
       blnError = True
