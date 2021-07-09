@@ -598,7 +598,7 @@ Sub cptCreateStatusSheet()
       oWorksheet.Calculate
       
       If blnLocked Then 'protect the sheet
-        oWorksheet.Protect Password:="NoTouching!", AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
+        oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
         oWorksheet.EnableSelection = xlNoRestrictions
       End If
       
@@ -641,7 +641,7 @@ Sub cptCreateStatusSheet()
           oWorksheet.Calculate
           
           If blnLocked Then 'protect the sheet
-            oWorksheet.Protect Password:="NoTouching!", AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
+            oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
             oWorksheet.EnableSelection = xlNoRestrictions
           End If
           
@@ -694,7 +694,7 @@ Sub cptCreateStatusSheet()
           oWorksheet.Calculate
           
           If blnLocked Then 'protect the sheet
-            oWorksheet.Protect Password:="NoTouching!", AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
+            oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
             oWorksheet.EnableSelection = xlNoRestrictions
           End If
           
@@ -709,6 +709,7 @@ Sub cptCreateStatusSheet()
           
           'must close before attaching to email
           oWorkbook.Close True
+          oWorkbook.Application.Wait Now + TimeValue("00:00:02")
           
           'send email
           If blnEmail Then
@@ -1684,6 +1685,13 @@ try_again:
 '    oComment.Shape.TextFrame.AutoSize = True
 '    oWorksheet.Application.ScreenUpdating = False
     
+    'todo: unlock comments
+    If oUnlockedRange Is Nothing Then
+      Set oUnlockedRange = oWorksheet.Cells(lngRow, lngLastCol)
+    Else
+      Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngLastCol))
+    End If
+    
     If oTask.Assignments.Count > 0 Then
       cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
     End If
@@ -2052,7 +2060,11 @@ Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem 
       strFileName = Replace(strFileName, "[item]", strItem)
     End If
     On Error Resume Next
-    If Dir(strDir & strFileName) <> vbNullString Then Kill strDir & strFileName
+    If Dir(strDir & strFileName) <> vbNullString Then
+      Kill strDir & strFileName
+      oWorkbook.Application.Wait Now + TimeValue("00:00:02")
+      DoEvents
+    End If
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     'account for if the file exists and is open in the background
     If Dir(strDir & strFileName) <> vbNullString Then  'delete failed, rename with timestamp
@@ -2063,6 +2075,7 @@ Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem 
       oWorkbook.SaveAs strDir & strFileName, 51
     Else
       oWorkbook.SaveAs strDir & strFileName, 51
+      oWorkbook.Application.Wait Now + TimeValue("00:00:02")
     End If
   End With
 
