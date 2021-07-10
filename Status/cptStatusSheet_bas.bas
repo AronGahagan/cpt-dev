@@ -344,22 +344,22 @@ skip_fields:
   strStartingTable = ActiveProject.CurrentTable
   strStartingFilter = ActiveProject.CurrentFilter
   strStartingGroup = ActiveProject.CurrentGroup
+  'todo: reset view/table/filter to starting position on form close
   
-  'cptSpeed True
-  If strStartingGroup <> "No Group" Then GroupApply "No Group"
-  If ActiveWindow.TopPane.View.Name <> "Gantt Chart" And ActiveWindow.TopPane.View.Name <> "Task Usage" Then
-    If MsgBox("Current view must be changed for successful export.", vbInformation + vbOKCancel, "Incompatible View") = vbOK Then
-      ActiveWindow.TopPane.Activate
-      If strStartingGroup <> "No Group" Then
-        ViewApply "Task Usage" 'required to prevent inaccurate UIDs getting into the sheet
-      Else
-        ViewApply "Gantt Chart"
-      End If
-    Else
-      GoTo exit_here
+  cptSpeed True
+  If ActiveWindow.TopPane.View.Type <> pjTaskItem Then
+    ViewApply "Gantt Chart"
+    FilterApply "All Tasks"
+    GroupApply "No Group"
+  Else
+    If strStartingGroup <> "No Group" Then
+      ViewApply "Task Usage"
+      GroupApply strStartingGroup
     End If
   End If
-
+  DoEvents
+  cptSpeed False
+  
   'set the status date / hide complete
   If ActiveProject.StatusDate = "NA" Then
     cptStatusSheet_frm.txtStatusDate.Value = FormatDateTime(DateAdd("d", 6 - Weekday(Now), Now), vbShortDate)
