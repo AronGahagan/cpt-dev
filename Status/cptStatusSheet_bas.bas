@@ -354,6 +354,7 @@ skip_fields:
     GroupApply "No Group"
   Else
     If strStartingGroup <> "No Group" Then
+      'TODO: TASK USAGE VIEW DUPLICATES ASSIGNMENTS
       ViewApply "Task Usage"
       If ActiveProject.CurrentGroup <> strStartingGroup Then GroupApply strStartingGroup
     End If
@@ -1698,7 +1699,7 @@ try_again:
       Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngLastCol))
     End If
     
-    If oTask.Assignments.Count > 0 Then
+    If oTask.Assignments.Count > 0 And oTask.PercentComplete < 100 Then
       cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
     End If
     
@@ -1847,6 +1848,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   Dim lngItem As Long
   Dim lngLastCol As Long
   Dim lngLastRow As Long
+  Dim lngCol As Long
   'integers
   'doubles
   'booleans
@@ -1862,7 +1864,15 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   lngItem = 0
   For Each oAssignment In oTask.Assignments
     lngItem = lngItem + 1
-    oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+    If ActiveProject.CurrentView <> "Task Usage" Then
+      oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+      oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.ColorIndex = xlAutomatic
+    Else
+      oWorksheet.Rows(lngRow + lngItem).ClearContents
+    End If
+    For lngCol = 2 To lngNameCol
+      If lngCol <> lngNameCol Then oWorksheet.Cells(lngRow + lngItem, lngCol) = oWorksheet.Cells(lngRow, lngCol)
+    Next lngCol
     oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.Italic = True 'todo: limit to columns
     vAssignment = oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Value
     vAssignment(1, 1) = oAssignment.UniqueID 'import assumes this is oAssignment.UniqueID
@@ -1921,7 +1931,7 @@ Dim vBorder As Variant
   lngHeaderRow = 8
   oWorksheet.Cells(lngHeaderRow, 1).AutoFilter
   oWorksheet.Columns(1).AutoFit
-  With oWorksheet.Range(oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight), oWorksheet.Cells(lngHeaderRow, 1).End(xlDown))
+  With oWorksheet.Range(oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight), oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp))
     .Borders(xlDiagonalDown).LineStyle = xlNone
     .Borders(xlDiagonalUp).LineStyle = xlNone
     For Each vBorder In Array(xlEdgeLeft, xlEdgeTop, xlEdgeBottom, xlEdgeRight, xlInsideVertical, xlInsideHorizontal)
