@@ -299,6 +299,7 @@ skip_fields:
     If strDataValidation <> "" Then .chkValidation = CBool(strDataValidation)
     strLocked = cptGetSetting("StatusSheet", "chkLocked")
     If strLocked <> "" Then .chkLocked = CBool(strLocked)
+    FilterClear
     strAllItems = cptGetSetting("StatusSheet", "chkAllItems")
     If strAllItems <> "" Then .chkAllItems = CBool(strAllItems)
   End With
@@ -349,12 +350,12 @@ skip_fields:
   cptSpeed True
   If ActiveWindow.TopPane.View.Type <> pjTaskItem Then
     ViewApply "Gantt Chart"
-    FilterApply "All Tasks"
+    'FilterApply "All Tasks"
     GroupApply "No Group"
   Else
     If strStartingGroup <> "No Group" Then
       ViewApply "Task Usage"
-      GroupApply strStartingGroup
+      If ActiveProject.CurrentGroup <> strStartingGroup Then GroupApply strStartingGroup
     End If
   End If
   DoEvents
@@ -380,18 +381,18 @@ skip_fields:
   'set up the view/table/filter
   Application.StatusBar = "Preparing View/Table/Filter..."
   DoEvents
-  lngSelectedItems = 0
-  For lngItem = 0 To cptStatusSheet_frm.lboItems.ListCount - 1
-    If cptStatusSheet_frm.lboItems.Selected(lngItem) Then lngSelectedItems = lngSelectedItems + 1
-  Next lngItem
-  If lngSelectedItems = 0 Then FilterClear
+'  lngSelectedItems = 0
+'  For lngItem = 0 To cptStatusSheet_frm.lboItems.ListCount - 1
+'    If cptStatusSheet_frm.lboItems.Selected(lngItem) Then lngSelectedItems = lngSelectedItems + 1
+'  Next lngItem
+'  If lngSelectedItems = 0 And ActiveProject.CurrentFilter <> "All Tasks" Then FilterClear
   OptionsViewEx displaysummarytasks:=True, displaynameindent:=True
   If strStartingGroup = "No Group" Then
     Application.StatusBar = "Ensuring Sort by ID keeping Outline Structure..."
     DoEvents
     Sort "ID", , , , , , False, True 'OutlineShowAllTasks won't work without this
   Else
-    GroupApply strStartingGroup
+    If ActiveProject.CurrentGroup <> strStartingGroup Then GroupApply strStartingGroup
   End If
   Application.StatusBar = "Showing all tasks..."
   DoEvents
@@ -405,6 +406,7 @@ skip_fields:
   cptStatusSheet_frm.Show False
   DoEvents
   cptRefreshStatusTable 'this only runs when form is visible
+  If strStartingGroup <> "No Group" Then GroupApply strStartingGroup
   Application.StatusBar = "Ready..."
   DoEvents
 
@@ -1320,6 +1322,9 @@ Dim lngItem As Long
   cptSpeed True
 
   'reset the table
+  Application.StatusBar = "Resetting the cptStatusSheet Table..."
+  If ActiveProject.CurrentGroup <> "No Group" Then GroupApply "No Group"
+  
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   lngItem = 0
@@ -1350,6 +1355,7 @@ Dim lngItem As Long
   TableApply Name:="cptStatusSheet Table"
 
   'reset the filter
+  Application.StatusBar = "Resetting the cptStatusSheet Filter..."
   FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, showsummarytasks:=True
   If cptStatusSheet_frm.chkHide And IsDate(cptStatusSheet_frm.txtHideCompleteBefore) Then
     FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", showsummarytasks:=True

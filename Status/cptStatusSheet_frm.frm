@@ -283,16 +283,24 @@ End Sub
 
 Private Sub chkAllItems_Click()
   Dim lngItem As Long
-    
+  Dim strCriteria As String
+  Dim strFieldName As String
+  
+  If IsNull(Me.cboEach) Then Exit Sub
+  strFieldName = Me.cboEach.Value
   If Me.chkAllItems Then
     For lngItem = 0 To Me.lboItems.ListCount - 1
       Me.lboItems.Selected(lngItem) = True
+      strCriteria = strCriteria & Me.lboItems.List(lngItem) & Chr$(9)
     Next lngItem
+    strCriteria = Left(strCriteria, Len(strCriteria) - 1)
+    SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
   Else
     If Me.ActiveControl.Name = Me.chkAllItems.Name Then
       For lngItem = 0 To Me.lboItems.ListCount - 1
         Me.lboItems.Selected(lngItem) = False
       Next lngItem
+      SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterClear
     End If
   End If
   
@@ -763,7 +771,10 @@ Dim lngItem As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  cptSpeed True
+  If Not Me.Visible Then Exit Sub
+  If Me.ActiveControl.Name <> Me.lboItems.Name Then Exit Sub
+  
+  If Application.Calculation = pjAutomatic Then cptSpeed True
   
   strFieldName = Me.cboEach.Value
 
