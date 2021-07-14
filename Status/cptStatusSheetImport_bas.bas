@@ -8,6 +8,7 @@ Sub cptShowStatusSheetImport_frm()
 'objects
 Dim rst As Object 'ADODB.Recordset
 'strings
+Dim strContour As String
 Dim strAppendTo As String
 Dim strETC As String
 Dim strEVP As String
@@ -86,6 +87,21 @@ Dim vField As Variant
       Next intField
     Next vField
     
+    'contour
+    .cboContour.AddItem
+    .cboContour.List(.cboContour.ListCount - 1, 0) = 0
+    .cboContour.List(.cboContour.ListCount - 1, 1) = "<none>"
+    
+    For Each vField In Array("Text")
+      For intField = 1 To 30
+        lngField = FieldNameToFieldConstant(vField & intField, pjTask)
+        strCustomFieldName = CustomFieldGetName(lngField)
+        .cboContour.AddItem
+        .cboContour.List(.cboContour.ListCount - 1, 0) = lngField
+        .cboContour.List(.cboContour.ListCount - 1, 1) = FieldConstantToFieldName(lngField) & IIf(Len(strCustomFieldName) > 0, " (" & strCustomFieldName & ")", "")
+      Next intField
+    Next vField
+    
     'todo: add enterprise custom fields?
     
     'get project guid
@@ -119,10 +135,12 @@ Dim vField As Variant
       Kill strSettings
     Else
       'default settings
+      'todo: auto-select first avaialble/unnamed?
+      .cboContour.Value = 0
       .cboAppendTo.Value = "Top of Task Note"
     End If
 
-    'todo: import user settings
+    'import user settings
     strAS = cptGetSetting("StatusSheetImport", "cboAS")
     If Len(strAS) > 0 Then .cboAS.Value = CLng(strAS)
     strAF = cptGetSetting("StatusSheetImport", "cboAF")
@@ -135,13 +153,11 @@ Dim vField As Variant
     If Len(strEVP) > 0 Then .cboEV.Value = CLng(strEVP)
     strETC = cptGetSetting("StatusSheetImport", "cboETC")
     If Len(strETC) > 0 Then .cboETC.Value = CLng(strETC)
+    strContour = cptGetSetting("StatusSheetImport", "cboContour")
+    If Len(strContour) > 0 Then .cboContour.Value = CLng(strContour)
     .chkAppend = CBool(cptGetSetting("StatusSheetImport", "chkAppend"))
     strAppendTo = cptGetSetting("StatusSheetImport", "cboAppendTo")
-    If Len(strAppendTo) > 0 Then
-      .cboAppendTo.Value = strAppendTo
-    Else
-      .cboAppendTo.Value = "Top of Task Note"
-    End If
+    If Len(strAppendTo) > 0 Then .cboAppendTo.Value = strAppendTo
   
     'show the form
     .Show False
@@ -164,55 +180,57 @@ End Sub
 
 Sub cptStatusSheetImport()
 'objects
-Dim oSubproject As SubProject
-Dim oTask As Task
-Dim oResource As Resource
-Dim oAssignment As Assignment
-Dim oExcel As Object 'Excel.Application
-Dim oWorkbook As Object 'Excel.Workbook
-Dim oWorksheet As Object 'Excel.Worksheet
-Dim oListObject As Object 'Excel.ListObject
-Dim oRange As Object 'Excel.Range
-Dim oCell As Object 'Excel.Range
-Dim oComboBox As ComboBox
-Dim rst As Object 'ADODB.Recordset
-'strings
-Dim strImportLog As String
-Dim strAppendTo As String
-Dim strSettings As String
-Dim strGUID As String
-'longs
-Dim lngTask As Long
-Dim lngTasks As Long
-Dim lngTaskNameCol As Long
-Dim lngEVCol As Long
-Dim lngUIDCol As Long
-Dim lngFile As Long
-Dim lngRow As Long
-Dim lngCommentsCol As Long
-Dim lngETCCol As Long
-Dim lngAFCol As Long
-Dim lngASCol As Long
-Dim lngHeaderRow As Long
-Dim lngLastRow As Long
-Dim lngFiles As Long
-Dim lngETC As Long
-Dim lngEV As Long
-Dim lngFF As Long
-Dim lngFS As Long
-Dim lngAF As Long
-Dim lngAS As Long
-'integers
-'doubles
-'booleans
-Dim blnTask As Boolean
-Dim blnValid As Boolean
-'variants
-Dim vField As Variant
-Dim vControl As Variant
-'dates
-Dim dtNewDate As Date
-Dim dtStatus As Date
+  Dim oSubproject As SubProject
+  Dim oTask As Task
+  Dim oResource As Resource
+  Dim oAssignment As Assignment
+  Dim oExcel As Object 'Excel.Application
+  Dim oWorkbook As Object 'Excel.Workbook
+  Dim oWorksheet As Object 'Excel.Worksheet
+  Dim oListObject As Object 'Excel.ListObject
+  Dim oRange As Object 'Excel.Range
+  Dim oCell As Object 'Excel.Range
+  Dim oComboBox As ComboBox
+  Dim rst As Object 'ADODB.Recordset
+  'strings
+  Dim strImportLog As String
+  Dim strAppendTo As String
+  Dim strSettings As String
+  Dim strGUID As String
+  'longs
+  Dim lngContourCol As Long
+  Dim lngContour As Long
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  Dim lngTaskNameCol As Long
+  Dim lngEVCol As Long
+  Dim lngUIDCol As Long
+  Dim lngFile As Long
+  Dim lngRow As Long
+  Dim lngCommentsCol As Long
+  Dim lngETCCol As Long
+  Dim lngAFCol As Long
+  Dim lngASCol As Long
+  Dim lngHeaderRow As Long
+  Dim lngLastRow As Long
+  Dim lngFiles As Long
+  Dim lngETC As Long
+  Dim lngEV As Long
+  Dim lngFF As Long
+  Dim lngFS As Long
+  Dim lngAF As Long
+  Dim lngAS As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnTask As Boolean
+  Dim blnValid As Boolean
+  'variants
+  Dim vField As Variant
+  Dim vControl As Variant
+  'dates
+  Dim dtNewDate As Date
+  Dim dtStatus As Date
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -263,6 +281,7 @@ Dim dtStatus As Date
     lngFF = .cboFF.Value
     lngEV = .cboEV.Value
     lngETC = .cboETC.Value
+    lngContour = .cboContour.Value
     strAppendTo = .cboAppendTo
   End With
   
@@ -438,6 +457,8 @@ next_task:
         lngAFCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Finish", lookat:=xlPart).Column
         lngEVCol = oWorksheet.Rows(lngHeaderRow).Find(what:="New EV%", lookat:=xlWhole).Column
         lngETCCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Revised ETC", lookat:=xlWhole).Column
+        'todo: get Contour column - may not exist
+        'lngContourCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Work Contour", lookat:=xlWhole).Column
         lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Reason / Action / Impact", lookat:=xlWhole).Column
         'get last row
         lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row
@@ -460,7 +481,7 @@ next_task:
             GoTo next_row
           End If
           If blnTask Then
-            'new start date
+            'new start date todo: only import if different
             If oWorksheet.Cells(lngRow, lngASCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngASCol).Locked Then
               dtNewDate = CDate(oWorksheet.Cells(lngRow, lngASCol).Value)
               'determine actual or forecast
@@ -470,7 +491,7 @@ next_task:
                 oTask.SetField lngFS, dtNewDate
               End If
             End If
-            'new finish date
+            'new finish date todo: only import if different
             If oWorksheet.Cells(lngRow, lngAFCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngAFCol).Locked Then
               dtNewDate = CDate(oWorksheet.Cells(lngRow, lngAFCol))
               If dtNewDate <= dtStatus Then 'actual finish
@@ -479,11 +500,11 @@ next_task:
                 oTask.SetField lngFF, dtNewDate
               End If
             End If
-            'ev
+            'ev todo: only import if different
             If (oWorksheet.Cells(lngRow, lngEVCol) * 100) <> oTask.GetField(lngEV) Then
               oTask.SetField lngEV, oWorksheet.Cells(lngRow, lngEVCol) * 100
             End If
-            'comments
+            'comments todo: only import if different
             If .chkAppend And oWorksheet.Cells(lngRow, lngCommentsCol).Value <> "" Then
               If .cboAppendTo = "Top of Task Note" Then
                 oTask.Notes = Format(Now, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & oTask.Notes
@@ -491,13 +512,6 @@ next_task:
                 oTask.AppendNotes String(25, "-") & vbCrLf & Format(Now, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
               End If
             End If
-            'if user is importing to AS and AF then mark oTask on track
-'            'todo: decide if this is a good idea
-'            If lngAS = FieldNameToFieldConstant("Actual Start") And lngAF = FieldNameToFieldConstant("Actual Finish") Then
-'              'todo: what if user has it filtered? or collapsed?
-'              EditGoTo oTask.ID
-'              UpdateProject All:=False, UpdateDate:=CStr(dtStatus & " 5 PM"), Action:=1
-'            End If
           ElseIf Not blnTask Then 'it's an Assignment
             On Error Resume Next
             Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
@@ -505,6 +519,7 @@ next_task:
             If oAssignment Is Nothing Then
               Print #lngFile, "ASSIGNMENT MISSING: " & oWorksheet.Cells(lngRow, lngTaskNameCol).Value
             Else
+              'todo: only import if different
               If lngETC = FieldNameToFieldConstant("Number1") Then
                 oAssignment.Number1 = oWorksheet.Cells(lngRow, lngETCCol)
               ElseIf lngETC = FieldNameToFieldConstant("Number2") Then
@@ -545,6 +560,72 @@ next_task:
                 oAssignment.Number19 = oWorksheet.Cells(lngRow, lngETCCol)
               ElseIf lngETC = FieldNameToFieldConstant("Number20") Then
                 oAssignment.Number20 = oWorksheet.Cells(lngRow, lngETCCol)
+              End If
+              If lngContour > 0 Then
+                'todo: import contour
+                'todo: add work contour and associated custom field to import table
+                'todo: only import if different
+                If lngContour = FieldNameToFieldConstant("Text1") Then
+                  oAssignment.Text1 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text2") Then
+                  oAssignment.Text2 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text3") Then
+                  oAssignment.Text3 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text4") Then
+                  oAssignment.Text4 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text5") Then
+                  oAssignment.Text5 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text6") Then
+                  oAssignment.Text6 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text7") Then
+                  oAssignment.Text7 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text8") Then
+                  oAssignment.Text8 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text9") Then
+                  oAssignment.Text9 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text10") Then
+                  oAssignment.Text10 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text11") Then
+                  oAssignment.Text11 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text12") Then
+                  oAssignment.Text12 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text13") Then
+                  oAssignment.Text13 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text14") Then
+                  oAssignment.Text14 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text15") Then
+                  oAssignment.Text15 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text16") Then
+                  oAssignment.Text16 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text17") Then
+                  oAssignment.Text17 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text18") Then
+                  oAssignment.Text18 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text19") Then
+                  oAssignment.Text19 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text20") Then
+                  oAssignment.Text20 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text21") Then
+                  oAssignment.Text21 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text22") Then
+                  oAssignment.Text22 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text23") Then
+                  oAssignment.Text23 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text24") Then
+                  oAssignment.Text24 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text25") Then
+                  oAssignment.Text25 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text26") Then
+                  oAssignment.Text26 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text27") Then
+                  oAssignment.Text27 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text28") Then
+                  oAssignment.Text28 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text29") Then
+                  oAssignment.Text29 = oWorksheet.Cells(lngRow, lngContourCol)
+                ElseIf lngContour = FieldNameToFieldConstant("Text30") Then
+                  oAssignment.Text30 = oWorksheet.Cells(lngRow, lngContourCol)
+                End If
               End If
               Set oAssignment = Nothing
             End If
