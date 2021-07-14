@@ -19,6 +19,7 @@ Private oNumberValidationRange As Excel.Range
 Private oInputRange As Excel.Range
 Private oUnlockedRange As Excel.Range
 Private oEntryHeaderRange As Excel.Range
+Private oContourRange As Excel.Range
 Public oEVTs As Scripting.Dictionary
 
 Sub cptShowStatusSheet_frm()
@@ -34,6 +35,7 @@ Dim lngField As Long, lngItem As Long, lngSelectedItems As Long
 'integers
 Dim intField As Integer
 'strings
+Dim strContour As String
 Dim strFileNamingConvention As String
 Dim strDir As String
 Dim strAllItems As String
@@ -98,6 +100,7 @@ Dim vFieldType As Variant
     .chkValidation = True
     .chkLocked = True
     .chkAllItems = False
+    .chkContour = False
     .txtDir = ActiveProject.Path & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
     .txtFileName = "StatusRequest_[yyyy-mm-dd]"
   End With
@@ -299,9 +302,12 @@ skip_fields:
     If strDataValidation <> "" Then .chkValidation = CBool(strDataValidation)
     strLocked = cptGetSetting("StatusSheet", "chkLocked")
     If strLocked <> "" Then .chkLocked = CBool(strLocked)
+    ActiveWindow.TopPane.Activate
     FilterClear
     strAllItems = cptGetSetting("StatusSheet", "chkAllItems")
     If strAllItems <> "" Then .chkAllItems = CBool(strAllItems)
+    strContour = cptGetSetting("StatusSheet", "chkContour")
+    If strContour <> "" Then .chkContour = CBool(strContour)
   End With
 
   'add saved export fields if they exist
@@ -598,6 +604,12 @@ Sub cptCreateStatusSheet()
       'final formatting
       cptFinalFormats oWorksheet
       
+      Set oInputRange = Nothing
+      Set oNumberValidationRange = Nothing
+      Set oUnlockedRange = Nothing
+      Set oAssignmentRange = Nothing
+      Set oContourRange = Nothing
+      
       oWorksheet.Calculate
       
       If blnLocked Then 'protect the sheet
@@ -652,6 +664,7 @@ Sub cptCreateStatusSheet()
           Set oNumberValidationRange = Nothing
           Set oUnlockedRange = Nothing
           Set oAssignmentRange = Nothing
+          Set oContourRange = Nothing
           
           .lblStatus = "Creating Worksheet for " & strItem & "...done"
 
@@ -705,6 +718,7 @@ Sub cptCreateStatusSheet()
           Set oNumberValidationRange = Nothing
           Set oUnlockedRange = Nothing
           Set oAssignmentRange = Nothing
+          Set oContourRange = Nothing
                     
           'save the workbook
           strFileName = cptSaveStatusSheet(oWorkbook, strItem)
@@ -1353,6 +1367,9 @@ Dim lngItem As Long
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Previous ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Revised ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  If cptStatusSheet_frm.chkContour Then
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Work Contour", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  End If
   TableApply Name:="cptStatusSheet Table"
 
   'reset the filter
@@ -1422,7 +1439,6 @@ End Sub
 
 Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   'objects
-  Dim oUnlockedRange As Excel.Range
   Dim oComment As Excel.Comment
   Dim oEVTRange As Excel.Range
   Dim oCompleted As Excel.Range
@@ -1455,6 +1471,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   Dim blnLocked As Boolean
   Dim blnValidation As Boolean
   Dim blnConditionalFormats As Boolean
+  Dim blnContour As Boolean
   'variants
   'dates
   Dim dtStatus As Date
@@ -1465,6 +1482,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   blnValidation = cptStatusSheet_frm.chkValidation = True
   blnConditionalFormats = cptStatusSheet_frm.chkAddConditionalFormats = True
   blnLocked = cptStatusSheet_frm.chkLocked = True
+  blnContour = cptStatusSheet_frm.chkContour = True
   ActiveWindow.TopPane.Activate
 try_again:
   SelectAll
@@ -1628,22 +1646,12 @@ try_again:
       Else
         Set oTwoWeekWindowRange = oWorksheet.Application.Union(oTwoWeekWindowRange, oWorksheet.Cells(lngRow, lngASCol))
       End If
-      If oUnlockedRange Is Nothing Then
-        Set oUnlockedRange = oWorksheet.Cells(lngRow, lngASCol)
-      Else
-        Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngASCol))
-      End If
     End If
     If oTask.Finish > dtStatus And oTask.Finish <= DateAdd("d", 14, dtStatus) Then
       If oTwoWeekWindowRange Is Nothing Then
         Set oTwoWeekWindowRange = oWorksheet.Cells(lngRow, lngAFCol)
       Else
         Set oTwoWeekWindowRange = oWorksheet.Application.Union(oTwoWeekWindowRange, oWorksheet.Cells(lngRow, lngAFCol))
-      End If
-      If oUnlockedRange Is Nothing Then
-        Set oUnlockedRange = oWorksheet.Cells(lngRow, lngAFCol)
-      Else
-        Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngAFCol))
       End If
     End If
     'unstarted
@@ -1654,6 +1662,8 @@ try_again:
         Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngASCol))
       End If
       Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngAFCol))
+      Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngEVPCol))
+      Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngETCCol))
     End If
     
     'capture data validation
@@ -1692,7 +1702,7 @@ try_again:
 '    oComment.Shape.TextFrame.AutoSize = True
 '    oWorksheet.Application.ScreenUpdating = False
     
-    'todo: unlock comments
+    'unlock comment column
     If oUnlockedRange Is Nothing Then
       Set oUnlockedRange = oWorksheet.Cells(lngRow, lngLastCol)
     Else
@@ -1769,8 +1779,24 @@ next_task:
     oInputRange.Locked = False
   End If
   If blnLocked And Not oUnlockedRange Is Nothing Then oUnlockedRange.Locked = False
-  If Not oTwoWeekWindowRange Is Nothing Then oTwoWeekWindowRange.Style = "Neutral"
-  
+  If Not oTwoWeekWindowRange Is Nothing Then
+    oTwoWeekWindowRange.Style = "Neutral"
+    oTwoWeekWindowRange.Locked = False
+  End If
+  If blnContour And Not oContourRange Is Nothing Then
+    With oContourRange.Validation
+      .Delete
+      .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:="Flat,Back Loaded,Front Loaded,Double Peak,Early Peak,Late Peak,Bell,Turtle,Contour"
+      .IgnoreBlank = True
+      .InCellDropdown = True
+      .InputTitle = "Work Contour"
+      .ErrorTitle = ""
+      .InputMessage = "Default is Flat"
+      .ErrorMessage = ""
+      .ShowInput = True
+      .ShowError = True
+    End With
+  End If
   'add EVT gloassary - test comment
   If Not oEVTRange Is Nothing Then
     If cptStatusSheet_frm.cboCostTool = "COBRA" Then
@@ -1844,6 +1870,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   Dim strProtect As String
   Dim strDataValidation As String
   'longs
+  Dim lngContourCol As Long
   Dim lngIndent As Long
   Dim lngItem As Long
   Dim lngLastCol As Long
@@ -1860,6 +1887,9 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   
   lngIndent = Len(cptRegEx(oWorksheet.Cells(lngRow, lngNameCol).Value, "^\s*"))
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
+  If cptStatusSheet_frm.chkContour Then
+    lngContourCol = oWorksheet.Rows(lngHeaderRow).Find("Work Contour").Column
+  End If
   lngLastRow = oWorksheet.Cells(1048576, 1).End(xlUp).Row
   lngItem = 0
   For Each oAssignment In oTask.Assignments
@@ -1884,6 +1914,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
       vAssignment(1, lngRemainingWorkCol) = oAssignment.RemainingWork
       vAssignment(1, lngRemainingWorkCol + 1) = oAssignment.RemainingWork
     End If
+    vAssignment(1, lngContourCol) = Choose(oAssignment.WorkContour + 1, "Flat", "Back Loaded", "Front Loaded", "Double Peak", "Early Peak", "Late Peak", "Bell", "Turtle", "Contour")
     'add validation
     If oNumberValidationRange Is Nothing Then
       Set oNumberValidationRange = oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1)
@@ -1903,11 +1934,26 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
     Else
       Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1))
     End If
+    'enter the values
     oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Value = vAssignment
     If oAssignmentRange Is Nothing Then
       Set oAssignmentRange = oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol))
     Else
       Set oAssignmentRange = oWorksheet.Application.Union(oAssignmentRange, oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)))
+    End If
+    'unlock contour range for unstarted tasks only todo: is this right?
+    If Not IsDate(oTask.ActualStart) Then
+      If oUnlockedRange Is Nothing Then
+        Set oUnlockedRange = oWorksheet.Cells(lngRow + lngItem, lngContourCol)
+      Else
+        Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow + lngItem, lngContourCol))
+      End If
+      'add contour
+      If oContourRange Is Nothing Then
+        Set oContourRange = oWorksheet.Cells(lngRow + lngItem, lngContourCol)
+      Else
+        Set oContourRange = oWorksheet.Application.Union(oContourRange, oWorksheet.Cells(lngRow + lngItem, lngContourCol))
+      End If
     End If
   Next oAssignment
   'add formulae
@@ -1950,7 +1996,7 @@ Dim vBorder As Variant
 '    .Font.ColorIndex = xlAutomatic
 '    .BorderAround xlContinuous, xlMedium
 '  End With
-  oWorksheet.Application.WindowState = xlNormal
+  oWorksheet.Application.WindowState = xlNormal 'cannot apply certain settings below if window is minimized...like data validation
   oWorksheet.Application.Calculation = xlCalculationAutomatic
   oWorksheet.Application.ScreenUpdating = True
   oWorksheet.Application.ActiveWindow.DisplayGridLines = False
@@ -2206,6 +2252,7 @@ Sub cptSaveStatusSheetSettings()
         cptSaveSetting "StatusSheet", "cboQuickPart", .cboQuickParts.Value
       End If
     End If
+    cptSaveSetting "StatusSheet", "chkContour", IIf(.chkContour, 1, 0)
   End With
 
 exit_here:

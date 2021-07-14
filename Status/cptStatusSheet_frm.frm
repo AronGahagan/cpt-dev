@@ -314,6 +314,10 @@ Private Sub chkAppendStatusDate_Click()
   End If
 End Sub
 
+Private Sub chkContour_Click()
+  cptRefreshStatusTable
+End Sub
+
 Private Sub chkHide_Click()
 
   If Not Me.Visible Then GoTo exit_here
@@ -333,12 +337,30 @@ err_here:
 End Sub
 
 Private Sub chkSendEmails_Click()
+Dim strQuickPart As String
+Dim blnExists As Boolean
+Dim lngItem As Long
 
   Me.txtSubject.Enabled = Me.chkSendEmails
   Me.txtCC.Enabled = Me.chkSendEmails
   Me.cboQuickParts.Enabled = Me.chkSendEmails
   If Me.chkSendEmails Then
     Call cptListQuickParts(True)
+    strQuickPart = cptGetSetting("StatusSheet", "cboQuickPart")
+    If Len(strQuickPart) > 0 Then
+      blnExists = False
+      For lngItem = 0 To Me.cboQuickParts.ListCount - 1
+        If Me.cboQuickParts.List(lngItem, 0) = strQuickPart Then
+          blnExists = True
+          Exit For
+        End If
+      Next lngItem
+      If blnExists Then
+        Me.cboQuickParts.Value = strQuickPart
+      Else
+        MsgBox "QuickPart '" & strQuickPart & "' not found.", vbExclamation + vbOKOnly, "Stored Setting Invalid"
+      End If
+    End If
   End If
 
 End Sub
