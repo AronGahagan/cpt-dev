@@ -8,6 +8,7 @@ Sub cptShowStatusSheetImport_frm()
 'objects
 Dim rst As Object 'ADODB.Recordset
 'strings
+Dim strContour As String
 Dim strAppendTo As String
 Dim strETC As String
 Dim strEVP As String
@@ -86,6 +87,21 @@ Dim vField As Variant
       Next intField
     Next vField
     
+    'contour
+    .cboContour.AddItem
+    .cboContour.List(.cboContour.ListCount - 1, 0) = 0
+    .cboContour.List(.cboContour.ListCount - 1, 1) = "<none>"
+    
+    For Each vField In Array("Text")
+      For intField = 1 To 30
+        lngField = FieldNameToFieldConstant(vField & intField, pjTask)
+        strCustomFieldName = CustomFieldGetName(lngField)
+        .cboContour.AddItem
+        .cboContour.List(.cboContour.ListCount - 1, 0) = lngField
+        .cboContour.List(.cboContour.ListCount - 1, 1) = FieldConstantToFieldName(lngField) & IIf(Len(strCustomFieldName) > 0, " (" & strCustomFieldName & ")", "")
+      Next intField
+    Next vField
+    
     'todo: add enterprise custom fields?
     
     'get project guid
@@ -110,6 +126,7 @@ Dim vField As Variant
         cptSaveSetting "StatusSheetImport", "cboEV", CStr(rst("EV"))
         cptSaveSetting "StatusSheetImport", "cboETC", CStr(rst("ETC"))
         cptSaveSetting "StatusSheetImport", "chkAppend", CStr(rst("Append"))
+        'cptSaveSetting "StatusSheetImport", "cboContour", CStr(rst("Contour"))
         If rst("AppendTo") <> "" Then
           cptSaveSetting "StatusSheetImport", "cboAppendTo", CStr(rst("AppendTo"))
         Else
@@ -135,6 +152,12 @@ Dim vField As Variant
     If Len(strEVP) > 0 Then .cboEV.Value = CLng(strEVP)
     strETC = cptGetSetting("StatusSheetImport", "cboETC")
     If Len(strETC) > 0 Then .cboETC.Value = CLng(strETC)
+    strContour = cptGetSetting("StatusSheetImport", "cboContour")
+    If Len(strContour) > 0 Then
+      .cboContour.Value = CLng(strContour)
+    Else
+      .cboContour.Value = 0
+    End If
     .chkAppend = CBool(cptGetSetting("StatusSheetImport", "chkAppend"))
     strAppendTo = cptGetSetting("StatusSheetImport", "cboAppendTo")
     If Len(strAppendTo) > 0 Then
@@ -182,6 +205,7 @@ Dim strAppendTo As String
 Dim strSettings As String
 Dim strGUID As String
 'longs
+Dim lngContour As Long
 Dim lngTask As Long
 Dim lngTasks As Long
 Dim lngTaskNameCol As Long
@@ -263,6 +287,7 @@ Dim dtStatus As Date
     lngFF = .cboFF.Value
     lngEV = .cboEV.Value
     lngETC = .cboETC.Value
+    lngContour = .cboContour.Value
     strAppendTo = .cboAppendTo
   End With
   

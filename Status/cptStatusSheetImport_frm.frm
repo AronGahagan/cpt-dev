@@ -94,6 +94,7 @@ Private Sub cmdImport_Click()
     cptSaveSetting "StatusSheetImport", "cboFF", Me.cboFF.Value
     cptSaveSetting "StatusSheetImport", "cboEVP", Me.cboEV.Value
     cptSaveSetting "StatusSheetImport", "cboETC", Me.cboETC.Value
+    cptSaveSetting "StatusSheetImport", "cboContour", Me.cboContour.Value
     cptSaveSetting "StatusSheetImport", "chkNotes", CStr(Me.chkAppend)
     If Me.chkAppend Then
       cptSaveSetting "StatusSheetImport", "cboAppendTo", Me.cboAppendTo.Value
