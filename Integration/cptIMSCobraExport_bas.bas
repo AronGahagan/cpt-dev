@@ -810,10 +810,6 @@ next_task:
 
         '**Report Tasks Missing Metadata**
 
-        If TaskChecks(X).UID = "578" Then
-            DoEvents
-        End If
-
         If TaskChecks(X).WP <> "" Or (TaskChecks(X).EVT <> "" And TaskChecks(X).EVT <> "NA" And TaskChecks(X).EVT <> "N/A") Or TaskChecks(X).BCost <> 0 Or TaskChecks(X).BWork <> 0 Then 'v3.2.2
 
             If TaskChecks(X).BWork = 0 Then tempBValue = TaskChecks(X).BCost Else tempBValue = TaskChecks(X).BWork
@@ -1091,7 +1087,7 @@ next_task:
 
     '**Reporting Assignment Baseline Issues (Values and Dates)**
 
-    Print #1, vbCrLf & vbCrLf & "Task Assignment Baseline Discrepancies - The following Tasks have vertical traceability errors with their Assignment Baseline Values and/or Baseline Dates" 'v3.3.0
+    Print #1, vbCrLf & vbCrLf & "Task Assignment Baseline Discrepancies - The following Tasks have vertical traceability errors with their Assignment Baseline Values and/or Baseline Dates. Note that tasks with mixed elements of cost (labor & material/cost) that include labor rates may result in false positives." 'v3.3.0
 
     Print #1, vbCrLf & "UID,Task Baseline Work,Assignment Baseline Work,Assignment TimeScaled Work,Task Baseline Cost,Assignment Baseline Cost,Assignment TimeScaled Cost,Task Baseline Start,Assignment Baseline Start,Task Baseline Finish,Assignment Baseline Finish, Assignment Count" 'v3.3.2
 
@@ -1103,7 +1099,7 @@ next_task:
 
             If .AssignmentCount > 0 Then 'v3.2.3
 
-                If Round(CDec(.AssignmentTSVWork), 2) <> Round(CDec(.AssignmentBWork), 2) Or Round(CDec(.AssignmentTSVCost), 2) <> Round(CDec(.AssignmentBCost), 2) Or Round(CDec(.BCost), 2) <> Round(CDec(.AssignmentBCost), 2) Or Round(CDec(.BWork), 2) <> Round(CDec(.AssignmentBWork), 2) Or .BStart <> .AssignmentBStart Or .BFinish <> .AssignmentBFinish Then 'v3.3.2
+                If Round(CDec(.AssignmentTSVWork), 2) <> Round(CDec(.AssignmentBWork), 2) Or (Round(CDec(.AssignmentTSVCost), 2) <> Round(CDec(.AssignmentBCost), 2) And .AssignmentBWork = 0) Or Round(CDec(.BCost), 2) <> Round(CDec(.AssignmentBCost), 2) Or Round(CDec(.BWork), 2) <> Round(CDec(.AssignmentBWork), 2) Or .BStart <> .AssignmentBStart Or .BFinish <> .AssignmentBFinish Then 'v3.3.2
 
                     ErrorCounter = ErrorCounter + 1
 
