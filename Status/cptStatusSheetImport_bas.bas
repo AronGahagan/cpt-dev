@@ -219,6 +219,7 @@ Dim dtStatus As Date
   'todo: save current dates to selected fields
   'todo: age the dates X periods - carry back names
   'todo: view should be gantt on top and oTask usage below (but with custom table having only UID,{user fields},oTask/oResource Name, Remaining Work, New ETC
+  'todo: if Work Contour column exists, then import it...but should this be a custom field?
   
   'validate choices for all
   With cptStatusSheetImport_frm
