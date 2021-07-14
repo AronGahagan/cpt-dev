@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.1</cpt_version>
+'<cpt_version>v3.3.2</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -23,6 +23,7 @@ Private ActFound As Boolean
 Private CAID3_Used As Boolean
 Private CAID2_Used As Boolean
 Private Milestones_Used As Boolean
+Private AssignmentPCNT_Used As Boolean 'v3.3.2
 Private TimeScaleExport As Boolean
 Private DescExport As Boolean
 Private ErrMsg As String
@@ -89,6 +90,8 @@ Private Type TaskDataCheck
     AssignmentBCost As Double
     AssignmentFWork As Double 'v3.3.0
     AssignmentFCost As Double 'v3.3.0
+    AssignmentTSVWork As Double 'v3.3.2
+    AssignmentTSVCost As Double 'v3.3.2
     EVT As String
     MSID As String
     MSWeight As String
@@ -209,9 +212,8 @@ Sub Export_IMS()
             CAID3_Used = .CAID3TxtBox.Enabled
             CAID2_Used = .CAID2TxtBox.Enabled
             DataChecks curproj
-            Set curproj = Nothing
             Set xportFrm = Nothing
-            Exit Sub
+            GoTo Quick_Exit
         End If
 
         If .MPPBtn.Value = True Then
@@ -237,6 +239,11 @@ Sub Export_IMS()
                 Milestones_Used = False
             Else
                 Milestones_Used = True
+            End If
+            If .AsgnPcntBox = "<None>" Or .AsgnPcntBox = "" Then
+                AssignmentPCNT_Used = False
+            Else
+                AssignmentPCNT_Used = True
             End If
             DescExport = .exportDescCheckBox.Value
         End If
@@ -292,6 +299,34 @@ Quick_Exit:
 
 End Sub
 
+Private Function get_assignment_timescalevalues(ByVal tAss As Assignment) As Double 'v3.3.2
+    
+    Dim tsvs As TimeScaleValues
+    Dim tsv As TimeScaleValue
+    Dim tempTotal As Double
+    
+    If tAss.Resource.Type = pjResourceTypeCost Then
+        Set tsvs = tAss.TimeScaleData(tAss.BaselineStart, tAss.BaselineFinish, pjAssignmentTimescaledBaselineCost)
+    Else
+        Set tsvs = tAss.TimeScaleData(tAss.BaselineStart, tAss.BaselineFinish, pjAssignmentTimescaledBaselineWork)
+    End If
+    
+    tempTotal = 0
+    
+    For Each tsv In tsvs
+    
+        If tsv.Value <> "" Then
+            
+            tempTotal = tempTotal + tsv.Value
+        
+        End If
+        
+    Next
+    
+    get_assignment_timescalevalues = tempTotal
+
+End Function
+
 Private Sub DataChecks(ByVal curproj As Project)
 
     Dim WPChecks() As WPDataCheck
@@ -320,6 +355,7 @@ Private Sub DataChecks(ByVal curproj As Project)
     Dim tempBValue As Double
     Dim tempBWork As Double
     Dim tempFWork As Double 'v3.3.0
+    Dim tempTSVWork As Double 'v3.3.2
 
     Dim docProps As DocumentProperties
 
@@ -360,7 +396,7 @@ Private Sub DataChecks(ByVal curproj As Project)
 
         For Each subProj In subProjs
 
-            FileOpen Name:=subProj.Path, ReadOnly:=True
+            FileOpen Name:=subProj.path, ReadOnly:=True
 
             Set curSProj = ActiveProject
 
@@ -390,9 +426,9 @@ Private Sub DataChecks(ByVal curproj As Project)
                                 .MSID = t.GetField(FieldNameToFieldConstant(fMilestone))
                                 .MSWeight = t.GetField(FieldNameToFieldConstant(fMilestoneWeight))
                             End If
-                            .BWork = t.BaselineWork / 60 / curSProj.HoursPerDay
+                            .BWork = t.BaselineWork / 60 'v3.3.2
                             .BCost = t.BaselineCost
-                            .FWork = t.Work / 60 / curSProj.HoursPerDay 'v3.3.0
+                            .FWork = t.Work / 60 'v3.3.2
                             .FCost = t.Cost 'v3.3.0
                             .CAM = t.GetField(FieldNameToFieldConstant(fCAM))
                             .AssignmentBStart = "NA"
@@ -403,6 +439,8 @@ Private Sub DataChecks(ByVal curproj As Project)
                             .AssignmentBWork = 0
                             .AssignmentFCost = 0 'v3.3.0
                             .AssignmentFWork = 0 'v3.3.0
+                            .AssignmentTSVWork = 0 'v3.3.2
+                            .AssignmentTSVCost = 0 'v3.3.2
                             .BStart = t.BaselineStart
                             .BFinish = t.BaselineFinish
                             .FStart = t.Start 'v3.3.0
@@ -450,21 +488,27 @@ Private Sub DataChecks(ByVal curproj As Project)
                                 End If
 
                                 .AssignmentBCost = .AssignmentBCost + tAss.BaselineCost
+                                If tAss.ResourceType <> pjResourceTypeWork Then 'v3.3.2
+                                    .AssignmentTSVCost = .AssignmentTSVCost + get_assignment_timescalevalues(tAss)
+                                End If
                                 .AssignmentFCost = .AssignmentFCost + tAss.Cost 'v3.3.0
                                 
                                 If tAss.BaselineWork = "" Or tAss.ResourceType <> pjResourceTypeWork Then 'v3.2.1
                                     tempBWork = 0
+                                    tempTSVWork = 0 'v3.3.2
                                 Else
                                     tempBWork = tAss.BaselineWork
+                                    tempTSVWork = get_assignment_timescalevalues(tAss) 'v3.3.2
                                 End If
-                                .AssignmentBWork = .AssignmentBWork + tempBWork / 60 / curSProj.HoursPerDay
+                                .AssignmentBWork = .AssignmentBWork + tempBWork / 60 'v3.3.2
+                                .AssignmentTSVWork = .AssignmentTSVWork + tempTSVWork / 60 'v3.3.2
                                 
                                 If tAss.Work = "" Or tAss.ResourceType <> pjResourceTypeWork Then 'v3.3.0
                                     tempFWork = 0
                                 Else
                                     tempFWork = tAss.Work
                                 End If
-                                .AssignmentFWork = .AssignmentFWork + tempFWork / 60 / curSProj.HoursPerDay
+                                .AssignmentFWork = .AssignmentFWork + tempFWork / 60 'v3.3.2
 
                             Next tAss
 
@@ -508,9 +552,9 @@ Private Sub DataChecks(ByVal curproj As Project)
                                 .MSID = t.GetField(FieldNameToFieldConstant(fMilestone))
                                 .MSWeight = t.GetField(FieldNameToFieldConstant(fMilestoneWeight))
                             End If
-                            .BWork = t.BaselineWork / 60 / curproj.HoursPerDay
+                            .BWork = t.BaselineWork / 60 'v3.3.2
                             .BCost = t.BaselineCost
-                            .FWork = t.Work / 60 / curproj.HoursPerDay 'v3.3.0
+                            .FWork = t.Work / 60 'v3.3.2
                             .FCost = t.Cost 'v3.3.0
                             .CAM = t.GetField(FieldNameToFieldConstant(fCAM))
                             .AssignmentBStart = "NA"
@@ -521,6 +565,8 @@ Private Sub DataChecks(ByVal curproj As Project)
                             .AssignmentBWork = 0
                             .AssignmentFCost = 0 'v3.3.0
                             .AssignmentFWork = 0 'v3.3.0
+                            .AssignmentTSVWork = 0 'v3.3.2
+                            .AssignmentTSVCost = 0 'v3.3.2
                             .BStart = t.BaselineStart
                             .BFinish = t.BaselineFinish
                             .FStart = t.Start 'v3.3.0
@@ -568,21 +614,27 @@ Private Sub DataChecks(ByVal curproj As Project)
                                 End If
 
                                 .AssignmentBCost = .AssignmentBCost + tAss.BaselineCost
+                                If tAss.ResourceType <> pjResourceTypeWork Then 'v3.3.2
+                                    .AssignmentTSVCost = .AssignmentTSVCost + get_assignment_timescalevalues(tAss)
+                                End If
                                 .AssignmentFCost = .AssignmentFCost + tAss.Cost 'v3.3.0
                                 
                                 If tAss.BaselineWork = "" Or tAss.ResourceType <> pjResourceTypeWork Then 'v3.2.1
                                     tempBWork = 0
+                                    tempTSVWork = 0 'v3.3.2
                                 Else
                                     tempBWork = tAss.BaselineWork
+                                    tempTSVWork = get_assignment_timescalevalues(tAss) 'v3.3.2
                                 End If
-                                .AssignmentBWork = .AssignmentBWork + tempBWork / 60 / curproj.HoursPerDay
+                                .AssignmentBWork = .AssignmentBWork + tempBWork / 60 'v3.3.2
+                                .AssignmentTSVWork = .AssignmentTSVWork + tempTSVWork / 60 'v3.3.2
                                 
                                 If tAss.Work = "" Or tAss.ResourceType <> pjResourceTypeWork Then 'v3.3.0
                                     tempFWork = 0
                                 Else
                                     tempFWork = tAss.Work
                                 End If
-                                .AssignmentFWork = .AssignmentFWork + tempFWork / 60 / curproj.HoursPerDay
+                                .AssignmentFWork = .AssignmentFWork + tempFWork / 60 'v3.3.2
 
                             Next tAss
 
@@ -757,10 +809,6 @@ Private Sub DataChecks(ByVal curproj As Project)
 next_task:
 
         '**Report Tasks Missing Metadata**
-
-        If TaskChecks(X).UID = "578" Then
-            DoEvents
-        End If
 
         If TaskChecks(X).WP <> "" Or (TaskChecks(X).EVT <> "" And TaskChecks(X).EVT <> "NA" And TaskChecks(X).EVT <> "N/A") Or TaskChecks(X).BCost <> 0 Or TaskChecks(X).BWork <> 0 Then 'v3.2.2
 
@@ -1039,9 +1087,9 @@ next_task:
 
     '**Reporting Assignment Baseline Issues (Values and Dates)**
 
-    Print #1, vbCrLf & vbCrLf & "Task Assignment Baseline Discrepancies - The following Tasks have vertical traceability errors with their Assignment Baseline Values and/or Baseline Dates" 'v3.3.0
+    Print #1, vbCrLf & vbCrLf & "Task Assignment Baseline Discrepancies - The following Tasks have vertical traceability errors with their Assignment Baseline Values and/or Baseline Dates. Note that tasks with mixed elements of cost (labor & material/cost) that include labor rates may result in false positives." 'v3.3.0
 
-    Print #1, vbCrLf & "UID,Task Baseline Work,Assignment Baseline Work,Task Baseline Cost,Assignment Baseline Cost,Task Baseline Start,Assignment Baseline Start,Task Baseline Finish,Assignment Baseline Finish, Assignment Count"
+    Print #1, vbCrLf & "UID,Task Baseline Work,Assignment Baseline Work,Assignment TimeScaled Work,Task Baseline Cost,Assignment Baseline Cost,Assignment TimeScaled Cost,Task Baseline Start,Assignment Baseline Start,Task Baseline Finish,Assignment Baseline Finish, Assignment Count" 'v3.3.2
 
     ErrorCounter = 0
 
@@ -1051,15 +1099,17 @@ next_task:
 
             If .AssignmentCount > 0 Then 'v3.2.3
 
-                If Round(.BCost, 2) <> Round(.AssignmentBCost, 2) Or Round(.BWork, 2) <> Round(.AssignmentBWork, 2) Or .BStart <> .AssignmentBStart Or .BFinish <> .AssignmentBFinish Then
+                If Round(CDec(.AssignmentTSVWork), 2) <> Round(CDec(.AssignmentBWork), 2) Or (Round(CDec(.AssignmentTSVCost), 2) <> Round(CDec(.AssignmentBCost), 2) And .AssignmentBWork = 0) Or Round(CDec(.BCost), 2) <> Round(CDec(.AssignmentBCost), 2) Or Round(CDec(.BWork), 2) <> Round(CDec(.AssignmentBWork), 2) Or .BStart <> .AssignmentBStart Or .BFinish <> .AssignmentBFinish Then 'v3.3.2
 
                     ErrorCounter = ErrorCounter + 1
 
                     errorStr = .UID & ","
                     errorStr = errorStr & .BWork & ","
                     errorStr = errorStr & .AssignmentBWork & ","
+                    errorStr = errorStr & .AssignmentTSVWork & "," 'v3.3.2
                     errorStr = errorStr & .BCost & ","
                     errorStr = errorStr & .AssignmentBCost & ","
+                    errorStr = errorStr & .AssignmentTSVCost & "," 'v3.3.2
                     errorStr = errorStr & .BStart & ","
                     errorStr = errorStr & .AssignmentBStart & ","
                     errorStr = errorStr & .BFinish & ","
@@ -1080,10 +1130,12 @@ next_task:
                 errorStr = .UID & ","
                 errorStr = errorStr & .BWork & ","
                 errorStr = errorStr & .AssignmentBWork & ","
+                errorStr = errorStr & .AssignmentTSVWork & "," 'v3.3.2
                 errorStr = errorStr & .BCost & ","
                 errorStr = errorStr & .AssignmentBCost & ","
                 errorStr = errorStr & .BStart & ","
                 errorStr = errorStr & .AssignmentBStart & ","
+                errorStr = errorStr & .AssignmentTSVCost & "," 'v3.3.2
                 errorStr = errorStr & .BFinish & ","
                 errorStr = errorStr & .AssignmentBFinish & "," 'v3.2.3
                 errorStr = errorStr & .AssignmentCount 'v3.2.3
@@ -1113,7 +1165,7 @@ next_task:
 
             If .AssignmentCount > 0 Then
 
-                If Round(.FCost, 2) <> Round(.AssignmentFCost, 2) Or Round(.FWork, 2) <> Round(.AssignmentFWork, 2) Or .FStart <> .AssignmentFStart Or .FFinish <> .AssignmentFFinish Then
+                If Round(CDec(.FCost), 2) <> Round(CDec(.AssignmentFCost), 2) Or Round(CDec(.FWork), 2) <> Round(CDec(.AssignmentFWork), 2) Or .FStart <> .AssignmentFStart Or .FFinish <> .AssignmentFFinish Then
 
                     ErrorCounter = ErrorCounter + 1
 
@@ -1252,7 +1304,9 @@ Private Sub CSV_Export(ByVal curproj As Project)
         fMilestoneWeight = docProps("fMSW").Value
     End If
     fPCNT = docProps("fPCNT").Value
-    fAssignPcnt = docProps("fAssignPcnt").Value 'v3.3.0
+    If AssignmentPCNT_Used = True Then 'v3.3.2
+        fAssignPcnt = docProps("fAssignPcnt").Value 'v3.3.0
+    End If
     fResID = docProps("fResID").Value
 
     BCR_Error = False
@@ -1366,7 +1420,7 @@ Private Sub BCWP_Export(ByVal curproj As Project)
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subProj.path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -2080,7 +2134,7 @@ nrBCWP_WP_Match_B:
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subProj.path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -3087,7 +3141,7 @@ Private Sub ETC_Export(ByVal curproj As Project)
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subProj.path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -3467,7 +3521,7 @@ nrETC_WP_Match_B:
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subProj.path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -3983,7 +4037,7 @@ Private Sub BCWS_Export(ByVal curproj As Project)
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subProj.path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -4327,7 +4381,7 @@ Next_nrTask:
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subProj.path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -4762,7 +4816,7 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subProj.path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -5178,7 +5232,7 @@ Next_nrTask:
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subProj.path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -5778,7 +5832,7 @@ Private Sub Get_WP_Descriptions(ByVal curproj As Project)
 
         For Each subProj In subProjs
 
-            FileOpen Name:=subProj.Path, ReadOnly:=True
+            FileOpen Name:=subProj.path, ReadOnly:=True
 
             Set curSProj = ActiveProject
 
@@ -5957,7 +6011,7 @@ Private Function Find_BCRs(ByVal curproj As Project, ByVal fWP As String, ByVal 
 
         For Each subProj In subProjs
 
-            FileOpen Name:=subProj.Path, ReadOnly:=True
+            FileOpen Name:=subProj.path, ReadOnly:=True
 
             Set curSProj = ActiveProject
 
@@ -6176,7 +6230,7 @@ Private Function PercentfromString(ByVal inputStr As String) As Double
 End Function
 Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal tAssign As Assignment, ResFile As Integer, exportType As String)
 
-    Dim TSV As TimeScaleValue
+    Dim tsv As TimeScaleValue
     Dim tsvs As TimeScaleValues
     Dim tsvsa As TimeScaleValues
     Dim tsva As TimeScaleValue
@@ -6195,16 +6249,16 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                         Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
                         Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks)
 
-                        For Each TSV In tsvs
+                        For Each tsv In tsvs
 
-                            Set tsva = tsvsa(TSV.Index)
+                            Set tsva = tsvsa(tsv.Index)
 
                             tempWork = 0
 
                             If tsva <> "" Then
-                                tempWork = CDbl(TSV.Value) - CLng(tsva.Value)
-                            ElseIf TSV.Value <> "" Then
-                                tempWork = CDbl(TSV.Value)
+                                tempWork = CDbl(tsv.Value) - CLng(tsva.Value)
+                            ElseIf tsv.Value <> "" Then
+                                tempWork = CDbl(tsv.Value)
                             End If
 
                             If tempWork <> 0 Then
@@ -6215,19 +6269,19 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                 Else
 
-                                    Select Case TSV.Index
+                                    Select Case tsv.Index
 
                                         Case 1
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                         Case tsvs.Count
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
                                         Case Else
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                     End Select
 
@@ -6235,36 +6289,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                             End If
 
-                        Next TSV
+                        Next tsv
 
                         Exit Sub
 
                     ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
                         Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
-                        For Each TSV In tsvs
+                        For Each tsv In tsvs
 
-                            If TSV.Value <> "" Then
+                            If tsv.Value <> "" Then
 
                                 If tsvs.Count = 1 Then
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
                                 Else
 
-                                    Select Case TSV.Index
+                                    Select Case tsv.Index
 
                                         Case 1
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                         Case tsvs.Count
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
                                         Case Else
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                     End Select
 
@@ -6272,7 +6326,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                             End If
 
-                        Next TSV
+                        Next tsv
 
                         Exit Sub
 
@@ -6285,16 +6339,16 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                     Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
                     Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleWeeks)
 
-                    For Each TSV In tsvs
+                    For Each tsv In tsvs
 
-                        Set tsva = tsvsa(TSV.Index)
+                        Set tsva = tsvsa(tsv.Index)
 
                         tempWork = 0
 
                         If tsva <> "" Then
-                            tempWork = CDbl(TSV.Value) - CLng(tsva.Value)
-                        ElseIf TSV.Value <> "" Then
-                            tempWork = CDbl(TSV.Value)
+                            tempWork = CDbl(tsv.Value) - CLng(tsva.Value)
+                        ElseIf tsv.Value <> "" Then
+                            tempWork = CDbl(tsv.Value)
                         End If
 
                         If tempWork <> 0 Then
@@ -6305,19 +6359,19 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                             Else
 
-                                Select Case TSV.Index
+                                Select Case tsv.Index
 
                                     Case 1
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                     Case tsvs.Count
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
                                     Case Else
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                 End Select
 
@@ -6325,36 +6379,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                         End If
 
-                    Next TSV
+                    Next tsv
 
                     Exit Sub
 
                 ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
                     Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
-                    For Each TSV In tsvs
+                    For Each tsv In tsvs
 
-                        If TSV.Value <> "" Then
+                        If tsv.Value <> "" Then
 
                             If tsvs.Count = 1 Then
 
-                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
                             Else
 
-                                Select Case TSV.Index
+                                Select Case tsv.Index
 
                                     Case 1
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                     Case tsvs.Count
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
                                     Case Else
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                 End Select
 
@@ -6362,7 +6416,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                         End If
 
-                    Next TSV
+                    Next tsv
 
                     Exit Sub
 
@@ -6375,16 +6429,16 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                         Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
                         Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks)
 
-                        For Each TSV In tsvs
+                        For Each tsv In tsvs
 
-                            Set tsva = tsvsa(TSV.Index)
+                            Set tsva = tsvsa(tsv.Index)
 
                             tempWork = 0
 
                             If tsva <> "" Then
-                                tempWork = CDbl(TSV.Value) - CLng(tsva.Value)
-                            ElseIf TSV.Value <> "" Then
-                                tempWork = CDbl(TSV.Value)
+                                tempWork = CDbl(tsv.Value) - CLng(tsva.Value)
+                            ElseIf tsv.Value <> "" Then
+                                tempWork = CDbl(tsv.Value)
                             End If
 
                             If tempWork <> 0 Then
@@ -6395,19 +6449,19 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                 Else
 
-                                    Select Case TSV.Index
+                                    Select Case tsv.Index
 
                                         Case 1
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                         Case tsvs.Count
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
                                         Case Else
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                     End Select
 
@@ -6415,36 +6469,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                             End If
 
-                        Next TSV
+                        Next tsv
 
                         Exit Sub
 
                     ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
                         Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
-                        For Each TSV In tsvs
+                        For Each tsv In tsvs
 
-                            If TSV.Value <> "" Then
+                            If tsv.Value <> "" Then
 
                                 If tsvs.Count = 1 Then
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
                                 Else
 
-                                    Select Case TSV.Index
+                                    Select Case tsv.Index
 
                                         Case 1
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                         Case tsvs.Count
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
 
                                         Case Else
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                     End Select
 
@@ -6452,7 +6506,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                             End If
 
-                        Next TSV
+                        Next tsv
 
                         Exit Sub
 
@@ -6467,29 +6521,29 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                 Case pjResourceTypeWork
 
                     Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
-                    For Each TSV In tsvs
+                    For Each tsv In tsvs
 
-                        If TSV.Value <> "" Then
+                        If tsv.Value <> "" Then
 
                             If tsvs.Count = 1 Then
 
-                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
 
                             Else
 
-                                Select Case TSV.Index
+                                Select Case tsv.Index
 
                                     Case 1
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                     Case tsvs.Count
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
 
                                     Case Else
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value / 60 & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                 End Select
 
@@ -6497,36 +6551,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                         End If
 
-                    Next TSV
+                    Next tsv
 
                     Exit Sub
 
             Case pjResourceTypeCost
 
                 Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineCost, pjTimescaleWeeks)
-                For Each TSV In tsvs
+                For Each tsv In tsvs
 
-                    If TSV.Value <> "" Then
+                    If tsv.Value <> "" Then
 
                         If tsvs.Count = 1 Then
 
-                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
 
                         Else
 
-                            Select Case TSV.Index
+                            Select Case tsv.Index
 
                                 Case 1
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                 Case tsvs.Count
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
 
                                 Case Else
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                             End Select
 
@@ -6534,36 +6588,36 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                     End If
 
-                Next TSV
+                Next tsv
 
                 Exit Sub
 
             Case pjResourceTypeMaterial
 
                 Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
-                For Each TSV In tsvs
+                For Each tsv In tsvs
 
-                    If TSV.Value <> "" Then
+                    If tsv.Value <> "" Then
 
                         If tsvs.Count = 1 Then
 
-                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
 
                         Else
 
-                            Select Case TSV.Index
+                            Select Case tsv.Index
 
                                 Case 1
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                                 Case tsvs.Count
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
 
                                 Case Else
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & TSV.Value & "," & Format(TSV.StartDate, "M/D/YYYY") & "," & Format(TSV.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
 
                             End Select
 
@@ -6571,7 +6625,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                     End If
 
-                Next TSV
+                Next tsv
 
                 Exit Sub
 
@@ -6589,7 +6643,7 @@ Private Function get_Assignment_Pcnt(ByVal tAssignment As Assignment) As String
 
     Dim pcntField As String
 
-    If fAssignPcnt = "<None>" Then
+    If AssignmentPCNT_Used = False Then 'v3.3.2
     
         get_Assignment_Pcnt = tAssignment.Task.GetField(FieldNameToFieldConstant(fPCNT))
         Exit Function
