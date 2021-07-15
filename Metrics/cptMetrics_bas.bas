@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.0.4</cpt_version>
+'<cpt_version>v1.0.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -290,7 +290,8 @@ Dim dblResult As Double
       End If
       strMsg = "SPI = BCWP / BCWS" & vbCrLf
       strMsg = strMsg & "SPI = " & Format(dblBCWP, "#,##0h") & " / " & Format(dblBCWS, "#,##0h") & vbCrLf & vbCrLf
-      strMsg = strMsg & "SPI = ~" & Round(dblBCWP / dblBCWS, 2)
+      strMsg = strMsg & "SPI = ~" & Round(dblBCWP / dblBCWS, 2) & vbCrLf & vbCrLf
+      strMsg = strMsg & "(Assumes EV% in Physical % Complete.)"
       MsgBox strMsg, vbInformation + vbOKOnly, "Schedule Performance Index (SPI) - Hours"
       
     Case "SV"
@@ -307,7 +308,8 @@ Dim dblResult As Double
       strMsg = strMsg & "Schedule Variance % (SV%)" & vbCrLf
       strMsg = strMsg & "SV% = ( SV / BCWS ) * 100" & vbCrLf
       strMsg = strMsg & "SV% = ( " & Format((dblBCWP - dblBCWS), "#,##0.0h") & " / " & Format(dblBCWS, "#,##0.0h") & " ) * 100" & vbCrLf
-      strMsg = strMsg & "SV% = " & Format(((dblBCWP - dblBCWS) / dblBCWS), "0.00%")
+      strMsg = strMsg & "SV% = " & Format(((dblBCWP - dblBCWS) / dblBCWS), "0.00%") & vbCrLf & vbCrLf
+      strMsg = strMsg & "(Assumes EV% in Physical % Complete.)"
       
       MsgBox strMsg, vbInformation + vbOKOnly, "Schedule Variance (SV) - Hours"
       
@@ -328,7 +330,7 @@ End Sub
 
 Sub cptGetHitTask()
 'objects
-Dim Task As Task
+Dim oTask As Task
 'strings
 Dim strMsg As String
 'longs
@@ -352,25 +354,24 @@ Dim dtStatus As Date
   End If
   
   'find it
-  For Each Task In ActiveProject.Tasks
-    If Not Task Is Nothing Then
-      If Task.Summary Then GoTo next_task
-      If Not Task.Active Then GoTo next_task
-      If IsDate(Task.BaselineFinish) Then
-        'was task baselined to finish before status date?
-        If Task.BaselineFinish <= dtStatus Then
-          lngBLF = lngBLF + 1
-          'did it?
-          If IsDate(Task.ActualFinish) Then
-            If Task.ActualFinish <= Task.BaselineFinish Then
-              lngAF = lngAF + 1
-            End If
+  For Each oTask In ActiveProject.Tasks
+    If oTask Is Nothing Then GoTo next_task
+    If oTask.Summary Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If IsDate(oTask.BaselineFinish) Then
+      'was task baselined to finish before status date?
+      If oTask.BaselineFinish <= dtStatus Then
+        lngBLF = lngBLF + 1
+        'did it?
+        If IsDate(oTask.ActualFinish) Then
+          If oTask.ActualFinish <= oTask.BaselineFinish Then
+            lngAF = lngAF + 1
           End If
         End If
       End If
     End If
 next_task:
-  Next
+  Next oTask
 
   strMsg = "BF = # Tasks Baselined to Finish ON or before Status Date" & vbCrLf
   strMsg = strMsg & "AF = # BF that Actually Finished ON or before Baseline Finish" & vbCrLf & vbCrLf
@@ -381,7 +382,7 @@ next_task:
 
 exit_here:
   On Error Resume Next
-  Set Task = Nothing
+  Set oTask = Nothing
 
   Exit Sub
 err_here:
@@ -392,10 +393,11 @@ End Sub
 Function cptGetMetric(strGet As String) As Double
 'todo: no screen changes!
 'objects
-Dim TSV As Object 'TimeScaleValue
-Dim tsvs As Object 'TimeScaleValues
-Dim Tasks As Object 'Tasks
-Dim Task As Object 'Task
+Dim oAssignment As Assignment
+Dim TSV As TimeScaleValue
+Dim TSVS As TimeScaleValues
+Dim oTasks As Tasks
+Dim oTask As Task
 'strings
 'longs
 Dim lngYears As Long
@@ -430,45 +432,60 @@ Dim dtStatus As Date
   End If
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   SelectAll
-  Set Tasks = ActiveSelection.Tasks
-  For Each Task In Tasks
-    If Not Task Is Nothing Then
-      If Task.ExternalTask Then GoTo next_task
-      If Task.Summary Then GoTo next_task
-      If Not Task.Active Then GoTo next_task
-      If Task.BaselineWork > 0 Then 'idea here was to limit tasks to PMB tasks only
-                                    'but won't work for non-resource loaded schedules
-        Select Case strGet
-          Case "bac"
-            dblResult = dblResult + (Task.BaselineWork / 60)
-            
-          Case "etc"
-            dblResult = dblResult + (Task.RemainingWork / 60)
-            
-          Case "bcws"
-            If Task.Start < dtStatus Then
-              Set tsvs = Task.TimeScaleData(Task.Start, dtStatus, pjTaskTimescaledBaselineWork, pjTimescaleWeeks)
-              For Each TSV In tsvs
-                dblResult = dblResult + IIf(TSV.Value = "", 0, TSV.Value) / 60
-              Next
-            End If
-            
-          Case "bcwp"
-            'todo: user has not identified where ev% is kept - indicate in msgbox
-            dblResult = dblResult + ((Task.BaselineWork / 60) * (Task.PhysicalPercentComplete / 100))
-                        
-        End Select
-      End If 'bac>0
+  Set oTasks = ActiveSelection.Tasks
+  For Each oTask In oTasks
+    If oTask Is Nothing Then GoTo next_task
+    If oTask.ExternalTask Then GoTo next_task
+    If oTask.Summary Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If oTask.BaselineWork > 0 Then 'idea here was to limit tasks to PMB tasks only
+                                  'but won't work for non-resource loaded schedules
       Select Case strGet
-      
-        Case "bei_bf"
-          dblResult = dblResult + IIf(Task.BaselineFinish <= dtStatus, 1, 0)
-            
-        Case "bei_af"
-          dblResult = dblResult + IIf(Task.ActualFinish <= dtStatus, 1, 0)
+        Case "bac"
+          For Each oAssignment In oTask.Assignments
+            If oAssignment.ResourceType = pjResourceTypeWork Then
+              dblResult = dblResult + (oAssignment.BaselineWork / 60)
+            End If
+          Next oAssignment
+          
+        Case "etc"
+          For Each oAssignment In oTask.Assignments
+            If oAssignment.ResourceType = pjResourceTypeWork Then
+              dblResult = dblResult + (oAssignment.RemainingWork / 60)
+            End If
+          Next oAssignment
 
+          
+        Case "bcws"
+          If oTask.Start < dtStatus Then
+            For Each oAssignment In oTask.Assignments
+              If oAssignment.ResourceType = pjResourceTypeWork Then
+                Set TSVS = oAssignment.TimeScaleData(oTask.Start, dtStatus, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
+                For Each TSV In TSVS
+                  dblResult = dblResult + IIf(TSV.Value = "", 0, TSV.Value) / 60
+                Next
+              End If
+            Next oAssignment
+          End If
+          
+        Case "bcwp"
+          For Each oAssignment In oTask.Assignments
+            If oAssignment.ResourceType = pjResourceTypeWork Then
+              dblResult = dblResult + ((oAssignment.BaselineWork / 60) * (oTask.PhysicalPercentComplete / 100))
+            End If
+          Next oAssignment
+                      
       End Select
-    End If 'not nothing
+    End If 'bac>0
+    Select Case strGet
+    
+      Case "bei_bf"
+        dblResult = dblResult + IIf(oTask.BaselineFinish <= dtStatus, 1, 0)
+          
+      Case "bei_af"
+        dblResult = dblResult + IIf(oTask.ActualFinish <= dtStatus, 1, 0)
+
+    End Select
 next_task:
     Application.StatusBar = "Calculating " & UCase(strGet) & "..."
   Next
@@ -477,12 +494,13 @@ next_task:
 
 exit_here:
   On Error Resume Next
+  Set oAssignment = Nothing
   Application.StatusBar = ""
   cptSpeed False
   Set TSV = Nothing
-  Set tsvs = Nothing
-  Set Tasks = Nothing
-  Set Task = Nothing
+  Set TSVS = Nothing
+  Set oTasks = Nothing
+  Set oTask = Nothing
 
   Exit Function
 err_here:
