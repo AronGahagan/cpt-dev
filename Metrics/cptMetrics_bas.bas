@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.0.5</cpt_version>
+'<cpt_version>v1.0.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -457,10 +457,10 @@ Dim dtStatus As Date
 
           
         Case "bcws"
-          If oTask.Start < dtStatus Then
+          If oTask.BaselineStart < dtStatus Then
             For Each oAssignment In oTask.Assignments
               If oAssignment.ResourceType = pjResourceTypeWork Then
-                Set TSVS = oAssignment.TimeScaleData(oTask.Start, dtStatus, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
+                Set TSVS = oAssignment.TimeScaleData(oTask.BaselineStart, dtStatus, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
                 For Each TSV In TSVS
                   dblResult = dblResult + IIf(TSV.Value = "", 0, TSV.Value) / 60
                 Next
