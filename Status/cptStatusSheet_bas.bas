@@ -19,7 +19,6 @@ Private oNumberValidationRange As Excel.Range
 Private oInputRange As Excel.Range
 Private oUnlockedRange As Excel.Range
 Private oEntryHeaderRange As Excel.Range
-Private oContourRange As Excel.Range
 Public oEVTs As Scripting.Dictionary
 
 Sub cptShowStatusSheet_frm()
@@ -35,7 +34,6 @@ Dim lngField As Long, lngItem As Long, lngSelectedItems As Long
 'integers
 Dim intField As Integer
 'strings
-Dim strContour As String
 Dim strFileNamingConvention As String
 Dim strDir As String
 Dim strAllItems As String
@@ -100,7 +98,6 @@ Dim vFieldType As Variant
     .chkValidation = True
     .chkLocked = True
     .chkAllItems = False
-    .chkContour = False
     .txtDir = ActiveProject.Path & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
     .txtFileName = "StatusRequest_[yyyy-mm-dd]"
   End With
@@ -306,8 +303,6 @@ skip_fields:
     FilterClear
     strAllItems = cptGetSetting("StatusSheet", "chkAllItems")
     If strAllItems <> "" Then .chkAllItems = CBool(strAllItems)
-    strContour = cptGetSetting("StatusSheet", "chkContour")
-    If strContour <> "" Then .chkContour = CBool(strContour)
   End With
 
   'add saved export fields if they exist
@@ -608,7 +603,6 @@ Sub cptCreateStatusSheet()
       Set oNumberValidationRange = Nothing
       Set oUnlockedRange = Nothing
       Set oAssignmentRange = Nothing
-      Set oContourRange = Nothing
       
       oWorksheet.Calculate
       
@@ -664,7 +658,6 @@ Sub cptCreateStatusSheet()
           Set oNumberValidationRange = Nothing
           Set oUnlockedRange = Nothing
           Set oAssignmentRange = Nothing
-          Set oContourRange = Nothing
           
           .lblStatus = "Creating Worksheet for " & strItem & "...done"
 
@@ -718,7 +711,6 @@ Sub cptCreateStatusSheet()
           Set oNumberValidationRange = Nothing
           Set oUnlockedRange = Nothing
           Set oAssignmentRange = Nothing
-          Set oContourRange = Nothing
                     
           'save the workbook
           strFileName = cptSaveStatusSheet(oWorkbook, strItem)
@@ -1367,9 +1359,6 @@ Dim lngItem As Long
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Previous ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Revised ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  If cptStatusSheet_frm.chkContour Then
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Work Contour", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  End If
   TableApply Name:="cptStatusSheet Table"
 
   'reset the filter
@@ -1471,7 +1460,6 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   Dim blnLocked As Boolean
   Dim blnValidation As Boolean
   Dim blnConditionalFormats As Boolean
-  Dim blnContour As Boolean
   'variants
   'dates
   Dim dtStatus As Date
@@ -1482,7 +1470,6 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   blnValidation = cptStatusSheet_frm.chkValidation = True
   blnConditionalFormats = cptStatusSheet_frm.chkAddConditionalFormats = True
   blnLocked = cptStatusSheet_frm.chkLocked = True
-  blnContour = cptStatusSheet_frm.chkContour = True
   ActiveWindow.TopPane.Activate
 try_again:
   SelectAll
@@ -1783,20 +1770,6 @@ next_task:
     oTwoWeekWindowRange.Style = "Neutral"
     oTwoWeekWindowRange.Locked = False
   End If
-  If blnContour And Not oContourRange Is Nothing Then
-    With oContourRange.Validation
-      .Delete
-      .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:="Flat,Back Loaded,Front Loaded,Double Peak,Early Peak,Late Peak,Bell,Turtle,Contour"
-      .IgnoreBlank = True
-      .InCellDropdown = True
-      .InputTitle = "Work Contour"
-      .ErrorTitle = ""
-      .InputMessage = "Default is Flat"
-      .ErrorMessage = ""
-      .ShowInput = True
-      .ShowError = True
-    End With
-  End If
   'add EVT gloassary - test comment
   If Not oEVTRange Is Nothing Then
     If cptStatusSheet_frm.cboCostTool = "COBRA" Then
@@ -1870,7 +1843,6 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   Dim strProtect As String
   Dim strDataValidation As String
   'longs
-  Dim lngContourCol As Long
   Dim lngIndent As Long
   Dim lngItem As Long
   Dim lngLastCol As Long
@@ -1887,9 +1859,6 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   
   lngIndent = Len(cptRegEx(oWorksheet.Cells(lngRow, lngNameCol).Value, "^\s*"))
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
-  If cptStatusSheet_frm.chkContour Then
-    lngContourCol = oWorksheet.Rows(lngHeaderRow).Find("Work Contour").Column
-  End If
   lngLastRow = oWorksheet.Cells(1048576, 1).End(xlUp).Row
   lngItem = 0
   For Each oAssignment In oTask.Assignments
@@ -1914,7 +1883,6 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
       vAssignment(1, lngRemainingWorkCol) = oAssignment.RemainingWork
       vAssignment(1, lngRemainingWorkCol + 1) = oAssignment.RemainingWork
     End If
-    vAssignment(1, lngContourCol) = Choose(oAssignment.WorkContour + 1, "Flat", "Back Loaded", "Front Loaded", "Double Peak", "Early Peak", "Late Peak", "Bell", "Turtle", "Contour")
     'add validation
     If oNumberValidationRange Is Nothing Then
       Set oNumberValidationRange = oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1)
@@ -1940,20 +1908,6 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
       Set oAssignmentRange = oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol))
     Else
       Set oAssignmentRange = oWorksheet.Application.Union(oAssignmentRange, oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)))
-    End If
-    'unlock contour range for unstarted tasks only todo: is this right?
-    If Not IsDate(oTask.ActualStart) Then
-      If oUnlockedRange Is Nothing Then
-        Set oUnlockedRange = oWorksheet.Cells(lngRow + lngItem, lngContourCol)
-      Else
-        Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow + lngItem, lngContourCol))
-      End If
-      'add contour
-      If oContourRange Is Nothing Then
-        Set oContourRange = oWorksheet.Cells(lngRow + lngItem, lngContourCol)
-      Else
-        Set oContourRange = oWorksheet.Application.Union(oContourRange, oWorksheet.Cells(lngRow + lngItem, lngContourCol))
-      End If
     End If
   Next oAssignment
   'add formulae
@@ -2009,11 +1963,11 @@ End Sub
 
 Sub cptListQuickParts(Optional blnRefreshOutlook As Boolean = False)
 'objects
-Dim olApp As Outlook.Application
+Dim oOutlook As Outlook.Application
 Dim oMailItem As MailItem
 Dim objDoc As Word.Document
-Dim objWord As Word.Application
-Dim objSel As Word.Selection
+Dim oWord As Word.Application
+'Dim objSel As Word.Selection
 Dim objETemp As Word.Template
 Dim oBuildingBlockEntries As BuildingBlockEntries
 Dim oBuildingBlock As BuildingBlock
@@ -2029,19 +1983,21 @@ Dim strSQL As String
     cptStatusSheet_frm.cboQuickParts.Clear
     'get outlook
     On Error Resume Next
-    Set olApp = GetObject(, "Outlook.Application")
-    If olApp Is Nothing Then
-      Set olApp = CreateObject("Outlook.Application")
+    Set oOutlook = GetObject(, "Outlook.Application")
+    If oOutlook Is Nothing Then
+      'todo: this doesn't work...
+      Set oOutlook = CreateObject("Outlook.Application")
     End If
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     'create MailItem, insert quickparts, update links, dates
-    Set oMailItem = olApp.CreateItem(olMailItem)
+    Set oMailItem = oOutlook.CreateItem(olMailItem)
     'keep mailitem hidden
     If oMailItem.BodyFormat <> olFormatHTML Then oMailItem.BodyFormat = olFormatHTML
+    'todo: fails if Outlook is not open; can't you just get Word directly?
     Set objDoc = oMailItem.GetInspector.WordEditor
-    Set objWord = objDoc.Application
-    Set objSel = objDoc.Windows(1).Selection
-    Set objETemp = objWord.Templates(1)
+    Set oWord = objDoc.Application
+    'Set objSel = objDoc.Windows(1).Selection
+    Set objETemp = oWord.Templates(1)
     Set oBuildingBlockEntries = objETemp.BuildingBlockEntries
     'loop through them
     For lngItem = 1 To oBuildingBlockEntries.Count
@@ -2055,11 +2011,12 @@ Dim strSQL As String
     
 exit_here:
   On Error Resume Next
-  Set olApp = Nothing
+  Set oWord = Nothing
+  Set oOutlook = Nothing
   Set oMailItem = Nothing
   Set objDoc = Nothing
-  Set objWord = Nothing
-  Set objSel = Nothing
+  Set oWord = Nothing
+  'Set objSel = Nothing
   Set objETemp = Nothing
   Set oBuildingBlockEntries = Nothing
   Set oBuildingBlock = Nothing
@@ -2252,7 +2209,6 @@ Sub cptSaveStatusSheetSettings()
         cptSaveSetting "StatusSheet", "cboQuickPart", .cboQuickParts.Value
       End If
     End If
-    cptSaveSetting "StatusSheet", "chkContour", IIf(.chkContour, 1, 0)
   End With
 
 exit_here:

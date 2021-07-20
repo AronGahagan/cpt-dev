@@ -8,7 +8,6 @@ Sub cptShowStatusSheetImport_frm()
 'objects
 Dim rst As Object 'ADODB.Recordset
 'strings
-Dim strContour As String
 Dim strAppendTo As String
 Dim strETC As String
 Dim strEVP As String
@@ -86,22 +85,7 @@ Dim vField As Variant
         .cboETC.List(.cboETC.ListCount - 1, 1) = FieldConstantToFieldName(lngField) & IIf(Len(strCustomFieldName) > 0, " (" & strCustomFieldName & ")", "")
       Next intField
     Next vField
-    
-    'contour
-    .cboContour.AddItem
-    .cboContour.List(.cboContour.ListCount - 1, 0) = 0
-    .cboContour.List(.cboContour.ListCount - 1, 1) = "<none>"
-    
-    For Each vField In Array("Text")
-      For intField = 1 To 30
-        lngField = FieldNameToFieldConstant(vField & intField, pjTask)
-        strCustomFieldName = CustomFieldGetName(lngField)
-        .cboContour.AddItem
-        .cboContour.List(.cboContour.ListCount - 1, 0) = lngField
-        .cboContour.List(.cboContour.ListCount - 1, 1) = FieldConstantToFieldName(lngField) & IIf(Len(strCustomFieldName) > 0, " (" & strCustomFieldName & ")", "")
-      Next intField
-    Next vField
-    
+        
     'todo: add enterprise custom fields?
     
     'get project guid
@@ -136,7 +120,6 @@ Dim vField As Variant
     Else
       'default settings
       'todo: auto-select first avaialble/unnamed?
-      .cboContour.Value = 0
       .cboAppendTo.Value = "Top of Task Note"
     End If
 
@@ -153,8 +136,6 @@ Dim vField As Variant
     If Len(strEVP) > 0 Then .cboEV.Value = CLng(strEVP)
     strETC = cptGetSetting("StatusSheetImport", "cboETC")
     If Len(strETC) > 0 Then .cboETC.Value = CLng(strETC)
-    strContour = cptGetSetting("StatusSheetImport", "cboContour")
-    If Len(strContour) > 0 Then .cboContour.Value = CLng(strContour)
     .chkAppend = CBool(cptGetSetting("StatusSheetImport", "chkAppend"))
     strAppendTo = cptGetSetting("StatusSheetImport", "cboAppendTo")
     If Len(strAppendTo) > 0 Then .cboAppendTo.Value = strAppendTo
@@ -198,8 +179,6 @@ Sub cptStatusSheetImport()
   Dim strSettings As String
   Dim strGUID As String
   'longs
-  Dim lngContourCol As Long
-  Dim lngContour As Long
   Dim lngTask As Long
   Dim lngTasks As Long
   Dim lngTaskNameCol As Long
@@ -237,7 +216,6 @@ Sub cptStatusSheetImport()
   'todo: save current dates to selected fields
   'todo: age the dates X periods - carry back names
   'todo: view should be gantt on top and oTask usage below (but with custom table having only UID,{user fields},oTask/oResource Name, Remaining Work, New ETC
-  'todo: if Work Contour column exists, then import it...but should this be a custom field?
   
   'validate choices for all
   With cptStatusSheetImport_frm
@@ -281,7 +259,6 @@ Sub cptStatusSheetImport()
     lngFF = .cboFF.Value
     lngEV = .cboEV.Value
     lngETC = .cboETC.Value
-    lngContour = .cboContour.Value
     strAppendTo = .cboAppendTo
   End With
   
@@ -457,14 +434,12 @@ next_task:
         lngAFCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Finish", lookat:=xlPart).Column
         lngEVCol = oWorksheet.Rows(lngHeaderRow).Find(what:="New EV%", lookat:=xlWhole).Column
         lngETCCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Revised ETC", lookat:=xlWhole).Column
-        'todo: get Contour column - may not exist
-        'lngContourCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Work Contour", lookat:=xlWhole).Column
         lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Reason / Action / Impact", lookat:=xlWhole).Column
         'get last row
         lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row
         'pull in the data
         For lngRow = lngHeaderRow + 1 To lngLastRow
-          'determine if row is a oTask or an oAssignment
+           'determine if row is a oTask or an oAssignment todo: use a better method: get Task or get Resource if Neither, then ERROR
           If oWorksheet.Cells(lngRow, lngUIDCol).Font.Italic Then
             blnTask = False
           ElseIf oWorksheet.Cells(lngRow, lngUIDCol).Interior.Color = 16777215 Then
@@ -474,7 +449,7 @@ next_task:
           End If
           'set Task
           On Error Resume Next
-          Set oTask = ActiveProject.Tasks.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol))
+          Set oTask = ActiveProject.Tasks.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol)).Value
           If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
           If oTask Is Nothing Then
             Print #lngFile, "UID " & oWorksheet.Cells(lngRow, lngUIDCol) & " not found in IMS."
@@ -517,115 +492,49 @@ next_task:
             Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
             If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
             If oAssignment Is Nothing Then
-              Print #lngFile, "ASSIGNMENT MISSING: " & oWorksheet.Cells(lngRow, lngTaskNameCol).Value
+              Print #lngFile, "ASSIGNMENT MISSING: TASK " & oTask.UniqueID & " ASSIGNMENT: " & oWorksheet.Cells(lngRow, lngUIDCol).Value
             Else
               'todo: only import if different
-              If lngETC = FieldNameToFieldConstant("Number1") Then
+              If lngETC = pjTaskNumber1 Then
                 oAssignment.Number1 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number2") Then
+              ElseIf lngETC = pjTaskNumber2 Then
                 oAssignment.Number2 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number3") Then
+              ElseIf lngETC = pjTaskNumber3 Then
                 oAssignment.Number3 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number4") Then
+              ElseIf lngETC = pjTaskNumber4 Then
                 oAssignment.Number4 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number5") Then
+              ElseIf lngETC = pjTaskNumber5 Then
                 oAssignment.Number5 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number6") Then
+              ElseIf lngETC = pjTaskNumber6 Then
                 oAssignment.Number6 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number7") Then
+              ElseIf lngETC = pjTaskNumber7 Then
                 oAssignment.Number7 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number8") Then
+              ElseIf lngETC = pjTaskNumber8 Then
                 oAssignment.Number8 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number9") Then
+              ElseIf lngETC = pjTaskNumber9 Then
                 oAssignment.Number9 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number10") Then
+              ElseIf lngETC = pjTaskNumber10 Then
                 oAssignment.Number10 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number11") Then
+              ElseIf lngETC = pjTaskNumber11 Then
                 oAssignment.Number11 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number12") Then
+              ElseIf lngETC = pjTaskNumber12 Then
                 oAssignment.Number12 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number13") Then
+              ElseIf lngETC = pjTaskNumber13 Then
                 oAssignment.Number13 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number14") Then
+              ElseIf lngETC = pjTaskNumber14 Then
                 oAssignment.Number14 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number15") Then
+              ElseIf lngETC = pjTaskNumber15 Then
                 oAssignment.Number15 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number16") Then
+              ElseIf lngETC = pjTaskNumber16 Then
                 oAssignment.Number16 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number17") Then
+              ElseIf lngETC = pjTaskNumber17 Then
                 oAssignment.Number17 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number18") Then
+              ElseIf lngETC = pjTaskNumber18 Then
                 oAssignment.Number18 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number19") Then
+              ElseIf lngETC = pjTaskNumber19 Then
                 oAssignment.Number19 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              ElseIf lngETC = FieldNameToFieldConstant("Number20") Then
+              ElseIf lngETC = pjTaskNumber20 Then
                 oAssignment.Number20 = oWorksheet.Cells(lngRow, lngETCCol).Value
-              End If
-              If lngContour > 0 Then
-                'todo: import contour
-                'todo: add work contour and associated custom field to import table
-                'todo: only import if different
-                If lngContour = FieldNameToFieldConstant("Text1") Then
-                  oAssignment.Text1 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text2") Then
-                  oAssignment.Text2 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text3") Then
-                  oAssignment.Text3 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text4") Then
-                  oAssignment.Text4 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text5") Then
-                  oAssignment.Text5 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text6") Then
-                  oAssignment.Text6 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text7") Then
-                  oAssignment.Text7 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text8") Then
-                  oAssignment.Text8 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text9") Then
-                  oAssignment.Text9 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text10") Then
-                  oAssignment.Text10 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text11") Then
-                  oAssignment.Text11 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text12") Then
-                  oAssignment.Text12 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text13") Then
-                  oAssignment.Text13 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text14") Then
-                  oAssignment.Text14 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text15") Then
-                  oAssignment.Text15 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text16") Then
-                  oAssignment.Text16 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text17") Then
-                  oAssignment.Text17 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text18") Then
-                  oAssignment.Text18 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text19") Then
-                  oAssignment.Text19 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text20") Then
-                  oAssignment.Text20 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text21") Then
-                  oAssignment.Text21 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text22") Then
-                  oAssignment.Text22 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text23") Then
-                  oAssignment.Text23 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text24") Then
-                  oAssignment.Text24 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text25") Then
-                  oAssignment.Text25 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text26") Then
-                  oAssignment.Text26 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text27") Then
-                  oAssignment.Text27 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text28") Then
-                  oAssignment.Text28 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text29") Then
-                  oAssignment.Text29 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                ElseIf lngContour = FieldNameToFieldConstant("Text30") Then
-                  oAssignment.Text30 = oWorksheet.Cells(lngRow, lngContourCol).Value
-                End If
               End If
               Set oAssignment = Nothing
             End If
