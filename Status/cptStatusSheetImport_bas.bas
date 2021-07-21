@@ -49,10 +49,7 @@ Dim vField As Variant
         .cboFS.List(.cboFS.ListCount - 1, 1) = FieldConstantToFieldName(lngField) & IIf(Len(strCustomFieldName) > 0, " (" & strCustomFieldName & ")", "")
       Next intField
     Next vField
-    'add AS to bottom of list
-    .cboAS.AddItem
-    .cboAS.List(.cboAS.ListCount - 1, 0) = FieldNameToFieldConstant("Actual Start")
-    .cboAS.List(.cboAS.ListCount - 1, 1) = "Actual Start"
+    'direct import to Actual Start removed in v1.3.0
     
     'finish
     For Each vField In Array("Finish", "Date")
@@ -67,10 +64,7 @@ Dim vField As Variant
         .cboFF.List(.cboFF.ListCount - 1, 1) = FieldConstantToFieldName(lngField) & IIf(Len(strCustomFieldName) > 0, " (" & strCustomFieldName & ")", "")
       Next intField
     Next vField
-    'add AF to bottom of list
-    .cboAF.AddItem
-    .cboAF.List(.cboAF.ListCount - 1, 0) = FieldNameToFieldConstant("Actual Finish")
-    .cboAF.List(.cboAF.ListCount - 1, 1) = "Actual Finish"
+    'direct import to Actual Finish removed in v1.3.0
     
     'ev% and etc
     For Each vField In Array("Number")
@@ -125,9 +119,21 @@ Dim vField As Variant
 
     'import user settings
     strAS = cptGetSetting("StatusSheetImport", "cboAS")
-    If Len(strAS) > 0 Then .cboAS.Value = CLng(strAS)
+    If Len(strAS) > 0 Then
+      If strAS = CStr(FieldNameToFieldConstant("Actual Start")) Then
+        MsgBox "Direct import to Actual Start is no longer supported. Please select a different field.", vbExclamation + vbOKOnly, "Actual Start"
+      Else
+        .cboAS.Value = CLng(strAS)
+      End If
+    End If
     strAF = cptGetSetting("StatusSheetImport", "cboAF")
-    If Len(strAF) > 0 Then .cboAF.Value = CLng(strAF)
+    If Len(strAF) > 0 Then
+      If strAF = CStr(FieldNameToFieldConstant("Actual Finish")) Then
+        MsgBox "Direct import to Actual Finish is no longer supported. Please select a different field.", vbExclamation + vbOKOnly, "Actual Finish"
+      Else
+        .cboAF.Value = CLng(strAF)
+      End If
+    End If
     strFS = cptGetSetting("StatusSheetImport", "cboFS")
     If Len(strFS) > 0 Then .cboFS.Value = CLng(strFS)
     strFF = cptGetSetting("StatusSheetImport", "cboFF")
