@@ -166,7 +166,7 @@ err_here:
 End Sub
 
 Sub cptStatusSheetImport()
-'objects
+  'objects
   Dim oSubproject As SubProject
   Dim oTask As Task
   Dim oResource As Resource
@@ -455,7 +455,7 @@ next_task:
           End If
           'set Task
           On Error Resume Next
-          Set oTask = ActiveProject.Tasks.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol)).Value
+          Set oTask = ActiveProject.Tasks.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
           If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
           If oTask Is Nothing Then
             Print #lngFile, "UID " & oWorksheet.Cells(lngRow, lngUIDCol) & " not found in IMS."
