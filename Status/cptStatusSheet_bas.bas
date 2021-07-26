@@ -1582,7 +1582,7 @@ try_again:
 '      Else
 '        Set oClearRange = oWorksheet.Application.Union(oClearRange, oWorksheet.Range(oWorksheet.Cells(lngRow, lngNameCol + 1), oWorksheet.Cells(lngRow, lngLastCol)))
 '      End If
-      GoTo next_task
+'      GoTo next_task 'don't skip - need to unlock foreceast dates for milestones, too
     End If
     'format completed
     If IsDate(oTask.ActualFinish) Then
