@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.3.1</cpt_version>
+'<cpt_version>v1.3.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -107,12 +107,12 @@ Sub cptEnumerate()
   'strings
   'longs
   Dim lngDigits As Long
-  Dim lngResponse As Long
   Dim lngEnumerate As Long
   'integers
   'doubles
   'booleans
   'variants
+  Dim vResponse As Variant
   'dates
 
   On Error Resume Next
@@ -120,25 +120,25 @@ Sub cptEnumerate()
   If oTasks Is Nothing Then Exit Sub
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  lngResponse = InputBox("How many digits (number input only)?", "Format Enueration", 3)
-  If StrPtr(lngResponse) = 0 Then
+  vResponse = InputBox("How many digits (number input only)?", "Format Enumeration", 3)
+  If StrPtr(vResponse) = 0 Then
     'user hit cancel
     GoTo exit_here
-  ElseIf lngResponse = vbNullString Then
+  ElseIf vResponse = vbNullString Then
     'user entered null value
     GoTo exit_here
   End If
-  lngDigits = CLng(lngResponse)
+  lngDigits = CLng(vResponse)
   
-  lngResponse = InputBox("Start at what number (number input only)?", "Format Enumeration", 1)
-  If StrPtr(lngResponse) = 0 Then
+  vResponse = InputBox("Start at what number (number input only)?", "Format Enumeration", 1)
+  If StrPtr(vResponse) = 0 Then
     'user hit cancel
     GoTo exit_here
-  ElseIf lngResponse = vbNullString Then
+  ElseIf vResponse = vbNullString Then
     'user entered null value
     GoTo exit_here
   End If
-  lngEnumerate = CLng(lngResponse)
+  lngEnumerate = CLng(vResponse)
   
   cptSpeed True
   
@@ -208,7 +208,7 @@ Sub cptMyReplace()
   rstReplaced.Fields.Append "UID", adBigInt
   rstReplaced.Open
 
-  For Each oTask In Tasks
+  For Each oTask In oTasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.ExternalTask Then GoTo next_task
     For Each vField In ActiveSelection.FieldIDList
@@ -231,7 +231,7 @@ next_task:
     rstReplaced.MoveFirst
     FilterEdit "cptMyReplace", True, True, True, False, , "Unique ID", , "equals", rstReplaced(0), "Or", True
     Do While Not rstReplaced.EOF
-      FilterEdit "cptMyReplace", TaskFilter:=True, FieldName:="", NewFieldName:="Unique ID", test:="equals", Value:=rstReplaced(0), Operation:="Or", ShowInMenu:=True
+      FilterEdit "cptMyReplace", TaskFilter:=True, FieldName:="", newfieldname:="Unique ID", test:="equals", Value:=rstReplaced(0), Operation:="Or", ShowInMenu:=True
       rstReplaced.MoveNext
     Loop
     FilterApply "cptMyReplace", True
