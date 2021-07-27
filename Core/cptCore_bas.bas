@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.9.4</cpt_version>
+'<cpt_version>v1.9.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -906,7 +906,7 @@ Dim strRegEx As String
     MsgBox "Microsoft Office installation is not detetcted. Some features may not operate as expected." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for specialized assistance.", vbCritical + vbOKOnly, "Microsoft Office Compatibility"
     GoTo windows_common
   Else
-    strDir = oExcel.path
+    strDir = oExcel.Path
   End If
   If Not cptReferenceExists("Excel") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
@@ -1093,9 +1093,9 @@ Dim lngLevel As Long
         lngOutlineLevel = .Fields(1)
         .Close
       End With
+    Else
+      lngOutlineLevel = 2
     End If
-  Else
-    lngOutlineLevel = 2
   End If
   
   cptSpeed True 'speed up
