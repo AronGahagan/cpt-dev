@@ -1511,7 +1511,6 @@ try_again:
         Set oEntryHeaderRange = oWorksheet.Application.Union(oEntryHeaderRange, oWorksheet.Cells(lngHeaderRow, lngCol))
       End If
     End If
-    'todo: replace "h"
   Next lngCol
   
   'format the header

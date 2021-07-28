@@ -130,7 +130,7 @@ Dim lngItem As Long
     .InitialFileName = ActiveProject.Path & "\"
     .Title = "Select Returned Status Sheet(s):"
     .Filters.Add "Microsoft Excel Workbook (xlsx)", "*.xlsx"
-    
+    Application.ActivateMicrosoftApp pjMicrosoftExcel
     If .Show = -1 Then
       If .SelectedItems.Count > 0 Then
         For lngItem = 1 To .SelectedItems.Count

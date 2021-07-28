@@ -461,6 +461,8 @@ next_task:
             Print #lngFile, "UID " & oWorksheet.Cells(lngRow, lngUIDCol) & " not found in IMS."
             GoTo next_row
           End If
+          'skip completed tasks (which are also italicized)
+          If IsDate(oTask.ActualFinish) Then GoTo next_row
           If blnTask Then
             'new start date todo: only import if different
             If oWorksheet.Cells(lngRow, lngASCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngASCol).Locked Then
