@@ -157,14 +157,14 @@
 	<Module>
 		<Name>cptNetworkBrowser_bas</Name>
 		<FileName>cptNetworkBrowser_bas.bas</FileName>
-		<Version>v0.0.4</Version>
+		<Version>v0.0.5</Version>
 		<Type>1</Type>
 		<Directory>Trace</Directory>
 	</Module>
 	<Module>
 		<Name>cptNetworkBrowser_frm</Name>
 		<FileName>cptNetworkBrowser_frm.frm</FileName>
-		<Version>v0.0.4</Version>
+		<Version>v0.0.5</Version>
 		<Type>3</Type>
 		<Directory>Trace</Directory>
 	</Module>
@@ -276,7 +276,7 @@
 	<Module>
 		<Name>cptText_bas</Name>
 		<FileName>cptText_bas.bas</FileName>
-		<Version>v1.3.2</Version>
+		<Version>v1.3.3</Version>
 		<Type>1</Type>
 		<Directory>Text</Directory>
 	</Module>
