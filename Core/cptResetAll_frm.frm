@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.3</cpt_version>
+'<cpt_version>v1.1.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -24,7 +24,6 @@ End Sub
 
 Sub cmdDoIt_Click()
   'objects
-  Dim rstSettings As Object 'ADODB.Recordset
   'strings
   Dim strFile As String
   'longs
@@ -40,13 +39,6 @@ Sub cmdDoIt_Click()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   cptSpeed True
-
-  strFile = cptDir & "\settings\cpt-reset-all.adtg"
-  If Dir(strFile) <> vbNullString Then Kill strFile
-  Set rstSettings = CreateObject("ADODB.Recordset")
-  rstSettings.Fields.Append "SETTINGS", adInteger
-  rstSettings.Fields.Append "OUTLINE_LEVEL", adInteger
-  rstSettings.Open
   
   'capture bitwise value
   If Me.chkActiveOnly Then
@@ -108,14 +100,11 @@ Sub cmdDoIt_Click()
     OptionsViewEx displayoutlinesymbols:=True
     lngSettings = lngSettings + 128
   End If
-  rstSettings.AddNew Array(0, 1), Array(lngSettings, lngOutlineLevel)
-
-  rstSettings.Save strFile, adPersistADTG
+  cptSaveSetting "ResetAll", "Settings", CStr(lngSettings)
+  cptSaveSetting "ResetAll", "OutlineLevel", CStr(lngOutlineLevel)
 
 exit_here:
   On Error Resume Next
-  If rstSettings.State Then rstSettings.Close
-  Set rstSettings = Nothing
   cptSpeed False
   Unload Me
   Exit Sub

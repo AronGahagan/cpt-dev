@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.9.5</cpt_version>
+'<cpt_version>v1.9.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -453,6 +453,8 @@ End Function
 Sub cptResetAll()
   Dim rstSettings As Object 'ADODB.Recordset
   'strings
+  Dim strOutlineLevel As String
+  Dim strSettings As String
   Dim strFile As String
   'longs
   Dim lngSettings As Long
@@ -485,8 +487,19 @@ Sub cptResetAll()
     rstSettings.Open strFile
     rstSettings.MoveFirst
     lngSettings = rstSettings(0)
+    cptSaveSetting "ResetAll", "Settings", CStr(lngSettings)
     lngOutlineLevel = rstSettings(1)
+    cptSaveSetting "ResetAll", "OutlineLevel", CStr(lngOutlineLevel)
     rstSettings.Close
+    Kill strFile
+  Else
+    strSettings = cptGetSetting("ResetAll", "Settings")
+    If Len(strSettings) > 0 Then lngSettings = CLng(strSettings)
+    strOutlineLevel = cptGetSetting("ResetAll", "OutlineLevel")
+    If Len(strOutlineLevel) > 0 Then lngOutlineLevel = CLng(strOutlineLevel)
+  End If
+  
+  If lngSettings > 0 Then
     'parse and apply
     If lngSettings >= 128 Then 'outline symbols
       OptionsViewEx displayoutlinesymbols:=True
@@ -571,6 +584,8 @@ Sub cptShowResetAll_frm()
   'objects
   Dim rstSettings As Object 'ADODB.Recordset
   'strings
+  Dim strOutlineLevel As String
+  Dim strSettings As String
   Dim strFile As String
   'longs
   Dim lngSettings As Long
@@ -609,8 +624,19 @@ Sub cptShowResetAll_frm()
     rstSettings.Open strFile
     rstSettings.MoveFirst
     lngSettings = rstSettings(0)
+    cptSaveSetting "ResetAll", "Settings", CStr(lngSettings)
     lngOutlineLevel = rstSettings(1)
+    cptSaveSetting "ResetAll", "OutlineLevel", CStr(lngOutlineLevel)
     rstSettings.Close
+    Kill strFile
+  Else
+    strSettings = cptGetSetting("ResetAll", "Settings")
+    If Len(strSettings) > 0 Then lngSettings = CLng(strSettings)
+    strOutlineLevel = cptGetSetting("ResetAll", "OutlineLevel")
+    If Len(strOutlineLevel) > 0 Then lngOutlineLevel = CLng(strOutlineLevel)
+  End If
+    
+  If lngSettings > 0 Then
     'parse and update the form
     With cptResetAll_frm
       If lngSettings >= 128 Then
