@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
-'<cpt_version>v0.0.4</cpt_version>
+'<cpt_version>v0.0.5</cpt_version>
 Option Explicit
 Public oInsertedIndex As Object
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -60,7 +60,7 @@ End Sub
 Sub cptShowPreds()
 'objects
 Dim oTaskDependencies As TaskDependencies
-Dim oSubProject As SubProject
+Dim oSubproject As SubProject
 Dim oLink As TaskDependency, oTask As Task
 'strings
 Dim strProject As String
@@ -249,7 +249,7 @@ exit_here:
   On Error Resume Next
   cptSpeed False
   Set oTaskDependencies = Nothing
-  Set oSubProject = Nothing
+  Set oSubproject = Nothing
   Set oLink = Nothing
   Set oTask = Nothing
   Exit Sub
@@ -331,6 +331,9 @@ next_task:
   'todo: fix this
   If ActiveWindow.TopPane.View.Name = "Network Diagram" Then
     cptSpeed True
+    If Not cptFilterExists("Active Tasks") Then
+      FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, OverwriteExisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=True
+    End If
     FilterApply "Active Tasks"
     FilterApply "Marked"
     cptSpeed False
