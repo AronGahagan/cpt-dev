@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.9.6</cpt_version>
+'<cpt_version>v1.9.7</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -1282,16 +1282,22 @@ err_here:
 End Function
 
 Sub cptFilterReapply()
-  Dim strCurrentFilter As String
-  strCurrentFilter = ActiveProject.CurrentFilter
-  ScreenUpdating = False
-  FilterApply "All Tasks"
-  'todo: how to reapply a custom AutoFilter?
-  On Error Resume Next
-  If Not FilterApply(strCurrentFilter) Then
-    MsgBox "Cannot reapply a Custom AutoFilter", vbInformation + vbOKCancel, "Reapply Filter"
-  End If
-  ScreenUpdating = True
+
+  ActiveWindow.TopPane.Activate
+  GroupApply ActiveProject.CurrentGroup
+  Exit Sub
+
+'  Dim strCurrentFilter As String
+'  strCurrentFilter = ActiveProject.CurrentFilter
+'  ScreenUpdating = False
+'  ActiveWindow.TopPane.Activate
+'  FilterApply "All Tasks"
+'  'todo: how to reapply a custom AutoFilter?
+'  On Error Resume Next
+'  If Not FilterApply(strCurrentFilter) Then
+'    MsgBox "Cannot reapply a Custom AutoFilter", vbInformation + vbOKCancel, "Reapply Filter"
+'  End If
+'  ScreenUpdating = True
 End Sub
 
 Sub cptGroupReapply()
@@ -1362,7 +1368,7 @@ Sub cptCreateFilter(strFilter As String)
 
   Select Case strFilter
     Case "Marked"
-      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=False
+      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=False
       
   End Select
   
