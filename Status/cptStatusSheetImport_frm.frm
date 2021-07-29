@@ -109,7 +109,7 @@ End Sub
 Private Sub cmdSelectFiles_Click()
 'objects
 Dim FileDialog As FileDialog
-Dim xlApp As Excel.Application
+Dim oExcel As Excel.Application
 'strings
 'longs
 Dim lngItem As Long
@@ -121,8 +121,8 @@ Dim lngItem As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  Set xlApp = CreateObject("Excel.Application")
-  Set FileDialog = xlApp.FileDialog(msoFileDialogFilePicker)
+  Set oExcel = CreateObject("Excel.Application")
+  Set FileDialog = oExcel.FileDialog(msoFileDialogFilePicker)
   With FileDialog
     .AllowMultiSelect = True
     .ButtonName = "Import"
@@ -130,7 +130,6 @@ Dim lngItem As Long
     .InitialFileName = ActiveProject.Path & "\"
     .Title = "Select Returned Status Sheet(s):"
     .Filters.Add "Microsoft Excel Workbook (xlsx)", "*.xlsx"
-    Application.ActivateMicrosoftApp pjMicrosoftExcel
     If .Show = -1 Then
       If .SelectedItems.Count > 0 Then
         For lngItem = 1 To .SelectedItems.Count
@@ -143,7 +142,7 @@ Dim lngItem As Long
 exit_here:
   On Error Resume Next
   Set FileDialog = Nothing
-  Set xlApp = Nothing
+  Set oExcel = Nothing
 
   Exit Sub
 err_here:

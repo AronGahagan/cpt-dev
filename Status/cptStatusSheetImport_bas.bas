@@ -207,7 +207,9 @@ Sub cptStatusSheetImport()
   Dim lngAS As Long
   'integers
   'doubles
+  Dim dblETC As Double
   'booleans
+  Dim blnAppend As Boolean
   Dim blnTask As Boolean
   Dim blnValid As Boolean
   'variants
@@ -265,62 +267,20 @@ Sub cptStatusSheetImport()
     lngFF = .cboFF.Value
     lngEV = .cboEV.Value
     lngETC = .cboETC.Value
+    blnAppend = .chkAppend
     strAppendTo = .cboAppendTo
   End With
   
   'save user settings
-  'todo: convert to .ini
-  strSettings = cptDir & "\settings\cpt-status-sheet-import.adtg"
-  If Application.Version < 12 Then
-    strGUID = ActiveProject.DatabaseProjectUniqueID
-  Else
-    strGUID = ActiveProject.GetServerProjectGuid
-  End If
-  Set rst = CreateObject("ADODB.Recordset")
-  
-  If Dir(strSettings) <> vbNullString Then
-    'update the settings if different
-    rst.Open strSettings
-    rst.Find "GUID='" & strGUID & "'"
-    If rst.EOF Then
-      If Application.Version < 12 Then
-        strGUID = ActiveProject.DatabaseProjectUniqueID
-      Else
-        strGUID = ActiveProject.GetServerProjectGuid
-      End If
-      rst.AddNew
-      rst("GUID") = strGUID
-    End If
-  Else
-    'create it
-    With rst
-      .Fields.Append "GUID", adGUID
-      .Fields.Append "AS", adInteger
-      .Fields.Append "AF", adInteger
-      .Fields.Append "FS", adInteger
-      .Fields.Append "FF", adInteger
-      .Fields.Append "EV", adInteger
-      .Fields.Append "ETC", adInteger
-      .Fields.Append "Append", adBoolean
-      .Fields.Append "AppendTo", adVarChar, 50
-      .Open
-      .AddNew Array("GUID"), Array(strGUID)
-    End With
-  End If
-  rst.Fields("AS") = lngAS
-  rst.Fields("AF") = lngAF
-  rst.Fields("FS") = lngFS
-  rst.Fields("FF") = lngFF
-  rst.Fields("EV") = lngEV
-  rst.Fields("ETC") = lngETC
-  rst.Fields("Append") = IIf(cptStatusSheetImport_frm.chkAppend, -1, 0)
-  If cptStatusSheetImport_frm.chkAppend Then
-    If IsNull(cptStatusSheetImport_frm.cboAppendTo) Then strAppendTo = "Top of Task Note"
-    rst.Fields("AppendTo") = strAppendTo
-  End If
-  rst.Update
-  rst.Save strSettings, adPersistADTG
-  rst.Close
+  'todo: need multiple ini configurations for multiple project files/contracts?
+  cptSaveSetting "StatusSheetImport", "lngAS", CStr(lngAS)
+  cptSaveSetting "StatusSheetImport", "lngAF", CStr(lngAF)
+  cptSaveSetting "StatusSheetImport", "lngFS", CStr(lngFS)
+  cptSaveSetting "StatusSheetImport", "lngFF", CStr(lngFF)
+  cptSaveSetting "StatusSheetImport", "lngEV", CStr(lngEV)
+  cptSaveSetting "StatusSheetImport", "lngETC", CStr(lngETC)
+  cptSaveSetting "StatusSheetImport", "chkAppend", IIf(blnAppend, 1, 0)
+  cptSaveSetting "StatusSheetImport", "cboAppendTo", strAppendTo
   
   'set up import log file
   strImportLog = Environ("USERPROFILE") & "\CP_Status_Sheets\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
@@ -445,9 +405,12 @@ next_task:
         lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row
         'pull in the data
         For lngRow = lngHeaderRow + 1 To lngLastRow
-           'determine if row is a oTask or an oAssignment todo: use a better method: get Task or get Resource if Neither, then ERROR
+          If oWorksheet.Cells(lngRow, lngUIDCol).Value = 0 Then GoTo next_row
+          'determine if row is a oTask or an oAssignment
+          'todo: use a better method: get Task or get Resource if Neither, then ERROR
           If oWorksheet.Cells(lngRow, lngUIDCol).Font.Italic Then
             blnTask = False
+            'note: completed tasks are skipped below
           ElseIf oWorksheet.Cells(lngRow, lngUIDCol).Interior.Color = 16777215 Then
             blnTask = True
           Else
@@ -466,27 +429,26 @@ next_task:
           If blnTask Then
             'new start date todo: only import if different
             If oWorksheet.Cells(lngRow, lngASCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngASCol).Locked Then
-              dtNewDate = CDate(oWorksheet.Cells(lngRow, lngASCol).Value)
+              dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngASCol).Value), vbShortDate)
               'determine actual or forecast
-              If dtNewDate <= dtStatus Then 'actual start
-                oTask.SetField lngAS, dtNewDate
+              If dtNewDate <= FormatDateTime(dtStatus, vbShortDate) Then 'actual start
+                If FormatDateTime(oTask.ActualStart, vbShortDate) <> dtNewDate Then oTask.SetField lngAS, CDate(dtNewDate & " 08:00 AM")
               ElseIf dtNewDate > dtStatus Then 'forecast start
-                oTask.SetField lngFS, dtNewDate
+                If FormatDateTime(oTask.Start, vbShortDate) <> dtNewDate Then oTask.SetField lngFS, CDate(dtNewDate & " 08:00 AM")
               End If
             End If
             'new finish date todo: only import if different
             If oWorksheet.Cells(lngRow, lngAFCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngAFCol).Locked Then
-              dtNewDate = CDate(oWorksheet.Cells(lngRow, lngAFCol))
+              dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngAFCol)))
               If dtNewDate <= dtStatus Then 'actual finish
-                oTask.SetField lngAF, dtNewDate
+                If FormatDateTime(oTask.ActualFinish, vbShortDate) <> dtNewDate Then oTask.SetField lngAF, CDate(dtNewDate & " 05:00 PM")
               ElseIf dtNewDate > dtStatus Then 'forecast finish
-                oTask.SetField lngFF, dtNewDate
+                If FormatDateTime(oTask.Finish, vbShortDate) <> dtNewDate Then oTask.SetField lngFF, CDate(dtNewDate & " 05:00 PM")
               End If
             End If
-            'ev todo: only import if different
-            If (oWorksheet.Cells(lngRow, lngEVCol) * 100) <> oTask.GetField(lngEV) Then
-              oTask.SetField lngEV, oWorksheet.Cells(lngRow, lngEVCol) * 100
-            End If
+            'ev
+            oTask.SetField lngEV, oWorksheet.Cells(lngRow, lngEVCol).Value * 100
+            
             'comments todo: only import if different
             If .chkAppend And oWorksheet.Cells(lngRow, lngCommentsCol).Value <> "" Then
               If .cboAppendTo = "Top of Task Note" Then
@@ -503,46 +465,47 @@ next_task:
               Print #lngFile, "ASSIGNMENT MISSING: TASK " & oTask.UniqueID & " ASSIGNMENT: " & oWorksheet.Cells(lngRow, lngUIDCol).Value
             Else
               'todo: only import if different
+              dblETC = oWorksheet.Cells(lngRow, lngETCCol).Value
               If lngETC = pjTaskNumber1 Then
-                oAssignment.Number1 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number1 = dblETC
               ElseIf lngETC = pjTaskNumber2 Then
-                oAssignment.Number2 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number2 = dblETC
               ElseIf lngETC = pjTaskNumber3 Then
-                oAssignment.Number3 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number3 = dblETC
               ElseIf lngETC = pjTaskNumber4 Then
-                oAssignment.Number4 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number4 = dblETC
               ElseIf lngETC = pjTaskNumber5 Then
-                oAssignment.Number5 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number5 = dblETC
               ElseIf lngETC = pjTaskNumber6 Then
-                oAssignment.Number6 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number6 = dblETC
               ElseIf lngETC = pjTaskNumber7 Then
-                oAssignment.Number7 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number7 = dblETC
               ElseIf lngETC = pjTaskNumber8 Then
-                oAssignment.Number8 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number8 = dblETC
               ElseIf lngETC = pjTaskNumber9 Then
-                oAssignment.Number9 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number9 = dblETC
               ElseIf lngETC = pjTaskNumber10 Then
-                oAssignment.Number10 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number10 = dblETC
               ElseIf lngETC = pjTaskNumber11 Then
-                oAssignment.Number11 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number11 = dblETC
               ElseIf lngETC = pjTaskNumber12 Then
-                oAssignment.Number12 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number12 = dblETC
               ElseIf lngETC = pjTaskNumber13 Then
-                oAssignment.Number13 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number13 = dblETC
               ElseIf lngETC = pjTaskNumber14 Then
-                oAssignment.Number14 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number14 = dblETC
               ElseIf lngETC = pjTaskNumber15 Then
-                oAssignment.Number15 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number15 = dblETC
               ElseIf lngETC = pjTaskNumber16 Then
-                oAssignment.Number16 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number16 = dblETC
               ElseIf lngETC = pjTaskNumber17 Then
-                oAssignment.Number17 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number17 = dblETC
               ElseIf lngETC = pjTaskNumber18 Then
-                oAssignment.Number18 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number18 = dblETC
               ElseIf lngETC = pjTaskNumber19 Then
-                oAssignment.Number19 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number19 = dblETC
               ElseIf lngETC = pjTaskNumber20 Then
-                oAssignment.Number20 = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number20 = dblETC
               End If
               Set oAssignment = Nothing
             End If

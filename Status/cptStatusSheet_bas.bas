@@ -405,7 +405,7 @@ skip_fields:
   End If
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   cptSpeed False
-  cptStatusSheet_frm.Show False
+  cptStatusSheet_frm.Show
   DoEvents
   cptRefreshStatusTable 'this only runs when form is visible
   If strStartingGroup <> "No Group" Then GroupApply strStartingGroup
@@ -1363,11 +1363,11 @@ Dim lngItem As Long
 
   'reset the filter
   Application.StatusBar = "Resetting the cptStatusSheet Filter..."
-  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, showsummarytasks:=True
+  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", Test:="equals", Value:="NA", ShowInMenu:=False, showsummarytasks:=True
   If cptStatusSheet_frm.chkHide And IsDate(cptStatusSheet_frm.txtHideCompleteBefore) Then
-    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", showsummarytasks:=True
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Actual Finish", Test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", showsummarytasks:=True
   End If
-  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Active", test:="equals", Value:="Yes", ShowInMenu:=False, showsummarytasks:=True, parenthesis:=True
+  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Active", Test:="equals", Value:="Yes", ShowInMenu:=False, showsummarytasks:=True, parenthesis:=True
   FilterApply "cptStatusSheet Filter"
 
 exit_here:
