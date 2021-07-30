@@ -100,6 +100,7 @@ Private Sub cmdImport_Click()
     Else
       cptSaveSetting "StatusSheetImport", "cboAppendTo", ""
     End If
+    cptSaveSetting "StatusSheetImport", "optTaskUsage", IIf(Me.optAbove, "above", "below")
     
     Call cptStatusSheetImport
   End If
@@ -173,6 +174,14 @@ End Sub
 '                                  y As Single)
 '  Call cptAddFiles(Data)
 'End Sub
+
+Private Sub optAbove_Click()
+  Call cptRefreshStatusImportTable(Me.optBelow)
+End Sub
+
+Private Sub optBelow_Click()
+  Call cptRefreshStatusImportTable(Me.optBelow)
+End Sub
 
 Private Sub TreeView1_DblClick()
   'objects
