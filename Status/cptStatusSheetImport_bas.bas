@@ -113,7 +113,6 @@ Dim vField As Variant
       Kill strSettings
     Else
       'default settings
-      'todo: auto-select first avaialble/unnamed?
       .cboAppendTo.Value = "Top of Task Note"
     End If
 
@@ -427,7 +426,7 @@ next_task:
           'skip completed tasks (which are also italicized)
           If IsDate(oTask.ActualFinish) Then GoTo next_row
           If blnTask Then
-            'new start date todo: only import if different
+            'new start date
             If oWorksheet.Cells(lngRow, lngASCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngASCol).Locked Then
               dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngASCol).Value), vbShortDate)
               'determine actual or forecast
@@ -437,7 +436,7 @@ next_task:
                 If FormatDateTime(oTask.Start, vbShortDate) <> dtNewDate Then oTask.SetField lngFS, CDate(dtNewDate & " 08:00 AM")
               End If
             End If
-            'new finish date todo: only import if different
+            'new finish date
             If oWorksheet.Cells(lngRow, lngAFCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngAFCol).Locked Then
               dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngAFCol)))
               If dtNewDate <= dtStatus Then 'actual finish
@@ -464,7 +463,6 @@ next_task:
             If oAssignment Is Nothing Then
               Print #lngFile, "ASSIGNMENT MISSING: TASK " & oTask.UniqueID & " ASSIGNMENT: " & oWorksheet.Cells(lngRow, lngUIDCol).Value
             Else
-              'todo: only import if different
               dblETC = oWorksheet.Cells(lngRow, lngETCCol).Value
               If lngETC = pjTaskNumber1 Then
                 If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number1 = dblETC
@@ -618,6 +616,7 @@ Dim lngItem As Long
   End If
   
   strEVP = cptGetSetting("StatusSheet", "cboEVP")
+  strEVT = cptGetSetting("StatusSheet", "cboEVT")
   
   'reset the table
   TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
@@ -668,6 +667,15 @@ Dim lngItem As Long
     lngFF = cptStatusSheetImport_frm.cboFF.Value
     TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngFF), Title:="New Forecast Finish", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   End If
+  'EVT
+  If Len(strEVT) > 0 Then
+    On Error Resume Next
+    lngEVT = FieldNameToFieldConstant(strEVT)
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If lngEVT > 0 Then
+      TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=strEVT, Title:="EVT", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    End If
+  End If
   'existing EV%
   If Len(strEVP) > 0 Then
     'does field still exist?
@@ -676,15 +684,6 @@ Dim lngItem As Long
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     If lngEVP > 0 Then
       TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=strEVP, Title:="EV%", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-    End If
-  End If
-  'EVT
-  If Len(strEVT) > 0 Then
-    On Error Resume Next
-    lngEVT = FieldNameToFieldConstant(strEVT)
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-    If lngEVT > 0 Then
-      TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=strEVT, Title:="EVT", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     End If
   End If
   'imported EV
@@ -704,7 +703,11 @@ Dim lngItem As Long
   ActiveWindow.TopPane.Activate
   TableApply Name:="Entry"
   TableApply Name:="cptStatusSheetImport Table"
-
+  
+  'todo: apply non-task-usage view above
+  'todo: open details pane
+  'todo: apply cptStatusSheetImportDetails table (UID,{user fields},ETC, New ETC, Type
+  
   'reset the filter
 '  FilterEdit Name:="cptStatusSheetImport Filter", Taskfilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
 '  If cptStatusSheetImport_frm.chkHide And IsDate(cptStatusSheetImport_frm.txtHideCompleteBefore) Then
