@@ -2110,6 +2110,7 @@ End Function
 
 Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
   'objects
+  Dim oInspector As Outlook.Inspector
   Dim oBuildingBlock As Word.BuildingBlock
   Dim oOutlook As Outlook.Application
   Dim oMailItem As Outlook.MailItem
@@ -2133,7 +2134,7 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
   End If
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  Set oMailItem = oOutlook.CreateItem(0) '0 = oloMailItem
+  Set oMailItem = oOutlook.CreateItem(0) '0 = olMailItem
   oMailItem.Display False
   oMailItem.Attachments.Add strFullName
   With cptStatusSheet_frm
@@ -2159,9 +2160,14 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
       End If
       oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, "[STATUS_DATE]", Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
     End If
+    Set oInspector = oMailItem.GetInspector
+    oInspector.WindowState = olMinimized
+      
   End With
+  
 exit_here:
   On Error Resume Next
+  Set oInspector = Nothing
   Set oBuildingBlock = Nothing
   Set oOutlook = Nothing
   Set oMailItem = Nothing
