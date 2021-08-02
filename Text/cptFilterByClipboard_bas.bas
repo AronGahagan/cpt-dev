@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>v1.1.5</cpt_version>
+'<cpt_version>v1.1.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -109,6 +109,8 @@ Dim oTask As Task
 'strings
 Dim strFilter As String
 'longs
+Dim lngTask As Long
+Dim lngTasks As Long
 Dim lngFreeField As Long
 Dim lngItems As Long
 Dim lngItem As Long
@@ -122,6 +124,8 @@ Dim vUID As Variant
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
+  cptSpeed True
+  
   cptFilterByClipboard_frm.lboFilter.Clear
   strFilter = cptFilterByClipboard_frm.txtFilter.Text
   If Len(strFilter) = 0 Then
@@ -130,11 +134,16 @@ Dim vUID As Variant
     GoTo exit_here
   End If
   
+  lngTasks = ActiveProject.Tasks.Count
   If Not IsNull(cptFilterByClipboard_frm.cboFreeField.Value) Then
     lngFreeField = cptFilterByClipboard_frm.cboFreeField
     For Each oTask In ActiveProject.Tasks
-      If Not oTask Is Nothing And lngFreeField > 0 Then oTask.SetField lngFreeField, 0
-      Application.StatusBar = "resetting number field"
+      If oTask Is Nothing Then GoTo next_task
+      If oTask.ExternalTask Then GoTo next_task
+      If lngFreeField > 0 Then oTask.SetField lngFreeField, 0
+next_task:
+      lngTask = lngTask + 1
+      Application.StatusBar = "Resetting number field...(" & Format(lngTask / lngTasks, "0%") & ")"
     Next oTask
   Else
     lngFreeField = 0
@@ -200,7 +209,7 @@ next_item:
   
 exit_here:
   On Error Resume Next
-  ScreenUpdating = True
+  cptSpeed False
   Set oTask = Nothing
 
   Exit Sub
