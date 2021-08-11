@@ -108,21 +108,28 @@ Private Sub cmdImport_Click()
 End Sub
 
 Private Sub cmdSelectFiles_Click()
-'objects
-Dim FileDialog As FileDialog
-Dim oExcel As Excel.Application
-'strings
-'longs
-Dim lngItem As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim FileDialog As FileDialog
+  Dim oExcel As Excel.Application
+  'strings
+  'longs
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnQuit As Boolean
+  'variants
+  'dates
 
+  On Error Resume Next
+  Set oExcel = GetObject(, "Excel.Application")
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  Set oExcel = CreateObject("Excel.Application")
+  If oExcel Is Nothing Then
+    Set oExcel = CreateObject("Excel.Application")
+    blnQuit = True
+  Else
+    blnQuit = False
+  End If
   Set FileDialog = oExcel.FileDialog(msoFileDialogFilePicker)
   With FileDialog
     .AllowMultiSelect = True
@@ -143,6 +150,7 @@ Dim lngItem As Long
 exit_here:
   On Error Resume Next
   Set FileDialog = Nothing
+  If blnQuit Then oExcel.Quit
   Set oExcel = Nothing
 
   Exit Sub

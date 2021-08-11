@@ -351,13 +351,12 @@ Dim lngItem As Long
       blnExists = False
       For lngItem = 0 To Me.cboQuickParts.ListCount - 1
         If Me.cboQuickParts.List(lngItem, 0) = strQuickPart Then
+          Me.cboQuickParts.Value = strQuickPart
           blnExists = True
           Exit For
         End If
       Next lngItem
-      If blnExists Then
-        Me.cboQuickParts.Value = strQuickPart
-      Else
+      If Not blnExists Then
         MsgBox "QuickPart '" & strQuickPart & "' not found.", vbExclamation + vbOKOnly, "Stored Setting Invalid"
       End If
     End If

@@ -297,7 +297,11 @@ Sub cptStatusSheetImport()
   cptSaveSetting "StatusSheetImport", "cboAppendTo", strAppendTo
   
   'set up import log file
-  strImportLog = Environ("USERPROFILE") & "\CP_Status_Sheets\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
+  strImportLog = ActiveProject.Path & "\Status Requests\"
+  If Dir(strImportLog, vbDirectory) = vbNullString Then MkDir strImportLog
+  strImportLog = strImportLog & Format(ActiveProject.StatusDate, "yyyy-mm-dd") & "\"
+  If Dir(strImportLog, vbDirectory) = vbNullString Then MkDir strImportLog
+  strImportLog = strImportLog & "cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
   lngFile = FreeFile
   Open strImportLog For Output As #lngFile
 

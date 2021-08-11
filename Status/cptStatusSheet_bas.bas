@@ -26,6 +26,7 @@ Sub cptShowStatusSheet_frm()
 'populate UID,[user selections],Task Name,Duration,Forecast Start,Forecast Finish,Total Slack,[EVT],EV%,New EV%,BLW,Remaining Work,Revised ETC,BLS,BLF,Reason/Impact/Action
 'add pick list for EV% or default to Physical % Complete
 'objects
+Dim oTasks As Tasks
 Dim rstFields As ADODB.Recordset 'Object
 Dim rstEVT As ADODB.Recordset 'Object
 Dim rstEVP As ADODB.Recordset 'Object
@@ -58,7 +59,24 @@ Dim dtStatus As Date
 'variants
 Dim vFieldType As Variant
 
+  'confirm existence of tasks to export
+  On Error Resume Next
+  Set oTasks = ActiveProject.Tasks
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If oTasks Is Nothing Then
+    MsgBox "This Project has to Tasks.", vbExclamation + vbOKOnly, "No Tasks"
+    GoTo exit_here
+  ElseIf oTasks.Count = 0 Then
+    MsgBox "This Project has to Tasks.", vbExclamation + vbOKOnly, "No Tasks"
+    GoTo exit_here
+  End If
+
+  'confirm status date
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "Please enter a Status Date.", vbExclamation + vbOKOnly, "No Status Date"
+    'todo: prompt
+    GoTo exit_here
+  End If
 
   'requires ms excel
   Application.StatusBar = "Validating OLE references..."
@@ -82,7 +100,6 @@ Dim vFieldType As Variant
     .lboExport.Clear
     .cboEVT.Clear
     .cboEVP.Clear
-    '.cboEVP.AddItem "Physical % Complete"
     .cboCostTool.Clear
     .cboCostTool.AddItem "COBRA"
     .cboCostTool.AddItem "MPM"
@@ -111,7 +128,8 @@ Dim vFieldType As Variant
   rstFields.Fields.Append "TYPE", adVarChar, 50
   rstFields.Open
   
-  For Each vFieldType In Array("Text", "Outline Code", "Number")
+  'cycle through and add all custom fields
+  For Each vFieldType In Array("Text", "Outline Code", "Number") 'todo: start, finish, date, flag?
     On Error GoTo err_here
     For intField = 1 To 30
       lngField = FieldNameToFieldConstant(vFieldType & intField, pjTask)
@@ -270,7 +288,7 @@ skip_fields:
     If strFileNamingConvention <> "" Then .txtFileName = strFileNamingConvention
     
     strEmail = cptGetSetting("StatusSheet", "chkEmail")
-    If strEmail <> "" Then .chkSendEmails = CBool(strEmail)
+    If strEmail <> "" Then .chkSendEmails = CBool(strEmail) 'this refreshes the quickparts list
     If .chkSendEmails Then
       strSubject = cptGetSetting("StatusSheet", "txtSubject")
       If strSubject <> "" Then
@@ -280,18 +298,7 @@ skip_fields:
       End If
       strCC = cptGetSetting("StatusSheet", "txtCC")
       If strCC <> "" Then .txtCC.Value = strCC
-      strQuickPart = cptGetSetting("StatusSheet", "cboQuickPart")
-      If strQuickPart <> "" Then
-        For lngItem = 0 To .cboQuickParts.ListCount - 1
-          If .cboQuickParts.List(lngItem, 0) = strQuickPart Then
-            .cboQuickParts.Value = strQuickPart
-            Exit For
-          End If
-        Next lngItem
-        If IsNull(.cboQuickParts.Value) Then
-          MsgBox "A QuickPart named '" & strQuickPart & "' was not found.", vbExclamation + vbOKOnly, "Missing Quick Part?"
-        End If
-      End If
+      'cboQuickParts updated when .chkSendEmails = true
     End If
     strConditionalFormats = cptGetSetting("StatusSheet", "chkConditionalFormatting")
     If strConditionalFormats <> "" Then .chkAddConditionalFormats = CBool(strConditionalFormats)
@@ -333,35 +340,13 @@ skip_fields:
       .Close
     End With
   End If
-
-  'reset the view - must be of type pjTaskItem
-  'todo: restore starting table, filter, and group (but keep existing view)
-  ActiveWindow.TopPane.Activate
-  strStartingViewTopPane = ActiveWindow.TopPane.View.Name
-  If Not ActiveWindow.BottomPane Is Nothing Then
-    strStartingViewBottomPane = ActiveWindow.BottomPane.View.Name
-  Else
-    strStartingViewBottomPane = "None"
-  End If
-  strStartingTable = ActiveProject.CurrentTable
-  strStartingFilter = ActiveProject.CurrentFilter
-  strStartingGroup = ActiveProject.CurrentGroup
-  'todo: reset view/table/filter to starting position on form close
   
-  cptSpeed True
-  If ActiveWindow.TopPane.View.Type <> pjTaskItem Then
-    ViewApply "Gantt Chart"
-    'FilterApply "All Tasks"
-    GroupApply "No Group"
-  Else
-    If strStartingGroup <> "No Group" Then
-      'TODO: TASK USAGE VIEW DUPLICATES ASSIGNMENTS
-      ViewApply "Task Usage"
-      If ActiveProject.CurrentGroup <> strStartingGroup Then GroupApply strStartingGroup
-    End If
+  'notify if a custom field name has changed
+  If Len(strFieldNamesChanged) > 0 Then
+    strFieldNamesChanged = "The following saved export field names have changed:" & vbCrLf & vbCrLf & strFieldNamesChanged
+    strFieldNamesChanged = strFieldNamesChanged & vbCrLf & vbCrLf & "You may wish to remove them from the export list."
+    MsgBox strFieldNamesChanged, vbInformation + vbOKOnly, "Saved Settings - Mismatches"
   End If
-  DoEvents
-  cptSpeed False
   
   'set the status date / hide complete
   If ActiveProject.StatusDate = "NA" Then
@@ -383,43 +368,85 @@ skip_fields:
   'set up the view/table/filter
   Application.StatusBar = "Preparing View/Table/Filter..."
   DoEvents
-'  lngSelectedItems = 0
-'  For lngItem = 0 To cptStatusSheet_frm.lboItems.ListCount - 1
-'    If cptStatusSheet_frm.lboItems.Selected(lngItem) Then lngSelectedItems = lngSelectedItems + 1
-'  Next lngItem
-'  If lngSelectedItems = 0 And ActiveProject.CurrentFilter <> "All Tasks" Then FilterClear
+  ActiveWindow.TopPane.Activate
+  strStartingViewTopPane = ActiveWindow.TopPane.View.Name
+  If Not ActiveWindow.BottomPane Is Nothing Then
+    strStartingViewBottomPane = ActiveWindow.BottomPane.View.Name
+  Else
+    strStartingViewBottomPane = "None"
+  End If
+  strStartingTable = ActiveProject.CurrentTable
+  strStartingFilter = ActiveProject.CurrentFilter
+  strStartingGroup = ActiveProject.CurrentGroup
+  
+  cptSpeed True
+  ActiveWindow.TopPane.Activate
+  If ActiveWindow.TopPane.View.Type <> pjTaskItem Then
+    ViewApply "Gantt Chart"
+    If ActiveProject.CurrentGroup <> "No Group" Then GroupApply "No Group" 'if not a task view, then group is irrelevant
+  Else
+    If strStartingGroup = "No Group" Then
+      'no fake Group Summary UIDs will be used
+    Else
+      If Not strStartingViewTopPane = "Task Usage" Then ViewApply "Task Usage"
+      'task usage view avoids fake Group Summary UIDs
+      If ActiveProject.CurrentGroup <> strStartingGroup Then GroupApply strStartingGroup
+    End If
+  End If
+  DoEvents
+  
   OptionsViewEx displaysummarytasks:=True, displaynameindent:=True
   If strStartingGroup = "No Group" Then
-    Application.StatusBar = "Ensuring Sort by ID keeping Outline Structure..."
-    DoEvents
     Sort "ID", , , , , , False, True 'OutlineShowAllTasks won't work without this
   Else
-    If ActiveProject.CurrentGroup <> strStartingGroup Then GroupApply strStartingGroup
+    If ActiveProject.CurrentGroup <> strStartingGroup Then
+      On Error Resume Next
+      GroupApply strStartingGroup
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    End If
   End If
-  Application.StatusBar = "Showing all tasks..."
-  DoEvents
   On Error Resume Next
   If Not OutlineShowAllTasks Then
     Sort "ID", , , , , , False, True
     OutlineShowAllTasks
   End If
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  cptSpeed False
-  cptStatusSheet_frm.Show
+  cptRefreshStatusTable True  'this only runs when form is visible
+  If CLng(strCreate) > 0 And Len(strEach) > 0 Then
+    SetAutoFilter strEach, pjAutoFilterClear
+    DoEvents
+  End If
+  If strStartingGroup <> "No Group" Then
+    On Error Resume Next
+    GroupApply strStartingGroup
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  End If
   DoEvents
-  cptRefreshStatusTable 'this only runs when form is visible
-  If strStartingGroup <> "No Group" Then GroupApply strStartingGroup
   Application.StatusBar = "Ready..."
   DoEvents
-
-  If Len(strFieldNamesChanged) > 0 Then
-    strFieldNamesChanged = "The following saved export field names have changed:" & vbCrLf & vbCrLf & strFieldNamesChanged
-    strFieldNamesChanged = strFieldNamesChanged & vbCrLf & vbCrLf & "You may wish to remove them from the export list."
-    MsgBox strFieldNamesChanged, vbInformation + vbOKOnly, "Saved Settings - Mismatches"
+  cptSpeed True
+  cptStatusSheet_frm.Show
+  
+  'after user closes form, then:
+  Application.StatusBar = "Restoring your view/table/filter/group..."
+  DoEvents
+  cptSpeed True
+  ActiveWindow.TopPane.Activate
+  ViewApply strStartingViewTopPane
+  If strStartingViewBottomPane <> "None" Then
+    PaneCreate
+    ViewApply strStartingViewBottomPane
+    ActiveWindow.TopPane.Activate
   End If
-
+  If ActiveProject.CurrentTable <> strStartingTable Then TableApply strStartingTable
+  If ActiveProject.CurrentFilter <> strStartingFilter Then FilterApply strStartingFilter
+  If ActiveProject.CurrentGroup <> strStartingGroup Then GroupApply strStartingGroup
+  
 exit_here:
   On Error Resume Next
+  Application.StatusBar = ""
+  cptSpeed False
+  Set oTasks = Nothing
   If rstFields.State Then rstFields.Close
   Set rstFields = Nothing
   Exit Sub
@@ -1312,7 +1339,7 @@ err_here:
 
 End Sub
 
-Sub cptRefreshStatusTable()
+Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False)
 'objects
 'strings
 'longs
@@ -1324,10 +1351,10 @@ Dim lngItem As Long
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If Not cptStatusSheet_frm.Visible Then GoTo exit_here
+  If Not cptStatusSheet_frm.Visible And blnOverride = False Then GoTo exit_here
 
-  cptSpeed True
-
+  If Not blnOverride Then cptSpeed True
+    
   'reset the table
   Application.StatusBar = "Resetting the cptStatusSheet Table..."
   If ActiveProject.CurrentGroup <> "No Group" Then GroupApply "No Group"
@@ -1369,10 +1396,10 @@ Dim lngItem As Long
   End If
   FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Active", Test:="equals", Value:="Yes", ShowInMenu:=False, showsummarytasks:=True, parenthesis:=True
   FilterApply "cptStatusSheet Filter"
-
+  
 exit_here:
   On Error Resume Next
-  cptSpeed False
+  If Not blnOverride Then cptSpeed False
   Exit Sub
 err_here:
   Call cptHandleErr("cptStatusSheet_bas", "cptRefreshStatusView", Err, Erl)
@@ -1980,22 +2007,27 @@ Dim strSQL As String
   If blnRefreshOutlook Then
     'refresh QuickParts in Outlook
     cptStatusSheet_frm.cboQuickParts.Clear
-    'get outlook
+    'get Outlook
     On Error Resume Next
-    Set oOutlook = GetObject(, "Outlook.Application")
+    Set oOutlook = GetObject(, "Outlook.Application") 'this works even if Outlook isn't open
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     If oOutlook Is Nothing Then
-      'todo: this doesn't work...
       Set oOutlook = CreateObject("Outlook.Application")
     End If
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     'create MailItem, insert quickparts, update links, dates
     Set oMailItem = oOutlook.CreateItem(olMailItem)
     'keep mailitem hidden
     If oMailItem.BodyFormat <> olFormatHTML Then oMailItem.BodyFormat = olFormatHTML
     'todo: fails if Outlook is not open; can't you just get Word directly?
+    On Error Resume Next
     Set objDoc = oMailItem.GetInspector.WordEditor
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If objDoc Is Nothing Then
+      oMailItem.Display False
+      Set objDoc = oMailItem.GetInspector.WordEditor
+      oMailItem.GetInspector.WindowState = olMinimized
+    End If
     Set oWord = objDoc.Application
-    'Set objSel = objDoc.Windows(1).Selection
     Set objETemp = oWord.Templates(1)
     Set oBuildingBlockEntries = objETemp.BuildingBlockEntries
     'loop through them
