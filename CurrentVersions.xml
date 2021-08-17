@@ -3,7 +3,7 @@
 	<Module>
 		<Name>cptAbout_frm</Name>
 		<FileName>cptAbout_frm.frm</FileName>
-		<Version>v1.6.10</Version>
+		<Version>v1.6.11</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>
