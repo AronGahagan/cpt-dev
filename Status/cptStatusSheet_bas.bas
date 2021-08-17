@@ -372,6 +372,8 @@ skip_fields:
   strStartingViewTopPane = ActiveWindow.TopPane.View.Name
   If Not ActiveWindow.BottomPane Is Nothing Then
     strStartingViewBottomPane = ActiveWindow.BottomPane.View.Name
+    ActiveWindow.BottomPane.Activate
+    Application.PaneClose
   Else
     strStartingViewBottomPane = "None"
   End If
@@ -434,9 +436,13 @@ skip_fields:
   ActiveWindow.TopPane.Activate
   ViewApply strStartingViewTopPane
   If strStartingViewBottomPane <> "None" Then
-    PaneCreate
-    ViewApply strStartingViewBottomPane
-    ActiveWindow.TopPane.Activate
+    If strStartingViewBottomPane = "Timeline" Then
+      ViewApplyEx Name:="Timeline", applyto:=1
+    Else
+      PaneCreate
+      ViewApplyEx strStartingViewBottomPane, applyto:=1
+      ActiveWindow.TopPane.Activate
+    End If
   End If
   If ActiveProject.CurrentTable <> strStartingTable Then TableApply strStartingTable
   If ActiveProject.CurrentFilter <> strStartingFilter Then FilterApply strStartingFilter
