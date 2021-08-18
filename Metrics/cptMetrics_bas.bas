@@ -51,17 +51,33 @@ End Sub
 
 Sub cptGetBCWP()
   
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
+      Exit Sub
+    End If
+  End If
+  
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
     MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
     Exit Sub
   Else
-    MsgBox Format(cptGetMetric("bcwp"), "#,##0.00") & vbCrLf & vbCrLf & "(Assumes EV% in Physical % Complete.)", vbInformation + vbOKOnly, "Budgeted Cost of Work Performed (BCWP) - hours"
+    MsgBox Format(cptGetMetric("bcwp"), "#,##0.00"), vbInformation + vbOKOnly, "Budgeted Cost of Work Performed (BCWP) - hours"
   End If
   
 End Sub
 
 Sub cptGetSPI()
+  
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
+      Exit Sub
+    End If
+  End If
   
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
@@ -98,7 +114,15 @@ Sub cptGetCEI()
 End Sub
 
 Sub cptGetSV()
-    
+  
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
+      Exit Sub
+    End If
+  End If
+  
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
     MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
@@ -308,8 +332,8 @@ Dim dblResult As Double
       strMsg = strMsg & "Schedule Variance % (SV%)" & vbCrLf
       strMsg = strMsg & "SV% = ( SV / BCWS ) * 100" & vbCrLf
       strMsg = strMsg & "SV% = ( " & Format((dblBCWP - dblBCWS), "#,##0.0h") & " / " & Format(dblBCWS, "#,##0.0h") & " ) * 100" & vbCrLf
-      strMsg = strMsg & "SV% = " & Format(((dblBCWP - dblBCWS) / dblBCWS), "0.00%") & vbCrLf & vbCrLf
-      strMsg = strMsg & "(Assumes EV% in Physical % Complete.)"
+      strMsg = strMsg & "SV% = " & Format(((dblBCWP - dblBCWS) / dblBCWS), "0.00%") '& vbCrLf & vbCrLf
+      'strMsg = strMsg & "(Assumes EV% in Physical % Complete.)"
       
       MsgBox strMsg, vbInformation + vbOKOnly, "Schedule Variance (SV) - Hours"
       
@@ -400,8 +424,6 @@ Dim oTasks As Tasks
 Dim oTask As Task
 'strings
 Dim strLOE As String
-Dim strLOEField As String
-Dim strEVP As String
 'longs
 Dim lngLOEField As Long
 Dim lngEVP As Long
@@ -474,19 +496,9 @@ Dim dtStatus As Date
           End If
           
         Case "bcwp"
-          strEVP = cptGetSetting("Metrics", "cboEVP")
-          strLOEField = cptGetSetting("Metrics", "cboLOEField")
+          lngEVP = CLng(cptGetSetting("Metrics", "cboEVP"))
+          lngLOEField = CLng(cptGetSetting("Metrics", "cboLOEField"))
           strLOE = cptGetSetting("Metrics", "txtLOE")
-          
-          If Len(strEVP) = 0 Or Len(strLOEField) = 0 Or Len(strLOE) = 0 Then
-            Call cptShowMetricsSettings_frm(True)
-            strEVP = cptGetSetting("Metrics", "cboEVP")
-            strLOEField = cptGetSetting("Metrics", "cboLOEField")
-            strLOE = cptGetSetting("Metrics", "txtLOE")
-          End If
-          
-          lngEVP = CLng(strEVP)
-          lngLOEField = CLng(strLOEField)
           
           For Each oAssignment In oTask.Assignments
             If oAssignment.ResourceType = pjResourceTypeWork Then
@@ -603,3 +615,37 @@ err_here:
   MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
+
+Function cptMetricsSettingsExist() As Boolean
+  'objects
+  'strings
+  Dim strLOE As String
+  Dim strLOEField As String
+  Dim strEVP As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+    
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  strEVP = cptGetSetting("Metrics", "cboEVP")
+  strLOEField = cptGetSetting("Metrics", "cboLOEField")
+  strLOE = cptGetSetting("Metrics", "txtLOE")
+  
+  If Len(strEVP) = 0 Or Len(strLOEField) = 0 Or Len(strLOE) = 0 Then
+    cptMetricsSettingsExist = False
+  Else
+    cptMetricsSettingsExist = True
+  End If
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptMetrics_bas", "cptMetricsSettingsExist", Err, Erl)
+  Resume exit_here
+End Function
