@@ -150,8 +150,15 @@
 	<Module>
 		<Name>cptMetrics_bas</Name>
 		<FileName>cptMetrics_bas.bas</FileName>
-		<Version>v1.0.6</Version>
+		<Version>v1.0.7</Version>
 		<Type>1</Type>
+		<Directory>Metrics</Directory>
+	</Module>
+	<Module>
+		<Name>cptMetricsSettings_frm</Name>
+		<FileName>cptMetricsSettings_frm.frm</FileName>
+		<Version>v1.0.0</Version>
+		<Type>3</Type>
 		<Directory>Metrics</Directory>
 	</Module>
 	<Module>
@@ -227,7 +234,7 @@
 	<Module>
 		<Name>cptSetup_bas</Name>
 		<FileName>cptSetup_bas.bas</FileName>
-		<Version>v1.5.4</Version>
+		<Version>v1.5.5</Version>
 		<Type>1</Type>
 		<Directory></Directory>
 	</Module>
