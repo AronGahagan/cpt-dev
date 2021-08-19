@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.5.4</cpt_version>
+'<cpt_version>v1.5.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -519,6 +519,9 @@ Dim lngCleanUp As Long
     
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
     ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mEVish"" label=""EVish"" imageMso=""UpdateAsScheduled"" visible=""true"" size=""large"" supertip=""EV-ish metrics, based in hours. (Assumes schedule is resource-loaded using real assignments, rather than custom fields.)"" >"
+    If cptModuleExists("cptMetricsSettings_frm") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptMetricsSettings"" label=""Settings"" imageMso=""Settings"" onAction=""cptShowMetricsSettings_frm"" visible=""true"" supertip=""Settings required for some EV-ish metrics."" />"
+    End If
     ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Earned Value-ish (in hrs)"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSPI"" label=""Schedule Performance Index (SPI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSPI"" visible=""true"" supertip=""Relies on timephased baseline work and Physical % Complete."" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSV"" label=""Schedule Variance (SV)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSV"" visible=""true"" supertip=""Relies on timephased baseline work and Physical % Complete."" />"

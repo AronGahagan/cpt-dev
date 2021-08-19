@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.0.6</cpt_version>
+'<cpt_version>v1.0.7</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -51,17 +51,33 @@ End Sub
 
 Sub cptGetBCWP()
   
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
+      Exit Sub
+    End If
+  End If
+  
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
     MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
     Exit Sub
   Else
-    MsgBox Format(cptGetMetric("bcwp"), "#,##0.00") & vbCrLf & vbCrLf & "(Assumes EV% in Physical % Complete.)", vbInformation + vbOKOnly, "Budgeted Cost of Work Performed (BCWP) - hours"
+    MsgBox Format(cptGetMetric("bcwp"), "#,##0.00"), vbInformation + vbOKOnly, "Budgeted Cost of Work Performed (BCWP) - hours"
   End If
   
 End Sub
 
 Sub cptGetSPI()
+  
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
+      Exit Sub
+    End If
+  End If
   
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
@@ -98,7 +114,15 @@ Sub cptGetCEI()
 End Sub
 
 Sub cptGetSV()
-    
+  
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
+      Exit Sub
+    End If
+  End If
+  
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
     MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
@@ -290,8 +314,8 @@ Dim dblResult As Double
       End If
       strMsg = "SPI = BCWP / BCWS" & vbCrLf
       strMsg = strMsg & "SPI = " & Format(dblBCWP, "#,##0h") & " / " & Format(dblBCWS, "#,##0h") & vbCrLf & vbCrLf
-      strMsg = strMsg & "SPI = ~" & Round(dblBCWP / dblBCWS, 2) & vbCrLf & vbCrLf
-      strMsg = strMsg & "(Assumes EV% in Physical % Complete.)"
+      strMsg = strMsg & "SPI = ~" & Round(dblBCWP / dblBCWS, 2) '& vbCrLf & vbCrLf
+      'strMsg = strMsg & "(Assumes EV% in Physical % Complete.)"
       MsgBox strMsg, vbInformation + vbOKOnly, "Schedule Performance Index (SPI) - Hours"
       
     Case "SV"
@@ -308,8 +332,8 @@ Dim dblResult As Double
       strMsg = strMsg & "Schedule Variance % (SV%)" & vbCrLf
       strMsg = strMsg & "SV% = ( SV / BCWS ) * 100" & vbCrLf
       strMsg = strMsg & "SV% = ( " & Format((dblBCWP - dblBCWS), "#,##0.0h") & " / " & Format(dblBCWS, "#,##0.0h") & " ) * 100" & vbCrLf
-      strMsg = strMsg & "SV% = " & Format(((dblBCWP - dblBCWS) / dblBCWS), "0.00%") & vbCrLf & vbCrLf
-      strMsg = strMsg & "(Assumes EV% in Physical % Complete.)"
+      strMsg = strMsg & "SV% = " & Format(((dblBCWP - dblBCWS) / dblBCWS), "0.00%") '& vbCrLf & vbCrLf
+      'strMsg = strMsg & "(Assumes EV% in Physical % Complete.)"
       
       MsgBox strMsg, vbInformation + vbOKOnly, "Schedule Variance (SV) - Hours"
       
@@ -394,12 +418,15 @@ Function cptGetMetric(strGet As String) As Double
 'todo: no screen changes!
 'objects
 Dim oAssignment As Assignment
-Dim TSV As TimeScaleValue
-Dim TSVS As TimeScaleValues
+Dim tsv As TimeScaleValue
+Dim tsvs As TimeScaleValues
 Dim oTasks As Tasks
 Dim oTask As Task
 'strings
+Dim strLOE As String
 'longs
+Dim lngLOEField As Long
+Dim lngEVP As Long
 Dim lngYears As Long
 'integers
 'doubles
@@ -460,21 +487,33 @@ Dim dtStatus As Date
           If oTask.BaselineStart < dtStatus Then
             For Each oAssignment In oTask.Assignments
               If oAssignment.ResourceType = pjResourceTypeWork Then
-                Set TSVS = oAssignment.TimeScaleData(oTask.BaselineStart, dtStatus, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
-                For Each TSV In TSVS
-                  dblResult = dblResult + IIf(TSV.Value = "", 0, TSV.Value) / 60
+                Set tsvs = oAssignment.TimeScaleData(oTask.BaselineStart, dtStatus, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
+                For Each tsv In tsvs
+                  dblResult = dblResult + (IIf(tsv.Value = "", 0, tsv.Value) / 60)
                 Next
               End If
             Next oAssignment
           End If
           
         Case "bcwp"
+          lngEVP = CLng(cptGetSetting("Metrics", "cboEVP"))
+          lngLOEField = CLng(cptGetSetting("Metrics", "cboLOEField"))
+          strLOE = cptGetSetting("Metrics", "txtLOE")
+          
           For Each oAssignment In oTask.Assignments
             If oAssignment.ResourceType = pjResourceTypeWork Then
-              dblResult = dblResult + ((oAssignment.BaselineWork / 60) * (oTask.PhysicalPercentComplete / 100))
+              If oTask.GetField(lngLOEField) = strLOE Then
+                If oTask.BaselineStart < dtStatus Then
+                  Set tsvs = oAssignment.TimeScaleData(oTask.BaselineStart, dtStatus, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks, 1)
+                  For Each tsv In tsvs
+                    dblResult = dblResult + (IIf(tsv.Value = "", 0, tsv.Value) / 60)
+                  Next
+                End If
+              Else
+                dblResult = dblResult + ((oAssignment.BaselineWork / 60) * (CLng(cptRegEx(oTask.GetField(lngEVP), "[0-9]*")) / 100))
+              End If
             End If
           Next oAssignment
-                      
       End Select
     End If 'bac>0
     Select Case strGet
@@ -497,8 +536,8 @@ exit_here:
   Set oAssignment = Nothing
   Application.StatusBar = ""
   cptSpeed False
-  Set TSV = Nothing
-  Set TSVS = Nothing
+  Set tsv = Nothing
+  Set tsvs = Nothing
   Set oTasks = Nothing
   Set oTask = Nothing
 
@@ -508,4 +547,105 @@ err_here:
   Call cptHandleErr("cptMetrics_bas", "cptGetMetric", Err, Erl)
   Resume exit_here
 
+End Function
+
+Sub cptShowMetricsSettings_frm(Optional blnModal As Boolean = False)
+  'objects
+  'strings
+  Dim strCustomName As String
+  Dim strLOE As String
+  Dim strLOEField As String
+  Dim strEVP As String
+  'longs
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  With cptMetricsSettings_frm
+  
+    .cboEVP.Clear
+    .cboEVP.AddItem
+    .cboEVP.List(.cboEVP.ListCount - 1, 0) = FieldNameToFieldConstant("Physical % Complete")
+    .cboEVP.List(.cboEVP.ListCount - 1, 1) = "Physical % Complete"
+    For lngItem = 1 To 20
+      .cboEVP.AddItem
+      .cboEVP.List(.cboEVP.ListCount - 1, 0) = FieldNameToFieldConstant("Number" & lngItem)
+      .cboEVP.List(.cboEVP.ListCount - 1, 1) = "Number" & lngItem
+      strCustomName = CustomFieldGetName(FieldNameToFieldConstant("Number" & lngItem))
+      If Len(strCustomName) > 0 Then
+        .cboEVP.List(.cboEVP.ListCount - 1, 1) = strCustomName & " (Number" & lngItem & ")"
+      End If
+    Next lngItem
+    
+    .cboLOEField.Clear
+    For lngItem = 1 To 30
+      .cboLOEField.AddItem
+      .cboLOEField.List(.cboLOEField.ListCount - 1, 0) = FieldNameToFieldConstant("Text" & lngItem)
+      .cboLOEField.List(.cboLOEField.ListCount - 1, 1) = "Text" & lngItem
+      strCustomName = CustomFieldGetName(FieldNameToFieldConstant("Text" & lngItem))
+      If Len(strCustomName) > 0 Then
+        .cboLOEField.List(.cboLOEField.ListCount - 1, 1) = strCustomName & " (Text" & lngItem & ")"
+      End If
+    Next lngItem
+    
+    strEVP = cptGetSetting("Metrics", "cboEVP")
+    If Len(strEVP) > 0 Then .cboEVP.Value = CLng(strEVP)
+    strLOEField = cptGetSetting("Metrics", "cboLOEField")
+    If Len(strLOEField) > 0 Then .cboLOEField.Value = CLng(strLOEField)
+    strLOE = cptGetSetting("Metrics", "txtLOE")
+    If Len(strLOE) > 0 Then .txtLOE = strLOE
+    If blnModal Then
+      .Show
+    Else
+      .Show False
+    End If
+  End With
+  
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  'Call HandleErr("cptMetrics_bas", "cptShowMetricsSettings_frm", Err)
+  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Resume exit_here
+End Sub
+
+Function cptMetricsSettingsExist() As Boolean
+  'objects
+  'strings
+  Dim strLOE As String
+  Dim strLOEField As String
+  Dim strEVP As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+    
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  strEVP = cptGetSetting("Metrics", "cboEVP")
+  strLOEField = cptGetSetting("Metrics", "cboLOEField")
+  strLOE = cptGetSetting("Metrics", "txtLOE")
+  
+  If Len(strEVP) = 0 Or Len(strLOEField) = 0 Or Len(strLOE) = 0 Then
+    cptMetricsSettingsExist = False
+  Else
+    cptMetricsSettingsExist = True
+  End If
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptMetrics_bas", "cptMetricsSettingsExist", Err, Erl)
+  Resume exit_here
 End Function
