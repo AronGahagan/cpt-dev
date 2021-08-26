@@ -701,6 +701,13 @@ Dim blnIncluded As Boolean
     Me.txtDir.BorderColor = 192
     blnError = True
   End If
+  'prevent duplication of EVT and EV%
+  For lngItem = Me.lboExport.ListCount - 1 To 0 Step -1
+    If Me.lboExport.List(lngItem, 1) = Me.cboEVP.Value Or Me.lboExport.List(lngItem, 1) = Me.cboEVT.Value Then
+      MsgBox "'" & Me.lboExport.List(lngItem, 1) & "' is included by default; removing from export list.", vbInformation + vbOKOnly, "Duplicate"
+      Me.lboExport.RemoveItem lngItem
+    End If
+  Next lngItem
   If blnError Then
     Me.lblStatus.ForeColor = 192 'red
     Me.lblStatus.Caption = " Please complete all required fields."
