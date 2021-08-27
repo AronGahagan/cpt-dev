@@ -450,7 +450,11 @@ next_task:
               dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngASCol).Value), vbShortDate)
               'determine actual or forecast
               If dtNewDate <= FormatDateTime(dtStatus, vbShortDate) Then 'actual start
-                If FormatDateTime(oTask.ActualStart, vbShortDate) <> dtNewDate Then oTask.SetField lngAS, CDate(dtNewDate & " 08:00 AM")
+                If IsDate(oTask.ActualStart) Then
+                  If FormatDateTime(oTask.ActualStart, vbShortDate) <> dtNewDate Then oTask.SetField lngAS, CDate(dtNewDate & " 08:00 AM")
+                Else
+                  oTask.SetField lngAS, CDate(dtNewDate & " 08:00 AM")
+                End If
               ElseIf dtNewDate > dtStatus Then 'forecast start
                 If FormatDateTime(oTask.Start, vbShortDate) <> dtNewDate Then oTask.SetField lngFS, CDate(dtNewDate & " 08:00 AM")
               End If
@@ -459,7 +463,11 @@ next_task:
             If oWorksheet.Cells(lngRow, lngAFCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngAFCol).Locked Then
               dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngAFCol)))
               If dtNewDate <= dtStatus Then 'actual finish
-                If FormatDateTime(oTask.ActualFinish, vbShortDate) <> dtNewDate Then oTask.SetField lngAF, CDate(dtNewDate & " 05:00 PM")
+                If IsDate(oTask.ActualFinish) Then
+                  If FormatDateTime(oTask.ActualFinish, vbShortDate) <> dtNewDate Then oTask.SetField lngAF, CDate(dtNewDate & " 05:00 PM")
+                Else
+                  oTask.SetField lngAF, CDate(dtNewDate & " 05:00 PM")
+                End If
               ElseIf dtNewDate > dtStatus Then 'forecast finish
                 If FormatDateTime(oTask.Finish, vbShortDate) <> dtNewDate Then oTask.SetField lngFF, CDate(dtNewDate & " 05:00 PM")
               End If

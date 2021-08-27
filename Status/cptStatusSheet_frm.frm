@@ -22,6 +22,7 @@ Private Const adInteger As Long = 3
 
 Private Sub cboCostTool_Change()
   'objects
+  Dim oEVTs As Scripting.Dictionary
   'strings
   'longs
   'integers
@@ -74,6 +75,7 @@ Private Sub cboCostTool_Change()
 
 exit_here:
   On Error Resume Next
+  Set oEVTs = Nothing
 
   Exit Sub
 err_here:
