@@ -8,6 +8,7 @@ Sub cptShowStatusSheetImport_frm()
 'objects
 Dim rst As Object 'ADODB.Recordset
 'strings
+Dim strAppend As String
 Dim strTaskUsage As String
 Dim strAppendTo As String
 Dim strETC As String
@@ -143,7 +144,8 @@ Dim vField As Variant
     If Len(strEVP) > 0 Then .cboEV.Value = CLng(strEVP)
     strETC = cptGetSetting("StatusSheetImport", "cboETC")
     If Len(strETC) > 0 Then .cboETC.Value = CLng(strETC)
-    .chkAppend = CBool(cptGetSetting("StatusSheetImport", "chkAppend"))
+    strAppend = cptGetSetting("StatusSheetImport", "chkAppend")
+    If Len(strAppend) > 0 Then .chkAppend = CBool(strAppend)
     strAppendTo = cptGetSetting("StatusSheetImport", "cboAppendTo")
     If Len(strAppendTo) > 0 Then .cboAppendTo.Value = strAppendTo
     strTaskUsage = cptGetSetting("StatusSheetImport", "optTaskUsage")

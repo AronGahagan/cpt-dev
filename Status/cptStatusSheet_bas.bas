@@ -64,10 +64,10 @@ Dim vFieldType As Variant
   Set oTasks = ActiveProject.Tasks
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If oTasks Is Nothing Then
-    MsgBox "This Project has to Tasks.", vbExclamation + vbOKOnly, "No Tasks"
+    MsgBox "This Project has no Tasks.", vbExclamation + vbOKOnly, "No Tasks"
     GoTo exit_here
   ElseIf oTasks.Count = 0 Then
-    MsgBox "This Project has to Tasks.", vbExclamation + vbOKOnly, "No Tasks"
+    MsgBox "This Project has no Tasks.", vbExclamation + vbOKOnly, "No Tasks"
     GoTo exit_here
   End If
 
