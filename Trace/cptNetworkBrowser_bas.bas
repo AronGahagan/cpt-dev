@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
-'<cpt_version>v0.0.5</cpt_version>
+'<cpt_version>v0.0.6</cpt_version>
 Option Explicit
 Public oInsertedIndex As Object
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -319,11 +319,19 @@ Sub cptMarked()
 End Sub
 
 Sub cptClearMarked()
-Dim oTask As Task
+Dim oTask As Task, lngActive As Long
+
+  If Edition = pjEditionProfessional Then
+    lngActive = FieldNameToFieldConstant("Active")
+  ElseIf Edition = pjEditionStandard Then
+    lngActive = 0
+  End If
 
   For Each oTask In ActiveProject.Tasks
     If oTask.ExternalTask Then GoTo next_task
-    If Not oTask.Active Then GoTo next_task
+    If lngActive > 0 Then
+      If oTask.GetField(lngActive) = "No" Then GoTo next_task
+    End If
     If Not oTask Is Nothing Then oTask.Marked = False
 next_task:
   Next oTask
@@ -331,10 +339,14 @@ next_task:
   'todo: fix this
   If ActiveWindow.TopPane.View.Name = "Network Diagram" Then
     cptSpeed True
-    If Not cptFilterExists("Active Tasks") Then
-      FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, OverwriteExisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=True
+    If Edition = pjEditionProfessional Then
+      If Not cptFilterExists("Active Tasks") Then
+        FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, overwriteexisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=True
+      End If
+      FilterApply "Active Tasks"
+    ElseIf Edition = pjEditionStandard Then
+      FilterApply "All Tasks"
     End If
-    FilterApply "Active Tasks"
     FilterApply "Marked"
     cptSpeed False
   Else

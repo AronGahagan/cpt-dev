@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.9.7</cpt_version>
+'<cpt_version>v1.9.8</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -287,17 +287,20 @@ err_here:
   Resume exit_here
 End Function
 
-Sub cptGetReferences()
+Function cptGetReferences(Optional blnVerbose As Boolean = False)
 'prints the current uesr's selected references
 'this would be used to troubleshoot with users real-time
 'although simply runing setreferences would fix it
-Dim Ref As Object
+Dim oRef As Reference
 
-  For Each Ref In ThisProject.VBProject.References
-    Debug.Print Ref.Name & " (" & Ref.Description & ") " & Ref.FullPath
-  Next Ref
+  For Each oRef In ThisProject.VBProject.References
+    Debug.Print oRef.Name & " (" & oRef.Description & ") " & oRef.FullPath
+    If blnVerbose Then
+      Debug.Print "-- " & oRef.Guid & " | " & oRef.Major & " | " & oRef.Minor
+    End If
+  Next oRef
 
-End Sub
+End Function
 
 Function cptGetDirectory(strModule As String) As String
 'this function retrieves the directory of the module from CurrentVersions.xml on gitHub
@@ -560,7 +563,7 @@ Sub cptResetAll()
       lngSettings = lngSettings - 2
     End If
     If lngSettings >= 1 Then 'hide inactive
-      SetAutoFilter "Active", pjAutoFilterFlagYes
+      If Edition = pjEditionProfessional Then SetAutoFilter "Active", pjAutoFilterFlagYes
     End If
   Else 'prompt for defaults
     Call cptShowResetAll_frm
@@ -670,8 +673,14 @@ Sub cptShowResetAll_frm()
         .chkGroup = True
         lngSettings = lngSettings - 2
       End If
-      If lngSettings >= 1 Then
-        .chkActiveOnly = True
+      If Edition = pjEditionProfessional Then
+        .chkActiveOnly.Enabled = True
+        If lngSettings >= 1 Then
+          .chkActiveOnly = True
+        End If
+      ElseIf Edition = pjEditionStandard Then
+        .chkActiveOnly = False
+        .chkActiveOnly.Enabled = False
       End If
     End With
   End If
@@ -1368,7 +1377,7 @@ Sub cptCreateFilter(strFilter As String)
 
   Select Case strFilter
     Case "Marked"
-      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=False
+      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, overwriteexisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=False
       
   End Select
   

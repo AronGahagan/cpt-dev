@@ -41,6 +41,7 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
   Dim strRecord As String, strFileName As String
   Dim strCost As String
   'longs
+  Dim lngActive As Long
   Dim lngOffset As Long
   Dim lngRateSets As Long
   Dim lngCol As Long
@@ -168,12 +169,18 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
     cptSpeed False
   End If
 
+  If Edition = pjEditionProfessional Then
+    lngActive = FieldNameToFieldConstant("Active")
+  ElseIf Edition = pjEditionStandard Then
+    lngActive = 0
+  End If
+
   'iterate over tasks
   Set oExcel = CreateObject("Excel.Application")
   For Each oTask In ActiveProject.Tasks
     If Not oTask Is Nothing Then 'skip blank lines
       If oTask.ExternalTask Then GoTo next_task 'skip external tasks
-      If Not oTask.Summary And oTask.RemainingDuration > 0 And oTask.Active Then 'skip summary, complete tasks/milestones, and inactive
+      If Not oTask.Summary And oTask.RemainingDuration > 0 And oTask.GetField(lngField) = "Yes" Then 'skip summary, complete tasks/milestones, and inactive
         
         'get earliest start and latest finish
         If cptResourceDemand_frm.chkBaseline Then
@@ -198,25 +205,25 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
           
           'capture timephased work
           Set TSVS_WORK = oAssignment.TimeScaleData(dtStart, dtFinish, pjAssignmentTimescaledWork, pjTimescaleWeeks, 1)
-          For Each TSV In TSVS_WORK
+          For Each tsv In TSVS_WORK
             
             'capture common oAssignment data
             strRecord = strTask & oAssignment.ResourceName & ","
             
             'optionally capture baseline work and cost
             If cptResourceDemand_frm.chkBaseline Then
-              Set TSVS_BCWS = oAssignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks, 1)
+              Set TSVS_BCWS = oAssignment.TimeScaleData(tsv.StartDate, tsv.EndDate, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks, 1)
               If oAssignment.ResourceType = pjResourceTypeWork Then
                 strRecord = strRecord & Val(TSVS_BCWS(1).Value) / 60 & ","
               Else
                 strRecord = strRecord & "0,"
               End If
-              Set TSVS_BCWS = oAssignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledBaselineCost, pjTimescaleWeeks, 1)
+              Set TSVS_BCWS = oAssignment.TimeScaleData(tsv.StartDate, tsv.EndDate, pjAssignmentTimescaledBaselineCost, pjTimescaleWeeks, 1)
               strRecord = strRecord & Val(TSVS_BCWS(1).Value) & ","
             End If
             'capture (and subtract) actual work, leaving ETC/Remaining Work
-            Set TSVS_AW = oAssignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleWeeks, 1)
-            dblWork = Val(TSV.Value) - Val(TSVS_AW(1))
+            Set TSVS_AW = oAssignment.TimeScaleData(tsv.StartDate, tsv.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleWeeks, 1)
+            dblWork = Val(tsv.Value) - Val(TSVS_AW(1))
             If oAssignment.ResourceType = pjResourceTypeWork Then
               strRecord = strRecord & dblWork / 60 & ","
             Else
@@ -226,9 +233,9 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
             If blnIncludeCosts Then
               'rate set
               strRecord = strRecord & Choose(oAssignment.CostRateTable + 1, "A", "B", "C", "D", "E") & ","
-              Set TSVS_COST = oAssignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledCost, pjTimescaleWeeks, 1)
+              Set TSVS_COST = oAssignment.TimeScaleData(tsv.StartDate, tsv.EndDate, pjAssignmentTimescaledCost, pjTimescaleWeeks, 1)
               'get actual cost
-              Set TSVS_AC = oAssignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledActualCost, pjTimescaleWeeks, 1)
+              Set TSVS_AC = oAssignment.TimeScaleData(tsv.StartDate, tsv.EndDate, pjAssignmentTimescaledActualCost, pjTimescaleWeeks, 1)
               'subtract actual cost from cost to get remaining cost
               dblCost = Val(TSVS_COST(1).Value) - Val(TSVS_AC(1))
               'get cost
@@ -265,12 +272,12 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
             'apply user settings for week identification
             With cptResourceDemand_frm
               If .cboWeeks = "Beginning" Then
-                dtWeek = TSV.StartDate
+                dtWeek = tsv.StartDate
                 If .cboWeekday = "Monday" Then
                   dtWeek = DateAdd("d", 1, dtWeek)
                 End If
               ElseIf .cboWeeks = "Ending" Then
-                dtWeek = TSV.EndDate
+                dtWeek = tsv.EndDate
                 If .cboWeekday = "Friday" Then
                   dtWeek = DateAdd("d", -2, dtWeek)
                 ElseIf .cboWeekday = "Saturday" Then
@@ -280,7 +287,7 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
             End With
             strRecord = strRecord & Format(dtWeek, "mm/dd/yyyy") & "," 'week
             Print #lngFile, strRecord
-          Next TSV
+          Next tsv
           
           'get rate set and cost
           lngOriginalRateSet = oAssignment.CostRateTable
@@ -295,7 +302,7 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
               'extract timephased date
               'get work
               Set TSVS_WORK = oAssignment.TimeScaleData(dtStart, dtFinish, pjAssignmentTimescaledWork, pjTimescaleWeeks, 1)
-              For Each TSV In TSVS_WORK
+              For Each tsv In TSVS_WORK
                 strRecord = oTask.Project & "," & Chr(34) & "[" & oTask.UniqueID & "] " & Replace(oTask.Name, Chr(34), Chr(39)) & Chr(34) & ","
                 strRecord = strRecord & oAssignment.ResourceName & ","
                 If cptResourceDemand_frm.chkBaseline Then strRecord = strRecord & "0,0," 'baseline placeholder
@@ -303,9 +310,9 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
                 strRecord = strRecord & Choose(lngOriginalRateSet + 1, "A", "B", "C", "D", "E") & ","
                 strRecord = strRecord & "0," 'cost
                 'get cost
-                Set TSVS_COST = oAssignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledCost, pjTimescaleWeeks, 1)
+                Set TSVS_COST = oAssignment.TimeScaleData(tsv.StartDate, tsv.EndDate, pjAssignmentTimescaledCost, pjTimescaleWeeks, 1)
                 'get actual cost
-                Set TSVS_AC = oAssignment.TimeScaleData(TSV.StartDate, TSV.EndDate, pjAssignmentTimescaledActualCost, pjTimescaleWeeks, 1)
+                Set TSVS_AC = oAssignment.TimeScaleData(tsv.StartDate, tsv.EndDate, pjAssignmentTimescaledActualCost, pjTimescaleWeeks, 1)
                 'subtract actual cost from cost to get remaining cost
                 dblCost = Val(TSVS_COST(1).Value) - Val(TSVS_AC(1))
                 'hacky way of figuring out how many zeroes to include
@@ -338,12 +345,12 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
                 'apply user settings for week identification
                 With cptResourceDemand_frm
                   If .cboWeeks = "Beginning" Then
-                    dtWeek = TSV.StartDate
+                    dtWeek = tsv.StartDate
                     If .cboWeekday = "Monday" Then
                       dtWeek = DateAdd("d", 1, dtWeek)
                     End If
                   ElseIf .cboWeeks = "Ending" Then
-                    dtWeek = TSV.EndDate
+                    dtWeek = tsv.EndDate
                     If .cboWeekday = "Friday" Then
                       dtWeek = DateAdd("d", -2, dtWeek)
                     ElseIf .cboWeekday = "Saturday" Then
@@ -353,7 +360,7 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
                 End With
                 strRecord = strRecord & Format(dtWeek, "mm/dd/yyyy") & "," 'week
                 Print #lngFile, strRecord
-              Next TSV
+              Next tsv
             End If
 next_rate_set:
           Next lngRateSet
