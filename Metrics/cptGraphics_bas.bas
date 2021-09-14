@@ -138,7 +138,7 @@ Dim vSheet As Variant
   'extract data
   For Each Task In ActiveProject.Tasks
     If Not Task Is Nothing Then
-      If Not Task.Active Then GoTo next_task
+      If Task.GetField(188744959) = "No" Then GoTo next_task
       If Task.Summary Then GoTo next_task
       If Task.BaselineWork > 0 Or Task.BaselineCost > 0 Then 'pmb task
         'dataset 1 - incomplete tasks only
