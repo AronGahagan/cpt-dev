@@ -150,7 +150,7 @@
 	<Module>
 		<Name>cptMetrics_bas</Name>
 		<FileName>cptMetrics_bas.bas</FileName>
-		<Version>v1.0.8</Version>
+		<Version>v1.0.7</Version>
 		<Type>1</Type>
 		<Directory>Metrics</Directory>
 	</Module>
@@ -283,7 +283,7 @@
 	<Module>
 		<Name>cptText_bas</Name>
 		<FileName>cptText_bas.bas</FileName>
-		<Version>v1.3.4</Version>
+		<Version>v1.3.5</Version>
 		<Type>1</Type>
 		<Directory>Text</Directory>
 	</Module>
