@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.0.8</cpt_version>
+'<cpt_version>v1.0.7</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -142,7 +142,6 @@ Dim oTask As Task
 Dim strMsg As String
 Dim strTitle As String
 'longs
-Dim lngActive As Long
 Dim lngConstraintType As Long
 Dim lngTS As Long
 Dim lngMargin As Long
@@ -221,17 +220,9 @@ Dim dtConstraintDate As Date
   'NOTE: cannot account for schedule margin due to possibility
   'of dual paths, one with and one without, a particular SM Task
   
-  If Edition = pjEditionProfessional Then
-    lngActive = FieldNameToFieldConstant("Active")
-  ElseIf Edition = pjEditionStandard Then
-    lngActive = 0
-  End If
-  
   If oTask Is Nothing Then GoTo exit_here
   If oTask.Summary Then GoTo exit_here
-  If lngActive > 0 Then
-    If oTask.GetField(lngActive) = "No" Then GoTo exit_here
-  End If
+  If Not oTask.Active Then GoTo exit_here
   HighlightDrivingPredecessors Set:=True
   For Each oPred In ActiveProject.Tasks
     If oPred.PathDrivingPredecessor Then
@@ -367,7 +358,6 @@ Dim oTask As Task
 'strings
 Dim strMsg As String
 'longs
-Dim lngActive As Long
 Dim lngAF As Long
 Dim lngBLF As Long
 'integers
@@ -387,19 +377,11 @@ Dim dtStatus As Date
     dtStatus = ActiveProject.StatusDate
   End If
   
-  If Edition = pjEditionProfessional Then
-    lngActive = FieldNameToFieldConstant("Active")
-  ElseIf Edition = pjEditionStandard Then
-    lngActive = 0
-  End If
-  
   'find it
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.Summary Then GoTo next_task
-    If lngActive > 0 Then
-      If oTask.GetField(lngActive) = "No" Then GoTo next_task
-    End If
+    If Not oTask.Active Then GoTo next_task
     If IsDate(oTask.BaselineFinish) Then
       'was task baselined to finish before status date?
       If oTask.BaselineFinish <= dtStatus Then
@@ -443,7 +425,6 @@ Dim oTask As Task
 'strings
 Dim strLOE As String
 'longs
-Dim lngActive As Long
 Dim lngLOEField As Long
 Dim lngEVP As Long
 Dim lngYears As Long
@@ -467,12 +448,6 @@ Dim dtStatus As Date
     dtStatus = ActiveProject.StatusDate
   End If
   
-  If Edition = pjEditionProfessional Then
-    lngActive = FieldNameToFieldConstant("Active")
-  ElseIf Edition = pjEditionStandard Then
-    lngActive = 0
-  End If
-  
   cptSpeed True
   FilterClear
   GroupClear
@@ -489,9 +464,7 @@ Dim dtStatus As Date
     If oTask Is Nothing Then GoTo next_task
     If oTask.ExternalTask Then GoTo next_task
     If oTask.Summary Then GoTo next_task
-    If lngActive > 0 Then
-      If oTask.GetField(lngActive) = "No" Then GoTo next_task
-    End If
+    If Not oTask.Active Then GoTo next_task
     If oTask.BaselineWork > 0 Then 'idea here was to limit tasks to PMB tasks only
                                   'but won't work for non-resource loaded schedules
       Select Case strGet
