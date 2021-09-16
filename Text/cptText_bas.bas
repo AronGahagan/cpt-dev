@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.3.3</cpt_version>
+'<cpt_version>v1.3.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -266,6 +266,7 @@ End Sub
 
 Sub cptFindDuplicateTaskNames()
   'objects
+  Dim oShell As Object
   Dim oExcel As Excel.Application
   Dim oWorkbook As Workbook
   Dim oWorksheet As Worksheet
@@ -297,7 +298,8 @@ Sub cptFindDuplicateTaskNames()
   End If
   MapEdit Name:="ExportTaskNames", DataCategory:=0, FieldName:="Summary", ExternalFieldName:="Summary"
   MapEdit Name:="ExportTaskNames", DataCategory:=0, FieldName:="Name", ExternalFieldName:="Name"
-  strFileName = Environ("USERPROFILE") & "\Desktop\DuplicateTaskNames.xlsx"
+  Set oShell = CreateObject("WScript.Shell")
+  strFileName = oShell.SpecialFolders("Desktop") & "\DuplicateTaskNames.xlsx"
   If Dir(strFileName) <> vbNullString Then Kill strFileName
   FileSaveAs Name:=strFileName, FormatID:="MSProject.ACE", Map:="ExportTaskNames"
   
@@ -340,6 +342,7 @@ Sub cptFindDuplicateTaskNames()
 
 exit_here:
   On Error Resume Next
+  Set oShell = Nothing
   Set oWorkbook = Nothing
   Set oWorksheet = Nothing
   Set oRange = Nothing
