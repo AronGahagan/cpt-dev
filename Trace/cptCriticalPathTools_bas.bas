@@ -1,11 +1,12 @@
 Attribute VB_Name = "cptCriticalPathTools_bas"
-'<cpt_version>v1.0.3</cpt_version>
+'<cpt_version>v1.0.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptExportCriticalPath(ByRef Project As Project, Optional blnSendEmail As Boolean = False, Optional blnKeepOpen As Boolean = False, Optional ByRef TargetTask As Task)
 'objects
+Dim oShell As Object
 Dim pptExists As PowerPoint.Presentation
 Dim Task As Task, Tasks As Tasks
 Dim pptApp As PowerPoint.Application, Presentation As PowerPoint.Presentation, Slide As PowerPoint.Slide
@@ -48,7 +49,8 @@ Dim vPath As Variant
   Set Presentation = pptApp.Presentations.Add(msoCTrue)
   
   'ensure directory
-  strDir = Environ("USERPROFILE") & "\Desktop\"
+  Set oShell = CreateObject("WScript.Shell")
+  strDir = oShell.SpecialFolders("Desktop") & "\"
   If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
   'build filename
   strFileName = strDir & Replace(Replace(Project.Name, " ", "-"), ".mpp", "") & "-CriticalPathAnalysis-" & Format(Now, "yyyy-mm-dd") & ".pptx"
@@ -84,7 +86,7 @@ Dim vPath As Variant
     'SetAutoFilter FieldName:="CP Driving Paths", FilterType:=pjAutoFilterCustom, Test1:="contains", Criteria1:=CStr(vPath)
     SetAutoFilter FieldName:="CP Driving Path Group ID", FilterType:=pjAutoFilterIn, Criteria1:=CStr(vPath)
 
-    Sort Key1:="Finish", Key2:="Duration", Ascending2:=False, Renumber:=False
+    Sort key1:="Finish", Key2:="Duration", Ascending2:=False, Renumber:=False
     TimescaleEdit MajorUnits:=0, MinorUnits:=2, MajorLabel:=0, MinorLabel:=10, MinorTicks:=True, Separator:=True, TierCount:=2
     SelectBeginning
     Debug.Print vPath & ": " & FormatDateTime(dtFrom, vbShortDate) & " - " & FormatDateTime(dtTo, vbShortDate)
@@ -104,7 +106,7 @@ Dim vPath As Variant
       lgSlide = lgSlide + 1
       SelectBeginning
       SelectTaskField Row:=lgTask - 20, Column:="Name", Height:=20, Extend:=False
-      EditCopyPicture object:=False, ForPrinter:=0, SelectedRows:=1, FromDate:=Format(dtFrom, "mm/dd/yy hh:nn AMPM"), ToDate:=Format(dtTo, "m/d/yy hh:mm ampm"), ScaleOption:=pjCopyPictureTimescale, MaxImageHeight:=-1#, MaxImageWidth:=-1#, MeasurementUnits:=2  'pjCopyPictureShowOptions
+      EditCopyPicture Object:=False, ForPrinter:=0, SelectedRows:=1, FromDate:=Format(dtFrom, "mm/dd/yy hh:nn AMPM"), ToDate:=Format(dtTo, "m/d/yy hh:mm ampm"), ScaleOption:=pjCopyPictureTimescale, MaxImageHeight:=-1#, MaxImageWidth:=-1#, MeasurementUnits:=2  'pjCopyPictureShowOptions
       'paste the picture
       Presentation.Slides.Add Presentation.Slides.Count + 1, ppLayoutCustom
       Set Slide = Presentation.Slides(Presentation.Slides.Count)
@@ -130,6 +132,7 @@ next_path:
   
 exit_here:
   On Error Resume Next
+  Set oShell = Nothing
   cptSpeed False
   Set pptExists = Nothing
   Set TargetTask = Nothing
@@ -140,7 +143,7 @@ exit_here:
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptCriticalPathTools_bas", "cptExportCriticalPath", err, Erl)
+  Call cptHandleErr("cptCriticalPathTools_bas", "cptExportCriticalPath", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -159,10 +162,10 @@ exit_here:
   Set TargetTask = Nothing
   Exit Sub
 err_here:
-  If err.Number = 1101 Then
+  If Err.Number = 1101 Then
     MsgBox "Please a a single (non-summary, active, and incomplete) 'Target' task.", vbExclamation + vbOKOnly, "Trace Tools - Error"
   Else
-    Call cptHandleErr("cptCriticalPathTools_bas", "cptExportCriticalPathSelected", err, Erl)
+    Call cptHandleErr("cptCriticalPathTools_bas", "cptExportCriticalPathSelected", Err, Erl)
   End If
   Resume exit_here
 End Sub
@@ -179,6 +182,6 @@ exit_here:
   singlePath = False
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCriticalPathTools_bas", "cptDrivingPath", err, Erl)
+  Call cptHandleErr("cptCriticalPathTools_bas", "cptDrivingPath", Err, Erl)
   Resume exit_here
 End Sub
