@@ -41,7 +41,6 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
   Dim strRecord As String, strFileName As String
   Dim strCost As String
   'longs
-  Dim lngActive As Long
   Dim lngOffset As Long
   Dim lngRateSets As Long
   Dim lngCol As Long
@@ -169,18 +168,12 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
     cptSpeed False
   End If
 
-  If Edition = pjEditionProfessional Then
-    lngActive = FieldNameToFieldConstant("Active")
-  ElseIf Edition = pjEditionStandard Then
-    lngActive = 0
-  End If
-
   'iterate over tasks
   Set oExcel = CreateObject("Excel.Application")
   For Each oTask In ActiveProject.Tasks
     If Not oTask Is Nothing Then 'skip blank lines
       If oTask.ExternalTask Then GoTo next_task 'skip external tasks
-      If Not oTask.Summary And oTask.RemainingDuration > 0 And oTask.GetField(lngField) = "Yes" Then 'skip summary, complete tasks/milestones, and inactive
+      If Not oTask.Summary And oTask.RemainingDuration > 0 And oTask.Active Then 'skip summary, complete tasks/milestones, and inactive
         
         'get earliest start and latest finish
         If cptResourceDemand_frm.chkBaseline Then

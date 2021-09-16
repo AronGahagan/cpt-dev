@@ -6,7 +6,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
 
 Sub cptCountTasks(strScope As String)
 Dim oTask As Task, oTasks As Tasks
-Dim lngTasks As Long, lngSummary As Long, lngInactive As Long, lngActive As Long
+Dim lngTasks As Long, lngSummary As Long, lngInactive As Long
 Dim strMsg As String
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -17,7 +17,7 @@ Dim strMsg As String
     MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "Task Counter"
     GoTo exit_here
   End If
-  'Validate users selected window pane - select the oTask table if not active
+  'Validate users selected window pane - select the Task table if not active
   If ActiveProject.Application.ActiveWindow.ActivePane.Index <> 1 Then
     ActiveProject.Application.ActiveWindow.TopPane.Activate
   End If
@@ -47,30 +47,20 @@ Dim strMsg As String
         GoTo exit_here
       End If
   End Select
-  
-  If Edition = pjEditionProfessional Then
-    lngActive = FieldNameToFieldConstant("Active")
-  Else
-    lngActive = 0
-  End If
-  
+    
   For Each oTask In oTasks
     If Not oTask Is Nothing Then
       If oTask.Summary Then
         lngSummary = lngSummary + 1
-        If lngActive > 0 Then
-          If oTask.GetField(lngActive) = "No" Then
-            lngInactive = lngInactive + 1
-            lngSummary = lngSummary - 1
-          End If
+        If Not oTask.Active Then
+          lngInactive = lngInactive + 1
+          lngSummary = lngSummary - 1
         End If
       Else
         lngTasks = lngTasks + 1
-        If lngActive > 0 Then
-          If oTask.GetField(lngActive) = "No" Then
-            lngInactive = lngInactive + 1
-            lngTasks = lngTasks - 1
-          End If
+        If Not oTask.Active Then
+          lngInactive = lngInactive + 1
+          lngTasks = lngTasks - 1
         End If
       End If
     End If
@@ -80,7 +70,7 @@ Dim strMsg As String
   strMsg = strMsg & Format(lngSummary, "#,##0") & " summary Task(s)" & vbCrLf
   strMsg = strMsg & Format(lngTasks, "#,##0") & " subTask(s)" & vbCrLf
   strMsg = strMsg & Format(lngSummary + lngTasks, "#,##0") & " total Task(s)" & vbCrLf
-  If lngInactive > 0 Then
+  If lngInactive > 0 And Edition = pjEditionProfessional Then
     strMsg = strMsg & "(" & Format(lngInactive, "#,##0") & " inactive Task(s) not included in total.)"
   End If
   
