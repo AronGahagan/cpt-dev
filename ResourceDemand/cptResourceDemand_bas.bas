@@ -1,18 +1,19 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.3.2</cpt_version>
+'<cpt_version>v1.3.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptExportResourceDemand(Optional lngTaskCount As Long)
   'objects
+  Dim oShell As Object
   Dim oSettings As Object
   Dim oListObject As Object
-  Dim oSubProject As Object
+  Dim oSubproject As Object
   Dim oTask As Task
   Dim oResource As Resource
   Dim oAssignment As Assignment
-  Dim TSV As TimeScaleValue
+  Dim tsv As TimeScaleValue
   Dim TSVS_BCWS As TimeScaleValues
   Dim TSVS_WORK As TimeScaleValues
   Dim TSVS_AW As TimeScaleValues
@@ -95,7 +96,8 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
   End With
   
   lngFile = FreeFile
-  strFile = Environ("USERPROFILE") & "\Desktop\" & Replace(Replace(ActiveProject.Name, ".mpp", ""), " ", "_") & "_ResourceDemand" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".csv"
+  Set oShell = CreateObject("WScript.Shell")
+  strFile = oShell.SpecialFolders("Desktop") & "\" & Replace(Replace(ActiveProject.Name, ".mpp", ""), " ", "_") & "_ResourceDemand" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".csv"
   
   If Dir(strFile) <> vbNullString Then Kill strFile
   
@@ -611,14 +613,14 @@ next_task:
           End If
         Next oCostRateTable
       Next oResource
-    ElseIf ActiveProject.oSubProjects.Count > 0 Then
-      For Each oSubProject In ActiveProject.oSubProjects
-        For Each oResource In oSubProject.SourceProject.Resources
+    ElseIf ActiveProject.Subprojects.Count > 0 Then
+      For Each oSubproject In ActiveProject.Subprojects
+        For Each oResource In oSubproject.SourceProject.Resources
           oWorksheet.Cells(lngRow, 1) = oResource.Name
           For Each oCostRateTable In oResource.CostRateTables
             If cptResourceDemand_frm.Controls(Choose(oCostRateTable.Index, "chkA", "chkB", "chkC", "chkD", "chkE")).Value = True Then
               For Each oPayRate In oCostRateTable.PayRates
-                oWorksheet.Cells(lngRow, 1) = oSubProject.SourceProject.Name
+                oWorksheet.Cells(lngRow, 1) = oSubproject.SourceProject.Name
                 oWorksheet.Cells(lngRow, 2) = oResource.Name
                 oWorksheet.Cells(lngRow, 3) = Choose(oResource.Type + 1, "Work", "Material", "Cost")
                 oWorksheet.Cells(lngRow, 4) = oResource.Enterprise
@@ -632,7 +634,7 @@ next_task:
             End If
           Next oCostRateTable
         Next oResource
-      Next oSubProject
+      Next oSubproject
     End If
   
     'make it a oListObject
@@ -657,7 +659,7 @@ next_task:
   
   'save the file
   '<issue49> - file exists in location
-  strFile = Environ("USERPROFILE") & "\Desktop\" & Replace(oWorkbook.Name, ".xlsx", "_" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".xlsx") '<issue49>
+  strFile = oShell.SpecialFolders("Desktop") & "\" & Replace(oWorkbook.Name, ".xlsx", "_" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".xlsx") '<issue49>
   If Dir(strFile) <> vbNullString Then '<issue49>
     If MsgBox("A file named '" & strFile & "' already exists in this location. Replace?", vbYesNo + vbExclamation, "Overwrite?") = vbYes Then '<issue49>
       Kill strFile '<issue49>
@@ -678,9 +680,10 @@ next_task:
   
 exit_here:
   On Error Resume Next
+  Set oShell = Nothing
   Set oSettings = Nothing
   Set oListObject = Nothing
-  Set oSubProject = Nothing
+  Set oSubproject = Nothing
   If Not oExcel Is Nothing Then oExcel.Visible = True
   Application.StatusBar = ""
   cptResourceDemand_frm.lblStatus.Caption = "Ready..."
@@ -698,7 +701,7 @@ exit_here:
   Set oListObject = Nothing
   Set oWorkbook = Nothing
   Set oWorksheet = Nothing
-  Set TSV = Nothing
+  Set tsv = Nothing
   Set TSVS_BCWS = Nothing
   Set TSVS_WORK = Nothing
   Set TSVS_AW = Nothing
