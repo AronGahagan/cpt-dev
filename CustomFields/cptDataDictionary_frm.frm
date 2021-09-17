@@ -76,6 +76,7 @@ End Sub
 
 Private Sub cmdExport_Click()
   Call cptExportDataDictionary
+  'todo: refresh cboOpenWorkbooks
 End Sub
 
 Private Sub cmdFormGrow_Click()
@@ -134,6 +135,12 @@ err_here:
   Call cptHandleErr("cptDataDictionary_frm", "cmdImport_Click", Err, Erl)
   Resume exit_here
   
+End Sub
+
+Private Sub lblRecover_Click()
+  'todo: notify user of the issue
+  'todo: create the workbook
+  'todo: notify user to update and use 'import' to restore
 End Sub
 
 Private Sub lblURL_Click()

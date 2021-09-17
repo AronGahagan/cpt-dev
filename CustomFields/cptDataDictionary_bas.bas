@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDataDictionary_bas"
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -363,9 +363,80 @@ err_here:
 End Sub
 
 Sub cptShowDataDictionary_frm()
-
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  'objects
+  Dim cn As ADODB.Recordset
+  Dim oWorksheet As Excel.Worksheet
+  Dim oWorkbook As Excel.Workbook
+  Dim oExcel As Excel.Application
+  Dim rst As ADODB.Recordset 'Object
+  'strings
+  Dim strMsg As String
+  Dim strFile As String
+  'longs
+  Dim lngField As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
   
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    
+  'update legacy adtg for ProjectName field
+  'todo: ensure IMPORT Feature Supports PROJECT_NAME, but allows for legacy files as well
+  'todo: should there *still* be a 'recover' option? maybe repeat this procedure also if there are blanks in the PROJECT_NAME?
+  'todo: to remove an entry, either put 'REMOVE' in the PROJECT_NAME, or delete the worksheet row
+  strFile = cptDir & "\settings\cpt-data-dictionary.adtg"
+  'does the file exist?
+  If Dir(strFile) <> vbNullString Then
+    Set rst = CreateObject("ADODB.Recordset")
+    rst.Open strFile
+    'does it have any records?
+    If rst.RecordCount > 0 Then
+      rst.MoveFirst
+      'has it been upgraded yet?
+      If rst.Fields.Count < 6 Then
+        'add new field
+        'rst.Fields.Append "ProjectName", adVarChar, 255
+        'rst.Update
+        'prompt the user
+        strMsg = "The structure of the saved data for this feature has been upgraded to rely on a user-defined PROJECT_NAME instead of a GUID. " & vbCrLf & vbCrLf
+        strMsg = strMsg & "Existing entries in your saved data must be updated accordingly for this feature to work as expected. Please update the workbook you're about to see with a unique PROJECT_NAME for your Project, then import that workbook." & vbCrLf & vbCrLf
+        strMsg = strMsg & "Note: copying an .mpp file changes its GUID and thus some data dictionary entries may have been 'orphaned' - however, all of your saved entries will now be in the imminent workbook and may be recovered."
+        MsgBox strMsg, vbInformation + vbOKOnly, "Action Required"
+        'create the workbook
+        On Error Resume Next
+        Set oExcel = GetObject(, "Excel.Application")
+        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
+        oExcel.Visible = True
+        Set oWorkbook = oExcel.Workbooks.Add
+        Set oWorksheet = oWorkbook.Sheets(1)
+        oWorksheet.Name = "Data Dictionary"
+        'dump the columns
+        For lngField = 0 To rst.Fields.Count - 1
+          oWorksheet.Cells(1, lngField + 1).Value = rst.Fields(lngField).Name
+        Next lngField
+        oWorksheet.Cells(2, 1).CopyFromRecordset rst
+        rst.Close
+        oWorksheet.Columns(2).Insert
+        oWorksheet.Cells(1, 2).Value = "PROJECT_NAME"
+        oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
+        oWorksheet.[A1].AutoFilter
+        With oExcel.ActiveWindow
+          .Zoom = 85
+          .SplitRow = 1
+          .SplitColumn = 0
+          .FreezePanes = True
+        End With
+        oWorksheet.Columns.AutoFit
+      End If
+    End If
+  End If
+  'todo: automatically generate the 'recovery' workbook
+  'todo: prompt the user to update the ProjectName field for any items they want to be re-imported
+  'todo: prompt the user to use the 'Import' feature once complete
+    
   cptDataDictionary_frm.lboCustomFields.Clear
   Call cptRefreshDictionary
   cptDataDictionary_frm.txtFilter.SetFocus
@@ -373,6 +444,12 @@ Sub cptShowDataDictionary_frm()
   
 exit_here:
   On Error Resume Next
+  Set cn = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
+  If rst.State Then rst.Close
+  Set rst = Nothing
 
   Exit Sub
 err_here:
