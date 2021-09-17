@@ -130,7 +130,7 @@ Dim lngItem As Long
         
         CustomFieldDelete lngField
         CustomFieldRename lngField, strFieldName
-        CustomFieldPropertiesEx FieldID:=lngField, Attribute:=pjFieldAttributeValueList, summarycalc:=pjCalcNone, GraphicalIndicators:=False, AutomaticallyRolldownToAssn:=False
+        CustomFieldPropertiesEx FieldID:=lngField, Attribute:=pjFieldAttributeValueList, SummaryCalc:=pjCalcNone, GraphicalIndicators:=False, AutomaticallyRolldownToAssn:=False
         CustomFieldValueListAdd lngField, "A", "Level of Effort"
         CustomFieldValueListAdd lngField, "B", "Milestones"
         CustomFieldValueListAdd lngField, "C", "% Complete"
@@ -184,7 +184,7 @@ Dim lngItem As Long
         
         CustomFieldDelete lngField
         CustomFieldRename lngField, strFieldName
-        CustomFieldPropertiesEx FieldID:=lngField, Attribute:=pjFieldAttributeValueList, summarycalc:=pjCalcNone, GraphicalIndicators:=False, AutomaticallyRolldownToAssn:=False
+        CustomFieldPropertiesEx FieldID:=lngField, Attribute:=pjFieldAttributeValueList, SummaryCalc:=pjCalcNone, GraphicalIndicators:=False, AutomaticallyRolldownToAssn:=False
         CustomFieldValueListAdd lngField, "ACT", "Activity"
         CustomFieldValueListAdd lngField, "CA", "Control Account"
         CustomFieldValueListAdd lngField, "PP", "Planning Package"
@@ -213,7 +213,7 @@ Dim lngItem As Long
         
         CustomFieldDelete lngField
         CustomFieldRename lngField, strFieldName
-        CustomFieldPropertiesEx FieldID:=lngField, Attribute:=pjFieldAttributeValueList, summarycalc:=pjCalcNone, GraphicalIndicators:=False, AutomaticallyRolldownToAssn:=False
+        CustomFieldPropertiesEx FieldID:=lngField, Attribute:=pjFieldAttributeValueList, SummaryCalc:=pjCalcNone, GraphicalIndicators:=False, AutomaticallyRolldownToAssn:=False
         CustomFieldValueListAdd lngField, "0", "No EVM required"
         CustomFieldValueListAdd lngField, "1", "0/100"
         CustomFieldValueListAdd lngField, "2", "25/75"
@@ -243,8 +243,14 @@ Dim lngItem As Long
         End If
         CustomFieldDelete lngField
         CustomFieldRename lngField, strFieldName
-        CustomFieldPropertiesEx FieldID:=lngField, Attribute:=pjFieldAttributeFormula, summarycalc:=pjCalcNone
+        CustomFieldPropertiesEx FieldID:=lngField, Attribute:=pjFieldAttributeFormula, SummaryCalc:=pjCalcNone
         Application.CustomFieldSetFormula lngField, "[Remaining Work]/Iif([Remaining Duration]>0,[Remaining Duration],1)"
+        
+      Case "Task Status"
+        
+        
+      Case "Task Status Indicator"
+        'todo: cannot access indicators
         
     End Select
     
