@@ -166,7 +166,7 @@ Dim dtConstraintDate As Date
 
   'confirm a single, target oTask is selected
   If oTasks.Count <> 1 Then
-    MsgBox "Please select a single, active, and non-summary target oTask.", vbExclamation + vbOKOnly, strTitle
+    MsgBox "Please select a single, active, and non-summary target Task.", vbExclamation + vbOKOnly, strTitle
     GoTo exit_here
   End If
   
@@ -1318,6 +1318,22 @@ exit_here:
 err_here:
   Call cptHandleErr("cptMetrics_bas", "cptCaptureMetric", Err, Erl)
   Resume exit_here
+End Sub
+
+Sub cptGetTrend_SPI()
+  cptGetTrend "SPI"
+End Sub
+
+Sub cptGetTrend_BEI()
+  cptGetTrend "BEI"
+End Sub
+
+Sub cptGetTrend_CPLI()
+  cptGetTrend "CPLI"
+End Sub
+
+Sub cptGetTrend_CEI()
+  cptGetTrend "CEI"
 End Sub
 
 Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
