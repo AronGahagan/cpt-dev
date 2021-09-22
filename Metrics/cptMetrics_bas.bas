@@ -265,7 +265,6 @@ err_here:
 End Sub
 
 Sub cptGET(strWhat As String)
-'todo: need to store weekly bcwp, etc data somewhere
 'objects
 Dim oRecordset As ADODB.Recordset
 'strings
@@ -755,6 +754,14 @@ Sub cptCaptureWeek()
     GoTo exit_here
   End If
     
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
+      Exit Sub
+    End If
+  End If
+    
   Set rst = CreateObject("ADODB.Recordset")
   strFile = cptDir & "\settings\cpt-cei.adtg"
   If Dir(strFile) = vbNullString Then
@@ -779,7 +786,8 @@ Sub cptCaptureWeek()
   
   dtStatus = ActiveProject.StatusDate
   If rst.RecordCount > 0 Then
-    rst.Find "STATUS_DATE=#" & FormatDateTime(dtStatus, vbGeneralDate) & "# AND PROJECT='" & strProject & "'"
+    rst.MoveFirst
+    rst.Filter = "STATUS_DATE=#" & FormatDateTime(dtStatus, vbGeneralDate) & "# AND PROJECT='" & strProject & "'"
     If Not rst.EOF Then
       If MsgBox("Status Already Imported for WE " & FormatDateTime(dtStatus, vbShortDate) & "." & vbCrLf & vbCrLf & "Overwrite it?", vbExclamation + vbYesNo, "Overwrite?") = vbYes Then
         rst.MoveFirst
@@ -789,17 +797,20 @@ Sub cptCaptureWeek()
         Loop
       End If
     End If
+    rst.Filter = 0
   End If
   
   strEVT = cptGetSetting("Metrics", "cboLOEField")
   If Len(strEVT) > 0 Then
     lngEVT = CLng(strEVT)
   Else
-    'todo: settings needed
+    MsgBox "Error retrieving setting for Metrics.cboLOEField. Cannot proceed.", vbExclamation + vbOKOnly, "Error"
+    GoTo exit_here
   End If
   strLOE = cptGetSetting("Metrics", "txtLOE")
   If Len(strLOE) = 0 Then
-    'todo: settings needed
+    MsgBox "Error retrieving setting for Metrics.txtLOE. Cannot proceed.", vbExclamation + vbOKOnly, "Error"
+    GoTo exit_here
   End If
   
   Set oTasks = ActiveProject.Tasks
@@ -862,7 +873,6 @@ err_here:
   Resume exit_here
 End Sub
 
-
 Sub cptLateStartsFinishes()
   'objects
   Dim oSeries As Excel.Series
@@ -917,6 +927,14 @@ Sub cptLateStartsFinishes()
   
   strProject = cptGetProgramAcronym
   
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
+      GoTo exit_here
+    End If
+  End If
+  
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -933,11 +951,13 @@ Sub cptLateStartsFinishes()
   If Len(strLOEField) > 0 Then
     lngLOEField = CLng(strLOEField)
   Else
-    'todo: error
+    MsgBox "Error retrieving setting Metric.lngLOEField. Cannot proceed.", vbExclamation + vbOKOnly, "Settings"
+    GoTo exit_here
   End If
   strLOE = cptGetSetting("Metrics", "strLOE")
   If Len(strLOE) = 0 Then
-    'todo: error
+    MsgBox "Error retrieving setting Metric.strLOE. Cannot proceed.", vbExclamation + vbOKOnly, "Settings"
+    GoTo exit_here
   End If
   
   oWorksheet.[A1:P1] = Array("UID", "WPCN", "WPM", "NAME", "TOTAL SLACK", "REMAINING DURATION", "REMAINING WORK", "BASELINE START", "START VARIANCE", "ACTUAL START", "START", "BASELINE FINISH", "FINISH VARIANCE", "ACTUAL FINISH", "FINISH", "STATUS")
@@ -956,7 +976,7 @@ Sub cptLateStartsFinishes()
       'only check for discrete tasks
       If oTask.GetField(FieldNameToFieldConstant("EVT")) = "A" Then GoTo next_task
       'skip unassigned (currently material/odc/tvl)
-      If oTask.GetField(FieldNameToFieldConstant("WPM")) = "" Then GoTo next_task
+      'If oTask.GetField(FieldNameToFieldConstant("WPM")) = "" Then GoTo next_task
       'only report early/late starts/finishes
       If oTask.StartVariance <> 0 Or oTask.FinishVariance <> 0 Then
         lngLastRow = oWorksheet.Cells(1048576, 1).End(xlUp).Row + 1
@@ -1211,20 +1231,6 @@ next_task:
   oExcel.ScreenUpdating = True
   oWorkbook.SaveAs strFile, 51
   oWorkbook.Close True
-'  'send the file
-'  On Error Resume Next
-'  Set oOutlook = GetObject(, "Outlook.Application")
-'  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-'  If oOutlook Is Nothing Then
-'    Set oOutlook = CreateObject("Outlook.Application")
-'  End If
-'  Set oMailItem = oOutlook.CreateItem(olMailItem)
-'  oMailItem.Display
-'  oMailItem.Subject = strProject & " IMS - Early/Late Starts/Finishes WE " & FormatDateTime(ActiveProject.StatusDate, vbShortDate)
-'  oMailItem.Attachments.Add strFile
-'  oMailItem.To = strTo
-'  oMailItem.CC = strCC
-'  oMailItem.HTMLBody = strProject & " IMS Early/Late Starts/Finishes for week ending " & Format(dtStatus, "mm/dd/yyyy") & " attached." & oMailItem.HTMLBody
   
   Application.StatusBar = "Complete."
   
@@ -1421,6 +1427,82 @@ exit_here:
   Exit Sub
 err_here:
   'Call HandleErr("cptMetrics_bas", "cptGetTrend", Err)
+  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Resume exit_here
+End Sub
+
+Sub cptCaptureAllMetrics()
+  cptGET "SPI"
+  cptGET "SV"
+  cptGET "BEI"
+  MsgBox "CPLI must be run manually.", vbInformation + vbOKOnly, "Capture All Metrics"
+  cptGET "CEI"
+  'cptGET "TFCI"
+  'cptGET "ES"
+End Sub
+
+Sub cptExportMetricsData()
+  'objects
+  Dim oRecordset As ADODB.Recordset
+  Dim oExcel As Excel.Application
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
+  'strings
+  Dim strFile As String
+  Dim strProgram As String
+  'longs
+  Dim lngField As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  strFile = cptDir & "\settings\cpt-metrics.adtg"
+  If Dir(strFile) = vbNullString Then
+    MsgBox strFile & " not found!", vbCritical + vbOKOnly, "File Not Found"
+    GoTo exit_here
+  End If
+  
+  strProgram = cptGetProgramAcronym
+    
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  oRecordset.Open strFile
+  oRecordset.Filter = "PROGRAM='" & strProgram & "'"
+  If oRecordset.RecordCount > 0 Then
+    On Error Resume Next
+    Set oExcel = GetObject(, "Excel.Application")
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If oExcel Is Nothing Then
+      Set oExcel = CreateObject("Excel.Application")
+    End If
+    oExcel.Visible = True
+    Set oWorkbook = oExcel.Workbooks.Add
+    Set oWorksheet = oWorkbook.Sheets(1)
+    oWorksheet.Name = strProgram
+    For lngField = 0 To oRecordset.Fields.Count - 1
+      oWorksheet.Cells(1, lngField + 1) = oRecordset.Fields(lngField).Name
+    Next lngField
+    oWorksheet.[A2].CopyFromRecordset oRecordset
+    oExcel.ActiveWindow.Zoom = 85
+    oWorksheet.Columns.AutoFit
+    oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
+  Else
+    MsgBox "No records found for program '" & strProgram & "'", vbExclamation + vbOKOnly, "No Data"
+  End If
+  oRecordset.Filter = ""
+  oRecordset.Close
+  
+exit_here:
+  On Error Resume Next
+  Set oRecordset = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
+
+  Exit Sub
+err_here:
+  'Call HandleErr("cptMetrics_bas", "cptExportMetricsData", Err)
   MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
