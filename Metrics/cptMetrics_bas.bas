@@ -4,31 +4,6 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-'add disclaimer: unburdened hours - not meant to be precise - generally within +/- 1%
-
-Sub cptExportMetricsExcel()
-'objects
-'strings
-'longs
-'integers
-'doubles
-'booleans
-'variants
-'dates
-
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  MsgBox "Stay tuned...", vbInformation + vbOKOnly, "Under Construction..."
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptMetrics_bas", "cptExportMetricsExcel", Err, Erl)
-  Resume exit_here
-End Sub
-
 Sub cptGetBAC()
   MsgBox Format(cptGetMetric("bac"), "#,##0.00h"), vbInformation + vbOKOnly, "Budget at Complete (BAC) - hours"
 End Sub
@@ -521,6 +496,7 @@ Dim dtStatus As Date
   End If
   
   cptSpeed True
+  ActiveWindow.TopPane.Activate
   FilterClear
   GroupClear
   OptionsViewEx displaysummarytasks:=True, displaynameindent:=True
@@ -947,14 +923,14 @@ Sub cptLateStartsFinishes()
   oWorksheet.Name = "DETAILS"
   
   'todo: user-defined fields to include
-  strLOEField = cptGetSetting("Metrics", "lngLOEField")
+  strLOEField = cptGetSetting("Metrics", "cboLOEField")
   If Len(strLOEField) > 0 Then
     lngLOEField = CLng(strLOEField)
   Else
     MsgBox "Error retrieving setting Metric.lngLOEField. Cannot proceed.", vbExclamation + vbOKOnly, "Settings"
     GoTo exit_here
   End If
-  strLOE = cptGetSetting("Metrics", "strLOE")
+  strLOE = cptGetSetting("Metrics", "txtLOE")
   If Len(strLOE) = 0 Then
     MsgBox "Error retrieving setting Metric.strLOE. Cannot proceed.", vbExclamation + vbOKOnly, "Settings"
     GoTo exit_here
@@ -1438,7 +1414,7 @@ Sub cptCaptureAllMetrics()
   MsgBox "CPLI must be run manually.", vbInformation + vbOKOnly, "Capture All Metrics"
   cptGET "CEI"
   'cptGET "TFCI"
-  'cptGET "ES"
+  cptGetEarnedSchedule
 End Sub
 
 Sub cptExportMetricsData()
@@ -1502,7 +1478,363 @@ exit_here:
 
   Exit Sub
 err_here:
-  'Call HandleErr("cptMetrics_bas", "cptExportMetricsData", Err)
+  Call cptHandleErr("cptMetrics_bas", "cptExportMetricsData", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptGetEarnedSchedule()
+  'objects
+  Dim oAssignment As Assignment
+  Dim oRecordset As ADODB.Recordset
+  Dim oTasks As Tasks
+  Dim oTask As Task
+  Dim oTSV As TimeScaleValue
+  Dim oTSVS As TimeScaleValues
+  Dim oExcel As Excel.Application
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
+  Dim oListObject As Excel.ListObject
+  Dim oRange As Excel.Range
+  Dim oCell As Excel.Range
+  'strings
+  Dim strFormula As String
+  Dim strLOEField As String
+  Dim strEVP As String
+  Dim strLOE As String
+  Dim strProgram As String
+  Dim strCon As String
+  Dim strDir As String
+  Dim strSQL As String
+  Dim strFile As String
+  'longs
+  Dim lngDuration As Long
+  Dim lngES As Long
+  Dim lngLastRow As Long
+  Dim lngEVP As Long
+  Dim lngLOEField As Long
+  Dim lngFile As Long
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  Dim lngWork As Long
+  'integers
+  'doubles
+  Dim dblBCWP As Double
+  Dim dblBCWS As Double
+  'booleans
+  'variants
+  Dim vBorder As Variant
+  'dates
+  Dim dtLatestFinish As Date
+  Dim dtStart As Date
+  Dim dtStatus As Date
+  
+  On Error Resume Next
+  Set oTasks = ActiveProject.Tasks
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If oTasks Is Nothing Then GoTo exit_here
+  
+  strProgram = cptGetProgramAcronym
+  
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "Status Date required.", vbExclamation + vbOKOnly, "Earned Schedule"
+    GoTo exit_here
+  End If
+  
+  dtStatus = FormatDateTime(ActiveProject.StatusDate, vbShortDate) 'todo: format?
+  
+  If ActiveProject.ResourceCount = 0 Then
+    MsgBox "Project must have resources.", vbExclamation + vbOKOnly, "Earned Schedule"
+    GoTo exit_here
+  End If
+  
+  If Not IsDate(ActiveProject.BaselineSavedDate(pjBaseline)) Then
+    MsgBox "Project must be baselined.", vbExclamation + vbOKOnly, "Earned Schedule"
+    GoTo exit_here
+  End If
+  
+  If Not cptMetricsSettingsExist Then
+    cptShowMetricsSettings_frm True
+    If Not cptMetricsSettingsExist Then
+      MsgBox "Metrics Settings required.", vbExclamation + vbOKOnly, "Earned Schedule"
+      GoTo exit_here
+    End If
+  End If
+  
+  strFile = cptDir & "\Schema.ini"
+  lngFile = FreeFile
+  Open strFile For Output As #lngFile
+  Print #lngFile, "[bcws.csv]"
+  Print #lngFile, "Format=CSVDelimited"
+  Print #lngFile, "ColNameHeaders=True"
+  Print #lngFile, "Col1=WEEK_ENDING DateTime"
+  Print #lngFile, "Col2=BCWS Double"
+  Print #lngFile, "Col3=ETC Double"
+  Close #lngFile
+  
+  strFile = cptDir & "\EarnedSchedule.csv"
+  Open strFile For Output As #lngFile
+  Print #lngFile, "WEEK_ENDING,BCWS,ETC,"
+  
+  strEVP = cptGetSetting("Metrics", "cboEVP")
+  If Len(strEVP) = 0 Then
+    MsgBox "Error obtaining setting Metrics.cboEVP", vbExclamation + vbOKOnly, "Earned Schedule"
+    GoTo exit_here
+  End If
+  lngEVP = CLng(strEVP)
+  strLOEField = cptGetSetting("Metrics", "cboLOEField")
+  If Len(strLOEField) > 0 Then
+    lngLOEField = CLng(strLOEField)
+  Else
+    MsgBox "Error obtaining setting Metrics.cboLOEField", vbExclamation + vbOKOnly, "Earned Schedule"
+    GoTo exit_here
+  End If
+  strLOE = cptGetSetting("Metrics", "txtLOE")
+  If Len(strLOE) = 0 Then
+    MsgBox "Error obtaining setting Metrics.txtLOE", vbExclamation + vbOKOnly, "Earned Schedule"
+  End If
+  
+  lngTasks = ActiveProject.Tasks.Count
+  For Each oTask In oTasks
+    If oTask Is Nothing Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If oTask.ExternalTask Then GoTo next_task
+    If oTask.GetField(lngLOEField) = strLOE Then GoTo next_task
+    If oTask.Assignments.Count = 0 Then GoTo next_task
+    For Each oAssignment In oTask.Assignments
+      If oAssignment.ResourceType <> pjResourceTypeWork Then GoTo next_assignment
+      'todo: handle when EVP is between 0 and 1 vs. between 0 and 100
+      'todo: if >0 <1 then don't divide it; if > 1 then divide it
+      dblBCWP = dblBCWP + ((oAssignment.BaselineWork / 60) * (CLng(cptRegEx(oTask.GetField(lngEVP), "[0-9]{1,}")) / 100))
+      Set oTSVS = oAssignment.TimeScaleData(oAssignment.BaselineStart, oAssignment.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks, 1)
+      For Each oTSV In oTSVS
+        Print #lngFile, DateAdd("d", -2, oTSV.EndDate) & "," & (Val(oTSV.Value) / 60) & ",0,"
+      Next oTSV
+      If oTask.RemainingDuration > 0 Then
+        If oTask.Finish > dtLatestFinish Then dtLatestFinish = oTask.Finish
+        Set oTSVS = oAssignment.TimeScaleData(oAssignment.Start, oAssignment.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks, 1)
+        For Each oTSV In oTSVS
+          If oTSV.StartDate > dtStatus Then
+            Print #lngFile, DateAdd("d", -2, oTSV.EndDate) & ",0," & (Val(oTSV.Value) / 60) & ","
+          End If
+        Next oTSV
+      End If
+next_assignment:
+    Next oAssignment
+next_task:
+    lngTask = lngTask + 1
+    'statusbar
+  Next oTask
+
+  Close #lngFile
+  
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & cptDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
+  strSQL = "SELECT WEEK_ENDING,SUM(BCWS) AS BCWS,SUM(ETC) AS ETC "
+  strSQL = strSQL & "FROM EarnedSchedule.csv "
+  strSQL = strSQL & "GROUP BY WEEK_ENDING "
+  strSQL = strSQL & "ORDER BY WEEK_ENDING"
+  With oRecordset
+    .Open strSQL, strCon, 1, 1
+    If .RecordCount > 0 Then
+      On Error Resume Next
+      Set oExcel = GetObject(, "Excel.Application")
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If oExcel Is Nothing Then
+        Set oExcel = CreateObject("Excel.Application")
+        oExcel.Visible = True
+      End If
+      Set oWorkbook = oExcel.Workbooks.Add
+      Set oWorksheet = oWorkbook.Sheets(1)
+      oWorksheet.Name = "Earned Schedule"
+      oWorksheet.[A1:C1] = Array("WEEK_ENDING", "BCWS", "ETC")
+      oWorksheet.[A2].CopyFromRecordset oRecordset
+      oWorksheet.Columns(2).Style = "Comma"
+      oWorksheet.Columns(3).Style = "Comma"
+      oWorksheet.Columns.AutoFit 'todo: do this later
+      oExcel.ActiveWindow.Zoom = 85
+      oExcel.ActiveWindow.SplitRow = 1
+      oExcel.ActiveWindow.SplitColumn = 0
+      oExcel.ActiveWindow.FreezePanes = True
+      'make cumulative column
+      oWorksheet.Columns(3).Insert Shift:=xlRight
+      oWorksheet.[C1].Value = "BCWS_CUM"
+      oWorksheet.[C2].FormulaR1C1 = "=RC[-1]"
+      lngLastRow = oWorksheet.[A1].End(xlDown).Row
+      oWorksheet.Range(oWorksheet.Cells(3, 3), oWorksheet.Cells(lngLastRow, 3)).FormulaR1C1 = "=R[-1]C+RC[-1]"
+      Dim lngRow As Long
+      Dim lngAD As Long
+      'find the status date/AD
+      lngAD = CLng(oExcel.WorksheetFunction.Match(CLng(dtStatus), oWorksheet.[A:A], 1)) - 1
+      oWorksheet.Cells(lngAD + 1, 1).Style = "Neutral"
+      'find BCWP
+      lngES = CLng(oExcel.WorksheetFunction.Match(CLng(dblBCWP), oWorksheet.[C:C], 1)) - 1
+      oWorksheet.Cells(lngES + 1, 3).Style = "Neutral"
+      oExcel.ActiveWindow.ScrollRow = lngES
+      oWorksheet.Cells(lngES, 6) = "Status Date"
+      oWorksheet.Cells(lngES, 7) = dtStatus
+      oWorksheet.Names.Add "SD", oWorksheet.Cells(lngES, 7)
+      oWorksheet.Cells(lngES, 7).NumberFormat = "m/d/yyyy"
+      oWorksheet.Cells(lngES + 1, 6) = "BCWP"
+      oWorksheet.Cells(lngES + 1, 7) = dblBCWP
+      oWorksheet.Cells(lngES + 1, 7).Style = "Comma"
+      oWorksheet.Cells(lngES + 1, 8) = "discrete only, in hours"
+      'ES = duration planned to hit bcwp
+      oWorksheet.Cells(lngES + 3, 6) = "Earned Schedule"
+      oWorksheet.Cells(lngES + 3, 7) = lngES
+      oWorksheet.Names.Add "ES", oWorksheet.Cells(lngES + 3, 7)
+      oWorksheet.Cells(lngES + 3, 8) = "weeks"
+      'AD = duration consumed to hit bcwp
+      oWorksheet.Cells(lngES + 4, 6) = "Actual Duration"
+      oWorksheet.Cells(lngES + 4, 7) = lngAD
+      oWorksheet.Names.Add "AD", oWorksheet.Cells(lngES + 4, 7)
+      oWorksheet.Cells(lngES + 4, 8) = "weeks"
+      'SPI(t) = ES/ED
+      oWorksheet.Cells(lngES + 5, 6) = "SPI(t)"
+      oWorksheet.Cells(lngES + 5, 7) = "=ES/AD"
+      oWorksheet.Names.Add "SPI_t", oWorksheet.Cells(lngES + 5, 7)
+      oWorksheet.Cells(lngES + 5, 7).Style = "Comma"
+      If oWorksheet.Cells(lngES + 5, 7) > 1.05 Then
+        oWorksheet.Cells(lngES + 5, 7).Style = "Accent1"
+        oWorksheet.Cells(lngES + 5, 8) = "too good?"
+      ElseIf oWorksheet.Cells(lngES + 5, 7) >= 1 Then
+        oWorksheet.Cells(lngES + 5, 7).Style = "Good"
+        oWorksheet.Cells(lngES + 5, 8) = "on track"
+      ElseIf oWorksheet.Cells(lngES + 5, 7) >= 0.95 Then
+        oWorksheet.Cells(lngES + 5, 7).Style = "Neutral"
+        oWorksheet.Cells(lngES + 5, 8) = "caution"
+      ElseIf oWorksheet.Cells(lngES + 5, 7) < 0.95 Then
+        oWorksheet.Cells(lngES + 5, 7).Style = "Bad"
+        oWorksheet.Cells(lngES + 5, 8) = "warning"
+      End If
+      'PDWR = TD - ES
+      oWorksheet.Cells(lngES + 7, 6) = "Planned Duration Work Remaining"
+      'find max week ending where BCWS > 0
+      strFormula = "=MATCH(MAXIFS("
+      strFormula = strFormula & oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ","
+      strFormula = strFormula & oWorksheet.Range(oWorksheet.[B2], oWorksheet.[B2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ","
+      strFormula = strFormula & """>0""),"
+      strFormula = strFormula & oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",0)"
+      strFormula = strFormula & "-1-ES"
+      oWorksheet.Cells(lngES + 7, 7).FormulaR1C1 = strFormula
+      oWorksheet.Names.Add "PDWR", oWorksheet.Cells(lngES + 7, 7)
+      oWorksheet.Cells(lngES + 7, 8) = "weeks"
+      'RD = ETC DUR - AD
+      oWorksheet.Cells(lngES + 8, 6) = "Remaining Duration"
+      'find max week ending where ETC >0
+      strFormula = "=MATCH(MAXIFS("
+      strFormula = strFormula & oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ","
+      strFormula = strFormula & oWorksheet.Range(oWorksheet.[D2], oWorksheet.[D2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ","
+      strFormula = strFormula & """>0""),"
+      strFormula = strFormula & oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",0)"
+      strFormula = strFormula & "-1-AD"
+      oWorksheet.Cells(lngES + 8, 7) = strFormula
+      oWorksheet.Names.Add "RD", oWorksheet.Cells(lngES + 8, 7)
+      oWorksheet.Cells(lngES + 8, 8) = "weeks"
+      'TSPI(ed) = PDWR / RD (ETC)
+      oWorksheet.Cells(lngES + 9, 6) = "TSPI(ed)"
+      oWorksheet.Cells(lngES + 9, 7) = "=PDWR/RD"
+      oWorksheet.Names.Add "TSPI_ed", oWorksheet.Cells(lngES + 9, 7)
+      oWorksheet.Cells(lngES + 9, 7).Style = "Comma"
+      
+      'compare SPI(t) vs. TSPI(ed)
+      oWorksheet.Cells(lngES + 11, 6) = "|SPI(t)-TSPI(ed)|"
+      oWorksheet.Cells(lngES + 11, 7).FormulaR1C1 = "=ABS(SPI_t-TSPI_ed)"
+      oWorksheet.Cells(lngES + 11, 7).Style = "Comma"
+      If oWorksheet.Cells(lngES + 11, 7) < 0.1 Then
+        oWorksheet.Cells(lngES + 11, 7).Style = "Good"
+      Else
+        oWorksheet.Cells(lngES + 11, 7).Style = "Bad"
+      End If
+      oWorksheet.Cells(lngES + 12, 6) = "SPI(t)-TSPI(ed)"
+      oWorksheet.Cells(lngES + 12, 7).FormulaR1C1 = "=SPI_t-TSPI_ed"
+      oWorksheet.Cells(lngES + 12, 7).Style = "Comma"
+      If oWorksheet.Cells(lngES + 12, 7) > 0.1 Then
+        oWorksheet.Cells(lngES + 12, 8) = "overly pessimistic"
+        oWorksheet.Cells(lngES + 12, 7).Style = "Bad"
+      ElseIf oWorksheet.Cells(lngES + 12, 7) < -0.1 Then
+        oWorksheet.Cells(lngES + 12, 8) = "overly optimistic"
+        oWorksheet.Cells(lngES + 12, 7).Style = "Bad"
+      Else
+        oWorksheet.Cells(lngES + 12, 7).Style = "Good"
+      End If
+      'PDWR in days
+      oWorksheet.Cells(lngES + 14, 6) = "PDWR"
+      lngDuration = Application.DateDifference(dtStatus, dtLatestFinish)
+      oWorksheet.Cells(lngES + 14, 7).FormulaR1C1 = lngDuration / (60 * 8)
+      oWorksheet.Cells(lngES + 14, 7).Style = "Comma"
+      oWorksheet.Cells(lngES + 14, 8) = "work days"
+      
+      'PDWR factored
+      oWorksheet.Cells(lngES + 15, 6) = "PDWR/SPI(t)"
+      lngDuration = lngDuration / oWorksheet.Range("SPI_t")
+      oWorksheet.Cells(lngES + 15, 7).FormulaR1C1 = "=R[-1]C/SPI_t"
+      oWorksheet.Cells(lngES + 15, 7).Style = "Comma"
+      oWorksheet.Cells(lngES + 15, 8) = "work days"
+      
+      'IECD(es)
+      oWorksheet.Cells(lngES + 16, 6) = "IECD(es)"
+      oWorksheet.Cells(lngES + 16, 7).FormulaR1C1 = Application.DateAdd(dtStatus, lngDuration)
+      oWorksheet.Cells(lngES + 16, 7).NumberFormat = "m/d/yyyy"
+      oWorksheet.Cells(lngES + 16, 8) = "Using Calendar '" & ActiveProject.Calendar.Name & "'"
+      
+      'record the metric
+      cptCaptureMetric strProgram, dtStatus, "ES", CDate(oWorksheet.Cells(lngES + 16, 7).Value)
+      'format the columns
+      oWorksheet.Columns.AutoFit
+      Set oRange = oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown))
+      For Each vBorder In Array(xlEdgeTop, xlEdgeLeft, xlEdgeRight, xlEdgeBottom)
+        With oRange.Borders(vBorder)
+          .LineStyle = xlContinuous
+          .ColorIndex = xlAutomatic
+          .TintAndShade = 0
+          .Weight = xlThin
+        End With
+      Next vBorder
+      For Each vBorder In Array(xlInsideVertical, xlInsideHorizontal)
+        With oRange.Borders(vBorder)
+          .LineStyle = xlContinuous
+          .ThemeColor = 1
+          .TintAndShade = -0.249946594869248
+          .Weight = xlThin
+        End With
+      Next vBorder
+      Set oRange = oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight))
+      oRange.Font.Bold = True
+      oRange.HorizontalAlignment = xlCenter
+      With oRange.Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .ThemeColor = xlThemeColorDark1
+        .TintAndShade = -0.149998478032896
+        .PatternTintAndShade = 0
+      End With
+    Else
+      MsgBox "No records found.", vbExclamation + vbOKOnly, "Earned Schedule"
+    End If
+    .Close
+  End With
+
+exit_here:
+  On Error Resume Next
+  Kill cptDir & "\Schema.ini"
+  Kill cptDir & "\EarnedSchedule.csv"
+  Set oAssignment = Nothing
+  If oRecordset.State = 1 Then oRecordset.Close
+  Set oRecordset = Nothing
+  Set oTasks = Nothing
+  Set oTask = Nothing
+  Set oTSV = Nothing
+  Set oTSVS = Nothing
+  Set oCell = Nothing
+  Set oRange = Nothing
+  Set oListObject = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
+
+  Exit Sub
+err_here:
+  'Call HandleErr("cptMetrics_bas", "cptGetEarnedSchedule", Err)
   MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
