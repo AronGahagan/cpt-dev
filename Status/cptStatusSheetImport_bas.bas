@@ -84,21 +84,13 @@ Dim vField As Variant
     Next vField
         
     'todo: add enterprise custom fields?
-    
-    'get project guid
-    If Application.Version < 12 Then
-      strGUID = ActiveProject.DatabaseProjectUniqueID
-    Else
-      strGUID = ActiveProject.GetServerProjectGuid
-    End If
-    
+        
     'convert legacy user settings
     strSettings = cptDir & "\settings\cpt-status-sheet-import.adtg"
     If Dir(strSettings) <> vbNullString Then
       'import user settings
       Set rst = CreateObject("ADODB.Recordset")
       rst.Open strSettings
-      'rst.Filter = "GUID='" & strGUID & "'"
       If Not rst.EOF Then
         cptSaveSetting "StatusSheetImport", "cboAS", CStr(rst("AS"))
         cptSaveSetting "StatusSheetImport", "cboAF", CStr(rst("AF"))
@@ -201,6 +193,7 @@ Sub cptStatusSheetImport()
   Dim strSettings As String
   Dim strGUID As String
   'longs
+  Dim lngActive As Long
   Dim lngTask As Long
   Dim lngTasks As Long
   Dim lngTaskNameCol As Long
@@ -289,12 +282,12 @@ Sub cptStatusSheetImport()
   
   'save user settings
   'todo: need multiple ini configurations for multiple project files/contracts?
-  cptSaveSetting "StatusSheetImport", "lngAS", CStr(lngAS)
-  cptSaveSetting "StatusSheetImport", "lngAF", CStr(lngAF)
-  cptSaveSetting "StatusSheetImport", "lngFS", CStr(lngFS)
-  cptSaveSetting "StatusSheetImport", "lngFF", CStr(lngFF)
-  cptSaveSetting "StatusSheetImport", "lngEV", CStr(lngEV)
-  cptSaveSetting "StatusSheetImport", "lngETC", CStr(lngETC)
+  cptSaveSetting "StatusSheetImport", "cboAS", CStr(lngAS)
+  cptSaveSetting "StatusSheetImport", "cboAF", CStr(lngAF)
+  cptSaveSetting "StatusSheetImport", "cboFS", CStr(lngFS)
+  cptSaveSetting "StatusSheetImport", "cboFF", CStr(lngFF)
+  cptSaveSetting "StatusSheetImport", "cboEV", CStr(lngEV)
+  cptSaveSetting "StatusSheetImport", "cboETC", CStr(lngETC)
   cptSaveSetting "StatusSheetImport", "chkAppend", IIf(blnAppend, 1, 0)
   cptSaveSetting "StatusSheetImport", "cboAppendTo", strAppendTo
   
@@ -320,12 +313,21 @@ Sub cptStatusSheetImport()
   Else
     lngTasks = ActiveProject.Tasks.Count
   End If
+  
+  If Edition = pjEditionProfessional Then
+    lngActive = FieldNameToFieldConstant("Active")
+  ElseIf Edition = pjEditionStandard Then
+    lngActive = 0
+  End If
+  
   For Each oTask In ActiveProject.Tasks
     lngTask = lngTask + 1
     If oTask Is Nothing Then GoTo next_task
     If oTask.Summary Then GoTo next_task
     If oTask.ExternalTask Then GoTo next_task
-    If Not oTask.Active Then GoTo next_task
+    If lngActive > 0 Then
+      If oTask.GetField(lngActive) = "No" Then GoTo next_task
+    End If
     'clear dates
     For Each vField In Array(lngAS, lngAF, lngFS, lngFF)
       If vField = 188743721 Then GoTo next_field 'DO NOT clear out Actual Start
@@ -597,7 +599,6 @@ Dim rst As Object 'ADODB.Recordset 'Object
 Dim strEVT As String
 Dim strEVP As String
 Dim strSettings As String
-Dim strGUID As String
 'longs
 Dim lngEVT As Long
 Dim lngETC As Long
@@ -620,13 +621,6 @@ Dim lngItem As Long
   cptSpeed True
   
   'get saved settings
-  'get project guid
-  If Application.Version < 12 Then
-    strGUID = ActiveProject.DatabaseProjectUniqueID
-  Else
-    strGUID = ActiveProject.GetServerProjectGuid
-  End If
-  
   'get EVP and EVT
   strSettings = cptDir & "\settings\cpt-status-sheet.adtg" 'todo: keep for a few more versions
   If Dir(strSettings) <> vbNullString Then
@@ -638,10 +632,10 @@ Dim lngItem As Long
       strEVT = rst("cboEVT")
     End If
     rst.Close
-    'todo: convert to ini
+    'convert to ini
     cptSaveSetting "StatusSheet", "cboEVP", strEVP
     cptSaveSetting "StatusSheet", "cboEVT", strEVT
-    'don't kill the file here, kill it on Status Sheet Creation
+    'todo: don't kill the file here, kill it on Status Sheet Creation
   End If
   
   strEVP = cptGetSetting("StatusSheet", "cboEVP")
