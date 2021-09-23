@@ -9,6 +9,10 @@ Sub cptShowAgeDates_frm()
   'strings
   Dim strSetting As String
   'longs
+  Dim lngFF As Long
+  Dim lngFS As Long
+  Dim lngAF As Long
+  Dim lngAS As Long
   Dim lngControl As Long
   Dim lngWeek As Long
   'integers
@@ -29,7 +33,17 @@ Sub cptShowAgeDates_frm()
   'todo: create and apply view
   'todo: update table dynamically
   'todo: multiple settings for multiple projects >> convert to ADODB
-
+  
+  'todo: avoid cpt conflicts with status sheet import
+  strSetting = cptGetSetting("StatusSheetImport", "cboAS")
+  If Len(strSetting) > 0 Then lngAS = CLng(strSetting) Else lngAS = 0
+  strSetting = cptGetSetting("StatusSheetImport", "cboAF")
+  If Len(strSetting) > 0 Then lngAF = CLng(strSetting) Else lngAF = 0
+  strSetting = cptGetSetting("StatusSheetImport", "cboFS")
+  If Len(strSetting) > 0 Then lngFS = CLng(strSetting) Else lngFS = 0
+  strSetting = cptGetSetting("StatusSheetImport", "cboFF")
+  If Len(strSetting) > 0 Then lngFF = CLng(strSetting) Else lngFF = 0
+  
   With cptAgeDates_frm
     .lblStatus = "(" & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & ")"
     .cboWeeks.Clear
@@ -62,7 +76,7 @@ Sub cptShowAgeDates_frm()
     strSetting = cptGetSetting("AgeDates", "chkUpdateCustomFieldNames")
     If Len(strSetting) > 0 Then .chkUpdateCustomFieldNames = CBool(strSetting)
     
-    .Show 'False
+    .Show False 'False
   End With
   
   
@@ -174,4 +188,3 @@ err_here:
   Call cptHandleErr("cptAgeDates_bas", "cptAgeDates", Err, Erl)
   Resume exit_here
 End Sub
-
