@@ -1,11 +1,13 @@
 Attribute VB_Name = "cptAgeDates_bas"
+'<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowAgeDates_frm()
   'objects
   'strings
+  Dim strSetting As String
   'longs
   Dim lngControl As Long
   Dim lngWeek As Long
@@ -16,30 +18,51 @@ Sub cptShowAgeDates_frm()
   'dates
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "Status Date required.", vbExclamation + vbOKOnly, "Age Dates"
+    Application.ChangeStatusDate
+  End If
+  
   'todo: create and apply table
   'todo: create and apply filter?
   'todo: create and apply view
   'todo: update table dynamically
+  'todo: multiple settings for multiple projects >> convert to ADODB
 
   With cptAgeDates_frm
+    .lblStatus = "(" & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & ")"
     .cboWeeks.Clear
     For lngWeek = 1 To 10
       .cboWeeks.AddItem lngWeek & IIf(lngWeek = 1, " week", " weeks")
-      '.Controls("cboWeek" & lngWeek).Clear
       For lngControl = 1 To 10
-        .Controls("cboWeek" & lngControl).AddItem "Start" & lngWeek & "/Finish" & lngWeek
+        With .Controls("cboWeek" & lngControl)
+          .AddItem
+          .List(.ListCount - 1, 0) = lngWeek + 1
+          .List(.ListCount - 1, 1) = lngWeek
+          .List(.ListCount - 1, 2) = "Start" & lngWeek & "/Finish" & lngWeek
+        End With
       Next lngControl
     Next lngWeek
     
-    .cboWeeks = cptGetSetting("AgeDates", "cboWeeks")
+    strSetting = cptGetSetting("AgeDates", "cboWeeks")
+    If Len(strSetting) > 0 Then
+      .cboWeeks.Value = strSetting
+    Else
+      .cboWeeks.Value = "3 weeks"
+    End If
     For lngControl = 1 To 10
-      .Controls("cboWeek" & lngControl).Value = cptGetSetting("AgeDates", "cboWeek" & lngControl)
+      strSetting = cptGetSetting("AgeDates", "cboWeek" & lngControl)
+      If Len(strSetting) > 0 Then
+        .Controls("cboWeek" & lngControl).Value = cptGetSetting("AgeDates", "cboWeek" & lngControl)
+      End If
     Next lngControl
-    .CheckBox1 = CBool(cptGetSetting("AgeDates", "chkIncludeDurations"))
-    .CheckBox2 = CBool(cptGetSetting("AgeDates", "chkUpdateCustomFieldNames"))
+    strSetting = cptGetSetting("AgeDates", "chkIncludeDurations")
+    If Len(strSetting) > 0 Then .chkIncludeDurations = CBool(strSetting)
+    strSetting = cptGetSetting("AgeDates", "chkUpdateCustomFieldNames")
+    If Len(strSetting) > 0 Then .chkUpdateCustomFieldNames = CBool(strSetting)
     
-    .Show False
+    .Show 'False
   End With
   
   
@@ -58,8 +81,10 @@ Sub cptAgeDates()
   'objects
   Dim oTask As Task
   'strings
+  Dim strCustom As String
   Dim strStatus As String
   'longs
+  Dim lngTest As Long
   Dim lngControl As Long
   'integers
   'doubles
@@ -73,51 +98,71 @@ Sub cptAgeDates()
   Application.Calculation = pjManual
   Application.OpenUndoTransaction "Age Dates"
   dtStatus = Format(ActiveProject.StatusDate, "mm/dd/yy")
-  strStatus = cptGetSetting("AgeDates", "LastCapture")
-  If Len(strStatus) > 0 Then
-    If dtStatus = CDate(strStatus) Then
-      If MsgBox("Already captured status for " & Format(dtStatus, "mm/dd/yyyy") & ": proceed anyway?", vbExclamation + vbYesNo, "Confirm Overwrite") = vbYes Then
-        'todo: prompt to only overwrite the single period?
-      Else
-        GoTo exit_here
-      End If
-    End If
+  
+  On Error Resume Next
+  lngTest = FieldNameToFieldConstant("Start (" & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & ")")
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If lngTest > 0 Then
+    MsgBox "Dates already aged for status date " & Format(dtStatus, "mm/dd/yyyy") & ".", vbExclamation + vbOKOnly, "Age Dates"
+    GoTo exit_here
   End If
-  
-  'note: pjSaveBaselineFrom enumeration <> pjSaveBaselineTo enumeration
-  BaselineSave True, 3, 3 'Start2/Finish2 >> Start3/Finish3
-  BaselineSave True, 2, 2 'Start1/Finish1 >> Start2/Finish2
-  BaselineSave True, 0, 1 'Start/Finish >> Start1/Finish1
-  
-  For Each oTask In ActiveProject.Tasks
-    oTask.SetField pjTaskDuration3, oTask.GetField(pjTaskDuration2)
-    oTask.SetField pjTaskDuration2, oTask.GetField(pjTaskDuration1)
-    oTask.SetField pjTaskDuration1, oTask.DurationText
-  Next
-  
-  CustomFieldRename pjCustomTaskStart1, "Start (" & CStr(dtStatus) & ")"
-  CustomFieldRename pjCustomTaskDuration1, "Duration (" & CStr(dtStatus) & ")"
-  CustomFieldRename pjCustomTaskFinish1, "Finish (" & CStr(dtStatus) & ")"
-  
-  CustomFieldRename pjCustomTaskStart2, "Start (" & CStr(DateAdd("d", -7, dtStatus)) & ")"
-  CustomFieldRename pjCustomTaskDuration2, "Duration (" & CStr(DateAdd("d", -7, dtStatus)) & ")"
-  CustomFieldRename pjCustomTaskFinish2, "Finish (" & CStr(DateAdd("d", -7, dtStatus)) & ")"
-  
-  CustomFieldRename pjCustomTaskStart3, "Start (" & CStr(DateAdd("d", -14, dtStatus)) & ")"
-  CustomFieldRename pjCustomTaskDuration3, "Duration (" & CStr(DateAdd("d", -14, dtStatus)) & ")"
-  CustomFieldRename pjCustomTaskFinish3, "Finish (" & CStr(DateAdd("d", -14, dtStatus)) & ")"
-  
-  'save settings
+
   With cptAgeDates_frm
-    cptSaveSetting "AgeDates", "LastCapture", Format(dtStatus, "mm/dd/yyyy")
-    cptSaveSetting "AgeDates", "cboWeeks", .cboWeeks.Value
-    For lngControl = 1 To 10
-      cptSaveSetting "AgeDates", "cboWeek" & lngControl, .Controls("cboWeek" & lngControl).Value
+    
+    For lngControl = 10 To 1 Step -1
+      If .Controls("cboWeek" & lngControl).Enabled Then
+        If lngControl = 1 Then
+          lngFrom = 0
+        Else
+          lngFrom = .Controls("cboWeek" & lngControl - 1).List(.Controls("cboWeek" & lngControl - 1).ListIndex, 0)
+        End If
+        lngTo = .Controls("cboWeek" & lngControl).List(.Controls("cboWeek" & lngControl).ListIndex, 1)
+        BaselineSave True, lngFrom, lngTo
+        'update custom field names
+        If .chkUpdateCustomFieldNames Then
+          If lngControl = 1 Then
+            strCustom = "Start (" & FormatDateTime(dtStatus, vbShortDate) & ")"
+            CustomFieldRename FieldNameToFieldConstant("Start" & lngControl), strCustom
+            strCustom = "Finish (" & FormatDateTime(dtStatus, vbShortDate) & ")"
+            CustomFieldRename FieldNameToFieldConstant("Finish" & lngControl), strCustom
+            If .chkIncludeDurations Then
+              strCustom = "Duration (" & FormatDateTime(dtStatus, vbShortDate) & ")"
+              CustomFieldRename FieldNameToFieldConstant("Duration" & lngControl), strCustom
+            End If
+          Else
+            strCustom = CustomFieldGetName(FieldNameToFieldConstant("Start" & lngControl - 1, pjTask))
+            CustomFieldRename FieldNameToFieldConstant("Start" & lngControl - 1), ""
+            CustomFieldRename FieldNameToFieldConstant("Start" & lngControl), strCustom
+            strCustom = CustomFieldGetName(FieldNameToFieldConstant("Finish" & lngControl - 1, pjTask))
+            CustomFieldRename FieldNameToFieldConstant("Finish" & lngControl - 1), ""
+            CustomFieldRename FieldNameToFieldConstant("Finish" & lngControl), strCustom
+            If .chkIncludeDurations Then
+              strCustom = CustomFieldGetName(FieldNameToFieldConstant("Duration" & lngControl - 1, pjTask))
+              CustomFieldRename FieldNameToFieldConstant("Duration" & lngControl - 1), ""
+              CustomFieldRename FieldNameToFieldConstant("Duration" & lngControl), strCustom
+            End If
+          End If
+        End If
+      End If
     Next lngControl
-    cptSaveSetting "AgeDates", "chkIncludeDurations", .CheckBox1.Value
-    cptSaveSetting "AgeDates", "chkUpdateCustomFieldNames", .CheckBox2.Value
+    
+    If .chkIncludeDurations Then
+      For Each oTask In ActiveProject.Tasks
+        For lngControl = 10 To 1 Step -1
+          If .Controls("cboWeek" & lngControl).Enabled Then
+            lngTo = cptRegEx(.Controls("cboWeek" & lngControl).List(.Controls("cboWeek" & lngControl).ListIndex, 1), "[0-9]")
+            If lngControl = 1 Then
+              oTask.SetField FieldNameToFieldConstant("Duration" & lngTo), oTask.DurationText
+            Else
+              lngFrom = cptRegEx(.Controls("cboWeek" & lngControl - 1).List(.Controls("cboWeek" & lngControl - 1).ListIndex, 2), "[0-9]")
+              oTask.SetField FieldNameToFieldConstant("Duration" & lngTo), oTask.GetField(FieldNameToFieldConstant("Duration" & lngFrom))
+            End If
+          End If
+        Next lngControl
+      Next oTask
+    End If
   End With
-  
+        
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
