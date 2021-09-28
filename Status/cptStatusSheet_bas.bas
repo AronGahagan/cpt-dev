@@ -6,7 +6,7 @@ Option Explicit
 #Else '<issue53>
   Declare Function GetTickCount Lib "kernel32" () As Long
 #End If '<issue53>
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_heref Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 Private strStartingViewTopPane As String
@@ -74,10 +74,19 @@ Dim vFieldType As Variant
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
     MsgBox "Please enter a Status Date.", vbExclamation + vbOKOnly, "No Status Date"
-    'todo: prompt
-    GoTo exit_here
+    Application.ChangeStatusDate
+    If Not IsDate(ActiveProject.StatusDate) Then GoTo exit_here
   End If
-
+  
+  'requires metrics settings
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
+      GoTo exit_here
+    End If
+  End If
+  
   'requires ms excel
   Application.StatusBar = "Validating OLE references..."
   DoEvents
@@ -379,7 +388,12 @@ skip_fields:
   End If
   strStartingTable = ActiveProject.CurrentTable
   strStartingFilter = ActiveProject.CurrentFilter
-  strStartingGroup = ActiveProject.CurrentGroup
+  If ActiveProject.CurrentGroup = "Custom Group" Then
+    MsgBox "A 'Custom Group' cannot be used." & vbCrLf & vbCrLf & "Please save the group and name it, or select another saved Group, before you proceed.", vbInformation + vbOKOnly, "Invalid Group"
+    GoTo exit_here
+  Else
+    strStartingGroup = ActiveProject.CurrentGroup
+  End If
   
   cptSpeed True
   ActiveWindow.TopPane.Activate
@@ -414,7 +428,7 @@ skip_fields:
   End If
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   cptRefreshStatusTable True  'this only runs when form is visible
-  If CLng(strCreate) > 0 And Len(strEach) > 0 Then
+  If Len(strCreate) > 0 And Len(strEach) > 0 Then
     SetAutoFilter strEach, pjAutoFilterClear
     DoEvents
   End If
@@ -428,7 +442,7 @@ skip_fields:
   DoEvents
   cptSpeed True
   cptStatusSheet_frm.Show
-  
+    
   'after user closes form, then:
   Application.StatusBar = "Restoring your view/table/filter/group..."
   DoEvents
@@ -1471,8 +1485,11 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   Dim oTwoWeekWindowRange As Excel.Range
   Dim oTask As Task
   'strings
+  Dim strLOE As String
+  Dim strLOEField As String
   Dim strEVTList As String
   'longs
+  Dim lngLOEField As Long
   Dim lngEVTCol As Long
   Dim lngLastCol As Long
   Dim lngETCCol As Long
@@ -1507,6 +1524,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
 try_again:
   SelectAll
   EditCopy
+  DoEvents
   oWorksheet.Application.Wait 5000
   On Error Resume Next
   oWorksheet.Paste oWorksheet.Cells(lngHeaderRow, 1), False
@@ -1577,18 +1595,26 @@ try_again:
     If oTask Is Nothing Then GoTo next_task
     If oTask.ExternalTask Then GoTo next_task
     If Not oTask.Active Then GoTo next_task
-    'todo: use Task Usage view if a group is applied there are no duplicate UIDs
+    'find the row of the current task
+    On Error Resume Next
+    lngRow = 0
     lngRow = oWorksheet.Columns(1).Find(oTask.UniqueID, lookat:=xlWhole).Row
+    If Err.Number = 91 Then
+      MsgBox "UID " & oTask.UniqueID & " not found on worksheet!" & vbCrLf & vbCrLf & "You may need to re-run...", vbExclamation + vbOKOnly, "ERROR"
+      GoTo next_task
+    End If
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     'capture if task is LOE
     blnLOE = False
+    strLOEField = cptGetSetting("cboLOEField")
+    If Len(strLOEField) > 0 Then
+      lngLOEField = CLng(strLOEField)
+    End If
+    strLOE = cptGetSetting("Metrics", "strLOE")
+    'todo: ensure sync between metrics and status sheet
     With cptStatusSheet_frm
-      If Not IsNull(.cboCostTool.Value) Then
-        If .cboCostTool = "MPM" Then
-          If oTask.GetField(FieldNameToFieldConstant(.cboEVT.Value)) = "6" Then blnLOE = True
-        ElseIf cptStatusSheet_frm.cboCostTool = "COBRA" Then
-          If oTask.GetField(FieldNameToFieldConstant(.cboEVT.Value)) = "A" Then blnLOE = True
-        End If
-      End If
+      'todo: If oTask.GetField(lngLOEField) = strLOE Then blnLOE = True
+      If oTask.GetField(FieldNameToFieldConstant(.cboEVT.Value)) = strLOE Then blnLOE = True
     End With
     If oTask.Summary Then
       If oSummaryRange Is Nothing Then
@@ -1875,6 +1901,8 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   Dim strProtect As String
   Dim strDataValidation As String
   'longs
+  Dim lngBaselineCostCol As Long
+  Dim lngBaselineWorkCol As Long
   Dim lngIndent As Long
   Dim lngItem As Long
   Dim lngLastCol As Long
@@ -1895,7 +1923,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   lngItem = 0
   For Each oAssignment In oTask.Assignments
     lngItem = lngItem + 1
-    If ActiveProject.CurrentView <> "Task Usage" Then
+    If ActiveProject.CurrentView <> "Task Usage" Or IsDate(oAssignment.ActualFinish) Then
       oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
       oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.ColorIndex = xlAutomatic
     Else
@@ -1909,11 +1937,15 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
     vAssignment(1, 1) = oAssignment.UniqueID 'import assumes this is oAssignment.UniqueID
     vAssignment(1, lngNameCol) = String(lngIndent + 3, " ") & oAssignment.ResourceName
     If oAssignment.ResourceType = pjWork Then
+      lngBaselineWorkCol = oWorksheet.Rows(lngHeaderRow).Find("Baseline Work", lookat:=xlWhole).Column
+      vAssignment(1, lngBaselineWorkCol) = oAssignment.BaselineWork / 60
       vAssignment(1, lngRemainingWorkCol) = oAssignment.RemainingWork / 60
       vAssignment(1, lngRemainingWorkCol + 1) = oAssignment.RemainingWork / 60
     Else
-      vAssignment(1, lngRemainingWorkCol) = oAssignment.RemainingWork
-      vAssignment(1, lngRemainingWorkCol + 1) = oAssignment.RemainingWork
+      lngBaselineCostCol = oWorksheet.Rows(lngHeaderRow).Find("Baseline Work", lookat:=xlWhole).Column
+      vAssignment(1, lngBaselineCostCol) = oAssignment.BaselineCost
+      vAssignment(1, lngRemainingWorkCol) = oAssignment.RemainingCost
+      vAssignment(1, lngRemainingWorkCol + 1) = oAssignment.RemainingCost
     End If
     'add validation
     If oNumberValidationRange Is Nothing Then
