@@ -584,6 +584,7 @@ Sub cptCreateStatusSheet()
     
   cptStatusSheet_frm.lblStatus.Caption = " Analyzing project..."
   Application.StatusBar = "Analyzing project..."
+  DoEvents
   blnValidation = cptStatusSheet_frm.chkValidation = True
   blnLocked = cptStatusSheet_frm.chkLocked = True
   blnEmail = cptStatusSheet_frm.chkSendEmails = True
@@ -643,7 +644,9 @@ Sub cptCreateStatusSheet()
       
       'copy data
       If blnPerformanceTest Then t = GetTickCount
-      .lblStatus = "Creating Workbook..."
+      .lblStatus.Caption = "Creating Workbook..."
+      Application.StatusBar = .lblStatus.Caption
+      DoEvents
       cptCopyData oWorksheet, lngHeaderRow
       If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
       
@@ -667,7 +670,9 @@ Sub cptCreateStatusSheet()
         oWorksheet.EnableSelection = xlNoRestrictions
       End If
       
-      .lblStatus = "Creating Workbook...done"
+      .lblStatus.Caption = "Creating Workbook...done"
+      Application.StatusBar = .lblStatus.Caption
+      DoEvents
       
       'save the workbook
       strFileName = cptSaveStatusSheet(oWorkbook)
@@ -692,7 +697,9 @@ Sub cptCreateStatusSheet()
           SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", strItem
           'copy data
           If blnPerformanceTest Then t = GetTickCount
-          .lblStatus = "Creating Worksheet for " & strItem & "..."
+          .lblStatus.Caption = "Creating Worksheet for " & strItem & "..."
+          Application.StatusBar = .lblStatus.Caption
+          DoEvents
           cptCopyData oWorksheet, lngHeaderRow
           If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
           'add legend
@@ -715,8 +722,10 @@ Sub cptCreateStatusSheet()
           Set oUnlockedRange = Nothing
           Set oAssignmentRange = Nothing
           
-          .lblStatus = "Creating Worksheet for " & strItem & "...done"
-
+          .lblStatus.Caption = "Creating Worksheet for " & strItem & "...done"
+          Application.StatusBar = .lblStatus.Caption
+          DoEvents
+          
         End If
       Next lngItem
       
@@ -744,7 +753,9 @@ Sub cptCreateStatusSheet()
           
           'copy data
           If blnPerformanceTest Then t = GetTickCount
-          .lblStatus = "Creating Workbook for " & strItem & "..."
+          .lblStatus.Caption = "Creating Workbook for " & strItem & "..."
+          Application.StatusBar = .lblStatus.Caption
+          DoEvents
           cptCopyData oWorksheet, lngHeaderRow
           If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
           
@@ -770,23 +781,31 @@ Sub cptCreateStatusSheet()
                     
           'save the workbook
           strFileName = cptSaveStatusSheet(oWorkbook, strItem)
-          .lblStatus = "Creating Workbook for " & strItem & "...done"
-          
+          .lblStatus.Caption = "Creating Workbook for " & strItem & "...done"
+          Application.StatusBar = .lblStatus.Caption
+          DoEvents
+
           'must close before attaching to email
           oWorkbook.Close True
           oWorkbook.Application.Wait Now + TimeValue("00:00:02")
           
           'send email
           If blnEmail Then
-            .lblStatus = "Creating Email for " & strItem & "..."
+            .lblStatus.Caption = "Creating Email for " & strItem & "..."
+            Application.StatusBar = .lblStatus.Caption
+            DoEvents
             cptSendStatusSheet strFileName, strItem
-            .lblStatus = "Creating Email for " & strItem & "...done"
+            .lblStatus.Caption = "Creating Email for " & strItem & "...done"
+            Application.StatusBar = .lblStatus.Caption
+            DoEvents
           End If
           
         End If
       Next lngItem
     End If
     .lblStatus.Caption = Choose(.cboCreate + 1, "Workbook", "Workbook", "Workbooks") & " Complete"
+    Application.StatusBar = .lblStatus.Caption
+    DoEvents
   End With
 
   oExcel.Calculation = xlCalculationAutomatic
@@ -1778,6 +1797,7 @@ try_again:
     
     'left align the comment column
     oWorksheet.Cells(lngRow, lngLastCol).HorizontalAlignment = xlLeft
+    oWorksheet.Cells(lngRow, lngLastCol).NumberFormat = "General"
     
     If oTask.Assignments.Count > 0 And Not IsDate(oTask.ActualFinish) Then
       cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
