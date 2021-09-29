@@ -710,6 +710,7 @@ Dim blnIncluded As Boolean
       End If
     Next lngItem
   End If
+  'todo: ensure notes column title is unique in the columns
   If blnError Then
     Me.lblStatus.ForeColor = 192 'red
     Me.lblStatus.Caption = " Please complete all required fields."

@@ -35,6 +35,7 @@ Dim lngField As Long, lngItem As Long, lngSelectedItems As Long
 'integers
 Dim intField As Integer
 'strings
+Dim strNotesColTitle As String
 Dim strFileNamingConvention As String
 Dim strDir As String
 Dim strAllItems As String
@@ -319,6 +320,12 @@ skip_fields:
     FilterClear
     strAllItems = cptGetSetting("StatusSheet", "chkAllItems")
     If strAllItems <> "" Then .chkAllItems = CBool(strAllItems)
+    strNotesColTitle = cptGetSetting("StatusSheet", "txtNotesColTitle")
+    If Len(strNotesColTitle) > 0 Then
+      .txtNotesColTitle.Value = strNotesColTitle
+    Else
+      .txtNotesColTitle = "Reason / Action / Impact"
+    End If
   End With
 
   'add saved export fields if they exist
@@ -326,6 +333,7 @@ skip_fields:
   If Dir(strFileName) <> vbNullString Then
     With CreateObject("ADODB.Recordset")
       .Open strFileName
+      'todo: filter for program acronym
       If .RecordCount > 0 Then
         .MoveFirst
         lngItem = 0
@@ -428,6 +436,7 @@ skip_fields:
   End If
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   cptRefreshStatusTable True  'this only runs when form is visible
+  FilterClear 'added 9/28/2021
   If Len(strCreate) > 0 And Len(strEach) > 0 Then
     SetAutoFilter strEach, pjAutoFilterClear
     DoEvents
@@ -1377,7 +1386,10 @@ Dim lngItem As Long
     
   'reset the table
   Application.StatusBar = "Resetting the cptStatusSheet Table..."
-  If ActiveProject.CurrentGroup <> "No Group" Then GroupApply "No Group"
+  If ActiveProject.CurrentGroup <> "No Group" Then
+    strStartingGroup = ActiveProject.CurrentGroup
+    GroupApply "No Group"
+  End If
   
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, Create:=True, overwriteexisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
@@ -1416,6 +1428,10 @@ Dim lngItem As Long
   End If
   FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Active", Test:="equals", Value:="Yes", ShowInMenu:=False, showsummarytasks:=True, parenthesis:=True
   FilterApply "cptStatusSheet Filter"
+  
+  If Len(strStartingGroup) > 0 Then
+    GroupApply strStartingGroup
+  End If
   
 exit_here:
   On Error Resume Next
@@ -1485,6 +1501,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   Dim oTwoWeekWindowRange As Excel.Range
   Dim oTask As Task
   'strings
+  Dim strNotesColTitle As String
   Dim strLOE As String
   Dim strLOEField As String
   Dim strEVTList As String
@@ -1569,7 +1586,12 @@ try_again:
   If lngLastCol > ActiveProject.TaskTables("cptStatusSheet Table").TableFields.Count + 10 Then GoTo try_again
   oWorksheet.Columns(lngLastCol + 1).Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
   oWorksheet.Columns(lngLastCol + 1).ColumnWidth = 40
-  oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Offset(0, 1).Value = "Reason / Action / Impact"
+  strNotesColTitle = cptGetSetting("StatusSheet", "txtNotesColTitle")
+  If Len(strNotesColTitle) > 0 Then
+    oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Offset(0, 1).Value = strNotesColTitle
+  Else
+    oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Offset(0, 1).Value = "Reason / Action / Impact"
+  End If
   With oWorksheet.Cells(lngHeaderRow, 1).Resize(, ActiveProject.TaskTables(ActiveProject.CurrentTable).TableFields.Count)
     .Interior.ThemeColor = xlThemeColorLight2
     .Interior.TintAndShade = 0
@@ -1606,7 +1628,7 @@ try_again:
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     'capture if task is LOE
     blnLOE = False
-    strLOEField = cptGetSetting("cboLOEField")
+    strLOEField = cptGetSetting("Metrics", "cboLOEField")
     If Len(strLOEField) > 0 Then
       lngLOEField = CLng(strLOEField)
     End If
@@ -1616,7 +1638,7 @@ try_again:
       'todo: If oTask.GetField(lngLOEField) = strLOE Then blnLOE = True
       If oTask.GetField(FieldNameToFieldConstant(.cboEVT.Value)) = strLOE Then blnLOE = True
     End With
-    If oTask.Summary Then
+    If oTask.Summary Then 'todo: handle group by summary and clear it too
       If oSummaryRange Is Nothing Then
         Set oSummaryRange = oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol))
       Else
@@ -1754,7 +1776,10 @@ try_again:
       Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngLastCol))
     End If
     
-    If oTask.Assignments.Count > 0 And oTask.PercentComplete < 100 Then
+    'left align the comment column
+    oWorksheet.Cells(lngRow, lngLastCol).HorizontalAlignment = xlLeft
+    
+    If oTask.Assignments.Count > 0 And Not IsDate(oTask.ActualFinish) Then
       cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
     End If
     
@@ -1766,6 +1791,26 @@ next_task:
     lngTask = lngTask + 1
     cptStatusSheet_frm.lblProgress.Width = (lngTask / lngTasks) * cptStatusSheet_frm.lblStatus.Width
   Next oTask
+  
+  'clear out group summary stuff
+  If ActiveProject.CurrentGroup <> "No Group" Then
+    Dim lngLastRow As Long
+    lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row
+    For lngRow = lngHeaderRow + 1 To lngLastRow
+      If Len(oWorksheet.Cells(lngRow, 1)) = 0 Then
+        If oSummaryRange Is Nothing Then
+          Set oSummaryRange = oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol))
+        Else
+          Set oSummaryRange = oWorksheet.Application.Union(oSummaryRange, oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol)))
+        End If
+        If oClearRange Is Nothing Then
+          Set oClearRange = oWorksheet.Range(oWorksheet.Cells(lngRow, lngNameCol + 1), oWorksheet.Cells(lngRow, lngLastCol))
+        Else
+          Set oClearRange = oWorksheet.Application.Union(oClearRange, oWorksheet.Range(oWorksheet.Cells(lngRow, lngNameCol + 1), oWorksheet.Cells(lngRow, lngLastCol)))
+        End If
+      End If
+    Next lngRow
+  End If
   
   If Not oClearRange Is Nothing Then oClearRange.ClearContents
   If Not oSummaryRange Is Nothing Then
@@ -2254,7 +2299,18 @@ err_here:
 End Sub
 
 Sub cptSaveStatusSheetSettings()
-  
+  'objects
+  Dim oRecordset As ADODB.Recordset
+  'strings
+  Dim strFileName As String
+  'longs
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+    
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   With cptStatusSheet_frm
@@ -2284,10 +2340,33 @@ Sub cptSaveStatusSheetSettings()
         cptSaveSetting "StatusSheet", "cboQuickPart", .cboQuickParts.Value
       End If
     End If
+    If Len(.txtNotesColTitle.Value) > 0 Then
+      cptSaveSetting "StatusSheet", "txtNotesColTitle", .txtNotesColTitle.Value
+    Else
+      cptSaveSetting "StatusSheet", "txtNotesColTitle", "Reason / Action / Impact"
+    End If
+    'save user fields - overwrite
+    strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
+    Set oRecordset = CreateObject("ADODB.Recordset")
+    oRecordset.Fields.Append "Field Constant", adInteger
+    oRecordset.Fields.Append "Custom Field Name", adVarChar, 255
+    oRecordset.Fields.Append "Local Field Name", adVarChar, 100
+    oRecordset.Open
+    If .lboExport.ListCount > 0 Then
+      For lngItem = 0 To .lboExport.ListCount - 1
+        oRecordset.AddNew Array(0, 1, 2), Array(.lboExport.List(lngItem, 0), .lboExport.List(lngItem, 1), .lboExport.List(lngItem, 2))
+      Next lngItem
+    End If
+    If Dir(strFileName) <> vbNullString Then Kill strFileName
+    oRecordset.Save strFileName, adPersistADTG
+    oRecordset.Close
+
   End With
 
 exit_here:
   On Error Resume Next
+  If oRecordset.State Then oRecordset.Close
+  Set oRecordset = Nothing
 
   Exit Sub
 err_here:

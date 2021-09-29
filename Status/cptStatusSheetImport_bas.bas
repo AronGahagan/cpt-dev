@@ -188,6 +188,7 @@ Sub cptStatusSheetImport()
   Dim oComboBox As ComboBox
   Dim rst As Object 'ADODB.Recordset
   'strings
+  Dim strNotesColTitle As String
   Dim strImportLog As String
   Dim strAppendTo As String
   Dim strSettings As String
@@ -422,7 +423,12 @@ next_task:
         lngAFCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Finish", lookat:=xlPart).Column
         lngEVCol = oWorksheet.Rows(lngHeaderRow).Find(what:="New EV%", lookat:=xlWhole).Column
         lngETCCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Revised ETC", lookat:=xlWhole).Column
-        lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Reason / Action / Impact", lookat:=xlWhole).Column
+        strNotesColTitle = cptGetSetting("StatusSheet", "txtNotesColTitle")
+        If Len(strNotesColTitle) > 0 Then
+          lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(what:=strNotesColTitle, lookat:=xlWhole).Column
+        Else
+          lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Reason / Action / Impact", lookat:=xlWhole).Column
+        End If
         'get last row
         lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row
         'pull in the data
