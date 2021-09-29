@@ -437,6 +437,7 @@ skip_fields:
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   cptRefreshStatusTable True  'this only runs when form is visible
   FilterClear 'added 9/28/2021
+  FilterApply "cptStatusSheet Filter"
   If Len(strCreate) > 0 And Len(strEach) > 0 Then
     SetAutoFilter strEach, pjAutoFilterClear
     DoEvents
@@ -2031,6 +2032,10 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
     Else
       Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1))
     End If
+    'allow notes at the assignment level?
+    Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow + lngItem, lngLastCol))
+    oWorksheet.Cells(lngRow + lngItem, lngLastCol).HorizontalAlignment = xlLeft
+    oWorksheet.Cells(lngRow + lngItem, lngLastCol).NumberFormat = "General"
     'enter the values
     oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Value = vAssignment
     If oAssignmentRange Is Nothing Then

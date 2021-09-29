@@ -140,6 +140,10 @@ Dim vField As Variant
     If Len(strAppend) > 0 Then .chkAppend = CBool(strAppend)
     strAppendTo = cptGetSetting("StatusSheetImport", "cboAppendTo")
     If Len(strAppendTo) > 0 Then .cboAppendTo.Value = strAppendTo
+    
+    'show the form
+    .Show False
+    'then refresh which view
     strTaskUsage = cptGetSetting("StatusSheetImport", "optTaskUsage")
     If Len(strTaskUsage) > 0 Then
       .optAbove = strTaskUsage = "above"
@@ -149,18 +153,16 @@ Dim vField As Variant
       blnTaskUsageBelow = True
     End If
     
-    'show the form
-    .Show False
 
   End With
   
-  ActiveWindow.TopPane.Activate
-  If blnTaskUsageBelow Then
-    ViewApply "Task Entry"
-  Else
-    ViewApply "Task Usage"
-  End If
-  Call cptRefreshStatusImportTable(blnTaskUsageBelow)
+'  ActiveWindow.TopPane.Activate
+'  If blnTaskUsageBelow Then
+'    ViewApply "Task Entry"
+'  Else
+'    ViewApply "Task Usage"
+'  End If
+'  Call cptRefreshStatusImportTable(blnTaskUsageBelow)
   
 
 exit_here:
@@ -194,7 +196,6 @@ Sub cptStatusSheetImport()
   Dim strSettings As String
   Dim strGUID As String
   'longs
-  Dim lngActive As Long
   Dim lngTask As Long
   Dim lngTasks As Long
   Dim lngTaskNameCol As Long
@@ -315,20 +316,12 @@ Sub cptStatusSheetImport()
     lngTasks = ActiveProject.Tasks.Count
   End If
   
-  If Edition = pjEditionProfessional Then
-    lngActive = FieldNameToFieldConstant("Active")
-  ElseIf Edition = pjEditionStandard Then
-    lngActive = 0
-  End If
-  
   For Each oTask In ActiveProject.Tasks
     lngTask = lngTask + 1
     If oTask Is Nothing Then GoTo next_task
     If oTask.Summary Then GoTo next_task
     If oTask.ExternalTask Then GoTo next_task
-    If lngActive > 0 Then
-      If oTask.GetField(lngActive) = "No" Then GoTo next_task
-    End If
+    If Not oTask.Active Then GoTo next_task
     'clear dates
     For Each vField In Array(lngAS, lngAF, lngFS, lngFF)
       If vField = 188743721 Then GoTo next_field 'DO NOT clear out Actual Start
@@ -488,9 +481,9 @@ next_task:
             'comments todo: only import if different
             If .chkAppend And oWorksheet.Cells(lngRow, lngCommentsCol).Value <> "" Then
               If .cboAppendTo = "Top of Task Note" Then
-                oTask.Notes = Format(Now, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & oTask.Notes
+                oTask.Notes = Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & vbCrLf & oTask.Notes
               ElseIf .cboAppendTo = "Bottom of Task Note" Then
-                oTask.AppendNotes String(25, "-") & vbCrLf & Format(Now, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
+                oTask.AppendNotes vbCrLf & String(25, "-") & vbCrLf & Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
               End If
             End If
           ElseIf Not blnTask Then 'it's an Assignment
@@ -542,6 +535,15 @@ next_task:
               ElseIf lngETC = pjTaskNumber20 Then
                 If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number20 = dblETC
               End If
+              'todo: allow Assignment notes? form selection?
+              If Len(oWorksheet.Cells(lngRow, lngCommentsCol)) > 0 Then
+                If .cboAppendTo = "Top of Task Note" Then
+                  oAssignment.Notes = Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & vbCrLf & oAssignment.Notes
+                ElseIf .cboAppendTo = "Bottom of Task Note" Then
+                  oAssignment.AppendNotes vbCrLf & String(25, "-") & vbCrLf & Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
+                End If
+              End If
+              'todo: consolidate Assignment Notes into Task Notes?
               Set oAssignment = Nothing
             End If
           End If
@@ -554,12 +556,7 @@ next_file:
       oWorkbook.Close False
     Next lngFiles
   End With 'cptStatusSheetImport_frm
-  
-  'reset view
-  ActiveWindow.TopPane.Activate
-  ViewApply "Task Usage" 'todo: use custom view with assignment shading?
-  Call cptRefreshStatusImportTable 'todo: include EV% and Type
-  
+    
 exit_here:
   On Error Resume Next
   Set oSubproject = Nothing
@@ -602,6 +599,7 @@ Sub cptRefreshStatusImportTable(Optional blnUsageBelow As Boolean = False)
 'objects
 Dim rst As Object 'ADODB.Recordset 'Object
 'strings
+Dim strBottomPaneViewName As String
 Dim strEVT As String
 Dim strEVP As String
 Dim strSettings As String
@@ -763,13 +761,14 @@ Dim lngItem As Long
       lngETC = cptStatusSheetImport_frm.cboETC.Value
       TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngETC), Title:="New ETC", Width:=20, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     End If
+    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Notes", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     ActiveWindow.TopPane.Activate
     ViewApply Name:="Gantt Chart"
     TableApply Name:="cptStatusSheetImport Table"
     'todo: reapply group?
     
     On Error Resume Next
-    ActiveWindow.BottomPane.Activate
+    strBottomPaneViewName = ActiveWindow.BottomPane.View.Name
     If Err.Number = 91 Then
       Err.Clear
       Application.FormViewShow
@@ -786,9 +785,9 @@ Dim lngItem As Long
     DoEvents
     TableApply Name:="cptStatusSheetImport Table"
     On Error Resume Next
-    ActiveWindow.BottomPane.Activate
+    strBottomPaneViewName = ActiveWindow.BottomPane.View.Name
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-    If Err.Number = 0 Then
+    If Len(strBottomPaneViewName) > 0 Then
       DetailsPaneToggle
     End If
     'todo: reapply group?

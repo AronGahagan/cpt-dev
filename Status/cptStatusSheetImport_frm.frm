@@ -65,11 +65,11 @@ Private Sub cboFS_Change()
 End Sub
 
 Private Sub chkAppend_Click()
-    Me.cboAppendTo.Enabled = Me.chkAppend
-  If Me.chkAppend Then
-    Me.cboAppendTo.SetFocus
-    Me.cboAppendTo.DropDown
-  End If
+  Me.cboAppendTo.Enabled = Me.chkAppend
+'  If Me.chkAppend Then
+'    Me.cboAppendTo.SetFocus
+'    Me.cboAppendTo.DropDown
+'  End If
 End Sub
 
 Private Sub cmdDone_Click()
