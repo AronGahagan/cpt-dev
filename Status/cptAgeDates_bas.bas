@@ -206,9 +206,13 @@ Sub cptBlameReport()
   Dim oWorkbook As Excel.Workbook 'Object
   Dim oExcel As Excel.Application 'Object
   'strings
+  Dim strMyHeaders As String
   Dim strHeaders As String
   Dim strWeek1 As String
   'longs
+  Dim lngResponse As Long
+  Dim lngMyHeaders As Long
+  Dim lngCol As Long
   Dim lngLastRow As Long
   Dim lngLastCol As Long
   Dim lngFinish1 As Long
@@ -221,6 +225,7 @@ Sub cptBlameReport()
   'doubles
   'booleans
   'variants
+  Dim vMyHeader As Variant
   Dim vBorder As Variant
   Dim vColumn As Variant
   Dim vRow As Variant
@@ -239,8 +244,39 @@ Sub cptBlameReport()
     GoTo exit_here
   End If
   
+try_again:
+  'get other fields
+  strMyHeaders = cptGetSetting("AgeDates", "strMyHeaders")
+  If Len(strMyHeaders) = 0 Then strMyHeaders = "CAM,WPCN,WPM,"
+  strMyHeaders = InputBox("Include other Custom Fields? (enter a comma-separated list):", "The Blame Report", strMyHeaders)
+  If Right(Trim(strMyHeaders), 1) <> "," Then strMyHeaders = Trim(strMyHeaders) & ","
+  'validate strMyHeaders
+  On Error Resume Next
+  For Each vMyHeader In Split(strMyHeaders, ",")
+    If vMyHeader = "" Then Exit For
+    Debug.Print FieldNameToFieldConstant(vMyHeader)
+    If Err.Number > 0 Then
+      lngResponse = MsgBox("Custom Field '" & vMyHeader & "' not found!" & vbCrLf & vbCrLf & "OK = skip; Cancel = try again", vbExclamation + vbOKCancel, "Invalid Field")
+      If lngResponse = vbCancel Then
+        Err.Clear
+        GoTo try_again
+      Else
+        Err.Clear
+        strMyHeaders = Replace(strMyHeaders, vMyHeader & ",", "")
+      End If
+    End If
+  Next vMyHeader
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  cptSaveSetting "AgeDates", "strMyHeaders", strMyHeaders
+  
   cptSpeed True
   
+  lngField = CLng(cptRegEx(strWeek1, "[0-9]{1,}"))
+  lngStart1 = FieldNameToFieldConstant("Start" & lngField)
+  lngDuration1 = FieldNameToFieldConstant("Duration" & lngField)
+  lngFinish1 = FieldNameToFieldConstant("Finish" & lngField)
+    
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -248,18 +284,13 @@ Sub cptBlameReport()
     Set oExcel = CreateObject("Excel.Application")
   End If
   
-  lngField = CLng(cptRegEx(strWeek1, "[0-9]{1,}"))
-  lngStart1 = FieldNameToFieldConstant("Start" & lngField)
-  lngDuration1 = FieldNameToFieldConstant("Duration" & lngField)
-  lngFinish1 = FieldNameToFieldConstant("Finish" & lngField)
-  
   Set oWorkbook = oExcel.Workbooks.Add
   oExcel.Calculation = xlCalculationManual
   Set oWorksheet = oWorkbook.Sheets(1)
-  strHeaders = "UID,"
-  'todo: get other fields here
+  oWorksheet.Name = "Blame"
+  strHeaders = "UID," & strMyHeaders
   strHeaders = strHeaders & "TASK,PREVIOUS START,CURRENT START,START DELTA,PREVIOUS DURATION,CURRENT DURATION,DURATION DELTA,PREVIOUS FINISH,CURRENT FINISH,FINISH DELTA"
-  oWorksheet.[A1:K1] = Split(strHeaders, ",") 'Array("UID", "TASK", "PREVIOUS START", "CURRENT START", "START DELTA", "PREVIOUS DURATION", "CURRENT DURATION", "DURATION DELTA", "PREVIOUS FINISH", "CURRENT FINISH", "FINISH DELTA")
+  oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].Offset(0, UBound(Split(strHeaders, ",")))) = Split(strHeaders, ",") 'Array("UID", "TASK", "PREVIOUS START", "CURRENT START", "START DELTA", "PREVIOUS DURATION", "CURRENT DURATION", "DURATION DELTA", "PREVIOUS FINISH", "CURRENT FINISH", "FINISH DELTA")
   lngLastCol = oWorksheet.[A1].End(xlToRight).Column
   lngTasks = ActiveProject.Tasks.Count
   For Each oTask In ActiveProject.Tasks
@@ -271,47 +302,54 @@ Sub cptBlameReport()
     lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row + 1
     vRow = oWorksheet.Range(oWorksheet.Cells(lngLastRow, 1), oWorksheet.Cells(lngLastRow, lngLastCol))
     vRow(1, 1) = oTask.UniqueID
-    vRow(1, 2) = oTask.Name
+    lngCol = 1
+    For Each vMyHeader In Split(strMyHeaders, ",")
+      If vMyHeader = "" Then Exit For
+      lngCol = lngCol + 1
+      vRow(1, lngCol) = oTask.GetField(FieldNameToFieldConstant(oWorksheet.Cells(1, lngCol).Value))
+    Next
+    lngMyHeaders = UBound(Split(strMyHeaders, ","))
+    vRow(1, 2 + lngMyHeaders) = oTask.Name
     If IsDate(oTask.ActualStart) Then
-      vRow(1, 3) = Null
-      With oWorksheet.Cells(lngLastRow, 4).Font
+      vRow(1, 3 + lngMyHeaders) = Null
+      With oWorksheet.Cells(lngLastRow, 4 + lngMyHeaders).Font
         .ThemeColor = xlThemeColorDark1
         .TintAndShade = -0.499984740745262
       End With
-      vRow(1, 5) = Null
+      vRow(1, 5 + lngMyHeaders) = Null
     ElseIf IsDate(oTask.GetField(lngStart1)) Then
       dtPrev = CDate(FormatDateTime(oTask.GetField(lngStart1), vbShortDate))
       dtCurr = CDate(FormatDateTime(oTask.Start, vbShortDate))
-      vRow(1, 3) = dtPrev
+      vRow(1, 3 + lngMyHeaders) = dtPrev
       If dtCurr >= dtPrev Then 'slipped
-        vRow(1, 5) = -(Application.DateDifference(dtPrev, dtCurr) / (60 * 8))
+        vRow(1, 5 + lngMyHeaders) = -(Application.DateDifference(dtPrev, dtCurr) / (60 * 8))
       Else 'pulled left
-        vRow(1, 5) = Application.DateDifference(dtCurr, dtPrev) / (60 * 8)
+        vRow(1, 5 + lngMyHeaders) = Application.DateDifference(dtCurr, dtPrev) / (60 * 8)
       End If
     Else
-      vRow(1, 3) = "NA"
-      vRow(1, 5) = Null
+      vRow(1, 3 + lngMyHeaders) = "NA"
+      vRow(1, 5 + lngMyHeaders) = Null
     End If
-    vRow(1, 4) = CDate(FormatDateTime(oTask.Start, vbShortDate))
+    vRow(1, 4 + lngMyHeaders) = CDate(FormatDateTime(oTask.Start, vbShortDate))
     
-    vRow(1, 6) = CLng(cptRegEx(oTask.GetField(lngDuration1), "[0-9]{1,}"))
-    vRow(1, 7) = cptRegEx(oTask.Duration, "[0-9]{1,}") / (60 * 8)
-    vRow(1, 8) = "=RC[-2]-RC[-1]"
+    vRow(1, 6 + lngMyHeaders) = CLng(cptRegEx(oTask.GetField(lngDuration1), "[0-9]{1,}"))
+    vRow(1, 7 + lngMyHeaders) = cptRegEx(oTask.Duration, "[0-9]{1,}") / (60 * 8)
+    vRow(1, 8 + lngMyHeaders) = "=RC[-2]-RC[-1]"
     
     If IsDate(oTask.GetField(lngFinish1)) Then
       dtPrev = CDate(FormatDateTime(oTask.GetField(lngFinish1), vbShortDate))
       dtCurr = CDate(FormatDateTime(oTask.Finish, vbShortDate))
-      vRow(1, 9) = dtPrev
+      vRow(1, 9 + lngMyHeaders) = dtPrev
       If dtCurr >= dtPrev Then 'slipped
-        vRow(1, 11) = -(Application.DateDifference(dtPrev, dtCurr) / (60 * 8))
+        vRow(1, 11 + lngMyHeaders) = -(Application.DateDifference(dtPrev, dtCurr) / (60 * 8))
       Else 'pulled left
-        vRow(1, 11) = Application.DateDifference(dtCurr, dtPrev) / (60 * 8)
+        vRow(1, 11 + lngMyHeaders) = Application.DateDifference(dtCurr, dtPrev) / (60 * 8)
       End If
     Else
-      vRow(1, 9) = "NA"
-      vRow(1, 11) = Null
+      vRow(1, 9 + lngMyHeaders) = "NA"
+      vRow(1, 11 + lngMyHeaders) = Null
     End If
-    vRow(1, 10) = CDate(FormatDateTime(oTask.Finish, vbShortDate))
+    vRow(1, 10 + lngMyHeaders) = CDate(FormatDateTime(oTask.Finish, vbShortDate))
     oWorksheet.Range(oWorksheet.Cells(lngLastRow, 1), oWorksheet.Cells(lngLastRow, lngLastCol)) = vRow
 next_task:
     lngTask = lngTask + 1
@@ -320,27 +358,21 @@ next_task:
   Next oTask
   
   oExcel.ActiveWindow.Zoom = 85
-  oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).HorizontalAlignment = xlLeft
-  oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
-  oWorksheet.Columns(5).Style = "Comma"
-  oWorksheet.Columns(6).Style = "Comma"
-  oWorksheet.Columns(7).Style = "Comma"
-  oWorksheet.Columns(8).Style = "Comma"
-  oWorksheet.Columns(11).Style = "Comma"
   oExcel.ActiveWindow.SplitRow = 1
   oExcel.ActiveWindow.SplitColumn = 0
   oExcel.ActiveWindow.FreezePanes = True
-  oWorksheet.[A1].AutoFilter
-  oWorksheet.AutoFilter.Sort.SortFields.Clear
-  oWorksheet.AutoFilter.Sort.SortFields.Add2 key:=oWorksheet.Range(oWorksheet.[H1], oWorksheet.[H1].End(xlDown)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-  With oWorksheet.AutoFilter.Sort
+  Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlDown), oWorksheet.[A1].End(xlToRight)), , xlYes)
+  oListObject.Sort.SortFields.Clear
+  oListObject.Sort.SortFields.Add2 key:=oListObject.ListColumns("DURATION DELTA").DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+  With oListObject.Sort
     .Header = xlYes
     .MatchCase = False
     .Orientation = xlTopToBottom
     .SortMethod = xlPinYin
     .Apply
   End With
-  Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlDown), oWorksheet.[A1].End(xlToRight)), , xlYes)
+  oListObject.HeaderRowRange.Font.Bold = True
+  oListObject.HeaderRowRange.HorizontalAlignment = xlLeft
   oListObject.TableStyle = ""
   With oListObject
     .TableStyle = ""
@@ -411,7 +443,22 @@ next_task:
     oListObject.ListColumns(vColumn).DataBodyRange.HorizontalAlignment = xlCenter
   Next vColumn
   
+  For Each vColumn In Array("START DELTA", "PREVIOUS DURATION", "CURRENT DURATION", "DURATION DELTA", "FINISH DELTA")
+    oListObject.ListColumns(vColumn).DataBodyRange.Style = "Comma"
+  Next vColumn
+  
   oWorksheet.Columns.AutoFit
+  
+  oWorksheet.Rows(1).Insert
+  oWorksheet.Rows(1).Insert
+  oWorksheet.Rows(1).Insert
+  oWorksheet.Rows(1).Insert
+  oWorksheet.[A1].Value = "The Blame Report"
+  oWorksheet.[A1].Font.Bold = True
+  oWorksheet.[A1].Font.Size = 24
+  oWorksheet.[A2] = ActiveProject.Name
+  oWorksheet.[A3] = "Status Date: " & FormatDateTime(ActiveProject.StatusDate, vbShortDate)
+  oExcel.ActiveWindow.DisplayGridLines = False
   oExcel.Calculation = xlCalculationAutomatic
   oExcel.Visible = True
   oExcel.WindowState = xlNormal
