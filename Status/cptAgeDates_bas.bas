@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptAgeDates_bas"
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowAgeDates_frm()
@@ -72,14 +72,20 @@ Sub cptShowAgeDates_frm()
       End If
     Next lngControl
     strSetting = cptGetSetting("AgeDates", "chkIncludeDurations")
-    If Len(strSetting) > 0 Then .chkIncludeDurations = CBool(strSetting)
+    If Len(strSetting) > 0 Then
+      .chkIncludeDurations = CBool(strSetting)
+    Else
+      .chkIncludeDurations = True
+    End If
     strSetting = cptGetSetting("AgeDates", "chkUpdateCustomFieldNames")
-    If Len(strSetting) > 0 Then .chkUpdateCustomFieldNames = CBool(strSetting)
+    If Len(strSetting) > 0 Then
+      .chkUpdateCustomFieldNames = CBool(strSetting)
+    Else
+      .chkUpdateCustomFieldNames = True
+    End If
     
-    .Show False 'False
+    .Show False
   End With
-  
-  
   
 exit_here:
   On Error Resume Next
@@ -91,13 +97,15 @@ err_here:
 End Sub
 
 Sub cptAgeDates()
-'run this immediately prior to a status meeting
+  'run this immediately prior to a status meeting
   'objects
   Dim oTask As Task
   'strings
   Dim strCustom As String
   Dim strStatus As String
   'longs
+  Dim lngTo As Long
+  Dim lngFrom As Long
   Dim lngTest As Long
   Dim lngControl As Long
   'integers
@@ -186,5 +194,245 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptAgeDates_bas", "cptAgeDates", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptBlameReport()
+  'objects
+  Dim oRange As Excel.Range
+  Dim oListObject As Excel.ListObject
+  Dim oTask As Task
+  Dim oWorksheet As Excel.Worksheet 'Object
+  Dim oWorkbook As Excel.Workbook 'Object
+  Dim oExcel As Excel.Application 'Object
+  'strings
+  Dim strHeaders As String
+  Dim strWeek1 As String
+  'longs
+  Dim lngLastRow As Long
+  Dim lngLastCol As Long
+  Dim lngFinish1 As Long
+  Dim lngDuration1 As Long
+  Dim lngField As Long
+  Dim lngStart1 As Long
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vBorder As Variant
+  Dim vColumn As Variant
+  Dim vRow As Variant
+  'dates
+  Dim dtCurr As Date
+  Dim dtPrev As Date
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'todo: prompt user for which previous to use - offer up list in cptSettings
+  'todo: add report header, note that negative is unfavorable
+  strWeek1 = cptGetSetting("AgeDates", "cboWeek1")
+  If Len(strWeek1) = 0 Then
+    MsgBox "Please designate fields and Age Dates before running The Blame Report.", vbExclamation + vbOKOnly, "The Blame Report"
+    Call cptShowAgeDates_frm
+    GoTo exit_here
+  End If
+  
+  cptSpeed True
+  
+  On Error Resume Next
+  Set oExcel = GetObject(, "Excel.Application")
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If oExcel Is Nothing Then
+    Set oExcel = CreateObject("Excel.Application")
+  End If
+  
+  lngField = CLng(cptRegEx(strWeek1, "[0-9]{1,}"))
+  lngStart1 = FieldNameToFieldConstant("Start" & lngField)
+  lngDuration1 = FieldNameToFieldConstant("Duration" & lngField)
+  lngFinish1 = FieldNameToFieldConstant("Finish" & lngField)
+  
+  Set oWorkbook = oExcel.Workbooks.Add
+  oExcel.Calculation = xlCalculationManual
+  Set oWorksheet = oWorkbook.Sheets(1)
+  strHeaders = "UID,"
+  'todo: get other fields here
+  strHeaders = strHeaders & "TASK,PREVIOUS START,CURRENT START,START DELTA,PREVIOUS DURATION,CURRENT DURATION,DURATION DELTA,PREVIOUS FINISH,CURRENT FINISH,FINISH DELTA"
+  oWorksheet.[A1:K1] = Split(strHeaders, ",") 'Array("UID", "TASK", "PREVIOUS START", "CURRENT START", "START DELTA", "PREVIOUS DURATION", "CURRENT DURATION", "DURATION DELTA", "PREVIOUS FINISH", "CURRENT FINISH", "FINISH DELTA")
+  lngLastCol = oWorksheet.[A1].End(xlToRight).Column
+  lngTasks = ActiveProject.Tasks.Count
+  For Each oTask In ActiveProject.Tasks
+    If oTask Is Nothing Then GoTo next_task
+    If oTask.ExternalTask Then GoTo next_task
+    If oTask.Summary Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If IsDate(oTask.ActualFinish) Then GoTo next_task
+    lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row + 1
+    vRow = oWorksheet.Range(oWorksheet.Cells(lngLastRow, 1), oWorksheet.Cells(lngLastRow, lngLastCol))
+    vRow(1, 1) = oTask.UniqueID
+    vRow(1, 2) = oTask.Name
+    If IsDate(oTask.ActualStart) Then
+      vRow(1, 3) = Null
+      With oWorksheet.Cells(lngLastRow, 4).Font
+        .ThemeColor = xlThemeColorDark1
+        .TintAndShade = -0.499984740745262
+      End With
+      vRow(1, 5) = Null
+    ElseIf IsDate(oTask.GetField(lngStart1)) Then
+      dtPrev = CDate(FormatDateTime(oTask.GetField(lngStart1), vbShortDate))
+      dtCurr = CDate(FormatDateTime(oTask.Start, vbShortDate))
+      vRow(1, 3) = dtPrev
+      If dtCurr >= dtPrev Then 'slipped
+        vRow(1, 5) = -(Application.DateDifference(dtPrev, dtCurr) / (60 * 8))
+      Else 'pulled left
+        vRow(1, 5) = Application.DateDifference(dtCurr, dtPrev) / (60 * 8)
+      End If
+    Else
+      vRow(1, 3) = "NA"
+      vRow(1, 5) = Null
+    End If
+    vRow(1, 4) = CDate(FormatDateTime(oTask.Start, vbShortDate))
+    
+    vRow(1, 6) = CLng(cptRegEx(oTask.GetField(lngDuration1), "[0-9]{1,}"))
+    vRow(1, 7) = cptRegEx(oTask.Duration, "[0-9]{1,}") / (60 * 8)
+    vRow(1, 8) = "=RC[-2]-RC[-1]"
+    
+    If IsDate(oTask.GetField(lngFinish1)) Then
+      dtPrev = CDate(FormatDateTime(oTask.GetField(lngFinish1), vbShortDate))
+      dtCurr = CDate(FormatDateTime(oTask.Finish, vbShortDate))
+      vRow(1, 9) = dtPrev
+      If dtCurr >= dtPrev Then 'slipped
+        vRow(1, 11) = -(Application.DateDifference(dtPrev, dtCurr) / (60 * 8))
+      Else 'pulled left
+        vRow(1, 11) = Application.DateDifference(dtCurr, dtPrev) / (60 * 8)
+      End If
+    Else
+      vRow(1, 9) = "NA"
+      vRow(1, 11) = Null
+    End If
+    vRow(1, 10) = CDate(FormatDateTime(oTask.Finish, vbShortDate))
+    oWorksheet.Range(oWorksheet.Cells(lngLastRow, 1), oWorksheet.Cells(lngLastRow, lngLastCol)) = vRow
+next_task:
+    lngTask = lngTask + 1
+    Application.StatusBar = Format(lngTask, "#,##0") & " / " & Format(lngTasks, "#,##0") & "...(" & Format(lngTask / lngTasks, "0%") & ")"
+    DoEvents
+  Next oTask
+  
+  oExcel.ActiveWindow.Zoom = 85
+  oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).HorizontalAlignment = xlLeft
+  oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
+  oWorksheet.Columns(5).Style = "Comma"
+  oWorksheet.Columns(6).Style = "Comma"
+  oWorksheet.Columns(7).Style = "Comma"
+  oWorksheet.Columns(8).Style = "Comma"
+  oWorksheet.Columns(11).Style = "Comma"
+  oExcel.ActiveWindow.SplitRow = 1
+  oExcel.ActiveWindow.SplitColumn = 0
+  oExcel.ActiveWindow.FreezePanes = True
+  oWorksheet.[A1].AutoFilter
+  oWorksheet.AutoFilter.Sort.SortFields.Clear
+  oWorksheet.AutoFilter.Sort.SortFields.Add2 key:=oWorksheet.Range(oWorksheet.[H1], oWorksheet.[H1].End(xlDown)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+  With oWorksheet.AutoFilter.Sort
+    .Header = xlYes
+    .MatchCase = False
+    .Orientation = xlTopToBottom
+    .SortMethod = xlPinYin
+    .Apply
+  End With
+  Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlDown), oWorksheet.[A1].End(xlToRight)), , xlYes)
+  oListObject.TableStyle = ""
+  With oListObject
+    .TableStyle = ""
+    .DataBodyRange.Borders(xlDiagonalDown).LineStyle = xlNone
+    .DataBodyRange.Borders(xlDiagonalUp).LineStyle = xlNone
+    For Each vBorder In Array(xlEdgeLeft, xlEdgeTop, xlEdgeBottom, xlEdgeRight)
+      With .DataBodyRange.Borders(vBorder)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.499984740745262
+        .Weight = xlThin
+      End With
+      With .HeaderRowRange.Borders(vBorder)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.499984740745262
+        .Weight = xlThin
+      End With
+    Next vBorder
+    For Each vBorder In Array(xlInsideVertical, xlInsideHorizontal)
+      With .DataBodyRange.Borders(vBorder)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.14996795556505
+        .Weight = xlThin
+      End With
+      With .HeaderRowRange.Borders(vBorder)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.14996795556505
+        .Weight = xlThin
+      End With
+    Next
+  End With
+  
+  With oListObject.HeaderRowRange.Interior
+    .Pattern = xlSolid
+    .PatternColorIndex = xlAutomatic
+    .ThemeColor = xlThemeColorDark1
+    .TintAndShade = -0.149998474074526
+    .PatternTintAndShade = 0
+  End With
+  
+  'conditional formatting
+  For Each vColumn In Array("START DELTA", "DURATION DELTA", "FINISH DELTA")
+    Set oRange = oListObject.ListColumns(vColumn).DataBodyRange
+    oRange.FormatConditions.AddColorScale ColorScaleType:=3
+    oRange.FormatConditions(oRange.FormatConditions.Count).SetFirstPriority
+    oRange.FormatConditions(1).ColorScaleCriteria(1).Type = xlConditionValueLowestValue
+    With oRange.FormatConditions(1).ColorScaleCriteria(1).FormatColor
+      .Color = 7039480
+      .TintAndShade = 0
+    End With
+    oRange.FormatConditions(1).ColorScaleCriteria(2).Type = xlConditionValuePercentile
+    oRange.FormatConditions(1).ColorScaleCriteria(2).Value = 50
+    With oRange.FormatConditions(1).ColorScaleCriteria(2).FormatColor
+      .Color = 16776444
+      .TintAndShade = 0
+    End With
+    oRange.FormatConditions(1).ColorScaleCriteria(3).Type = xlConditionValueHighestValue
+    With oRange.FormatConditions(1).ColorScaleCriteria(3).FormatColor
+      .Color = 8109667
+      .TintAndShade = 0
+    End With
+  Next vColumn
+  
+  For Each vColumn In Array("UID", "PREVIOUS START", "CURRENT START", "PREVIOUS FINISH", "CURRENT FINISH")
+    oListObject.ListColumns(vColumn).DataBodyRange.HorizontalAlignment = xlCenter
+  Next vColumn
+  
+  oWorksheet.Columns.AutoFit
+  oExcel.Calculation = xlCalculationAutomatic
+  oExcel.Visible = True
+  oExcel.WindowState = xlNormal
+  Application.StatusBar = "Complete"
+  Application.ActivateMicrosoftApp pjMicrosoftExcel
+  
+exit_here:
+  On Error Resume Next
+  Set oRange = Nothing
+  Set oListObject = Nothing
+  cptSpeed False
+  Application.StatusBar = ""
+  Set oTask = Nothing
+  oExcel.Calculation = xlCalculationAutomatic
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptAgeDates_bas", "cptBlameReport", Err, Erl)
+  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
