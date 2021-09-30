@@ -236,7 +236,6 @@ Sub cptBlameReport()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   'todo: prompt user for which previous to use - offer up list in cptSettings
-  'todo: add report header, note that negative is unfavorable
   strWeek1 = cptGetSetting("AgeDates", "cboWeek1")
   If Len(strWeek1) = 0 Then
     MsgBox "Please designate fields and Age Dates before running The Blame Report.", vbExclamation + vbOKOnly, "The Blame Report"
