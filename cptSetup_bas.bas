@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.5.5</cpt_version>
+'<cpt_version>v1.5.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -468,10 +468,10 @@ Dim lngCleanUp As Long
   'status
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Status"" visible=""true"" >"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mStatus"" label=""Status"" imageMso=""UpdateAsScheduled"" visible=""true"" size=""large"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Before Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-  'todo: update project status date
-  'todo: age dates [settings required]
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cpt_bAgeDates"" label=""Age Dates""  imageMso=""CalendarToolSelectDate"" onAction=""cptShowAgeDates_frm"" visible=""true"" supertip=""Keep a rolling history of the current schedule.""  />"
+  If cptModuleExists("cptAgeDates_bas") And cptModuleExists("cptAgeDates_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Before Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cpt_bAgeDates"" label=""Age Dates""  imageMso=""CalendarToolSelectDate"" onAction=""cptShowAgeDates_frm"" visible=""true"" supertip=""Keep a rolling history of the current schedule.""  />"
+  End If
   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Status Export &amp;&amp; Import"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   If cptModuleExists("cptStatusSheet_bas") And cptModuleExists("cptStatusSheet_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheet"" label=""Create Status Sheet(s)"" imageMso=""ExportExcel"" onAction=""cptShowStatusSheet_frm"" visible=""true"" supertip=""Just what it sounds like. Include any fields you like. Settings are saved between sessions."" />" 'DateAndTimeInsertOneNote
@@ -484,12 +484,10 @@ Dim lngCleanUp As Long
   End If
   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""After Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBlameReport"" label=""The Blame Report"" imageMso=""ContactProperties"" onAction=""cptBlameReport"" visible=""true"" supertip=""Find out which tasks slipped from last period."" />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCaptureWeek"" label=""Capture Week"" imageMso=""RefreshWebView"" onAction=""cptCaptureWeek"" visible=""true"" supertip=""Capture the Current Schedule to compare against past and future weeks during execution."" />"
+  'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCaptureWeek"" label=""Capture Week"" imageMso=""RefreshWebView"" onAction=""cptCaptureWeek"" visible=""true"" supertip=""Capture the Current Schedule to compare against past and future weeks during execution."" />"
   'todo: account for EV Tool in cptValidateEVP
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bValidateEVT"" enabled=""false"" label=""Validate EVT"" imageMso=""RefreshWebView"" onAction=""cptCaptureWeek"" visible=""true"" supertip=""Validate EVT - e.g., ensure incomplete 50/50 tasks with Actual Start are marked as 50% EV % complete."" />"
-  'todo: changes from last week
-  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Status Settings"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-  'todo: age dates settings
+  'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bValidateEVT"" enabled=""false"" label=""Validate EVT"" imageMso=""RefreshWebView"" onAction=""cptAnalyzeEVT"" visible=""true"" supertip=""Validate EVT - e.g., ensure incomplete 50/50 tasks with Actual Start are marked as 50% EV % complete."" />"
+  'ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Status Settings"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
