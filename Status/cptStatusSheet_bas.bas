@@ -7,7 +7,7 @@ Option Explicit
   Declare Function GetTickCount Lib "kernel32" () As Long
 #End If '<issue53>
 Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_heref Else On Error GoTo 0
+'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 Private strStartingViewTopPane As String
 Private strStartingViewBottomPane As String
@@ -35,6 +35,7 @@ Dim lngField As Long, lngItem As Long, lngSelectedItems As Long
 'integers
 Dim intField As Integer
 'strings
+Dim strAllowAssignmentNotes As String
 Dim strNotesColTitle As String
 Dim strFileNamingConvention As String
 Dim strDir As String
@@ -270,7 +271,11 @@ skip_fields:
     strCreate = cptGetSetting("StatusSheet", "cboCreate")
     If strCreate <> "" Then .cboCreate.Value = CLng(strCreate)
     strHide = cptGetSetting("StatusSheet", "chkHide")
-    If strHide <> "" Then .chkHide = CBool(strHide)
+    If strHide <> "" Then
+      .chkHide = CBool(strHide)
+    Else
+      .chkHide = False
+    End If
     strCostTool = cptGetSetting("StatusSheet", "cboCostTool")
     If strCostTool <> "" Then .cboCostTool.Value = strCostTool
     If .cboCreate <> 0 Then
@@ -298,7 +303,11 @@ skip_fields:
     If strFileNamingConvention <> "" Then .txtFileName = strFileNamingConvention
     
     strEmail = cptGetSetting("StatusSheet", "chkEmail")
-    If strEmail <> "" Then .chkSendEmails = CBool(strEmail) 'this refreshes the quickparts list
+    If strEmail <> "" Then
+      .chkSendEmails = CBool(strEmail) 'this refreshes the quickparts list
+    Else
+      .chkSendEmails = False
+    End If
     If .chkSendEmails Then
       strSubject = cptGetSetting("StatusSheet", "txtSubject")
       If strSubject <> "" Then
@@ -311,20 +320,42 @@ skip_fields:
       'cboQuickParts updated when .chkSendEmails = true
     End If
     strConditionalFormats = cptGetSetting("StatusSheet", "chkConditionalFormatting")
-    If strConditionalFormats <> "" Then .chkAddConditionalFormats = CBool(strConditionalFormats)
+    If strConditionalFormats <> "" Then
+      .chkAddConditionalFormats = CBool(strConditionalFormats)
+    Else
+      .chkAddConditionalFormats = False
+    End If
     strDataValidation = cptGetSetting("StatusSheet", "chkDataValidation")
-    If strDataValidation <> "" Then .chkValidation = CBool(strDataValidation)
+    If strDataValidation <> "" Then
+      .chkValidation = CBool(strDataValidation)
+    Else
+      .chkValidation = True
+    End If
     strLocked = cptGetSetting("StatusSheet", "chkLocked")
-    If strLocked <> "" Then .chkLocked = CBool(strLocked)
+    If strLocked <> "" Then
+      .chkLocked = CBool(strLocked)
+    Else
+      .chkLocked = True
+    End If
     ActiveWindow.TopPane.Activate
     FilterClear
     strAllItems = cptGetSetting("StatusSheet", "chkAllItems")
-    If strAllItems <> "" Then .chkAllItems = CBool(strAllItems)
+    If strAllItems <> "" Then
+      .chkAllItems = CBool(strAllItems)
+    Else
+      .chkAllItems = False
+    End If
     strNotesColTitle = cptGetSetting("StatusSheet", "txtNotesColTitle")
     If Len(strNotesColTitle) > 0 Then
       .txtNotesColTitle.Value = strNotesColTitle
     Else
       .txtNotesColTitle = "Reason / Action / Impact"
+    End If
+    strAllowAssignmentNotes = cptGetSetting("StatusSheet", "chkAllowAssignmentNotes")
+    If strAllowAssignmentNotes <> "" Then
+      .chkAllowAssignmentNotes = CBool(strAllowAssignmentNotes)
+    Else
+      .chkAllowAssignmentNotes = False
     End If
   End With
 
@@ -494,10 +525,6 @@ End Sub
 
 Sub cptCreateStatusSheet()
   'objects
-  Dim rCompleted As Object
-  Dim aCompleted As Object
-  Dim aGroups As Object
-  Dim rngKeep As Object
   Dim oTasks As Tasks, oTask As Task, oAssignment As Assignment
   'early binding:
   Dim oExcel As Excel.Application, oWorkbook As Workbook, oWorksheet As Worksheet, rng As Excel.Range
@@ -613,7 +640,7 @@ Sub cptCreateStatusSheet()
   DoEvents
   'set up an excel Workbook
   If blnPerformanceTest Then t = GetTickCount
-  Set oExcel = CreateObject("Excel.Application")
+  Set oExcel = CreateObject("Excel.Application") 'do not use GetObject
   'oExcel.Visible = False
   oExcel.WindowState = xlMinimized
   '/=== debug ==\
@@ -676,14 +703,22 @@ Sub cptCreateStatusSheet()
       DoEvents
       
       'save the workbook
+      .lblStatus.Caption = "Saving Workbook..."
+      Application.StatusBar = .lblStatus.Caption
+      DoEvents
       strFileName = cptSaveStatusSheet(oWorkbook)
       
-      'close the workbook - must close before attaching
-      oWorkbook.Close True
+      oExcel.Calculation = xlCalculationAutomatic
+      oExcel.ScreenUpdating = True
       
       'send the workbook
       If blnEmail Then
+        'close the workbook - must close before attaching
+        oWorkbook.Close True
+        oWorkbook.Application.Wait Now + TimeValue("00:00:02")
         cptSendStatusSheet strFileName
+      Else
+        oExcel.Visible = True
       End If
       
     ElseIf .cboCreate.Value = "1" Then  'worksheet for each
@@ -733,12 +768,18 @@ Sub cptCreateStatusSheet()
       'save the workbook
       strFileName = cptSaveStatusSheet(oWorkbook)
       
-      'close the workbook - must save before attaching
-      oWorkbook.Close True
+      'turn Excel back on
+      oExcel.Calculation = xlCalculationAutomatic
+      oExcel.ScreenUpdating = True
       
       'send the workbook
       If blnEmail Then
+        'close the workbook - must save before attaching
+        oWorkbook.Close True
+        oWorkbook.Application.Wait Now + TimeValue("00:00:02")
         Call cptSendStatusSheet(strFileName)
+      Else
+        oExcel.Visible = True
       End If
       
     ElseIf .cboCreate.Value = "2" Then  'workbook for each
@@ -785,34 +826,35 @@ Sub cptCreateStatusSheet()
           .lblStatus.Caption = "Creating Workbook for " & strItem & "...done"
           Application.StatusBar = .lblStatus.Caption
           DoEvents
-
-          'must close before attaching to email
-          oWorkbook.Close True
-          oWorkbook.Application.Wait Now + TimeValue("00:00:02")
           
           'send email
           If blnEmail Then
             .lblStatus.Caption = "Creating Email for " & strItem & "..."
             Application.StatusBar = .lblStatus.Caption
             DoEvents
+            'must close before attaching to email
+            oWorkbook.Close True
+            oWorkbook.Application.Wait Now + TimeValue("00:00:02")
             cptSendStatusSheet strFileName, strItem
             .lblStatus.Caption = "Creating Email for " & strItem & "...done"
             Application.StatusBar = .lblStatus.Caption
             DoEvents
           End If
-          
         End If
       Next lngItem
+      
+      If Not blnEmail Then
+        oExcel.Calculation = xlCalculationAutomatic
+        oExcel.ScreenUpdating = True
+        oExcel.Visible = True
+      End If
+      
     End If
     .lblStatus.Caption = Choose(.cboCreate + 1, "Workbook", "Workbook", "Workbooks") & " Complete"
     Application.StatusBar = .lblStatus.Caption
     DoEvents
   End With
-
-  oExcel.Calculation = xlCalculationAutomatic
-  oExcel.ScreenUpdating = True
-  oExcel.Visible = True
-  
+    
   GoTo exit_here
   
   'apply conditional formatting
@@ -1340,16 +1382,12 @@ exit_here:
   If oExcel.Workbooks.Count > 0 Then oExcel.Calculation = xlAutomatic
   oExcel.ScreenUpdating = True
   oExcel.EnableEvents = True
-  Set rCompleted = Nothing
-  Set aCompleted = Nothing
-  Set aGroups = Nothing
-  Set rngKeep = Nothing
   Application.StatusBar = ""
   cptSpeed False
   Set oTasks = Nothing
   Set oTask = Nothing
   Set oAssignment = Nothing
-  oExcel.Quit
+  If blnEmail Then oExcel.Quit
   Set oExcel = Nothing
   Set oWorkbook = Nothing
   Set oWorksheet = Nothing
@@ -1964,6 +2002,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   'objects
   Dim oAssignment As Assignment
   'strings
+  Dim strAllowAssignmentNotes As String
   Dim strProtect As String
   Dim strDataValidation As String
   'longs
@@ -1977,6 +2016,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   'integers
   'doubles
   'booleans
+  Dim blnAllowAssignmentNotes As Boolean
   'variants
   Dim vAssignment As Variant
   'dates
@@ -2032,10 +2072,20 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
     Else
       Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1))
     End If
+    
     'allow notes at the assignment level?
-    Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow + lngItem, lngLastCol))
-    oWorksheet.Cells(lngRow + lngItem, lngLastCol).HorizontalAlignment = xlLeft
-    oWorksheet.Cells(lngRow + lngItem, lngLastCol).NumberFormat = "General"
+    strAllowAssignmentNotes = cptGetSetting("StatusSheet", "chkAllowAssignmentNotes")
+    If strAllowAssignmentNotes <> "" Then
+      blnAllowAssignmentNotes = CBool(strAllowAssignmentNotes)
+    Else
+      blnAllowAssignmentNotes = False
+    End If
+    If blnAllowAssignmentNotes Then
+      Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow + lngItem, lngLastCol))
+      oWorksheet.Cells(lngRow + lngItem, lngLastCol).HorizontalAlignment = xlLeft
+      oWorksheet.Cells(lngRow + lngItem, lngLastCol).NumberFormat = "General"
+    End If
+    
     'enter the values
     oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Value = vAssignment
     If oAssignmentRange Is Nothing Then
@@ -2370,6 +2420,7 @@ Sub cptSaveStatusSheetSettings()
     Else
       cptSaveSetting "StatusSheet", "txtNotesColTitle", "Reason / Action / Impact"
     End If
+    cptSaveSetting "StatusSheet", "chkAllowAssignmentNotes", IIf(.chkAllowAssignmentNotes, 1, 0)
     'save user fields - overwrite
     strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
     Set oRecordset = CreateObject("ADODB.Recordset")

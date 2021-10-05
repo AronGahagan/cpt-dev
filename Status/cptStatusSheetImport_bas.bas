@@ -493,54 +493,55 @@ next_task:
             If oAssignment Is Nothing Then
               Print #lngFile, "ASSIGNMENT MISSING: TASK " & oTask.UniqueID & " ASSIGNMENT: " & oWorksheet.Cells(lngRow, lngUIDCol).Value
             Else
-              dblETC = oWorksheet.Cells(lngRow, lngETCCol).Value
-              If lngETC = pjTaskNumber1 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number1 = dblETC
-              ElseIf lngETC = pjTaskNumber2 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number2 = dblETC
-              ElseIf lngETC = pjTaskNumber3 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number3 = dblETC
-              ElseIf lngETC = pjTaskNumber4 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number4 = dblETC
-              ElseIf lngETC = pjTaskNumber5 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number5 = dblETC
-              ElseIf lngETC = pjTaskNumber6 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number6 = dblETC
-              ElseIf lngETC = pjTaskNumber7 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number7 = dblETC
-              ElseIf lngETC = pjTaskNumber8 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number8 = dblETC
-              ElseIf lngETC = pjTaskNumber9 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number9 = dblETC
-              ElseIf lngETC = pjTaskNumber10 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number10 = dblETC
-              ElseIf lngETC = pjTaskNumber11 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number11 = dblETC
-              ElseIf lngETC = pjTaskNumber12 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number12 = dblETC
-              ElseIf lngETC = pjTaskNumber13 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number13 = dblETC
-              ElseIf lngETC = pjTaskNumber14 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number14 = dblETC
-              ElseIf lngETC = pjTaskNumber15 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number15 = dblETC
-              ElseIf lngETC = pjTaskNumber16 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number16 = dblETC
-              ElseIf lngETC = pjTaskNumber17 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number17 = dblETC
-              ElseIf lngETC = pjTaskNumber18 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number18 = dblETC
-              ElseIf lngETC = pjTaskNumber19 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number19 = dblETC
-              ElseIf lngETC = pjTaskNumber20 Then
-                If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number20 = dblETC
-              End If
-              'todo: allow Assignment notes? form selection?
-              If Len(oWorksheet.Cells(lngRow, lngCommentsCol)) > 0 Then
-                If .cboAppendTo = "Top of Task Note" Then
-                  oAssignment.Notes = Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & vbCrLf & oAssignment.Notes
-                ElseIf .cboAppendTo = "Bottom of Task Note" Then
-                  oAssignment.AppendNotes vbCrLf & String(25, "-") & vbCrLf & Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
+              If Not oWorksheet.Cells(lngRow, lngETCCol).Locked Then
+                dblETC = oWorksheet.Cells(lngRow, lngETCCol).Value
+                If lngETC = pjTaskNumber1 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number1 = dblETC
+                ElseIf lngETC = pjTaskNumber2 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number2 = dblETC
+                ElseIf lngETC = pjTaskNumber3 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number3 = dblETC
+                ElseIf lngETC = pjTaskNumber4 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number4 = dblETC
+                ElseIf lngETC = pjTaskNumber5 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number5 = dblETC
+                ElseIf lngETC = pjTaskNumber6 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number6 = dblETC
+                ElseIf lngETC = pjTaskNumber7 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number7 = dblETC
+                ElseIf lngETC = pjTaskNumber8 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number8 = dblETC
+                ElseIf lngETC = pjTaskNumber9 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number9 = dblETC
+                ElseIf lngETC = pjTaskNumber10 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number10 = dblETC
+                ElseIf lngETC = pjTaskNumber11 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number11 = dblETC
+                ElseIf lngETC = pjTaskNumber12 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number12 = dblETC
+                ElseIf lngETC = pjTaskNumber13 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number13 = dblETC
+                ElseIf lngETC = pjTaskNumber14 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number14 = dblETC
+                ElseIf lngETC = pjTaskNumber15 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number15 = dblETC
+                ElseIf lngETC = pjTaskNumber16 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number16 = dblETC
+                ElseIf lngETC = pjTaskNumber17 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number17 = dblETC
+                ElseIf lngETC = pjTaskNumber18 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number18 = dblETC
+                ElseIf lngETC = pjTaskNumber19 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number19 = dblETC
+                ElseIf lngETC = pjTaskNumber20 Then
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number20 = dblETC
+                End If
+                If Len(oWorksheet.Cells(lngRow, lngCommentsCol)) > 0 Then
+                  If .cboAppendTo = "Top of Task Note" Then
+                    oAssignment.Notes = Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & vbCrLf & oAssignment.Notes
+                  ElseIf .cboAppendTo = "Bottom of Task Note" Then
+                    oAssignment.AppendNotes vbCrLf & String(25, "-") & vbCrLf & Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
+                  End If
                 End If
               End If
               'todo: consolidate Assignment Notes into Task Notes?
