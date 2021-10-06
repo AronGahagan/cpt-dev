@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.0.7</cpt_version>
+'<cpt_version>v1.1.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -1280,8 +1280,8 @@ Sub cptCaptureMetric(strProgram As String, dtStatus As Date, strMetric As String
       .Open strFile
     End If
     .Filter = "PROGRAM='" & strProgram & "' AND STATUS_DATE=#" & dtStatus & "#"
-    'todo: mechanism for correcting if .recordcount > 1
     If Not .EOF Then
+      .MoveFirst
       .Update Array(strMetric), Array(CDbl(vMetric))
     Else
       .AddNew Array("PROGRAM", "STATUS_DATE", strMetric), Array(strProgram, dtStatus, CDbl(vMetric))
@@ -1460,9 +1460,12 @@ Sub cptExportMetricsData()
       oWorksheet.Cells(1, lngField + 1) = oRecordset.Fields(lngField).Name
     Next lngField
     oWorksheet.[A2].CopyFromRecordset oRecordset
+    oWorksheet.Columns(2).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
     oExcel.ActiveWindow.Zoom = 85
     oWorksheet.Columns.AutoFit
     oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
+    Application.ActivateMicrosoftApp pjMicrosoftExcel
+    oExcel.WindowState = xlMaximized
   Else
     MsgBox "No records found for program '" & strProgram & "'", vbExclamation + vbOKOnly, "No Data"
   End If
@@ -1778,7 +1781,7 @@ next_task:
       oWorksheet.Cells(lngES + 16, 8) = "Using Calendar '" & ActiveProject.Calendar.Name & "'"
       
       'record the metric
-      cptCaptureMetric strProgram, dtStatus, "ES", CDate(oWorksheet.Cells(lngES + 16, 7).Value)
+      cptCaptureMetric strProgram, CDate(dtStatus & " 05:00 PM"), "ES", CDate(oWorksheet.Cells(lngES + 16, 7).Value)
       'format the columns
       oWorksheet.Columns.AutoFit
       Set oRange = oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown))
@@ -1834,7 +1837,95 @@ exit_here:
 
   Exit Sub
 err_here:
-  'Call HandleErr("cptMetrics_bas", "cptGetEarnedSchedule", Err)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Call cptHandleErr("cptMetrics_bas", "cptGetEarnedSchedule", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptShowMetricsData_frm()
+  'objects
+  Dim oRecordset As ADODB.Recordset 'Object
+  'strings
+  Dim strPrograms As String
+  Dim strProgram As String
+  Dim strFile As String
+  'longs
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'ensure file exists
+  strFile = cptDir & "\settings\cpt-metrics.adtg"
+  If Dir(strFile) = vbNullString Then
+    MsgBox strFile & " does not exist.", vbExclamation + vbOKOnly, "File Not Found"
+    GoTo exit_here
+  End If
+  
+  'ensure program name
+  strProgram = cptGetProgramAcronym
+  
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  With oRecordset
+    .Open strFile
+    If .RecordCount = 0 Then
+      MsgBox "No records found.", vbExclamation + vbOKOnly, "No Data"
+      GoTo exit_here
+    End If
+    'gather unique programs
+    .Sort = "PROGRAM"
+    .MoveFirst
+    Do While Not .EOF
+      If InStr(strPrograms, .Fields("PROGRAM")) = 0 Then
+        strPrograms = .Fields("PROGRAM") & ","
+        cptMetricsData_frm.cboProgram.AddItem .Fields("PROGRAM")
+      End If
+      .MoveNext
+    Loop
+    cptMetricsData_frm.cboProgram.Value = strProgram
+    cptMetricsData_frm.cboProgram.Locked = True 'todo: make cboProgram dynamic
+    cptMetricsData_frm.cboProgram.Enabled = False 'todo: make cboProgram dynamic
+    .MoveFirst
+    .Sort = "STATUS_DATE DESC"
+    .Filter = "PROGRAM='" & strProgram & "'"
+    If Not .EOF Then
+      'populate headers
+      cptMetricsData_frm.lboHeader.AddItem
+      For lngItem = 0 To .Fields.Count - 1
+        cptMetricsData_frm.lboHeader.List(cptMetricsData_frm.lboHeader.ListCount - 1, lngItem) = .Fields(lngItem).Name
+      Next lngItem
+      'populate data
+      .MoveFirst
+      Do While Not .EOF
+        cptMetricsData_frm.lboMetricsData.AddItem
+        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 0) = .Fields(0)
+        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 1) = .Fields(1)
+        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 2) = .Fields(2)
+        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 3) = .Fields(3)
+        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 4) = .Fields(4)
+        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 5) = .Fields(5)
+        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 6) = .Fields(6)
+        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 7) = .Fields(7)
+        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 8) = IIf(CLng(.Fields(8)) = 0, "-", .Fields(8))
+        .MoveNext
+      Loop
+      cptMetricsData_frm.lboMetricsData.Top = cptMetricsData_frm.lboHeader.Top + cptMetricsData_frm.lboHeader.Height
+      cptMetricsData_frm.Show
+    Else
+      MsgBox "No records found for Program '" & strProgram & "'", vbExclamation + vbOKOnly, "No Records Found"
+      GoTo exit_here
+    End If
+  End With
+  
+exit_here:
+  On Error Resume Next
+  Set oRecordset = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptMetrics_bas", "cptShowMetricsData_frm", Err, Erl)
   Resume exit_here
 End Sub
