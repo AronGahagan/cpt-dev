@@ -6,7 +6,7 @@ Option Explicit
 #Else '<issue53>
   Declare Function GetTickCount Lib "kernel32" () As Long
 #End If '<issue53>
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 Private strStartingViewTopPane As String
@@ -35,6 +35,7 @@ Dim lngField As Long, lngItem As Long, lngSelectedItems As Long
 'integers
 Dim intField As Integer
 'strings
+Dim strExportNotes As String
 Dim strAllowAssignmentNotes As String
 Dim strNotesColTitle As String
 Dim strFileNamingConvention As String
@@ -350,6 +351,12 @@ skip_fields:
       .txtNotesColTitle.Value = strNotesColTitle
     Else
       .txtNotesColTitle = "Reason / Action / Impact"
+    End If
+    strExportNotes = cptGetSetting("StatusSheet", "chkExportNotes")
+    If strExportNotes <> "" Then
+      .chkExportNotes = CBool(strExportNotes)
+    Else
+      .chkExportNotes = False
     End If
     strAllowAssignmentNotes = cptGetSetting("StatusSheet", "chkAllowAssignmentNotes")
     If strAllowAssignmentNotes <> "" Then
@@ -1834,9 +1841,15 @@ try_again:
       Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngLastCol))
     End If
     
-    'left align the comment column
+    'export notes
+    If cptStatusSheet_frm.chkExportNotes Then
+      oWorksheet.Cells(lngRow, lngLastCol) = Trim(Replace(oTask.Notes, vbCr, vbLf))
+    End If
+    
+    'format comments column
     oWorksheet.Cells(lngRow, lngLastCol).HorizontalAlignment = xlLeft
     oWorksheet.Cells(lngRow, lngLastCol).NumberFormat = "General"
+    oWorksheet.Cells(lngRow, lngLastCol).WrapText = True
     
     If oTask.Assignments.Count > 0 And Not IsDate(oTask.ActualFinish) Then
       cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
@@ -1845,6 +1858,7 @@ try_again:
     'todo: capture conditional formatting range(s)
     
     oWorksheet.Columns(1).AutoFit
+    oWorksheet.Rows(lngRow).AutoFit
 
 next_task:
     lngTask = lngTask + 1
@@ -2073,6 +2087,10 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
       Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1))
     End If
     
+    'export assignment notes
+    If cptStatusSheet_frm.chkExportNotes And Len(oAssignment.Notes) > 0 Then
+      vAssignment(1, lngLastCol) = Trim(Replace(oAssignment.Notes, vbCr, vbLf))
+    End If
     'allow notes at the assignment level?
     strAllowAssignmentNotes = cptGetSetting("StatusSheet", "chkAllowAssignmentNotes")
     If strAllowAssignmentNotes <> "" Then
@@ -2082,9 +2100,10 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
     End If
     If blnAllowAssignmentNotes Then
       Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow + lngItem, lngLastCol))
-      oWorksheet.Cells(lngRow + lngItem, lngLastCol).HorizontalAlignment = xlLeft
-      oWorksheet.Cells(lngRow + lngItem, lngLastCol).NumberFormat = "General"
     End If
+    oWorksheet.Cells(lngRow + lngItem, lngLastCol).HorizontalAlignment = xlLeft
+    oWorksheet.Cells(lngRow + lngItem, lngLastCol).NumberFormat = "General"
+    oWorksheet.Cells(lngRow + lngItem, lngLastCol).WrapText = True
     
     'enter the values
     oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Value = vAssignment
@@ -2093,6 +2112,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
     Else
       Set oAssignmentRange = oWorksheet.Application.Union(oAssignmentRange, oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)))
     End If
+    oWorksheet.Rows(lngRow + lngItem).AutoFit
   Next oAssignment
   'add formulae
   If oTask.Assignments.Count > 0 Then
@@ -2420,6 +2440,7 @@ Sub cptSaveStatusSheetSettings()
     Else
       cptSaveSetting "StatusSheet", "txtNotesColTitle", "Reason / Action / Impact"
     End If
+    cptSaveSetting "StatusSheet", "chkExportNotes", IIf(.chkExportNotes, 1, 0)
     cptSaveSetting "StatusSheet", "chkAllowAssignmentNotes", IIf(.chkAllowAssignmentNotes, 1, 0)
     'save user fields - overwrite
     strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
