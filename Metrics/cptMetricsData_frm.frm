@@ -21,6 +21,7 @@ Private Sub cmdDelete_Click()
   'objects
   Dim oRecordset As ADODB.Recordset
   'strings
+  Dim strProgram As String
   Dim strFile As String
   'longs
   Dim lngItem As Long
@@ -29,13 +30,12 @@ Private Sub cmdDelete_Click()
   'booleans
   'variants
   'dates
+  Dim dtStatus As Date
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   For lngItem = 0 To Me.lboMetricsData.ListCount - 1
     If Me.lboMetricsData.Selected(lngItem) Then
-      Dim strProgram As String
-      Dim dtStatus As Date
       strProgram = Me.lboMetricsData.List(lngItem, 0)
       dtStatus = CDate(Me.lboMetricsData.List(lngItem, 1))
       If MsgBox("Permanently delete record for " & strProgram & " - " & dtStatus & "?", vbExclamation + vbYesNo, "Confirm") = vbYes Then

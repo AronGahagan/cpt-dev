@@ -567,6 +567,15 @@ Dim dtStatus As Date
           End If
           
         Case "bcwp"
+          
+          If Not cptMetricsSettingsExist Then
+            cptShowMetricsSettings_frm True
+            If Not cptMetricsSettingsExit Then
+              cptGetMetric = 0
+              GoTo exit_here
+            End If
+          End If
+        
           lngEVP = CLng(cptGetSetting("Metrics", "cboEVP"))
           lngLOEField = CLng(cptGetSetting("Metrics", "cboLOEField"))
           strLOE = cptGetSetting("Metrics", "txtLOE")
@@ -948,7 +957,7 @@ try_again:
   vResponse = InputBox("At least one custom field is required." & vbCrLf & vbCrLf & "Enter a comma-separated list (BEI will be grouped by first item):", "Late Starts and Finishes", strMyHeaders)
   If StrPtr(vResponse) = 0 Then 'user hit cancel
     GoTo exit_here
-  ElseIf vResponse = "" Then 'user entered zer-value
+  ElseIf vResponse = "" Or Len(Replace(vResponse, ",", "")) = 0 Then 'user entered zer-value
     'nothing selected
     If MsgBox("You must select at least one custom field. Try again?", vbQuestion + vbYesNo, "Field Required") = vbYes Then
       GoTo try_again
@@ -959,21 +968,17 @@ try_again:
     strMyHeaders = CStr(vResponse)
   End If
   
-  On Error Resume Next
-  Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
-  oExcel.Visible = False
-  Set oWorkbook = oExcel.Workbooks.Add
-  oExcel.Calculation = xlCalculationManual
-  oExcel.ScreenUpdating = False
-  Set oWorksheet = oWorkbook.Sheets(1)
-  oWorksheet.Name = "DETAILS"
-  
   If Right(Trim(strMyHeaders), 1) <> "," And Len(strMyHeaders) > 0 Then strMyHeaders = Trim(strMyHeaders) & ","
   'validate strMyHeaders
   On Error Resume Next
   For Each vMyHeader In Split(strMyHeaders, ",")
+    If UBound(Split(stryMyHeaders, ",")) = -1 And vMyHeader = "" Then
+      If MsgBox("You must select at least one custom field. Try again?", vbQuestion + vbYesNo, "Field Required") = vbYes Then
+        GoTo try_again
+      Else
+        GoTo exit_here
+      End If
+    End If
     If vMyHeader = "" Then Exit For
     Debug.Print FieldNameToFieldConstant(vMyHeader)
     If Err.Number > 0 Then
@@ -987,8 +992,18 @@ try_again:
       End If
     End If
   Next vMyHeader
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
+  'get excel
+  On Error Resume Next
+  'Set oExcel = GetObject(, "Excel.Application")
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
+  oExcel.Visible = False
+  Set oWorkbook = oExcel.Workbooks.Add
+  oExcel.Calculation = xlCalculationManual
+  oExcel.ScreenUpdating = False
+  Set oWorksheet = oWorkbook.Sheets(1)
+  oWorksheet.Name = "DETAILS"
   cptSaveSetting "Metrics", "strMyHeaders", strMyHeaders
   
   strLOEField = cptGetSetting("Metrics", "cboLOEField")
@@ -1297,8 +1312,7 @@ next_task:
 '  If MsgBox("Complete. Open for review?", vbInformation + vbYesNo, "Late Starts and Finishes") = vbYes Then
 '    oExcel.Workbooks.Open strFile
     oExcel.Visible = True
-    oExcel.ScreenUpdating = True
-    Application.ActivateMicrosoftApp pjMicrosoftExcel
+'    Application.ActivateMicrosoftApp pjMicrosoftExcel
 '  End If
 
 exit_here:
@@ -1509,12 +1523,10 @@ Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
       
       'handle headers
       Select Case strMetric
-        Case "SV"
-          'non-standard
         Case "CEI"
-          'non-standard
+          'todo: CEI Trend
         Case "TFCI"
-          'non-standard
+          'todo: TFCI Trend
         Case Else 'SPI,BEI,CPLI
           strHeader = "CHANGE,CLEAR,< 0.95,0.95 - 0.99,1.00 - 1.05,> 1.05"
           oWorksheet.[C4:H4] = Split(strHeader, ",")
@@ -1528,10 +1540,10 @@ Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
         oWorksheet.Cells(lngLastRow, 1) = FormatDateTime(CDate(.Fields("STATUS_DATE")), vbShortDate)
         oWorksheet.Cells(lngLastRow, 2) = .Fields(strMetric)
         Select Case strMetric
-          Case "SV"
           Case "CEI"
+            'todo: CEI Trend
           Case "TFCI"
-            'todo: tfci later
+            'todo: TFCI Trend
           Case Else 'SPI,BEI,CPLI
             oWorksheet.Range(oWorksheet.Cells(lngLastRow, 4), oWorksheet.Cells(lngLastRow, 8)).Style = "Comma"
             oWorksheet.Range(oWorksheet.Cells(lngLastRow, 4), oWorksheet.Cells(lngLastRow, 8)) = vBanding
@@ -1549,7 +1561,7 @@ Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
   
   'make it nice
   Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A4].End(xlToRight), oWorksheet.[A4].End(xlDown)).Address, , xlYes)
-  oListObject.ListColumns("CHANGE").NumberFormat = "Comma"
+  oListObject.ListColumns("CHANGE").DataBodyRange.Style = "Comma"
   oListObject.Range.Select
   oWorksheet.Shapes.AddChart2 332, xlLineMarkers, oWorksheet.[A4].End(xlToRight).Offset(0, 2).Left, oListObject.Range.Top
   Set oChartObject = oWorksheet.ChartObjects(1)
@@ -1651,16 +1663,12 @@ Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
     
   For Each oLegendEntry In oChart.Legend.LegendEntries
     If oLegendEntry.LegendKey.Format.Fill.Visible = msoFalse Then
-      oLegendEntry.Select
       oLegendEntry.Delete
       Exit For
     End If
   Next oLegendEntry
   
   oExcel.ActiveWindow.Zoom = 85
-'  oExcel.ActiveWindow.SplitRow = 1
-'  oExcel.ActiveWindow.SplitColumn = 0
-'  oExcel.ActiveWindow.FreezePanes = True
   oExcel.ActiveWindow.DisplayGridLines = False
   oWorksheet.Columns.AutoFit
   oWorksheet.Columns(1).ColumnWidth = 16
@@ -1668,7 +1676,6 @@ Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
   oWorksheet.[A2].Select
   oExcel.Visible = True
   oExcel.WindowState = xlMaximized
-  
 
 exit_here:
   On Error Resume Next
@@ -1683,7 +1690,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  'Call HandleErr("cptMetrics_bas", "cptGetTrend", Err)
+  Call cptHandleErr("cptMetrics_bas", "cptGetTrend", Err, Erl)
   MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
