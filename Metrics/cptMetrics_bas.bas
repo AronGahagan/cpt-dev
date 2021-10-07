@@ -114,15 +114,16 @@ Dim oTasks As Tasks
 Dim oPred As Task
 Dim oTask As Task
 'strings
+Dim strProgram  As String
 Dim strMsg As String
 Dim strTitle As String
 'longs
 Dim lngConstraintType As Long
 Dim lngTS As Long
-Dim lngMargin As Long
 Dim lngCPL As Long
 'integers
 'doubles
+Dim dblCPLI As Double
 'booleans
 'variants
 'dates
@@ -147,9 +148,16 @@ Dim dtConstraintDate As Date
   
   Set oTask = oTasks(1)
   
+  If oTask.Summary Or Not oTask.Active Or oTask.ExternalTask Then
+    MsgBox "Please select a single, active, and non-summary target Task.", vbExclamation + vbOKOnly, strTitle
+    GoTo exit_here
+  End If
+  
+  strMsg = "TARGET TASK:" & vbCrLf & "UID " & oTask.UniqueID & " - " & oTask.Name & vbCrLf & vbCrLf
+  
   'use MFO or MSO constraint
   If oTask.ConstraintType <> pjMFO And oTask.ConstraintType <> pjMSO Then
-    strMsg = "No MSO/MFO constraint found; temporarily using Deadline..." & vbCrLf
+    strMsg = strMsg & "No MSO/MFO constraint found; temporarily using Deadline..." & vbCrLf
     'if no MFO then use deadline as MFO
     If IsDate(oTask.Deadline) Then
       If IsDate(oTask.ConstraintDate) Then dtConstraintDate = oTask.ConstraintDate
@@ -191,10 +199,22 @@ Dim dtConstraintDate As Date
     dtStart = FormatDateTime(Now(), vbShortDate) & " 08:00 AM"
   End If
   
-  'use earliest start date
-  'NOTE: cannot account for schedule margin due to possibility
-  'of dual paths, one with and one without, a particular SM Task
+  If ActiveWindow.ActivePane.View.Screen <> pjGantt Then
+    If MsgBox("Cannot use this screen: OK to switch?", vbExclamation + vbYesNo, strTitle) = vbYes Then
+      ActiveWindow.TopPane.Activate
+      ViewApply "Gantt Chart"
+      FilterClear
+      GroupClear
+      Application.Sort "ID", , , , , , , True
+      OptionsViewEx displaysummarytasks:=True, displaynameindent:=True, displayoutlinesymbols:=True
+      OutlineShowAllTasks
+      EditGoTo oTask.ID
+    Else
+      GoTo exit_here
+    End If
+  End If
   
+  'use earliest start date
   If oTask Is Nothing Then GoTo exit_here
   If oTask.Summary Then GoTo exit_here
   If Not oTask.Active Then GoTo exit_here
@@ -222,9 +242,13 @@ Dim dtConstraintDate As Date
   strMsg = strMsg & "CPLI = ( CPL + TS ) / CPL" & vbCrLf
   strMsg = strMsg & "CPLI = ( " & lngCPL & " + " & lngTS & " ) / " & lngCPL & vbCrLf & vbCrLf
   strMsg = strMsg & "CPLI = " & Round((lngCPL + lngTS) / lngCPL, 3) & vbCrLf & vbCrLf
-  strMsg = strMsg & "Note: Schedule Margin Tasks are not considered."
+  strMsg = strMsg & "Note: your CPL may include SCHEDULE MARGIN."
   
-  MsgBox strMsg, vbInformation + vbOKOnly, "Critical Path Length Index (CPLI)"
+  MsgBox strMsg, vbInformation + vbOKOnly, strTitle
+  
+  dblCPLI = Round((lngCPL + lngTS) / lngCPL, 2)
+  strProgram = cptGetProgramAcronym
+  cptCaptureMetric strProgram, dtStart, "CPLI", dblCPLI
     
 exit_here:
   On Error Resume Next
