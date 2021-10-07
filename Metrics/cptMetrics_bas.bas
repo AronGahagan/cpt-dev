@@ -1404,11 +1404,17 @@ End Sub
 
 Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
   'objects
+  Dim oLegendEntry As Excel.LegendEntry
+  Dim oChart As Excel.Chart
+  Dim oChartObject As Excel.ChartObject
+  Dim oListObject As Excel.ListObject
   Dim oRecordset As ADODB.Recordset
   Dim oWorksheet As Excel.Worksheet
   Dim oWorkbook As Excel.Workbook
   Dim oExcel As Excel.Application
   'strings
+  Dim strHeader As String
+  Dim strBanding As String
   Dim strProgram As String
   Dim strFile As String
   'longs
@@ -1417,6 +1423,9 @@ Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
   'doubles
   'booleans
   'variants
+  Dim vBorder As Variant
+  Dim vHeader As Variant
+  Dim vBanding As Variant
   'dates
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -1432,53 +1441,241 @@ Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
     If dtStatus = 0 Then
       If Not IsDate(ActiveProject.StatusDate) Then
         MsgBox "This project requires a Status Date.", vbExclamation + vbOKOnly, "Invalid Status Date"
-        GoTo exit_here
+        Application.ChangeStatusDate
+        If Not IsDate(ActiveProject.StatusDate) Then GoTo exit_here
       End If
       dtStatus = ActiveProject.StatusDate
     End If
-    'get excel
-    On Error Resume Next
-    Set oExcel = GetObject(, "Excel.Application")
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-    If oExcel Is Nothing Then
-      Set oExcel = CreateObject("Excel.Application")
-    End If
-    oExcel.Visible = True
-    Set oWorkbook = oExcel.Workbooks.Add
-    Set oWorksheet = oWorkbook.Sheets(1)
-    oWorksheet.Name = strMetric & " TREND"
     Set oRecordset = CreateObject("ADODB.Recordset")
     With oRecordset
       .Open strFile
+      If .RecordCount = 0 Then
+        MsgBox "No records found!", vbExclamation + vbOKOnly, "Trend Data: " & strMetric
+        GoTo exit_here
+      End If
       .Sort = "STATUS_DATE"
       .Filter = "PROGRAM='" & strProgram & "' AND STATUS_DATE<=#" & dtStatus & "#"
-      If .RecordCount = 0 Then
-        'handle that
+      If .EOF Then
+        MsgBox "No records found for program '" & strProgram & "'!", vbExclamation + vbOKOnly, "Trend Data: " & strMetric
+        GoTo exit_here
       End If
       .MoveFirst
-      oWorksheet.Cells(1, 1) = strProgram
-      oWorksheet.Cells(3, 1) = "STATUS_DATE"
-      oWorksheet.Cells(3, 2) = strMetric
-      'todo: banding
+      
+      'get excel
+      On Error Resume Next
+      'Set oExcel = GetObject(, "Excel.Application")
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If oExcel Is Nothing Then
+        Set oExcel = CreateObject("Excel.Application")
+      End If
+      'oExcel.WindowState = xlMinimized
+      Set oWorkbook = oExcel.Workbooks.Add
+      Set oWorksheet = oWorkbook.Sheets(1)
+      oWorksheet.Name = strMetric & " TREND"
+      oWorksheet.Cells(1, 1) = strProgram & " IMS - " & strMetric & IIf(strMetric = "SPI", "* ", " ") & "Trend"
+      oWorksheet.Cells(1, 1).Font.Bold = True
+      oWorksheet.Cells(1, 1).Font.Size = 16
+      
+      oWorksheet.Cells(2, 1) = dtStatus
+      oWorksheet.Cells(2, 1).NumberFormat = "m/d/yyyy"
+      oWorksheet.Cells(2, 1).HorizontalAlignment = xlCenter
+      
+      For Each vBorder In Array(xlEdgeLeft, xlEdgeTop, xlEdgeBottom, xlEdgeRight)
+        With oWorksheet.Cells(2, 1).Borders
+          .LineStyle = xlContinuous
+          .ThemeColor = 1
+          .TintAndShade = -0.249946592608417
+          .Weight = xlThin
+        End With
+      Next vBorder
+      For Each vBorder In Array(xlDiagonalDown, xlDiagonalUp, xlInsideVertical, xlInsideHorizontal)
+        oWorksheet.Cells(2, 1).Borders(vBorder).LineStyle = xlNone
+      Next
+      With oWorksheet.Cells(2, 1).Interior
+        .Pattern = xlSolid
+        .PatternColorIndex = xlAutomatic
+        .Color = 10092543
+        .TintAndShade = 0
+        .PatternTintAndShade = 0
+      End With
+      
+      If strMetric = "SPI" Then
+        oWorksheet.Cells(3, 1) = "*SPI based in hours"
+        oWorksheet.Cells(3, 1).Font.Italic = True
+      End If
+      
+      oWorksheet.Cells(4, 1).Value = "STATUS DATE"
+      oWorksheet.Cells(4, 2).Value = strMetric
+      
+      'handle headers
+      Select Case strMetric
+        Case "SV"
+          'non-standard
+        Case "CEI"
+          'non-standard
+        Case "TFCI"
+          'non-standard
+        Case Else 'SPI,BEI,CPLI
+          strHeader = "CHANGE,CLEAR,< 0.95,0.95 - 0.99,1.00 - 1.05,> 1.05"
+          oWorksheet.[C4:H4] = Split(strHeader, ",")
+          vBanding = Array(0#, 0.94, 0.05, 0.06, 0.45)
+          
+      End Select
+            
+      'banding
       Do While Not .EOF
         lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row + 1
         oWorksheet.Cells(lngLastRow, 1) = FormatDateTime(CDate(.Fields("STATUS_DATE")), vbShortDate)
         oWorksheet.Cells(lngLastRow, 2) = .Fields(strMetric)
-        'todo: banding
+        Select Case strMetric
+          Case "SV"
+          Case "CEI"
+          Case "TFCI"
+            'todo: tfci later
+          Case Else 'SPI,BEI,CPLI
+            oWorksheet.Range(oWorksheet.Cells(lngLastRow, 4), oWorksheet.Cells(lngLastRow, 8)).Style = "Comma"
+            oWorksheet.Range(oWorksheet.Cells(lngLastRow, 4), oWorksheet.Cells(lngLastRow, 8)) = vBanding
+            If lngLastRow = 5 Then
+              oWorksheet.[C5] = 0
+            Else
+              oWorksheet.Cells(lngLastRow, 3).FormulaR1C1 = "=RC[-1]-R[-1]C[-1]"
+            End If
+        End Select
         .MoveNext
       Loop
       .Close
     End With
   End If
+  
+  'make it nice
+  Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A4].End(xlToRight), oWorksheet.[A4].End(xlDown)).Address, , xlYes)
+  oListObject.ListColumns("CHANGE").NumberFormat = "Comma"
+  oListObject.Range.Select
+  oWorksheet.Shapes.AddChart2 332, xlLineMarkers, oWorksheet.[A4].End(xlToRight).Offset(0, 2).Left, oListObject.Range.Top
+  Set oChartObject = oWorksheet.ChartObjects(1)
+  Set oChart = oChartObject.Chart
+  oChart.SetSourceData Source:=oWorksheet.Range(oListObject.Range.Address)
+  oChart.Axes(xlCategory).CategoryType = xlTimeScale
+  oChart.Axes(xlCategory).MajorUnit = 7
+  oChart.Axes(xlCategory).MinorUnit = 7
+  'oChart.Axes(xlValue).MinimumScale = 0
+  'oChart.Axes(xlValue).MaximumScale = 2
+  
+  oChart.FullSeriesCollection("CHANGE").Delete
 
+  oChart.FullSeriesCollection("CLEAR").ChartType = xlAreaStacked
+  oChart.FullSeriesCollection("CLEAR").Format.Fill.Visible = msoFalse
+  oChart.FullSeriesCollection("CLEAR").Format.Line.Visible = msoFalse
+  
+  'red
+  oChart.FullSeriesCollection("< 0.95").ChartType = xlAreaStacked
+  With oChart.FullSeriesCollection("< 0.95").Format.Fill
+    .Visible = msoTrue
+    .ForeColor.RGB = RGB(255, 0, 0)
+    .Transparency = 0
+    .Solid
+  End With
+  With oChart.FullSeriesCollection("< 0.95").Format.Line
+    .Visible = msoTrue
+    .ForeColor.RGB = RGB(255, 0, 0)
+    .Transparency = 0
+  End With
+  
+  'yellow
+  oChart.FullSeriesCollection("0.95 - 0.99").ChartType = xlAreaStacked
+  With oChart.FullSeriesCollection("0.95 - 0.99").Format.Fill
+    .Visible = msoTrue
+    .ForeColor.RGB = RGB(255, 255, 0)
+    .Transparency = 0
+    .Solid
+  End With
+  With oChart.FullSeriesCollection("0.95 - 0.99").Format.Line
+    .Visible = msoTrue
+    .ForeColor.RGB = RGB(255, 255, 0)
+    .Transparency = 0
+  End With
+  
+  'green
+  oChart.FullSeriesCollection("1.00 - 1.05").ChartType = xlAreaStacked
+  With oChart.FullSeriesCollection("1.00 - 1.05").Format.Fill
+    .Visible = msoTrue
+    .ForeColor.RGB = RGB(0, 176, 80)
+    .Transparency = 0
+    .Solid
+  End With
+  With oChart.FullSeriesCollection("1.00 - 1.05").Format.Line
+    .Visible = msoTrue
+    .ForeColor.RGB = RGB(0, 176, 80)
+    .Transparency = 0
+  End With
+  
+  'blue
+  oChart.FullSeriesCollection("> 1.05").ChartType = xlAreaStacked
+  With oChart.FullSeriesCollection("> 1.05").Format.Fill
+    .Visible = msoTrue
+    .ForeColor.ObjectThemeColor = msoThemeColorAccent5
+    .ForeColor.TintAndShade = 0
+    .ForeColor.Brightness = 0
+    .Transparency = 0
+    .Solid
+  End With
+  With oChart.FullSeriesCollection("> 1.05").Format.Line
+    .Visible = msoTrue
+    .ForeColor.ObjectThemeColor = msoThemeColorAccent5
+    .ForeColor.TintAndShade = 0
+    .ForeColor.Brightness = 0
+    .Transparency = 0
+  End With
+  
+  'strMetric
+  With oChart.FullSeriesCollection(strMetric).Format.Line
+    .Visible = msoTrue
+    .ForeColor.ObjectThemeColor = msoThemeColorText1
+    .ForeColor.TintAndShade = 0
+    .ForeColor.Brightness = 0
+    .Transparency = 0
+  End With
+  oChart.FullSeriesCollection(strMetric).Select
+  oChart.SetElement (msoElementDataLabelBottom)
+  oChart.FullSeriesCollection(strMetric).DataLabels.Select
+  oExcel.Selection.Format.TextFrame2.TextRange.Font.Size = 11
+  
+  oChart.ChartTitle.Text = strProgram & " IMS - " & strMetric & " Trend" & vbLf & FormatDateTime(dtStatus, vbShortDate)
+  oChart.SetElement (msoElementLegendRight)
+  oChart.ChartArea.Format.TextFrame2.TextRange.Font.Size = 11
+  oChart.ChartTitle.Characters(1, Len(strProgram & " IMS - " & strMetric & " Trend")).Font.Size = 14
+  oChart.ChartTitle.Characters(1, Len(strProgram & " IMS - " & strMetric & " Trend")).Font.Bold = True
+  
+  oChartObject.Width = 792.173
+  oChartObject.Height = 489.6
+    
+  For Each oLegendEntry In oChart.Legend.LegendEntries
+    If oLegendEntry.LegendKey.Format.Fill.Visible = msoFalse Then
+      oLegendEntry.Select
+      oLegendEntry.Delete
+      Exit For
+    End If
+  Next oLegendEntry
+  
   oExcel.ActiveWindow.Zoom = 85
-  oExcel.ActiveWindow.SplitRow = 1
-  oExcel.ActiveWindow.SplitColumn = 0
-  oExcel.ActiveWindow.FreezePanes = True
+'  oExcel.ActiveWindow.SplitRow = 1
+'  oExcel.ActiveWindow.SplitColumn = 0
+'  oExcel.ActiveWindow.FreezePanes = True
+  oExcel.ActiveWindow.DisplayGridLines = False
   oWorksheet.Columns.AutoFit
+  oWorksheet.Columns(1).ColumnWidth = 16
+  oExcel.ActiveWindow.ScrollRow = 1
+  oWorksheet.[A2].Select
+  oExcel.Visible = True
+  oExcel.WindowState = xlMaximized
+  
 
 exit_here:
   On Error Resume Next
+  Set oLegendEntry = Nothing
+  Set oChart = Nothing
+  Set oChartObject = Nothing
+  Set oListObject = Nothing
   Set oRecordset = Nothing
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
