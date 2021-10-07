@@ -383,8 +383,7 @@ next_record:
       MsgBox strMsg, vbInformation + vbOKOnly, "Schedule Variance (SV) - Hours"
       
     Case "es" 'earned schedule
-      'todo: earned schedule
-      'todo: update cptCaptureMetric for date
+      cptGetEarnedSchedule
     
   End Select
   
@@ -869,6 +868,9 @@ Sub cptLateStartsFinishes()
   Dim oAssignment As MSProject.Assignment
   Dim oTask As Task
   'strings
+  Dim strSummary As String
+  Dim strHeaders As String
+  Dim strMyHeaders As String
   Dim strLOE As String
   Dim strLOEField As String
   Dim strCC As String
@@ -877,6 +879,9 @@ Sub cptLateStartsFinishes()
   Dim strFile As String
   Dim strDir As String
   'longs
+  Dim lngMyHeaders As Long
+  Dim lngLastCol As Long
+  Dim lngResponse As Long
   Dim lngLOEField As Long
   Dim lngTask As Long
   Dim lngTasks As Long
@@ -888,6 +893,9 @@ Sub cptLateStartsFinishes()
   'doubles
   'booleans
   'variants
+  Dim vResponse As Variant
+  Dim vRow As Variant
+  Dim vMyHeader As Variant
   Dim vCol As Variant
   'dates
   Dim dtDate As Date
@@ -898,9 +906,7 @@ Sub cptLateStartsFinishes()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   dtStatus = ActiveProject.StatusDate
-  
-  If MsgBox("not ready for prime time!" & vbCrLf & vbCrLf & "proceed anyway?", vbCritical + vbYesNo, "note to self") = vbNo Then GoTo exit_here
-  
+    
   strProject = cptGetProgramAcronym
   
   If Not cptMetricsSettingsExist Then
@@ -911,33 +917,75 @@ Sub cptLateStartsFinishes()
     End If
   End If
   
+try_again:
+  'get other fields
+  strMyHeaders = cptGetSetting("Metrics", "strMyHeaders")
+  If Len(strMyHeaders) = 0 Then strMyHeaders = "CAM,WPCN,WPM,"
+  vResponse = InputBox("At least one custom field is required." & vbCrLf & vbCrLf & "Enter a comma-separated list (BEI will be grouped by first item):", "Late Starts and Finishes", strMyHeaders)
+  If StrPtr(vResponse) = 0 Then 'user hit cancel
+    GoTo exit_here
+  ElseIf vResponse = "" Then 'user entered zer-value
+    'nothing selected
+    If MsgBox("You must select at least one custom field. Try again?", vbQuestion + vbYesNo, "Field Required") = vbYes Then
+      GoTo try_again
+    Else
+      GoTo exit_here
+    End If
+  ElseIf Len(vResponse) > 0 Then
+    strMyHeaders = CStr(vResponse)
+  End If
+  
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
-  'oExcel.Visible = True
+  oExcel.Visible = False
   Set oWorkbook = oExcel.Workbooks.Add
   oExcel.Calculation = xlCalculationManual
   oExcel.ScreenUpdating = False
   Set oWorksheet = oWorkbook.Sheets(1)
   oWorksheet.Name = "DETAILS"
   
-  'todo: user-defined fields to include
+  If Right(Trim(strMyHeaders), 1) <> "," And Len(strMyHeaders) > 0 Then strMyHeaders = Trim(strMyHeaders) & ","
+  'validate strMyHeaders
+  On Error Resume Next
+  For Each vMyHeader In Split(strMyHeaders, ",")
+    If vMyHeader = "" Then Exit For
+    Debug.Print FieldNameToFieldConstant(vMyHeader)
+    If Err.Number > 0 Then
+      lngResponse = MsgBox("Custom Field '" & vMyHeader & "' not found!" & vbCrLf & vbCrLf & "OK = skip; Cancel = try again", vbExclamation + vbOKCancel, "Invalid Field")
+      If lngResponse = vbCancel Then
+        Err.Clear
+        GoTo try_again
+      Else
+        Err.Clear
+        strMyHeaders = Replace(strMyHeaders, vMyHeader & ",", "")
+      End If
+    End If
+  Next vMyHeader
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  cptSaveSetting "Metrics", "strMyHeaders", strMyHeaders
+  
   strLOEField = cptGetSetting("Metrics", "cboLOEField")
   If Len(strLOEField) > 0 Then
     lngLOEField = CLng(strLOEField)
   Else
-    MsgBox "Error retrieving setting Metric.lngLOEField. Cannot proceed.", vbExclamation + vbOKOnly, "Settings"
+    MsgBox "Error retrieving setting Metrics.cboLOEField. Cannot proceed.", vbExclamation + vbOKOnly, "Settings"
     GoTo exit_here
   End If
   strLOE = cptGetSetting("Metrics", "txtLOE")
   If Len(strLOE) = 0 Then
-    MsgBox "Error retrieving setting Metric.strLOE. Cannot proceed.", vbExclamation + vbOKOnly, "Settings"
+    MsgBox "Error retrieving setting Metrics.strLOE. Cannot proceed.", vbExclamation + vbOKOnly, "Settings"
     GoTo exit_here
   End If
   
-  oWorksheet.[A1:P1] = Array("UID", "WPCN", "WPM", "NAME", "TOTAL SLACK", "REMAINING DURATION", "REMAINING WORK", "BASELINE START", "START VARIANCE", "ACTUAL START", "START", "BASELINE FINISH", "FINISH VARIANCE", "ACTUAL FINISH", "FINISH", "STATUS")
+  strHeaders = "UID,"
+  strHeaders = strHeaders & strMyHeaders
+  strHeaders = strHeaders & "NAME,TOTAL SLACK,REMAINING DURATION,REMAINING WORK,BASELINE START,START VARIANCE,ACTUAL START,START,BASELINE FINISH,FINISH VARIANCE,ACTUAL FINISH,FINISH"
   
+  oWorksheet.Range(oWorksheet.Cells(1, 1), oWorksheet.Cells(1, 1).Offset(0, UBound(Split(strHeaders, ",")))) = Split(strHeaders, ",")
+  lngLastCol = oWorksheet.[A1].End(xlToRight).Column
   lngTasks = ActiveProject.Tasks.Count
   
   For Each oTask In ActiveProject.Tasks
@@ -950,36 +998,42 @@ Sub cptLateStartsFinishes()
       'only check for tasks with assignments
       If oTask.Resources.Count = 0 Then GoTo next_task
       'only check for discrete tasks
-      If oTask.GetField(FieldNameToFieldConstant("EVT")) = "A" Then GoTo next_task
+      If oTask.GetField(lngLOEField) = "A" Then GoTo next_task
       'skip unassigned (currently material/odc/tvl)
       'If oTask.GetField(FieldNameToFieldConstant("WPM")) = "" Then GoTo next_task
       'only report early/late starts/finishes
       If oTask.StartVariance <> 0 Or oTask.FinishVariance <> 0 Then
         lngLastRow = oWorksheet.Cells(1048576, 1).End(xlUp).Row + 1
-        oWorksheet.Cells(lngLastRow, 1) = oTask.UniqueID
-        oWorksheet.Cells(lngLastRow, 2) = oTask.GetField(FieldNameToFieldConstant("WPCN"))
-        oWorksheet.Cells(lngLastRow, 3) = oTask.GetField(FieldNameToFieldConstant("WPM"))
-        oWorksheet.Cells(lngLastRow, 4) = oTask.Name
-        oWorksheet.Cells(lngLastRow, 5) = Round(oTask.TotalSlack / (8 * 60), 0)
-        oWorksheet.Cells(lngLastRow, 6) = oTask.RemainingDuration / (8 * 60)
-        oWorksheet.Cells(lngLastRow, 7) = Round(oTask.RemainingWork / 60, 0)
+        vRow = oWorksheet.Range(oWorksheet.Cells(lngLastRow, 1), oWorksheet.Cells(lngLastRow, lngLastCol))
         
-        oWorksheet.Cells(lngLastRow, 8) = FormatDateTime(oTask.BaselineStart, vbShortDate)
-        oWorksheet.Cells(lngLastRow, 9) = Round(oTask.StartVariance / (8 * 60), 0)
+        vRow(1, 1) = oTask.UniqueID
+        lngCol = 1
+        For Each vMyHeader In Split(strMyHeaders, ",")
+          If vMyHeader = "" Then Exit For
+          lngCol = lngCol + 1
+          vRow(1, lngCol) = oTask.GetField(FieldNameToFieldConstant(vMyHeader))
+        Next vMyHeader
+        lngMyHeaders = UBound(Split(strMyHeaders, ","))
+        vRow(1, 2 + lngMyHeaders) = oTask.Name
+        vRow(1, 3 + lngMyHeaders) = Round(oTask.TotalSlack / (8 * 60), 0)
+        vRow(1, 4 + lngMyHeaders) = oTask.RemainingDuration / (8 * 60)
+        vRow(1, 5 + lngMyHeaders) = Round(oTask.RemainingWork / 60, 0)
+        
+        vRow(1, 6 + lngMyHeaders) = FormatDateTime(oTask.BaselineStart, vbShortDate)
+        vRow(1, 7 + lngMyHeaders) = Round(oTask.StartVariance / (8 * 60), 0)
         If IsDate(oTask.ActualStart) Then
-          oWorksheet.Cells(lngLastRow, 10) = FormatDateTime(oTask.ActualStart, vbShortDate)
+          vRow(1, 8 + lngMyHeaders) = FormatDateTime(oTask.ActualStart, vbShortDate)
         End If
-        oWorksheet.Cells(lngLastRow, 11) = FormatDateTime(oTask.Start, vbShortDate)
+        vRow(1, 9 + lngMyHeaders) = FormatDateTime(oTask.Start, vbShortDate)
         
-        oWorksheet.Cells(lngLastRow, 12) = FormatDateTime(oTask.BaselineFinish, vbShortDate)
-        oWorksheet.Cells(lngLastRow, 13) = Round(oTask.FinishVariance / (8 * 60), 0)
+        vRow(1, 10 + lngMyHeaders) = FormatDateTime(oTask.BaselineFinish, vbShortDate)
+        vRow(1, 11 + lngMyHeaders) = Round(oTask.FinishVariance / (8 * 60), 0)
         If IsDate(oTask.ActualFinish) Then
-          oWorksheet.Cells(lngLastRow, 14) = FormatDateTime(oTask.ActualFinish, vbShortDate)
+          vRow(1, 12 + lngMyHeaders) = FormatDateTime(oTask.ActualFinish, vbShortDate)
         End If
-        oWorksheet.Cells(lngLastRow, 15) = FormatDateTime(oTask.Finish, vbShortDate)
+        vRow(1, 13 + lngMyHeaders) = FormatDateTime(oTask.Finish, vbShortDate)
         
-        oWorksheet.Cells(lngLastRow, 16) = oTask.GetField(FieldNameToFieldConstant("Task Status"))
-        
+        oWorksheet.Range(oWorksheet.Cells(lngLastRow, 1), oWorksheet.Cells(lngLastRow, lngLastCol)) = vRow
       End If
     End If
 next_task:
@@ -1004,8 +1058,8 @@ next_task:
   oListObject.HeaderRowRange.WrapText = True
   oListObject.TableStyle = ""
   oWorksheet.Columns.AutoFit
-  oListObject.ListColumns(5).Range.ColumnWidth = 10
-  For lngCol = 6 To 15
+  oListObject.ListColumns("TOTAL SLACK").Range.ColumnWidth = 10
+  For lngCol = 4 + lngMyHeaders To lngLastCol
     oListObject.ListColumns(lngCol).Range.ColumnWidth = 12
   Next lngCol
   oListObject.HeaderRowRange.EntireRow.AutoFit
@@ -1019,7 +1073,9 @@ next_task:
   oWorksheet.[A2].Value = FormatDateTime(dtStatus, vbShortDate)
   oWorksheet.Names.Add "STATUS_DATE", oWorksheet.[A2].Address
   
-  oListObject.ListColumns("WPM").Range.Copy oWorksheet.[A5]
+  'get field to summarize by
+  strSummary = Split(strMyHeaders, ",")(0)
+  oListObject.ListColumns(strSummary).Range.Copy oWorksheet.[A5]
   oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A1048576]).RemoveDuplicates Columns:=1, Header:=xlNo
   oWorksheet.Sort.SortFields.Clear
   oWorksheet.Sort.SortFields.Add2 key:=oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A6].End(xlDown)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
@@ -1044,12 +1100,12 @@ next_task:
   oListObject.Name = "BEI"
   
   'ACTUAL
-  oListObject.ListColumns("ES").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[WPM],RC1,Table1[START VARIANCE],""<0"",Table1[ACTUAL START],""<>"")"
-  oListObject.ListColumns("EF").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[WPM],RC1,Table1[FINISH VARIANCE],""<0"",Table1[ACTUAL FINISH],""<>"")"
-  oListObject.ListColumns("LS").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[WPM],RC1,Table1[START VARIANCE],"">0"",Table1[ACTUAL START],""<>"")"
-  oListObject.ListColumns("LF").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[WPM],RC1,Table1[FINISH VARIANCE],"">0"",Table1[ACTUAL FINISH],""<>"")"
-  oListObject.ListColumns("# BLF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[WPM],[@WPM],Table1[BASELINE FINISH],""<=" & Format(dtStatus, "mm/dd/yyyy") & """)"
-  oListObject.ListColumns("# AF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[WPM],[@WPM],Table1[ACTUAL FINISH],""<>"")"
+  oListObject.ListColumns("ES").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],""<0"",Table1[ACTUAL START],""<>"")"
+  oListObject.ListColumns("EF").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],""<0"",Table1[ACTUAL FINISH],""<>"")"
+  oListObject.ListColumns("LS").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],"">0"",Table1[ACTUAL START],""<>"")"
+  oListObject.ListColumns("LF").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],"">0"",Table1[ACTUAL FINISH],""<>"")"
+  oListObject.ListColumns("# BLF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],[@" & strSummary & "],Table1[BASELINE FINISH],""<=" & Format(dtStatus, "mm/dd/yyyy") & """)"
+  oListObject.ListColumns("# AF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],[@" & strSummary & "],Table1[ACTUAL FINISH],""<>"")"
   oListObject.ListColumns("BEI (Finishes)").DataBodyRange.FormulaR1C1 = "=[@['# AF]]/IF([@['# BLF]]=0,1,[@['# BLF]])"
   oListObject.ListColumns("BEI (Finishes)").DataBodyRange.Style = "Comma"
   oListObject.ShowTotals = True
@@ -1072,12 +1128,12 @@ next_task:
   oListObject.Range.Copy oWorksheet.Cells(oWorksheet.[A1048576].End(xlUp).Row + 3, 1)
   Set oListObject = oWorksheet.ListObjects(2)
   oListObject.Name = "PROJECTED"
-  oListObject.ListColumns("ES").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[WPM],RC1,Table1[START VARIANCE],""<0"",Table1[ACTUAL START],""="")"
-  oListObject.ListColumns("EF").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[WPM],RC1,Table1[FINISH VARIANCE],""<0"",Table1[ACTUAL FINISH],""="")"
-  oListObject.ListColumns("LS").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[WPM],RC1,Table1[START VARIANCE],"">0"",Table1[ACTUAL START],""="")"
-  oListObject.ListColumns("LF").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[WPM],RC1,Table1[FINISH VARIANCE],"">0"",Table1[ACTUAL FINISH],""="")"
+  oListObject.ListColumns("ES").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],""<0"",Table1[ACTUAL START],""="")"
+  oListObject.ListColumns("EF").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],""<0"",Table1[ACTUAL FINISH],""="")"
+  oListObject.ListColumns("LS").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],"">0"",Table1[ACTUAL START],""="")"
+  oListObject.ListColumns("LF").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],"">0"",Table1[ACTUAL FINISH],""="")"
   oListObject.ListColumns("# BLF").Name = "# TOTAL"
-  oListObject.ListColumns("# TOTAL").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[WPM],[@WPM])"
+  oListObject.ListColumns("# TOTAL").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],[@" & strSummary & "])"
   oListObject.ListColumns("# AF").Name = "% TOTAL"
   oListObject.ListColumns("% TOTAL").DataBodyRange.FormulaR1C1 = "=[@[LF]]/IF([@['# TOTAL]]=0,1,[@['# TOTAL]])"
   oListObject.ListColumns("% TOTAL").DataBodyRange.Style = "Comma"
@@ -1198,24 +1254,28 @@ next_task:
   
   'save the file
   'todo: user-defined locations for metrics output
-  strDir = ActiveProject.Path & "\Metrics\"
-  strDir = strDir & Format(dtStatus, "yyyy-mm-dd") & "\"
-  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
-  strFile = strDir & Replace(strProject, " ", "_") & "_IMS_EarlyLateStartsFinishes_" & Format(ActiveProject.StatusDate, "yyyy-mm-dd") & ".xlsx"
-  If Dir(strFile) <> vbNullString Then Kill strFile
+'  strDir = ActiveProject.Path & "\Metrics\"
+'  strDir = strDir & Format(dtStatus, "yyyy-mm-dd") & "\"
+'  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
+'  strFile = strDir & Replace(strProject, " ", "_") & "_IMS_EarlyLateStartsFinishes_" & Format(ActiveProject.StatusDate, "yyyy-mm-dd") & ".xlsx"
+'  If Dir(strFile) <> vbNullString Then Kill strFile
   oExcel.Calculation = xlCalculationAutomatic
   oExcel.ScreenUpdating = True
-  oWorkbook.SaveAs strFile, 51
-  oWorkbook.Close True
+  'oWorkbook.SaveAs strFile, 51
+  'oWorkbook.Close True
   
+  'capture BEI
+  Set oWorksheet = oWorkbook.Sheets("SUMMARY")
+  cptCaptureMetric strProject, dtStatus, "BEI", Round(oWorksheet.Range("BEI[[#Totals],[BEI (Finishes)]]").Value, 2)
   Application.StatusBar = "Complete."
+  DoEvents
   
-  If MsgBox("Complete. Open for review?", vbInformation + vbYesNo, "Late Starts and Finishes") = vbYes Then
-    oExcel.Workbooks.Open strFile
+'  If MsgBox("Complete. Open for review?", vbInformation + vbYesNo, "Late Starts and Finishes") = vbYes Then
+'    oExcel.Workbooks.Open strFile
     oExcel.Visible = True
     oExcel.ScreenUpdating = True
     Application.ActivateMicrosoftApp pjMicrosoftExcel
-  End If
+'  End If
 
 exit_here:
   On Error Resume Next
@@ -1434,6 +1494,9 @@ Sub cptExportMetricsData()
   'variants
   'dates
   
+  Application.StatusBar = "Exporting..."
+  DoEvents
+  
   strFile = cptDir & "\settings\cpt-metrics.adtg"
   If Dir(strFile) = vbNullString Then
     MsgBox strFile & " not found!", vbCritical + vbOKOnly, "File Not Found"
@@ -1452,7 +1515,7 @@ Sub cptExportMetricsData()
     If oExcel Is Nothing Then
       Set oExcel = CreateObject("Excel.Application")
     End If
-    oExcel.Visible = True
+    'oExcel.Visible = True
     Set oWorkbook = oExcel.Workbooks.Add
     Set oWorksheet = oWorkbook.Sheets(1)
     oWorksheet.Name = strProgram
@@ -1464,6 +1527,9 @@ Sub cptExportMetricsData()
     oExcel.ActiveWindow.Zoom = 85
     oWorksheet.Columns.AutoFit
     oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
+    Application.StatusBar = "Complete"
+    DoEvents
+    oExcel.Visible = True
     Application.ActivateMicrosoftApp pjMicrosoftExcel
     oExcel.WindowState = xlMaximized
   Else
@@ -1474,6 +1540,7 @@ Sub cptExportMetricsData()
   
 exit_here:
   On Error Resume Next
+  Application.StatusBar = ""
   Set oRecordset = Nothing
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
@@ -1510,6 +1577,8 @@ Sub cptGetEarnedSchedule()
   Dim strSQL As String
   Dim strFile As String
   'longs
+  Dim lngRow As Long
+  Dim lngAD As Long
   Dim lngDuration As Long
   Dim lngES As Long
   Dim lngLastRow As Long
@@ -1625,10 +1694,14 @@ next_assignment:
     Next oAssignment
 next_task:
     lngTask = lngTask + 1
-    'statusbar
+    Application.StatusBar = "Analyzing...(" & Format(lngTask / lngTasks, "0%") & ")"
+    DoEvents
   Next oTask
 
   Close #lngFile
+  
+  Application.StatusBar = "Building report..."
+  DoEvents
   
   Set oRecordset = CreateObject("ADODB.Recordset")
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & cptDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
@@ -1644,7 +1717,7 @@ next_task:
       If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
       If oExcel Is Nothing Then
         Set oExcel = CreateObject("Excel.Application")
-        oExcel.Visible = True
+        'oExcel.Visible = True
       End If
       Set oWorkbook = oExcel.Workbooks.Add
       Set oWorksheet = oWorkbook.Sheets(1)
@@ -1664,8 +1737,6 @@ next_task:
       oWorksheet.[C2].FormulaR1C1 = "=RC[-1]"
       lngLastRow = oWorksheet.[A1].End(xlDown).Row
       oWorksheet.Range(oWorksheet.Cells(3, 3), oWorksheet.Cells(lngLastRow, 3)).FormulaR1C1 = "=R[-1]C+RC[-1]"
-      Dim lngRow As Long
-      Dim lngAD As Long
       'find the status date/AD
       lngAD = CLng(oExcel.WorksheetFunction.Match(CLng(dtStatus), oWorksheet.[A:A], 1)) - 1
       oWorksheet.Cells(lngAD + 1, 1).Style = "Neutral"
@@ -1781,7 +1852,7 @@ next_task:
       oWorksheet.Cells(lngES + 16, 8) = "Using Calendar '" & ActiveProject.Calendar.Name & "'"
       
       'record the metric
-      cptCaptureMetric strProgram, CDate(dtStatus & " 05:00 PM"), "ES", CDate(oWorksheet.Cells(lngES + 16, 7).Value)
+      cptCaptureMetric strProgram, CDate(dtStatus & " 05:00 PM"), "ES", CDate(FormatDateTime(oWorksheet.Cells(lngES + 16, 7).Value, vbShortDate))
       'format the columns
       oWorksheet.Columns.AutoFit
       Set oRange = oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown))
@@ -1816,9 +1887,19 @@ next_task:
     End If
     .Close
   End With
-
+  
+  Application.StatusBar = "Complete."
+  DoEvents
+    
+  oWorksheet.Cells(lngES + 16, 7).Select
+  oExcel.Visible = True
+  oExcel.WindowState = xlMaximized
+  Application.ActivateMicrosoftApp pjMicrosoftExcel
+  
 exit_here:
   On Error Resume Next
+  Application.StatusBar = ""
+  DoEvents
   Kill cptDir & "\Schema.ini"
   Kill cptDir & "\EarnedSchedule.csv"
   Set oAssignment = Nothing
