@@ -211,6 +211,7 @@ Sub cptBlameReport()
   Dim strHeaders As String
   Dim strWeek1 As String
   'longs
+  Dim lngMin As Long
   Dim lngResponse As Long
   Dim lngMyHeaders As Long
   Dim lngCol As Long
@@ -236,6 +237,9 @@ Sub cptBlameReport()
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
+  Application.StatusBar = "Gettings saved settings..."
+  DoEvents
+  
   'todo: allow user to designate which previous data to use
   strWeek1 = cptGetSetting("AgeDates", "cboWeek1")
   If Len(strWeek1) = 0 Then
@@ -244,11 +248,16 @@ Sub cptBlameReport()
     GoTo exit_here
   End If
   
+  Application.StatusBar = "Getting custom fields..."
+  DoEvents
+  
 try_again:
   'get other fields
   strMyHeaders = cptGetSetting("Metrics", "txtMyHeaders")
   If Len(strMyHeaders) = 0 Then strMyHeaders = "CAM,WPCN,WPM,"
   strMyHeaders = InputBox("Include other Custom Fields? (enter a comma-separated list):", "The Blame Report", strMyHeaders)
+  Application.StatusBar = "Validating custom fields..."
+  DoEvents
   If Right(Trim(strMyHeaders), 1) <> "," Then strMyHeaders = Trim(strMyHeaders) & ","
   'validate strMyHeaders
   On Error Resume Next
@@ -276,13 +285,19 @@ try_again:
   lngStart1 = FieldNameToFieldConstant("Start" & lngField)
   lngDuration1 = FieldNameToFieldConstant("Duration" & lngField)
   lngFinish1 = FieldNameToFieldConstant("Finish" & lngField)
-    
+  
+  Application.StatusBar = "Getting Microsoft Excel..."
+  DoEvents
+  
   On Error Resume Next
-  Set oExcel = GetObject(, "Excel.Application")
+  'Set oExcel = GetObject(, "Excel.Application")
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If
+  
+  Application.StatusBar = "Creating Workbook..."
+  DoEvents
   
   Set oWorkbook = oExcel.Workbooks.Add
   oExcel.Calculation = xlCalculationManual
@@ -353,24 +368,18 @@ try_again:
     oWorksheet.Range(oWorksheet.Cells(lngLastRow, 1), oWorksheet.Cells(lngLastRow, lngLastCol)) = vRow
 next_task:
     lngTask = lngTask + 1
-    Application.StatusBar = Format(lngTask, "#,##0") & " / " & Format(lngTasks, "#,##0") & "...(" & Format(lngTask / lngTasks, "0%") & ")"
+    Application.StatusBar = "Analyzing..." & Format(lngTask, "#,##0") & " / " & Format(lngTasks, "#,##0") & "...(" & Format(lngTask / lngTasks, "0%") & ")"
     DoEvents
   Next oTask
+  
+  Application.StatusBar = "Formatting report..."
+  DoEvents
   
   oExcel.ActiveWindow.Zoom = 85
   oExcel.ActiveWindow.SplitRow = 1
   oExcel.ActiveWindow.SplitColumn = 0
   oExcel.ActiveWindow.FreezePanes = True
   Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlDown), oWorksheet.[A1].End(xlToRight)), , xlYes)
-  oListObject.Sort.SortFields.Clear
-  oListObject.Sort.SortFields.Add2 key:=oListObject.ListColumns("DURATION DELTA").DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-  With oListObject.Sort
-    .Header = xlYes
-    .MatchCase = False
-    .Orientation = xlTopToBottom
-    .SortMethod = xlPinYin
-    .Apply
-  End With
   oListObject.HeaderRowRange.Font.Bold = True
   oListObject.HeaderRowRange.HorizontalAlignment = xlLeft
   oListObject.TableStyle = ""
@@ -449,6 +458,9 @@ next_task:
   
   oWorksheet.Columns.AutoFit
   
+  Application.StatusBar = "Creating Header..."
+  DoEvents
+  
   oWorksheet.Rows(1).Insert
   oWorksheet.Rows(1).Insert
   oWorksheet.Rows(1).Insert
@@ -460,9 +472,35 @@ next_task:
   oWorksheet.[A3] = "Status Date: " & FormatDateTime(ActiveProject.StatusDate, vbShortDate)
   oExcel.ActiveWindow.DisplayGridLines = False
   oExcel.Calculation = xlCalculationAutomatic
+  
+  Application.StatusBar = "Determining worst offender..."
+  DoEvents
+  
+  lngMin = oExcel.WorksheetFunction.Min(oListObject.ListColumns("START DELTA").DataBodyRange, oListObject.ListColumns("DURATION DELTA").DataBodyRange, oListObject.ListColumns("FINISH DELTA").DataBodyRange)
+  For Each vColumn In Array("START DELTA", "DURATION DELTA", "FINISH DELTA")
+    If lngMin = oExcel.WorksheetFunction.Min(oListObject.ListColumns(vColumn).DataBodyRange) Then
+      oListObject.Sort.SortFields.Clear
+      oListObject.Sort.SortFields.Add2 key:=oListObject.ListColumns(vColumn).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add2 key:=oListObject.ListColumns("CURRENT " & Replace(vColumn, " DELTA", "")).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      With oListObject.Sort
+        .Header = xlYes
+        .MatchCase = False
+        .Orientation = xlTopToBottom
+        .SortMethod = xlPinYin
+        .Apply
+      End With
+      oWorksheet.Cells(oListObject.HeaderRowRange.Row, oListObject.ListColumns(vColumn).Range.Column).Select
+      Exit For
+    End If
+  Next vColumn
+  
+  Application.StatusBar = "Opening The Blame Report..."
+  DoEvents
+  
   oExcel.Visible = True
-  oExcel.WindowState = xlNormal
-  Application.StatusBar = "Complete"
+  oExcel.WindowState = xlMaximized
+  Application.StatusBar = "Complete."
+  DoEvents
   Application.ActivateMicrosoftApp pjMicrosoftExcel
   
 exit_here:
