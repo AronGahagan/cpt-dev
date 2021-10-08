@@ -459,7 +459,7 @@ skip_fields:
   End If
   DoEvents
   
-  OptionsViewEx displaysummarytasks:=True, displaynameindent:=True
+  OptionsViewEx displaysummaryTasks:=True, displaynameindent:=True
   If strStartingGroup = "No Group" Then
     Sort "ID", , , , , , False, True 'OutlineShowAllTasks won't work without this
   Else
@@ -1738,7 +1738,7 @@ try_again:
       Else
         Set oCompleted = oWorksheet.Application.Union(oCompleted, oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol)))
       End If
-      GoTo next_task
+      GoTo get_assignments
     End If
     'capture status formating:
     'tasks requiring status:
@@ -1853,12 +1853,29 @@ try_again:
     oWorksheet.Cells(lngRow, lngLastCol).NumberFormat = "General"
     oWorksheet.Cells(lngRow, lngLastCol).WrapText = True
     
+get_assignments:
+    
     If oTask.Assignments.Count > 0 And Not IsDate(oTask.ActualFinish) Then
       cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
     ElseIf IsDate(oTask.ActualFinish) Then
+      Dim oAssignment As Assignment
+      For Each oAssignment In oTask.Assignments
+        Set oAssignment = Nothing
+        On Error Resume Next
+        Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow + 1, 1))
+        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        If Not oAssignment Is Nothing Then
+          oWorksheet.Rows(lngRow + 1).EntireRow.Delete
+        End If
+      Next oAssignment
+      Set oAssignment = Nothing
       'todo: delete assignment rows for completed tasks
       'todo: ensure formula is correct
     End If
+    
+    oWorksheet.Cells(lngRow, lngETCCol).Value = Replace(oWorksheet.Cells(lngRow, lngETCCol).Value, "h", "")
+    oWorksheet.Cells(lngRow, lngETCCol - 1).Value = Replace(oWorksheet.Cells(lngRow, lngETCCol).Value, "h", "")
+    oWorksheet.Cells(lngRow, lngETCCol - 2).Value = Replace(oWorksheet.Cells(lngRow, lngETCCol).Value, "h", "")
     
     'todo: capture conditional formatting range(s)
     
@@ -1989,6 +2006,7 @@ next_task:
     oWorksheet.Cells(lngHeaderRow, lngLastCol + 2).PasteSpecial xlPasteFormats
     oWorksheet.Range(oWorksheet.Cells(lngHeaderRow + 1, lngLastCol + 2), oWorksheet.Cells(lngHeaderRow + 1, lngLastCol + 2).Offset(UBound(Split(strEVTList, ",")), 0)).Value = oWorksheet.Application.Transpose(Split(strEVTList, ","))
     oWorksheet.Columns(lngLastCol + 2).AutoFit
+    
   End If
   
   If blnConditionalFormats Then
@@ -2041,7 +2059,6 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   'dates
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
   lngIndent = Len(cptRegEx(oWorksheet.Cells(lngRow, lngNameCol).Value, "^\s*"))
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
   lngLastRow = oWorksheet.Cells(1048576, 1).End(xlUp).Row

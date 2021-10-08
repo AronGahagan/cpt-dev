@@ -775,8 +775,10 @@ Dim lngItem As Long
     End If
     TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Notes", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     ActiveWindow.TopPane.Activate
-    If ActiveProject.CurrentView <> "Gantt Chart" Then ViewApply Name:="Gantt Chart"
-    If ActiveProject.CurrentTable <> "cptStatusSheetImport Table" Then TableApply Name:="cptStatusSheetImport Table"
+    'If ActiveProject.CurrentView <> "Gantt Chart" Then ViewApply Name:="Gantt Chart"
+    ViewApply Name:="Gantt Chart"
+    'If ActiveProject.CurrentTable <> "cptStatusSheetImport Table" Then TableApply Name:="cptStatusSheetImport Table"
+    TableApply Name:="cptStatusSheetImport Table"
     'todo: reapply group?
     
     On Error Resume Next
@@ -788,14 +790,18 @@ Dim lngItem As Long
     End If
     ActiveWindow.BottomPane.Activate
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-    If ActiveProject.CurrentView <> "Task Usage" Then ViewApply "Task Usage"
-    If ActiveProject.CurrentTable <> "cptStatusSheetImportDetails Table" Then TableApply "cptStatusSheetImportDetails Table"
+    'If ActiveProject.CurrentView <> "Task Usage" Then ViewApply "Task Usage"
+    ViewApply "Task Usage"
+    'If ActiveProject.CurrentTable <> "cptStatusSheetImportDetails Table" Then TableApply "cptStatusSheetImportDetails Table"
+    TableApply "cptStatusSheetImportDetails Table"
     ActiveWindow.TopPane.Activate
   Else
     ActiveWindow.TopPane.Activate
-    If ActiveProject.CurrentView <> "Task Usage" Then ViewApply "Task Usage"
+    'If ActiveProject.CurrentView <> "Task Usage" Then ViewApply "Task Usage"
+    ViewApply "Task Usage"
     DoEvents
-    If ActiveProject.CurrentTable <> "cptStatusSheetImport Table" Then TableApply Name:="cptStatusSheetImport Table"
+    'If ActiveProject.CurrentTable <> "cptStatusSheetImport Table" Then TableApply Name:="cptStatusSheetImport Table"
+    TableApply Name:="cptStatusSheetImport Table"
     On Error Resume Next
     strBottomPaneViewName = ActiveWindow.BottomPane.View.Name
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
