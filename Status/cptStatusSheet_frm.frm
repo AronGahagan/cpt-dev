@@ -1016,6 +1016,7 @@ End Sub
 
 Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
   Dim dtStatus As Date, lngDiff As Long
+  If Me.ActiveControl.Name = "txtHideCompleteBefore" Then Exit Sub
   If IsDate(ActiveProject.StatusDate) Then
     dtStatus = FormatDateTime(CDate(Me.txtStatusDate), vbShortDate)
     If dtStatus <> CDate(ActiveProject.StatusDate) Then

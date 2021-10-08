@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
 '<cpt_version>v1.1.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowStatusSheetImport_frm()
@@ -35,6 +35,7 @@ Dim vField As Variant
 
   'populate comboboxes
   With cptStatusSheetImport_frm
+    .Caption = "Import Status Sheets (" & cptGetVersion("cptStatusSheetImport_frm") & ")"
     .cboAppendTo.Clear
     .cboAppendTo.AddItem "Bottom of Task Note"
     .cboAppendTo.AddItem "Top of Task Note"
@@ -141,18 +142,23 @@ Dim vField As Variant
     strAppendTo = cptGetSetting("StatusSheetImport", "cboAppendTo")
     If Len(strAppendTo) > 0 Then .cboAppendTo.Value = strAppendTo
     
-    'show the form
-    .Show False
-    'then refresh which view
+    'refresh which view
     strTaskUsage = cptGetSetting("StatusSheetImport", "optTaskUsage")
     If Len(strTaskUsage) > 0 Then
-      .optAbove = strTaskUsage = "above"
-      .optBelow = strTaskUsage = "below"
+      If strTaskUsage = "above" Then
+        .optAbove = True
+        blnTaskUsageBelow = False
+      ElseIf strTaskUsage = "below" Then
+        .optBelow = True
+        blnTaskUsageBelow = True
+      End If
     Else
       .optBelow = True
       blnTaskUsageBelow = True
     End If
-    
+    'show the form
+    .Show False
+    cptRefreshStatusImportTable blnTaskUsageBelow
 
   End With
   
@@ -417,10 +423,15 @@ next_task:
         lngEVCol = oWorksheet.Rows(lngHeaderRow).Find(what:="New EV%", lookat:=xlWhole).Column
         lngETCCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Revised ETC", lookat:=xlWhole).Column
         strNotesColTitle = cptGetSetting("StatusSheet", "txtNotesColTitle")
+        On Error Resume Next
         If Len(strNotesColTitle) > 0 Then
           lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(what:=strNotesColTitle, lookat:=xlWhole).Column
         Else
           lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Reason / Action / Impact", lookat:=xlWhole).Column
+        End If
+        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        If lngCommentsCol = 0 Then
+          lngCommentsCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
         End If
         'get last row
         lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row
@@ -764,8 +775,8 @@ Dim lngItem As Long
     End If
     TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Notes", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     ActiveWindow.TopPane.Activate
-    ViewApply Name:="Gantt Chart"
-    TableApply Name:="cptStatusSheetImport Table"
+    If ActiveProject.CurrentView <> "Gantt Chart" Then ViewApply Name:="Gantt Chart"
+    If ActiveProject.CurrentTable <> "cptStatusSheetImport Table" Then TableApply Name:="cptStatusSheetImport Table"
     'todo: reapply group?
     
     On Error Resume Next
@@ -774,17 +785,17 @@ Dim lngItem As Long
       Err.Clear
       Application.FormViewShow
       'Application.ToggleTaskDetails
-      ActiveWindow.BottomPane.Activate
     End If
+    ActiveWindow.BottomPane.Activate
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-    ViewApply "Task Usage"
-    TableApply "cptStatusSheetImportDetails Table"
+    If ActiveProject.CurrentView <> "Task Usage" Then ViewApply "Task Usage"
+    If ActiveProject.CurrentTable <> "cptStatusSheetImportDetails Table" Then TableApply "cptStatusSheetImportDetails Table"
     ActiveWindow.TopPane.Activate
   Else
     ActiveWindow.TopPane.Activate
-    ViewApply "Task Usage"
+    If ActiveProject.CurrentView <> "Task Usage" Then ViewApply "Task Usage"
     DoEvents
-    TableApply Name:="cptStatusSheetImport Table"
+    If ActiveProject.CurrentTable <> "cptStatusSheetImport Table" Then TableApply Name:="cptStatusSheetImport Table"
     On Error Resume Next
     strBottomPaneViewName = ActiveWindow.BottomPane.View.Name
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0

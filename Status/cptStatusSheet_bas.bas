@@ -108,6 +108,7 @@ Dim vFieldType As Variant
   Application.StatusBar = "Loading default settings..."
   DoEvents
   With cptStatusSheet_frm
+    .Caption = "Create Status Sheets (" & cptGetVersion("cptStatusSheet_frm") & ")"
     .lboFields.Clear
     .lboExport.Clear
     .cboEVT.Clear
@@ -277,6 +278,7 @@ skip_fields:
     Else
       .chkHide = False
     End If
+    .txtHideCompleteBefore.Enabled = .chkHide
     strCostTool = cptGetSetting("StatusSheet", "cboCostTool")
     If strCostTool <> "" Then .cboCostTool.Value = strCostTool
     If .cboCreate <> 0 Then
@@ -1853,6 +1855,9 @@ try_again:
     
     If oTask.Assignments.Count > 0 And Not IsDate(oTask.ActualFinish) Then
       cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
+    ElseIf IsDate(oTask.ActualFinish) Then
+      'todo: delete assignment rows for completed tasks
+      'todo: ensure formula is correct
     End If
     
     'todo: capture conditional formatting range(s)
@@ -2470,4 +2475,8 @@ err_here:
   Call cptHandleErr("cptStatusSheet_bas", "cptSaveStatusSheetSettings", Err, Erl)
   Resume exit_here
   
+End Sub
+
+Sub cptAdvanceStatusDate()
+  Application.ChangeStatusDate
 End Sub
