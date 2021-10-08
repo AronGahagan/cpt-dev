@@ -251,34 +251,8 @@ Sub cptBlameReport()
   Application.StatusBar = "Getting custom fields..."
   DoEvents
   
-try_again:
-  'get other fields
-  strMyHeaders = cptGetSetting("Metrics", "txtMyHeaders")
-  If Len(strMyHeaders) = 0 Then strMyHeaders = "CAM,WPCN,WPM,"
-  strMyHeaders = InputBox("Include other Custom Fields? (enter a comma-separated list):", "The Blame Report", strMyHeaders)
-  Application.StatusBar = "Validating custom fields..."
-  DoEvents
-  If Right(Trim(strMyHeaders), 1) <> "," Then strMyHeaders = Trim(strMyHeaders) & ","
-  'validate strMyHeaders
-  On Error Resume Next
-  For Each vMyHeader In Split(strMyHeaders, ",")
-    If vMyHeader = "" Then Exit For
-    Debug.Print FieldNameToFieldConstant(vMyHeader)
-    If Err.Number > 0 Then
-      lngResponse = MsgBox("Custom Field '" & vMyHeader & "' not found!" & vbCrLf & vbCrLf & "OK = skip; Cancel = try again", vbExclamation + vbOKCancel, "Invalid Field")
-      If lngResponse = vbCancel Then
-        Err.Clear
-        GoTo try_again
-      Else
-        Err.Clear
-        strMyHeaders = Replace(strMyHeaders, vMyHeader & ",", "")
-      End If
-    End If
-  Next vMyHeader
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
-  cptSaveSetting "Metrics", "txtMyHeaders", strMyHeaders
-  
+  strMyHeaders = cptGetMyHeaders("The Blame Report")
+    
   cptSpeed True
   
   lngField = CLng(cptRegEx(strWeek1, "[0-9]{1,}"))
