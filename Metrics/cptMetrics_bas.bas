@@ -1611,6 +1611,8 @@ Sub cptGetTrend_CEI()
     .Sort = "STATUS_DATE DESC"
     If .EOF Then
       MsgBox "No prior records found for " & strProgram & "..." & vbCrLf & vbCrLf & "Please open a previous version of this schedule and run Schedule > Status > Capture Week before processing.", vbExclamation + vbOKOnly, "No Data"
+      .Filter = 0
+      .Close
       GoTo exit_here
     End If
     .MoveFirst
@@ -1618,9 +1620,11 @@ Sub cptGetTrend_CEI()
     .Filter = 0
     .Close
   End With
+  Set oRecordset = Nothing
   
   'get latest date of cei from cpt-metrics.adtg
   strFile = cptDir & "\settings\cpt-metrics.adtg"
+  Set oRecordset = CreateObject("ADODB.Recordset")
   With oRecordset
     .Open strFile
     .Filter = "PROGRAM='" & strProgram & "'"
@@ -1643,7 +1647,12 @@ Sub cptGetTrend_CEI()
       .Close
       GoTo exit_here
     End If
+    .Close
   End With
+  Set oRecordset = Nothing
+  
+  'get custom headers
+  strMyHeaders = cptGetMyHeaders("CEI Trend")
   
   'get excel
   Application.StatusBar = "Getting Microsoft Excel..."
@@ -1676,8 +1685,6 @@ Sub cptGetTrend_CEI()
   oWorksheet.[A4].Font.Italic = True
   
   'set up table THIS_WEEK
-  strMyHeaders = cptGetMyHeaders("CEI Trend")
-  
   strHeaders = "UID,"
   strHeaders = strHeaders & strMyHeaders
   strHeaders = strHeaders & "TASK,FF,AF"
@@ -1688,6 +1695,7 @@ Sub cptGetTrend_CEI()
   oListObject.Name = "THIS_WEEK"
   oListObject.ShowTotals = True
   strFile = cptDir & "\settings\cpt-cei.adtg"
+  Set oRecordset = CreateObject("ADODB.Recordset")
   oRecordset.Open strFile
   If oRecordset.RecordCount > 0 Then
     oRecordset.Filter = "PROJECT='" & strProgram & "' AND STATUS_DATE=#" & FormatDateTime(dtLastWeek, vbGeneralDate) & "#"
@@ -1781,10 +1789,67 @@ next_record:
     .FormatConditions(1).StopIfTrue = False
   End With
       
-  'todo: set up table NEXT_WEEK
-
+  'set up table NEXT_WEEK
+  'update upcoming tasks list
+  Application.StatusBar = "Updating next week's tasks..."
+  DoEvents
+  
+  lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row + 3
+  oWorksheet.Cells(lngLastRow, 1).Value = "Tasks forecast to complete Next Week:"
+  oWorksheet.Cells(lngLastRow, 1).Font.Bold = True
+  oWorksheet.Cells(lngLastRow, 1).Font.Italic = True
+  lngLastRow = lngLastRow + 1
+  oListObject.HeaderRowRange.Copy oWorksheet.Cells(lngLastRow, 1)
+  
+  Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.Cells(lngLastRow, 1), oWorksheet.Cells(lngLastRow, 1).End(xlToRight)), , xlYes)
+  oListObject.ListColumns("AF").Delete
+  oListObject.TableStyle = ""
+  oListObject.Name = "NEXT_WEEK"
+  oListObject.ShowTotals = True
+  lngFF = 0
+  
+  dtThisWeek = ActiveProject.StatusDate
+  dtNextWeek = DateAdd("d", 7, dtThisWeek)
+  lngItems = ActiveProject.Tasks.Count
+  lngItem = 0
+  For Each oTask In ActiveProject.Tasks
+    If oTask Is Nothing Then GoTo next_task
+    If oTask.Summary Then GoTo next_task
+    If oTask.ExternalTask Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If oTask.Assignments.Count = 0 Then GoTo next_task 'todo: PMB tasks only? NDIA includes "Discrete, Milestones, and LOE" (and, presumably, SVTs and SM?)
+    If oTask.Finish > dtThisWeek And oTask.Finish <= dtNextWeek Then
+      lngFF = lngFF + 1
+      If lngFF = 1 And oListObject.ListRows.Count = 1 Then
+        Set oListRow = oListObject.ListRows(1)
+      Else
+        Set oListRow = oListObject.ListRows.Add(alwaysinsert:=True)
+      End If
+      oListRow.Range(1, 1) = oTask.UniqueID
+      lngCol = 1
+      For Each vHeader In Split(strMyHeaders, ",")
+        If vHeader = "" Then Exit For
+        lngCol = lngCol + 1
+        oListRow.Range(1, lngCol) = oTask.GetField(FieldNameToFieldConstant(vHeader))
+      Next vHeader
+      oListRow.Range(1, lngCol + 1) = oTask.Name
+      oListRow.Range(1, lngCol + 2) = oTask.Finish
+    End If
+next_task:
+    lngItem = lngItem + 1
+    Application.StatusBar = "Updating next week's tasks...(" & Format(lngItem / lngItems, "0%") & ")"
+    DoEvents
+  Next oTask
+  
+  If oListObject.ListRows.Count > 0 Then
+    oListObject.ListColumns("FF").DataBodyRange.NumberFormat = "m/d/yyyy"
+  Else
+    Set oListRow = oListObject.ListRows.Add
+    Set oListRow.Range(0, 3) = "<< there are no tasks forecast to complete next week >>"
+  End If
+  
   'format tables
-  For Each vTable In Array("THIS_WEEK") ', "NEXT_WEEK"
+  For Each vTable In Array("THIS_WEEK", "NEXT_WEEK")
     Set oListObject = oWorksheet.ListObjects(vTable)
     'clear formatting
     oListObject.TableStyle = ""
@@ -1853,9 +1918,9 @@ next_record:
     'sort by first custom field,FF or by only FF
     oListObject.Sort.SortFields.Clear
     If UBound(Split(strMyHeaders, ",")) > 0 Then
-      oListObject.Sort.SortFields.Add2 key:=Range("THIS_WEEK[" & Split(strMyHeaders, ",")(0) & "]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add2 key:=oWorksheet.Range("THIS_WEEK[" & Split(strMyHeaders, ",")(0) & "]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
     End If
-    oListObject.Sort.SortFields.Add2 key:=Range("THIS_WEEK[FF]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+    oListObject.Sort.SortFields.Add2 key:=oWorksheet.Range("THIS_WEEK[FF]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
     With oListObject.Sort
       .Header = xlYes
       .MatchCase = False
@@ -1864,12 +1929,13 @@ next_record:
       .Apply
     End With
     
+    oListObject.Range.Columns.AutoFit
     
   Next vTable
   
   'get trend
   Set oRange = oWorksheet.Cells(36, 6 + UBound(Split(strMyHeaders, ",")))
-  Set oRange = oWorksheet.Range(oRange, oRange.End(xlToRight))
+  Set oRange = oWorksheet.Range(oRange, oRange.Offset(0, 4))
   oRange = Split("STATUS_DATE,CEI,< 0.70,0.70 - 0.75,> 0.75", ",")
   Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oRange, , xlYes)
   oListObject.Name = "CEI_DATA"
@@ -1910,6 +1976,8 @@ next_record:
   oChartObject.Left = oWorksheet.Columns(6 + UBound(Split(strMyHeaders, ","))).Left
   oChartObject.Width = 800
   oChartObject.Height = 500
+  oChart.SetElement (msoElementLegendRight)
+  oChart.ChartArea.Format.TextFrame2.TextRange.Font.Size = 11
   oChart.SetElement (msoElementChartTitleAboveChart)
   oChart.ChartTitle.Text = strProgram & " IMS - CEI Trend" & vbCr & Format(dtThisWeek, "m/d/yyyy")
   oChart.ChartTitle.Characters.Font.Bold = False
@@ -1982,9 +2050,6 @@ next_record:
     .ForeColor.RGB = RGB(0, 176, 80)
     .Transparency = 0
   End With
-
-  oChart.ChartArea.Format.TextFrame2.TextRange.Font.Size = 11
-  oChart.SetElement (msoElementLegendRight)
   
   oChart.Axes(xlCategory).CategoryType = xlTimeScale
   oChart.Axes(xlCategory).MajorUnit = 7
@@ -1998,10 +2063,7 @@ next_record:
   End With
 
   'final cleanup
-  oWorksheet.Columns(4).HorizontalAlignment = xlCenter
-  oWorksheet.Columns(4).AutoFit
-  oWorksheet.Columns(5).HorizontalAlignment = xlCenter
-  oWorksheet.Columns(5).AutoFit
+  oWorksheet.[A2].Columns.AutoFit
   oWorksheet.[D3].Select
   
   Application.StatusBar = "Complete."
@@ -2020,7 +2082,9 @@ exit_here:
   Set oChartObject = Nothing
   Set oWorksheet = Nothing
   Set oListObject = Nothing
+  oExcel.Calculation = xlCalculationAutomatic
   Set oWorkbook = Nothing
+  oExcel.ScreenUpdating = True
   Set oExcel = Nothing
   Set oTask = Nothing
   If oRecordset.State Then oRecordset.Close
