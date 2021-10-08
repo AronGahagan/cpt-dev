@@ -623,7 +623,6 @@ exit_here:
 
   Exit Function
 err_here:
-  'Debug.Print Task.UniqueID & ": " & Task.Name
   Call cptHandleErr("cptMetrics_bas", "cptGetMetric", Err, Erl)
   Resume exit_here
 
@@ -632,6 +631,7 @@ End Function
 Sub cptShowMetricsSettings_frm(Optional blnModal As Boolean = False)
   'objects
   'strings
+  Dim strMyHeaders As String
   Dim strCustomName As String
   Dim strLOE As String
   Dim strLOEField As String
@@ -647,7 +647,7 @@ Sub cptShowMetricsSettings_frm(Optional blnModal As Boolean = False)
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   With cptMetricsSettings_frm
-  
+    .Caption = "cpt Metrics Settings (" & cptGetVersion("cptMetricsSettings_frm") & ")"
     .cboEVP.Clear
     .cboEVP.AddItem
     .cboEVP.List(.cboEVP.ListCount - 1, 0) = FieldNameToFieldConstant("Physical % Complete")
@@ -679,6 +679,8 @@ Sub cptShowMetricsSettings_frm(Optional blnModal As Boolean = False)
     If Len(strLOEField) > 0 Then .cboLOEField.Value = CLng(strLOEField)
     strLOE = cptGetSetting("Metrics", "txtLOE")
     If Len(strLOE) > 0 Then .txtLOE = strLOE
+    strMyHeaders = cptGetSetting("Metrics", "txtMyHeaders")
+    If Len(strMyHeaders) > 0 Then .txtMyHeaders = strMyHeaders
     If blnModal Then
       .Show
     Else
@@ -691,8 +693,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  'Call HandleErr("cptMetrics_bas", "cptShowMetricsSettings_frm", Err)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Call cptHandleErr("cptMetrics_bas", "cptShowMetricsSettings_frm", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -877,7 +878,6 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("focptMetrics_bas", "cptCaptureWeek", Err, Erl)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
 
@@ -952,7 +952,7 @@ Sub cptLateStartsFinishes()
   
 try_again:
   'get other fields
-  strMyHeaders = cptGetSetting("Metrics", "strMyHeaders")
+  strMyHeaders = cptGetSetting("Metrics", "txtMyHeaders")
   If Len(strMyHeaders) = 0 Then strMyHeaders = "CAM,WPCN,WPM,"
   vResponse = InputBox("At least one custom field is required." & vbCrLf & vbCrLf & "Enter a comma-separated list (BEI will be grouped by first item):", "Late Starts and Finishes", strMyHeaders)
   If StrPtr(vResponse) = 0 Then 'user hit cancel
@@ -1004,7 +1004,7 @@ try_again:
   oExcel.ScreenUpdating = False
   Set oWorksheet = oWorkbook.Sheets(1)
   oWorksheet.Name = "DETAILS"
-  cptSaveSetting "Metrics", "strMyHeaders", strMyHeaders
+  cptSaveSetting "Metrics", "txtMyHeaders", strMyHeaders
   
   strLOEField = cptGetSetting("Metrics", "cboLOEField")
   If Len(strLOEField) > 0 Then
@@ -1691,7 +1691,6 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptMetrics_bas", "cptGetTrend", Err, Erl)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
 
@@ -2194,6 +2193,7 @@ Sub cptShowMetricsData_frm()
       End If
       .MoveNext
     Loop
+    cptMetricsData_frm.Caption = "cpt Metrics Data (" & cptGetVersion("cptMetricsData_frm") & ")"
     cptMetricsData_frm.cboProgram.Value = strProgram
     cptMetricsData_frm.cboProgram.Locked = True 'todo: make cboProgram dynamic
     cptMetricsData_frm.cboProgram.Enabled = False 'todo: make cboProgram dynamic
