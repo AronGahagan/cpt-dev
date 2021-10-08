@@ -361,7 +361,6 @@ Dim dtStatus As Date, dtPrevious As Date
 next_record:
           .MoveNext
         Loop
-        'todo: notify user; prompt for list of FFs?
         strMsg = "CEI = Tasks completed in current period / Tasks forecasted to complete in current period" & vbCrLf & vbCrLf
         strMsg = strMsg & "CEI = " & lngAF & " / " & lngFF & vbCrLf
         strMsg = strMsg & "CEI = " & Round(lngAF / IIf(lngFF = 0, 1, lngFF), 2) & vbCrLf & vbCrLf
@@ -1563,6 +1562,7 @@ Sub cptGetTrend_CEI()
   'doubles
   'booleans
   'variants
+  Dim vHeader As Variant
   Dim vBanding As Variant
   Dim vBorder As Variant
   Dim vTable As Variant
@@ -1601,8 +1601,8 @@ Sub cptGetTrend_CEI()
     GoTo exit_here
   End If
   
-  'check for data and capture most previous status date
-  Application.StatusBar = "Fetching most previous Status Date for " & strProgram & "..."
+  'check for data and capture most previous status date in cpt-cei.adtg
+  Application.StatusBar = "Fetching most recent CEI status date for " & strProgram & "..."
   DoEvents
   Set oRecordset = CreateObject("ADODB.REcordset")
   With oRecordset
@@ -1619,7 +1619,31 @@ Sub cptGetTrend_CEI()
     .Close
   End With
   
-  'todo: handle disconnect between cpt-metrics latest status and cpt-cei latest status
+  'get latest date of cei from cpt-metrics.adtg
+  strFile = cptDir & "\settings\cpt-metrics.adtg"
+  With oRecordset
+    .Open strFile
+    .Filter = "PROGRAM='" & strProgram & "'"
+    .Sort = "STATUS_DATE DESC"
+    If .EOF Then
+      MsgBox "No metrics data found for " & strProgram & "..." & vbCrLf & vbCrLf & "Please run Schedule > Metrics > Current Execution Index (CEI)", vbExclamation + vbOKOnly, "No Data"
+      GoTo exit_here
+    End If
+    .MoveFirst
+    strMsg = "Current Status Date: " & FormatDateTime(dtThisWeek, vbShortDate) & vbCrLf & vbCrLf
+    strMsg = strMsg & "CEI last captured: " & FormatDateTime(.Fields("STATUS_DATE"), vbShortDate) & vbCrLf
+    strMsg = strMsg & "- this should match the Status Date. To run:" & vbCrLf
+    strMsg = strMsg & "> Schedule Metrics > Current Execution Index (CEI)" & vbCrLf & vbCrLf
+    strMsg = strMsg & "Previous Status Date: " & FormatDateTime(dtLastWeek, vbShortDate) & vbCrLf
+    strMsg = strMsg & "- this should match your most recent status period. To catch up, open archived versions of this IMS and run:" & vbCrLf
+    strMsg = strMsg & "> Schedule > Status > Capture Week" & vbCrLf & vbCrLf
+    strMsg = strMsg & "Ready to proceed?"
+    If MsgBox(strMsg, vbQuestion + vbYesNo, "Confirm") = vbNo Then
+      .Filter = 0
+      .Close
+      GoTo exit_here
+    End If
+  End With
   
   'get excel
   Application.StatusBar = "Getting Microsoft Excel..."
@@ -1828,8 +1852,8 @@ next_record:
     
     'sort by first custom field,FF or by only FF
     oListObject.Sort.SortFields.Clear
-    If UBound(Split(strMyHeader, ",")) > 0 Then
-      oListObject.Sort.SortFields.Add2 key:=Range("THIS_WEEK[" & Split(strMyHeader, ",")(0) & "]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+    If UBound(Split(strMyHeaders, ",")) > 0 Then
+      oListObject.Sort.SortFields.Add2 key:=Range("THIS_WEEK[" & Split(strMyHeaders, ",")(0) & "]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
     End If
     oListObject.Sort.SortFields.Add2 key:=Range("THIS_WEEK[FF]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
     With oListObject.Sort
