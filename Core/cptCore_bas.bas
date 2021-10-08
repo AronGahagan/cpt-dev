@@ -91,6 +91,17 @@ err_here:
 
 End Function
 
+Function cptGetVersion(strModule As String) As String
+  Dim vbComponent As Object, strVersion As String
+  Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
+  If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
+    strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
+    strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
+  End If
+  cptGetVersion = strVersion
+      
+End Function
+
 Function cptGetVersions() As String
 'requires reference: Microsoft Scripting Runtime
 Dim vbComponent As Object, strVersion As String
@@ -685,6 +696,7 @@ Sub cptShowResetAll_frm()
     End With
   End If
   
+  cptResetAll_frm.Caption = "How would you like to Reset All? (" & cptGetVersion("cptResetAll_frm") & ")"
   cptResetAll_frm.Show False
   
 exit_here:
@@ -727,9 +739,13 @@ Dim vCol As Variant
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   'update references needed before downloading updates
+  Application.StatusBar = "Updating VBA references..."
+  DoEvents
   Call cptSetReferences
 
   'todo: user should still be able to check currently installed versions
+  Application.StatusBar = "Confirming access to GitHub.com..."
+  DoEvents
   If Not cptInternetIsConnected Then
     MsgBox "You must be connected to the internet to perform updates.", vbInformation + vbOKOnly, "No Connection"
     GoTo exit_here
@@ -745,6 +761,8 @@ Dim vCol As Variant
   rstStatus.Open
   
   'get current versions
+  Application.StatusBar = "Fetching latest versions..."
+  DoEvents
   Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
   xmlDoc.async = False
   xmlDoc.validateOnParse = False
@@ -765,6 +783,8 @@ Dim vCol As Variant
   End If
 
   'get installed versions
+  Application.StatusBar = "Comparing installed versions..."
+  DoEvents
   blnUpdatesAreAvailable = False
   For Each vbComponent In ThisProject.VBProject.VBComponents
     'is the vbComponent one of ours?
@@ -789,6 +809,8 @@ Dim vCol As Variant
   rstStatus.MoveFirst
   rstStatus.Find "Module='cptUpgrades_frm'", , 1
   If cptVersionStatus(rstStatus(2), rstStatus(3)) <> "ok" Then
+    Application.StatusBar = "Automatically updating cptUpgrades_frm..."
+    DoEvents
     Call cptUpgrade(rstStatus(1) & "/cptUpgrades_frm.frm")
     rstStatus(3) = rstStatus(2)
     rstStatus.Update
@@ -816,6 +838,8 @@ Dim vCol As Variant
 
 
   'populate the listbox header
+  Application.StatusBar = "Preparing form..."
+  DoEvents
   lngItem = 0
   cptUpgrades_frm.lboHeader.AddItem
   For Each vCol In Array("Module", "Directory", "Current", "Installed", "Status", "Type")
@@ -855,6 +879,8 @@ Dim vCol As Variant
     cptUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
 next_lngItem:
     lngItem = lngItem + 1
+    Application.StatusBar = Application.StatusBar = "Preparing form...(" & Format(lngItem / rstStatus.RecordCount, "0%") & ")"
+    DoEvents
     rstStatus.MoveNext
   Loop
   
@@ -884,11 +910,14 @@ next_lngItem:
     cptUpgrades_frm.cboBranches.Clear
     cptUpgrades_frm.cboBranches.AddItem "<unavailable>"
   End If
-  
+  cptUpgrades_frm.Caption = "Installation Status (" & cptGetVersion("cptSaveLocal_frm") & ")"
+  Application.StatusBar = "Ready for user input..."
+  DoEvents
   cptUpgrades_frm.Show
 
 exit_here:
   On Error Resume Next
+  Application.StatusBar = ""
   If rstStatus.State Then rstStatus.Close
   Set rstStatus = Nothing
   Set REMatch = Nothing
@@ -1396,10 +1425,13 @@ Sub cptShowSettings_frm()
   Dim oStream As Scripting.TextStream
   Dim oFSO As Scripting.FileSystemObject
   'strings
+  Dim strSettingsFileNew As String
+  Dim strSettingsFile As String
   Dim strProgramAcronym As String
   Dim strFeature As String
   Dim strLine As String
   'longs
+  Dim lngFile As Long
   'integers
   'doubles
   'booleans
@@ -1414,6 +1446,11 @@ Sub cptShowSettings_frm()
     .Fields.Append "Setting", adVarChar, 255
     .Open
   End With
+  
+  strSettingsFile = cptDir & "\settings\cpt-settings.ini"
+  strSettingsFileNew = cptDir & "\settings\cpt-settings-temp.ini"
+  lngFile = FreeFile
+  Open strSettingsFileNew For Output As #lngFile
   
   With cptSettings_frm
     .lboFeatures.Clear
@@ -1430,16 +1467,25 @@ Sub cptShowSettings_frm()
       End If
     Loop
     oStream.Close
-    oRecordset.Sort = "Feature"
+    oRecordset.Sort = "Feature,Setting"
     oRecordset.MoveFirst
     Do While Not oRecordset.EOF
-      If oRecordset(1) = "" Then .lboFeatures.AddItem oRecordset(0)
+      If oRecordset(1) = "" Then
+        .lboFeatures.AddItem oRecordset(0)
+        Print #lngFile, "[" & oRecordset(0) & "]"
+      Else
+        Print #lngFile, oRecordset(1)
+      End If
       oRecordset.MoveNext
     Loop
+    Close #lngFile
+    If Dir(strSettingsFile) <> vbNullString Then Kill strSettingsFile
+    Name strSettingsFileNew As strSettingsFile
+    If Dir(strSettingsFileNew) <> vbNullString Then Kill strSettingsFileNew
     If Dir(cptDir & "\settings\cpt-settings.adtg") <> vbNullString Then Kill cptDir & "\settings\cpt-settings.adtg"
     oRecordset.Save cptDir & "\settings\cpt-settings.adtg", adPersistADTG
     oRecordset.Close
-    
+    .lblDir = strSettingsFile
     strProgramAcronym = cptGetProgramAcronym
     .txtProgramAcronym = strProgramAcronym
     If .lboFeatures.ListCount > 0 Then
@@ -1509,3 +1555,83 @@ End Function
 Sub cptOpenSettingsFile()
   Shell "notepad.exe '" & cptDir & "\settings\cpt-settings.ini" & "'"
 End Sub
+
+Function cptGetMyHeaders(strTitle As String, Optional blnRequired As Boolean = False) As String
+  'objects
+  'strings
+  Dim strMyHeaders As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vResponse As Variant
+  Dim vMyHeader As Variant
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+try_again:
+  'get other fields
+  strMyHeaders = cptGetSetting("Metrics", "txtMyHeaders")
+  If Len(strMyHeaders) = 0 Then strMyHeaders = "CAM,WPCN,WPM,"
+  If blnRequired Then
+    vResponse = InputBox("At least one custom field is required." & vbCrLf & vbCrLf & "Enter a comma-separated list:", strTitle, strMyHeaders)
+  Else
+    vResponse = InputBox("Include other Custom Fields? (enter a comma-separated list):", strTitle, strMyHeaders)
+  End If
+  
+  If StrPtr(vResponse) = 0 Then 'user hit cancel
+    strMyHeaders = ""
+    GoTo exit_here
+  ElseIf vResponse = "" Or Len(Replace(vResponse, ",", "")) = 0 Then 'user entered zero-value
+    If blnRequired Then
+      'nothing selected
+      If MsgBox("You must select at least one custom field. Try again?", vbQuestion + vbYesNo, "Field Required") = vbYes Then
+        GoTo try_again
+      Else
+        strMyHeaders = ""
+        GoTo exit_here
+      End If
+    Else
+      strMyHeaders = ""
+      GoTo exit_here
+    End If
+  ElseIf Len(vResponse) > 0 Then
+    strMyHeaders = CStr(vResponse)
+  End If
+
+  Application.StatusBar = "Validating custom fields..."
+  DoEvents
+  If Right(Trim(strMyHeaders), 1) <> "," Then strMyHeaders = Trim(strMyHeaders) & ","
+  'validate strMyHeaders
+  On Error Resume Next
+  For Each vMyHeader In Split(strMyHeaders, ",")
+    If vMyHeader = "" Then Exit For
+    Debug.Print FieldNameToFieldConstant(vMyHeader)
+    If Err.Number > 0 Then
+      vResponse = MsgBox("Custom Field '" & vMyHeader & "' not found!" & vbCrLf & vbCrLf & "OK = skip; Cancel = try again", vbExclamation + vbOKCancel, "Invalid Field")
+      If vResponse = vbCancel Then
+        Err.Clear
+        GoTo try_again
+      Else
+        Err.Clear
+        strMyHeaders = Replace(strMyHeaders, vMyHeader & ",", "")
+      End If
+    End If
+  Next vMyHeader
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  cptSaveSetting "Metrics", "txtMyHeaders", strMyHeaders
+
+  cptGetMyHeaders = strMyHeaders
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptGetMyHeaders()", Err, Erl)
+  Resume exit_here
+
+End Function

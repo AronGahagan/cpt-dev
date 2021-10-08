@@ -950,48 +950,9 @@ Sub cptLateStartsFinishes()
     End If
   End If
   
-try_again:
   'get other fields
-  strMyHeaders = cptGetSetting("Metrics", "txtMyHeaders")
-  If Len(strMyHeaders) = 0 Then strMyHeaders = "CAM,WPCN,WPM,"
-  vResponse = InputBox("At least one custom field is required." & vbCrLf & vbCrLf & "Enter a comma-separated list (BEI will be grouped by first item):", "Late Starts and Finishes", strMyHeaders)
-  If StrPtr(vResponse) = 0 Then 'user hit cancel
-    GoTo exit_here
-  ElseIf vResponse = "" Or Len(Replace(vResponse, ",", "")) = 0 Then 'user entered zer-value
-    'nothing selected
-    If MsgBox("You must select at least one custom field. Try again?", vbQuestion + vbYesNo, "Field Required") = vbYes Then
-      GoTo try_again
-    Else
-      GoTo exit_here
-    End If
-  ElseIf Len(vResponse) > 0 Then
-    strMyHeaders = CStr(vResponse)
-  End If
-  
-  If Right(Trim(strMyHeaders), 1) <> "," And Len(strMyHeaders) > 0 Then strMyHeaders = Trim(strMyHeaders) & ","
-  'validate strMyHeaders
-  On Error Resume Next
-  For Each vMyHeader In Split(strMyHeaders, ",")
-    If UBound(Split(strMyHeaders, ",")) = -1 And vMyHeader = "" Then
-      If MsgBox("You must select at least one custom field. Try again?", vbQuestion + vbYesNo, "Field Required") = vbYes Then
-        GoTo try_again
-      Else
-        GoTo exit_here
-      End If
-    End If
-    If vMyHeader = "" Then Exit For
-    Debug.Print FieldNameToFieldConstant(vMyHeader)
-    If Err.Number > 0 Then
-      lngResponse = MsgBox("Custom Field '" & vMyHeader & "' not found!" & vbCrLf & vbCrLf & "OK = skip; Cancel = try again", vbExclamation + vbOKCancel, "Invalid Field")
-      If lngResponse = vbCancel Then
-        Err.Clear
-        GoTo try_again
-      Else
-        Err.Clear
-        strMyHeaders = Replace(strMyHeaders, vMyHeader & ",", "")
-      End If
-    End If
-  Next vMyHeader
+  strMyHeaders = cptGetMyHeaders("BEI Trend", True)
+  If strMyHeaders = "" Then GoTo exit_here
   
   'get excel
   On Error Resume Next
@@ -1405,13 +1366,11 @@ Sub cptGetTrend_SPI()
 End Sub
 
 
-Sub cptGetSPIDetail(ByRef oWorkbook As Excel.Workbook, Optional strMyHeaders As String)
+Sub cptGetSPIDetail(ByRef oWorkbook As Excel.Workbook)
   'objects
   Dim oExcel As Excel.Application
   Dim oWorksheet As Excel.Worksheet
   Dim oListObject As Excel.ListObject
-  Dim oRange As Excel.Range
-  Dim oCell As Excel.Range
   Dim oTSV As TimeScaleValue
   Dim oTSVS As TimeScaleValues
   Dim oTasks As MSProject.Tasks
@@ -1419,9 +1378,11 @@ Sub cptGetSPIDetail(ByRef oWorkbook As Excel.Workbook, Optional strMyHeaders As 
   Dim oResource As MSProject.Resource
   Dim oAssignment As MSProject.Assignment
   'strings
+  Dim strMyHeaders As String
   Dim strLOE As String
   Dim strHeader As String
   'longs
+  Dim lngCol As Long
   Dim lngEVT As Long
   Dim lngEVP As Long
   Dim lngTask As Long
@@ -1441,8 +1402,13 @@ Sub cptGetSPIDetail(ByRef oWorkbook As Excel.Workbook, Optional strMyHeaders As 
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
+  Application.StatusBar = "Exporting SPI Detail..."
+  DoEvents
+  
   Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
   oWorksheet.Name = "SPI Details"
+  
+  strMyHeaders = cptGetMyHeaders("SPI Detail")
   
   strHeader = "UID,"
   strHeader = strHeader & strMyHeaders
@@ -1484,10 +1450,10 @@ next_assignment:
       lngLastRow = oWorksheet.Cells(1048576, 1).End(xlUp).Row + 1
       If dblBAC > 0 Then
         oWorksheet.Cells(lngLastRow, 1) = oTask.UniqueID
-        Dim lngCol As Long, strMyHeader As String
         lngCol = 1
-        If Len(strMyHeader) > 0 Then
-          For Each vHeader In Split(strMyHeader, ",")
+        If Len(strMyHeaders) > 0 Then
+          For Each vHeader In Split(strMyHeaders, ",")
+            If vHeader = "" Then Exit For
             lngCol = lngCol + 1
             oWorksheet.Cells(lngLastRow, lngCol) = oTask.GetField(FieldNameToFieldConstant(vHeader))
           Next vHeader
@@ -1503,6 +1469,9 @@ next_task:
     Application.StatusBar = "Exporting SPI Detail..." & Format(lngTask, "#,##0") & "/" & Format(lngTasks, "#,##0") & " (" & Format(lngTask / lngTasks, "0%") & ")"
     DoEvents
   Next oTask
+  
+  Application.StatusBar = "Formatting SPI Detail..."
+  DoEvents
   
   oWorkbook.Application.ActiveWindow.Zoom = 85
   oWorkbook.Application.ActiveWindow.SplitRow = 1
@@ -1529,10 +1498,11 @@ next_task:
   oListObject.Range.Columns.AutoFit
   oWorksheet.[A1].End(xlToRight).End(xlDown).Select
 
+  Application.StatusBar = "Export of SPI Detail complete."
+
 exit_here:
   On Error Resume Next
-  Set oCell = Nothing
-  Set oRange = Nothing
+  Application.StatusBar = ""
   Set oListObject = Nothing
   Set oWorksheet = Nothing
   Set oExcel = Nothing
@@ -1682,11 +1652,7 @@ Sub cptGetTrend_CEI()
   oWorksheet.[A4].Font.Italic = True
   
   'set up table THIS_WEEK
-  strMyHeaders = cptGetSetting("Metrics", "txtMyHeaders")
-  strMyHeaders = InputBox("Include Custom Fields?", "CEI Trend", strMyHeaders)
-  If Right(strMyHeaders, 1) <> "," Then strMyHeaders = strMyHeaders & ","
-  'todo: validate headers
-  'todo: make cptGetMyHeaders and use a form?
+  strMyHeaders = cptGetMyHeaders("CEI Trend")
   
   strHeaders = "UID,"
   strHeaders = strHeaders & strMyHeaders
