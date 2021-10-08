@@ -45,6 +45,7 @@ Sub cptShowAgeDates_frm()
   If Len(strSetting) > 0 Then lngFF = CLng(strSetting) Else lngFF = 0
   
   With cptAgeDates_frm
+    .Caption = "Age Dates (" & cptGetVersion("cptAgeDates_frm") & ")"
     .lblStatus = "(" & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & ")"
     .cboWeeks.Clear
     For lngWeek = 1 To 10
@@ -235,7 +236,7 @@ Sub cptBlameReport()
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  'todo: prompt user for which previous to use - offer up list in cptSettings
+  'todo: allow user to designate which previous data to use
   strWeek1 = cptGetSetting("AgeDates", "cboWeek1")
   If Len(strWeek1) = 0 Then
     MsgBox "Please designate fields and Age Dates before running The Blame Report.", vbExclamation + vbOKOnly, "The Blame Report"
@@ -245,7 +246,7 @@ Sub cptBlameReport()
   
 try_again:
   'get other fields
-  strMyHeaders = cptGetSetting("AgeDates", "strMyHeaders")
+  strMyHeaders = cptGetSetting("Metrics", "txtMyHeaders")
   If Len(strMyHeaders) = 0 Then strMyHeaders = "CAM,WPCN,WPM,"
   strMyHeaders = InputBox("Include other Custom Fields? (enter a comma-separated list):", "The Blame Report", strMyHeaders)
   If Right(Trim(strMyHeaders), 1) <> "," Then strMyHeaders = Trim(strMyHeaders) & ","
@@ -267,7 +268,7 @@ try_again:
   Next vMyHeader
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  cptSaveSetting "AgeDates", "strMyHeaders", strMyHeaders
+  cptSaveSetting "Metrics", "txtMyHeaders", strMyHeaders
   
   cptSpeed True
   
@@ -305,7 +306,7 @@ try_again:
     For Each vMyHeader In Split(strMyHeaders, ",")
       If vMyHeader = "" Then Exit For
       lngCol = lngCol + 1
-      vRow(1, lngCol) = oTask.GetField(FieldNameToFieldConstant(oWorksheet.Cells(1, lngCol).Value))
+      vRow(1, lngCol) = oTask.GetField(FieldNameToFieldConstant(vMyHeader))
     Next
     lngMyHeaders = UBound(Split(strMyHeaders, ","))
     vRow(1, 2 + lngMyHeaders) = oTask.Name
