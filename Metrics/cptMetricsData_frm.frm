@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptMetricsData_frm 
    Caption         =   "cpt Metrics Data"
-   ClientHeight    =   6120
+   ClientHeight    =   6420
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   10605
+   ClientWidth     =   11085
    OleObjectBlob   =   "cptMetricsData_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End

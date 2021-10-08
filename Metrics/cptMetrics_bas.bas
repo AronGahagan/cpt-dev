@@ -2885,6 +2885,7 @@ Sub cptShowMetricsData_frm()
       .MoveNext
     Loop
     cptMetricsData_frm.Caption = "cpt Metrics Data (" & cptGetVersion("cptMetricsData_frm") & ")"
+    cptMetricsData_frm.lblDir.Caption = strFile
     cptMetricsData_frm.cboProgram.Value = strProgram
     cptMetricsData_frm.cboProgram.Locked = True 'todo: make cboProgram dynamic
     cptMetricsData_frm.cboProgram.Enabled = False 'todo: make cboProgram dynamic
