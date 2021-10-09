@@ -260,6 +260,8 @@ Dim strAbout As String
   'cptAbout_frm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR
   'cptAbout_frm.lblScoreBoard.Caption = "t0 : b5" 'EWR > NAS
   cptAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR
+  
+  cptAbout_frm.Caption = "The ClearPlan Toolbar - " & cptGetVersion("cptAbout_frm")
   cptAbout_frm.Show '<issue19>
 
 exit_here:

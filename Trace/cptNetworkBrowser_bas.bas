@@ -39,6 +39,7 @@ Sub cptShowNetworkBrowser_frm()
   Call cptStartEvents
   Call cptShowPreds
   With cptNetworkBrowser_frm
+    .Caption = "Network Browser (" & cptGetVersion("cptNetworkBrowser_frm") & ")"
     .tglTrace = False
     .tglTrace.Caption = "Jump"
     .lboPredecessors.MultiSelect = fmMultiSelectSingle
@@ -271,6 +272,7 @@ Sub cptMarkSelected()
   End If
   If ActiveWindow.TopPane.View.Name = "Network Diagram" Then
     'todo: call cptFilterReapply
+    'todo: "Highlight Marked tasks in the current view?"
     cptSpeed True
     FilterApply "All Tasks"
     FilterApply "Marked"
@@ -366,7 +368,7 @@ Sub cptHistoryDoubleClick()
       End If
       If MsgBox("Task is hidden - remove filters and show it?", vbQuestion + vbYesNo, "Confirm Apocalypse") = vbYes Then
         FilterClear
-        OptionsViewEx displaysummarytasks:=True
+        OptionsViewEx displaysummaryTasks:=True
         On Error Resume Next
         If Not OutlineShowAllTasks Then
           If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then

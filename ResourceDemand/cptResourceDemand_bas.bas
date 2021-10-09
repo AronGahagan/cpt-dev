@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.3.3</cpt_version>
+'<cpt_version>v1.3.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -155,7 +155,7 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
     FilterClear
     GroupClear
     SelectAll
-    OptionsViewEx displaysummarytasks:=True
+    OptionsViewEx displaysummaryTasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         Sort "ID", , , , , , False, True
@@ -916,6 +916,7 @@ next_saved_field:
     End With
   End If
   
+  cptResourceDemand_frm.Caption = "Export Resource Demand (" & cptGetVersion("cptResourceDemand_frm") & ")"
   cptResourceDemand_frm.Show False
 
   If Len(strMissing) > 0 Then

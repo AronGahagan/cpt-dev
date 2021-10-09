@@ -441,7 +441,7 @@ Dim lngItem As Long
       lngItem = lngItem + 1
     Next oTask
   End If
-
+  cptText_frm.Caption = "Advanced Text Tools (" & cptGetVersion("cptText_frm") & ")"
   Call cptStartEvents
   cptText_frm.Show
   

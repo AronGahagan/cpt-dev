@@ -7,6 +7,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = False
 Sub cptShowSaveMarked_frm()
   'objects
   'strings
+  Dim strProgram As String
   'longs
   'integers
   'doubles
@@ -17,6 +18,14 @@ Sub cptShowSaveMarked_frm()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   Call cptUpdateMarked
+  cptSaveMarked_frm.Caption = "Import Marked (" & cptGetVersion("cptSaveMarked_frm") & ")"
+  strProgram = cptGetProgramAcronym
+  If Len(strProgram) > 0 Then
+    cptSaveMarked_frm.cboProjects.AddItem strProgram
+    cptSaveMarked_frm.cboProjects.Value = strProgram
+    cptSaveMarked_frm.cboProjects.Locked = True
+    cptSaveMarked_frm.cboProjects.Enabled = False
+  End If
   cptSaveMarked_frm.Show False
 
 exit_here:

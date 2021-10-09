@@ -441,6 +441,7 @@ Sub cptShowDataDictionary_frm()
   cptDataDictionary_frm.lboCustomFields.Clear
   Call cptRefreshDictionary
   cptDataDictionary_frm.txtFilter.SetFocus
+  cptDataDictionary_frm.Caption = "IMS Data Dictionary (" & cptGetVersion("cptDataDictionary_frm") & ")"
   cptDataDictionary_frm.Show
   
 exit_here:

@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.6</cpt_version>
+'<cpt_version>v1.1.7</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -99,7 +99,7 @@ Private Sub lboFilter_Click()
         If MsgBox("Task " & strField & " " & lngUID & " is currently hidden. Would you like to remove all filters, show summary tasks, and show all tasks in order to find it?", vbQuestion + vbYesNo, "Reset View?") = vbYes Then
           ScreenUpdating = False
           FilterClear
-          OptionsViewEx displaysummarytasks:=True
+          OptionsViewEx displaysummaryTasks:=True
           SelectAll
           On Error Resume Next
           If Not OutlineShowAllTasks Then
@@ -120,7 +120,7 @@ Private Sub lboFilter_Click()
         If MsgBox("Task " & strField & " " & lngUID & " is currently hidden. Would you like to remove all filters, show summary tasks, and show all tasks in order to find it?", vbQuestion + vbYesNo, "Reset View?") = vbYes Then
           ScreenUpdating = False
           FilterClear
-          OptionsViewEx displaysummarytasks:=True
+          OptionsViewEx displaysummaryTasks:=True
           SelectAll
           On Error Resume Next
           If Not OutlineShowAllTasks Then
