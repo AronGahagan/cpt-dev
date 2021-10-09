@@ -6,7 +6,7 @@ Option Explicit
 #Else '<issue53>
   Declare Function GetTickCount Lib "kernel32" () As Long
 #End If '<issue53>
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 Private strStartingViewTopPane As String
