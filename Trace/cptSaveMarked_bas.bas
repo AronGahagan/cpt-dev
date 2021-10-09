@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptSaveMarked_bas"
-'<cpt_version>v1.0.3</cpt_version>
+'<cpt_version>v1.0.4</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowSaveMarked_frm()
@@ -32,6 +32,7 @@ Sub cptUpdateMarked(Optional strFilter As String)
   'objects
   Dim rstMarked As Object 'ADODB.Recordset 'Object
   'strings
+  Dim strProject As String
   Dim strMarked As String
   'longs
   Dim lngItem As Long
@@ -42,6 +43,11 @@ Sub cptUpdateMarked(Optional strFilter As String)
   'dates
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  strProject = cptGetProgramAcronym
+  If Len(strProject) = 0 Then
+    MsgBox "Program Acronym is required for this feature.", vbExclamation + vbOKOnly, "Program Acronym Needed"
+    GoTo exit_here
+  End If
   
   'clear listboxes and reset headers
   With cptSaveMarked_frm
@@ -59,6 +65,7 @@ Sub cptUpdateMarked(Optional strFilter As String)
   End With
   
   'get list of marked sets
+  'todo: filter for where PROJECT=cptGetProgramAcronym?
   strMarked = cptDir & "\cpt-marked.adtg"
   If Dir(strMarked) = vbNullString Then
     MsgBox "No marked tasks saved.", vbCritical + vbOKOnly, "Nada"
@@ -69,9 +76,9 @@ Sub cptUpdateMarked(Optional strFilter As String)
     .Open strMarked
     .Sort = "TSTAMP DESC"
     If Len(strFilter) > 0 Then
-      .Filter = "DESCRIPTION Like '*" & strFilter & "*'"
+      .Filter = "DESCRIPTION Like '*" & strFilter & "*' AND PROJECT_ID='" & strProject & "'"
     Else
-      .Filter = 0
+      .Filter = "PROJECT_ID='" & strProject & "'"
     End If
     If .RecordCount > 0 Then
       .MoveFirst
@@ -144,25 +151,19 @@ Sub cptSaveMarked()
   End If
   If rstMarked.State <> 1 Then rstMarked.Open strMarked
   
-  'todo: launch a form to capture
-  If Application.Version < 12 Then
-    strGUID = ActiveProject.DatabaseProjectUniqueID
-  Else
-    strGUID = ActiveProject.GetServerProjectGuid
-  End If
-  'todo: on the form, display list of current project ids to choose from in listbox
-  strProject = InputBox("Enter a Project ID:", "Project ID")
+  strProject = cptGetProgramAcronym
   If Len(strProject) = 0 Then
-    MsgBox "No project id; nothing saved.", vbExclamation + vbOKOnly
+    MsgBox "You must set a program acronym to use this feature.", vbCritical + vbOKOnly, "Program Acronym Needed"
     GoTo exit_here
   End If
+
   strDescription = InputBox("Describe this capture:", "Save Marked")
   If Len(strDescription) = 0 Then
     MsgBox "No description; nothing saved.", vbExclamation + vbOKOnly
     GoTo exit_here
   End If
   dtTimestamp = Now()
-  rstMarked.AddNew Array(0, 1, 2, 3), Array(strGUID, dtTimestamp, strProject, strDescription)
+  rstMarked.AddNew Array(1, 2, 3), Array(dtTimestamp, strProject, strDescription)
   rstMarked.Update
   rstMarked.Save
   rstMarked.Close
@@ -205,76 +206,3 @@ err_here:
   Call cptHandleErr("cptNetworkBrowser_bas", "cptSaveMarked", Err, Erl)
   Resume exit_here
 End Sub
-
-Sub cptImportMarked()
-  'objects
-  Dim rstSaved As Object 'ADODB.Recordset 'Object
-  'strings
-  Dim strSaved As String
-  'longs
-  Dim lngResponse As Long
-  'integers
-  'doubles
-  'booleans
-  'variants
-  'dates
-  
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  strSaved = cptDir & "\cpt-marked.adtg"
-  If Dir(strSaved) = vbNullString Then
-    MsgBox "No marked tasks saved.", vbCritical + vbOKOnly, "Nada"
-    GoTo exit_here
-  End If
-  Set rstSaved = CreateObject("ADODB.Recordset")
-  With rstSaved
-    .Open strSaved
-    If .RecordCount > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        Debug.Print .GetString(adClipString, , ",", vbCrLf, vbNullString)
-        '.MoveNext
-      Loop
-    End If
-    .Close
-  End With
-  
-  strSaved = cptDir & "\cpt-marked-details.adtg"
-  If Dir(strSaved) = vbNullString Then
-    MsgBox "No marked task details found!", vbCritical + vbOKOnly, "Nada"
-    GoTo exit_here
-  End If
-  'todo: move this to an import button on the form
-  lngResponse = MsgBox("Would you like to save your currently marked tasks before import?", vbQuestion + vbYesNo, "Confirm Overwrite")
-  If lngResponse = vbCancel Then
-    GoTo exit_here
-  ElseIf lngResponse = vbYes Then
-    Call cptSaveMarked
-  ElseIf lngResponse = vbNo Then
-    GoTo exit_here
-  End If
-  'todo: form has combobox of project ids; selecting filters marked setes
-  With rstSaved
-    .Open strSaved
-    If .RecordCount > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        Debug.Print .GetString(adClipString, , ",", vbCrLf, vbNullString)
-        '.MoveNext
-      Loop
-    End If
-    .Close
-  End With
-  
-exit_here:
-  On Error Resume Next
-  If rstSaved.State = 1 Then rstSaved.Close
-  Set rstSaved = Nothing
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptNetworkBrowser_bas", "cptImportMarked", Err, Erl)
-  Resume exit_here
-End Sub
-
-
