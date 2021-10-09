@@ -8,6 +8,20 @@
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
+		<Name>cptAgeDates_bas</Name>
+		<FileName>cptAgeDates_bas.bas</FileName>
+		<Version>v1.0.0</Version>
+		<Type>1</Type>
+		<Directory>Status</Directory>
+	</Module>
+	<Module>
+		<Name>cptAgeDates_frm</Name>
+		<FileName>cptAgeDates_frm.frm</FileName>
+		<Version>v1.0.0</Version>
+		<Type>3</Type>
+		<Directory>Status</Directory>
+	</Module>
+	<Module>
 		<Name>cptBackbone_bas</Name>
 		<FileName>cptBackbone_bas.bas</FileName>
 		<Version>v1.0.11</Version>
@@ -234,7 +248,7 @@
 	<Module>
 		<Name>cptSetup_bas</Name>
 		<FileName>cptSetup_bas.bas</FileName>
-		<Version>v1.5.5</Version>
+		<Version>v1.5.6</Version>
 		<Type>1</Type>
 		<Directory></Directory>
 	</Module>
