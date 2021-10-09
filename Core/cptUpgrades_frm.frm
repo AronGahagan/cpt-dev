@@ -13,10 +13,13 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.5.1</cpt_version>
+'<cpt_version>v1.5.2</cpt_version> 'DO NOT BUMP THE VERSION WHILE DEVELOPING OR IT WILL GET OVERWRITTEN NEXT TIME YOU OPEN THE FORM
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+'===== IMPORTANT =====
+'ALL CODE IN THIS MODULE MUST BE SELF-CONTAINED
+'===== IMPORTANT =====
 
 Private Sub cboBranches_Change()
   'objects
@@ -41,7 +44,7 @@ Private Sub cboBranches_Change()
   'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
+  If Not cptUpgrades_frm.Visible Then Exit Sub
   'set up the recordset
   Set rstStatus = CreateObject("ADODB.Recordset")
   rstStatus.Fields.Append "Module", 200, 200
@@ -146,7 +149,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptUpgrades_frm", "cboBranches_Change", Err, Erl)
+  Call cptHandleErrUpgrade("cptUpgrades_frm", "cboBranches_Change", err, Erl)
   Resume exit_here
 End Sub
 
@@ -168,12 +171,13 @@ Dim lngItem As Long
 End Sub
 
 Private Sub cmdUpgradeSelected_Click()
+'do not call out of this module
 'objects
 Dim rstCode As Object 'ADODB.Recordset
 Dim cmCptThisProject As Object 'VBCodeModule
 Dim cmThisProject As Object 'VBCodeModule
 Dim Project As Object
-Dim vbComponent As Object
+Dim vbComponent As Object 'vbComponent
 Dim xmlHttpDoc As Object
 Dim oStream As Object 'ADODB.Stream
 'strings
@@ -205,9 +209,10 @@ Dim vEvent As Variant
         GoTo exit_here
       End If '</issue33>
       
-      Me.lboModules.List(lngItem, 3) = "<installing...>"
+      Me.lboModules.List(lngItem, 4) = "<installing...>"
 
       strModule = Me.lboModules.List(lngItem, 0)
+      Application.StatusBar = "installing " & strModule & "..."
 
       'get the module name
       'get the repo directory
@@ -235,8 +240,8 @@ get_frx:
         oStream.Open
         oStream.Type = 1 'adTypeBinary
         oStream.Write xmlHttpDoc.responseBody
-        If Dir(cptDir & "\" & strFileName) <> vbNullString Then Kill cptDir & "\" & strFileName
-        oStream.SaveToFile cptDir & "\" & strFileName
+        If Dir(cptDirUpgrade & "\" & strFileName) <> vbNullString Then Kill cptDirUpgrade & "\" & strFileName
+        oStream.SaveToFile cptDirUpgrade & "\" & strFileName
         oStream.Close
       Else
         MsgBox "Download failed. Please contact cpt@ClearPlanConsulting.com for help.", vbCritical + vbOKOnly, "XML Error"
@@ -253,15 +258,19 @@ get_frx:
       '<issue15> added
       If strModule = "ThisProject" Then GoTo next_module 'handle separately </issue25>
 
-      If cptModuleExists(strModule) Then
+      If cptModuleExistsUpgrade(strModule) Then
         '<issue19>
         Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
-        vbComponent.Name = "remove_" & Format(Now, "hhnnss")
+        Dim lngCounter As Long
+        lngCounter = lngCounter + 1
+        Dim strComponentName As String
+        strComponentName = "remove" & lngCounter & Format(Now, "hhnnss")
+        vbComponent.Name = strComponentName
         DoEvents
-        ThisProject.VBProject.VBComponents.Remove vbComponent 'ThisProject.VBProject.VBComponents(strModule)
+        ThisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(strModule)
         DoEvents '</issue19>
       End If
-      ThisProject.VBProject.VBComponents.Import cptDir & "\" & strFileName
+      ThisProject.VBProject.VBComponents.Import cptDirUpgrade & "\" & strFileName
       
       '<issue24> remove the whitespace added by VBE import/export
       With ThisProject.VBProject.VBComponents(strModule).CodeModule
@@ -278,7 +287,7 @@ next_module:     '</issue25>
 
   '<issue25> added
   'update ThisProject
-  strFileName = cptDir & "\ThisProject.cls"
+  strFileName = cptDirUpgrade & "\ThisProject.cls"
   If Dir(strFileName) <> vbNullString Then 'the file was downloaded, proceed
 
     'notify user that modifications are about to be made to the ThisProject module
@@ -319,7 +328,7 @@ next_module:     '</issue25>
         rstCode.Update
       Next vEvent
     End With
-    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
+    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
     '<issue19> added
     DoEvents '</issue19>
 
@@ -374,7 +383,7 @@ next_module:     '</issue25>
   strMsg = strMsg + vbCrLf & "</mso:ribbon>"
   strMsg = strMsg + vbCrLf & "</mso:customUI>"
   ActiveProject.SetCustomUI (strMsg)
-
+  
 exit_here:
   On Error Resume Next
   If rstCode.State Then rstCode.Close
@@ -389,7 +398,7 @@ exit_here:
   Set oStream = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptUpgrades_frm", "cmdUpdate_Click", Err, Erl)
+  Call cptHandleErrUpgrade("cptUpgrades_frm", "cmdUpdate_Click", err, Erl)
   Me.lboModules.List(lngItem - 1, 3) = "<error>" '</issue25>
   Resume exit_here
 
@@ -411,13 +420,81 @@ Private Sub lblURL_Click()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
+  Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
 
 exit_here:
   On Error Resume Next
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptUpgrades_frm", "lblURL_Click", Err, Erl)
+  Call cptHandleErrUpgrade("cptUpgrades_frm", "lblURL_Click", err, Erl)
   Resume exit_here
 End Sub
+
+Private Function cptDirUpgrade() As String
+Dim strPath As String
+
+  'confirm existence of cpt settings and backup modules file
+
+  'strPath = ThisProject.FullName
+  'strPath = Left(strPath, InStrRev(strPath, "MS Project\") - 1 + Len("MS Project\"))
+
+  strPath = Environ("USERPROFILE")
+  strPath = strPath & "\cpt-backup"
+  If Dir(strPath, vbDirectory) = vbNullString Then
+    MkDir strPath
+  End If
+  If Dir(strPath & "\settings", vbDirectory) = vbNullString Then
+    MkDir strPath & "\settings"
+  End If
+  If Dir(strPath & "\modules", vbDirectory) = vbNullString Then
+    MkDir strPath & "\modules"
+  End If
+  cptDirUpgrade = strPath
+
+End Function
+
+Private Sub cptHandleErrUpgrade(strModule As String, strProcedure As String, objErr As ErrObject, Optional lngErl As Long)
+'common error handling prompt
+Dim strMsg As String
+
+    strMsg = "Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
+    strMsg = strMsg & "Error " & err.Number & ": " & err.Description & vbCrLf & vbCrLf
+    strMsg = strMsg & "Source: " & strModule & "." & strProcedure
+    If lngErl > 0 Then
+      strMsg = strMsg & ":" & lngErl
+    End If
+    MsgBox strMsg, vbExclamation + vbOKOnly, "Unknown Error"
+
+End Sub
+
+Private Function cptModuleExistsUpgrade(strModule As String)
+'objects
+Dim vbComponent As Object
+'booleans
+Dim blnExists As Boolean
+'strings
+Dim strError As String
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  blnExists = False
+  For Each vbComponent In ThisProject.VBProject.VBComponents
+    If UCase(vbComponent.Name) = UCase(strModule) Then
+      blnExists = True
+      Exit For
+    End If
+  Next vbComponent
+
+  cptModuleExistsUpgrade = blnExists
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  Call cptHandleErrUpgrade("cptUpgrades_frm", "cptModuleExistsUpgrade", err, Erl)
+  Resume exit_here
+
+End Function
+
