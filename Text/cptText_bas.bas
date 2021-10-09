@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.3.4</cpt_version>
+'<cpt_version>v1.3.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -289,10 +289,14 @@ Sub cptFindDuplicateTaskNames()
   If Not cptCheckReference("Excel") Then GoTo exit_here
 
   On Error GoTo err_here
-  If Not cptFilterExists("Active Tasks") Then
-    FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, OverwriteExisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=True
+  If Edition = pjEditionProfessional Then
+    If Not cptFilterExists("Active Tasks") Then
+      FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, overwriteexisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=True
+    End If
+    MapEdit Name:="ExportTaskNames", Create:=True, overwriteexisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="Active Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
+  ElseIf Edition = pjEditionStandard Then
+    MapEdit Name:="ExportTaskNames", Create:=True, overwriteexisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
   End If
-  MapEdit Name:="ExportTaskNames", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="Active Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
   If blnMaster Then
     MapEdit Name:="ExportTaskNames", DataCategory:=0, FieldName:="Project", ExternalFieldName:="Project"
   End If
