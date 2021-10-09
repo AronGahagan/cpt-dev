@@ -51,11 +51,11 @@ Sub cmdDoIt_Click()
     lngSettings = lngSettings + 2
   End If
   If Me.chkSummaries Then
-    OptionsViewEx displaysummarytasks:=True
+    OptionsViewEx displaysummaryTasks:=True
     lngSettings = lngSettings + 4
   End If
   'outline options
-  OptionsViewEx displaysummarytasks:=True
+  OptionsViewEx displaysummaryTasks:=True
   On Error Resume Next
   If Not OutlineShowAllTasks Then
     If Not Me.chkSort Then
@@ -77,7 +77,7 @@ Sub cmdDoIt_Click()
   
   If Me.optShowAllTasks Then
     If Not Me.chkSummaries Then
-      OptionsViewEx displaysummarytasks:=False
+      OptionsViewEx displaysummaryTasks:=False
     End If
     lngSettings = lngSettings + 8
   ElseIf Me.optOutlineLevel Then

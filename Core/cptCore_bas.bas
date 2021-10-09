@@ -532,7 +532,7 @@ Sub cptResetAll()
       lngSettings = lngSettings - 16
     End If
     If lngSettings >= 8 Then 'expand all tasks
-      OptionsViewEx displaysummarytasks:=True
+      OptionsViewEx displaysummaryTasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -546,7 +546,7 @@ Sub cptResetAll()
       If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
       lngSettings = lngSettings - 8
     Else 'expand to specific level
-      OptionsViewEx displaysummarytasks:=True
+      OptionsViewEx displaysummaryTasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -564,10 +564,10 @@ Sub cptResetAll()
       Next lngLevel
     End If
     If lngSettings >= 4 Then 'show summaries
-      OptionsViewEx displaysummarytasks:=True
+      OptionsViewEx displaysummaryTasks:=True
       lngSettings = lngSettings - 4
     Else
-      OptionsViewEx displaysummarytasks:=False
+      OptionsViewEx displaysummaryTasks:=False
     End If
     If lngSettings >= 2 Then 'clear group
       GroupClear
@@ -1166,7 +1166,7 @@ Dim lngLevel As Long
   Application.OpenUndoTransaction "WrapItUp"
   'FilterClear 'do not reset, keep autofilters
   'GroupClear 'do not reset, applies to groups to
-  OptionsViewEx displaysummarytasks:=True
+  OptionsViewEx displaysummaryTasks:=True
   SelectAll
   On Error Resume Next
   If Not OutlineShowAllTasks Then
@@ -1214,7 +1214,7 @@ Sub cptWrapItUpAll()
     ActiveProject.Application.ActiveWindow.TopPane.Activate
   End If
   '===
-  OptionsViewEx displaysummarytasks:=True
+  OptionsViewEx displaysummaryTasks:=True
   On Error Resume Next
   If Not OutlineShowAllTasks Then
     If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -1578,7 +1578,7 @@ try_again:
   If blnRequired Then
     vResponse = InputBox("At least one custom field is required." & vbCrLf & vbCrLf & "Enter a comma-separated list:", strTitle, strMyHeaders)
   Else
-    vResponse = InputBox("Include other Custom Fields? (enter a comma-separated list):", strTitle, strMyHeaders)
+    vResponse = InputBox("Include other Custom Fields?" & vbCrLf & vbCrLf & "Enter a comma-separated list of Custom Field Names:", strTitle, strMyHeaders)
   End If
   
   If StrPtr(vResponse) = 0 Then 'user hit cancel
