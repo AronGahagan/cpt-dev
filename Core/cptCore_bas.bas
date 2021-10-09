@@ -813,7 +813,7 @@ Dim vCol As Variant
 
   rstStatus.MoveFirst
   rstStatus.Find "Module='cptUpgrades_frm'", , 1
-  If cptVersionStatus(rstStatus(2), rstStatus(3)) <> "ok" Then
+  If cptVersionStatus(rstStatus(3), rstStatus(2)) <> "ok" Then
     Application.StatusBar = "Automatically updating cptUpgrades_frm..."
     DoEvents
     Call cptUpgrade(rstStatus(1) & "/cptUpgrades_frm.frm")
@@ -825,7 +825,7 @@ Dim vCol As Variant
   'if cptPatch_bas is updated, install it automatically and run it
   rstStatus.MoveFirst
   rstStatus.Find "Module='cptPatch_bas'", , 1
-  If cptVersionStatus(rstStatus(2), rstStatus(3)) <> "ok" Then
+  If cptVersionStatus(rstStatus(3), rstStatus(2)) <> "ok" Then
     Call cptUpgrade(rstStatus(1) & "/cptPatch_bas.bas")
     rstStatus(3) = rstStatus(2)
     rstStatus.Update
