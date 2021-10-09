@@ -571,8 +571,8 @@ Dim lngCleanUp As Long
 '    ribbonXML = ribbonXML + vbCrLf & "<mso:dialogBoxLauncher>"
 '    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""test"" screentip=""Concept of operations"" onAction=""cptShowSettings_frm"" />"
 '    ribbonXML = ribbonXML + vbCrLf & "</mso:dialogBoxLauncher>"
-    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
+  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
     
   'integration
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gIntegration"" label=""Integration"" visible=""true"" >"
@@ -735,12 +735,9 @@ Dim blnExists As Boolean
 'strings
 Dim strError As String
 
-  On Error Resume Next
-  'Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
-  cptModuleExists = Not ThisProject.VBProject.VBComponents(strModule) Is Nothing
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  GoTo exit_here
 
+  blnExists = False
   For Each vbComponent In ThisProject.VBProject.VBComponents
     If UCase(vbComponent.Name) = UCase(strModule) Then
       blnExists = True
