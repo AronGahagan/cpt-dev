@@ -257,7 +257,7 @@
 		<FileName>cptSettings_frm.frm</FileName>
 		<Version>v1.0.0</Version>
 		<Type>3</Type>
-		<Directory>Trace</Directory>
+		<Directory>Core</Directory>
 	</Module>
 	<Module>
 		<Name>cptSetup_bas</Name>
