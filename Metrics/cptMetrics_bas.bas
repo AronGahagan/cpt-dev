@@ -206,7 +206,7 @@ Dim dtConstraintDate As Date
       FilterClear
       GroupClear
       Application.Sort "ID", , , , , , , True
-      OptionsViewEx displaysummarytasks:=True, displaynameindent:=True, displayoutlinesymbols:=True
+      OptionsViewEx displaysummaryTasks:=True, displaynameindent:=True, displayoutlinesymbols:=True
       OutlineShowAllTasks
       EditGoTo oTask.ID
     Else
@@ -218,7 +218,7 @@ Dim dtConstraintDate As Date
   If oTask Is Nothing Then GoTo exit_here
   If oTask.Summary Then GoTo exit_here
   If Not oTask.Active Then GoTo exit_here
-  HighlightDrivingPredecessors Set:=True
+  HighlightDrivingPredecessors set:=True
   For Each oPred In ActiveProject.Tasks
     If oPred.PathDrivingPredecessor Then
       If IsDate(oPred.ActualStart) Then
@@ -521,7 +521,7 @@ Dim dtStatus As Date
   ActiveWindow.TopPane.Activate
   FilterClear
   GroupClear
-  OptionsViewEx displaysummarytasks:=True, displaynameindent:=True
+  OptionsViewEx displaysummaryTasks:=True, displaynameindent:=True
   On Error Resume Next
   If Not OutlineShowAllTasks Then
     Sort "ID", , , , , , False, True
@@ -2880,15 +2880,11 @@ Sub cptShowMetricsData_frm()
     Do While Not .EOF
       If InStr(strPrograms, .Fields("PROGRAM")) = 0 Then
         strPrograms = .Fields("PROGRAM") & ","
-        cptMetricsData_frm.cboProgram.AddItem .Fields("PROGRAM")
       End If
       .MoveNext
     Loop
     cptMetricsData_frm.Caption = "cpt Metrics Data (" & cptGetVersion("cptMetricsData_frm") & ")"
     cptMetricsData_frm.lblDir.Caption = strFile
-    cptMetricsData_frm.cboProgram.Value = strProgram
-    cptMetricsData_frm.cboProgram.Locked = True 'todo: make cboProgram dynamic
-    cptMetricsData_frm.cboProgram.Enabled = False 'todo: make cboProgram dynamic
     .MoveFirst
     .Sort = "STATUS_DATE DESC"
     .Filter = "PROGRAM='" & strProgram & "'"
@@ -2929,4 +2925,258 @@ exit_here:
 err_here:
   Call cptHandleErr("cptMetrics_bas", "cptShowMetricsData_frm", Err, Erl)
   Resume exit_here
+End Sub
+
+Sub cptFindOutOfSequence()
+  'objects
+  Dim oTask As Task
+  Dim oTaskDependency As TaskDependency
+  Dim oExcel As Excel.Application
+  Dim oWorkbook As Workbook
+  Dim oWorksheet As Worksheet
+  'strings
+  Dim strMacro As String
+  Dim strMsg As String
+  Dim strProjectNumber As String
+  Dim strProjectName As String
+  Dim strDir As String
+  Dim strFile As String
+  'longs
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  Dim lngLastRow As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnMarked As Boolean
+  'variants
+  'dates
+  Dim dtStatus As Date
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  cptSpeed True
+  
+  lngTasks = ActiveProject.Tasks.Count
+  For Each oTask In ActiveProject.Tasks
+    If Not oTask Is Nothing Then oTask.Marked = False
+  Next
+
+  Set oExcel = CreateObject("Excel.Application")
+  On Error Resume Next
+  'todo: create the template
+  'Set oWorkbook = GetTemplate(oExcel, "OutOfSequenceoTasks.xltm")
+'  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+'  If oWorkbook Is Nothing Then
+'    MsgBox "Template 'OutOfSequenceoTasks.xltm' not found!", vbExclamation + vbOKOnly, "Missing Template"
+'    Set oWorkbook = oExcel.Workbooks.Add(oExcel.TemplatesPath & "\OutOfSequenceoTasks.xltm")
+'  End If
+  Set oWorkbook = oExcel.Workbooks.Add
+  'Set oWorksheet = oWorkbook.Sheets("OOS")
+  Set oWorksheet = oWorkbook.Sheets(1)
+  oWorksheet.Name = "OOS"
+  oWorksheet.[A2:J2] = Split("UID,ID,TASK,DATE,TYPE,UID,ID,TASK,DATE,COMMENT", ",")
+  oWorksheet.[A1:D1].Merge
+  oWorksheet.[A1].Value = "FROM"
+  oWorksheet.[A1].HorizontalAlignment = xlCenter
+  oWorksheet.[F1:I1].Merge
+  oWorksheet.[F1].Value = "TO"
+  oWorksheet.[F1].HorizontalAlignment = xlCenter
+  oWorksheet.[A1:J2].Font.Bold = True
+  oExcel.EnableEvents = False
+  
+  lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
+  lngTask = 0
+  For Each oTask In ActiveProject.Tasks
+    blnMarked = False
+    If oTask Is Nothing Then GoTo next_task
+    If oTask.Summary Then GoTo next_task
+    For Each oTaskDependency In oTask.TaskDependencies
+      If Not oTaskDependency.From.Active Or Not oTaskDependency.To.Active Then GoTo next_dependency
+      If oTaskDependency.To = oTask Then
+        Debug.Print "FROM " & oTaskDependency.From.UniqueID & " TO " & oTaskDependency.To.UniqueID
+        lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
+        Select Case oTaskDependency.Type
+          Case pjFinishToFinish
+            If oTaskDependency.From.Finish > oTaskDependency.To.Finish Then
+              blnMarked = True
+              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
+              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Finish
+              oWorksheet.Cells(lngLastRow, 5) = "FF"
+              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
+              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
+              oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Finish
+              oWorksheet.Cells(lngLastRow, 10) = "Finish <> Finish"
+            End If
+          Case pjFinishToStart
+            If oTaskDependency.From.Finish > oTaskDependency.To.Start Then
+              blnMarked = True
+              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
+              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Finish
+              oWorksheet.Cells(lngLastRow, 5) = "FS"
+              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
+              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
+              oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
+              oWorksheet.Cells(lngLastRow, 10) = "Finish > Start"
+            End If
+            lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
+            If IsDate(oTaskDependency.To.ActualStart) And Not IsDate(oTaskDependency.From.ActualFinish) Then
+              blnMarked = True
+              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
+              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Finish
+              oWorksheet.Cells(lngLastRow, 5) = "FS"
+              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
+              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
+              oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
+              oWorksheet.Cells(lngLastRow, 10) = "Actual Start w/o Actual Finish "
+            End If
+          Case pjStartToStart
+            If oTaskDependency.From.Start > oTaskDependency.To.Start Then
+              blnMarked = True
+              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
+              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
+              oWorksheet.Cells(lngLastRow, 5) = "SS"
+              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
+              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
+              oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
+              oWorksheet.Cells(lngLastRow, 10) = "Start <> Start"
+            End If
+            lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
+            If IsDate(oTaskDependency.To.ActualStart) And Not IsDate(oTaskDependency.From.ActualStart) Then
+              blnMarked = True
+              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
+              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
+              oWorksheet.Cells(lngLastRow, 5) = "SS"
+              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
+              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
+              oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
+              oWorksheet.Cells(lngLastRow, 10) = "Actual Start w/o Actual Start"
+            End If
+          Case pjStartToFinish
+            'this should never happen
+            If oTaskDependency.To.Finish <= oTaskDependency.From.ActualFinish Then
+              blnMarked = True
+              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
+              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
+              oWorksheet.Cells(lngLastRow, 5) = "SF"
+              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
+              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
+              oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Finish
+              oWorksheet.Cells(lngLastRow, 10) = "Finish <= Actual Finish"
+            End If
+            If IsDate(oTaskDependency.To.ActualFinish) And Not IsDate(oTaskDependency.From.ActualStart) Then
+              blnMarked = True
+              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
+              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
+              oWorksheet.Cells(lngLastRow, 5) = "SF"
+              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
+              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
+              oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Finish
+              oWorksheet.Cells(lngLastRow, 10) = "Actual Finish w/o Actual Start"
+            End If
+        End Select
+        
+        'mark both if true
+        If blnMarked Then
+          oTaskDependency.From.Marked = True
+          oTaskDependency.To.Marked = True
+        End If
+        
+      End If
+next_dependency:
+    Next oTaskDependency
+next_task:
+    lngTask = lngTask + 1
+    Application.StatusBar = "Analyzing...(" & Format(lngTask / lngTasks, "0%") & ")"
+    DoEvents
+  Next oTask
+    
+  'get ~count of OOS oTasks
+  lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
+  
+  'only open workbook if OOS oTasks found
+  If lngLastRow = 3 Then
+    MsgBox "No Out of Sequence oTasks Found!", vbInformation + vbOKOnly, "Well Done"
+    oWorkbook.Close False
+    GoTo exit_here
+  End If
+    
+  With oExcel.ActiveWindow
+    .Zoom = 85
+    .SplitRow = 2
+    .SplitColumn = 0
+    .FreezePanes = True
+  End With
+  oWorksheet.Columns.AutoFit
+  
+  'add a macro
+  strMacro = "Private Sub Worksheet_SelectionChange(ByVal Target As Range)" & vbCrLf
+  strMacro = strMacro & " Dim MSPROJ As Object, Task As Object" & vbCrLf
+  strMacro = strMacro & " Dim strFrom As String, strTo As String" & vbCrLf
+  strMacro = strMacro & "" & vbCrLf
+  strMacro = strMacro & " On Error GoTo exit_here" & vbCrLf
+  strMacro = strMacro & "" & vbCrLf
+  strMacro = strMacro & " If Target.Cells.Count <> 1 Then Exit Sub" & vbCrLf
+  strMacro = strMacro & "  If Target.Row < 3 Then Exit Sub" & vbCrLf
+  strMacro = strMacro & "  If Target.Column > Me.[A2].End(xlToRight).Column Then Exit Sub" & vbCrLf
+  strMacro = strMacro & "  If Target.Row > Me.[A1048576].End(xlUp).Row Then Exit Sub" & vbCrLf
+  strMacro = strMacro & "  Set MSPROJ = GetObject(, ""MSProject.Application"")" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.ActiveWindow.TopPane.Activate" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.ScreenUpdating = False" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.FilterClear" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.OutlineShowAllTasks" & vbCrLf
+  strMacro = strMacro & "  strFrom = Me.Cells(Target.Row, 1).Value" & vbCrLf
+  strMacro = strMacro & "  strTo = Me.Cells(Target.Row, 6).Value" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.SetAutoFilter FieldName:=""Unique ID"", FilterType:=2, Criteria1:=strFrom & Chr$(9) & strTo '1=pjAutoFilterIn" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.EditGoTo MSPROJ.ActiveProject.Tasks.UniqueID(CDbl(strTo)).ID, MSPROJ.ActiveProject.Tasks.UniqueID(strTo).Start" & vbCrLf
+  strMacro = strMacro & "" & vbCrLf
+  strMacro = strMacro & "exit_here:" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.ScreenUpdating = True" & vbCrLf
+  strMacro = strMacro & "Set MSPROJ = Nothing" & vbCrLf
+  strMacro = strMacro & "End Sub"
+  
+  oWorkbook.VBProject.VBComponents("Sheet1").CodeModule.AddFromString strMacro
+  
+  oExcel.Visible = True
+  If Application.OptionsViewEx(displaysummaryTasks:=True) Then OutlineShowAllTasks
+  ActiveWindow.TopPane.Activate
+  FilterClear
+  SetAutoFilter "Marked", pjAutoFilterFlagYes
+  
+exit_here:
+  On Error Resume Next
+  Application.StatusBar = ""
+  oExcel.EnableEvents = True
+  cptSpeed False
+  Set oTask = Nothing
+  Set oTaskDependency = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptMetrics_bas", "cptFindOutOfSequence", Err, Erl)
+  Resume exit_here
+  
 End Sub
