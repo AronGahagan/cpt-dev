@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptCore_bas"
 '<cpt_version>v1.9.8</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
@@ -54,7 +54,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "GetModule()", err, Erl)
+  Call cptHandleErr("cptCore_bas", "GetModule()", Err, Erl)
   Resume exit_here
 End Function
 
@@ -86,7 +86,7 @@ exit_here:
   Set objIndName = Nothing
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptGetUserFullName", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptGetUserFullName", Err, Erl)
   Resume exit_here
 
 End Function
@@ -103,6 +103,7 @@ Function cptGetVersion(strModule As String) As String
     End If
     cptGetVersion = strVersion
   End If
+  
 End Function
 
 Function cptGetVersions() As String
@@ -125,7 +126,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptGetVersions", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptGetVersions", Err, Erl)
   Resume exit_here
 
 End Function
@@ -191,7 +192,7 @@ frx:
     strNewFileName = strModule & "_" & Format(Now, "hhnnss")
     ThisProject.VBProject.VBComponents(strModule).Name = strNewFileName
     DoEvents
-    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(strNewFileName)
+    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(strNewFileName)
     cptCore_bas.cptStartEvents
     DoEvents
   End If
@@ -217,7 +218,7 @@ exit_here:
   Application.StatusBar = ""
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptUpgrade", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptUpgrade", Err, Erl)
   Resume exit_here
 
 End Sub '<issue31>
@@ -272,7 +273,7 @@ exit_here:
   
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptShowAbout_frm", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptShowAbout_frm", Err, Erl)
   Resume exit_here '</issue19>
 
 End Sub
@@ -299,7 +300,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptReferenceExists", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptReferenceExists", Err, Erl)
   Resume exit_here
 End Function
 
@@ -358,7 +359,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptGetDirectory()", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptGetDirectory()", Err, Erl)
   Resume exit_here
 End Function
 
@@ -594,7 +595,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptResetAll", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptResetAll", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -710,7 +711,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptShowResetAll_frm", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptShowResetAll_frm", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -808,8 +809,6 @@ Dim vCol As Variant
   Set vbComponent = Nothing
 
   'if cptUpgrade_frm is updated, install it automatically
-
-
 
   rstStatus.MoveFirst
   rstStatus.Find "Module='cptUpgrades_frm'", , 1
@@ -937,7 +936,7 @@ exit_here:
   Set FindRecord = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptShowUpgrades_frm", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptShowUpgrades_frm", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -975,7 +974,7 @@ Dim strRegEx As String
     MsgBox "Microsoft Office installation is not detetcted. Some features may not operate as expected." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for specialized assistance.", vbCritical + vbOKOnly, "Microsoft Office Compatibility"
     GoTo windows_common
   Else
-    strDir = oExcel.path
+    strDir = oExcel.Path
   End If
   If Not cptReferenceExists("Excel") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
@@ -1025,7 +1024,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptSetReferences", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptSetReferences", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -1109,7 +1108,7 @@ exit_here:
   Set MailItem = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptSendMail", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptSendMail", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -1203,7 +1202,7 @@ exit_here:
 '  GoTo exit_here
 
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptWrapItUp", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptWrapItUp", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -1298,7 +1297,7 @@ Dim vLevel As Variant
     If aCurrent(vLevel) <> aInstalled(vLevel) Then
       cptVersionStatus = Choose(vLevel + 1, "major", "minor", "patch")
       If Len(aInstalled(vLevel)) = 0 Then
-        cptVersionStatus = cptVersionStatus & " upgrade"
+        cptVersionStatus = "install " & cptVersionStatus
       ElseIf CLng(aCurrent(vLevel)) > CLng(aInstalled(vLevel)) Then '<issue62>
         cptVersionStatus = cptVersionStatus & " upgrade"
       Else
@@ -1319,7 +1318,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptVersionStatus", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptVersionStatus", Err, Erl)
   Resume exit_here
 
 End Function
@@ -1401,7 +1400,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptFilterExists", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptFilterExists", Err, Erl)
   Resume exit_here
 End Function
 
@@ -1420,7 +1419,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptCreateFilter", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptCreateFilter", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -1507,7 +1506,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptShowSettings_frm", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptShowSettings_frm", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -1553,7 +1552,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptGetProgramAcronym", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptGetProgramAcronym", Err, Erl)
   Resume exit_here
 End Function
 
@@ -1614,13 +1613,13 @@ try_again:
   For Each vMyHeader In Split(strMyHeaders, ",")
     If vMyHeader = "" Then Exit For
     Debug.Print FieldNameToFieldConstant(vMyHeader)
-    If err.Number > 0 Then
+    If Err.Number > 0 Then
       vResponse = MsgBox("Custom Field '" & vMyHeader & "' not found!" & vbCrLf & vbCrLf & "OK = skip; Cancel = try again", vbExclamation + vbOKCancel, "Invalid Field")
       If vResponse = vbCancel Then
-        err.Clear
+        Err.Clear
         GoTo try_again
       Else
-        err.Clear
+        Err.Clear
         strMyHeaders = Replace(strMyHeaders, vMyHeader & ",", "")
       End If
     End If
@@ -1636,7 +1635,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptGetMyHeaders()", err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptGetMyHeaders()", Err, Erl)
   Resume exit_here
 
 End Function
