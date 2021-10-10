@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveLocal_bas"
-'<cpt_version>v1.1.3</cpt_version>
+'<cpt_version>v1.1.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -13,7 +13,7 @@ Sub cptShowSaveLocal_frm()
 Dim oRange As Excel.Range
 Dim oListObject As ListObject
 Dim rstProjects As Object 'ADODB.Recordset
-Dim oSubProject As SubProject
+Dim oSubproject As SubProject
 Dim oMasterProject As Project
 Dim oWorksheet As Worksheet
 Dim oWorkbook As Workbook
@@ -99,10 +99,10 @@ Dim vType As Variant
     rstProjects.Fields.Append "PROJECT", adVarChar, 200
     rstProjects.Open
     rstProjects.AddNew Array(0), Array(oMasterProject.Name)
-    For Each oSubProject In oMasterProject.Subprojects
-      FileOpenEx oSubProject.SourceProject.FullName, True
+    For Each oSubproject In oMasterProject.Subprojects
+      FileOpenEx oSubproject.SourceProject.FullName, True
       rstProjects.AddNew Array(0), Array(ActiveProject.Name)
-    Next oSubProject
+    Next oSubproject
     rstProjects.MoveFirst
     Do While Not rstProjects.EOF
       Application.StatusBar = "Analyzing " & rstProjects(0) & "..."
@@ -250,6 +250,7 @@ skip_it:
   
   'populate field types
   With cptSaveLocal_frm
+    .Caption = "Save Local (" & cptGetVersion("cptSaveLocal_frm") & ")"
     .cboLCF.Clear
     .cboECF.Clear
     .cboECF.AddItem "All Types"
@@ -335,7 +336,7 @@ exit_here:
   Set oRange = Nothing
   Set oListObject = Nothing
   Set rstProjects = Nothing
-  Set oSubProject = Nothing
+  Set oSubproject = Nothing
   Set oMasterProject = Nothing
   If rstProjects.State Then rstProjects.Close
   Set rstProjects = Nothing

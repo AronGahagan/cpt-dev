@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.1</cpt_version>
+'<cpt_version>v1.1.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -43,7 +43,7 @@ Sub cmdDoIt_Click()
   
   'capture bitwise value
   If Me.chkActiveOnly Then
-    SetAutoFilter "Active", pjAutoFilterFlagYes
+    If Edition = pjEditionProfessional Then SetAutoFilter "Active", pjAutoFilterFlagYes
     lngSettings = 1
   End If
   If Me.chkGroup Then
@@ -51,11 +51,11 @@ Sub cmdDoIt_Click()
     lngSettings = lngSettings + 2
   End If
   If Me.chkSummaries Then
-    OptionsViewEx displaysummarytasks:=True
+    OptionsViewEx displaysummaryTasks:=True
     lngSettings = lngSettings + 4
   End If
   'outline options
-  OptionsViewEx displaysummarytasks:=True
+  OptionsViewEx displaysummaryTasks:=True
   On Error Resume Next
   If Not OutlineShowAllTasks Then
     If Not Me.chkSort Then
@@ -77,7 +77,7 @@ Sub cmdDoIt_Click()
   
   If Me.optShowAllTasks Then
     If Not Me.chkSummaries Then
-      OptionsViewEx displaysummarytasks:=False
+      OptionsViewEx displaysummaryTasks:=False
     End If
     lngSettings = lngSettings + 8
   ElseIf Me.optOutlineLevel Then
@@ -95,7 +95,7 @@ Sub cmdDoIt_Click()
   End If
   If Me.chkFilter Then
     FilterClear
-    If Me.chkActiveOnly Then SetAutoFilter "Active", pjAutoFilterFlagYes
+    If Me.chkActiveOnly And Edition = pjEditionProfessional Then SetAutoFilter "Active", pjAutoFilterFlagYes
     lngSettings = lngSettings + 32
   End If
   If Me.chkIndent Then

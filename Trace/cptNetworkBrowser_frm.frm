@@ -14,7 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v0.0.5</cpt_version>
+'<cpt_version>v0.0.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -278,7 +278,7 @@ Dim lngTaskID As Long
       If ActiveWindow.TopPane.View.Name = "Network Diagram" Then GoTo exit_here
       If MsgBox("Task is currently hidden - remove filters and show it?", vbQuestion + vbYesNo, "Confirm Apocalypse") = vbYes Then
         FilterClear
-        OptionsViewEx displaysummarytasks:=True
+        OptionsViewEx displaysummaryTasks:=True
         On Error Resume Next
         If Not OutlineShowAllTasks Then
           If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -338,7 +338,7 @@ Dim lngTaskID As Long, Task As Task
     End If
     If MsgBox("Task may be hidden - remove filters and show it?", vbQuestion + vbYesNo, "Please Confirm") = vbYes Then
       FilterClear
-      OptionsViewEx displaysummarytasks:=True
+      OptionsViewEx displaysummaryTasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
