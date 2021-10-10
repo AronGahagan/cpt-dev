@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCalendarExceptions_bas"
-'<cpt_version>v1.0.3</cpt_version>
+'<cpt_version>v1.0.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -8,18 +8,22 @@ Sub cptShowCalendarExceptions_frm()
   'objects
   Dim oResource As Resource
   'strings
+  Dim strCalendar As String
+  Dim strDetail As String
   Dim strErrors As String
   'longs
   Dim lngItem As Long
   'integers
   'doubles
   'booleans
+  Dim blnDetail As Boolean
   'variants
   'dates
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   With cptCalendarExceptions_frm
+    .Caption = "Calendar Details (" & cptGetVersion("cptCalendarExceptions_frm") & ")"
     .cboCalendars.Clear
     .cboCalendars.AddItem "All Calendars"
     For lngItem = 1 To ActiveProject.BaseCalendars.Count
@@ -42,9 +46,15 @@ Sub cptShowCalendarExceptions_frm()
       End If
 next_resource:
     Next oResource
-    .cboCalendars.Value = "All Calendars"
-    .optSummary = True
-    .optDetailed = False
+    .cboCalendars.Value = ActiveProject.Calendar.Name ' "All Calendars"
+    strDetail = cptGetSetting("CalendarDetails", "optDetailed")
+    If strDetail <> "" Then
+      blnDetail = CBool(strDetail)
+    Else
+      blnDetail = False
+    End If
+    .optSummary = Not blnDetail
+    .optDetailed = blnDetail
     If Len(strErrors) = 0 Then
       Application.StatusBar = "Ready..."
       .Show ' False
@@ -60,7 +70,6 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptCalendarExceptions_bas", "cptShowCalendarExceptionsFrm", Err, Erl)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
 

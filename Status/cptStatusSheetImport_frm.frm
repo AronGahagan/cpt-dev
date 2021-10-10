@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.2</cpt_version>
+'<cpt_version>v1.1.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -65,11 +65,11 @@ Private Sub cboFS_Change()
 End Sub
 
 Private Sub chkAppend_Click()
-    Me.cboAppendTo.Enabled = Me.chkAppend
-  If Me.chkAppend Then
-    Me.cboAppendTo.SetFocus
-    Me.cboAppendTo.DropDown
-  End If
+  Me.cboAppendTo.Enabled = Me.chkAppend
+'  If Me.chkAppend Then
+'    Me.cboAppendTo.SetFocus
+'    Me.cboAppendTo.DropDown
+'  End If
 End Sub
 
 Private Sub cmdDone_Click()
@@ -87,36 +87,57 @@ Private Sub cmdImport_Click()
     Me.lblETC.ForeColor = 192
     MsgBox "Cannot import EVP and ETC to the same field.", vbExclamation + vbOKOnly, "Invalid Selections"
   Else
+    'capture user settings
+    cptSaveSetting "StatusSheetImport", "cboAS", Me.cboAS.Value
+    cptSaveSetting "StatusSheetImport", "cboAF", Me.cboAF.Value
+    cptSaveSetting "StatusSheetImport", "cboFS", Me.cboFS.Value
+    cptSaveSetting "StatusSheetImport", "cboFF", Me.cboFF.Value
+    cptSaveSetting "StatusSheetImport", "cboEVP", Me.cboEV.Value
+    cptSaveSetting "StatusSheetImport", "cboETC", Me.cboETC.Value
+    cptSaveSetting "StatusSheetImport", "chkNotes", CStr(Me.chkAppend)
+    If Me.chkAppend Then
+      cptSaveSetting "StatusSheetImport", "cboAppendTo", Me.cboAppendTo.Value
+    Else
+      cptSaveSetting "StatusSheetImport", "cboAppendTo", ""
+    End If
+    cptSaveSetting "StatusSheetImport", "optTaskUsage", IIf(Me.optAbove, "above", "below")
+    
     Call cptStatusSheetImport
   End If
   
 End Sub
 
 Private Sub cmdSelectFiles_Click()
-'objects
-Dim FileDialog As FileDialog
-Dim xlApp As Excel.Application
-'strings
-'longs
-Dim lngItem As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim FileDialog As FileDialog
+  Dim oExcel As Excel.Application
+  'strings
+  'longs
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnQuit As Boolean
+  'variants
+  'dates
 
+  On Error Resume Next
+  Set oExcel = GetObject(, "Excel.Application")
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
-  Set xlApp = CreateObject("Excel.Application")
-  Set FileDialog = xlApp.FileDialog(msoFileDialogFilePicker)
+  If oExcel Is Nothing Then
+    Set oExcel = CreateObject("Excel.Application")
+    blnQuit = True
+  Else
+    blnQuit = False
+  End If
+  Set FileDialog = oExcel.FileDialog(msoFileDialogFilePicker)
   With FileDialog
     .AllowMultiSelect = True
     .ButtonName = "Import"
     .InitialView = msoFileDialogViewDetails
-    .InitialFileName = Environ("USERPROFILE") & "\"
+    .InitialFileName = ActiveProject.Path & "\"
     .Title = "Select Returned Status Sheet(s):"
     .Filters.Add "Microsoft Excel Workbook (xlsx)", "*.xlsx"
-    
     If .Show = -1 Then
       If .SelectedItems.Count > 0 Then
         For lngItem = 1 To .SelectedItems.Count
@@ -129,11 +150,12 @@ Dim lngItem As Long
 exit_here:
   On Error Resume Next
   Set FileDialog = Nothing
-  Set xlApp = Nothing
+  If blnQuit Then oExcel.Quit
+  Set oExcel = Nothing
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheetImport_frm", "cmdSelectFiles_Click", err, Erl)
+  Call cptHandleErr("cptStatusSheetImport_frm", "cmdSelectFiles_Click", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -148,7 +170,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "lblURL", err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "lblURL", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -160,6 +182,53 @@ End Sub
 '                                  y As Single)
 '  Call cptAddFiles(Data)
 'End Sub
+
+Private Sub optAbove_Click()
+  Call cptRefreshStatusImportTable(Me.optBelow)
+End Sub
+
+Private Sub optBelow_Click()
+  Call cptRefreshStatusImportTable(Me.optBelow)
+End Sub
+
+Private Sub TreeView1_DblClick()
+  'objects
+  Dim oExcel As Object
+  'strings
+  Dim strPath As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If Me.TreeView1.Nodes.Count > 0 Then
+    If Me.TreeView1.SelectedItem Is Nothing Then GoTo exit_here
+    strPath = Me.TreeView1.SelectedItem.Text
+    If Dir(strPath) <> vbNullString Then
+      On Error Resume Next
+      Set oExcel = GetObject(, "Excel.Application")
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
+      oExcel.Workbooks.Open strPath
+      oExcel.Visible = True
+      Application.ActivateMicrosoftApp pjMicrosoftExcel
+    End If
+  End If
+  
+exit_here:
+  On Error Resume Next
+  Set oExcel = Nothing
+
+  Exit Sub
+err_here:
+  'Call HandleErr("cptStatusSheetImport_frm", "TreeView1.DblClick", Err)
+  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Resume exit_here
+End Sub
 
 Private Sub UserForm_Initialize()
   'Me.TreeView1.OLEDropMode = ccOLEDropManual

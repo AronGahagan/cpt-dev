@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>v1.1.6</cpt_version>
+'<cpt_version>v1.1.7</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -18,6 +18,7 @@ Dim lngFreeField As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   With cptFilterByClipboard_frm
+    .Caption = "Filter By Clipboard (" & cptGetVersion("cptFilterByClipboard_frm") & ")"
     .tglEdit = False
     .lboHeader.Height = 12.5
     .lboHeader.Clear
@@ -188,7 +189,7 @@ next_item:
   If Len(strFilter) > 0 And cptFilterByClipboard_frm.chkFilter Then
     ActiveWindow.TopPane.Activate
     ScreenUpdating = False
-    OptionsViewEx displaysummarytasks:=True
+    OptionsViewEx displaysummaryTasks:=True
     SelectAll
     On Error Resume Next
     If Not OutlineShowAllTasks Then
@@ -203,7 +204,7 @@ next_item:
     ElseIf cptFilterByClipboard_frm.optID Then
       SetAutoFilter "ID", FilterType:=pjAutoFilterIn, Criteria1:=strFilter
     End If
-    OptionsViewEx projectsummary:=False, displayoutlinenumber:=False, displaynameindent:=False, displaysummarytasks:=False
+    OptionsViewEx projectsummary:=False, displayoutlinenumber:=False, displaynameindent:=False, displaysummaryTasks:=False
     If lngFreeField > 0 Then Sort FieldConstantToFieldName(lngFreeField)
   End If
   

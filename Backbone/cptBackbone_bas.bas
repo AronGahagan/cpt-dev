@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.0.11</cpt_version>
+'<cpt_version>v1.0.12</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -975,6 +975,7 @@ Sub cptShowBackbone_frm()
   'pre-select Outline Code 1
   cptBackbone_frm.cboOutlineCodes.ListIndex = 0
   cptBackbone_frm.txtNameIt = CustomFieldGetName(cptBackbone_frm.cboOutlineCodes.List(0, 0))
+  cptBackbone_frm.Caption = "Backbone (" & cptGetVersion("cptBackbone_frm") & ")"
   cptBackbone_frm.Show False
   cptBackbone_frm.cboOutlineCodes.SetFocus
 

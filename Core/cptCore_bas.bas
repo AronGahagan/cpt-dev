@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.9.7</cpt_version>
+'<cpt_version>v1.9.8</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -89,6 +89,21 @@ err_here:
   Call cptHandleErr("cptCore_bas", "cptGetUserFullName", Err, Erl)
   Resume exit_here
 
+End Function
+
+Function cptGetVersion(strModule As String) As String
+  Dim vbComponent As Object, strVersion As String
+  If Not cptModuleExists(strModule) Then
+    cptGetVersion = "<uninstalled>"
+  Else
+    Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
+    If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
+      strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
+      strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
+    End If
+    cptGetVersion = strVersion
+  End If
+  
 End Function
 
 Function cptGetVersions() As String
@@ -249,6 +264,8 @@ Dim strAbout As String
   'cptAbout_frm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR
   'cptAbout_frm.lblScoreBoard.Caption = "t0 : b5" 'EWR > NAS
   cptAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR
+  
+  cptAbout_frm.Caption = "The ClearPlan Toolbar - " & cptGetVersion("cptAbout_frm")
   cptAbout_frm.Show '<issue19>
 
 exit_here:
@@ -287,17 +304,20 @@ err_here:
   Resume exit_here
 End Function
 
-Sub cptGetReferences()
+Function cptGetReferences(Optional blnVerbose As Boolean = False)
 'prints the current uesr's selected references
 'this would be used to troubleshoot with users real-time
 'although simply runing setreferences would fix it
-Dim Ref As Object
+Dim oRef As Reference
 
-  For Each Ref In ThisProject.VBProject.References
-    Debug.Print Ref.Name & " (" & Ref.Description & ") " & Ref.FullPath
-  Next Ref
+  For Each oRef In ThisProject.VBProject.References
+    Debug.Print oRef.Name & " (" & oRef.Description & ") " & oRef.FullPath
+    If blnVerbose Then
+      Debug.Print "-- " & oRef.Guid & " | " & oRef.Major & " | " & oRef.Minor
+    End If
+  Next oRef
 
-End Sub
+End Function
 
 Function cptGetDirectory(strModule As String) As String
 'this function retrieves the directory of the module from CurrentVersions.xml on gitHub
@@ -518,7 +538,7 @@ Sub cptResetAll()
       lngSettings = lngSettings - 16
     End If
     If lngSettings >= 8 Then 'expand all tasks
-      OptionsViewEx displaysummarytasks:=True
+      OptionsViewEx displaysummaryTasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -532,7 +552,7 @@ Sub cptResetAll()
       If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
       lngSettings = lngSettings - 8
     Else 'expand to specific level
-      OptionsViewEx displaysummarytasks:=True
+      OptionsViewEx displaysummaryTasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -550,17 +570,17 @@ Sub cptResetAll()
       Next lngLevel
     End If
     If lngSettings >= 4 Then 'show summaries
-      OptionsViewEx displaysummarytasks:=True
+      OptionsViewEx displaysummaryTasks:=True
       lngSettings = lngSettings - 4
     Else
-      OptionsViewEx displaysummarytasks:=False
+      OptionsViewEx displaysummaryTasks:=False
     End If
     If lngSettings >= 2 Then 'clear group
       GroupClear
       lngSettings = lngSettings - 2
     End If
     If lngSettings >= 1 Then 'hide inactive
-      SetAutoFilter "Active", pjAutoFilterFlagYes
+      If Edition = pjEditionProfessional Then SetAutoFilter "Active", pjAutoFilterFlagYes
     End If
   Else 'prompt for defaults
     Call cptShowResetAll_frm
@@ -670,12 +690,19 @@ Sub cptShowResetAll_frm()
         .chkGroup = True
         lngSettings = lngSettings - 2
       End If
-      If lngSettings >= 1 Then
-        .chkActiveOnly = True
+      If Edition = pjEditionProfessional Then
+        .chkActiveOnly.Enabled = True
+        If lngSettings >= 1 Then
+          .chkActiveOnly = True
+        End If
+      ElseIf Edition = pjEditionStandard Then
+        .chkActiveOnly = False
+        .chkActiveOnly.Enabled = False
       End If
     End With
   End If
   
+  cptResetAll_frm.Caption = "How would you like to Reset All? (" & cptGetVersion("cptResetAll_frm") & ")"
   cptResetAll_frm.Show False
   
 exit_here:
@@ -718,9 +745,13 @@ Dim vCol As Variant
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   'update references needed before downloading updates
+  Application.StatusBar = "Updating VBA references..."
+  DoEvents
   Call cptSetReferences
 
   'todo: user should still be able to check currently installed versions
+  Application.StatusBar = "Confirming access to GitHub.com..."
+  DoEvents
   If Not cptInternetIsConnected Then
     MsgBox "You must be connected to the internet to perform updates.", vbInformation + vbOKOnly, "No Connection"
     GoTo exit_here
@@ -736,6 +767,8 @@ Dim vCol As Variant
   rstStatus.Open
   
   'get current versions
+  Application.StatusBar = "Fetching latest versions..."
+  DoEvents
   Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
   xmlDoc.async = False
   xmlDoc.validateOnParse = False
@@ -756,6 +789,8 @@ Dim vCol As Variant
   End If
 
   'get installed versions
+  Application.StatusBar = "Comparing installed versions..."
+  DoEvents
   blnUpdatesAreAvailable = False
   For Each vbComponent In ThisProject.VBProject.VBComponents
     'is the vbComponent one of ours?
@@ -775,11 +810,11 @@ Dim vCol As Variant
 
   'if cptUpgrade_frm is updated, install it automatically
 
-
-
   rstStatus.MoveFirst
   rstStatus.Find "Module='cptUpgrades_frm'", , 1
   If cptVersionStatus(rstStatus(3), rstStatus(2)) <> "ok" Then
+    Application.StatusBar = "Automatically updating cptUpgrades_frm..."
+    DoEvents
     Call cptUpgrade(rstStatus(1) & "/cptUpgrades_frm.frm")
     rstStatus(3) = rstStatus(2)
     rstStatus.Update
@@ -807,6 +842,8 @@ Dim vCol As Variant
 
 
   'populate the listbox header
+  Application.StatusBar = "Preparing form..."
+  DoEvents
   lngItem = 0
   cptUpgrades_frm.lboHeader.AddItem
   For Each vCol In Array("Module", "Directory", "Current", "Installed", "Status", "Type")
@@ -846,6 +883,8 @@ Dim vCol As Variant
     cptUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
 next_lngItem:
     lngItem = lngItem + 1
+    Application.StatusBar = Application.StatusBar = "Preparing form...(" & Format(lngItem / rstStatus.RecordCount, "0%") & ")"
+    DoEvents
     rstStatus.MoveNext
   Loop
   
@@ -875,11 +914,14 @@ next_lngItem:
     cptUpgrades_frm.cboBranches.Clear
     cptUpgrades_frm.cboBranches.AddItem "<unavailable>"
   End If
-  
+  cptUpgrades_frm.Caption = "Installation Status (" & cptGetVersion("cptUpgrades_frm") & ")"
+  Application.StatusBar = "Ready for user input..."
+  DoEvents
   cptUpgrades_frm.Show
 
 exit_here:
   On Error Resume Next
+  Application.StatusBar = ""
   If rstStatus.State Then rstStatus.Close
   Set rstStatus = Nothing
   Set REMatch = Nothing
@@ -1128,7 +1170,7 @@ Dim lngLevel As Long
   Application.OpenUndoTransaction "WrapItUp"
   'FilterClear 'do not reset, keep autofilters
   'GroupClear 'do not reset, applies to groups to
-  OptionsViewEx displaysummarytasks:=True
+  OptionsViewEx displaysummaryTasks:=True
   SelectAll
   On Error Resume Next
   If Not OutlineShowAllTasks Then
@@ -1176,7 +1218,7 @@ Sub cptWrapItUpAll()
     ActiveProject.Application.ActiveWindow.TopPane.Activate
   End If
   '===
-  OptionsViewEx displaysummarytasks:=True
+  OptionsViewEx displaysummaryTasks:=True
   On Error Resume Next
   If Not OutlineShowAllTasks Then
     If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -1255,7 +1297,7 @@ Dim vLevel As Variant
     If aCurrent(vLevel) <> aInstalled(vLevel) Then
       cptVersionStatus = Choose(vLevel + 1, "major", "minor", "patch")
       If Len(aInstalled(vLevel)) = 0 Then
-        cptVersionStatus = cptVersionStatus & " upgrade"
+        cptVersionStatus = "install " & cptVersionStatus
       ElseIf CLng(aCurrent(vLevel)) > CLng(aInstalled(vLevel)) Then '<issue62>
         cptVersionStatus = cptVersionStatus & " upgrade"
       Else
@@ -1368,7 +1410,7 @@ Sub cptCreateFilter(strFilter As String)
 
   Select Case strFilter
     Case "Marked"
-      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=False
+      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, overwriteexisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=False
       
   End Select
   
@@ -1380,3 +1422,220 @@ err_here:
   Call cptHandleErr("cptCore_bas", "cptCreateFilter", Err, Erl)
   Resume exit_here
 End Sub
+
+Sub cptShowSettings_frm()
+  'objects
+  Dim oRecordset As ADODB.Recordset
+  Dim oStream As Scripting.TextStream
+  Dim oFSO As Scripting.FileSystemObject
+  'strings
+  Dim strSettingsFileNew As String
+  Dim strSettingsFile As String
+  Dim strProgramAcronym As String
+  Dim strFeature As String
+  Dim strLine As String
+  'longs
+  Dim lngFile As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  With oRecordset
+    .Fields.Append "Feature", adVarChar, 100
+    .Fields.Append "Setting", adVarChar, 255
+    .Open
+  End With
+  
+  strSettingsFile = cptDir & "\settings\cpt-settings.ini"
+  strSettingsFileNew = cptDir & "\settings\cpt-settings-temp.ini"
+  lngFile = FreeFile
+  Open strSettingsFileNew For Output As #lngFile
+  
+  With cptSettings_frm
+    .lboFeatures.Clear
+    .lboSettings.Clear
+    Set oFSO = CreateObject("Scripting.FileSystemObject")
+    Set oStream = oFSO.OpenTextFile(cptDir & "\settings\cpt-settings.ini")
+    Do While Not oStream.AtEndOfStream
+      strLine = oStream.ReadLine
+      If Left(strLine, 1) = "[" Then
+        strFeature = Replace(Replace(strLine, "[", ""), "]", "")
+        oRecordset.AddNew Array(0), Array(strFeature)
+      Else
+        oRecordset.AddNew Array(0, 1), Array(strFeature, strLine)
+      End If
+    Loop
+    oStream.Close
+    oRecordset.Sort = "Feature,Setting"
+    oRecordset.MoveFirst
+    Do While Not oRecordset.EOF
+      If oRecordset(1) = "" Then
+        .lboFeatures.AddItem oRecordset(0)
+        Print #lngFile, "[" & oRecordset(0) & "]"
+      Else
+        Print #lngFile, oRecordset(1)
+      End If
+      oRecordset.MoveNext
+    Loop
+    Close #lngFile
+    If Dir(strSettingsFile) <> vbNullString Then Kill strSettingsFile
+    Name strSettingsFileNew As strSettingsFile
+    If Dir(strSettingsFileNew) <> vbNullString Then Kill strSettingsFileNew
+    If Dir(cptDir & "\settings\cpt-settings.adtg") <> vbNullString Then Kill cptDir & "\settings\cpt-settings.adtg"
+    oRecordset.Save cptDir & "\settings\cpt-settings.adtg", adPersistADTG
+    oRecordset.Close
+    .lblDir = strSettingsFile
+    strProgramAcronym = cptGetProgramAcronym
+    .txtProgramAcronym = strProgramAcronym
+    If .lboFeatures.ListCount > 0 Then
+      .lboFeatures.Value = .lboFeatures.List(0, 0)
+    End If
+    .Show
+  End With
+  
+exit_here:
+  On Error Resume Next
+  Set oRecordset = Nothing
+  Set oStream = Nothing
+  Set oFSO = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptShowSettings_frm", Err, Erl)
+  Resume exit_here
+End Sub
+
+Function cptGetProgramAcronym()
+  'objects
+  Dim oCustomDocumentProperty As DocumentProperty
+  'strings
+  Dim strMsg As String
+  Dim strProgramAcronym As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vResponse As Variant
+  'dates
+  
+  On Error Resume Next
+  Set oCustomDocumentProperty = ActiveProject.CustomDocumentProperties("cptProgramAcronym")
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If oCustomDocumentProperty Is Nothing Then
+    strMsg = "For some features, a unique program acronym is required to capture data (locally)." & vbCrLf & vbCrLf
+    strMsg = strMsg & "This program acronym is saved in a custom document property named 'cptProgramAcronym'." & vbCrLf & vbCrLf
+    strMsg = strMsg & "Please enter a program acronym for this file:"
+    vResponse = InputBox(strMsg, "Program Acronym")
+    If StrPtr(vResponse) = 0 Then
+      MsgBox "No Program Acronym saved.", vbCritical + vbOKOnly, "Invalid Response"
+      cptGetProgramAcronym = ""
+    ElseIf vResponse = vbNullString Then
+      MsgBox "No Program Acronym saved.", vbCritical + vbOKOnly, "Invalid Response"
+      cptGetProgramAcronym = ""
+    Else
+      Set oCustomDocumentProperty = ActiveProject.CustomDocumentProperties.Add("cptProgramAcronym", False, msoPropertyTypeString, CStr(vResponse))
+      cptGetProgramAcronym = CStr(vResponse)
+      MsgBox "Program Acronym '" & CStr(vResponse) & "' saved!", vbInformation + vbOKOnly, "Success"
+    End If
+  Else
+    cptGetProgramAcronym = ActiveProject.CustomDocumentProperties("cptProgramAcronym").Value
+  End If
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptGetProgramAcronym", Err, Erl)
+  Resume exit_here
+End Function
+
+Sub cptOpenSettingsFile()
+  Shell "notepad.exe '" & cptDir & "\settings\cpt-settings.ini" & "'"
+End Sub
+
+Function cptGetMyHeaders(strTitle As String, Optional blnRequired As Boolean = False) As String
+  'objects
+  'strings
+  Dim strMyHeaders As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vResponse As Variant
+  Dim vMyHeader As Variant
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+try_again:
+  'get other fields
+  strMyHeaders = cptGetSetting("Metrics", "txtMyHeaders")
+  If Len(strMyHeaders) = 0 Then strMyHeaders = "CAM,WPCN,WPM,"
+  If blnRequired Then
+    vResponse = InputBox("At least one custom field is required." & vbCrLf & vbCrLf & "Enter a comma-separated list:", strTitle, strMyHeaders)
+  Else
+    vResponse = InputBox("Include other Custom Fields?" & vbCrLf & vbCrLf & "Enter a comma-separated list of Custom Field Names:", strTitle, strMyHeaders)
+  End If
+  
+  If StrPtr(vResponse) = 0 Then 'user hit cancel
+    strMyHeaders = ""
+    GoTo exit_here
+  ElseIf vResponse = "" Or Len(Replace(vResponse, ",", "")) = 0 Then 'user entered zero-value
+    If blnRequired Then
+      'nothing selected
+      If MsgBox("You must select at least one custom field. Try again?", vbQuestion + vbYesNo, "Field Required") = vbYes Then
+        GoTo try_again
+      Else
+        strMyHeaders = ""
+        GoTo exit_here
+      End If
+    Else
+      strMyHeaders = ""
+      GoTo exit_here
+    End If
+  ElseIf Len(vResponse) > 0 Then
+    strMyHeaders = CStr(vResponse)
+  End If
+
+  Application.StatusBar = "Validating custom fields..."
+  DoEvents
+  If Right(Trim(strMyHeaders), 1) <> "," Then strMyHeaders = Trim(strMyHeaders) & ","
+  'validate strMyHeaders
+  On Error Resume Next
+  For Each vMyHeader In Split(strMyHeaders, ",")
+    If vMyHeader = "" Then Exit For
+    Debug.Print FieldNameToFieldConstant(vMyHeader)
+    If Err.Number > 0 Then
+      vResponse = MsgBox("Custom Field '" & vMyHeader & "' not found!" & vbCrLf & vbCrLf & "OK = skip; Cancel = try again", vbExclamation + vbOKCancel, "Invalid Field")
+      If vResponse = vbCancel Then
+        Err.Clear
+        GoTo try_again
+      Else
+        Err.Clear
+        strMyHeaders = Replace(strMyHeaders, vMyHeader & ",", "")
+      End If
+    End If
+  Next vMyHeader
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  cptSaveSetting "Metrics", "txtMyHeaders", strMyHeaders
+
+  cptGetMyHeaders = strMyHeaders
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptGetMyHeaders()", Err, Erl)
+  Resume exit_here
+
+End Function

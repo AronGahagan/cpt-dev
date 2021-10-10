@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.5.5</cpt_version>
+'<cpt_version>v1.5.7</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -345,8 +345,34 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:NameIndent"" visible=""true""/>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:AutoFilterProject"" visible=""true""/>"
+  
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mDateFormat"" label=""Date Format"" imageMso=""TimelineDateFormat"" visible=""true"" >" 'size=""large""
+  
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_mm_dd_yy"" label=""" & Format(Now, "m/d/yy") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_mm_dd_yy"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_mm_dd_yy_hh_mmAM"" label=""" & Format(Now, "m/d/yy hh:mm ampm") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_mm_dd_yy_hh_mmAM"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_dd"" label=""" & Format(Now, "dd") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_dd"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_ddd_dd"" label=""" & Format(Now, "ddd dd") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_ddd_dd"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_ddd_hh_mmAM"" label=""" & Format(Now, "ddd hh:mm ampm") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_ddd_hh_mmAM"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_ddd_mm_dd"" label=""" & Format(Now, "ddd mm/dd") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_ddd_mm_dd"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_ddd_mm_dd_yy"" label=""" & Format(Now, "ddd mm/dd/yy") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_ddd_mm_dd_yy"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_ddd_mm_dd_yy_hh_mmAM"" label=""" & Format(Now, "ddd mm/dd/yy hh:mm ampm") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_ddd_mm_dd_yy_hh_mmAM"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_ddd_mmm_dd"" label=""" & Format(Now, "ddd mmm dd") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_ddd_mmm_dd"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_ddd_mmm_dd_yyy"" label=""" & Format(Now, "ddd mmm dd 'yy") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_ddd_mmm_dd_yyy"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_hh_mmAM"" label=""" & Format(Now, "hh:mm ampm") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_hh_mmAM"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_mm_dd"" label=""" & Format(Now, "m/d") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_mm_dd"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_mm_dd_yyyy"" label=""" & Format(Now, "m/d/yyyy") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_mm_dd_yyyy"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_mmm_dd"" label=""" & Format(Now, "mmm dd") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_mmm_dd"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_mmm_dd_hh_mmAM"" label=""" & Format(Now, "mmm dd hh:mm ampm") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_mmm_dd_hh_mmAM"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_mmm_dd_yyy"" label=""" & Format(Now, "mmm dd 'yy") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_mmm_dd_yyy"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_mmmm_dd"" label=""" & Format(Now, "mmmm dd") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_mmmm_dd"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_mmmm_dd_yyyy"" label=""" & Format(Now, "mmmm dd, yyyy") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_mmmm_dd_yyyy"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_mmmm_dd_yyyy_hh_mmAM"" label=""" & Format(Now, "mmmm dd, yyyy hh:mm ampm") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_mmmm_dd_yyyy_hh_mmAM"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_Www_dd"" label=""" & "W" & Format(Now, "ww/dd") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_Www_dd"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""pjDate_Www_dd_yy_hh_mmAM"" label=""" & "W" & Format(Now, "ww/dd/yy hh:mm ampm") & """ imageMso=""TimelineDateFormat"" onAction=""cptDate_Www_dd_yy_hh_mmAM"" />"
+  
+  ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:FilterClear"" visible=""true""/>"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:SplitViewCreate"" visible=""true""/>"
+  
   ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   
   ribbonXML = ribbonXML + vbCrLf & "<mso:splitButton id=""sbResetAll"" size=""large"" >"
@@ -455,18 +481,28 @@ Dim lngCleanUp As Long
     End If
     If cptModuleExists("cptSaveMarked_bas") And cptModuleExists("cptSaveMarked_frm") Then
       ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""mark_selected"" label=""Mark"" imageMso=""ApproveApprovalRequest"" onAction=""cptMarkSelected"" visible=""true"" supertip=""Mark selected task(s)"" />" 'size=""large""
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""unmark_selected"" label=""Unmark"" imageMso=""RejectApprovalRequest"" onAction=""cptUnmarkSelected"" visible=""true"" supertip=""Unmark selected task(s)"" />" 'size=""large""
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""btnMarkedApply"" label=""Filter"" imageMso=""FilterToggleFilter"" onAction=""cptMarked"" visible=""true"" supertip=""Filter Marked Tasks"" />" 'size=""large""
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""btnSaveMarked"" label=""Save"" imageMso=""Archive"" onAction=""cptSaveMarked"" visible=""true"" supertip=""Save currently marked tasks for later import."" />"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""btnImportMarked"" label=""Import"" imageMso=""ApproveApprovalRequest"" onAction=""cptShowSaveMarked_frm"" visible=""true"" supertip=""Import saved sets of marked tasks."" />"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""clear_marked"" label=""Clear"" imageMso=""FilterClear"" onAction=""cptClearMarked"" visible=""true"" supertip=""Clear all currently marked tasks."" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMarkSelected"" label=""Mark"" imageMso=""ApproveApprovalRequest"" onAction=""cptMarkSelected"" visible=""true"" supertip=""Mark selected task(s)"" />" 'size=""large""
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSaveMarked"" label=""Save"" imageMso=""Archive"" onAction=""cptSaveMarked"" visible=""true"" supertip=""Save currently marked tasks for later import."" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bImportMarked"" label=""Import"" imageMso=""ApproveApprovalRequest"" onAction=""cptShowSaveMarked_frm"" visible=""true"" supertip=""Import saved sets of marked tasks."" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMarkedApply"" label=""Filter Marked"" imageMso=""FilterToggleFilter"" onAction=""cptMarked"" visible=""true"" supertip=""Filter Marked Tasks"" />" 'size=""large""
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUnmarkAll"" label=""Unmark All"" imageMso=""RejectApprovalRequest"" onAction=""cptClearMarked"" visible=""true"" supertip=""Unmark all currently marked tasks."" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUnmark"" label=""Unmark"" imageMso=""RejectApprovalRequest"" onAction=""cptUnmarkSelected"" visible=""true"" supertip=""Unmark selected task(s)"" />" 'size=""large""
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
 
   'status
-  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Status"" visible=""true"" >"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Schedule"" visible=""true"" >"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mHealth"" label=""Health"" imageMso=""CheckWorkflow"" visible=""true"" size=""large"" >"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptOOS"" label=""Out of Sequence"" imageMso=""ExportExcel"" onAction=""cptFindOutOfSequence"" visible=""true"" supertip=""Find tasks statused out of sequence. Select the UID in Column A to AutoFilter the IMS."" />"
+  ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mStatus"" label=""Status"" imageMso=""UpdateAsScheduled"" visible=""true"" size=""large"" >"
+  If cptModuleExists("cptAgeDates_bas") And cptModuleExists("cptAgeDates_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Before Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cpt_bAdvanceStatusDate"" label=""Advance Status Date"" imageMso=""CalendarToolSelectDate"" onAction=""cptAdvanceStatusDate"" visible=""true"" supertip=""Advance the Status Date prior to kicking off a status cycle."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cpt_bAgeDates"" label=""Age Dates"" imageMso=""CalendarToolSelectDate"" onAction=""cptShowAgeDates_frm"" visible=""true"" supertip=""Keep a rolling history of the current schedule.""  />"
+  End If
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Status Export &amp;&amp; Import"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   If cptModuleExists("cptStatusSheet_bas") And cptModuleExists("cptStatusSheet_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheet"" label=""Create Status Sheet(s)"" imageMso=""ExportExcel"" onAction=""cptShowStatusSheet_frm"" visible=""true"" supertip=""Just what it sounds like. Include any fields you like. Settings are saved between sessions."" />" 'DateAndTimeInsertOneNote
   End If
@@ -476,77 +512,75 @@ Dim lngCleanUp As Long
   If cptModuleExists("cptSmartDuration_frm") And cptModuleExists("cptSmartDuration_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSmartDuration"" label=""Smart Duration"" imageMso=""CalendarToolSelectDate"" onAction=""SmartDuration"" visible=""true"" supertip=""We've all been there: how many days between Time Now and the finish date the CAM just gave me? No more guess work: click here and improve your life."" />"
   End If
-  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
-
-  'snapshots
-
-  'calendars
-  If (cptModuleExists("cptFiscal_frm") And cptModuleExists("cptFiscal_bas")) Or (cptModuleExists("cptCalendarExceptions_frm") And cptModuleExists("cptCalendarExceptions_bas")) Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCalendars"" label=""Calendars"" visible=""true"" >"
-    If cptModuleExists("cptFiscal_frm") And cptModuleExists("cptFiscal_bas") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFiscal"" label=""Fiscal"" imageMso=""MonthlyView"" onAction=""cptShowFiscal_frm"" visible=""true"" supertip=""Maintain a fiscal calendar for various reports."" />"
-    End If
-    If cptModuleExists("cptCalendarExceptions_frm") And cptModuleExists("cptCalendarExceptions_bas") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCalDetails"" label=""Details"" imageMso=""MonthlyView"" onAction=""cptShowCalendarExceptions_frm"" visible=""true"" supertip=""Export Calendar Exceptions, WorkWeeks, and settings."" />"
-    End If
-    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
-  End If
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""After Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBlameReport"" label=""The Blame Report"" imageMso=""ContactProperties"" onAction=""cptBlameReport"" visible=""true"" supertip=""Find out which tasks slipped from last period."" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCaptureWeek"" label=""Capture Week"" imageMso=""RefreshWebView"" onAction=""cptCaptureWeek"" visible=""true"" supertip=""Capture the Current Schedule to compare against past and future weeks during execution. This is required for certain metrics (e.g., CEI) to run properly."" />"
+  'todo: account for EV Tool in cptValidateEVP
+  'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bValidateEVT"" enabled=""false"" label=""Validate EVT"" imageMso=""RefreshWebView"" onAction=""cptAnalyzeEVT"" visible=""true"" supertip=""Validate EVT - e.g., ensure incomplete 50/50 tasks with Actual Start are marked as 50% EV % complete."" />"
+  ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   
-  'resource allocation
-  If cptModuleExists("cptResourceDemand_bas") And cptModuleExists("cptResourceDemand_frm") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gResourceDemand"" label=""FTE"" visible=""true"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResourceDemandExcel"" label=""FTE"" imageMso=""Chart3DColumnChart"" onAction=""cptShowExportResourceDemand_frm"" visible=""true"" size=""large"" supertip=""Export timephased assignment remaining work, baseline work, costs (any or all rate sets), and your choice of extra fields. Settings are saved between sessions."" />"
-    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
-  End If
-
-  'allocation scenarios
-
-  'compare
-
   'metrics
   If cptModuleExists("cptMetrics_bas") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gMetrics"" label=""Metrics"" visible=""true"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mSchedule"" label=""Schedule"" imageMso=""UpdateAsScheduled"" visible=""true"" size=""large"" >"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gMetrics"" label=""Metrics"" visible=""true"" >"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mSchedule"" label=""Metrics"" imageMso=""ChartTypeLineInsertGallery"" visible=""true"" size=""large"" >" 'UpdateAsScheduled
     ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Schedule Metrics"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptSPI"" label=""Schedule Performance Index (SPI) in hours"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSPI"" visible=""true"" supertip=""SPI (in hours) relies on timephased baseline work and EV% stored in Physical % Complete."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptSV"" label=""Schedule Variance (SV) in hours"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSV"" visible=""true"" supertip=""SV (in hours) relies on timephased baseline work and EV% stored in Physical % Complete."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBEI"" label=""Baseline Execution Index (BEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBEI"" visible=""true"" supertip=""Just what it sounds like..."" />"
     If Application.Version >= 12 Then 'CPLI only available in versions after 2010
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCPLI"" label=""Critical Path Length Index (CPLI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCPLI"" visible=""true"" supertip=""Select a target task, clik to get the CPLI. Raw calculation based on time now and total slack; Schedule Margin not considered."" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCPLI"" label=""Critical Path Length Index (CPLI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCPLI"" visible=""true"" supertip=""Select a target task, click to get the CPLI. Raw calculation based on time now and total slack."" />"
+    Else
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCPLI"" enabled=""false"" label=""Critical Path Length Index (CPLI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCPLI"" visible=""true"" supertip=""Select a target task, click to get the CPLI. Raw calculation based on time now and total slack. (Feature not available in this version of MS Project)"" />"
     End If
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBEI"" label=""Baseline Execution Index (BEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBEI"" visible=""true"" supertip=""Just what it sounds like."" />"
-    'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCEI"" label=""Current Execution Index (CEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCEI"" visible=""true""/>"
-    'todo: TFCI
-    'todo: Earned Schedule
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bHit"" label=""Hit Task %"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetHitTask"" visible=""true"" supertip=""Because it's (still) on the Gold Card."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCEI"" label=""Current Execution Index (CEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCEI"" visible=""true"" supertip=""Tracks forecast accuracy between periods."" />"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptTFCI"" enabled=""false"" label=""Total Float Consumption Index (TFCI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCEI"" visible=""true"" supertip=""Measures forecast accuracy between reporting periods"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptES"" label=""Earned Schedule"" imageMso=""CalendarToolSelectDate"" onAction=""cptGetEarnedSchedule"" visible=""true"" supertip=""Just what it sounds like. See the NDIA Predictive Measures Guide for more information."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCaptureAllMetrics"" label=""Capture All Metrics"" imageMso=""DataViewDetailsView"" onAction=""cptCaptureAllMetrics"" visible=""true"" supertip=""Capture all metrics above for this program for this period."" />"
     
-    ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mEVish"" label=""EVish"" imageMso=""UpdateAsScheduled"" visible=""true"" size=""large"" supertip=""EV-ish metrics, based in hours. (Assumes schedule is resource-loaded using real assignments, rather than custom fields.)"" >"
-    If cptModuleExists("cptMetricsSettings_frm") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptMetricsSettings"" label=""Settings"" imageMso=""Settings"" onAction=""cptShowMetricsSettings_frm"" visible=""true"" supertip=""Settings required for some EV-ish metrics."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Schedule Metrics Trends"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptSPItrend"" label=""SPI Trend in hours"" imageMso=""ChartTypeLineInsertGallery"" onAction=""cptGetTrend_SPI"" visible=""true"" supertip=""Relies on timephased baseline work and your metrics settings for EV % Complete."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBEItrend"" label=""BEI Trend"" imageMso=""ChartTypeLineInsertGallery"" onAction=""cptGetTrend_BEI"" visible=""true"" supertip=""Just what it sounds like..."" />"
+    If Application.Version >= 12 Then 'CPLI only available in versions after 2010
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCPLItrend"" label=""CPLI Trend"" imageMso=""ChartTypeLineInsertGallery"" onAction=""cptGetTrend_CPLI"" visible=""true"" supertip=""Create a chart of CPLI Trend."" />"
+    Else
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCPLItrend"" enabled=""false"" label=""CPLI Trend"" imageMso=""ChartTypeLineInsertGallery"" onAction=""cptGetTrend_CPLI"" visible=""true"" supertip=""Create a chart of CPLI Trend. (Feature not available in this version of MS Project)"" />"
     End If
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Earned Value-ish (in hrs)"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSPI"" label=""Schedule Performance Index (SPI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSPI"" visible=""true"" supertip=""Relies on timephased baseline work and Physical % Complete."" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSV"" label=""Schedule Variance (SV)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSV"" visible=""true"" supertip=""Relies on timephased baseline work and Physical % Complete."" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWS"" label=""Budgeted Cost of Work Scheduled (BCWS)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWS"" visible=""true"" supertip=""Timephased BCWS/PV (in hours)."" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBCWP"" label=""Budgeted Cost of Work Performed (BCWP)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBCWP"" visible=""true"" supertip=""Timephased BCWP/EV (in hours)--relies on baseline work and Physical % Complete."" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBAC"" label=""Budget at Complete (BAC)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBAC"" visible=""true""/>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bETC"" label=""Estimate to Complete (ETC)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetETC"" visible=""true""/>"
-    'ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Export"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-    'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bExportMetrics"" label="">> Excel"" imageMso=""ExportExcel"" onAction=""cptExportMetricsExcel"" visible=""true""/>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCEItrend"" label=""CEI Trend"" imageMso=""ChartTypeLineInsertGallery"" onAction=""cptGetTrend_CEI"" visible=""true"" supertip=""Just what it sounds like..."" />"
+    'todo: TFCI Trend
+    If cptModuleExists("cptResourceDemand_bas") And cptModuleExists("cptResourceDemand_frm") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Staffing Metrics"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptResourceDemandExcel"" label=""Staffing Profile"" imageMso=""Chart3DColumnChart"" onAction=""cptShowExportResourceDemand_frm"" visible=""true"" supertip=""Export timephased assignment remaining work, baseline work, costs (any or all rate sets), and your choice of extra fields. Settings are saved between sessions."" />" 'size=""large""
+    End If
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Other"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBCWS"" label=""Budgeted Cost of Work Scheduled (BCWS) in hours"" imageMso=""NumberInsert"" onAction=""cptGetBCWS"" visible=""true"" supertip=""Timephased BCWS/PV (in hours)."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBCWP"" label=""Budgeted Cost of Work Performed (BCWP) in hours"" imageMso=""NumberInsert"" onAction=""cptGetBCWP"" visible=""true"" supertip=""Timephased BCWP/EV (in hours)--relies on baseline work and Physical % Complete."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBAC"" label=""Budget at Complete (BAC) in hours"" imageMso=""NumberInsert"" onAction=""cptGetBAC"" visible=""true"" supertip=""Budget at Complete (BAC) in hours"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptETC"" label=""Estimate to Complete (ETC) in hours"" imageMso=""NumberInsert"" onAction=""cptGetETC"" visible=""true"" supertip=""Estimate to Complete (ETC) in hours"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptLSLF"" label=""Late Starts and Finishes"" imageMso=""ChartTypeLineInsertGallery"" onAction=""cptLateStartsFinishes"" visible=""true"" supertip=""Late Starts and Finishes Chart"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptHitTask"" label=""Hit Task %"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetHitTask"" visible=""true"" supertip=""Because it's (still) on the Gold Card."" />"
+
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Data &amp;&amp; Settings"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+    If cptModuleExists("cptMetricsData_frm") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptEditMetricsData"" label=""View &amp;&amp; Edit Metrics Data"" imageMso=""DataValidation"" onAction=""cptShowMetricsData_frm"" visible=""true"" supertip=""Review and delete metrics records for this program."" />"
+    End If
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptExportAllData"" label=""Export Metrics Data"" imageMso=""ExportExcel"" onAction=""cptExportMetricsData"" visible=""true"" supertip=""Export stored metrics data for this program to Excel."" />"
+    If cptModuleExists("cptMetricsSettings_frm") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptMetricsSettings"" label=""Metrics Settings"" imageMso=""Settings"" onAction=""cptShowMetricsSettings_frm"" visible=""true"" supertip=""Settings required for some EV-ish metrics."" />"
+    End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
-'    If cptModuleExists("cptGraphics_bas") And cptModuleExists("cptGraphics_frm") Then
-'      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bGraphics"" label=""Quick Look"" imageMso=""PivotChartInsert"" onAction=""cptShowFrmGraphics"" visible=""true"" size=""large"" />"
-'    End If
-    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:dialogBoxLauncher>"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""test"" screentip=""Concept of operations"" onAction=""cptShowSettings_frm"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "</mso:dialogBoxLauncher>"
   End If
-  
-  'outline codes
-  If cptModuleExists("cptBackbone_frm") And cptModuleExists("cptBackbone_bas") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gWBS"" label=""Backbone"" visible=""true"" >"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBackbone"" label=""Outline Codes"" imageMso=""WbsMenu"" onAction=""cptShowBackbone_frm"" visible=""true"" size=""large"" supertip=""Quickly create or edit Outline Codes (CWBS, IMP, etc.); import and/or export; create DI-MGMT-81334D, etc."" />"
-    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
-  End If
-  
+  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+    
   'integration
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gIntegration"" label=""Integration"" visible=""true"" >"
+  'outline codes
+  If cptModuleExists("cptBackbone_frm") And cptModuleExists("cptBackbone_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBackbone"" label=""Outline Codes"" imageMso=""WbsMenu"" onAction=""cptShowBackbone_frm"" visible=""true"" size=""large"" supertip=""Quickly create or edit Outline Codes (CWBS, IMP, etc.); import and/or export; create DI-MGMT-81334D, etc."" />"
+  End If
+  ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   If cptModuleExists("cptIMSCobraExport_bas") And cptModuleExists("cptIMSCobraExport_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCOBRA"" label=""COBRA Export Tool"" imageMso=""Export"" onAction=""Export_IMS"" visible=""true"" supertip=""Validate that your IMS is ready for integration; create CSV transaction files for COBRA. Baseline, forecast, status, etc."" />"
   End If
@@ -557,6 +591,18 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
   'bcr
+
+  'calendars
+  If (cptModuleExists("cptFiscal_frm") And cptModuleExists("cptFiscal_bas")) Or (cptModuleExists("cptCalendarExceptions_frm") And cptModuleExists("cptCalendarExceptions_bas")) Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gCalendars"" label=""Calendars"" visible=""true"" >"
+    If cptModuleExists("cptFiscal_frm") And cptModuleExists("cptFiscal_bas") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFiscal"" label=""Fiscal"" imageMso=""MonthlyView"" onAction=""cptShowFiscal_frm"" visible=""true"" supertip=""Maintain a fiscal calendar for various reports."" />"
+    End If
+    If cptModuleExists("cptCalendarExceptions_frm") And cptModuleExists("cptCalendarExceptions_bas") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCalDetails"" label=""Calendar Details"" imageMso=""MonthlyView"" onAction=""cptShowCalendarExceptions_frm"" visible=""true"" supertip=""Export Calendar Exceptions, WorkWeeks, and settings."" />"
+    End If
+    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  End If
 
   'custom fields
   If (cptModuleExists("cptDataDictionary_frm") And cptModuleExists("cptDataDictionary_bas")) Or (cptModuleExists("cptSaveLocal_bas") And cptModuleExists("cptSaveLocal_frm")) Then
@@ -583,7 +629,9 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIssue"" label=""Submit an Issue"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitIssue"" visible=""true"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bRequest"" label=""Submit a Feature Request"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitRequest"" visible=""true"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFeedback"" label=""Submit Other Feedback"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitFeedback"" visible=""true"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Remove"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Settings"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSettings"" label=""View All Settings"" imageMso=""Settings"" onAction=""cptShowSettings_frm"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Uninstall"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUninstall"" label=""Uninstall ClearPlan Toolbar"" imageMso=""TasksUnlink"" onAction=""cptUninstall"" visible=""true"" />"
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   End If
@@ -622,7 +670,7 @@ Public Function cptInternetIsConnected() As Boolean
 
 End Function
 
-Function cptRegEx(strText As String, strRegEx As String) As String
+Function cptRegEx(strText As String, strRegEx As String, Optional blnMultiline As Boolean = False) As String
 Dim RE As Object, REMatch As Variant, REMatches As Object
 Dim strMatch As String
 
@@ -630,7 +678,7 @@ Dim strMatch As String
 
     Set RE = CreateObject("vbscript.regexp")
     With RE
-        .MultiLine = False
+        .MultiLine = blnMultiline
         .Global = True
         .IgnoreCase = True
         .Pattern = strRegEx
@@ -687,12 +735,9 @@ Dim blnExists As Boolean
 'strings
 Dim strError As String
 
-  On Error Resume Next
-  'Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
-  cptModuleExists = Not ThisProject.VBProject.VBComponents(strModule) Is Nothing
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  GoTo exit_here
 
+  blnExists = False
   For Each vbComponent In ThisProject.VBProject.VBComponents
     If UCase(vbComponent.Name) = UCase(strModule) Then
       blnExists = True
@@ -794,3 +839,68 @@ err_here:
   Call cptHandleErr("cptSetup_bas", "cptUninstall", Err, Erl)
   Resume exit_here
 End Sub
+
+Sub cptDate_dd()
+  DefaultDateFormat = pjDate_dd
+End Sub
+Sub cptDate_ddd_dd()
+  DefaultDateFormat = pjDate_ddd_dd
+End Sub
+Sub cptDate_ddd_hh_mmAM()
+  DefaultDateFormat = pjDate_ddd_hh_mmAM
+End Sub
+Sub cptDate_ddd_mm_dd()
+  DefaultDateFormat = pjDate_ddd_mm_dd
+End Sub
+Sub cptDate_ddd_mm_dd_yy()
+  DefaultDateFormat = pjDate_ddd_mm_dd_yy
+End Sub
+Sub cptDate_ddd_mm_dd_yy_hh_mmAM()
+  DefaultDateFormat = pjDate_ddd_mm_dd_yy_hh_mmAM
+End Sub
+Sub cptDate_ddd_mmm_dd()
+  DefaultDateFormat = pjDate_ddd_mmm_dd
+End Sub
+Sub cptDate_ddd_mmm_dd_yyy()
+  DefaultDateFormat = pjDate_ddd_mmm_dd_yyy
+End Sub
+Sub cptDate_hh_mmAM()
+  DefaultDateFormat = pjDate_hh_mmAM
+End Sub
+Sub cptDate_mm_dd()
+  DefaultDateFormat = pjDate_mm_dd
+End Sub
+Sub cptDate_mm_dd_yy()
+  DefaultDateFormat = pjDate_mm_dd_yy
+End Sub
+Sub cptDate_mm_dd_yy_hh_mmAM()
+  DefaultDateFormat = pjDate_mm_dd_yy_hh_mmAM
+End Sub
+Sub cptDate_mm_dd_yyyy()
+  DefaultDateFormat = pjDate_mm_dd_yyyy
+End Sub
+Sub cptDate_mmm_dd()
+  DefaultDateFormat = pjDate_mmm_dd
+End Sub
+Sub cptDate_mmm_dd_hh_mmAM()
+  DefaultDateFormat = pjDate_mmm_dd_hh_mmAM
+End Sub
+Sub cptDate_mmm_dd_yyy()
+  DefaultDateFormat = pjDate_mmm_dd_yyy
+End Sub
+Sub cptDate_mmmm_dd()
+  DefaultDateFormat = pjDate_mmmm_dd
+End Sub
+Sub cptDate_mmmm_dd_yyyy()
+  DefaultDateFormat = pjDate_mmmm_dd_yyyy
+End Sub
+Sub cptDate_mmmm_dd_yyyy_hh_mmAM()
+  DefaultDateFormat = pjDate_mmmm_dd_yyyy_hh_mmAM
+End Sub
+Sub cptDate_Www_dd()
+  DefaultDateFormat = pjDate_Www_dd
+End Sub
+Sub cptDate_Www_dd_yy_hh_mmAM()
+  DefaultDateFormat = pjDate_Www_dd_yy_hh_mmAM
+End Sub
+

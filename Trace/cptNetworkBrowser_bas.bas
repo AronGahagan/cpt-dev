@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
-'<cpt_version>v0.0.5</cpt_version>
+'<cpt_version>v0.0.6</cpt_version>
 Option Explicit
 Public oInsertedIndex As Object
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -39,6 +39,7 @@ Sub cptShowNetworkBrowser_frm()
   Call cptStartEvents
   Call cptShowPreds
   With cptNetworkBrowser_frm
+    .Caption = "Network Browser (" & cptGetVersion("cptNetworkBrowser_frm") & ")"
     .tglTrace = False
     .tglTrace.Caption = "Jump"
     .lboPredecessors.MultiSelect = fmMultiSelectSingle
@@ -271,6 +272,7 @@ Sub cptMarkSelected()
   End If
   If ActiveWindow.TopPane.View.Name = "Network Diagram" Then
     'todo: call cptFilterReapply
+    'todo: "Highlight Marked tasks in the current view?"
     cptSpeed True
     FilterApply "All Tasks"
     FilterApply "Marked"
@@ -322,19 +324,24 @@ Sub cptClearMarked()
 Dim oTask As Task
 
   For Each oTask In ActiveProject.Tasks
+    If oTask Is Nothing Then GoTo next_task
     If oTask.ExternalTask Then GoTo next_task
     If Not oTask.Active Then GoTo next_task
-    If Not oTask Is Nothing Then oTask.Marked = False
+    oTask.Marked = False
 next_task:
   Next oTask
   ActiveProject.Tasks.UniqueID(0).Marked = False
   'todo: fix this
   If ActiveWindow.TopPane.View.Name = "Network Diagram" Then
     cptSpeed True
-    If Not cptFilterExists("Active Tasks") Then
-      FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, OverwriteExisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=True
+    If Edition = pjEditionProfessional Then
+      If Not cptFilterExists("Active Tasks") Then
+        FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, overwriteexisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=True
+      End If
+      FilterApply "Active Tasks"
+    ElseIf Edition = pjEditionStandard Then
+      FilterApply "All Tasks"
     End If
-    FilterApply "Active Tasks"
     FilterApply "Marked"
     cptSpeed False
   Else
@@ -361,7 +368,7 @@ Sub cptHistoryDoubleClick()
       End If
       If MsgBox("Task is hidden - remove filters and show it?", vbQuestion + vbYesNo, "Confirm Apocalypse") = vbYes Then
         FilterClear
-        OptionsViewEx displaysummarytasks:=True
+        OptionsViewEx displaysummaryTasks:=True
         On Error Resume Next
         If Not OutlineShowAllTasks Then
           If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then

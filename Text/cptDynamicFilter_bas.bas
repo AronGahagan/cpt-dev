@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDynamicFilter_bas"
-'<cpt_version>v1.5.3</cpt_version>
+'<cpt_version>v1.5.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -29,6 +29,7 @@ Sub cptShowDynamicFilter_frm()
   '===
   
   With cptDynamicFilter_frm
+    .Caption = "Dynamic Filter (" & cptGetVersion("cptDynamicFilter_frm") & ")"
     .txtFilter = ""
     With .cboField
       .Clear
@@ -109,14 +110,14 @@ next_task:
   If lngUID > 0 Then ActiveProject.Tasks.UniqueID(lngUID).Marked = True
   
   FilterClear 'in case Dynamic Filter is applied
-  OptionsViewEx displaysummarytasks:=True
+  OptionsViewEx displaysummaryTasks:=True
   On Error Resume Next
   If Not OutlineShowAllTasks Then
     Sort "ID", , , , , , False, True
     OutlineShowAllTasks
   End If
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  OptionsViewEx displaysummarytasks:=cptDynamicFilter_frm.chkShowRelatedSummaries
+  OptionsViewEx displaysummaryTasks:=cptDynamicFilter_frm.chkShowRelatedSummaries
   
   SetAutoFilter "Marked", pjAutoFilterFlagYes
   'todo: allow user-selected Flag or Marked
@@ -177,7 +178,7 @@ Public Function cptRxTest( _
     Optional ByVal MultiLine As Boolean = True) As Boolean
  
     ' Wow, that was easy:
-    cptRxTest = cptGetRegex(Pattern, IgnoreCase, MultiLine, False).test(SourceString)
+    cptRxTest = cptGetRegex(Pattern, IgnoreCase, MultiLine, False).Test(SourceString)
     
 End Function
 

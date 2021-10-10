@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.3.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -76,6 +76,7 @@ End Sub
 
 Private Sub cmdExport_Click()
   Call cptExportDataDictionary
+  'todo: refresh cboOpenWorkbooks
 End Sub
 
 Private Sub cmdFormGrow_Click()
@@ -136,6 +137,12 @@ err_here:
   
 End Sub
 
+Private Sub lblRecover_Click()
+  'todo: notify user of the issue
+  'todo: create the workbook
+  'todo: notify user to update and use 'import' to restore
+End Sub
+
 Private Sub lblURL_Click()
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -159,7 +166,7 @@ End Sub
 Private Sub txtDescription_AfterUpdate()
 'objects
 'strings
-Dim strGUID As String
+Dim strProject As String
 'longs
 'integers
 'doubles
@@ -173,17 +180,12 @@ Dim strGUID As String
 
   Me.lblStatus.Caption = "Saving..."
 
-  'get project uid
-  If Application.Version < 12 Then
-    strGUID = ActiveProject.DatabaseProjectUniqueID
-  Else
-    strGUID = ActiveProject.GetServerProjectGuid
-  End If
+  strProject = cptGetProgramAcronym
   
   'find and update the record
   With CreateObject("ADODB.Recordset")
     .Open cptDir & "\settings\cpt-data-dictionary.adtg"
-    .Filter = "PROJECT_ID='" & strGUID & "' AND FIELD_ID=" & CLng(Me.lboCustomFields.Value)
+    .Filter = "PROJECT_NAME='" & strProject & "' AND FIELD_ID=" & CLng(Me.lboCustomFields.Value)
     If Not .EOF Then
       .Fields("DESCRIPTION") = Me.txtDescription.Text
       .Update
@@ -219,7 +221,7 @@ Private Sub txtFilter_Change()
 'objects
 Dim rst As Object 'ADODB.Recordset
 'strings
-Dim strDictionary As String, strFilter As String, strText As String, strGUID As String
+Dim strDictionary As String, strFilter As String, strText As String, strProject As String
 'longs
 Dim lngItem As Long
 'integers
@@ -229,23 +231,23 @@ Dim lngItem As Long
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
+  strProject = cptGetProgramAcronym
   strDictionary = cptDir & "\settings\cpt-data-dictionary.adtg"
 
   If Dir(strDictionary) <> vbNullString Then
     Me.lboCustomFields.Clear
     Me.txtDescription = ""
-    strGUID = ActiveProject.GetServerProjectGuid
     With CreateObject("ADODB.Recordset")
       .Open strDictionary
       .Sort = "CUSTOM_NAME"
       If Len(Me.txtFilter.Text) > 0 Then
         strText = cptRemoveIllegalCharacters(Me.txtFilter.Text)
-        strFilter = "(CUSTOM_NAME LIKE '*" & strText & "*' AND PROJECT_ID='" & strGUID & "') "
+        strFilter = "(CUSTOM_NAME LIKE '*" & strText & "*' AND PROJECT_NAME='" & strProject & "') "
         strFilter = strFilter & "OR "
-        strFilter = strFilter & "(FIELD_NAME LIKE '*" & strText & "*' AND PROJECT_ID='" & strGUID & "') "
+        strFilter = strFilter & "(FIELD_NAME LIKE '*" & strText & "*' AND PROJECT_NAME='" & strProject & "') "
       Else
-        strFilter = "PROJECT_ID='" & strGUID & "' "
+        strFilter = "PROJECT_NAME='" & strProject & "' "
       End If
       .Filter = strFilter
       If Not .EOF Then .MoveFirst
