@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.5.7</cpt_version>
+'<cpt_version>v1.5.8</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -149,7 +149,7 @@ frx:
             '<issue19> revised
             vbComponent.Name = vbComponent.Name & "_" & Format(Now, "hhnnss")
             DoEvents
-            ThisProject.VBProject.VBComponents.Remove vbComponent 'ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
+            ThisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
             DoEvents '</issue19>
             Exit For
           End If
@@ -167,6 +167,7 @@ frx:
           With ThisProject.VBProject.VBComponents(strModule).CodeModule
             For lngLine = .CountOfDeclarationLines To 1 Step -1
               If Len(.Lines(lngLine, 1)) = 0 Then .DeleteLines lngLine, 1
+              DoEvents
             Next lngLine
           End With '</issue24>
 
@@ -191,7 +192,7 @@ this_project:
     Name strFileName As strCptFileName
     'import the module
     If cptModuleExists("cptThisProject_cls") Then
-      ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents("cptThisProject_cls")
+      ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents("cptThisProject_cls")
       DoEvents
     End If
     Set cmCptThisProject = ThisProject.VBProject.VBComponents.Import(strCptFileName).CodeModule
@@ -214,6 +215,7 @@ this_project:
       For lngLine = cmThisProject.CountOfLines To 1 Step -1
         If InStr(cmThisProject.Lines(lngLine, 1), "'</cpt>") > 0 Then
           cmThisProject.DeleteLines lngLine
+          DoEvents
         End If
       Next lngLine
     Else
@@ -237,12 +239,13 @@ this_project:
       rstCode.Update
     Next vEvent
   End With
-  ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
+  ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
+  DoEvents
   If cptModuleExists("ThisProject1") Then
-    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents("ThisProject1")
+    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents("ThisProject1")
   End If
   If cptModuleExists("cptThisProject_cls") Then
-    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents("cptThisProject_cls")
+    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents("cptThisProject_cls")
   End If
   '<issue19> added
   DoEvents '</issue19>
@@ -262,19 +265,23 @@ this_project:
           'import them if they *as a group* don't exist
           If .Find(rstCode(1), .ProcStartLine(CStr(vEvent), 0), 1, .ProcCountLines(CStr(vEvent), 0), 1000) = False Then  'vbext_pk_Proc
             .InsertLines lngEvent + 1, rstCode(1)
+            DoEvents
           End If
-          rstCode.Filter = ""
         Else 'create it
           'create it, returning its line number
           lngEvent = .CreateEventProc(Replace(CStr(vEvent), "Project_", ""), "Project")
           'insert cpt code after line number
           .InsertLines lngEvent + 1, rstCode(1)
+          DoEvents
         End If
       Else 'easy
+        rstCode.MoveFirst
+        rstCode.Find "EVENT='" & vEvent & "'"
         'create it, returning its line number
         lngEvent = .CreateEventProc(Replace(CStr(vEvent), "Project_", ""), "Project")
         'insert cpt code after line number
         .InsertLines lngEvent + 1, rstCode(1)
+        DoEvents
       End If 'lines exist
     End With 'thisproject.codemodule
 
@@ -282,6 +289,7 @@ this_project:
     With cmThisProject
       If .Find("<cpt_version>", 1, 1, .CountOfLines, 1000) = False Then
         .InsertLines 1, "'<cpt_version>" & strVersion & "</cpt_version>" & vbCrLf
+        DoEvents
       End If
     End With
   Next vEvent
@@ -298,6 +306,13 @@ skip_import:
   End If
     
   'reset the toolbar
+  Application.ScreenUpdating = False
+  Application.FileNew
+  DoEvents
+  Application.FileCloseEx pjDoNotSave
+  Application.ScreenUpdating = True
+  GoTo exit_here
+  
   strMsg = "<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>" & vbCrLf
   strMsg = strMsg + "<mso:customUI "
   strMsg = strMsg + "xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui"" >"
@@ -327,7 +342,7 @@ exit_here:
   Set rstCore = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptSetup", Err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptSetup", err, Erl)
   Resume exit_here
 End Sub
 
@@ -650,7 +665,7 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
 Dim strMsg As String
 
     strMsg = "Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
-    strMsg = strMsg & "Error " & Err.Number & ": " & Err.Description & vbCrLf & vbCrLf
+    strMsg = strMsg & "Error " & err.Number & ": " & err.Description & vbCrLf & vbCrLf
     strMsg = strMsg & "Source: " & strModule & "." & strProcedure
     If lngErl > 0 Then
       strMsg = strMsg & ":" & lngErl
@@ -697,9 +712,9 @@ exit_here:
     Set REMatches = Nothing
     Exit Function
 err_here:
-  If Err.Number = 5 Then
+  If err.Number = 5 Then
     cptRegEx = ""
-    Err.Clear
+    err.Clear
   End If
   Resume exit_here
 End Function
@@ -752,7 +767,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptModuleExists", Err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptModuleExists", err, Erl)
   Resume exit_here
 
 End Function
@@ -820,7 +835,7 @@ Dim lngLine As Long
       Application.StatusBar = "Purging module " & vbComponent.Name & "..."
       If Dir(cptDir & "\modules\", vbDirectory) = vbNullString Then MkDir cptDir & "\modules"
       vbComponent.Export cptDir & "\modules\" & vbComponent.Name
-      ThisProject.VBProject.VBComponents.Remove vbComponent
+      ThisProject.VBProject.VBComponents.remove vbComponent
     End If
 next_component:
   Next vbComponent
@@ -836,7 +851,7 @@ exit_here:
   Set cmThisProject = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptUninstall", Err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptUninstall", err, Erl)
   Resume exit_here
 End Sub
 
