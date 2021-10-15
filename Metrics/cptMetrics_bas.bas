@@ -2472,6 +2472,7 @@ End Sub
 
 Sub cptGetEarnedSchedule()
   'objects
+  Dim oComment As Excel.Comment
   Dim oAssignment As Assignment
   Dim oRecordset As ADODB.Recordset
   Dim oTasks As Tasks
@@ -2667,6 +2668,11 @@ next_task:
       oWorksheet.Names.Add "SD", oWorksheet.Cells(lngES, 7)
       oWorksheet.Cells(lngES, 7).NumberFormat = "m/d/yyyy"
       oWorksheet.Cells(lngES + 1, 6) = "BCWP"
+      Set oComment = oWorksheet.Cells(lngES + 1, 6).AddComment("BCWP = Budgeted Cost of Work Performed")
+      oComment.Shape.TextFrame.Characters.Font.Bold = msoFalse
+      oComment.Shape.TextFrame.Characters.Font.Name = "Courier New"
+      oComment.Shape.TextFrame.Characters.Font.Size = 10
+      oComment.Shape.TextFrame.AutoSize = True
       oWorksheet.Cells(lngES + 1, 7) = dblBCWP
       oWorksheet.Names.Add "BCWP", oWorksheet.Cells(lngES + 1, 7)
       oWorksheet.Cells(lngES + 1, 7).Style = "Comma"
@@ -2688,8 +2694,13 @@ next_task:
       oWorksheet.Names.Add "AD", oWorksheet.Cells(lngES + 4, 7)
       oWorksheet.Cells(lngES + 4, 8) = "weeks"
       'SPI(t) = ES/ED
-      oWorksheet.Cells(lngES + 5, 6) = "SPI(t)"
-      oWorksheet.Cells(lngES + 5, 7) = "=ES/AD"
+      oWorksheet.Cells(lngES + 5, 6) = "SPI(t) = ES/AD"
+      Set oComment = oWorksheet.Cells(lngES + 5, 6).AddComment("SPI(t) = Schedule Performance Index (time-based)")
+      oComment.Shape.TextFrame.Characters.Font.Bold = msoFalse
+      oComment.Shape.TextFrame.Characters.Font.Name = "Courier New"
+      oComment.Shape.TextFrame.Characters.Font.Size = 10
+      oComment.Shape.TextFrame.AutoSize = True
+      oWorksheet.Cells(lngES + 5, 7).Formula2 = "=ES/AD"
       oWorksheet.Names.Add "SPI_t", oWorksheet.Cells(lngES + 5, 7)
       oWorksheet.Cells(lngES + 5, 7).Style = "Comma"
       If oWorksheet.Cells(lngES + 5, 7) > 1.05 Then
@@ -2715,7 +2726,7 @@ next_task:
       strFormula = strFormula & oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",0)"
       strFormula = strFormula & "-ES"
       oWorksheet.Cells(lngES + 7, 7).Formula2 = strFormula
-      oWorksheet.Names.Add "PDWR", oWorksheet.Cells(lngES + 7, 7)
+      oWorksheet.Names.Add "PDWR_1", oWorksheet.Cells(lngES + 7, 7)
       oWorksheet.Cells(lngES + 7, 8) = "weeks"
       'RD = ETC DUR - AD
       '=MATCH(MAX(--($D$2:$D$160>0)*($A$2:$A$160)),$A$2:$A$160,0)-AD
@@ -2730,8 +2741,13 @@ next_task:
       oWorksheet.Names.Add "RD", oWorksheet.Cells(lngES + 8, 7)
       oWorksheet.Cells(lngES + 8, 8) = "weeks"
       'TSPI(ed) = PDWR / RD (ETC)
-      oWorksheet.Cells(lngES + 9, 6) = "TSPI(ed)"
-      oWorksheet.Cells(lngES + 9, 7) = "=PDWR/RD"
+      oWorksheet.Cells(lngES + 9, 6) = "TSPI(ed) = PDWR/RD"
+      Set oComment = oWorksheet.Cells(lngES + 9, 6).AddComment("TSPI(ed) = To Complete Schedule Performance Index (estimated/forecast duration)")
+      oComment.Shape.TextFrame.Characters.Font.Bold = msoFalse
+      oComment.Shape.TextFrame.Characters.Font.Name = "Courier New"
+      oComment.Shape.TextFrame.Characters.Font.Size = 10
+      oComment.Shape.TextFrame.AutoSize = True
+      oWorksheet.Cells(lngES + 9, 7).Formula2 = "=PDWR_1/RD"
       oWorksheet.Names.Add "TSPI_ed", oWorksheet.Cells(lngES + 9, 7)
       oWorksheet.Cells(lngES + 9, 7).Style = "Comma"
       
@@ -2757,22 +2773,28 @@ next_task:
         oWorksheet.Cells(lngES + 12, 7).Style = "Good"
       End If
       'PDWR in days
+      'todo: export calendar exceptions and use =NETWORKDAYS()
       oWorksheet.Cells(lngES + 14, 6) = "PDWR"
       lngDuration = Application.DateDifference(dtStatus, dtLatestFinish)
       oWorksheet.Cells(lngES + 14, 7).FormulaR1C1 = lngDuration / (60 * 8)
-      oWorksheet.Names.Add "PDWR", oWorksheet.Cells(lngES + 14, 7)
+      oWorksheet.Names.Add "PDWR_2", oWorksheet.Cells(lngES + 14, 7)
       oWorksheet.Cells(lngES + 14, 7).Style = "Comma"
       oWorksheet.Cells(lngES + 14, 8) = "work days"
       
       'PDWR factored
       oWorksheet.Cells(lngES + 15, 6) = "PDWR/SPI(t)"
       lngDuration = lngDuration / oWorksheet.Range("SPI_t")
-      oWorksheet.Cells(lngES + 15, 7).FormulaR1C1 = "=PDWR/SPI_t"
+      oWorksheet.Cells(lngES + 15, 7).FormulaR1C1 = "=PDWR_2/SPI_t"
       oWorksheet.Cells(lngES + 15, 7).Style = "Comma"
       oWorksheet.Cells(lngES + 15, 8) = "work days"
       
       'IECD(es)
-      oWorksheet.Cells(lngES + 16, 6) = "IECD(es)"
+      oWorksheet.Cells(lngES + 16, 6) = "IECD(es) = PDWR/SPI(t)"
+      Set oComment = oWorksheet.Cells(lngES + 16, 6).AddComment("IECD(es) = Independent Estimated Completion Date (earned schedule)")
+      oComment.Shape.TextFrame.Characters.Font.Bold = msoFalse
+      oComment.Shape.TextFrame.Characters.Font.Name = "Courier New"
+      oComment.Shape.TextFrame.Characters.Font.Size = 10
+      oComment.Shape.TextFrame.AutoSize = True
       oWorksheet.Cells(lngES + 16, 7).FormulaR1C1 = Application.DateAdd(dtStatus, lngDuration)
       oWorksheet.Cells(lngES + 16, 7).NumberFormat = "m/d/yyyy"
       oWorksheet.Cells(lngES + 16, 8) = "Using Calendar '" & ActiveProject.Calendar.Name & "'"
@@ -2824,6 +2846,7 @@ next_task:
   
 exit_here:
   On Error Resume Next
+  Set oComment = Nothing
   Application.StatusBar = ""
   DoEvents
   Kill cptDir & "\Schema.ini"
