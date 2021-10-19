@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.1.0</cpt_version>
+'<cpt_version>v1.1.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -238,10 +238,6 @@ Sub cptStatusSheetImport()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  'todo: save current dates to selected fields
-  'todo: age the dates X periods - carry back names
-  'todo: view should be gantt on top and oTask usage below (but with custom table having only UID,{user fields},oTask/oResource Name, Remaining Work, New ETC
-  
   'validate choices for all
   With cptStatusSheetImport_frm
     
@@ -289,7 +285,6 @@ Sub cptStatusSheetImport()
   End With
   
   'save user settings
-  'todo: need multiple ini configurations for multiple project files/contracts?
   cptSaveSetting "StatusSheetImport", "cboAS", CStr(lngAS)
   cptSaveSetting "StatusSheetImport", "cboAF", CStr(lngAF)
   cptSaveSetting "StatusSheetImport", "cboFS", CStr(lngFS)
@@ -300,11 +295,7 @@ Sub cptStatusSheetImport()
   cptSaveSetting "StatusSheetImport", "cboAppendTo", strAppendTo
   
   'set up import log file
-  strImportLog = ActiveProject.Path & "\Status Requests\"
-  If Dir(strImportLog, vbDirectory) = vbNullString Then MkDir strImportLog
-  strImportLog = strImportLog & Format(ActiveProject.StatusDate, "yyyy-mm-dd") & "\"
-  If Dir(strImportLog, vbDirectory) = vbNullString Then MkDir strImportLog
-  strImportLog = strImportLog & "cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
+  strImportLog = ActiveProject.Path & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
   lngFile = FreeFile
   Open strImportLog For Output As #lngFile
 
