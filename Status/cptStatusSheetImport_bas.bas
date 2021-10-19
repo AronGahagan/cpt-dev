@@ -724,6 +724,8 @@ Dim lngItem As Long
   'keep these here so user can filter on changes above, make edits below
   'Type
   TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Type", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  'Effort Driven
+  TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Effort Driven", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   'existing ETC (remaining work)
   TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="ETC", Width:=20, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   'imported ETC
@@ -757,6 +759,8 @@ Dim lngItem As Long
     TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Name", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     'Type
     TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Type", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    'Effort Driven
+    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Effort Driven", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     'existing ETC (remaining work)
     TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="ETC", Width:=20, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     'imported ETC
