@@ -196,6 +196,7 @@ Sub cptStatusSheetImport()
   Dim oComboBox As ComboBox
   Dim rst As Object 'ADODB.Recordset
   'strings
+  Dim strFile As String
   Dim strNotesColTitle As String
   Dim strImportLog As String
   Dim strAppendTo As String
@@ -215,7 +216,7 @@ Sub cptStatusSheetImport()
   Dim lngASCol As Long
   Dim lngHeaderRow As Long
   Dim lngLastRow As Long
-  Dim lngFiles As Long
+  Dim lngItem As Long
   Dim lngETC As Long
   Dim lngEV As Long
   Dim lngFF As Long
@@ -244,7 +245,7 @@ Sub cptStatusSheetImport()
     blnValid = True
     
     'ensure file(s) are added to import list
-    If .TreeView1.Nodes.Count = 0 Then
+    If .lboStatusSheets.ListCount = 0 Then
       MsgBox "Please select one or more files to import.", vbInformation + vbOKOnly, "No Files Found"
       blnValid = False
       GoTo exit_here
@@ -383,12 +384,13 @@ next_task:
   'set up excel
   Set oExcel = CreateObject("Excel.Application")
   With cptStatusSheetImport_frm
-    For lngFiles = 1 To .TreeView1.Nodes.Count
-      Set oWorkbook = oExcel.Workbooks.Open(.TreeView1.Nodes(lngFiles).Text, ReadOnly:=True)
+    For lngItem = 0 To .lboStatusSheets.ListCount - 1
+      strFile = .lboStatusSheets.List(lngItem, 0) & .lboStatusSheets.List(lngItem, 1)
+      Set oWorkbook = oExcel.Workbooks.Open(strFile, ReadOnly:=True)
       cptStatusSheetImport_frm.lblStatus.Caption = "Importing " & oWorkbook.Name & "..."
       DoEvents
       Print #lngFile, String(25, "=")
-      Print #lngFile, "IMPORTING Workbook: " & .TreeView1.Nodes(lngFiles).Text & " (" & oWorkbook.Sheets.Count & " Worksheets)"
+      Print #lngFile, "IMPORTING Workbook: " & strFile & " (" & oWorkbook.Sheets.Count & " Worksheets)"
       Print #lngFile, String(25, "-")
       For Each oWorksheet In oWorkbook.Sheets
         Print #lngFile, "IMPORTING Worksheet: " & oWorksheet.Name
@@ -557,7 +559,7 @@ next_worksheet:
       Next oWorksheet
 next_file:
       oWorkbook.Close False
-    Next lngFiles
+    Next lngItem
   End With 'cptStatusSheetImport_frm
     
 exit_here:
@@ -723,7 +725,7 @@ Dim lngItem As Long
   End If
   'keep these here so user can filter on changes above, make edits below
   'Type
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Type", Width:=17, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Type", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   'Effort Driven
   TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Effort Driven", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   'existing ETC (remaining work)
