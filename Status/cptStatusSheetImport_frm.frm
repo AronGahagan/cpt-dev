@@ -66,10 +66,6 @@ End Sub
 
 Private Sub chkAppend_Click()
   Me.cboAppendTo.Enabled = Me.chkAppend
-'  If Me.chkAppend Then
-'    Me.cboAppendTo.SetFocus
-'    Me.cboAppendTo.DropDown
-'  End If
 End Sub
 
 Private Sub cmdDone_Click()
@@ -112,6 +108,7 @@ Private Sub cmdSelectFiles_Click()
   Dim FileDialog As FileDialog
   Dim oExcel As Excel.Application
   'strings
+  Dim strFile As String
   'longs
   Dim lngItem As Long
   'integers
@@ -141,7 +138,12 @@ Private Sub cmdSelectFiles_Click()
     If .Show = -1 Then
       If .SelectedItems.Count > 0 Then
         For lngItem = 1 To .SelectedItems.Count
-          cptStatusSheetImport_frm.TreeView1.Nodes.Add Text:=.SelectedItems(lngItem)
+          strFile = .SelectedItems(lngItem)
+          If Dir(strFile) <> vbNullString Then
+            cptStatusSheetImport_frm.lboStatusSheets.AddItem
+            cptStatusSheetImport_frm.lboStatusSheets.List(cptStatusSheetImport_frm.lboStatusSheets.ListCount - 1, 0) = Replace(strFile, Dir(strFile), "")
+            cptStatusSheetImport_frm.lboStatusSheets.List(cptStatusSheetImport_frm.lboStatusSheets.ListCount - 1, 1) = Dir(strFile)
+          End If
         Next lngItem
       End If
     End If
@@ -174,29 +176,13 @@ err_here:
   Resume exit_here
 End Sub
 
-'Private Sub TreeView1_OLEDragDrop(Data As MSComctlLib.DataObject, _
-'                                  Effect As Long, _
-'                                  Button As Integer, _
-'                                  Shift As Integer, _
-'                                  x As Single, _
-'                                  y As Single)
-'  Call cptAddFiles(Data)
-'End Sub
-
-Private Sub optAbove_Click()
-  Call cptRefreshStatusImportTable(Me.optBelow)
-End Sub
-
-Private Sub optBelow_Click()
-  Call cptRefreshStatusImportTable(Me.optBelow)
-End Sub
-
-Private Sub TreeView1_DblClick()
+Private Sub lboStatusSheets_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
   'objects
   Dim oExcel As Object
   'strings
   Dim strPath As String
   'longs
+  Dim lngItem As Long
   'integers
   'doubles
   'booleans
@@ -205,18 +191,22 @@ Private Sub TreeView1_DblClick()
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  If Me.TreeView1.Nodes.Count > 0 Then
-    If Me.TreeView1.SelectedItem Is Nothing Then GoTo exit_here
-    strPath = Me.TreeView1.SelectedItem.Text
-    If Dir(strPath) <> vbNullString Then
-      On Error Resume Next
-      Set oExcel = GetObject(, "Excel.Application")
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-      If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
-      oExcel.Workbooks.Open strPath
-      oExcel.Visible = True
-      Application.ActivateMicrosoftApp pjMicrosoftExcel
-    End If
+  If Me.lboStatusSheets.ListCount > 0 Then
+    For lngItem = 0 To Me.lboStatusSheets.ListCount - 1
+      If Me.lboStatusSheets.Selected(lngItem) Then
+        strPath = Me.lboStatusSheets.List(lngItem, 0) & Me.lboStatusSheets.List(lngItem, 1)
+        If Dir(strPath) <> vbNullString Then
+          On Error Resume Next
+          Set oExcel = GetObject(, "Excel.Application")
+          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
+          oExcel.Workbooks.Open strPath
+          oExcel.Visible = True
+          Application.ActivateMicrosoftApp pjMicrosoftExcel
+        End If
+        Exit For
+      End If
+    Next lngItem
   End If
   
 exit_here:
@@ -225,11 +215,14 @@ exit_here:
 
   Exit Sub
 err_here:
-  'Call HandleErr("cptStatusSheetImport_frm", "TreeView1.DblClick", Err)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Call cptHandleErr("cptStatusSheetImport_frm", "lboStatusSheets_DblClick", Err, Erl)
   Resume exit_here
 End Sub
 
-Private Sub UserForm_Initialize()
-  'Me.TreeView1.OLEDropMode = ccOLEDropManual
+Private Sub optAbove_Click()
+  Call cptRefreshStatusImportTable(Me.optBelow)
+End Sub
+
+Private Sub optBelow_Click()
+  Call cptRefreshStatusImportTable(Me.optBelow)
 End Sub
