@@ -333,46 +333,66 @@ next_field:
     oTask.SetField lngEV, CStr(0)
     'clear ETC
     For Each oAssignment In oTask.Assignments
-      If lngETC = FieldNameToFieldConstant("Number1") Then
+      If lngETC = pjTaskNumber1 Then
         oAssignment.Number1 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number2") Then
+        oTask.Number1 = 0
+      ElseIf lngETC = pjTaskNumber2 Then
         oAssignment.Number2 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number3") Then
+        oTask.Number2 = 0
+      ElseIf lngETC = pjTaskNumber3 Then
         oAssignment.Number3 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number4") Then
+        oTask.Number3 = 0
+      ElseIf lngETC = pjTaskNumber4 Then
         oAssignment.Number4 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number5") Then
+        oTask.Number4 = 0
+      ElseIf lngETC = pjTaskNumber5 Then
         oAssignment.Number5 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number6") Then
+        oTask.Number5 = 0
+      ElseIf lngETC = pjTaskNumber6 Then
         oAssignment.Number6 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number7") Then
+        oTask.Number6 = 0
+      ElseIf lngETC = pjTaskNumber7 Then
         oAssignment.Number7 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number8") Then
+        oTask.Number7 = 0
+      ElseIf lngETC = pjTaskNumber8 Then
         oAssignment.Number8 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number9") Then
+        oTask.Number8 = 0
+      ElseIf lngETC = pjTaskNumber9 Then
         oAssignment.Number9 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number10") Then
+        oTask.Number9 = 0
+      ElseIf lngETC = pjTaskNumber10 Then
         oAssignment.Number10 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number11") Then
+        oTask.Number10 = 0
+      ElseIf lngETC = pjTaskNumber11 Then
         oAssignment.Number11 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number12") Then
+        oTask.Number11 = 0
+      ElseIf lngETC = pjTaskNumber12 Then
         oAssignment.Number12 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number13") Then
+        oTask.Number12 = 0
+      ElseIf lngETC = pjTaskNumber13 Then
         oAssignment.Number13 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number14") Then
+        oTask.Number13 = 0
+      ElseIf lngETC = pjTaskNumber14 Then
         oAssignment.Number14 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number15") Then
+        oTask.Number14 = 0
+      ElseIf lngETC = pjTaskNumber15 Then
         oAssignment.Number15 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number16") Then
+        oTask.Number15 = 0
+      ElseIf lngETC = pjTaskNumber16 Then
         oAssignment.Number16 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number17") Then
+        oTask.Number16 = 0
+      ElseIf lngETC = pjTaskNumber17 Then
         oAssignment.Number17 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number18") Then
+        oTask.Number17 = 0
+      ElseIf lngETC = pjTaskNumber18 Then
         oAssignment.Number18 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number19") Then
+        oTask.Number18 = 0
+      ElseIf lngETC = pjTaskNumber19 Then
         oAssignment.Number19 = 0
-      ElseIf lngETC = FieldNameToFieldConstant("Number20") Then
+        oTask.Number19 = 0
+      ElseIf lngETC = pjTaskNumber20 Then
         oAssignment.Number20 = 0
+        oTask.Number20 = 0
       End If
     Next oAssignment
 next_task:
@@ -500,49 +520,110 @@ next_task:
               If Not oWorksheet.Cells(lngRow, lngETCCol).Locked Then
                 dblETC = oWorksheet.Cells(lngRow, lngETCCol).Value
                 If lngETC = pjTaskNumber1 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number1 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number1 = dblETC
+                    oTask.Number1 = oTask.Number1 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber2 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number2 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number2 = dblETC
+                    oTask.Number2 = oTask.Number2 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber3 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number3 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number3 = dblETC
+                    oTask.Number3 = oTask.Number3 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber4 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number4 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number4 = dblETC
+                    oTask.Number4 = oTask.Number4 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber5 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number5 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number5 = dblETC
+                    oTask.Number5 = oTask.Number5 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber6 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number6 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number6 = dblETC
+                    oTask.Number6 = oTask.Number6 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber7 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number7 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number7 = dblETC
+                    oTask.Number7 = oTask.Number7 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber8 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number8 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number8 = dblETC
+                    oTask.Number8 = oTask.Number8 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber9 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number9 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number9 = dblETC
+                    oTask.Number9 = oTask.Number9 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber10 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number10 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number10 = dblETC
+                    oTask.Number10 = oTask.Number10 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber11 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number11 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number11 = dblETC
+                    oTask.Number11 = oTask.Number11 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber12 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number12 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number12 = dblETC
+                    oTask.Number12 = oTask.Number12 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber13 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number13 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number13 = dblETC
+                    oTask.Number13 = oTask.Number13 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber14 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number14 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number14 = dblETC
+                    oTask.Number14 = oTask.Number14 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber15 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number15 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number15 = dblETC
+                    oTask.Number15 = oTask.Number15 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber16 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number16 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number16 = dblETC
+                    oTask.Number16 = oTask.Number16 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber17 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number17 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number17 = dblETC
+                    oTask.Number17 = oTask.Number17 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber18 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number18 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number18 = dblETC
+                    oTask.Number18 = oTask.Number18 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber19 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number19 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number19 = dblETC
+                    oTask.Number19 = oTask.Number19 + dblETC
+                  End If
                 ElseIf lngETC = pjTaskNumber20 Then
-                  If (oAssignment.RemainingWork / 60) <> dblETC Then oAssignment.Number20 = dblETC
+                  If (oAssignment.RemainingWork / 60) <> dblETC Then
+                    oAssignment.Number20 = dblETC
+                    oTask.Number20 = oTask.Number20 + dblETC
+                  End If
                 End If
                 If Len(oWorksheet.Cells(lngRow, lngCommentsCol)) > 0 Then
                   If .cboAppendTo = "Top of Task Note" Then
                     oAssignment.Notes = Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & vbCrLf & oAssignment.Notes
+                  'todo: Replace
                   ElseIf .cboAppendTo = "Bottom of Task Note" Then
                     oAssignment.AppendNotes vbCrLf & String(25, "-") & vbCrLf & Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
                   End If
@@ -725,7 +806,7 @@ Dim lngItem As Long
   End If
   'keep these here so user can filter on changes above, make edits below
   'Type
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Type", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Type", Width:=17, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   'Effort Driven
   TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Effort Driven", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   'existing ETC (remaining work)
