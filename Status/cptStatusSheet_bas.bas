@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.3.0</cpt_version>
+'<cpt_version>v1.3.1</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
@@ -479,7 +479,9 @@ skip_fields:
   FilterClear 'added 9/28/2021
   FilterApply "cptStatusSheet Filter"
   If Len(strCreate) > 0 And Len(strEach) > 0 Then
+    On Error Resume Next
     SetAutoFilter strEach, pjAutoFilterClear
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     DoEvents
   End If
   If strStartingGroup <> "No Group" Then
@@ -1869,8 +1871,6 @@ get_assignments:
         End If
       Next oAssignment
       Set oAssignment = Nothing
-      'todo: delete assignment rows for completed tasks
-      'todo: ensure formula is correct
     End If
     
     oWorksheet.Cells(lngRow, lngETCCol).Value = Replace(oWorksheet.Cells(lngRow, lngETCCol).Value, "h", "")

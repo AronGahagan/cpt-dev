@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.0</cpt_version>
+'<cpt_version>v1.3.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -199,6 +199,7 @@ next_task:
           .MoveNext
         Loop
       End If
+      Me.txtFileName_Change
     End With
   End If 'lngField > 0
   
@@ -926,7 +927,7 @@ Private Sub txtDir_Change()
 
 End Sub
 
-Private Sub txtFileName_Change()
+Sub txtFileName_Change()
   Dim strFileName As String
   strFileName = Me.txtFileName.Text
   If InStr(strFileName, "[yyyy-mm-dd]") > 0 Then
