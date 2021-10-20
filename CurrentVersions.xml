@@ -304,7 +304,7 @@
 	<Module>
 		<Name>cptStatusSheetImport_frm</Name>
 		<FileName>cptStatusSheetImport_frm.frm</FileName>
-		<Version>v1.1.0</Version>
+		<Version>v1.1.1</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
