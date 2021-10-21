@@ -1971,6 +1971,7 @@ next_task:
     oTwoWeekWindowRange.Locked = False
   End If
   'add EVT gloassary - test comment
+  'todo: pull this from the lookup table of the selected EVT field, dummy
   If Not oEVTRange Is Nothing Then
     If cptStatusSheet_frm.cboCostTool = "COBRA" Then
       strEVTList = "A - Level of Effort,"
@@ -2003,11 +2004,13 @@ next_task:
       strEVTList = strEVTList & "P - Milestone Weights with % Complete"
       strEVTList = strEVTList & "K - Key Event"
     End If
-    oWorksheet.Cells(lngHeaderRow, lngLastCol + 2).Value = "Earned Value Techniques (EVT)"
-    oWorksheet.Cells(lngHeaderRow, lngLastCol).Copy
-    oWorksheet.Cells(lngHeaderRow, lngLastCol + 2).PasteSpecial xlPasteFormats
-    oWorksheet.Range(oWorksheet.Cells(lngHeaderRow + 1, lngLastCol + 2), oWorksheet.Cells(lngHeaderRow + 1, lngLastCol + 2).Offset(UBound(Split(strEVTList, ",")), 0)).Value = oWorksheet.Application.Transpose(Split(strEVTList, ","))
-    oWorksheet.Columns(lngLastCol + 2).AutoFit
+    If Len(strEVTList) > 0 Then
+      oWorksheet.Cells(lngHeaderRow, lngLastCol + 2).Value = "Earned Value Techniques (EVT)"
+      oWorksheet.Cells(lngHeaderRow, lngLastCol).Copy
+      oWorksheet.Cells(lngHeaderRow, lngLastCol + 2).PasteSpecial xlPasteFormats
+      oWorksheet.Range(oWorksheet.Cells(lngHeaderRow + 1, lngLastCol + 2), oWorksheet.Cells(lngHeaderRow + 1, lngLastCol + 2).Offset(UBound(Split(strEVTList, ",")), 0)).Value = oWorksheet.Application.Transpose(Split(strEVTList, ","))
+      oWorksheet.Columns(lngLastCol + 2).AutoFit
+    End If
     
   End If
   
