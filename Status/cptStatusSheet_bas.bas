@@ -493,8 +493,8 @@ skip_fields:
   Application.StatusBar = "Ready..."
   DoEvents
   cptSpeed True
-  cptStatusSheet_frm.Show
-    
+  cptStatusSheet_frm.Show 'Modal = True! Keep!
+  
   'after user closes form, then:
   Application.StatusBar = "Restoring your view/table/filter/group..."
   DoEvents
@@ -1387,9 +1387,6 @@ conditional_formatting_skipped:
 
 exit_here:
   On Error Resume Next
-'  Application.DefaultDateFormat = lngDateFormat
-'  ActiveProject.SpaceBeforeTimeLabels = blnSpace
-'  ActiveProject.DayLabelDisplay = lngDayLabelDisplay
   If oExcel.Workbooks.Count > 0 Then oExcel.Calculation = xlAutomatic
   oExcel.ScreenUpdating = True
   oExcel.EnableEvents = True
@@ -1858,7 +1855,6 @@ try_again:
     oWorksheet.Cells(lngRow, lngLastCol).WrapText = True
     
 get_assignments:
-    
     If oTask.Assignments.Count > 0 And Not IsDate(oTask.ActualFinish) Then
       cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
     ElseIf IsDate(oTask.ActualFinish) Then
@@ -1866,7 +1862,7 @@ get_assignments:
       For Each oAssignment In oTask.Assignments
         Set oAssignment = Nothing
         On Error Resume Next
-        Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow + 1, 1))
+        Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow + 1, 1).Value)
         If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
         If Not oAssignment Is Nothing Then
           oWorksheet.Rows(lngRow + 1).EntireRow.Delete
@@ -1874,11 +1870,7 @@ get_assignments:
       Next oAssignment
       Set oAssignment = Nothing
     End If
-    
-    oWorksheet.Cells(lngRow, lngETCCol).Value = Replace(oWorksheet.Cells(lngRow, lngETCCol).Value, "h", "")
-    oWorksheet.Cells(lngRow, lngETCCol - 1).Value = Replace(oWorksheet.Cells(lngRow, lngETCCol).Value, "h", "")
-    oWorksheet.Cells(lngRow, lngETCCol - 2).Value = Replace(oWorksheet.Cells(lngRow, lngETCCol).Value, "h", "")
-    
+        
     'todo: capture conditional formatting range(s)
     
     oWorksheet.Columns(1).AutoFit
@@ -1971,7 +1963,6 @@ next_task:
     oTwoWeekWindowRange.Locked = False
   End If
   'add EVT gloassary - test comment
-  'todo: pull this from the lookup table of the selected EVT field, dummy
   If Not oEVTRange Is Nothing Then
     If cptStatusSheet_frm.cboCostTool = "COBRA" Then
       strEVTList = "A - Level of Effort,"
@@ -2071,8 +2062,12 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   For Each oAssignment In oTask.Assignments
     lngItem = lngItem + 1
     If ActiveProject.CurrentView <> "Task Usage" Or IsDate(oAssignment.ActualFinish) Then
-      oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
-      oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.ColorIndex = xlAutomatic
+      If Trim(oWorksheet.Cells(lngRow + lngItem, lngNameCol).Value) <> oAssignment.ResourceName Then
+        oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+        oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.ColorIndex = xlAutomatic
+      Else
+        oWorksheet.Rows(lngRow + lngItem).ClearContents
+      End If
     Else
       oWorksheet.Rows(lngRow + lngItem).ClearContents
     End If
@@ -2143,6 +2138,11 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   Next oAssignment
   'add formulae
   If oTask.Assignments.Count > 0 Then
+    'baseline work
+    oWorksheet.Cells(lngRow, lngRemainingWorkCol - 1).FormulaR1C1 = "=SUM(R" & lngRow + 1 & "C" & lngRemainingWorkCol - 1 & ":R" & lngRow + lngItem & "C" & lngRemainingWorkCol - 1 & ")"
+    'prev etc
+    oWorksheet.Cells(lngRow, lngRemainingWorkCol).FormulaR1C1 = "=SUM(R" & lngRow + 1 & "C" & lngRemainingWorkCol & ":R" & lngRow + lngItem & "C" & lngRemainingWorkCol & ")"
+    'new etc
     oWorksheet.Cells(lngRow, lngRemainingWorkCol + 1).FormulaR1C1 = "=SUM(R" & lngRow + 1 & "C" & lngRemainingWorkCol + 1 & ":R" & lngRow + lngItem & "C" & lngRemainingWorkCol + 1 & ")"
   End If
 
@@ -2284,7 +2284,6 @@ err_here:
   Call cptHandleErr("cptStatusSheet_bas", "cptAddConditionalFormatting", Err, Erl)
   Resume exit_here
 End Sub
-
 
 Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem As String) As String
   'objects
