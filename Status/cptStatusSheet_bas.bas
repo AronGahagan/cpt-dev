@@ -299,6 +299,17 @@ skip_fields:
           End If
         End If
       End If
+      ActiveWindow.TopPane.Activate
+      FilterClear
+      strAllItems = cptGetSetting("StatusSheet", "chkAllItems")
+      If strAllItems <> "" Then
+        .chkAllItems = CBool(strAllItems)
+      Else
+        .chkAllItems = False
+      End If
+    Else
+      ActiveWindow.TopPane.Activate
+      FilterClear
     End If
     strDir = cptGetSetting("StatusSheet", "txtDir")
     If strDir <> "" Then .txtDir = strDir
@@ -339,14 +350,6 @@ skip_fields:
       .chkLocked = CBool(strLocked)
     Else
       .chkLocked = True
-    End If
-    ActiveWindow.TopPane.Activate
-    FilterClear
-    strAllItems = cptGetSetting("StatusSheet", "chkAllItems")
-    If strAllItems <> "" Then
-      .chkAllItems = CBool(strAllItems)
-    Else
-      .chkAllItems = False
     End If
     strNotesColTitle = cptGetSetting("StatusSheet", "txtNotesColTitle")
     If Len(strNotesColTitle) > 0 Then

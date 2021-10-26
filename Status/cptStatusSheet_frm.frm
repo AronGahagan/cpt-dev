@@ -287,13 +287,14 @@ Private Sub chkAllItems_Click()
   Dim strCriteria As String
   Dim strFieldName As String
   
-  If IsNull(Me.cboEach) Then Exit Sub
+  If IsNull(Me.cboEach) Or Me.lboItems.ListCount = 0 Then Exit Sub
   strFieldName = Me.cboEach.Value
   If Me.chkAllItems Then
     For lngItem = 0 To Me.lboItems.ListCount - 1
       Me.lboItems.Selected(lngItem) = True
       strCriteria = strCriteria & Me.lboItems.List(lngItem) & Chr$(9)
     Next lngItem
+    If Len(strCriteria) = 0 Then Exit Sub
     strCriteria = Left(strCriteria, Len(strCriteria) - 1)
     SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
   Else
