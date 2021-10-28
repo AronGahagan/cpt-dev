@@ -738,6 +738,8 @@ next_file:
   Set oRecordset = CreateObject("ADODB.Recordset")
   oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
   If oRecordset.RecordCount > 0 Then
+    Print #lngFile, String(25, "-")
+    Print #lngFile, "--> " & oRecordset.RecordCount & " POTENTIAL CONFLICTS IDENTIFIED <--"
     If MsgBox("Potential conflicts found! Review?", vbExclamation + vbYesNo, "Please Review") = vbYes Then
       oExcel.Visible = True
       Set oWorkbook = oExcel.Workbooks.Add
@@ -748,6 +750,8 @@ next_file:
       oWorksheet.[A2].CopyFromRecordset oRecordset
       oExcel.ActiveWindow.Zoom = 85
       oWorksheet.Columns.AutoFit
+    Else
+      Print #lngFile, "...conflicts not reviewed."
     End If
   End If
   
