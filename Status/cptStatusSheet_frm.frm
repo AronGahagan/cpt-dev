@@ -102,6 +102,8 @@ Dim lngField As Long
       'Me.lblForEach.Visible = False
       Me.cboEach.Enabled = False
       Me.lboItems.Enabled = False
+      Me.chkAllItems = False
+      Me.chkAllItems.Enabled = False
       FilterClear
       If Not cptFilterExists("cptStatusSheet Filter") Then
         Call cptRefreshStatusTable
@@ -114,6 +116,7 @@ Dim lngField As Long
       'Me.lblForEach.Visible = True
       Me.cboEach.Enabled = True
       Me.lboItems.Enabled = True
+      Me.chkAllItems.Enabled = True
       If Me.Visible Then Me.cboEach.DropDown
 
     Case 2 'A workbook for each
@@ -123,6 +126,7 @@ Dim lngField As Long
       'Me.lblForEach.Visible = True
       Me.cboEach.Enabled = True
       Me.lboItems.Enabled = True
+      Me.chkAllItems.Enabled = True
       If Me.Visible Then Me.cboEach.DropDown
 
     End Select
