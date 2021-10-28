@@ -444,6 +444,11 @@ next_task:
         cptStatusSheetImport_frm.lblStatus.Caption = "Importing Worksheets...(" & Format(oWorksheet.Index / oWorkbook.Sheets.Count, "0%") & ")"
         cptStatusSheetImport_frm.lblProgress.Width = (oWorksheet.Index / oWorkbook.Sheets.Count) * cptStatusSheetImport_frm.lblStatus.Width
         DoEvents
+        
+        'unhide columns and rows (sort is blocked by sheet protection...)
+        oWorksheet.Columns.Hidden = False
+        oWorksheet.Rows.Hidden = False
+        
         'get status date
         On Error Resume Next
         dtStatus = oWorksheet.Range("STATUS_DATE")
