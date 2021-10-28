@@ -156,6 +156,7 @@ Dim vField As Variant
       .optBelow = True
       blnTaskUsageBelow = True
     End If
+    .cmdRemove.Enabled = False
     'show the form
     .Show False
     cptRefreshStatusImportTable blnTaskUsageBelow
