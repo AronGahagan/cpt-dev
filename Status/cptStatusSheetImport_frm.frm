@@ -103,6 +103,44 @@ Private Sub cmdImport_Click()
   
 End Sub
 
+Private Sub cmdRemove_Click()
+  'objects
+  'strings
+  Dim strRemove As String
+  'longs
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vRemove As Variant
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  For lngItem = Me.lboStatusSheets.ListCount - 1 To 0 Step -1
+    If Me.lboStatusSheets.Selected(lngItem) Then
+      strRemove = strRemove & lngItem & ","
+      Me.lboStatusSheets.Selected(lngItem) = False
+    End If
+  Next lngItem
+  
+  For Each vRemove In Split(strRemove, ",")
+    If vRemove = "" Then Exit For
+    Me.lboStatusSheets.RemoveItem (CLng(vRemove))
+  Next vRemove
+  
+  Me.cmdRemove.Enabled = False
+  
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheetImport_frm", "cmdRemove_Click", Err, Erl)
+  Resume exit_here
+End Sub
+
 Private Sub cmdSelectFiles_Click()
   'objects
   Dim FileDialog As FileDialog
@@ -174,6 +212,16 @@ exit_here:
 err_here:
   Call cptHandleErr("cptStatusSheet_frm", "lblURL", Err, Erl)
   Resume exit_here
+End Sub
+
+Private Sub lboStatusSheets_Change()
+  If Me.lboStatusSheets.ListCount > 0 Then
+    If Not IsNull(Me.lboStatusSheets.ListIndex) Then
+      Me.cmdRemove.Enabled = True
+    End If
+  Else
+    Me.cmdRemove.Enabled = False
+  End If
 End Sub
 
 Private Sub lboStatusSheets_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
