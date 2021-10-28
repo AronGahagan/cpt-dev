@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
 '<cpt_version>v1.1.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowStatusSheetImport_frm()
@@ -724,19 +724,25 @@ next_file:
   'where there any conflicts?
   Close #lngDeconflictionFile
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & Environ("temp") & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
-  strSQL = "SELECT TASK_UID,RESOURCE_NAME,FIELD,WAS,[IS],FILE FROM [imported.csv] ORDER BY TASK_UID,FIELD" 'todo: refine query
+  
+  strSQL = "SELECT T1.TASK_UID,T1.RESOURCE_NAME,T1.FIELD,T2.WAS,T2.[IS],T2.FILE "
+  strSQL = strSQL & "FROM ((SELECT TASK_UID,RESOURCE_NAME,FIELD,COUNT(FILE) FROM [imported.csv] GROUP BY TASK_UID,RESOURCE_NAME,FIELD HAVING COUNT(FILE)>1) AS T1) "
+  strSQL = strSQL & "LEFT JOIN [imported.csv] AS T2 ON T2.TASK_UID=T1.TASK_UID AND T2.FIELD=T1.FIELD  " 'AND T2.RESOURCE_NAME=T1.RESOURCE_NAME
+  strSQL = strSQL & "ORDER BY T1.TASK_UID,T1.FIELD" 'todo: refine query
   Set oRecordset = CreateObject("ADODB.Recordset")
   oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
   If oRecordset.RecordCount > 0 Then
-    oExcel.Visible = True
-    Set oWorkbook = oExcel.Workbooks.Add
-    Set oWorksheet = oWorkbook.Sheets(1)
-    For lngItem = 1 To oRecordset.Fields.Count
-      oWorksheet.Cells(1, lngItem).Value = oRecordset.Fields(lngItem - 1).Name
-    Next lngItem
-    oWorksheet.[A2].CopyFromRecordset oRecordset
-    oExcel.ActiveWindow.Zoom = 85
-    oWorksheet.Columns.AutoFit
+    If MsgBox("Potential conflicts found! Review?", vbExclamation + vbYesNo, "Please Review") = vbYes Then
+      oExcel.Visible = True
+      Set oWorkbook = oExcel.Workbooks.Add
+      Set oWorksheet = oWorkbook.Sheets(1)
+      For lngItem = 1 To oRecordset.Fields.Count
+        oWorksheet.Cells(1, lngItem).Value = oRecordset.Fields(lngItem - 1).Name
+      Next lngItem
+      oWorksheet.[A2].CopyFromRecordset oRecordset
+      oExcel.ActiveWindow.Zoom = 85
+      oWorksheet.Columns.AutoFit
+    End If
   End If
   
 exit_here:
