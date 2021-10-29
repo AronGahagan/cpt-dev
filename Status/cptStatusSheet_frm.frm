@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.0</cpt_version>
+'<cpt_version>v1.3.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -102,6 +102,8 @@ Dim lngField As Long
       'Me.lblForEach.Visible = False
       Me.cboEach.Enabled = False
       Me.lboItems.Enabled = False
+      Me.chkAllItems = False
+      Me.chkAllItems.Enabled = False
       FilterClear
       If Not cptFilterExists("cptStatusSheet Filter") Then
         Call cptRefreshStatusTable
@@ -114,6 +116,7 @@ Dim lngField As Long
       'Me.lblForEach.Visible = True
       Me.cboEach.Enabled = True
       Me.lboItems.Enabled = True
+      Me.chkAllItems.Enabled = True
       If Me.Visible Then Me.cboEach.DropDown
 
     Case 2 'A workbook for each
@@ -123,6 +126,7 @@ Dim lngField As Long
       'Me.lblForEach.Visible = True
       Me.cboEach.Enabled = True
       Me.lboItems.Enabled = True
+      Me.chkAllItems.Enabled = True
       If Me.Visible Then Me.cboEach.DropDown
 
     End Select
@@ -199,6 +203,7 @@ next_task:
           .MoveNext
         Loop
       End If
+      Me.txtFileName_Change
     End With
   End If 'lngField > 0
   
@@ -286,13 +291,14 @@ Private Sub chkAllItems_Click()
   Dim strCriteria As String
   Dim strFieldName As String
   
-  If IsNull(Me.cboEach) Then Exit Sub
+  If IsNull(Me.cboEach) Or Me.lboItems.ListCount = 0 Then Exit Sub
   strFieldName = Me.cboEach.Value
   If Me.chkAllItems Then
     For lngItem = 0 To Me.lboItems.ListCount - 1
       Me.lboItems.Selected(lngItem) = True
       strCriteria = strCriteria & Me.lboItems.List(lngItem) & Chr$(9)
     Next lngItem
+    If Len(strCriteria) = 0 Then Exit Sub
     strCriteria = Left(strCriteria, Len(strCriteria) - 1)
     SetAutoFilter FieldName:=strFieldName, FilterType:=pjAutoFilterIn, Criteria1:=strCriteria
   Else
@@ -926,7 +932,7 @@ Private Sub txtDir_Change()
 
 End Sub
 
-Private Sub txtFileName_Change()
+Sub txtFileName_Change()
   Dim strFileName As String
   strFileName = Me.txtFileName.Text
   If InStr(strFileName, "[yyyy-mm-dd]") > 0 Then

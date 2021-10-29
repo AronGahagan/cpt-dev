@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.3.0</cpt_version>
+'<cpt_version>v1.3.1</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
@@ -299,6 +299,17 @@ skip_fields:
           End If
         End If
       End If
+      ActiveWindow.TopPane.Activate
+      FilterClear
+      strAllItems = cptGetSetting("StatusSheet", "chkAllItems")
+      If strAllItems <> "" Then
+        .chkAllItems = CBool(strAllItems)
+      Else
+        .chkAllItems = False
+      End If
+    Else
+      ActiveWindow.TopPane.Activate
+      FilterClear
     End If
     strDir = cptGetSetting("StatusSheet", "txtDir")
     If strDir <> "" Then .txtDir = strDir
@@ -339,14 +350,6 @@ skip_fields:
       .chkLocked = CBool(strLocked)
     Else
       .chkLocked = True
-    End If
-    ActiveWindow.TopPane.Activate
-    FilterClear
-    strAllItems = cptGetSetting("StatusSheet", "chkAllItems")
-    If strAllItems <> "" Then
-      .chkAllItems = CBool(strAllItems)
-    Else
-      .chkAllItems = False
     End If
     strNotesColTitle = cptGetSetting("StatusSheet", "txtNotesColTitle")
     If Len(strNotesColTitle) > 0 Then
@@ -479,7 +482,9 @@ skip_fields:
   FilterClear 'added 9/28/2021
   FilterApply "cptStatusSheet Filter"
   If Len(strCreate) > 0 And Len(strEach) > 0 Then
+    On Error Resume Next
     SetAutoFilter strEach, pjAutoFilterClear
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     DoEvents
   End If
   If strStartingGroup <> "No Group" Then
@@ -491,8 +496,8 @@ skip_fields:
   Application.StatusBar = "Ready..."
   DoEvents
   cptSpeed True
-  cptStatusSheet_frm.Show
-    
+  cptStatusSheet_frm.Show 'Modal = True! Keep!
+  
   'after user closes form, then:
   Application.StatusBar = "Restoring your view/table/filter/group..."
   DoEvents
@@ -1385,9 +1390,6 @@ conditional_formatting_skipped:
 
 exit_here:
   On Error Resume Next
-'  Application.DefaultDateFormat = lngDateFormat
-'  ActiveProject.SpaceBeforeTimeLabels = blnSpace
-'  ActiveProject.DayLabelDisplay = lngDayLabelDisplay
   If oExcel.Workbooks.Count > 0 Then oExcel.Calculation = xlAutomatic
   oExcel.ScreenUpdating = True
   oExcel.EnableEvents = True
@@ -1493,7 +1495,9 @@ Dim lngItem As Long
   If cptStatusSheet_frm.chkHide And IsDate(cptStatusSheet_frm.txtHideCompleteBefore) Then
     FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Actual Finish", Test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", showsummarytasks:=True
   End If
-  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Active", Test:="equals", Value:="Yes", ShowInMenu:=False, showsummarytasks:=True, parenthesis:=True
+  If Edition = pjEditionProfessional Then
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Active", Test:="equals", Value:="Yes", ShowInMenu:=False, showsummarytasks:=True, parenthesis:=True
+  End If
   FilterApply "cptStatusSheet Filter"
   
   If Len(strStartingGroup) > 0 Then
@@ -1854,7 +1858,6 @@ try_again:
     oWorksheet.Cells(lngRow, lngLastCol).WrapText = True
     
 get_assignments:
-    
     If oTask.Assignments.Count > 0 And Not IsDate(oTask.ActualFinish) Then
       cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
     ElseIf IsDate(oTask.ActualFinish) Then
@@ -1862,21 +1865,15 @@ get_assignments:
       For Each oAssignment In oTask.Assignments
         Set oAssignment = Nothing
         On Error Resume Next
-        Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow + 1, 1))
+        Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow + 1, 1).Value)
         If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
         If Not oAssignment Is Nothing Then
           oWorksheet.Rows(lngRow + 1).EntireRow.Delete
         End If
       Next oAssignment
       Set oAssignment = Nothing
-      'todo: delete assignment rows for completed tasks
-      'todo: ensure formula is correct
     End If
-    
-    oWorksheet.Cells(lngRow, lngETCCol).Value = Replace(oWorksheet.Cells(lngRow, lngETCCol).Value, "h", "")
-    oWorksheet.Cells(lngRow, lngETCCol - 1).Value = Replace(oWorksheet.Cells(lngRow, lngETCCol).Value, "h", "")
-    oWorksheet.Cells(lngRow, lngETCCol - 2).Value = Replace(oWorksheet.Cells(lngRow, lngETCCol).Value, "h", "")
-    
+        
     'todo: capture conditional formatting range(s)
     
     oWorksheet.Columns(1).AutoFit
@@ -2001,11 +1998,13 @@ next_task:
       strEVTList = strEVTList & "P - Milestone Weights with % Complete"
       strEVTList = strEVTList & "K - Key Event"
     End If
-    oWorksheet.Cells(lngHeaderRow, lngLastCol + 2).Value = "Earned Value Techniques (EVT)"
-    oWorksheet.Cells(lngHeaderRow, lngLastCol).Copy
-    oWorksheet.Cells(lngHeaderRow, lngLastCol + 2).PasteSpecial xlPasteFormats
-    oWorksheet.Range(oWorksheet.Cells(lngHeaderRow + 1, lngLastCol + 2), oWorksheet.Cells(lngHeaderRow + 1, lngLastCol + 2).Offset(UBound(Split(strEVTList, ",")), 0)).Value = oWorksheet.Application.Transpose(Split(strEVTList, ","))
-    oWorksheet.Columns(lngLastCol + 2).AutoFit
+    If Len(strEVTList) > 0 Then
+      oWorksheet.Cells(lngHeaderRow, lngLastCol + 2).Value = "Earned Value Techniques (EVT)"
+      oWorksheet.Cells(lngHeaderRow, lngLastCol).Copy
+      oWorksheet.Cells(lngHeaderRow, lngLastCol + 2).PasteSpecial xlPasteFormats
+      oWorksheet.Range(oWorksheet.Cells(lngHeaderRow + 1, lngLastCol + 2), oWorksheet.Cells(lngHeaderRow + 1, lngLastCol + 2).Offset(UBound(Split(strEVTList, ",")), 0)).Value = oWorksheet.Application.Transpose(Split(strEVTList, ","))
+      oWorksheet.Columns(lngLastCol + 2).AutoFit
+    End If
     
   End If
   
@@ -2066,8 +2065,12 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   For Each oAssignment In oTask.Assignments
     lngItem = lngItem + 1
     If ActiveProject.CurrentView <> "Task Usage" Or IsDate(oAssignment.ActualFinish) Then
-      oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
-      oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.ColorIndex = xlAutomatic
+      If Trim(oWorksheet.Cells(lngRow + lngItem, lngNameCol).Value) <> oAssignment.ResourceName Then
+        oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+        oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.ColorIndex = xlAutomatic
+      Else
+        oWorksheet.Rows(lngRow + lngItem).ClearContents
+      End If
     Else
       oWorksheet.Rows(lngRow + lngItem).ClearContents
     End If
@@ -2138,6 +2141,11 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   Next oAssignment
   'add formulae
   If oTask.Assignments.Count > 0 Then
+    'baseline work
+    oWorksheet.Cells(lngRow, lngRemainingWorkCol - 1).FormulaR1C1 = "=SUM(R" & lngRow + 1 & "C" & lngRemainingWorkCol - 1 & ":R" & lngRow + lngItem & "C" & lngRemainingWorkCol - 1 & ")"
+    'prev etc
+    oWorksheet.Cells(lngRow, lngRemainingWorkCol).FormulaR1C1 = "=SUM(R" & lngRow + 1 & "C" & lngRemainingWorkCol & ":R" & lngRow + lngItem & "C" & lngRemainingWorkCol & ")"
+    'new etc
     oWorksheet.Cells(lngRow, lngRemainingWorkCol + 1).FormulaR1C1 = "=SUM(R" & lngRow + 1 & "C" & lngRemainingWorkCol + 1 & ":R" & lngRow + lngItem & "C" & lngRemainingWorkCol + 1 & ")"
   End If
 
@@ -2279,7 +2287,6 @@ err_here:
   Call cptHandleErr("cptStatusSheet_bas", "cptAddConditionalFormatting", Err, Erl)
   Resume exit_here
 End Sub
-
 
 Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem As String) As String
   'objects

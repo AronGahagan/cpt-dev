@@ -273,4 +273,4 @@ A special thanks to our developers and contributors, and to the ClearPlan leader
 
 ---
 
-<sub>Copyright &#169; 2019-2020 ClearPlan Consulting, LLC. All Rights Reserved.</sub>
+<sub>Copyright &#169; 2019-2021 ClearPlan Consulting, LLC. All Rights Reserved.</sub>
