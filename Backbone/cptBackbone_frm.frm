@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.12</cpt_version>
+'<cpt_version>v1.1.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -81,7 +81,6 @@ Private Sub cboImport_Change()
 End Sub
 
 Private Sub cboOutlineCodes_Change()
-  Me.TreeView1.Nodes.Clear
   Me.txtReplace.Text = ""
   Me.txtReplacement.Text = ""
   If Not IsNull(Me.cboOutlineCodes.Value) Then
@@ -246,24 +245,23 @@ Private Sub optReplace_Click()
   Me.txtReplace.SetFocus
 End Sub
 
-Private Sub TreeView1_BeforeLabelEdit(Cancel As Integer)
-  Cancel = True
-End Sub
-
 Private Sub txtReplace_Change()
 Dim lngEntry As Long
-  
-  For lngEntry = 1 To Me.TreeView1.Nodes.Count
-    Me.TreeView1.Nodes(lngEntry).Checked = False
-    If Len(Me.txtReplace.Text) > 0 And InStr(Me.TreeView1.Nodes(lngEntry).Text, Me.txtReplace.Text) > 0 Then
-      Me.TreeView1.Nodes(lngEntry).Checked = True
+Dim lngSelected As Long
+
+  lngSelected = 0
+  For lngEntry = 0 To Me.lboOutlineCode.ListCount - 1
+    If Len(Me.txtReplace.Text) > 0 And InStr(Me.lboOutlineCode.List(lngEntry, 2), Me.txtReplace.Text) > 0 Then
+      Me.lboOutlineCode.Selected(lngEntry) = True
+      lngSelected = lngSelected + 1
+      If lngSelected = 1 Then Me.lboOutlineCode.TopIndex = lngEntry
+    Else
+      Me.lboOutlineCode.Selected(lngEntry) = False
     End If
   Next lngEntry
+  If lngSelected = 0 Then Me.lboOutlineCode.TopIndex = 0
+  Me.lblFeedback.Caption = Format(lngSelected, "#,##0") & " found"
   
-End Sub
-
-Private Sub txtReplace_Enter()
-  Me.TreeView1.Checkboxes = True
 End Sub
 
 Private Sub txtReplacement_Change()
@@ -290,12 +288,12 @@ Dim lngEntry As Long
   If oLookupTable Is Nothing Then GoTo exit_here
   If Len(Me.txtReplace.Text) > 0 Then
     If Len(Me.txtReplacement.Text) > 0 Then
-      For lngEntry = 1 To Me.TreeView1.Nodes.Count
-        Me.TreeView1.Nodes(lngEntry).Text = Replace(oLookupTable.Item(lngEntry).Description, Me.txtReplace.Text, Me.txtReplacement.Text)
+      For lngEntry = 0 To Me.lboOutlineCode.ListCount - 1
+        If Me.lboOutlineCode.Selected(lngEntry) Then Me.lboOutlineCode.List(lngEntry, 2) = oLookupTable.Item(lngEntry + 1).FullName & " - " & Replace(oLookupTable.Item(lngEntry + 1).Description, Me.txtReplace, Me.txtReplacement.Text)
       Next lngEntry
     Else
-      For lngEntry = 1 To Me.TreeView1.Nodes.Count
-        Me.TreeView1.Nodes(lngEntry).Text = oLookupTable.Item(lngEntry).Description
+      For lngEntry = 0 To Me.lboOutlineCode.ListCount - 1
+        If Me.lboOutlineCode.Selected(lngEntry) Then Me.lboOutlineCode.List(lngEntry, 2) = oLookupTable.Item(lngEntry + 1).FullName & " - " & oLookupTable.Item(lngEntry + 1).Description
       Next lngEntry
     End If
   End If
@@ -364,6 +362,8 @@ Dim lngSelected As Long
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
+  Exit Sub 'this slows the whole form down
+  
   If Me.optReplace Then GoTo exit_here
   
   'have any outline codes been updated? update cbo options
@@ -397,14 +397,12 @@ Dim lngSelected As Long
   Set oLookupTable = oOutlineCode.LookupTable
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If Not oLookupTable Is Nothing Then
-    If Me.TreeView1.Nodes.Count = 0 Then
+    If Me.lboOutlineCode.ListCount = 0 Then
       Call cptRefreshOutlineCodePreview(strOutlineCode)
     Else
       For lngItem = 1 To oLookupTable.Count
-        If Me.TreeView1.Nodes(lngItem).Text <> oLookupTable.Item(lngItem).FullName & " - " & oLookupTable.Item(lngItem).Description Then
-          Me.TreeView1.Nodes.Clear
-          Call cptRefreshOutlineCodePreview(strOutlineCode)
-          Exit For
+        If Me.lboOutlineCode.List(lngItem - 1, 2) <> oLookupTable.Item(lngItem).FullName & " - " & oLookupTable.Item(lngItem).Description Then
+          Me.lboOutlineCode.List(lngItem - 1, 2) = oLookupTable.Item(lngItem).FullName & " - " & oLookupTable.Item(lngItem).Description
         End If
       Next lngItem
     End If
