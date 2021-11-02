@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.0.12</cpt_version>
+'<cpt_version>v1.1.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -942,44 +942,50 @@ Sub cptShowBackbone_frm()
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  cptBackbone_frm.cboOutlineCodes.Clear
-  
-  'populate the listbox/combobox
-  For lngCode = 1 To 10
-    strOutlineCode = "Outline Code" & lngCode
-    lngOutlineCode = Application.FieldNameToFieldConstant(strOutlineCode)
-    strOutlineCodeName = Application.CustomFieldGetName(lngOutlineCode)
-    cptBackbone_frm.cboOutlineCodes.AddItem
-    If Len(strOutlineCodeName) > 0 Then
-      strOutlineCode = strOutlineCode & " (" & strOutlineCodeName & ")"
-    End If
-    cptBackbone_frm.cboOutlineCodes.List(lngCode - 1, 0) = lngOutlineCode
-    cptBackbone_frm.cboOutlineCodes.List(lngCode - 1, 1) = strOutlineCode
-  Next lngCode
+  With cptBackbone_frm.cboOutlineCodes
+    .Clear
+    'populate the listbox/combobox
+    For lngCode = 1 To 10
+      strOutlineCode = "Outline Code" & lngCode
+      lngOutlineCode = Application.FieldNameToFieldConstant(strOutlineCode)
+      strOutlineCodeName = Application.CustomFieldGetName(lngOutlineCode)
+      .AddItem
+      If Len(strOutlineCodeName) > 0 Then
+        strOutlineCode = strOutlineCode & " (" & strOutlineCodeName & ")"
+      End If
+      .List(lngCode - 1, 0) = lngOutlineCode
+      .List(lngCode - 1, 1) = strOutlineCode
+    Next lngCode
+  End With
   
   'add Import Actions
-  cptBackbone_frm.cboImport.Clear
-  cptBackbone_frm.cboImport.AddItem "From Excel Workbook"
-  cptBackbone_frm.cboImport.AddItem "From MSP Server Outline Code Export"
-  cptBackbone_frm.cboImport.AddItem "From MIL-STD-881D Appendix B"
-  cptBackbone_frm.cboImport.AddItem "From MIL-STD-881D Appendix E"
-  cptBackbone_frm.cboImport.AddItem "From Existing Tasks"
+  With cptBackbone_frm.cboImport
+    .Clear
+    .AddItem "From Excel Workbook"
+    .AddItem "From MSP Server Outline Code Export"
+    .AddItem "From MIL-STD-881D Appendix B"
+    .AddItem "From MIL-STD-881D Appendix E"
+    .AddItem "From Existing Tasks"
+  End With
   
   'add Export Actions
-  cptBackbone_frm.cboExport.Clear
-  cptBackbone_frm.cboExport.AddItem "To Excel Workbook"
-  cptBackbone_frm.cboExport.AddItem "To CSV for MPM"
-  cptBackbone_frm.cboExport.AddItem "To CSV for COBRA"
-  cptBackbone_frm.cboExport.AddItem "To DI-MGMT-81334D Template"
+  With cptBackbone_frm.cboExport
+    .Clear
+    .AddItem "To Excel Workbook"
+    .AddItem "To CSV for MPM"
+    .AddItem "To CSV for COBRA"
+    .AddItem "To DI-MGMT-81334D Template"
+  End With
   
   'pre-select Outline Code 1
-  cptBackbone_frm.cboOutlineCodes.ListIndex = 0
-  cptBackbone_frm.txtNameIt = CustomFieldGetName(cptBackbone_frm.cboOutlineCodes.List(0, 0))
-  cptBackbone_frm.Caption = "Backbone (" & cptGetVersion("cptBackbone_frm") & ")"
-  cptBackbone_frm.Show False
-  cptBackbone_frm.cboOutlineCodes.SetFocus
-
-  Call cptBackboneHideControls
+  With cptBackbone_frm
+    .cboOutlineCodes.ListIndex = 0
+    .txtNameIt = CustomFieldGetName(.cboOutlineCodes.List(0, 0))
+    .Caption = "Backbone (" & cptGetVersion("cptBackbone_frm") & ")"
+    .cboOutlineCodes.SetFocus
+   Call cptBackboneHideControls
+   .Show 'False
+  End With
 
 exit_here:
   On Error Resume Next
@@ -1054,18 +1060,20 @@ Sub cptRenameInsideOutlineCode(strOutlineCode As String, strFind As String, strR
   Dim oOutlineCode As OutlineCode, oLookupTable As LookupTable, oLookupTableEntry As LookupTableEntry
   'longs
   Dim lngEntry As Long
-
+  Dim lngReplaced As Long
+  
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   Set oLookupTable = oOutlineCode.LookupTable
   For lngEntry = 1 To oLookupTable.Count
     If InStr(oLookupTable(lngEntry).Description, strFind) > 0 Then
-      Debug.Print oLookupTable(lngEntry).Description
       oLookupTable(lngEntry).Description = Replace(oLookupTable(lngEntry).Description, strFind, strReplace)
-      Debug.Print oLookupTable(lngEntry).Description
+      lngReplaced = lngReplaced + 1
     End If
   Next lngEntry
+  
+  cptBackbone_frm.lblFeedback.Caption = Format(lngReplaced, "#,##0") & " replaced"
   
 exit_here:
   On Error Resume Next
@@ -1099,20 +1107,20 @@ Sub cptRefreshOutlineCodePreview(strOutlineCode As String)
   If Not oLookupTable Is Nothing Then
     If oLookupTable.Count > 0 Then
       For lngEntry = 1 To oLookupTable.Count
-        If oLookupTable(lngEntry).Level = 1 Then 'add top level
-          '0 = tvwFirst
-          Set oNode = cptBackbone_frm.TreeView1.Nodes.Add(, relationship:=0, key:="uid" & oLookupTable(lngEntry).UniqueID, Text:=oLookupTable(lngEntry).FullName & " - " & oLookupTable(lngEntry).Description)
-          oNode.Expanded = True
-        Else
-          '4 = tvwChild
-          Set oNode = cptBackbone_frm.TreeView1.Nodes.Add("uid" & oLookupTable(lngEntry).ParentEntry.UniqueID, 4, "uid" & oLookupTable(lngEntry).UniqueID, oLookupTable(lngEntry).FullName & " - " & oLookupTable(lngEntry).Description)
-          oNode.Expanded = True
-        End If
+        With cptBackbone_frm.lboOutlineCode
+          .AddItem
+          .List(.ListCount - 1, 0) = oLookupTable(lngEntry).UniqueID
+          .List(.ListCount - 1, 1) = oLookupTable(lngEntry).Level
+          .List(.ListCount - 1, 2) = oLookupTable(lngEntry).FullName & " - " & oLookupTable(lngEntry).Description
+          Application.StatusBar = "Adding: " & oLookupTable(lngEntry).FullName & " - " & oLookupTable(lngEntry).Description
+        End With
       Next lngEntry
     End If 'lookuptable.count > 0
   End If 'lookuptable is nothing
+  
 exit_here:
   On Error Resume Next
+  Application.StatusBar = ""
   Set oOutlineCode = Nothing
   Set oLookupTable = Nothing
   Set oLookupTableEntry = Nothing
@@ -1235,8 +1243,8 @@ End Sub
 Sub cptBackboneHideControls()
 
   With cptBackbone_frm
-    .TreeView1.Checkboxes = False
     'Replace
+    .lblFeedback.Visible = .optReplace
     .txtReplace.Enabled = .optReplace
     .txtReplacement.Enabled = .optReplace
     .cmdReplace.Enabled = .optReplace
