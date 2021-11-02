@@ -1099,13 +1099,14 @@ Sub cptRefreshOutlineCodePreview(strOutlineCode As String)
   'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  strOutlineCode = Replace(Replace(strOutlineCode, cptRegEx(strOutlineCode, "Outline Code[1-10]") & " (", ""), ")", "")
+  strOutlineCode = Replace(Replace(strOutlineCode, cptRegEx(strOutlineCode, "Outline Code[0-9]{1,}") & " (", ""), ")", "")
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   If Not oLookupTable Is Nothing Then
     If oLookupTable.Count > 0 Then
+      cptBackbone_frm.lboOutlineCode.Clear
       For lngEntry = 1 To oLookupTable.Count
         With cptBackbone_frm.lboOutlineCode
           .AddItem
