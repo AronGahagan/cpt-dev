@@ -2223,6 +2223,8 @@ Dim vBorder As Variant
   oWorksheet.Application.ActiveWindow.SplitColumn = 0
   oWorksheet.Application.ActiveWindow.FreezePanes = True
   oWorksheet.Application.WindowState = xlMinimized
+  oWorksheet.Application.ActiveWindow.DisplayHorizontalScrollBar = True
+  oWorksheet.Application.ActiveWindow.DisplayVerticalScrollBar = True
   Set oEntryHeaderRange = Nothing
 End Sub
 
