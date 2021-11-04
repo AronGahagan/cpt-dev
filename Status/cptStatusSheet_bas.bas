@@ -2343,10 +2343,10 @@ Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem 
     If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
     strFileName = .txtFileName.Value & ".xlsx"
     strFileName = Replace(strFileName, "[yyyy-mm-dd]", Format(dtStatus, "yyyy-mm-dd"))
-    'todo: strFileName = cptRemoveIllegalCharacters(ActiveProject.Name)
     If Len(strItem) > 0 Then
       strFileName = Replace(strFileName, "[item]", strItem)
     End If
+    strFileName = cptRemoveIllegalCharacters(strFileName)
     On Error Resume Next
     If Dir(strDir & strFileName) <> vbNullString Then
       Kill strDir & strFileName
