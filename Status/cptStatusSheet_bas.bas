@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.3.1</cpt_version>
+'<cpt_version>v1.3.2</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
@@ -645,7 +645,13 @@ Sub cptCreateStatusSheet()
   'get task count
   If blnPerformanceTest Then t = GetTickCount
   SelectAll
+  On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If oTasks Is Nothing Then
+    MsgBox "There are no incomplete tasks in this schedule.", vbExclamation + vbOKOnly, "No Tasks Found"
+    GoTo exit_here
+  End If
   lngTaskCount = oTasks.Count
   If blnPerformanceTest Then Debug.Print "<=====PERFORMANCE TEST " & Now() & "=====>"
 
@@ -708,7 +714,7 @@ Sub cptCreateStatusSheet()
       oWorksheet.Calculate
       
       If blnLocked Then 'protect the sheet
-        oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
+        oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, userinterfaceonly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
         oWorksheet.EnableSelection = xlNoRestrictions
       End If
       
@@ -745,6 +751,17 @@ Sub cptCreateStatusSheet()
           Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
           oWorksheet.Name = strItem
           SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", strItem
+          
+          SelectAll
+          On Error Resume Next
+          Set oTasks = ActiveSelection.Tasks
+          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If oTasks Is Nothing Then
+            .lblStatus.Caption = "No incomplete tasks for " & strItem & "...skipped"
+            Application.StatusBar = .lblStatus.Caption
+            GoTo next_worksheet
+          End If
+          
           'copy data
           If blnPerformanceTest Then t = GetTickCount
           .lblStatus.Caption = "Creating Worksheet for " & strItem & "..."
@@ -763,7 +780,7 @@ Sub cptCreateStatusSheet()
           oWorksheet.Calculate
           
           If blnLocked Then 'protect the sheet
-            oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
+            oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, userinterfaceonly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
             oWorksheet.EnableSelection = xlNoRestrictions
           End If
           
@@ -772,6 +789,7 @@ Sub cptCreateStatusSheet()
           Set oUnlockedRange = Nothing
           Set oAssignmentRange = Nothing
           
+next_worksheet:
           .lblStatus.Caption = "Creating Worksheet for " & strItem & "...done"
           Application.StatusBar = .lblStatus.Caption
           DoEvents
@@ -807,6 +825,16 @@ Sub cptCreateStatusSheet()
           oWorksheet.Name = "Status Request"
           SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", .lboItems.List(lngItem, 0)
           
+          SelectAll
+          On Error Resume Next
+          Set oTasks = ActiveSelection.Tasks
+          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If oTasks Is Nothing Then
+            .lblStatus.Caption = "No incomplete tasks for " & strItem & "...skipped"
+            Application.StatusBar = .lblStatus.Caption
+            GoTo next_workbook
+          End If
+          
           'copy data
           If blnPerformanceTest Then t = GetTickCount
           .lblStatus.Caption = "Creating Workbook for " & strItem & "..."
@@ -826,7 +854,7 @@ Sub cptCreateStatusSheet()
           oWorksheet.Calculate
           
           If blnLocked Then 'protect the sheet
-            oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
+            oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, userinterfaceonly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
             oWorksheet.EnableSelection = xlNoRestrictions
           End If
           
@@ -853,8 +881,11 @@ Sub cptCreateStatusSheet()
             .lblStatus.Caption = "Creating Email for " & strItem & "...done"
             Application.StatusBar = .lblStatus.Caption
             DoEvents
-          End If
-        End If
+          End If 'blnEmail
+        End If '.lboItems.Selected(lngItem)
+        
+next_workbook:
+        
       Next lngItem
       
       If Not blnEmail Then
@@ -1933,16 +1964,16 @@ next_task:
       .ShowInput = True
       .ShowError = True
     End With
-    'number validation range
+    'number validation range (contains EV% only)
     With oNumberValidationRange.Validation
       .Delete
-      .Add Type:=xlValidateDecimal, AlertStyle:=xlValidAlertStop, Operator:=xlGreaterEqual, Formula1:="0"
+      .Add Type:=xlValidateDecimal, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:="0", Formula2:="1"
       .IgnoreBlank = True
       .InCellDropdown = True
       .InputTitle = "Number Only"
       .ErrorTitle = "Number Only"
-      .InputMessage = "Please enter a number greater than or equal to zero. Decimals permitted."
-      .ErrorMessage = "Please enter a number greater than or equal to zero. Decimals permitted."
+      .InputMessage = "Please enter a percentage between 0% and 100%."
+      .ErrorMessage = "Please enter a percentage between 0% and 100%."
       .ShowInput = True
       .ShowError = True
     End With
@@ -2503,4 +2534,79 @@ End Sub
 
 Sub cptAdvanceStatusDate()
   Application.ChangeStatusDate
+End Sub
+
+Sub cptCaptureJournal()
+  'objects
+  Dim oRecordset As ADODB.Recordset
+  'strings
+  Dim strProgram As String
+  Dim strFile As String
+  'longs
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  Dim dtStatus As Date
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  strProgram = cptGetProgramAcronym
+  
+  dtStatus = FormatDateTime(ActiveProject.StatusDate, vbGeneralDate)
+  
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  
+  strFile = cptDir & "\settings\cpt-journal.adtg"
+  If Dir(strFile) = vbNullString Then
+    With oRecordset
+      .Fields.Append "PROGRAM", adVarChar, 50
+      .Fields.Append "STATUS_DATE", adDate
+      .Fields.Append "TASK_UID", adInteger
+      .Fields.Append "TASK_NOTE", adVarChar, 255
+      .Fields.Append "ASSIGNMENT_UID", adInteger
+      .Fields.Append "ASSIGNMENT_NOTE", adVarChar, 255
+      .Open
+    End With
+  Else
+    oRecordset.Open strFile
+  End If
+  Dim oTask As Task, oTasks As Tasks
+  Set oTasks = ActiveProject.Tasks
+  lngTasks = oTasks.Count
+  lngTask = 0
+  For Each oTask In oTasks
+    If oTask Is Nothing Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If oTask.ExternalTask Then GoTo next_task
+    If Len(oTask.Notes) > 0 Then
+      oRecordset.AddNew Array(0, 1, 2, 3), Array(strProgram, dtStatus, oTask.UniqueID, Chr(34) & oTask.Notes & Chr(34))
+    End If
+    Dim oAssignment As Assignment
+    For Each oAssignment In oTask.Assignments
+      If Len(oAssignment.Notes) > 0 Then
+        oRecordset.AddNew Array(0, 1, 2, 3, 4, 5), Array(strProgram, dtStatus, oTask.UniqueID, oTask.Notes, oAssignment.UniqueID, oAssignment.Notes)
+      End If
+    Next
+next_task:
+    lngTask = lngTask + 1
+    Debug.Print Format(lngTask / lngTasks, "0%")
+  Next oTask
+  
+  oRecordset.Save strFile
+  oRecordset.Close
+  
+exit_here:
+  On Error Resume Next
+  If oRecordset.State Then oRecordset.Close
+  Set oRecordset = Nothing
+  
+  Exit Sub
+err_here:
+  'Call HandleErr("cptStatusSheet_bas", "cptCaptureJournal", Err)
+  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Resume exit_here
 End Sub
