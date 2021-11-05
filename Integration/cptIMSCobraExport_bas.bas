@@ -1353,6 +1353,7 @@ Private Sub BCWP_Export(ByVal curproj As Project)
     Dim i As Integer
     Dim aStartString As String
     Dim aFinishString As String
+    Dim tempID As String 'v3.3.3
 
     If ResourceLoaded = False Then
 
@@ -1415,7 +1416,7 @@ Private Sub BCWP_Export(ByVal curproj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If EVT = "B" Or EVT = "N" Or EVT = "B Milestone" Or EVT = "N Earning Rules" Then
@@ -1750,7 +1751,7 @@ nrBCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earning Rules" Then
@@ -2130,7 +2131,7 @@ nrBCWP_WP_Match_B:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
                                 
 
@@ -2156,7 +2157,7 @@ nrBCWP_WP_Match_B:
                                     For Each tAssign In tAss
                                     
                                         ResName = tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource))
-                                        ID = ID & "/" & ResName
+                                        tempID = ID & "/" & ResName
                                         
                                         If X = 1 Then
     
@@ -2167,7 +2168,7 @@ nrBCWP_WP_Match_B:
                                             End If
                                             ACTarray(X).CAM = CAM
                                             ACTarray(X).Resource = ResName
-                                            ACTarray(X).ID = ID
+                                            ACTarray(X).ID = tempID
                                             ACTarray(X).CAID1 = CAID1
                                             ACTarray(X).EVT = EVT
                                             If CAID2_Used = True Then
@@ -2197,7 +2198,7 @@ nrBCWP_WP_Match_B:
                                         End If
     
                                         For i = 1 To UBound(ACTarray)
-                                            If ACTarray(i).ID = ID Then
+                                            If ACTarray(i).ID = tempID Then
                                                 'Found an existing matching WP line
                                                 If ACTarray(i).FStart > tAssign.Start Then
                                                     ACTarray(i).FStart = tAssign.Start
@@ -2244,7 +2245,7 @@ nrBCWP_WP_Match_B:
                                             ACTarray(X).CAID3 = CAID3
                                         End If
                                         ACTarray(X).Resource = ResName
-                                        ACTarray(X).ID = ID
+                                        ACTarray(X).ID = tempID
                                         ACTarray(X).CAM = CAM
                                         ACTarray(X).CAID1 = CAID1
                                         ACTarray(X).EVT = EVT
@@ -2599,7 +2600,7 @@ BCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
@@ -2624,7 +2625,7 @@ BCWP_WP_Match_A:
                                 For Each tAssign In tAss
                                 
                                     ResName = tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource))
-                                    ID = ID & "/" & ResName
+                                    tempID = ID & "/" & ResName
                                     
                                     If X = 1 Then
 
@@ -2635,7 +2636,7 @@ BCWP_WP_Match_A:
                                         End If
                                         ACTarray(X).CAM = CAM
                                         ACTarray(X).Resource = ResName
-                                        ACTarray(X).ID = ID
+                                        ACTarray(X).ID = tempID
                                         ACTarray(X).CAID1 = CAID1
                                         ACTarray(X).EVT = EVT
                                         If CAID2_Used = True Then
@@ -2666,7 +2667,7 @@ BCWP_WP_Match_A:
                                     End If
 
                                     For i = 1 To UBound(ACTarray)
-                                        If ACTarray(i).ID = ID Then
+                                        If ACTarray(i).ID = tempID Then
                                             'Found an existing matching WP line
                                             If ACTarray(i).FStart > tAssign.Start Then
                                                 ACTarray(i).FStart = tAssign.Start
@@ -2714,7 +2715,7 @@ BCWP_WP_Match_A:
                                         ACTarray(X).CAID3 = CAID3
                                     End If
                                     ACTarray(X).Resource = ResName
-                                    ACTarray(X).ID = ID
+                                    ACTarray(X).ID = tempID
                                     ACTarray(X).CAM = CAM
                                     ACTarray(X).CAID1 = CAID1
                                     ACTarray(X).EVT = EVT
@@ -4041,7 +4042,7 @@ Private Sub BCWS_Export(ByVal curproj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -4184,7 +4185,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4379,7 +4380,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -4560,7 +4561,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4820,7 +4821,7 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -4998,7 +4999,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5234,7 +5235,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -5484,7 +5485,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
