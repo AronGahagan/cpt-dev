@@ -876,7 +876,7 @@ next_worksheet:
             DoEvents
             'must close before attaching to email
             oWorkbook.Close True
-            oWorkbook.Application.Wait Now + TimeValue("00:00:02")
+            'oWorkbook.Application.Wait Now + TimeValue("00:00:02")
             cptSendStatusSheet strFileName, strItem
             .lblStatus.Caption = "Creating Email for " & strItem & "...done"
             Application.StatusBar = .lblStatus.Caption
@@ -1734,7 +1734,7 @@ try_again:
     If Len(strLOEField) > 0 Then
       lngLOEField = CLng(strLOEField)
     End If
-    strLOE = cptGetSetting("Metrics", "strLOE")
+    strLOE = cptGetSetting("Metrics", "txtLOE")
     'todo: ensure sync between metrics and status sheet
     With cptStatusSheet_frm
       'todo: If oTask.GetField(lngLOEField) = strLOE Then blnLOE = True
@@ -1774,6 +1774,10 @@ try_again:
         Set oCompleted = oWorksheet.Application.Union(oCompleted, oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol)))
       End If
       GoTo get_assignments
+    End If
+    If blnLOE Then
+      oWorksheet.Cells(lngRow, lngEVPCol - 1) = "'-"
+      oWorksheet.Cells(lngRow, lngEVPCol) = "'-"
     End If
     'capture status formating:
     'tasks requiring status:
@@ -1831,7 +1835,7 @@ try_again:
         Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngASCol))
       End If
       Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngAFCol))
-      Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngEVPCol))
+      If Not blnLOE Then Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngEVPCol))
       Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngETCCol))
     End If
     
@@ -1851,10 +1855,12 @@ try_again:
           Set oDateValidationRange = oWorksheet.Application.Union(oDateValidationRange, oWorksheet.Cells(lngRow, lngAFCol))
         End If
       End If
-      If oNumberValidationRange Is Nothing Then
-        Set oNumberValidationRange = oWorksheet.Cells(lngRow, lngEVPCol)
-      Else
-        Set oNumberValidationRange = oWorksheet.Application.Union(oNumberValidationRange, oWorksheet.Cells(lngRow, lngEVPCol))
+      If Not blnLOE Then
+        If oNumberValidationRange Is Nothing Then
+          Set oNumberValidationRange = oWorksheet.Cells(lngRow, lngEVPCol)
+        Else
+          Set oNumberValidationRange = oWorksheet.Application.Union(oNumberValidationRange, oWorksheet.Cells(lngRow, lngEVPCol))
+        End If
       End If
     End If 'blnValidation
     
