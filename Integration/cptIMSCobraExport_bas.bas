@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.2</cpt_version>
+'<cpt_version>v3.3.4</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -131,69 +131,28 @@ Sub Export_IMS()
 
         On Error Resume Next
 
-        .msidBox.AddItem "UniqueID"
-        .mswBox.AddItem "BaselineWork"
-        .mswBox.AddItem "BaselineCost"
-        .mswBox.AddItem "Work"
-        .mswBox.AddItem "Cost"
-        .camBox.AddItem "Contact"
-        .caID1Box.AddItem "WBS"
-        .caID2Box.AddItem "<None>"
-        .caID3Box.AddItem "<None>"
-        .bcrBox.AddItem "<None>"
-        .whatifBox.AddItem "<None>" 'v3.2
-        .msidBox.AddItem "<None>"
-        .mswBox.AddItem "<None>"
-        .PercentBox.AddItem "Physical % Complete"
-        .PercentBox.AddItem "% Complete"
-        .AsgnPcntBox.AddItem "<None>" 'v3.3.0
+        .resBox.List = Split("Name,Code,Initials", ",")
 
-        .resBox.AddItem "Name"
-        .resBox.AddItem "Code"
-        .resBox.AddItem "Initials"
-
-        For i = 1 To UBound(CustNumFields)
-            .msidBox.AddItem CustNumFields(i)
-            .mswBox.AddItem CustNumFields(i)
-            .PercentBox.AddItem CustNumFields(i)
-            .AsgnPcntBox.AddItem CustNumFields(i) 'v3.3.0
-        Next i
-        For i = 1 To UBound(EntFields)
-            .caID1Box.AddItem EntFields(i)
-            .caID3Box.AddItem EntFields(i)
-            .wpBox.AddItem EntFields(i)
-            .camBox.AddItem EntFields(i)
-            .evtBox.AddItem EntFields(i)
-            .caID2Box.AddItem EntFields(i)
-            .msidBox.AddItem EntFields(i)
-            .mswBox.AddItem EntFields(i)
-            .bcrBox.AddItem EntFields(i)
-            .whatifBox.AddItem EntFields(i) 'v3.2
-        Next i
-        For i = 1 To UBound(CustTextFields)
-            .caID1Box.AddItem CustTextFields(i)
-            .caID3Box.AddItem CustTextFields(i)
-            .wpBox.AddItem CustTextFields(i)
-            .camBox.AddItem CustTextFields(i)
-            .evtBox.AddItem CustTextFields(i)
-            .caID2Box.AddItem CustTextFields(i)
-            .msidBox.AddItem CustTextFields(i)
-            .mswBox.AddItem CustTextFields(i)
-            .bcrBox.AddItem CustTextFields(i)
-            .whatifBox.AddItem CustTextFields(i) 'v3.2
-        Next i
-        For i = 1 To UBound(CustOLCodeFields) 'v3.2.4 - removed duplicate CAID2 OL Codes
-            .caID1Box.AddItem CustOLCodeFields(i)
-            .caID3Box.AddItem CustOLCodeFields(i)
-            .wpBox.AddItem CustOLCodeFields(i)
-            .camBox.AddItem CustOLCodeFields(i)
-            .caID2Box.AddItem CustOLCodeFields(i)
-            .evtBox.AddItem CustOLCodeFields(i)
-            .msidBox.AddItem CustOLCodeFields(i)
-            .bcrBox.AddItem CustOLCodeFields(i)
-            .whatifBox.AddItem CustOLCodeFields(i) 'v3.2
-        Next i
-
+        'populate listboxes
+        Dim vArray As Variant
+        vArray = Split(Join(CustTextFields, ",") & Join(CustOLCodeFields, ",") & Join(EntFields, ","), ",")
+        Call cptQuickSort(vArray, 0, UBound(vArray))
+        .caID1Box.List = Split("WBS," & Join(vArray, ","), ",")
+        .caID2Box.List = Split("<None>," & Join(vArray, ","), ",")
+        .caID3Box.List = Split("<None>," & Join(vArray, ","), ",")
+        .wpBox.List = vArray
+        .camBox.List = Split("Contact," & Join(vArray, ","), ",")
+        .evtBox.List = vArray
+        .mswBox.List = Split("<None>,BaselineWork,BaselineCost,Work,Cost," & Join(vArray, ","), ",")
+        .bcrBox.List = Split("<None>," & Join(vArray, ","), ",")
+        .whatifBox.List = Split("<None>," & Join(vArray, ","), ",")
+        vArray = Split(Join(CustTextFields, ",") & Join(CustNumFields, ",") & Join(CustOLCodeFields, ",") & Join(EntFields, ","), ",")
+        Call cptQuickSort(vArray, 0, UBound(vArray))
+        .msidBox.List = Split("<None>,UniqueID," & Join(vArray, ","), ",")
+        Call cptQuickSort(CustNumFields, 1, UBound(CustNumFields))
+        .PercentBox.List = Split("Physical % Complete,% Complete," & Join(CustNumFields, ","), ",")
+        .AsgnPcntBox.List = Split("<None>," & Join(CustNumFields, ","), ",")
+        
         On Error GoTo CleanUp
         ErrMsg = "Please try again, or contact the developer if this message repeats."
         '********************************************
@@ -396,7 +355,7 @@ Private Sub DataChecks(ByVal curproj As Project)
 
         For Each subProj In subProjs
 
-            FileOpen Name:=subProj.path, ReadOnly:=True
+            FileOpen Name:=subProj.Path, ReadOnly:=True
 
             Set curSProj = ActiveProject
 
@@ -404,7 +363,7 @@ Private Sub DataChecks(ByVal curproj As Project)
 
                 If Not t Is Nothing Then
 
-                    If t.Summary = False And t.Active = True And t.ExternalTask = False Then
+                    If t.Summary = False And t.GetField(188744959) = "Yes" And t.ExternalTask = False Then
 
                         taskCount = taskCount + 1
                         taskFound = True
@@ -530,7 +489,7 @@ Private Sub DataChecks(ByVal curproj As Project)
 
             If Not t Is Nothing Then
 
-                If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                     taskCount = taskCount + 1
                     taskFound = True
@@ -1420,14 +1379,14 @@ Private Sub BCWP_Export(ByVal curproj As Project)
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.path, ReadOnly:=True
+                FileOpen Name:=subProj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                             If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
@@ -1456,7 +1415,7 @@ Private Sub BCWP_Export(ByVal curproj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If EVT = "B" Or EVT = "N" Or EVT = "B Milestone" Or EVT = "N Earning Rules" Then
@@ -1762,7 +1721,7 @@ nrBCWP_WP_Match_A:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                         If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
@@ -1791,7 +1750,7 @@ nrBCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earning Rules" Then
@@ -2134,14 +2093,14 @@ nrBCWP_WP_Match_B:
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.path, ReadOnly:=True
+                FileOpen Name:=subProj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                             If t.BaselineWork > 0 Or t.BaselineCost > 0 Then
 
@@ -2171,7 +2130,7 @@ nrBCWP_WP_Match_B:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
                                 
 
@@ -2610,7 +2569,7 @@ BCWP_WP_Match_A:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                         If t.BaselineWork > 0 Or t.BaselineCost > 0 Then
 
@@ -2640,7 +2599,7 @@ BCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
@@ -3141,14 +3100,14 @@ Private Sub ETC_Export(ByVal curproj As Project)
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.path, ReadOnly:=True
+                FileOpen Name:=subProj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                             If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
@@ -3314,7 +3273,7 @@ nrETC_WP_Match:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                         If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
@@ -3521,14 +3480,14 @@ nrETC_WP_Match_B:
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.path, ReadOnly:=True
+                FileOpen Name:=subProj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                             If t.Work > 0 Or t.Cost > 0 Then
 
@@ -3747,7 +3706,7 @@ ETC_WP_Match:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                         If t.Work > 0 Or t.Cost > 0 Then
 
@@ -4037,14 +3996,14 @@ Private Sub BCWS_Export(ByVal curproj As Project)
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.path, ReadOnly:=True
+                FileOpen Name:=subProj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                             If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
@@ -4082,7 +4041,7 @@ Private Sub BCWS_Export(ByVal curproj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -4193,7 +4152,7 @@ Next_nrSProj_Task:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                         If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
@@ -4225,7 +4184,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4381,14 +4340,14 @@ Next_nrTask:
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.path, ReadOnly:=True
+                FileOpen Name:=subProj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                             If t.BaselineWork > 0 Or t.BaselineCost > 0 Then
 
@@ -4420,7 +4379,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -4569,7 +4528,7 @@ Next_SProj_Task:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                         If t.BaselineWork > 0 Or t.BaselineCost > 0 Then
 
@@ -4601,7 +4560,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4816,14 +4775,14 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.path, ReadOnly:=True
+                FileOpen Name:=subProj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                             If t.GetField(FieldNameToFieldConstant(fWP)) <> "" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "D" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "d" Then
 
@@ -4861,7 +4820,7 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -5008,7 +4967,7 @@ Next_nrSProj_Task:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
                         If t.GetField(FieldNameToFieldConstant(fWP)) <> "" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "D" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "d" Then
 
                             CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
@@ -5039,7 +4998,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5232,14 +5191,14 @@ Next_nrTask:
 
             For Each subProj In subProjs
 
-                FileOpen Name:=subProj.path, ReadOnly:=True
+                FileOpen Name:=subProj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
                         
                             If ((t.BaselineWork > 0 Or t.BaselineCost > 0) And _
                             (t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "d" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "D")) _
@@ -5275,7 +5234,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -5489,7 +5448,7 @@ Next_SProj_Task:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.GetField(188744959) = "Yes" And t.Summary = False And t.ExternalTask = False Then
 
                         If ((t.BaselineWork > 0 Or t.BaselineCost > 0) And _
                         (t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "d" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "D")) _
@@ -5525,7 +5484,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5832,7 +5791,7 @@ Private Sub Get_WP_Descriptions(ByVal curproj As Project)
 
         For Each subProj In subProjs
 
-            FileOpen Name:=subProj.path, ReadOnly:=True
+            FileOpen Name:=subProj.Path, ReadOnly:=True
 
             Set curSProj = ActiveProject
 
@@ -6011,7 +5970,7 @@ Private Function Find_BCRs(ByVal curproj As Project, ByVal fWP As String, ByVal 
 
         For Each subProj In subProjs
 
-            FileOpen Name:=subProj.path, ReadOnly:=True
+            FileOpen Name:=subProj.Path, ReadOnly:=True
 
             Set curSProj = ActiveProject
 
@@ -6140,7 +6099,7 @@ Private Sub ReadCustomFields(ByVal curproj As Project)
         End If
 
     Next i
-
+    
     'Read local Custom Number Fields
     For i = 1 To 20
 
@@ -6166,7 +6125,7 @@ Private Sub ReadCustomFields(ByVal curproj As Project)
         End If
 
     Next i
-
+    
     'Read Enterprise Custom Fields
     i = 1
 
@@ -6183,7 +6142,7 @@ Private Sub ReadCustomFields(ByVal curproj As Project)
 next_fID:
 
     Next fID
-
+    
     Exit Sub
 
 fID_Error:
@@ -6766,3 +6725,37 @@ Private Function get_Assignment_Pcnt(ByVal tAssignment As Assignment) As String
     get_Assignment_Pcnt = 0
 
 End Function
+
+Public Sub cptQuickSort(vArray As Variant, inLow As Long, inHi As Long)
+  'public domain: https://stackoverflow.com/questions/152319/vba-array-sort-function
+  Dim pivot   As Variant
+  Dim tmpSwap As Variant
+  Dim tmpLow  As Long
+  Dim tmpHi   As Long
+
+  tmpLow = inLow
+  tmpHi = inHi
+
+  pivot = vArray((inLow + inHi) \ 2)
+
+  While (tmpLow <= tmpHi)
+     While (vArray(tmpLow) < pivot And tmpLow < inHi)
+        tmpLow = tmpLow + 1
+     Wend
+
+     While (pivot < vArray(tmpHi) And tmpHi > inLow)
+        tmpHi = tmpHi - 1
+     Wend
+
+     If (tmpLow <= tmpHi) Then
+        tmpSwap = vArray(tmpLow)
+        vArray(tmpLow) = vArray(tmpHi)
+        vArray(tmpHi) = tmpSwap
+        tmpLow = tmpLow + 1
+        tmpHi = tmpHi - 1
+     End If
+  Wend
+
+  If (inLow < tmpHi) Then cptQuickSort vArray, inLow, tmpHi
+  If (tmpLow < inHi) Then cptQuickSort vArray, tmpLow, inHi
+End Sub
