@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.1.1</cpt_version>
+'<cpt_version>v1.1.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -570,14 +570,14 @@ next_task:
             On Error Resume Next
             Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
             If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-            If oAssignment.ResourceType = pjResourceTypeWork Then
-              lngMultiplier = 1
-            Else
-              lngMultiplier = 60
-            End If
             If oAssignment Is Nothing Then
               Print #lngFile, "ASSIGNMENT MISSING: TASK " & oTask.UniqueID & " ASSIGNMENT: " & oWorksheet.Cells(lngRow, lngUIDCol).Value
             Else
+              If oAssignment.ResourceType = pjResourceTypeWork Then
+                lngMultiplier = 1
+              Else
+                lngMultiplier = 60
+              End If
               If Not oWorksheet.Cells(lngRow, lngETCCol).Locked Then
                 dblETC = oWorksheet.Cells(lngRow, lngETCCol).Value
                 If lngETC = pjTaskNumber1 Then
