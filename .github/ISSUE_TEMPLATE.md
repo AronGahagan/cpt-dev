@@ -3,7 +3,7 @@
     description-hint:= be detailed
     bonus-points: include screenshot(s)
 
-```visual-basic
+```vba
 'even-more-bonus-points: offending code snippet here
 ```
 
