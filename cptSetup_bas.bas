@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.5.8</cpt_version>
+'<cpt_version>v1.5.9</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -342,7 +342,7 @@ exit_here:
   Set rstCore = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptSetup", err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptSetup", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -569,6 +569,7 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Other"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBCWS"" label=""Budgeted Cost of Work Scheduled (BCWS) in hours"" imageMso=""NumberInsert"" onAction=""cptGetBCWS"" visible=""true"" supertip=""Timephased BCWS/PV (in hours)."" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBCWP"" label=""Budgeted Cost of Work Performed (BCWP) in hours"" imageMso=""NumberInsert"" onAction=""cptGetBCWP"" visible=""true"" supertip=""Timephased BCWP/EV (in hours)--relies on baseline work and Physical % Complete."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBCWR"" label=""Budgeted Cost of Work Remaining (BCWR) in hours"" imageMso=""NumberInsert"" onAction=""cptGetBCWR"" visible=""true"" supertip=""Budgeted Cost of Work Remaining = (BAC - BCWP)"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBAC"" label=""Budget at Complete (BAC) in hours"" imageMso=""NumberInsert"" onAction=""cptGetBAC"" visible=""true"" supertip=""Budget at Complete (BAC) in hours"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptETC"" label=""Estimate to Complete (ETC) in hours"" imageMso=""NumberInsert"" onAction=""cptGetETC"" visible=""true"" supertip=""Estimate to Complete (ETC) in hours"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptLSLF"" label=""Late Starts and Finishes"" imageMso=""ChartTypeLineInsertGallery"" onAction=""cptLateStartsFinishes"" visible=""true"" supertip=""Late Starts and Finishes Chart"" />"
@@ -665,7 +666,7 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
 Dim strMsg As String
 
     strMsg = "Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
-    strMsg = strMsg & "Error " & err.Number & ": " & err.Description & vbCrLf & vbCrLf
+    strMsg = strMsg & "Error " & Err.Number & ": " & Err.Description & vbCrLf & vbCrLf
     strMsg = strMsg & "Source: " & strModule & "." & strProcedure
     If lngErl > 0 Then
       strMsg = strMsg & ":" & lngErl
@@ -712,9 +713,9 @@ exit_here:
     Set REMatches = Nothing
     Exit Function
 err_here:
-  If err.Number = 5 Then
+  If Err.Number = 5 Then
     cptRegEx = ""
-    err.Clear
+    Err.Clear
   End If
   Resume exit_here
 End Function
@@ -767,7 +768,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptModuleExists", err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptModuleExists", Err, Erl)
   Resume exit_here
 
 End Function
@@ -851,7 +852,7 @@ exit_here:
   Set cmThisProject = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptUninstall", err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptUninstall", Err, Erl)
   Resume exit_here
 End Sub
 
