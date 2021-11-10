@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.1.1</cpt_version>
+'<cpt_version>v1.1.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -10,6 +10,28 @@ End Sub
 
 Sub cptGetETC()
   MsgBox Format(cptGetMetric("etc"), "#,##0.00h"), vbInformation + vbOKOnly, "Estimate to Complete (ETC) - hours"
+End Sub
+
+Sub cptGetBCWR()
+  Dim dblBAC As Double
+  Dim dblBCWP As Double
+  
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
+      Exit Sub
+    End If
+  End If
+  
+  dblBAC = cptGetMetric("bac")
+  dblBCWP = cptGetMetric("bcwp")
+  Dim strMsg As String
+  strMsg = "BCWR = (BAC - BCWP)" & vbCrLf
+  strMsg = strMsg & "BCWR = (" & Format(dblBAC, "#,##0.0") & " - " & Format(dblBCWP, "#,##0.0") & ")" & vbCrLf & vbCrLf
+  strMsg = strMsg & "BCWR = " & Format(dblBAC - dblBCWP, "#,##0.0") & "h"
+  MsgBox strMsg, vbInformation + vbOKOnly, "Budgeted Cost of Work Remainning (BCWR) - hours"
+  
 End Sub
 
 Sub cptGetBCWS()
@@ -492,8 +514,10 @@ Dim tsvs As TimeScaleValues
 Dim oTasks As Tasks
 Dim oTask As Task
 'strings
+Dim strVerbose As String
 Dim strLOE As String
 'longs
+Dim lngFile As Long
 Dim lngLOEField As Long
 Dim lngEVP As Long
 Dim lngYears As Long
@@ -501,6 +525,7 @@ Dim lngYears As Long
 'doubles
 Dim dblResult As Double
 'booleans
+Dim blnVerbose As Boolean
 'variants
 'dates
 Dim dtStatus As Date
@@ -516,7 +541,13 @@ Dim dtStatus As Date
   Else
     dtStatus = ActiveProject.StatusDate
   End If
-  
+  blnVerbose = False 'spits out a CSV with UID,RESOURCE,EVT,BCWP (bcwp only) <easter-egg>
+  If blnVerbose Then
+    lngFile = FreeFile
+    strVerbose = ActiveProject.Path & "\cptGetMetric_" & StrConv(strGet, vbUpperCase) & ".csv"
+    Open strVerbose For Output As #lngFile
+    Print #lngFile, "UID,RESOURCE,EVT,BCWP,"
+  End If
   cptSpeed True
   ActiveWindow.TopPane.Activate
   FilterClear
@@ -574,7 +605,7 @@ Dim dtStatus As Date
               GoTo exit_here
             End If
           End If
-        
+                    
           lngEVP = CLng(cptGetSetting("Metrics", "cboEVP"))
           lngLOEField = CLng(cptGetSetting("Metrics", "cboLOEField"))
           strLOE = cptGetSetting("Metrics", "txtLOE")
@@ -586,10 +617,12 @@ Dim dtStatus As Date
                   Set tsvs = oAssignment.TimeScaleData(oTask.BaselineStart, dtStatus, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks, 1)
                   For Each tsv In tsvs
                     dblResult = dblResult + (IIf(tsv.Value = "", 0, tsv.Value) / 60)
+                    If blnVerbose Then Print #lngFile, oTask.UniqueID & "," & oAssignment.ResourceName & ",LOE," & IIf(tsv.Value = "", 0, tsv.Value) / 60
                   Next
                 End If
               Else
                 dblResult = dblResult + ((oAssignment.BaselineWork / 60) * (CLng(cptRegEx(oTask.GetField(lngEVP), "[0-9]*")) / 100))
+                If blnVerbose Then Print #lngFile, oTask.UniqueID & "," & oAssignment.ResourceName & ",Discrete," & ((oAssignment.BaselineWork / 60) * (CLng(cptRegEx(oTask.GetField(lngEVP), "[0-9]*")) / 100))
               End If
             End If
           Next oAssignment
@@ -609,6 +642,10 @@ next_task:
   Next
 
   cptGetMetric = dblResult
+  If blnVerbose Then
+    Close #lngFile
+    Shell "C:\Windows\notepad.exe '" & strVerbose & "'", vbNormalFocus
+  End If
 
 exit_here:
   On Error Resume Next
@@ -803,6 +840,8 @@ Sub cptCaptureWeek()
           If rst("PROJECT") = strProject And rst("STATUS_DATE") = FormatDateTime(dtStatus, vbGeneralDate) Then rst.Delete adAffectCurrent
           rst.MoveNext
         Loop
+      Else
+        GoTo do_not_overwrite
       End If
     End If
     rst.Filter = 0
@@ -862,9 +901,10 @@ next_task:
   Next oTask
   
   rst.Save strFile, adPersistADTG
+  MsgBox "Current Schedule as of " & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & " captured.", vbInformation + vbOKOnly, "Complete"
+do_not_overwrite:
   rst.Close
   Application.StatusBar = "Complete."
-  MsgBox "Current Schedule as of " & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & " captured.", vbInformation + vbOKOnly, "Complete"
   
 exit_here:
   On Error Resume Next
@@ -1744,6 +1784,10 @@ next_record:
         DoEvents
         oRecordset.MoveNext
       Loop
+    End If
+    If oListObject.ListRows.Count = 0 Then
+      Set oListRow = oListObject.ListRows.Add
+      oWorksheet.[C6] = "<< there were no tasks forecast to complete this week >>"
     End If
     oRecordset.Filter = ""
   Else
