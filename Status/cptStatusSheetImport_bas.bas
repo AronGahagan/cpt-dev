@@ -701,7 +701,7 @@ next_task:
                     oTask.Number20 = oTask.Number20 + dblETC
                   End If
                 End If
-                If Len(oWorksheet.Cells(lngRow, lngCommentsCol)) > 0 Then
+                If .chkAppend And Len(oWorksheet.Cells(lngRow, lngCommentsCol)) > 0 Then
                   If .cboAppendTo = "Top of Task Note" Then
                     oAssignment.Notes = Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & vbCrLf & oAssignment.Notes
                   'todo: replace assignment note
