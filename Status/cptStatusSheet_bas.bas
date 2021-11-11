@@ -16,6 +16,7 @@ Private strStartingFilter As String
 Private strStartingGroup As String
 Private oAssignmentRange As Excel.Range
 Private oNumberValidationRange As Excel.Range
+Private oETCValidationRange As Excel.Range
 Private oInputRange As Excel.Range
 Private oUnlockedRange As Excel.Range
 Private oEntryHeaderRange As Excel.Range
@@ -708,6 +709,7 @@ Sub cptCreateStatusSheet()
       
       Set oInputRange = Nothing
       Set oNumberValidationRange = Nothing
+      Set oETCValidationRange = Nothing
       Set oUnlockedRange = Nothing
       Set oAssignmentRange = Nothing
       
@@ -786,6 +788,7 @@ Sub cptCreateStatusSheet()
           
           Set oInputRange = Nothing
           Set oNumberValidationRange = Nothing
+          Set oETCValidationRange = Nothing
           Set oUnlockedRange = Nothing
           Set oAssignmentRange = Nothing
           
@@ -860,6 +863,7 @@ next_worksheet:
           
           Set oInputRange = Nothing
           Set oNumberValidationRange = Nothing
+          Set oETCValidationRange = Nothing
           Set oUnlockedRange = Nothing
           Set oAssignmentRange = Nothing
                     
@@ -1854,12 +1858,13 @@ try_again:
         Else
           Set oDateValidationRange = oWorksheet.Application.Union(oDateValidationRange, oWorksheet.Cells(lngRow, lngAFCol))
         End If
-      End If
-      If Not blnLOE Then
-        If oNumberValidationRange Is Nothing Then
-          Set oNumberValidationRange = oWorksheet.Cells(lngRow, lngEVPCol)
-        Else
-          Set oNumberValidationRange = oWorksheet.Application.Union(oNumberValidationRange, oWorksheet.Cells(lngRow, lngEVPCol))
+        'allow incomplete tasks to have EVP updated
+        If Not blnLOE Then
+          If oNumberValidationRange Is Nothing Then
+            Set oNumberValidationRange = oWorksheet.Cells(lngRow, lngEVPCol)
+          Else
+            Set oNumberValidationRange = oWorksheet.Application.Union(oNumberValidationRange, oWorksheet.Cells(lngRow, lngEVPCol))
+          End If
         End If
       End If
     End If 'blnValidation
@@ -1970,6 +1975,8 @@ next_task:
       .ShowInput = True
       .ShowError = True
     End With
+  End If
+  If blnValidation And Not oNumberValidationRange Is Nothing Then
     'number validation range (contains EV% only)
     With oNumberValidationRange.Validation
       .Delete
@@ -1984,6 +1991,22 @@ next_task:
       .ShowError = True
     End With
   End If
+  If blnValidation And Not oETCValidationRange Is Nothing Then
+    'ETC validation range (contains ETC only)
+    With oETCValidationRange.Validation
+      .Delete
+      .Add Type:=xlValidateDecimal, AlertStyle:=xlValidAlertStop, Operator:=xlGreaterEqual, Formula1:="0"
+      .IgnoreBlank = True
+      .InCellDropdown = True
+      .InputTitle = "Number Only"
+      .ErrorTitle = "Number Only"
+      .InputMessage = "Please enter a number greater than, or equal to, zero (0)."
+      .ErrorMessage = "Please enter a number greater than, or equal to, zero (0)"
+      .ShowInput = True
+      .ShowError = True
+    End With
+  End If
+  'format the Assignment Rows
   If Not oAssignmentRange Is Nothing Then
     With oAssignmentRange.Interior
       .Pattern = xlSolid
@@ -1993,6 +2016,7 @@ next_task:
       .PatternTintAndShade = 0
     End With
   End If
+  'format the input rows
   If Not oInputRange Is Nothing Then
     oInputRange.Style = "Input"
     oInputRange.Locked = False
@@ -2130,11 +2154,12 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
       vAssignment(1, lngRemainingWorkCol + 1) = oAssignment.RemainingCost
     End If
     'add validation
-    If oNumberValidationRange Is Nothing Then
-      Set oNumberValidationRange = oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1)
+    If oETCValidationRange Is Nothing Then
+      Set oETCValidationRange = oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1)
     Else
-      Set oNumberValidationRange = oWorksheet.Application.Union(oNumberValidationRange, oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1))
+      Set oETCValidationRange = oWorksheet.Application.Union(oETCValidationRange, oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1))
     End If
+    'allow input on ETC if task is unstarted or incomplete - i.e., in progress
     If (Not IsDate(oTask.ActualStart) And oTask.Start <= ActiveProject.StatusDate) Or (IsDate(oTask.ActualStart) And Not IsDate(oTask.ActualFinish)) Then
       If oInputRange Is Nothing Then
         Set oInputRange = oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1)
