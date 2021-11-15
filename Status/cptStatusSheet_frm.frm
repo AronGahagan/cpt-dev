@@ -688,6 +688,8 @@ Dim blnIncluded As Boolean
       'Me.lboItems.ForeColor = 92
       blnError = True
     End If
+    'the limiting field should have 'roll down to assignments = true
+    Application.CustomFieldPropertiesEx FieldID:=Me.cboEach.Value, AutomaticallyRolldownToAssn:=True
     'the limiting field should be included in the export list
     blnIncluded = False
     For lngItem = 0 To Me.lboExport.ListCount - 1
