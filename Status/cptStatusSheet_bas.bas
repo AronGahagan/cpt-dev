@@ -386,6 +386,7 @@ skip_fields:
           cptStatusSheet_frm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
           cptStatusSheet_frm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
           cptStatusSheet_frm.lboExport.List(lngItem, 2) = .Fields(2) 'Local Field Name
+          If InStr("Custom", FieldConstantToFieldName(FieldNameToFieldConstant(.Fields(1)))) = 0 Then GoTo next_item
           If CustomFieldGetName(.Fields(0)) <> CStr(.Fields(1)) Then
             strFieldNamesChanged = strFieldNamesChanged & .Fields(2) & " '" & .Fields(1) & "' is now "
             If Len(CustomFieldGetName(.Fields(0))) > 0 Then
@@ -394,6 +395,7 @@ skip_fields:
               strFieldNamesChanged = strFieldNamesChanged & "<unnamed>" & vbCrLf
             End If
           End If
+next_item:
           lngItem = lngItem + 1
           .MoveNext
         Loop
