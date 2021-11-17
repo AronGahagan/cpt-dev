@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.1.0</cpt_version>
+'<cpt_version>v1.1.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -622,7 +622,12 @@ Sub cptExportOutlineCodeToExcel(lngOutlineCode As Long)
     oWorksheet.Cells(lngLastRow, 2).Value = oLookupTable.Item(lngLookupItems).Level
     oWorksheet.Cells(lngLastRow, 3).Value = oLookupTable.Item(lngLookupItems).Description
     oWorksheet.Cells(lngLastRow, 3).IndentLevel = oLookupTable.Item(lngLookupItems).Level - 1
-    oWorksheet.Rows(lngLastRow).OutlineLevel = oLookupTable.Item(lngLookupItems).Level
+    If oLookupTable.Item(lngLookupItems).Level > 8 Then
+      oWorksheet.Rows(lngLastRow).OutlineLevel = 8
+      oWorksheet.Cells(lngLastRow, 2).AddComment "Excel grouping limited to 8 levels"
+    Else
+      oWorksheet.Rows(lngLastRow).OutlineLevel = oLookupTable.Item(lngLookupItems).Level
+    End If
     cptBackbone_frm.lblProgress.Width = (lngLookupItems / oLookupTable.Count) * cptBackbone_frm.lblStatus.Width
     cptBackbone_frm.lblStatus.Caption = "Exporting Outline Code '" & strOutlineCode & "'...(" & Format((lngLastRow - 1) / lngLookupItems, "0%") & ")"
   Next lngLookupItems
