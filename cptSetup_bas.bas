@@ -619,6 +619,9 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCostRateTables"" onAction=""cptShowCostRateTables_frm""  size=""large"" visible=""true""  label=""Cost Rate Tables"" imageMso=""DataTypeCurrency"" />"
   End If
 
+  If cptModuleExists("cptAdjustment_bas") And cptModuleExists("cptAdjustment_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdjustments"" label=""ETC Adjustments"" imageMso=""SynchronizationStatus"" onAction=""cptShowAdjustment_frm"" visible=""true"" supertip=""Hit those ETC targets on the nose! Enter a target total ETC, apply a percetage, or a DELTA value - and put one on the scoreboard."" />"
+  End If
   'mpm
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
