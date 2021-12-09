@@ -198,6 +198,8 @@ Sub cptStatusSheetImport()
   Dim oComboBox As ComboBox
   Dim rst As Object 'ADODB.Recordset
   'strings
+  Dim strLOE As String
+  Dim strLOEField As String
   Dim strHeader As String
   Dim strCon As String
   Dim strSQL As String
@@ -211,6 +213,7 @@ Sub cptStatusSheetImport()
   Dim strSettings As String
   Dim strGUID As String
   'longs
+  Dim lngEVT As Long
   Dim lngMultiplier As Long
   Dim lngDeconflictionFile As Long
   Dim lngEVP As Long
@@ -308,6 +311,19 @@ Sub cptStatusSheetImport()
   cptSaveSetting "StatusSheetImport", "chkAppend", IIf(blnAppend, 1, 0)
   cptSaveSetting "StatusSheetImport", "cboAppendTo", strAppendTo
   
+  'ensure metrics settings exist
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "Settings not saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
+      GoTo exit_here
+    End If
+  End If
+  
+  'get LOE settings
+  strLOEField = cptGetSetting("Metrics", "cboLOEField")
+  strLOE = cptGetSetting("Metrics", "txtLOE")
+    
   'set up import log file
   strImportLog = ActiveProject.Path & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
   lngFile = FreeFile
@@ -458,13 +474,19 @@ next_task:
         dtStatus = oWorksheet.Range("STATUS_DATE")
         If Err.Number = 1004 Then 'invalid oWorkbook
           If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-          Print #lngFile, "INVALID Worksheet - UID HEADER NOT FOUND IN COLUMN 1 OF WORKSHEET"
+          Print #lngFile, "INVALID Worksheet - range 'STATUS_DATE' not found"
           GoTo next_worksheet
         End If
         If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
         'get header row
         lngUIDCol = 1
+        On Error Resume Next
         lngHeaderRow = oWorksheet.Columns(lngUIDCol).Find(what:="UID").Row
+        If Err.Number = 1004 Then 'invalid oWorkbook
+          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          Print #lngFile, "INVALID Worksheet - UID column not found"
+          GoTo next_worksheet
+        End If
         'get header columns
         lngTaskNameCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Task Name", lookat:=xlPart).Column
         lngASCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Start", lookat:=xlPart).Column
@@ -542,19 +564,29 @@ next_task:
                 Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "FINISH", "", CStr(FormatDateTime(oTask.Start, vbShortDate)), CStr(FormatDateTime(dtNewDate, vbShortDate))), ",")
               End If
             End If
-            'ev
-            lngEVP = Round(oWorksheet.Cells(lngRow, lngEVCol).Value * 100, 0)
-            strEVP = cptGetSetting("StatusSheet", "cboEVP")
-            If Len(strEVP) > 0 Then 'compare
-              If CLng(cptRegEx(oTask.GetField(FieldNameToFieldConstant(strEVP)), "[0-9]{1,}")) <> lngEVP Then
+            
+            'evp
+            'skip LOE
+            If Len(strLOEField) > 0 And Len(strLOE) > 0 Then
+              lngEVT = CLng(strLOEField)
+              If oTask.GetField(lngEVT) = strLOE Then GoTo evp_skipped
+            End If
+            'secondary catch to skip LOE
+            If oWorksheet.Cells(lngRow, lngEVCol).Value <> "-" Then
+              lngEVP = Round(oWorksheet.Cells(lngRow, lngEVCol).Value * 100, 0)
+              strEVP = cptGetSetting("StatusSheet", "cboEVP")
+              If Len(strEVP) > 0 Then 'compare
+                If CLng(cptRegEx(oTask.GetField(FieldNameToFieldConstant(strEVP)), "[0-9]{1,}")) <> lngEVP Then
+                  oTask.SetField lngEV, lngEVP
+                  Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, strEVP, "", cptRegEx(oTask.GetField(FieldNameToFieldConstant(strEVP)), "[0-9]{1,}"), CStr(lngEVP)), ",")
+                End If
+              Else 'log
                 oTask.SetField lngEV, lngEVP
-                Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, strEVP, "", cptRegEx(oTask.GetField(FieldNameToFieldConstant(strEVP)), "[0-9]{1,}"), CStr(lngEVP)), ",")
+                Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "EV%", "", "<unknown>", CStr(lngEVP)), ",")
               End If
-            Else 'log
-              oTask.SetField lngEV, lngEVP
-              Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "EV%", "", "<unknown>", CStr(lngEVP)), ",")
             End If
             
+evp_skipped:
             'comments todo: only import if different
             If .chkAppend And oWorksheet.Cells(lngRow, lngCommentsCol).Value <> "" Then
               If .cboAppendTo = "Top of Task Note" Then
