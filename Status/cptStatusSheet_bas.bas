@@ -1668,6 +1668,7 @@ try_again:
   oWorksheet.Rows(lngHeaderRow).Font.Bold = True
   oWorksheet.Columns.AutoFit
   'format the columns
+  oWorksheet.Application.DisplayAlerts = False
   For lngCol = 1 To ActiveSelection.FieldIDList.Count
     oWorksheet.Columns(lngCol).ColumnWidth = ActiveProject.TaskTables("cptStatusSheet Table").TableFields(lngCol + 1).Width + 2
     oWorksheet.Cells(lngHeaderRow, lngCol).WrapText = True
@@ -1688,6 +1689,7 @@ try_again:
       End If
     End If
   Next lngCol
+  oWorksheet.Application.DisplayAlerts = True
   
   'format the header
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
