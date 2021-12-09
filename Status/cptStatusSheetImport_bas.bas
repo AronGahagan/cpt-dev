@@ -786,6 +786,7 @@ exit_here:
   For lngFile = 1 To FreeFile
     Close #lngFile
   Next lngFile
+  Close #lngDeconflictionFile
   If Dir(Environ("tmp") & "\Schema.ini") <> vbNullString Then Kill Environ("tmp") & "\Schema.ini"
   If Dir(Environ("tmp") & "\imported.csv") <> vbNullString Then Kill Environ("tmp") * "\imported.csv"
   Set oRange = Nothing
