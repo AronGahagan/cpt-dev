@@ -687,6 +687,18 @@ Sub cptCreateStatusSheet()
   lngHeaderRow = 8
   With cptStatusSheet_frm
     If .cboCreate.Value = "0" Then 'single workbook
+      
+      SelectAll
+      On Error Resume Next
+      Set oTasks = Nothing
+      Set oTasks = ActiveSelection.Tasks
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If oTasks Is Nothing Then
+        .lblStatus.Caption = "No incomplete tasks ...skipped"
+        Application.StatusBar = .lblStatus.Caption
+        GoTo exit_here
+      End If
+      
       Set oWorkbook = oExcel.Workbooks.Add
       oExcel.Calculation = xlCalculationManual
       oExcel.ScreenUpdating = False
@@ -752,10 +764,7 @@ Sub cptCreateStatusSheet()
       For lngItem = 0 To .lboItems.ListCount - 1
         If .lboItems.Selected(lngItem) Then
           strItem = .lboItems.List(lngItem, 0)
-          Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
-          oWorksheet.Name = strItem
           SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", strItem
-          
           SelectAll
           On Error Resume Next
           Set oTasks = ActiveSelection.Tasks
@@ -766,6 +775,9 @@ Sub cptCreateStatusSheet()
             GoTo next_worksheet
           End If
           
+          'create worksheet
+          Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
+          oWorksheet.Name = strItem
           'copy data
           If blnPerformanceTest Then t = GetTickCount
           .lblStatus.Caption = "Creating Worksheet for " & strItem & "..."
@@ -823,15 +835,10 @@ next_worksheet:
       For lngItem = 0 To .lboItems.ListCount - 1
         If .lboItems.Selected(lngItem) Then
           strItem = .lboItems.List(lngItem, 0)
-          Set oWorkbook = oExcel.Workbooks.Add
-          oExcel.Calculation = xlCalculationManual
-          oExcel.ScreenUpdating = False
-          Set oWorksheet = oWorkbook.Sheets(1)
-          oWorksheet.Name = "Status Request"
-          SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", .lboItems.List(lngItem, 0)
-          
+          SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", strItem
           SelectAll
           On Error Resume Next
+          Set oTasks = Nothing
           Set oTasks = ActiveSelection.Tasks
           If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
           If oTasks Is Nothing Then
@@ -839,6 +846,13 @@ next_worksheet:
             Application.StatusBar = .lblStatus.Caption
             GoTo next_workbook
           End If
+          
+          'get excel
+          Set oWorkbook = oExcel.Workbooks.Add
+          oExcel.Calculation = xlCalculationManual
+          oExcel.ScreenUpdating = False
+          Set oWorksheet = oWorkbook.Sheets(1)
+          oWorksheet.Name = "Status Request"
           
           'copy data
           If blnPerformanceTest Then t = GetTickCount
