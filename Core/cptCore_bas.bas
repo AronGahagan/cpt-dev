@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.9.8</cpt_version>
+'<cpt_version>v1.9.9</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -192,7 +192,7 @@ frx:
     strNewFileName = strModule & "_" & Format(Now, "hhnnss")
     ThisProject.VBProject.VBComponents(strModule).Name = strNewFileName
     DoEvents
-    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(strNewFileName)
+    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(strNewFileName)
     cptCore_bas.cptStartEvents
     DoEvents
   End If
@@ -248,7 +248,7 @@ Dim strAbout As String
   strAbout = strAbout & "This software is provided free of charge," & vbCrLf
   strAbout = strAbout & "AS IS and without warranty." & vbCrLf
   strAbout = strAbout & "It is free to use, free to distribute with prior written consent from the developers/copyright holders and without modification." & vbCrLf & vbCrLf
-  strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright 2019, ClearPlanConsulting, LLC"
+  strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright 2019-2021, ClearPlanConsulting, LLC"
   cptAbout_frm.txtAbout.Value = strAbout  '<issue19>
 
   'follow the project
@@ -403,8 +403,8 @@ Dim strRegEx As String
   End Select
     
   'Office Applications
-  strRegEx = "C\:.*Microsoft Office[A-z0-9\\]*Office[0-9]{2}"
-  strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
+  strDir = cptRegEx(Environ("PATH"), "C:\\[^;]*Office[0-9]{1,}\\")
+  If Len(strDir) = 0 Then GoTo windows_common
   Select Case strReference
     Case "Excel"
       If Not cptReferenceExists("Excel") Then
@@ -428,6 +428,7 @@ Dim strRegEx As String
       End If
 
     'Windows Common
+windows_common:
     Case "MSForms"
       If Not cptReferenceExists("MSForms") Then
         ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\FM20.DLL"
@@ -470,6 +471,7 @@ err_here:
   Resume exit_here
 
 End Function
+
 Sub cptResetAll()
   Dim rstSettings As Object 'ADODB.Recordset
   'strings
@@ -969,13 +971,12 @@ Dim strRegEx As String
   End If
 
   'office applications
-  Set oExcel = CreateObject("Excel.Application")
-  If oExcel Is Nothing Then 'weird installation or Excel not installed
+  strDir = cptRegEx(Environ("PATH"), "C:\\[^;]*Office[0-9]{1,}\\")
+  If Len(strDir) = 0 Then 'weird installation or Excel not installed
     MsgBox "Microsoft Office installation is not detetcted. Some features may not operate as expected." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for specialized assistance.", vbCritical + vbOKOnly, "Microsoft Office Compatibility"
     GoTo windows_common
-  Else
-    strDir = oExcel.Path
   End If
+  
   If Not cptReferenceExists("Excel") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
   End If
