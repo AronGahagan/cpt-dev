@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCommonFieldMap_bas"
-'<cpt_version>v1.0.1</cpt_version>
+'<cpt_version>v1.0.2</cpt_version>
 Option Explicit
 
 #If VBA7 Then
@@ -92,7 +92,7 @@ Private Function GetSettingsFile() As String
     cptSettingsFolderPath = UserProfilePath & "\cpt-backup\settings\"
     cptSettingsFilePath = cptSettingsFolderPath & "cpt-settings.ini"
     
-    If VBA.FileSystem.Dir(cptSettingsFolderPath) = "" Then
+    If VBA.FileSystem.Dir(cptSettingsFolderPath, vbDirectory) = "" Then
         CreateSettingsDirectory (cptSettingsFolderPath)
         CreateSettingsFile (cptSettingsFilePath)
     ElseIf VBA.FileSystem.Dir(cptSettingsFilePath) = "" Then
