@@ -443,7 +443,7 @@ next_item:
   strStartingTable = ActiveProject.CurrentTable
   strStartingFilter = ActiveProject.CurrentFilter
   If ActiveProject.CurrentGroup = "Custom Group" Then
-    MsgBox "A 'Custom Group' cannot be used." & vbCrLf & vbCrLf & "Please save the group and name it, or select another saved Group, before you proceed.", vbInformation + vbOKOnly, "Invalid Group"
+    MsgBox "An ad hoc Autofilter Group cannot be used." & vbCrLf & vbCrLf & "Please save the group and name it, or select another saved Group, before you proceed.", vbInformation + vbOKOnly, "Invalid Group"
     GoTo exit_here
   Else
     strStartingGroup = ActiveProject.CurrentGroup
@@ -1759,8 +1759,11 @@ try_again:
     strLOE = cptGetSetting("Metrics", "txtLOE")
     'todo: ensure sync between metrics and status sheet
     With cptStatusSheet_frm
-      'todo: If oTask.GetField(lngLOEField) = strLOE Then blnLOE = True
-      If oTask.GetField(FieldNameToFieldConstant(.cboEVT.Value)) = strLOE Then blnLOE = True
+      If oTask.GetField(FieldNameToFieldConstant(.cboEVT.Value)) = strLOE Then
+        blnLOE = True
+      ElseIf strLOE = "" Then
+        blnLOE = False
+      End If
     End With
     If oTask.Summary Then 'todo: handle group by summary and clear it too
       If oSummaryRange Is Nothing Then
