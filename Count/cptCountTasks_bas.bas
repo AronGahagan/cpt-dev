@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCountTasks_bas"
-'<cpt_version>v1.0.5</cpt_version>
+'<cpt_version>v1.1.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -96,4 +96,66 @@ End Sub
 
 Sub cptCountTasksVisible()
   Call cptCountTasks("Visible")
+End Sub
+
+Function cptGetShowStatusBarCount() As Boolean
+  'objects
+  'strings
+  Dim strShow As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  Dim blnShow As Boolean
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  strShow = cptGetSetting("Count", "blnShowStatusBarTaskCount")
+  If Len(strShow) > 0 Then
+    blnShow = CBool(strShow)
+  Else
+    Call cptSaveSetting("Count", "blnShowStatusBarTaskCount", "1") 'default is true
+    blnShow = True
+  End If
+
+  cptGetShowStatusBarCount = blnShow
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCountTasks_bas", "cptGetShowStatusBarCount", Err, Erl)
+  Resume exit_here
+End Function
+
+Sub cptSetShowStatusBarTaskCount()
+  'objects
+  'strings
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  If MsgBox("Show Status Bar Task Count?", vbQuestion + vbYesNo, "Status Bar Task Count") = vbYes Then
+    cptSaveSetting "Count", "blnShowStatusBarTaskCount", "1"
+    If Len(Application.StatusBar) = 0 Then Application.StatusBar = "(please make a selection)"
+  Else
+    cptSaveSetting "Count", "blnShowStatusBarTaskCount", "0"
+    Application.StatusBar = ""
+  End If
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCountTasks_bas", "cptSetShowStatusBarTaskCount", Err, Erl)
+  Resume exit_here
 End Sub

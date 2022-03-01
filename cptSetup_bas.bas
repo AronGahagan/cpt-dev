@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.5.9</cpt_version>
+'<cpt_version>v1.6.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -427,6 +427,9 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountSelected"" label=""Selected"" imageMso=""NumberInsert"" onAction=""cptCountTasksSelected"" visible=""true""/>" 'SelectTaskCell
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountVisible"" label=""Visible"" imageMso=""NumberInsert"" onAction=""cptCountTasksVisible"" visible=""true""/>" 'SelectRows
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountAll"" label=""All"" imageMso=""NumberInsert"" onAction=""cptCountTasksAll"" visible=""true""/>" 'SelectWholeLayout
+    ribbonXML = ribbonXML + vbCrLf & "<mso:dialogBoxLauncher>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""dbl-count"" screentip=""Status Bar Count Option"" onAction=""cptSetShowStatusBarTaskCount"" />"
+    ribbonXML = ribbonXML + vbCrLf & "</mso:dialogBoxLauncher>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
 
