@@ -7,7 +7,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.5</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -59,21 +59,23 @@ Dim lngItem As Long, lngItems As Long
   On Error Resume Next
   
   'Validate users selected view type
-  If ActiveProject.Application.ActiveWindow.ActivePane.View.Type = pjTaskItem Then
-    Set Tasks = ActiveSelection.Tasks
-    If Not Tasks Is Nothing Then
-      lngItems = ActiveSelection.Tasks.Count
-      Application.StatusBar = Format(lngItems, "#,##0") & " task" & IIf(lngItems = 1, "", "s") & " selected"
-    Else
-      Application.StatusBar = "0 tasks selected"
-    End If
-  ElseIf ActiveProject.Application.ActiveWindow.ActivePane.View.Type = pjResourceItem Then
-    Set Resources = ActiveSelection.Resources
-    If Not Resources Is Nothing Then
-      lngItems = ActiveSelection.Resources.Count
-      Application.StatusBar = Format(lngItems, "#,##0") & " resource" & IIf(lngItems = 1, "", "s") & " selected"
-    Else
-      Application.StatusBar = "0 resources selected"
+  If cptGetShowStatusBarCount Then
+    If ActiveProject.Application.ActiveWindow.ActivePane.View.Type = pjTaskItem Then
+      Set Tasks = ActiveSelection.Tasks
+      If Not Tasks Is Nothing Then
+        lngItems = ActiveSelection.Tasks.Count
+        Application.StatusBar = Format(lngItems, "#,##0") & " task" & IIf(lngItems = 1, "", "s") & " selected"
+      Else
+        Application.StatusBar = "0 tasks selected"
+      End If
+    ElseIf ActiveProject.Application.ActiveWindow.ActivePane.View.Type = pjResourceItem Then
+      Set Resources = ActiveSelection.Resources
+      If Not Resources Is Nothing Then
+        lngItems = ActiveSelection.Resources.Count
+        Application.StatusBar = Format(lngItems, "#,##0") & " resource" & IIf(lngItems = 1, "", "s") & " selected"
+      Else
+        Application.StatusBar = "0 resources selected"
+      End If
     End If
   End If
   
