@@ -550,7 +550,7 @@ next_task:
             End If
             'new finish date
             If oWorksheet.Cells(lngRow, lngAFCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngAFCol).Locked Then
-              dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngAFCol)))
+              dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngAFCol)), vbShortDate)
               If dtNewDate <= dtStatus Then 'actual finish
                 If IsDate(oTask.ActualFinish) Then
                   If FormatDateTime(oTask.ActualFinish, vbShortDate) <> dtNewDate Then oTask.SetField lngAF, CDate(dtNewDate & " 05:00 PM")
