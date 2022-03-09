@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIMSCobraExport_frm 
-   Caption         =   "IMS Export Utility v3.3.3"
-   ClientHeight    =   7308
+   Caption         =   "IMS Export Utility v3.3.4"
+   ClientHeight    =   7305
    ClientLeft      =   120
-   ClientTop       =   468
-   ClientWidth     =   4392
+   ClientTop       =   465
+   ClientWidth     =   4395
    OleObjectBlob   =   "cptIMSCobraExport_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -13,7 +13,6 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 '<cpt_version>v3.3.4</cpt_version>
 Private Sub AsgnPcntBox_Change() 'v3.3.1
     
