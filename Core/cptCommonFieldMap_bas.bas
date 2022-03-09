@@ -1,9 +1,7 @@
 Attribute VB_Name = "cptCommonFieldMap_bas"
 '<cpt_version>v1.0.2</cpt_version>
 Option Explicit
-
 #If VBA7 Then
-
     Private Declare PtrSafe Function GetPrivateProfileStringA Lib "Kernel32" (ByVal strSection As String, _
         ByVal strKey As String, ByVal strDefault As String, _
         ByVal strReturnedString As String, _
@@ -13,9 +11,7 @@ Option Explicit
         "Kernel32" (ByVal strSection As String, _
         ByVal strKey As String, ByVal strString As String, _
         ByVal strFileNameName As String) As Long
-
 #Else
-
     Private Declare Function GetPrivateProfileStringA Lib "Kernel32" (ByVal strSection As String, _
         ByVal strKey As String, ByVal strDefault As String, _
         ByVal strReturnedString As String, _
@@ -57,25 +53,25 @@ Sub cptStoreCustomFieldName(ByVal FieldName As String, MSP_FieldName As String, 
     settingsFile = GetSettingsFile
     
     If Not (WritePrivateProfileString(settingsFile, FieldName, "Name", MSP_FieldName)) Then
-        err.Raise 1
+        Err.Raise 1
     End If
     
     If Not (WritePrivateProfileString(settingsFile, FieldName, "GUID", MSP_FieldGUID)) Then
-        err.Raise 2
+        Err.Raise 2
     End If
     
     Exit Sub
     
 ErrorHandler:
 
-    Select Case err.Number
+    Select Case Err.Number
     
         Case 1
-            err.Description = "Error setting Custom Field Name value."
+            Err.Description = "Error setting Custom Field Name value."
         Case 2
-            err.Description = "Error setting Custom Field GUID value."
+            Err.Description = "Error setting Custom Field GUID value."
         Case Else
-            err.Description = "Error storing Custom Field information."
+            Err.Description = "Error storing Custom Field information."
     
     End Select
     
