@@ -88,6 +88,7 @@ Sub cptGoRegEx(strRegEx As String)
   Dim oTask As Task
   'strings
   'longs
+  Dim lngFieldConstant As Long
   Dim lngUID As Long
   'integers
   'doubles
@@ -112,13 +113,14 @@ Sub cptGoRegEx(strRegEx As String)
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   End If
   
+  lngFieldConstant = FieldNameToFieldConstant(cptDynamicFilter_frm.cboField.Value)
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.Marked Then oTask.Marked = False
     If cptDynamicFilter_frm.chkHideSummaries And oTask.Summary Then
-      If Len(cptRxMatch(oTask.Name, strRegEx)) > 0 Then oTask.Marked = True
+      If Len(cptRxMatch(oTask.GetField(lngFieldConstant), strRegEx)) > 0 Then oTask.Marked = True
     ElseIf Not oTask.Summary Then
-      If Len(cptRxMatch(oTask.Name, strRegEx)) > 0 Then oTask.Marked = True
+      If Len(cptRxMatch(oTask.GetField(lngFieldConstant), strRegEx)) > 0 Then oTask.Marked = True
     End If
 next_task:
   Next oTask
