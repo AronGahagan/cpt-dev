@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.1.1</cpt_version>
+'<cpt_version>v1.1.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -506,7 +506,7 @@ next_task:
             GoTo next_row
           End If
           'skip completed tasks (which are also italicized)
-          If IsDate(oTask.ActualFinish) Then GoTo next_row
+          'If IsDate(oTask.ActualFinish) Then GoTo next_row
           If blnTask Then
             'todo: do we really need to separate AS/FS on the form?
             'new start date
