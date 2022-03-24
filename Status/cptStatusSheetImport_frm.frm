@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.2</cpt_version>
+'<cpt_version>v1.1.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -170,7 +170,7 @@ Private Sub cmdSelectFiles_Click()
     .AllowMultiSelect = True
     .ButtonName = "Import"
     .InitialView = msoFileDialogViewDetails
-    .InitialFileName = ActiveProject.Path & "\"
+    .InitialFileName = ActiveProject.path & "\"
     .Title = "Select Returned Status Sheet(s):"
     .Filters.Add "Microsoft Excel Workbook (xlsx)", "*.xlsx"
     If .Show = -1 Then

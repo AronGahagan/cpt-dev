@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.1.2</cpt_version>
+'<cpt_version>v1.1.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -185,7 +185,7 @@ End Sub
 Sub cptStatusSheetImport()
   'objects
   Dim oRecordset As ADODB.Recordset
-  Dim oSubproject As SubProject
+  Dim oSubproject As Subproject
   Dim oTask As Task
   Dim oResource As Resource
   Dim oAssignment As Assignment
@@ -325,7 +325,7 @@ Sub cptStatusSheetImport()
   strLOE = cptGetSetting("Metrics", "txtLOE")
     
   'set up import log file
-  strImportLog = ActiveProject.Path & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
+  strImportLog = ActiveProject.path & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
   lngFile = FreeFile
   Open strImportLog For Output As #lngFile
   'log action
@@ -528,7 +528,7 @@ next_task:
             GoTo next_row
           End If
           'skip completed tasks (which are also italicized)
-          If IsDate(oTask.ActualFinish) Then GoTo next_row
+          'If IsDate(oTask.ActualFinish) Then GoTo next_row
           If blnTask Then
             'todo: do we really need to separate AS/FS on the form?
             'new start date
@@ -808,7 +808,7 @@ exit_here:
     Print #lngFile, "IMPORT COMPLETE."
     Close #lngFile
     'open log in notepad
-    Shell "C:\WINDOWS\notepad.exe " & strImportLog, vbNormalFocus
+    shell "C:\WINDOWS\notepad.exe " & strImportLog, vbNormalFocus
   End If
   cptStatusSheetImport_frm.lblStatus.Caption = "Ready..."
   cptSpeed False
