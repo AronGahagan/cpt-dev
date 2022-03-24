@@ -3,7 +3,7 @@
     description-hint:= be detailed
     bonus-points: include screenshot(s)
 
-```visual-basic
+```vba
 'even-more-bonus-points: offending code snippet here
 ```
 
@@ -14,13 +14,11 @@
 - [ ] assign this issue
 - [ ] label the issue for enhancement or bug
 - [ ] label the issue with codemodule (so fixes can be aggregated and hotfixed together)
-- [ ] checkout `develop` and create `topic` branch
+- [ ] checkout appropriate branch and create `topic` branch
 - [ ] design, code and test
 - [ ] update codemodule <cpt_version>x.y.z</cpt_version>
 - [ ] reset BLN\_TRAP\_ERRORS
 - [ ] update CurrentVersions.xml **manually**
-- [ ] commit changes prefix comment with `issueXX`
-- [ ] merge `topic` into `develop` and push
-- [ ] if hotfix: merge `develop` into `master` and push
-- [ ] if feature: wait for release, do **not** merge into master
+- [ ] commit changes prefix comment with `Issue #XXX - `
+- [ ] merge `topic` into appropriate branch(es) and push
 - [ ] delete topic branch
