@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.1.1</cpt_version>
+'<cpt_version>v1.1.2</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -629,7 +629,7 @@ Sub cptExportOutlineCodeToExcel(lngOutlineCode As Long)
       oWorksheet.Rows(lngLastRow).OutlineLevel = oLookupTable.Item(lngLookupItems).Level
     End If
     cptBackbone_frm.lblProgress.Width = (lngLookupItems / oLookupTable.Count) * cptBackbone_frm.lblStatus.Width
-    cptBackbone_frm.lblStatus.Caption = "Exporting Outline Code '" & strOutlineCode & "'...(" & Format((lngLastRow - 1) / lngLookupItems, "0%") & ")"
+    cptBackbone_frm.lblStatus.Caption = "Exporting...(" & Format(lngLookupItems / oLookupTable.Count, "0%") & ")"
   Next lngLookupItems
   
   Application.StatusBar = "Formatting Worksheet..."
@@ -828,8 +828,8 @@ Sub cptExport81334D(lngOutlineCode As Long)
         wsDictionary.Range(wsDictionary.Cells(lngRow, 2), wsDictionary.Cells(lngRow, 3)).Merge
         wsDictionary.Range(wsDictionary.Cells(lngRow, 4), wsDictionary.Cells(lngRow, 11)).Merge
       End If
-      cptBackbone_frm.lblStatus.Caption = "Exporting...(" & Format((lngRow - 6) / oLookupTable.Count, "0%") & ")"
-      cptBackbone_frm.lblProgress.Width = ((lngRow - 6) / oLookupTable.Count) * cptBackbone_frm.lblStatus.Width
+      cptBackbone_frm.lblStatus.Caption = "Exporting...(" & Format(lngItem / oLookupTable.Count, "0%") & ")"
+      cptBackbone_frm.lblProgress.Width = (lngItem / oLookupTable.Count) * cptBackbone_frm.lblStatus.Width
       lngRow = lngRow + 1
     Next
   End If
@@ -1219,13 +1219,15 @@ Sub cptExportOutlineCodeForMPM(lngOutlineCode As Long)
     Else
       strParent = Left(strCode, InStrRev(strCode, ".") - 1)
     End If
+    cptBackbone_frm.lblStatus.Caption = "Exporting...(" & Format(lngItem / oLookupTable.Count, "0%") & ")"
+    cptBackbone_frm.lblProgress.Width = (lngItem / oLookupTable.Count) * cptBackbone_frm.lblStatus.Width
     Print #lngFile, strCode & "," & Chr(34) & strDescription & Chr(34) & String(16, ",") & IIf(blnCA, "C", "") & String(7, ",") & strParent & ",,"
   Next lngItem
   
   Close #lngFile
   
   'open it in notepad
-  Shell "C:\Windows\notepad.exe '" & strDir & strFile & "'", vbNormalFocus
+  shell "C:\Windows\notepad.exe '" & strDir & strFile & "'", vbNormalFocus
   
 exit_here:
   On Error Resume Next
@@ -1343,12 +1345,14 @@ Sub cptExportOutlineCodeForCOBRA(lngOutlineCode)
       MsgBox "Invalid Code Found! See " & strCode & " : " & strDescription, vbCritical + vbOKOnly, "Error"
       GoTo kill_file
     End If
+    cptBackbone_frm.lblStatus.Caption = "Exporting...(" & Format(lngItem / oLookupTable.Count, "0%") & ")"
+    cptBackbone_frm.lblProgress.Width = (lngItem / oLookupTable.Count) * cptBackbone_frm.lblStatus.Width
     Print #lngFile, strCode & "," & Chr(34) & strDescription & Chr(34) & ","
   Next lngItem
 
   Close #lngFile
   
-  Shell "C:\Windows\notepad.exe '" & strFile & "'", vbNormalFocus
+  shell "C:\Windows\notepad.exe '" & strFile & "'", vbNormalFocus
 
 exit_here:
   On Error Resume Next
