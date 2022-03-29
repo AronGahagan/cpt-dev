@@ -15,7 +15,7 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.1.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = False
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cmdDone_Click()
@@ -218,18 +218,21 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub tglErrorTrapping_Click()
-  If Not Me.Visible Then Exit Sub
+Sub tglErrorTrapping_Click()
   If Me.tglErrorTrapping Then
     Me.tglErrorTrapping.Caption = "OFF"
     Me.tglErrorTrapping.BackColor = 192 'red
-    cptSaveSetting "General", "ErrorTrapping", "0"
-    cptUpdateSetting "General", "ErrorTrapping", "0"
+    If Me.Visible Then
+      cptSaveSetting "General", "ErrorTrapping", "0"
+      cptUpdateSetting "General", "ErrorTrapping", "0"
+    End If
   Else
     Me.tglErrorTrapping.Caption = "ON"
     Me.tglErrorTrapping.BackColor = 49152 'green
-    cptSaveSetting "General", "ErrorTrapping", "1"
-    cptUpdateSetting "General", "ErrorTrapping", "1"
+    If Me.Visible Then
+      cptSaveSetting "General", "ErrorTrapping", "1"
+      cptUpdateSetting "General", "ErrorTrapping", "1"
+    End If
   End If
 End Sub
 
@@ -259,10 +262,17 @@ Sub cptUpdateSetting(strFeature As String, strKey As String, strVal As String)
     .Open strFile
     .MoveFirst
     .Find "Setting like '" & strKey & "%'"
-    .Fields(1) = strKey & "=" & strVal
+    If Not .EOF Then
+      .Fields(1) = strKey & "=" & strVal
+    Else
+      .AddNew Array(0, 1), Array(strFeature, strKey & "=" & strVal)
+      Me.lboFeatures.AddItem "General"
+      Me.lboFeatures.Value = "General"
+    End If
     .Save strFile, adPersistADTG
     .Close
   End With
+  
   Me.lboFeatures_AfterUpdate
   
 exit_here:
