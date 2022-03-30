@@ -558,6 +558,7 @@ Sub cptResetAll()
           GoTo exit_here
         End If
       End If
+      If cptTrapErrors Then On Error GoTo err_here Else On Error GoTo 0
       If ActiveProject.Subprojects.Count > 0 Then
         OptionsViewEx DisplaySummaryTasks:=True
         If Not blnFilter Then
