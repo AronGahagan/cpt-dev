@@ -246,12 +246,15 @@ Sub cptUpdateSetting(strFeature As String, strKey As String, strVal As String)
   'objects
   Dim rst As ADODB.Recordset
   'strings
+  Dim strFeatures As String
   Dim strFile As String
   'longs
+  Dim lngItem As Long
   'integers
   'doubles
   'booleans
   'variants
+  Dim vFeatures As Variant
   'dates
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -266,7 +269,16 @@ Sub cptUpdateSetting(strFeature As String, strKey As String, strVal As String)
       .Fields(1) = strKey & "=" & strVal
     Else
       .AddNew Array(0, 1), Array(strFeature, strKey & "=" & strVal)
-      Me.lboFeatures.AddItem "General"
+      .MoveFirst
+      .Sort = "Feature,Setting"
+      'add it alphabetized
+      For lngItem = 0 To Me.lboFeatures.ListCount - 1
+        strFeatures = strFeatures & Me.lboFeatures.List(lngItem) & ","
+      Next lngItem
+      strFeatures = strFeatures & "General"
+      vFeatures = Split(strFeatures, ",")
+      cptQuickSort vFeatures, 0, UBound(vFeatures)
+      Me.lboFeatures.List = vFeatures
       Me.lboFeatures.Value = "General"
     End If
     .Save strFile, adPersistADTG
