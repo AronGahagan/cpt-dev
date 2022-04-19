@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
-'<cpt_version>v0.0.6</cpt_version>
+'<cpt_version>v0.0.7</cpt_version>
 Option Explicit
 Public oInsertedIndex As Object
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -22,7 +22,7 @@ Sub cptShowNetworkBrowser_frm()
 
   If Not cptFilterExists("Marked") Then cptCreateFilter ("Marked")
 
-  'get multiplier 'todo: do this once on form load, not every stinking time
+  'get multiplier
   Set oInsertedIndex = CreateObject("Scripting.Dictionary")
   If ActiveProject.Subprojects.Count > 0 Then
     For Each oTask In ActiveProject.Tasks
@@ -61,7 +61,7 @@ End Sub
 Sub cptShowPreds()
 'objects
 Dim oTaskDependencies As TaskDependencies
-Dim oSubproject As SubProject
+Dim oSubproject As Subproject
 Dim oLink As TaskDependency, oTask As Task
 'strings
 Dim strProject As String
@@ -145,6 +145,7 @@ Dim vPredecessors As Variant
   End If
   
   'reset both lbos once in an array here
+  'todo: add non-standard link types here SS,FF,SF
   For Each vControl In Array("lboPredecessors", "lboSuccessors")
     With cptNetworkBrowser_frm.Controls(vControl)
       .Clear
@@ -175,7 +176,7 @@ Dim vPredecessors As Variant
   lngSuccIndex = 0
   For Each oLink In oTask.TaskDependencies
     'limit to only predecessors
-    If oLink.To.Name = oTask.Name Then 'todo: this won't work if there are duplicate task names
+    If oLink.To.Guid = oTask.Guid Then
       lngPredIndex = lngPredIndex + 1
       'handle external tasks
       If blnSubprojects And oLink.From.ExternalTask Then
@@ -209,7 +210,7 @@ Dim vPredecessors As Variant
         .Column(5, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
         .Column(6, .ListCount - 1) = IIf(oLink.From.Critical, "X", "")
       End With
-    ElseIf oLink.To.Name <> oTask.Name Then 'todo: this won't work if there are duplicate task names
+    ElseIf oLink.To.Guid <> oTask.Guid Then 'it's a successor
       lngSuccIndex = lngSuccIndex + 1
       'handle external tasks
       If blnSubprojects And oLink.To.ExternalTask Then
