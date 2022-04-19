@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.3.5</cpt_version>
+'<cpt_version>v1.4.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -366,6 +366,10 @@ Sub cptTrimTaskNames()
   Dim oTask As Task
   'strings
   'longs
+  Dim lngSubproject As Long
+  Dim lngSubprojects As Long
+  Dim lngTasks As Long
+  Dim lngTask As Long
   Dim lngBefore As Long
   Dim lngAfter As Long
   Dim lngCount As Long
@@ -380,11 +384,26 @@ Sub cptTrimTaskNames()
   cptSpeed True
 
   Application.OpenUndoTransaction "Trim Task Names"
-
+  
+  lngSubprojects = ActiveProject.Subprojects.Count
+  If lngSubprojects > 0 Then
+    lngTasks = ActiveProject.Tasks.Count
+    For lngSubproject = 1 To lngSubprojects
+      lngTasks = lngTasks + ActiveProject.Subprojects(lngSubproject).SourceProject.Tasks.Count
+    Next lngSubproject
+  Else
+    lngTasks = ActiveProject.Tasks.Count
+  End If
+  lngTask = 0
   For Each oTask In ActiveProject.Tasks
+    lngTask = lngTask + 1
     If Not oTask Is Nothing Then
       If oTask.ExternalTask Then GoTo next_task
-      Application.StatusBar = "Trimming Task ID " & oTask.ID
+      If ActiveProject.Subprojects.Count > 0 Then
+        Application.StatusBar = "Trimming Task UID " & oTask.UniqueID & " (" & Format(lngTask / lngTasks, "0%") & ")"
+      Else
+        Application.StatusBar = "Trimming Task ID " & oTask.ID & " (" & Format(lngTask / lngTasks, "0%") & ")"
+      End If
       DoEvents
       lngBefore = Len(oTask.Name)
       'replace multi-spaces with single space
