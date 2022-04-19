@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.4</cpt_version>
+'<cpt_version>v1.0.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -32,6 +32,7 @@ Private Sub cmdImport_Click()
   'integers
   'doubles
   'booleans
+  Dim blnApplyFilter As Boolean
   'variants
   'dates
   Dim dtTimestamp As Date
@@ -54,6 +55,7 @@ Private Sub cmdImport_Click()
   End If
   
   'clear currently marked
+  Application.StatusBar = "Clearing existing marked..."
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.Marked Then oTask.Marked = False
@@ -61,21 +63,32 @@ next_task:
   Next oTask
   
   'import the set
+  Application.StatusBar = "Marking saved set..."
   For lngItem = 1 To Me.lboDetails.ListCount - 1
     If Me.lboDetails.List(lngItem, 1) <> "< task not found >" Then
       ActiveProject.Tasks.UniqueID(CLng(Me.lboDetails.List(lngItem, 0))).Marked = True
     End If
+    Application.StatusBar = "Marking saved set...(" & Format(lngItem / (Me.lboDetails.ListCount - 1), "0%") & ")"
   Next lngItem
-  
+  Application.StatusBar = "Marking saved set...done."
+    
   'apply the filter
-  On Error Resume Next
-  If Not FilterApply("Marked") Then
-    FilterEdit "Marked", True, True, True, , , "Marked", , "equals", "Yes", , "Yes", False
-    FilterApply "Marked"
+  blnApplyFilter = Me.chkApplyFilter
+  If blnApplyFilter Then
+    ActiveWindow.TopPane.Activate
+    SelectAll
+    OutlineShowAllTasks
+    On Error Resume Next
+    If Not FilterApply("Marked") Then
+      FilterEdit "Marked", True, True, True, , , "Marked", , "equals", "Yes", , "Yes", False 'keep related summaries FALSE for compatibility with Network Browser
+      FilterApply "Marked"
+    End If
   End If
+  cptSaveSetting "SaveMarked", "chkApplyFilter", IIf(blnApplyFilter, "1", "0")
   
 exit_here:
   On Error Resume Next
+  Application.StatusBar = ""
   Set oTask = Nothing
 
   Exit Sub

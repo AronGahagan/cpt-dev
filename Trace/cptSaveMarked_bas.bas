@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveMarked_bas"
-'<cpt_version>v1.0.4</cpt_version>
+'<cpt_version>v1.0.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -7,6 +7,7 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
 Sub cptShowSaveMarked_frm()
   'objects
   'strings
+  Dim strApplyFilter As String
   Dim strProgram As String
   'longs
   'integers
@@ -19,6 +20,12 @@ Sub cptShowSaveMarked_frm()
 
   Call cptUpdateMarked
   cptSaveMarked_frm.Caption = "Import Marked (" & cptGetVersion("cptSaveMarked_frm") & ")"
+  strApplyFilter = cptGetSetting("SaveMarked", "chkApplyFilter")
+  If Len(strApplyFilter) > 0 Then
+    cptSaveMarked_frm.chkApplyFilter = CBool(strApplyFilter)
+  Else
+    cptSaveMarked_frm.chkApplyFilter = False
+  End If
   strProgram = cptGetProgramAcronym
   If Len(strProgram) > 0 Then
     cptSaveMarked_frm.cboProjects.AddItem strProgram
