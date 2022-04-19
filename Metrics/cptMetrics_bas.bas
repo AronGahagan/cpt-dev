@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.1.2</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -508,6 +508,7 @@ End Sub
 Function cptGetMetric(strGet As String) As Double
 'todo: no screen changes!
 'objects
+Dim oShell As Object
 Dim oAssignment As Assignment
 Dim tsv As TimeScaleValue
 Dim tsvs As TimeScaleValues
@@ -544,7 +545,8 @@ Dim dtStatus As Date
   blnVerbose = False 'spits out a CSV with UID,RESOURCE,EVT,BCWP (bcwp only) <easter-egg>
   If blnVerbose Then
     lngFile = FreeFile
-    strVerbose = ActiveProject.Path & "\cptGetMetric_" & StrConv(strGet, vbUpperCase) & ".csv"
+    Set oShell = CreateObject("WScript.Shell")
+    strVerbose = oShell.SpecialFolders("Desktop") & "\cptGetMetric_" & StrConv(strGet, vbUpperCase) & ".csv"
     Open strVerbose For Output As #lngFile
     Print #lngFile, "UID,RESOURCE,EVT,BCWP,"
   End If
@@ -649,6 +651,7 @@ next_task:
 
 exit_here:
   On Error Resume Next
+  Set oShell = Nothing
   Set oAssignment = Nothing
   Application.StatusBar = ""
   cptSpeed False
@@ -3009,6 +3012,7 @@ Sub cptFindOutOfSequence()
   Dim oExcel As Excel.Application
   Dim oWorkbook As Workbook
   Dim oWorksheet As Worksheet
+  Dim oInsertedIndex As Object 'Scripting.Dictionary
   'strings
   Dim strMacro As String
   Dim strMsg As String
@@ -3017,14 +3021,24 @@ Sub cptFindOutOfSequence()
   Dim strDir As String
   Dim strFile As String
   'longs
+  Dim lngFactor As Long
+  Dim lngToUID As Long
+  Dim lngFromUID As Long
+  Dim lngPredIndex As Long
+  Dim lngInsertedGUID As Long
+  Dim lngInsertedIndex As Long
+  Dim lngSubproject As Long
+  Dim lngSubprojects As Long
   Dim lngTask As Long
   Dim lngTasks As Long
   Dim lngLastRow As Long
   'integers
   'doubles
   'booleans
+  Dim blnSubprojects As Boolean
   Dim blnMarked As Boolean
   'variants
+  Dim vPredecessors As Variant
   'dates
   Dim dtStatus As Date
   
@@ -3032,22 +3046,40 @@ Sub cptFindOutOfSequence()
 
   cptSpeed True
   
-  lngTasks = ActiveProject.Tasks.Count
-  For Each oTask In ActiveProject.Tasks
-    If Not oTask Is Nothing Then oTask.Marked = False
-  Next
-
+  lngSubprojects = ActiveProject.Subprojects.Count
+  blnSubprojects = lngSubprojects > 0
+  If lngSubprojects > 0 Then
+    'get correct task count
+    lngTasks = ActiveProject.Tasks.Count
+    For lngSubproject = 1 To lngSubprojects
+      lngTasks = lngTasks + ActiveProject.Subprojects(lngSubproject).SourceProject.Tasks.Count
+    Next lngSubproject
+    'create inserted index
+    Set oInsertedIndex = CreateObject("Scripting.Dictionary")
+    For Each oTask In ActiveProject.Tasks
+      If Not oTask.Summary Then
+        lngInsertedUID = ActiveProject.Subprojects(oTask.Project).InsertedProjectSummary.UniqueID
+        lngInsertedIndex = Round(oTask.UniqueID / 4194304, 0)
+        If Not oInsertedIndex.Exists(lngInsertedUID) Then
+          oInsertedIndex.Add lngInsertedUID, lngInsertedIndex
+        End If
+      End If
+      'todo: note that external tasks will not be included in this metric
+      If Not oTask Is Nothing And Not oTask.ExternalTask Then oTask.Marked = False
+    Next oTask
+  Else
+    lngTasks = ActiveProject.Tasks.Count
+    For Each oTask In ActiveProject.Tasks
+      'todo: note that external tasks will not be included in this metric
+      If Not oTask Is Nothing And Not oTask.ExternalTask Then oTask.Marked = False
+    Next oTask
+  End If
+  
+  'oInsertedIndex(index) returns inserted UID
+  
   Set oExcel = CreateObject("Excel.Application")
   On Error Resume Next
-  'todo: create the template
-  'Set oWorkbook = GetTemplate(oExcel, "OutOfSequenceoTasks.xltm")
-'  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-'  If oWorkbook Is Nothing Then
-'    MsgBox "Template 'OutOfSequenceoTasks.xltm' not found!", vbExclamation + vbOKOnly, "Missing Template"
-'    Set oWorkbook = oExcel.Workbooks.Add(oExcel.TemplatesPath & "\OutOfSequenceoTasks.xltm")
-'  End If
   Set oWorkbook = oExcel.Workbooks.Add
-  'Set oWorksheet = oWorkbook.Sheets("OOS")
   Set oWorksheet = oWorkbook.Sheets(1)
   oWorksheet.Name = "OOS"
   oWorksheet.[A2:J2] = Split("UID,ID,TASK,DATE,TYPE,UID,ID,TASK,DATE,COMMENT", ",")
@@ -3060,28 +3092,69 @@ Sub cptFindOutOfSequence()
   oWorksheet.[A1:J2].Font.Bold = True
   oExcel.EnableEvents = False
   
+  'NOTE: in a master-sub, the From and To UIDs of the TaskDependency object do
+          'not actually match the UIDs of the source file; we must rely on either
+          'the PredecessorTasks object or the Comma-separated string in UniqueIdPredecessors.
+          'Neither to oTaskDependcy.From.IDs match; they match the external task inserted into the project.
+          'The Parent of the external link is actual the same parent as the internal link; see "From.Project" for source project name
+          'AG 4/19/2022
+  
   lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
   lngTask = 0
+  
   For Each oTask In ActiveProject.Tasks
     blnMarked = False
     If oTask Is Nothing Then GoTo next_task
     If oTask.Summary Then GoTo next_task
+    'capture list of preds with valid native UIDs
+    vPredecessors = Split(oTask.UniqueIDPredecessors & ",", ",")
+    lngPredIndex = 0 'make my own index TEST
     For Each oTaskDependency In oTask.TaskDependencies
       If Not oTaskDependency.From.Active Or Not oTaskDependency.To.Active Then GoTo next_dependency
-      If oTaskDependency.To = oTask Then
-        Debug.Print "FROM " & oTaskDependency.From.UniqueID & " TO " & oTaskDependency.To.UniqueID
+      If oTaskDependency.To.Guid = oTask.Guid Then
         lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
+        lngPredIndex = lngPredIndex + 1
+        If lngSubprojects > 0 And oTaskDependency.From.ExternalTask Then
+          'fix the pred UID if master-sub
+          lngFromUID = CLng(Mid(vPredecessors(lngPredIndex - 1), InStrRev(vPredecessors(lngPredIndex - 1), "\") + 1))
+          strProject = oTaskDependency.From.Project
+          If InStr(oTaskDependency.From.Project, "<>\") > 0 Then
+            strProject = Replace(strProject, "<>\", "")
+          ElseIf InStr(oTaskDependency.From.Project, "\") > 0 Then
+            strProject = Replace(Dir(strProject), ".mpp", "")
+          Else
+            'todo: what if it's on a network drive
+          End If
+          lngFactor = oInsertedIndex(ActiveProject.Subprojects(strProject).InsertedProjectSummary.UniqueID)
+          lngFromUID = (lngFactor * 4194304) + lngFromUID
+        Else
+          If lngSubprojects > 0 Then
+            lngFactor = Round(oTask / 4194304, 0)
+            lngFromUID = (lngFactor * 4194304) + oTaskDependency.From.UniqueID
+          Else
+            lngFromUID = oTaskDependency.From.UniqueID
+          End If
+        End If
+        'fix task UID if master-sub
+        If lngSubprojects > 0 Then
+          lngToUID = oTaskDependency.To.UniqueID
+          lngFactor = oInsertedIndex(ActiveProject.Subprojects(oTaskDependency.To.Project).InsertedProjectSummary.UniqueID)
+          lngToUID = (lngFactor * 4194304) + lngToUID
+        Else
+          lngToUID = oTask.UniqueID
+        End If
+        
         Select Case oTaskDependency.Type
           Case pjFinishToFinish
             If oTaskDependency.From.Finish > oTaskDependency.To.Finish Then
               blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
-              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Finish
               oWorksheet.Cells(lngLastRow, 5) = "FF"
-              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
-              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 6) = lngToUID
+              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
               oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
               oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Finish
               oWorksheet.Cells(lngLastRow, 10) = "Finish <> Finish"
@@ -3089,13 +3162,13 @@ Sub cptFindOutOfSequence()
           Case pjFinishToStart
             If oTaskDependency.From.Finish > oTaskDependency.To.Start Then
               blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
-              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Finish
               oWorksheet.Cells(lngLastRow, 5) = "FS"
-              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
-              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 6) = lngToUID
+              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
               oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
               oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
               oWorksheet.Cells(lngLastRow, 10) = "Finish > Start"
@@ -3103,13 +3176,13 @@ Sub cptFindOutOfSequence()
             lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
             If IsDate(oTaskDependency.To.ActualStart) And Not IsDate(oTaskDependency.From.ActualFinish) Then
               blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
-              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Finish
               oWorksheet.Cells(lngLastRow, 5) = "FS"
-              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
-              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 6) = lngToUID
+              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
               oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
               oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
               oWorksheet.Cells(lngLastRow, 10) = "Actual Start w/o Actual Finish "
@@ -3117,13 +3190,13 @@ Sub cptFindOutOfSequence()
           Case pjStartToStart
             If oTaskDependency.From.Start > oTaskDependency.To.Start Then
               blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
-              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
               oWorksheet.Cells(lngLastRow, 5) = "SS"
-              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
-              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 6) = lngToUID
+              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
               oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
               oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
               oWorksheet.Cells(lngLastRow, 10) = "Start <> Start"
@@ -3131,13 +3204,13 @@ Sub cptFindOutOfSequence()
             lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
             If IsDate(oTaskDependency.To.ActualStart) And Not IsDate(oTaskDependency.From.ActualStart) Then
               blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
-              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
               oWorksheet.Cells(lngLastRow, 5) = "SS"
-              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
-              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 6) = lngToUID
+              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
               oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
               oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
               oWorksheet.Cells(lngLastRow, 10) = "Actual Start w/o Actual Start"
@@ -3146,26 +3219,26 @@ Sub cptFindOutOfSequence()
             'this should never happen
             If oTaskDependency.To.Finish <= oTaskDependency.From.ActualFinish Then
               blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
-              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
               oWorksheet.Cells(lngLastRow, 5) = "SF"
-              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
-              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 6) = lngToUID
+              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
               oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
               oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Finish
               oWorksheet.Cells(lngLastRow, 10) = "Finish <= Actual Finish"
             End If
             If IsDate(oTaskDependency.To.ActualFinish) And Not IsDate(oTaskDependency.From.ActualStart) Then
               blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
-              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
               oWorksheet.Cells(lngLastRow, 5) = "SF"
-              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
-              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 6) = lngToUID
+              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
               oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
               oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Finish
               oWorksheet.Cells(lngLastRow, 10) = "Actual Finish w/o Actual Start"
@@ -3174,8 +3247,13 @@ Sub cptFindOutOfSequence()
         
         'mark both if true
         If blnMarked Then
-          oTaskDependency.From.Marked = True
-          oTaskDependency.To.Marked = True
+          If blnSubprojects Then
+            ActiveProject.Tasks.UniqueID(lngFromUID).Marked = True
+            ActiveProject.Tasks.UniqueID(lngToUID).Marked = True
+          Else
+            oTaskDependency.From.Marked = True
+            oTaskDependency.To.Marked = True
+          End If
         End If
         
       End If
@@ -3192,9 +3270,11 @@ next_task:
   
   'only open workbook if OOS oTasks found
   If lngLastRow = 3 Then
-    MsgBox "No Out of Sequence oTasks Found!", vbInformation + vbOKOnly, "Well Done"
+    MsgBox "No Out of Sequence Tasks Found!", vbInformation + vbOKOnly, "Well Done"
     oWorkbook.Close False
     GoTo exit_here
+  Else
+    MsgBox Format(lngLastRow - 3, "#,##0") & " task" & IIf(lngLastRow - 3 = 1, "", "s") & " statused out of sequence.", vbInformation + vbOKOnly, "OOS Found"
   End If
     
   With oExcel.ActiveWindow
@@ -3224,11 +3304,10 @@ next_task:
   strMacro = strMacro & "  strFrom = Me.Cells(Target.Row, 1).Value" & vbCrLf
   strMacro = strMacro & "  strTo = Me.Cells(Target.Row, 6).Value" & vbCrLf
   strMacro = strMacro & "  MSPROJ.SetAutoFilter FieldName:=""Unique ID"", FilterType:=2, Criteria1:=strFrom & Chr$(9) & strTo '1=pjAutoFilterIn" & vbCrLf
-  strMacro = strMacro & "  MSPROJ.EditGoTo MSPROJ.ActiveProject.Tasks.UniqueID(CDbl(strTo)).ID, MSPROJ.ActiveProject.Tasks.UniqueID(strTo).Start" & vbCrLf
-  strMacro = strMacro & "" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.Find ""Unique ID"", ""equals"", CLng(strFrom)" & vbCrLf & vbCrLf
   strMacro = strMacro & "exit_here:" & vbCrLf
   strMacro = strMacro & "  MSPROJ.ScreenUpdating = True" & vbCrLf
-  strMacro = strMacro & "Set MSPROJ = Nothing" & vbCrLf
+  strMacro = strMacro & "  Set MSPROJ = Nothing" & vbCrLf
   strMacro = strMacro & "End Sub"
   
   oWorkbook.VBProject.VBComponents("Sheet1").CodeModule.AddFromString strMacro
@@ -3249,6 +3328,7 @@ exit_here:
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
   Set oExcel = Nothing
+  Set oInsertedIndex = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptMetrics_bas", "cptFindOutOfSequence", Err, Erl)
