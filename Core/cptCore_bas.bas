@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.9.9</cpt_version>
+'<cpt_version>v1.9.10</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -1359,7 +1359,7 @@ Sub cptGroupReapply()
     MsgBox "Cannot reapply a Custom AutoFilter Group", vbInformation + vbOKCancel, "Reapply Group"
   End If
   ScreenUpdating = True
-  If lngUID > 0 Then EditGoTo ActiveProject.Tasks.UniqueID(lngUID).ID
+  If lngUID > 0 Then Find "Unique ID", "equals", lngUID
 End Sub
 
 Function cptSaveSetting(strFeature As String, strSetting As String, strValue As String) As Boolean
