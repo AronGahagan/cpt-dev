@@ -27,6 +27,7 @@ Sub cptShowStatusSheet_frm()
 'populate UID,[user selections],Task Name,Duration,Forecast Start,Forecast Finish,Total Slack,[EVT],EV%,New EV%,BLW,Remaining Work,Revised ETC,BLS,BLF,Reason/Impact/Action
 'add pick list for EV% or default to Physical % Complete
 'objects
+Dim oShell As Object
 Dim oTasks As Tasks
 Dim rstFields As ADODB.Recordset 'Object
 Dim rstEVT As ADODB.Recordset 'Object
@@ -129,7 +130,12 @@ Dim vFieldType As Variant
     .chkValidation = True
     .chkLocked = True
     .chkAllItems = False
-    .txtDir = ActiveProject.Path & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
+    If InStr(ActiveProject.Path, "<>\") = 0 Then
+      .txtDir = ActiveProject.Path & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
+    Else
+      Set oShell = CreateObject("WScript.Shell")
+      .txtDir = oShell.SpecialFolders("Desktop") & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
+    End If
     .txtFileName = "StatusRequest_[yyyy-mm-dd]"
   End With
 
@@ -386,7 +392,10 @@ skip_fields:
           cptStatusSheet_frm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
           cptStatusSheet_frm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
           cptStatusSheet_frm.lboExport.List(lngItem, 2) = .Fields(2) 'Local Field Name
-          If InStr("Custom", FieldConstantToFieldName(FieldNameToFieldConstant(.Fields(1)))) = 0 Then GoTo next_item
+          'todo: what was this for? no FieldConstantToFieldName(constant) returns "Custom"?
+          'todo: was this for filtering out enterprise fields since CFGN = FCFN?
+          'If cptRegEx(FieldConstantToFieldName(.Fields(0)), "[0-9]{1,}$") = "" Then GoTo next_item
+          'If InStr("Custom", FieldConstantToFieldName(FieldNameToFieldConstant(.Fields(2)))) = 0 Then GoTo next_item
           If CustomFieldGetName(.Fields(0)) <> CStr(.Fields(1)) Then
             strFieldNamesChanged = strFieldNamesChanged & .Fields(2) & " '" & .Fields(1) & "' is now "
             If Len(CustomFieldGetName(.Fields(0))) > 0 Then
@@ -465,7 +474,7 @@ next_item:
   End If
   DoEvents
   
-  OptionsViewEx displaysummaryTasks:=True, displaynameindent:=True
+  OptionsViewEx DisplaySummaryTasks:=True, displaynameindent:=True
   If strStartingGroup = "No Group" Then
     Sort "ID", , , , , , False, True 'OutlineShowAllTasks won't work without this
   Else
@@ -522,6 +531,7 @@ next_item:
   
 exit_here:
   On Error Resume Next
+  Set oShell = Nothing
   Application.StatusBar = ""
   cptSpeed False
   Set oTasks = Nothing
@@ -1516,7 +1526,9 @@ Dim lngItem As Long
   lngItem = 0
   If cptStatusSheet_frm.lboExport.ListCount > 0 Then
     For lngItem = 0 To cptStatusSheet_frm.lboExport.ListCount - 1
-      TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(cptStatusSheet_frm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+      If Not IsNull(cptStatusSheet_frm.lboExport.List(lngItem, 0)) Then
+        TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(cptStatusSheet_frm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+      End If
     Next lngItem
   End If
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Name", Title:="Task Name / Scope", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
@@ -2392,7 +2404,10 @@ Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem 
   With cptStatusSheet_frm
     strDir = .lblDirSample.Caption
     'create the status date directory
-    If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
+    If Dir(strDir, vbDirectory) = vbNullString Then
+      MkDir strDir
+      oWorkbook.Application.Wait Now + TimeValue("00:00:03")
+    End If
     strFileName = .txtFileName.Value & ".xlsx"
     strFileName = Replace(strFileName, "[yyyy-mm-dd]", Format(dtStatus, "yyyy-mm-dd"))
     If Len(strItem) > 0 Then
@@ -2413,6 +2428,7 @@ Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem 
       strMsg = strMsg & "The file you are now creating will be named '" & strFileName & "'"
       MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
       oWorkbook.SaveAs strDir & strFileName, 51
+      oWorkbook.Application.Wait Now + TimeValue("00:00:02")
     Else
       oWorkbook.SaveAs strDir & strFileName, 51
       oWorkbook.Application.Wait Now + TimeValue("00:00:02")

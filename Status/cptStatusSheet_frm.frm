@@ -463,6 +463,7 @@ End Sub
 
 Private Sub cmdDir_Click()
   'objects
+  Dim oShell As Object
   Dim oFileDialog As FileDialog
   Dim oExcel As Excel.Application
   'strings
@@ -479,7 +480,12 @@ Private Sub cmdDir_Click()
   Set oFileDialog = oExcel.FileDialog(msoFileDialogFolderPicker)
   With oFileDialog
     .AllowMultiSelect = False
-    .InitialFileName = ActiveProject.Path
+    If InStr(ActiveProject.Path, "<>\") = 0 Then
+      .InitialFileName = ActiveProject.Path
+    Else
+      Set oShell = CreateObject("WScript.Shell")
+      .InitialFileName = oShell.SpecialFolders("Desktop")
+    End If
     If .Show Then
       Me.txtDir = .SelectedItems(1) & "\"
     End If
@@ -487,6 +493,7 @@ Private Sub cmdDir_Click()
   
 exit_here:
   On Error Resume Next
+  Set oShell = Nothing
   Set oFileDialog = Nothing
   Set oExcel = Nothing
 
