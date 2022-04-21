@@ -228,7 +228,7 @@ Dim dtConstraintDate As Date
       FilterClear
       GroupClear
       Application.Sort "ID", , , , , , , True
-      OptionsViewEx displaysummaryTasks:=True, displaynameindent:=True, displayoutlinesymbols:=True
+      OptionsViewEx DisplaySummaryTasks:=True, displaynameindent:=True, displayoutlinesymbols:=True
       OutlineShowAllTasks
       EditGoTo oTask.ID
     Else
@@ -554,7 +554,7 @@ Dim dtStatus As Date
   ActiveWindow.TopPane.Activate
   FilterClear
   GroupClear
-  OptionsViewEx displaysummaryTasks:=True, displaynameindent:=True
+  OptionsViewEx DisplaySummaryTasks:=True, displaynameindent:=True
   On Error Resume Next
   If Not OutlineShowAllTasks Then
     Sort "ID", , , , , , False, True
@@ -1296,7 +1296,7 @@ next_task:
   
   'save the file
   'todo: user-defined locations for metrics output
-'  strDir = ActiveProject.Path & "\Metrics\"
+'  strDir = oShell.SpecialFolders("Desktop") & "\Metrics\"
 '  strDir = strDir & Format(dtStatus, "yyyy-mm-dd") & "\"
 '  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
 '  strFile = strDir & Replace(strProject, " ", "_") & "_IMS_EarlyLateStartsFinishes_" & Format(ActiveProject.StatusDate, "yyyy-mm-dd") & ".xlsx"
@@ -1311,13 +1311,8 @@ next_task:
   cptCaptureMetric strProject, dtStatus, "BEI", Round(oWorksheet.Range("BEI[[#Totals],[BEI (Finishes)]]").Value, 2)
   Application.StatusBar = "Complete."
   DoEvents
-  
-'  If MsgBox("Complete. Open for review?", vbInformation + vbYesNo, "Late Starts and Finishes") = vbYes Then
-'    oExcel.Workbooks.Open strFile
-    oExcel.Visible = True
-'    Application.ActivateMicrosoftApp pjMicrosoftExcel
-'  End If
-
+  oExcel.Visible = True
+    
 exit_here:
   On Error Resume Next
   Application.StatusBar = ""
@@ -3014,6 +3009,7 @@ Sub cptFindOutOfSequence()
   Dim oWorksheet As Worksheet
   Dim oInsertedIndex As Object 'Scripting.Dictionary
   'strings
+  Dim strProject As String
   Dim strMacro As String
   Dim strMsg As String
   Dim strProjectNumber As String
@@ -3021,6 +3017,7 @@ Sub cptFindOutOfSequence()
   Dim strDir As String
   Dim strFile As String
   'longs
+  Dim lngInsertedUID As Long
   Dim lngFactor As Long
   Dim lngToUID As Long
   Dim lngFromUID As Long
@@ -3313,7 +3310,7 @@ next_task:
   oWorkbook.VBProject.VBComponents("Sheet1").CodeModule.AddFromString strMacro
   
   oExcel.Visible = True
-  If Application.OptionsViewEx(displaysummaryTasks:=True) Then OutlineShowAllTasks
+  If Application.OptionsViewEx(DisplaySummaryTasks:=True) Then OutlineShowAllTasks
   ActiveWindow.TopPane.Activate
   FilterClear
   SetAutoFilter "Marked", pjAutoFilterFlagYes
