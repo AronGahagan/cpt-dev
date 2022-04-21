@@ -58,6 +58,7 @@ Sub cmdDoIt_Click()
   'outline options
   OptionsViewEx DisplaySummaryTasks:=True
   On Error Resume Next
+  blnApplyOutlineLevel = True
   If Not OutlineShowAllTasks Then
     If Not Me.chkSort Then
       If MsgBox("Outline Structure must be retained in order to expand all tasks. OK to re-sort?", vbExclamation + vbYesNo, "Sort Conflict") = vbYes Then
