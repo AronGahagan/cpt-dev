@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.2</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -25,6 +25,7 @@ End Sub
 Sub cmdDoIt_Click()
   'objects
   'strings
+  Dim strFilter As String
   Dim strFile As String
   'longs
   Dim lngSettings As Long
@@ -51,11 +52,11 @@ Sub cmdDoIt_Click()
     lngSettings = lngSettings + 2
   End If
   If Me.chkSummaries Then
-    OptionsViewEx displaysummaryTasks:=True
+    OptionsViewEx DisplaySummaryTasks:=True
     lngSettings = lngSettings + 4
   End If
   'outline options
-  OptionsViewEx displaysummaryTasks:=True
+  OptionsViewEx DisplaySummaryTasks:=True
   On Error Resume Next
   If Not OutlineShowAllTasks Then
     If Not Me.chkSort Then
@@ -76,8 +77,19 @@ Sub cmdDoIt_Click()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   If Me.optShowAllTasks Then
+    If ActiveProject.Subprojects.Count > 0 Then
+      OptionsViewEx DisplaySummaryTasks:=True
+      If Not Me.chkFilter Then
+        strFilter = ActiveProject.CurrentFilter
+      End If
+      FilterClear
+      SelectAll
+      OutlineShowAllTasks
+      If Not Me.chkSummaries Then OptionsViewEx DisplaySummaryTasks:=False
+      If Len(strFilter) > 0 Then FilterApply strFilter
+    End If
     If Not Me.chkSummaries Then
-      OptionsViewEx displaysummaryTasks:=False
+      OptionsViewEx DisplaySummaryTasks:=False
     End If
     lngSettings = lngSettings + 8
   ElseIf Me.optOutlineLevel Then
