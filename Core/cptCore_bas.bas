@@ -475,6 +475,7 @@ End Function
 Sub cptResetAll()
   Dim rstSettings As Object 'ADODB.Recordset
   'strings
+  Dim strFilter As String
   Dim strOutlineLevel As String
   Dim strSettings As String
   Dim strFile As String
@@ -485,6 +486,7 @@ Sub cptResetAll()
   'integers
   'doubles
   'booleans
+  Dim blnFilter As Boolean
   'variants
   'dates
 
@@ -532,15 +534,18 @@ Sub cptResetAll()
       lngSettings = lngSettings - 64
     End If
     If lngSettings >= 32 Then 'clear filter
+      blnFilter = True
       FilterClear
       lngSettings = lngSettings - 32
+    Else
+      blnFilter = False
     End If
     If lngSettings >= 16 Then 'sort by ID
       Sort "ID", , , , , , False, True
       lngSettings = lngSettings - 16
     End If
     If lngSettings >= 8 Then 'expand all tasks
-      OptionsViewEx displaysummaryTasks:=True
+      OptionsViewEx DisplaySummaryTasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -552,9 +557,19 @@ Sub cptResetAll()
         End If
       End If
       If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If ActiveProject.Subprojects.Count > 0 Then
+        OptionsViewEx DisplaySummaryTasks:=True
+        If Not blnFilter Then
+          strFilter = ActiveProject.CurrentFilter
+        End If
+        FilterClear
+        SelectAll
+        OutlineShowAllTasks
+        If Len(strFilter) > 0 Then FilterApply strFilter
+      End If
       lngSettings = lngSettings - 8
     Else 'expand to specific level
-      OptionsViewEx displaysummaryTasks:=True
+      OptionsViewEx DisplaySummaryTasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -572,10 +587,10 @@ Sub cptResetAll()
       Next lngLevel
     End If
     If lngSettings >= 4 Then 'show summaries
-      OptionsViewEx displaysummaryTasks:=True
+      OptionsViewEx DisplaySummaryTasks:=True
       lngSettings = lngSettings - 4
     Else
-      OptionsViewEx displaysummaryTasks:=False
+      OptionsViewEx DisplaySummaryTasks:=False
     End If
     If lngSettings >= 2 Then 'clear group
       GroupClear
@@ -1171,7 +1186,7 @@ Dim lngLevel As Long
   Application.OpenUndoTransaction "WrapItUp"
   'FilterClear 'do not reset, keep autofilters
   'GroupClear 'do not reset, applies to groups to
-  OptionsViewEx displaysummaryTasks:=True
+  OptionsViewEx DisplaySummaryTasks:=True
   SelectAll
   On Error Resume Next
   If Not OutlineShowAllTasks Then
@@ -1219,8 +1234,12 @@ Sub cptWrapItUpAll()
     ActiveProject.Application.ActiveWindow.TopPane.Activate
   End If
   '===
-  OptionsViewEx displaysummaryTasks:=True
+  OptionsViewEx DisplaySummaryTasks:=True
   On Error Resume Next
+  If ActiveProject.Subprojects.Count > 0 Then
+    FilterClear
+    SelectAll
+  End If
   If Not OutlineShowAllTasks Then
     If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
       Sort "ID", , , , , , False, True
