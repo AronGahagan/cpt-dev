@@ -237,7 +237,7 @@ Dim vPredecessors As Variant
       With cptNetworkBrowser_frm.lboSuccessors
         .AddItem
         .Column(0, .ListCount - 1) = lngLinkUID
-        .Column(1, .ListCount - 1) = oLink.To.ID
+        .Column(1, .ListCount - 1) = IIf(blnSubprojects, "-", oLink.To.ID)
         .Column(2, .ListCount - 1) = Round(oLink.Lag / (ActiveProject.HoursPerDay * 60), 2) & "d"
         .Column(3, .ListCount - 1) = Format(oLink.To.Start, "mm/dd/yy")
         .Column(4, .ListCount - 1) = Round(oLink.To.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
@@ -369,7 +369,7 @@ Sub cptHistoryDoubleClick()
       End If
       If MsgBox("Task is hidden - remove filters and show it?", vbQuestion + vbYesNo, "Confirm Apocalypse") = vbYes Then
         FilterClear
-        OptionsViewEx displaysummaryTasks:=True
+        OptionsViewEx DisplaySummaryTasks:=True
         On Error Resume Next
         If Not OutlineShowAllTasks Then
           If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then

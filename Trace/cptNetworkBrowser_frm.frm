@@ -278,7 +278,7 @@ Dim lngTaskID As Long
       If ActiveWindow.TopPane.View.Name = "Network Diagram" Then GoTo exit_here
       If MsgBox("Task is currently hidden - remove filters and show it?", vbQuestion + vbYesNo, "Confirm Apocalypse") = vbYes Then
         FilterClear
-        OptionsViewEx displaysummaryTasks:=True
+        OptionsViewEx DisplaySummaryTasks:=True
         On Error Resume Next
         If Not OutlineShowAllTasks Then
           If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -338,7 +338,7 @@ Dim lngTaskID As Long, Task As Task
     End If
     If MsgBox("Task may be hidden - remove filters and show it?", vbQuestion + vbYesNo, "Please Confirm") = vbYes Then
       FilterClear
-      OptionsViewEx displaysummaryTasks:=True
+      OptionsViewEx DisplaySummaryTasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
