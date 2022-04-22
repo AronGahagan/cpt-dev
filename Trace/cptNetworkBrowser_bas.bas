@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
-'<cpt_version>v0.0.7</cpt_version>
+'<cpt_version>v0.1.0</cpt_version>
 Option Explicit
 Public oInsertedIndex As Object
 Private Const BLN_TRAP_ERRORS As Boolean = True
@@ -89,6 +89,8 @@ Dim vPredecessors As Variant
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   lngTasks = ActiveSelection.Tasks.Count
+  'determine if there are subprojects loaded (this affects displayed UIDs)
+  blnSubprojects = ActiveProject.Subprojects.Count > 0
   
   With cptNetworkBrowser_frm
     Select Case lngTasks
@@ -120,17 +122,19 @@ Dim vPredecessors As Variant
       .lboSuccessors.MultiSelect = fmMultiSelectSingle
       .lboSuccessors.MultiSelect = fmMultiSelectSingle
     End If
-    If ActiveProject.Subprojects.Count > 0 Then
-      .lboCurrent.ColumnWidths = "50 pt"
-    Else
-      .lboCurrent.ColumnWidths = "24.95 pt"
-    End If
     With .lboCurrent
       .Clear
-      .ColumnCount = 2
+      .ColumnCount = 4
       .AddItem
+      If blnSubprojects Then
+        .ColumnWidths = "50 pt;35 pt;24.95 pt"
+      Else
+        .ColumnWidths = "24.95 pt;0 pt;24.95 pt"
+      End If
       .Column(0, .ListCount - 1) = oTask.UniqueID
-      .Column(1, .ListCount - 1) = IIf(oTask.Marked, "[m] ", "") & oTask.Name
+      .Column(1, .ListCount - 1) = oTask.UniqueID Mod 4194304
+      .Column(2, .ListCount - 1) = oTask.ID
+      .Column(3, .ListCount - 1) = IIf(oTask.Marked, "[m] ", "") & oTask.Name
     End With
   End With
     
@@ -143,31 +147,31 @@ Dim vPredecessors As Variant
     cptNetworkBrowser_frm.lboSuccessors.Clear
     GoTo exit_here
   End If
-  
+    
   'reset both lbos once in an array here
   'todo: add non-standard link types here SS,FF,SF
   For Each vControl In Array("lboPredecessors", "lboSuccessors")
     With cptNetworkBrowser_frm.Controls(vControl)
       .Clear
-      .ColumnCount = 6
+      .ColumnCount = 9
       .AddItem
-      If ActiveProject.Subprojects.Count > 0 Then
-        .ColumnWidths = "50 pt;24.95 pt;24.95 pt;45 pt;35 pt;225 pt;24.95 pt"
+      If blnSubprojects Then
+        .ColumnWidths = "50 pt;35 pt;24.95 pt;24.95 pt;24.95 pt;45 pt;35 pt;225 pt;35 pt"
+        .Column(0, .ListCount - 1) = "UID[M]"
+        .Column(1, .ListCount - 1) = "UID[S]"
       Else
-        .ColumnWidths = "24.95 pt;24.95 pt;24.95 pt;45 pt;35 pt;225 pt;24.95 pt"
+        .ColumnWidths = "24.95 pt;0 pt;24.95 pt;24.95 pt;24.95 pt;45 pt;35 pt;225 pt;35 pt"
+        .Column(0, .ListCount - 1) = "UID"
       End If
-      .Column(0, .ListCount - 1) = "UID"
-      .Column(1, .ListCount - 1) = "ID"
-      .Column(2, .ListCount - 1) = "Lag"
-      .Column(3, .ListCount - 1) = IIf(vControl = "lboPredecessors", "Finish", "Start")
-      .Column(4, .ListCount - 1) = "Slack"
-      .Column(5, .ListCount - 1) = "Task"
-      .Column(6, .ListCount - 1) = "Critical"
+      .Column(2, .ListCount - 1) = "ID"
+      .Column(3, .ListCount - 1) = "Type"
+      .Column(4, .ListCount - 1) = "Lag"
+      .Column(5, .ListCount - 1) = IIf(vControl = "lboPredecessors", "Finish", "Start")
+      .Column(6, .ListCount - 1) = "Slack"
+      .Column(7, .ListCount - 1) = "Task"
+      .Column(8, .ListCount - 1) = "Critical"
     End With
   Next
-  
-  'determine if there are subprojects loaded (this affects displayed UIDs)
-  blnSubprojects = ActiveProject.Subprojects.Count > 0
   
   'capture list of preds with valid native UIDs
   vPredecessors = Split(oTask.UniqueIDPredecessors, ",")
@@ -176,7 +180,7 @@ Dim vPredecessors As Variant
   lngSuccIndex = 0
   For Each oLink In oTask.TaskDependencies
     'limit to only predecessors
-    If oLink.To.Guid = oTask.Guid Then
+    If oLink.To.Guid = oTask.Guid Then 'it's a predecessor to selected task
       lngPredIndex = lngPredIndex + 1
       'handle external tasks
       If blnSubprojects And oLink.From.ExternalTask Then
@@ -203,12 +207,14 @@ Dim vPredecessors As Variant
       With cptNetworkBrowser_frm.lboPredecessors
         .AddItem
         .Column(0, .ListCount - 1) = lngLinkUID
-        .Column(1, .ListCount - 1) = oLink.From.ID
-        .Column(2, .ListCount - 1) = Round(oLink.Lag / (ActiveProject.HoursPerDay * 60), 2) & "d"
-        .Column(3, .ListCount - 1) = Format(oLink.From.Finish, "mm/dd/yy")
-        .Column(4, .ListCount - 1) = Round(oLink.From.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
-        .Column(5, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
-        .Column(6, .ListCount - 1) = IIf(oLink.From.Critical, "X", "")
+        .Column(1, .ListCount - 1) = lngLinkUID Mod 4194304
+        .Column(2, .ListCount - 1) = IIf(blnSubprojects, ActiveProject.Tasks.UniqueID(lngLinkUID).ID, oLink.From.ID)
+        .Column(3, .ListCount - 1) = Choose(oLink.Type + 1, "FF", "FS", "SF", "SS") & IIf(oLink.Type <> pjFinishToStart, "*", "")
+        .Column(4, .ListCount - 1) = Round(oLink.Lag / (ActiveProject.HoursPerDay * 60), 2) & "d"
+        .Column(5, .ListCount - 1) = Format(oLink.From.Finish, "mm/dd/yy")
+        .Column(6, .ListCount - 1) = Round(oLink.From.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
+        .Column(7, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
+        .Column(8, .ListCount - 1) = IIf(oLink.From.Critical, "X", "")
       End With
     ElseIf oLink.To.Guid <> oTask.Guid Then 'it's a successor
       lngSuccIndex = lngSuccIndex + 1
@@ -237,12 +243,14 @@ Dim vPredecessors As Variant
       With cptNetworkBrowser_frm.lboSuccessors
         .AddItem
         .Column(0, .ListCount - 1) = lngLinkUID
-        .Column(1, .ListCount - 1) = IIf(blnSubprojects, "-", oLink.To.ID)
-        .Column(2, .ListCount - 1) = Round(oLink.Lag / (ActiveProject.HoursPerDay * 60), 2) & "d"
-        .Column(3, .ListCount - 1) = Format(oLink.To.Start, "mm/dd/yy")
-        .Column(4, .ListCount - 1) = Round(oLink.To.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
-        .Column(5, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.To.Name) > 65, Left(oLink.To.Name, 65) & "... ", oLink.To.Name)
-        .Column(6, .ListCount - 1) = IIf(oLink.To.Critical, "X", "")
+        .Column(1, .ListCount - 1) = lngLinkUID Mod 4194304
+        .Column(2, .ListCount - 1) = IIf(blnSubprojects, ActiveProject.Tasks.UniqueID(lngLinkUID).ID, oLink.To.ID)
+        .Column(3, .ListCount - 1) = Choose(oLink.Type + 1, "FF", "FS", "SF", "SS") & IIf(oLink.Type <> pjFinishToStart, "*", "")
+        .Column(4, .ListCount - 1) = Round(oLink.Lag / (ActiveProject.HoursPerDay * 60), 2) & "d"
+        .Column(5, .ListCount - 1) = Format(oLink.To.Start, "mm/dd/yy")
+        .Column(6, .ListCount - 1) = Round(oLink.To.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
+        .Column(7, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.To.Name) > 65, Left(oLink.To.Name, 65) & "... ", oLink.To.Name)
+        .Column(8, .ListCount - 1) = IIf(oLink.To.Critical, "X", "")
       End With
     End If
   Next oLink
