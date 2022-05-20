@@ -464,7 +464,7 @@ End Sub
 Private Sub cmdDir_Click()
   'objects
   Dim oShell As Object
-  Dim oFileDialog As FileDialog
+  Dim oFileDialog As Object 'FileDialog
   Dim oExcel As Excel.Application
   'strings
   'longs
@@ -480,9 +480,9 @@ Private Sub cmdDir_Click()
   Set oFileDialog = oExcel.FileDialog(msoFileDialogFolderPicker)
   With oFileDialog
     .AllowMultiSelect = False
-    If InStr(ActiveProject.Path, "<>\") = 0 Then
+    If InStr(ActiveProject.Path, "<>\") = 0 Then 'not a server project
       .InitialFileName = ActiveProject.Path
-    Else
+    Else 'server project: default to Desktop
       Set oShell = CreateObject("WScript.Shell")
       .InitialFileName = oShell.SpecialFolders("Desktop")
     End If
@@ -496,7 +496,7 @@ exit_here:
   Set oShell = Nothing
   Set oFileDialog = Nothing
   Set oExcel = Nothing
-
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptStatusSheet_frm", "cmdDir_Click", Err, Erl)

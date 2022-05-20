@@ -136,13 +136,12 @@ Sub cptImportCWBSFromServer(lngOutlineCode As Long)
   Dim oWorkbook As Object
   Dim oLookupTable As LookupTable
   Dim oOutlineCode As OutlineCode
-  Dim oFileDialog As FileDialog
+  Dim oFileDialog As Object 'FileDialog
   Dim oExcel As Object
   'strings
   Dim strDescription As String
   Dim strCode As String
   Dim strOutlineCode As String
-  Dim stroOutlineCode As String
   'longs
   Dim lngItems As Long
   Dim lngOutlineLevel As Long
@@ -155,7 +154,7 @@ Sub cptImportCWBSFromServer(lngOutlineCode As Long)
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If MsgBox("Epected fields/column headers, in range [A1:C1], are LEVEL,VALUE,DESCRIPTION and there should be no blank rows." & vbCrLf & vbCrLf & "Proceed?", vbQuestion + vbYesNo, "Confirm CWBS Import") = vbYes Then
+  If MsgBox("Expected fields/column headers, in range [A1:C1], are LEVEL,VALUE,DESCRIPTION and there should be no blank rows." & vbCrLf & vbCrLf & "Proceed?", vbQuestion + vbYesNo, "Confirm CWBS Import") = vbYes Then
     strOutlineCode = CustomFieldGetName(lngOutlineCode)
     Set oExcel = CreateObject("Excel.Application")
     'allow user to select excel file and import it to chosen
@@ -165,12 +164,12 @@ Sub cptImportCWBSFromServer(lngOutlineCode As Long)
       .ButtonName = "Import"
       .InitialView = 2 'msoFileDialogViewDetails
       .InitialFileName = Environ("USERPROFILE") & "\"
-      .Title = "Select " & stroOutlineCode & " source file:"
+      .Title = "Select " & strOutlineCode & " source file:"
       .Filters.Add "Microsoft Excel Workbook (xlsx)", "*.xlsx"
       .Filters.Add "Comma Separated Values (csv)", "*.csv"
       If .Show = -1 Then
       
-        Application.OpenUndoTransaction "Import " & stroOutlineCode & " from MSP Server Outline Code Export"
+        Application.OpenUndoTransaction "Import " & strOutlineCode & " from MSP Server Outline Code Export"
       
         cptSpeed True
       
@@ -1227,7 +1226,7 @@ Sub cptExportOutlineCodeForMPM(lngOutlineCode As Long)
   Close #lngFile
   
   'open it in notepad
-  shell "C:\Windows\notepad.exe '" & strDir & strFile & "'", vbNormalFocus
+  Shell "C:\Windows\notepad.exe '" & strDir & strFile & "'", vbNormalFocus
   
 exit_here:
   On Error Resume Next
@@ -1352,7 +1351,7 @@ Sub cptExportOutlineCodeForCOBRA(lngOutlineCode)
 
   Close #lngFile
   
-  shell "C:\Windows\notepad.exe '" & strFile & "'", vbNormalFocus
+  Shell "C:\Windows\notepad.exe '" & strFile & "'", vbNormalFocus
 
 exit_here:
   On Error Resume Next
