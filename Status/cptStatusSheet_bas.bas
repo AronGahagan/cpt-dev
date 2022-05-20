@@ -130,9 +130,9 @@ Dim vFieldType As Variant
     .chkValidation = True
     .chkLocked = True
     .chkAllItems = False
-    If InStr(ActiveProject.Path, "<>\") = 0 Then
+    If InStr(ActiveProject.Path, "<>\") = 0 Then 'not a server project: use ActiveProject.Path
       .txtDir = ActiveProject.Path & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
-    Else
+    Else 'it is a server project: default to Desktop
       Set oShell = CreateObject("WScript.Shell")
       .txtDir = oShell.SpecialFolders("Desktop") & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
     End If
@@ -1657,6 +1657,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   'integers
   'doubles
   'booleans
+  Dim blnAlerts As Boolean
   Dim blnLOE As Boolean
   Dim blnLocked As Boolean
   Dim blnValidation As Boolean
@@ -1693,8 +1694,9 @@ try_again:
   oWorksheet.Cells.Font.Size = 11
   oWorksheet.Rows(lngHeaderRow).Font.Bold = True
   oWorksheet.Columns.AutoFit
-  'format the columns
-  oWorksheet.Application.DisplayAlerts = False
+  'format the colums
+  blnAlerts = oWorksheet.Application.DisplayAlerts
+  If blnAlerts Then oWorksheet.Application.DisplayAlerts = False
   For lngCol = 1 To ActiveSelection.FieldIDList.Count
     oWorksheet.Columns(lngCol).ColumnWidth = ActiveProject.TaskTables("cptStatusSheet Table").TableFields(lngCol + 1).Width + 2
     oWorksheet.Cells(lngHeaderRow, lngCol).WrapText = True
@@ -1715,7 +1717,7 @@ try_again:
       End If
     End If
   Next lngCol
-  oWorksheet.Application.DisplayAlerts = True
+  oWorksheet.Application.DisplayAlerts = blnAlerts
   
   'format the header
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
