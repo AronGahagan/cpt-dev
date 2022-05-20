@@ -1260,7 +1260,7 @@ Sub cptImportCFMap()
   Dim oFile As Scripting.File
   Dim oFSO As Scripting.FileSystemObject
   Dim oExcel As Excel.Application
-  Dim oFileDialog As FileDialog
+  Dim oFileDialog As Object 'FileDialog
   'strings
   Dim strGUID As String
   Dim strConn As String
