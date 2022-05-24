@@ -287,10 +287,14 @@ End Sub
 
 Sub cptGET(strWhat As String)
 'objects
+Dim oTask As Object
 Dim oRecordset As ADODB.Recordset
 'strings
+Dim strNotFound As String
 Dim strMsg As String, strProgram As String
 'longs
+Dim lngAF As Long
+Dim lngFF As Long
 Dim lngBEI_AF As Long
 Dim lngBEI_BF As Long
 'integers
@@ -366,24 +370,26 @@ Dim dtStatus As Date, dtPrevious As Date
           If CBool(.Fields("IS_LOE")) Then GoTo next_record
           If .Fields("PROJECT") = strProgram And .Fields("STATUS_DATE") = dtPrevious Then
             If .Fields("TASK_FINISH") > dtPrevious And .Fields("TASK_FINISH") <= dtStatus Then
-              Dim lngFF As Long
               lngFF = lngFF + 1
+              Set oTask = Nothing
               On Error Resume Next
-              Dim oTask As Task
+              Set oTask = ActiveProject.Tasks.UniqueID(CLng(.Fields(1)))
               If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-              Set oTask = ActiveProject.Tasks.UniqueID(.Fields(1))
               If Not oTask Is Nothing Then
                 If IsDate(oTask.ActualFinish) Then
-                  Dim lngAF As Long
                   lngAF = lngAF + 1
                 End If
+              Else
+                MsgBox "Task UID " & .Fields(1) & " '" & .Fields(2) & "' not found in this IMS.", vbExclamation + vbOKOnly, "CEI Invalid"
+                strNotFound = strNotFound & .Fields(1) & ","
               End If
             End If
           End If
 next_record:
           .MoveNext
         Loop
-        strMsg = "CEI = Tasks completed in current period / Tasks forecasted to complete in current period" & vbCrLf & vbCrLf
+        strMsg = "Comparing against previous period: " & FormatDateTime(dtPrevious, vbShortDate) & ":" & vbCrLf & vbCrLf
+        strMsg = strMsg & "CEI = Tasks completed in current period / Tasks forecasted to complete in current period" & vbCrLf & vbCrLf
         strMsg = strMsg & "CEI = " & lngAF & " / " & lngFF & vbCrLf
         strMsg = strMsg & "CEI = " & Round(lngAF / IIf(lngFF = 0, 1, lngFF), 2) & vbCrLf & vbCrLf
         strMsg = strMsg & "- Does not include LOE tasks." & vbCrLf
@@ -391,6 +397,7 @@ next_record:
         strMsg = strMsg & "- See NDIA Predictive Measures Guide for more information."
         Call cptCaptureMetric(strProgram, dtStatus, "CEI", Round(lngAF / IIf(lngFF = 0, 1, lngFF), 2))
         MsgBox strMsg, vbInformation + vbOKOnly, "Current Execution Index"
+        InputBox "The following UIDs were not found:", "Where did these go?", strNotFound
         .Close
       End With
       
@@ -435,6 +442,7 @@ next_record:
   
 exit_here:
   On Error Resume Next
+  Set oTask = Nothing
   Set oRecordset = Nothing
 
   Exit Sub
@@ -2459,12 +2467,19 @@ Sub cptExportMetricsData()
     GoTo exit_here
   End If
   
+  strFile = cptDir & "\settings\cpt-cei.adtg"
+  If Dir(strFile) = vbNullString Then
+    MsgBox strFile & " not found!", vbCritical + vbOKOnly, "File Not Found"
+    GoTo exit_here
+  End If
+  
   strProgram = cptGetProgramAcronym
   If strProgram = "" Then
     MsgBox "Program Acronym required.", vbExclamation + vbOKOnly, "Invalid Program Acronym"
     GoTo exit_here
   End If
   
+  strFile = cptDir & "\settings\cpt-metrics.adtg"
   Set oRecordset = CreateObject("ADODB.Recordset")
   oRecordset.Open strFile
   oRecordset.Filter = "PROGRAM='" & strProgram & "'"
@@ -2478,7 +2493,7 @@ Sub cptExportMetricsData()
     'oExcel.Visible = True
     Set oWorkbook = oExcel.Workbooks.Add
     Set oWorksheet = oWorkbook.Sheets(1)
-    oWorksheet.Name = strProgram
+    oWorksheet.Name = strProgram & " METRICS"
     For lngField = 0 To oRecordset.Fields.Count - 1
       oWorksheet.Cells(1, lngField + 1) = oRecordset.Fields(lngField).Name
     Next lngField
@@ -2487,16 +2502,55 @@ Sub cptExportMetricsData()
     oExcel.ActiveWindow.Zoom = 85
     oWorksheet.Columns.AutoFit
     oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
+    'Application.StatusBar = "Complete"
+    DoEvents
+    oExcel.Visible = True
+    Application.ActivateMicrosoftApp pjMicrosoftExcel
+    oExcel.WindowState = xlMaximized
+  Else
+    MsgBox "No metrics data found for program '" & strProgram & "'", vbExclamation + vbOKOnly, "No Data"
+  End If
+  oRecordset.Filter = ""
+  oRecordset.Close
+  
+  strFile = cptDir & "\settings\cpt-cei.adtg"
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  oRecordset.Open strFile
+  oRecordset.Filter = "PROJECT='" & strProgram & "'"
+  If oRecordset.RecordCount > 0 Then
+    On Error Resume Next
+    Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
+    oWorksheet.Name = strProgram & " CEI"
+    For lngField = 0 To oRecordset.Fields.Count - 1
+      oWorksheet.Cells(1, lngField + 1) = oRecordset.Fields(lngField).Name
+    Next lngField
+    oWorksheet.[A2].CopyFromRecordset oRecordset
+    'todo: display alerts
+    oWorksheet.Columns(4).Replace "0", False
+    oWorksheet.Columns(4).Replace "1", True
+    oWorksheet.Columns(5).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(7).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(8).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(10).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(11).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(13).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(14).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    
+    oExcel.ActiveWindow.Zoom = 85
+    oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
+    oWorksheet.Columns.AutoFit
     Application.StatusBar = "Complete"
     DoEvents
     oExcel.Visible = True
     Application.ActivateMicrosoftApp pjMicrosoftExcel
     oExcel.WindowState = xlMaximized
   Else
-    MsgBox "No records found for program '" & strProgram & "'", vbExclamation + vbOKOnly, "No Data"
+    MsgBox "No CEI data found for program '" & strProgram & "'", vbExclamation + vbOKOnly, "No Data"
   End If
   oRecordset.Filter = ""
   oRecordset.Close
+  
+  oWorkbook.Sheets(1).Activate
   
 exit_here:
   On Error Resume Next

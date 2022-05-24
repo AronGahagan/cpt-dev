@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.6.0</cpt_version>
+ '<cpt_version>v1.6.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -85,11 +85,11 @@ Dim vEvent As Variant
   xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
   strURL = strGitHub & "CurrentVersions.xml"
   If Not xmlDoc.Load(strURL) Then
-    If xmlDoc.parseError.ErrorCode = -2146697210 Or -xmlDoc.parseError.ErrorCode = -2146697208 Then '</issue35>
+    If xmlDoc.parseError.errorcode = -2146697210 Or -xmlDoc.parseError.errorcode = -2146697208 Then '</issue35>
       MsgBox "Please check your internet connection.", vbCritical + vbOKOnly, "Can't Connect"
     Else
       strMsg = "We're having trouble downloading modules:" & vbCrLf & vbCrLf  '</issue35>
-      strMsg = strMsg & xmlDoc.parseError.ErrorCode & ": " & xmlDoc.parseError.reason & vbCrLf & vbCrLf '</issue35>
+      strMsg = strMsg & xmlDoc.parseError.errorcode & ": " & xmlDoc.parseError.reason & vbCrLf & vbCrLf '</issue35>
       strMsg = strMsg & "If the ClearPlan ribbon doesn't show up, please contact cpt@ClearPlanConsulting.com for assistance." '</issue35>
       MsgBox strMsg, vbExclamation + vbOKOnly, "XML Error" '</issue35>
     End If
@@ -550,7 +550,7 @@ Dim lngCleanUp As Long
     Else
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCPLI"" enabled=""false"" label=""Critical Path Length Index (CPLI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCPLI"" visible=""true"" supertip=""Select a target task, click to get the CPLI. Raw calculation based on time now and total slack. (Feature not available in this version of MS Project)"" />"
     End If
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCEI"" label=""Current Execution Index (CEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCEI"" visible=""true"" supertip=""Tracks forecast accuracy between periods."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCEI"" label=""Current Execution Index (CEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCEI"" visible=""true"" supertip=""Tracks forecast accuracy between periods. Be sure to 'Capture Week' in previous period's file under Schedule > Status > Capture Week."" />"
 '    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptTFCI"" enabled=""false"" label=""Total Float Consumption Index (TFCI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCEI"" visible=""true"" supertip=""Measures forecast accuracy between reporting periods"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptES"" label=""Earned Schedule"" imageMso=""CalendarToolSelectDate"" onAction=""cptGetEarnedSchedule"" visible=""true"" supertip=""Just what it sounds like. See the NDIA Predictive Measures Guide for more information."" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCaptureAllMetrics"" label=""Capture All Metrics"" imageMso=""DataViewDetailsView"" onAction=""cptCaptureAllMetrics"" visible=""true"" supertip=""Capture all metrics above for this program for this period."" />"
