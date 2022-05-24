@@ -97,7 +97,12 @@ Sub cptExportCalendarExceptionsMain(Optional blnDetail As Boolean = False)
   'set up file
   Application.StatusBar = "Setting up Excel Workbook..."
   DoEvents
-  Set oExcel = CreateObject("Excel.Application")
+  On Error Resume Next
+  Set oExcel = GetObject(, "Excel.Application")
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If oExcel Is Nothing Then
+    Set oExcel = CreateObject("Excel.Application")
+  End If
   Set oWorkbook = oExcel.Workbooks.Add
   cptSpeed True
   oWorkbook.Sheets(1).Name = "Exceptions"
