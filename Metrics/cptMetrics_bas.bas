@@ -3061,7 +3061,7 @@ Sub cptFindOutOfSequence()
   Dim oExcel As Excel.Application
   Dim oWorkbook As Workbook
   Dim oWorksheet As Worksheet
-  Dim oInsertedIndex As Object 'Scripting.Dictionary
+  'Dim oInsertedIndex As Object 'Scripting.Dictionary
   'strings
   Dim strProject As String
   Dim strMacro As String
@@ -3071,13 +3071,10 @@ Sub cptFindOutOfSequence()
   Dim strDir As String
   Dim strFile As String
   'longs
-  Dim lngInsertedUID As Long
+  'Dim lngInsertedUID As Long
   Dim lngFactor As Long
   Dim lngToUID As Long
   Dim lngFromUID As Long
-  Dim lngPredIndex As Long
-  Dim lngInsertedGUID As Long
-  Dim lngInsertedIndex As Long
   Dim lngSubproject As Long
   Dim lngSubprojects As Long
   Dim lngTask As Long
@@ -3089,7 +3086,6 @@ Sub cptFindOutOfSequence()
   Dim blnSubprojects As Boolean
   Dim blnMarked As Boolean
   'variants
-  Dim vPredecessors As Variant
   'dates
   Dim dtStatus As Date
   
@@ -3099,22 +3095,13 @@ Sub cptFindOutOfSequence()
   
   lngSubprojects = ActiveProject.Subprojects.Count
   blnSubprojects = lngSubprojects > 0
-  If lngSubprojects > 0 Then
+  If blnSubprojects Then
     'get correct task count
     lngTasks = ActiveProject.Tasks.Count
     For lngSubproject = 1 To lngSubprojects
       lngTasks = lngTasks + ActiveProject.Subprojects(lngSubproject).SourceProject.Tasks.Count
     Next lngSubproject
-    'create inserted index
-    Set oInsertedIndex = CreateObject("Scripting.Dictionary")
     For Each oTask In ActiveProject.Tasks
-      If Not oTask.Summary Then
-        lngInsertedUID = ActiveProject.Subprojects(oTask.Project).InsertedProjectSummary.UniqueID
-        lngInsertedIndex = Round(oTask.UniqueID / 4194304, 0)
-        If Not oInsertedIndex.Exists(lngInsertedUID) Then
-          oInsertedIndex.Add lngInsertedUID, lngInsertedIndex
-        End If
-      End If
       'todo: note that external tasks will not be included in this metric
       If Not oTask Is Nothing And Not oTask.ExternalTask Then oTask.Marked = False
     Next oTask
@@ -3125,8 +3112,6 @@ Sub cptFindOutOfSequence()
       If Not oTask Is Nothing And Not oTask.ExternalTask Then oTask.Marked = False
     Next oTask
   End If
-  
-  'oInsertedIndex(index) returns inserted UID
   
   Set oExcel = CreateObject("Excel.Application")
   On Error Resume Next
@@ -3142,14 +3127,7 @@ Sub cptFindOutOfSequence()
   oWorksheet.[F1].HorizontalAlignment = xlCenter
   oWorksheet.[A1:J2].Font.Bold = True
   oExcel.EnableEvents = False
-  
-  'NOTE: in a master-sub, the From and To UIDs of the TaskDependency object do
-          'not actually match the UIDs of the source file; we must rely on either
-          'the PredecessorTasks object or the Comma-separated string in UniqueIdPredecessors.
-          'Neither to oTaskDependcy.From.IDs match; they match the external task inserted into the project.
-          'The Parent of the external link is actual the same parent as the internal link; see "From.Project" for source project name
-          'AG 4/19/2022
-  
+    
   lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
   lngTask = 0
   
@@ -3157,43 +3135,29 @@ Sub cptFindOutOfSequence()
     blnMarked = False
     If oTask Is Nothing Then GoTo next_task
     If oTask.Summary Then GoTo next_task
-    'capture list of preds with valid native UIDs
-    vPredecessors = Split(oTask.UniqueIDPredecessors & ",", ",")
-    lngPredIndex = 0 'make my own index TEST
     For Each oTaskDependency In oTask.TaskDependencies
       If Not oTaskDependency.From.Active Or Not oTaskDependency.To.Active Then GoTo next_dependency
-      If oTaskDependency.To.Guid = oTask.Guid Then
+      If oTaskDependency.To.Guid = oTask.Guid Then 'predecessors only
         lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
-        lngPredIndex = lngPredIndex + 1
-        If lngSubprojects > 0 And oTaskDependency.From.ExternalTask Then
+        If blnSubprojects And oTaskDependency.From.ExternalTask Then
           'fix the pred UID if master-sub
-          lngFromUID = CLng(Mid(vPredecessors(lngPredIndex - 1), InStrRev(vPredecessors(lngPredIndex - 1), "\") + 1))
+          lngFromUID = oTaskDependency.From.GetField(185073906) Mod 4194304
           strProject = oTaskDependency.From.Project
-          If InStr(oTaskDependency.From.Project, "<>\") > 0 Then
-            strProject = Replace(strProject, "<>\", "")
-          ElseIf InStr(oTaskDependency.From.Project, "\") > 0 Then
-            strProject = Replace(Dir(strProject), ".mpp", "")
-          Else
-            'todo: what if it's on a network drive
+          If InStr(oTaskDependency.From.Project, "\") > 0 Then
+            strProject = Replace(strProject, ".mpp", "")
+            strProject = Mid(strProject, InStrRev(strProject, "\") + 1)
           End If
-          lngFactor = oInsertedIndex(ActiveProject.Subprojects(strProject).InsertedProjectSummary.UniqueID)
+          lngFactor = ActiveProject.Subprojects(strProject).InsertedProjectSummary.UniqueID + 1
           lngFromUID = (lngFactor * 4194304) + lngFromUID
         Else
-          If lngSubprojects > 0 Then
+          If blnSubprojects Then
             lngFactor = Round(oTask / 4194304, 0)
             lngFromUID = (lngFactor * 4194304) + oTaskDependency.From.UniqueID
           Else
             lngFromUID = oTaskDependency.From.UniqueID
           End If
         End If
-        'fix task UID if master-sub
-        If lngSubprojects > 0 Then
-          lngToUID = oTaskDependency.To.UniqueID
-          lngFactor = oInsertedIndex(ActiveProject.Subprojects(oTaskDependency.To.Project).InsertedProjectSummary.UniqueID)
-          lngToUID = (lngFactor * 4194304) + lngToUID
-        Else
-          lngToUID = oTask.UniqueID
-        End If
+        lngToUID = oTask.UniqueID
         
         Select Case oTaskDependency.Type
           Case pjFinishToFinish
@@ -3379,7 +3343,6 @@ exit_here:
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
   Set oExcel = Nothing
-  Set oInsertedIndex = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptMetrics_bas", "cptFindOutOfSequence", Err, Erl)
