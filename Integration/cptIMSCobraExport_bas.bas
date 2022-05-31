@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.4</cpt_version>
+'<cpt_version>v3.3.5</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -15,6 +15,7 @@ Private BCR_ID As String
 Private BCRxport As Boolean
 Private BCR_Error As Boolean
 Private fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fPCNT, fAssignPcnt, fEVT, fCAID2, fCAID2t, fMilestone, fMilestoneWeight, fBCR, fWhatIf, fResID As String 'v3.3.0
+Private dateFmt As String 'v3.3.5
 Private CustTextFields() As String
 Private EntFields() As String
 Private CustNumFields() As String
@@ -29,6 +30,7 @@ Private DescExport As Boolean
 Private ErrMsg As String
 Private WPDescArray() As WP_Descriptions
 Private WPDescCount As Integer
+Private ActIDCounter As Integer 'v3.3.5
 Private Type WP_Descriptions
     WP_ID As String
     Desc As String
@@ -42,6 +44,7 @@ Private Type ACTrowWP
     WP As String
     Resource As String
     ID As String
+    ShortID As String 'v3.3.5
     BStart As Date
     BFinish As Date
     FStart As Date
@@ -152,6 +155,7 @@ Sub Export_IMS()
         Call cptQuickSort(CustNumFields, 1, UBound(CustNumFields))
         .PercentBox.List = Split("Physical % Complete,% Complete," & Join(CustNumFields, ","), ",")
         .AsgnPcntBox.List = Split("<None>," & Join(CustNumFields, ","), ",")
+        .DateFormat_Combobox.List = Split("M/D/YYYY,D/M/YYYY", ",") 'v3.3.5
         
         On Error GoTo CleanUp
         ErrMsg = "Please try again, or contact the developer if this message repeats."
@@ -205,6 +209,7 @@ Sub Export_IMS()
                 AssignmentPCNT_Used = True
             End If
             DescExport = .exportDescCheckBox.Value
+            dateFmt = .DateFormat_Combobox.Value
         End If
 
     End With
@@ -342,7 +347,7 @@ Private Sub DataChecks(ByVal curproj As Project)
     End If
     fPCNT = docProps("fPCNT").Value
 
-    destFolder = SetDirectory(curproj.ProjectSummaryTask.Name)
+    destFolder = SetDirectory(curproj.ProjectSummaryTask.Project)
 
     taskCount = 0
     taskFound = False
@@ -607,7 +612,7 @@ Private Sub DataChecks(ByVal curproj As Project)
 
     End If
 
-    ACTfilename = destFolder & "\DataChecks_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+    ACTfilename = destFolder & "\DataChecks_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
     Open ACTfilename For Output As #1
 
@@ -1185,7 +1190,7 @@ Private Sub MPP_Export(ByVal curproj As Project)
     Dim subProj As SubProject
     Dim subProjs As Subprojects
 
-    destFolder = SetDirectory(curproj.ProjectSummaryTask.Name)
+    destFolder = SetDirectory(curproj.ProjectSummaryTask.Project)
 
     If curproj.Subprojects.Count > 0 Then
 
@@ -1198,11 +1203,11 @@ Private Sub MPP_Export(ByVal curproj As Project)
 
         Next subProj
 
-        curproj.SaveAs Name:=destFolder & "\" & curproj.ProjectSummaryTask.Name
+        curproj.SaveAs Name:=destFolder & "\" & curproj.ProjectSummaryTask.Project
 
     Else
 
-        curproj.SaveAs Name:=destFolder & "\" & curproj.ProjectSummaryTask.Name
+        curproj.SaveAs Name:=destFolder & "\" & curproj.ProjectSummaryTask.Project
 
     End If
 
@@ -1212,7 +1217,7 @@ Private Sub XML_Export(ByVal curproj As Project)
     Dim subProj As SubProject
     Dim subProjs As Subprojects
 
-    destFolder = SetDirectory(curproj.ProjectSummaryTask.Name)
+    destFolder = SetDirectory(curproj.ProjectSummaryTask.Project)
 
     If curproj.Subprojects.Count > 0 Then
 
@@ -1227,7 +1232,7 @@ Private Sub XML_Export(ByVal curproj As Project)
 
     Else
 
-        curproj.SaveAs Name:=destFolder & "\" & curproj.ProjectSummaryTask.Name, FormatID:="MSProject.XML"
+        curproj.SaveAs Name:=destFolder & "\" & curproj.ProjectSummaryTask.Project, FormatID:="MSProject.XML"
 
     End If
 
@@ -1270,7 +1275,7 @@ Private Sub CSV_Export(ByVal curproj As Project)
 
     BCR_Error = False
 
-    destFolder = SetDirectory(curproj.ProjectSummaryTask.Name)
+    destFolder = SetDirectory(curproj.ProjectSummaryTask.Project)
 
     '*******************
     '****BCR Review*****
@@ -1357,7 +1362,7 @@ Private Sub BCWP_Export(ByVal curproj As Project)
 
     If ResourceLoaded = False Then
 
-        ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
 
@@ -1416,19 +1421,19 @@ Private Sub BCWP_Export(ByVal curproj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If EVT = "B" Or EVT = "N" Or EVT = "B Milestone" Or EVT = "N Earning Rules" Then
 
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & "," & Format(t.ActualStart, "M/D/YYYY") & "," & Format(t.ActualFinish, "M/D/YYYY") & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & "," & Format(t.ActualStart, "M/D/YYYY") & "," & Format(t.ActualFinish, "M/D/YYYY") & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                        Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & "," & Format(t.ActualStart, "M/D/YYYY") & "," & Format(t.ActualFinish, "M/D/YYYY") & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                        Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
                                     End If
 
                                 ElseIf EVT = "C" Or EVT = "C % Work Complete" Then
@@ -1751,19 +1756,19 @@ nrBCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earning Rules" Then
 
                                 If CAID3_Used = True And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & "," & Format(t.ActualStart, "M/D/YYYY") & "," & Format(t.ActualFinish, "M/D/YYYY") & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                    Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
                                 End If
                                 If CAID3_Used = False And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & "," & Format(t.ActualStart, "M/D/YYYY") & "," & Format(t.ActualFinish, "M/D/YYYY") & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                    Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
                                 End If
                                 If CAID3_Used = False And CAID2_Used = False Then
-                                    Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & "," & Format(t.ActualStart, "M/D/YYYY") & "," & Format(t.ActualFinish, "M/D/YYYY") & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                    Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
                                 End If
 
                             ElseIf EVT = "C" Or EVT = "C % Work Complete" Then
@@ -2051,17 +2056,17 @@ nrBCWP_WP_Match_B:
         If ActFound = True Then
             For i = 1 To UBound(ACTarray)
 
-                If ACTarray(i).AStart = 0 Then aStartString = "NA" Else aStartString = Format(ACTarray(i).AStart, "M/D/YYYY")
-                If ACTarray(i).AFinish = 0 Or ACTarray(i).AFinish < ACTarray(i).FFinish Then aFinishString = "NA" Else aFinishString = Format(ACTarray(i).AFinish, "M/D/YYYY")
+                If ACTarray(i).AStart = 0 Then aStartString = "NA" Else aStartString = Format(ACTarray(i).AStart, dateFmt)
+                If ACTarray(i).AFinish = 0 Or ACTarray(i).AFinish < ACTarray(i).FFinish Then aFinishString = "NA" Else aFinishString = Format(ACTarray(i).AFinish, dateFmt)
 
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY") & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY") & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY") & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog
                 End If
 
             Next i
@@ -2071,7 +2076,7 @@ nrBCWP_WP_Match_B:
 
     Else '**Resource Loaded**
 
-        ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
 
@@ -2131,20 +2136,20 @@ nrBCWP_WP_Match_B:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
                                 
 
                                 If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
 
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & "," & Format(t.ActualStart, "M/D/YYYY") & "," & Format(t.ActualFinish, "M/D/YYYY") & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & "," & Format(t.ActualStart, "M/D/YYYY") & "," & Format(t.ActualFinish, "M/D/YYYY") & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                        Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & "," & Format(t.ActualStart, "M/D/YYYY") & "," & Format(t.ActualFinish, "M/D/YYYY") & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                        Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
                                     End If
     
                                 ElseIf EVT = "L" Or EVT = "L Assignment % Complete" Then 'v3.3.0
@@ -2600,19 +2605,19 @@ BCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
 
                                 If CAID3_Used = True And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & "," & Format(t.ActualStart, "M/D/YYYY") & "," & Format(t.ActualFinish, "M/D/YYYY") & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                    Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
                                 End If
                                 If CAID3_Used = False And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & "," & Format(t.ActualStart, "M/D/YYYY") & "," & Format(t.ActualFinish, "M/D/YYYY") & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                    Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
                                 End If
                                 If CAID3_Used = False And CAID2_Used = False Then
-                                    Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & "," & Format(t.ActualStart, "M/D/YYYY") & "," & Format(t.ActualFinish, "M/D/YYYY") & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                    Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
                                 End If
                                 
                             ElseIf EVT = "L" Or EVT = "L Assignment % Complete" Then 'v3.3.0
@@ -3034,17 +3039,17 @@ BCWP_WP_Match_B:
         If ActFound = True Then
             For i = 1 To UBound(ACTarray)
 
-                If ACTarray(i).AStart = 0 Then aStartString = "NA" Else aStartString = Format(ACTarray(i).AStart, "M/D/YYYY")
-                If ACTarray(i).AFinish = 0 Or ACTarray(i).AFinish < ACTarray(i).FFinish Then aFinishString = "NA" Else aFinishString = Format(ACTarray(i).AFinish, "M/D/YYYY")
+                If ACTarray(i).AStart = 0 Then aStartString = "NA" Else aStartString = Format(ACTarray(i).AStart, dateFmt)
+                If ACTarray(i).AFinish = 0 Or ACTarray(i).AFinish < ACTarray(i).FFinish Then aFinishString = "NA" Else aFinishString = Format(ACTarray(i).AFinish, dateFmt)
 
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY") & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog & "," & ACTarray(i).Resource 'v3.3.0
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog & "," & ACTarray(i).Resource 'v3.3.0
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY") & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog & "," & ACTarray(i).Resource 'v3.3.0
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog & "," & ACTarray(i).Resource 'v3.3.0
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY") & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog & "," & ACTarray(i).Resource 'v3.3.0
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog & "," & ACTarray(i).Resource 'v3.3.0
                 End If
 
             Next i
@@ -3061,7 +3066,7 @@ Private Sub ETC_Export(ByVal curproj As Project)
     Dim t As Task
     Dim tAss As Assignments
     Dim tAssign As Assignment
-    Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT As String
+    Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT, ShortID As String 'v3.3.5
     Dim Milestone As String
     Dim subProj As SubProject
     Dim subProjs As Subprojects
@@ -3075,10 +3080,12 @@ Private Sub ETC_Export(ByVal curproj As Project)
     '*******************
     '****ETC Export****
     '*******************
+    
+    ActIDCounter = 0 'v3.3.5
 
     If ResourceLoaded = False Then
 
-        ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
 
@@ -3433,18 +3440,18 @@ nrETC_WP_Match_B:
         If ActFound = True Then
             For i = 1 To UBound(ACTarray)
 
-                If ACTarray(i).AStart = 0 Then aStartString = "NA" Else aStartString = Format(ACTarray(i).AStart, "M/D/YYYY")
-                If ACTarray(i).AFinish = 0 Or ACTarray(i).AFinish < ACTarray(i).FFinish Then aFinishString = "NA" Else aFinishString = Format(ACTarray(i).AFinish, "M/D/YYYY")
+                If ACTarray(i).AStart = 0 Then aStartString = "NA" Else aStartString = Format(ACTarray(i).AStart, dateFmt)
+                If ACTarray(i).AFinish = 0 Or ACTarray(i).AFinish < ACTarray(i).FFinish Then aFinishString = "NA" Else aFinishString = Format(ACTarray(i).AFinish, dateFmt)
 
                 If aFinishString = "NA" Then
                     If CAID3_Used = True And CAID2_Used = True Then
-                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY")
+                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt)
                     End If
                     If CAID3_Used = False And CAID2_Used = True Then
-                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY")
+                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt)
                     End If
                     If CAID3_Used = False And CAID2_Used = False Then
-                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY")
+                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt)
                     End If
                 End If
 
@@ -3455,8 +3462,8 @@ nrETC_WP_Match_B:
 
     Else '**Resource Loaded**
 
-        ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
-        RESfilename = destFolder & "\ETC RES_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        RESfilename = destFolder & "\ETC RES_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
         Open RESfilename For Output As #2
@@ -3510,6 +3517,7 @@ nrETC_WP_Match_B:
                                 If CAID3_Used = False And CAID2_Used = False Then
                                     ID = CAID1 & "/" & WP
                                 End If
+                                
                                 CAM = CleanCamName(t.GetField(FieldNameToFieldConstant(fCAM)))
 
                                 'store ACT info
@@ -3528,6 +3536,7 @@ nrETC_WP_Match_B:
                                         ACTarray(X).CAID3 = CAID3
                                     End If
                                     ACTarray(X).ID = ID
+                                    
                                     ACTarray(X).CAM = CAM
                                     ACTarray(X).CAID1 = CAID1
                                     ACTarray(X).EVT = EVT
@@ -3543,6 +3552,14 @@ nrETC_WP_Match_B:
                                     If t.ActualFinish <> "NA" Then
                                         ACTarray(X).AFinish = t.ActualFinish
                                     End If
+                                    'v3.3.5 - check for ID length limit
+                                    If Len(ID) > 58 Then
+                                        ActIDCounter = ActIDCounter + 1
+                                        ACTarray(X).ShortID = ACTarray(X).WP & " (" & ActIDCounter & ")"
+                                        ShortID = ACTarray(X).ShortID
+                                    Else
+                                        ACTarray(X).ShortID = ACTarray(X).ID
+                                    End If
 
                                     X = X + 1
                                     ActFound = True
@@ -3553,6 +3570,7 @@ nrETC_WP_Match_B:
 
                                 For i = 1 To UBound(ACTarray)
                                     If ACTarray(i).ID = ID Then
+                                        ShortID = ACTarray(i).ShortID
                                         'Found an existing matching WP line
                                         If t.BaselineStart <> "NA" Then
                                             If ACTarray(i).BStart = 0 Then
@@ -3614,6 +3632,7 @@ nrETC_WP_Match_B:
                                 ACTarray(X).CAM = CAM
                                 ACTarray(X).CAID1 = CAID1
                                 ACTarray(X).ID = ID
+                                
                                 ACTarray(X).EVT = EVT
                                 ACTarray(X).FFinish = t.Finish
                                 ACTarray(X).FStart = t.Start
@@ -3626,6 +3645,14 @@ nrETC_WP_Match_B:
                                 End If
                                 If t.ActualFinish <> "NA" Then
                                     ACTarray(X).AFinish = t.ActualFinish
+                                End If
+                                'v3.3.5 - check for ID length limit
+                                If Len(ID) > 58 Then
+                                    ActIDCounter = ActIDCounter + 1
+                                    ACTarray(X).ShortID = ACTarray(X).WP & " (" & ActIDCounter & ")"
+                                    ShortID = ACTarray(X).ShortID
+                                Else
+                                    ACTarray(X).ShortID = ACTarray(X).ID
                                 End If
 
                                 X = X + 1
@@ -3641,7 +3668,7 @@ ETC_WP_Match:
 
                                     If TimeScaleExport = True Then
 
-                                        ExportTimeScaleResources ID, t, tAssign, 2, "ETC"
+                                        ExportTimeScaleResources ShortID, t, tAssign, 2, "ETC"
 
                                     Else
 
@@ -3651,11 +3678,11 @@ ETC_WP_Match:
 
                                             If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork / 60 & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork / 60 & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                             ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work / 60 & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                             End If
 
@@ -3663,11 +3690,11 @@ ETC_WP_Match:
 
                                             If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingCost & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingCost & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                             ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Cost & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Cost & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                             End If
 
@@ -3675,11 +3702,11 @@ ETC_WP_Match:
 
                                             If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                             ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                             End If
 
@@ -3748,6 +3775,7 @@ ETC_WP_Match:
                                 End If
                                 ACTarray(X).CAM = CAM
                                 ACTarray(X).ID = ID
+                                
                                 ACTarray(X).CAID1 = CAID1
                                 ACTarray(X).EVT = EVT
                                 ACTarray(X).FFinish = t.Finish
@@ -3762,6 +3790,14 @@ ETC_WP_Match:
                                 If t.ActualFinish <> "NA" Then
                                     ACTarray(X).AFinish = t.ActualFinish
                                 End If
+                                'v3.3.5 - check for ID length limit
+                                If Len(ID) > 58 Then
+                                    ActIDCounter = ActIDCounter + 1
+                                    ACTarray(X).ShortID = ACTarray(X).WP & " (" & ActIDCounter & ")"
+                                    ShortID = ACTarray(X).ShortID
+                                Else
+                                    ACTarray(X).ShortID = ACTarray(X).ID
+                                End If
 
                                 X = X + 1
                                 ActFound = True
@@ -3772,6 +3808,7 @@ ETC_WP_Match:
 
                             For i = 1 To UBound(ACTarray)
                                 If ACTarray(i).ID = ID Then
+                                    ShortID = ACTarray(i).ShortID
                                     'Found an existing matching WP line
                                     If t.BaselineStart <> "NA" Then
                                         If ACTarray(i).BStart = 0 Then
@@ -3833,6 +3870,7 @@ ETC_WP_Match:
                             End If
                             ACTarray(X).CAM = CAM
                             ACTarray(X).ID = ID
+                            
                             ACTarray(X).CAID1 = CAID1
                             ACTarray(X).EVT = EVT
                             ACTarray(X).FFinish = t.Finish
@@ -3846,6 +3884,14 @@ ETC_WP_Match:
                             End If
                             If t.ActualFinish <> "NA" Then
                                 ACTarray(X).AFinish = t.ActualFinish
+                            End If
+                            'v3.3.5 - check for ID length limit
+                            If Len(ID) > 58 Then
+                                ActIDCounter = ActIDCounter + 1
+                                ACTarray(X).ShortID = ACTarray(X).WP & " (" & ActIDCounter & ")"
+                                ShortID = ACTarray(X).ShortID
+                            Else
+                                ACTarray(X).ShortID = ACTarray(X).ID
                             End If
 
 
@@ -3862,7 +3908,7 @@ ETC_WP_Match_B:
 
                                 If TimeScaleExport = True Then
 
-                                    ExportTimeScaleResources ID, t, tAssign, 2, "ETC"
+                                    ExportTimeScaleResources ShortID, t, tAssign, 2, "ETC"
 
                                 Else
 
@@ -3872,11 +3918,11 @@ ETC_WP_Match_B:
 
                                         If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork / 60 & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork / 60 & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                         ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work / 60 & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                         End If
 
@@ -3884,11 +3930,11 @@ ETC_WP_Match_B:
 
                                         If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingCost & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingCost & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                         ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Cost & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Cost & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                         End If
 
@@ -3896,11 +3942,11 @@ ETC_WP_Match_B:
 
                                         If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                         ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                         End If
 
@@ -3923,18 +3969,18 @@ ETC_WP_Match_B:
         If ActFound = True Then
             For i = 1 To UBound(ACTarray)
 
-                If ACTarray(i).AStart = 0 Then aStartString = "NA" Else aStartString = Format(ACTarray(i).AStart, "M/D/YYYY")
-                If ACTarray(i).AFinish = 0 Or ACTarray(i).AFinish < ACTarray(i).FFinish Then aFinishString = "NA" Else aFinishString = Format(ACTarray(i).AFinish, "M/D/YYYY")
+                If ACTarray(i).AStart = 0 Then aStartString = "NA" Else aStartString = Format(ACTarray(i).AStart, dateFmt)
+                If ACTarray(i).AFinish = 0 Or ACTarray(i).AFinish < ACTarray(i).FFinish Then aFinishString = "NA" Else aFinishString = Format(ACTarray(i).AFinish, dateFmt)
 
                 If aFinishString = "NA" Then
                     If CAID3_Used = True And CAID2_Used = True Then
-                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY")
+                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt)
                     End If
                     If CAID3_Used = False And CAID2_Used = True Then
-                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY")
+                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt)
                     End If
                     If CAID3_Used = False And CAID2_Used = False Then
-                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & Format(ACTarray(i).FStart, "M/D/YYYY") & "," & Format(ACTarray(i).FFinish, "M/D/YYYY")
+                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt)
                     End If
                 End If
 
@@ -3952,7 +3998,7 @@ Private Sub BCWS_Export(ByVal curproj As Project)
     Dim t As Task
     Dim tAss As Assignments
     Dim tAssign As Assignment
-    Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT As String
+    Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, ShortID, PCNT As String 'v3.3.5
     Dim Milestone As String
     Dim subProj As SubProject
     Dim subProjs As Subprojects
@@ -3967,6 +4013,8 @@ Private Sub BCWS_Export(ByVal curproj As Project)
     '*******************
     '****BCWS Export****
     '*******************
+    
+    ActIDCounter = 0 'v3.3.5
 
     If DescExport = True Then
         Get_WP_Descriptions curproj
@@ -3974,7 +4022,7 @@ Private Sub BCWS_Export(ByVal curproj As Project)
 
     If ResourceLoaded = False Then
 
-        ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
 
@@ -4042,7 +4090,7 @@ Private Sub BCWS_Export(ByVal curproj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -4123,13 +4171,13 @@ nrWP_Match:
                                 If EVT = "B" Or EVT = "B Milestone" Then
 
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                     End If
 
                                 End If
@@ -4185,7 +4233,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4270,13 +4318,13 @@ nrWP_Match_B:
 
                             If EVT = "B" Or EVT = "B Milestone" Then
                                 If CAID3_Used = True And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                    Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                 End If
                                 If CAID3_Used = False And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                    Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                 End If
                                 If CAID3_Used = False And CAID2_Used = False Then
-                                    Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                    Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                 End If
                             End If
 
@@ -4299,13 +4347,13 @@ Next_nrTask:
                 End If
 
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
                 End If
 
             Next i
@@ -4315,8 +4363,8 @@ Next_nrTask:
 
     Else
 
-        ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
-        RESfilename = destFolder & "\BCWS RES_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        RESfilename = destFolder & "\BCWS RES_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
         Open RESfilename For Output As #2
@@ -4380,7 +4428,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -4401,6 +4449,7 @@ Next_nrTask:
                                         ACTarray(X).CAID3 = CAID3
                                     End If
                                     ACTarray(X).ID = ID
+                                    
                                     ACTarray(X).CAM = CAM
                                     ACTarray(X).CAID1 = CAID1
                                     ACTarray(X).EVT = EVT
@@ -4410,6 +4459,14 @@ Next_nrTask:
                                         ACTarray(X).CAID2 = CAID2
                                     End If
                                     ACTarray(X).WP = WP
+                                    'v3.3.5 - check for ID length limit
+                                    If Len(ID) > 58 Then
+                                        ActIDCounter = ActIDCounter + 1
+                                        ACTarray(X).ShortID = ACTarray(X).WP & " (" & ActIDCounter & ")"
+                                        ShortID = ACTarray(X).ShortID
+                                    Else
+                                        ACTarray(X).ShortID = ACTarray(X).ID
+                                    End If
 
                                     X = X + 1
                                     ActFound = True
@@ -4420,6 +4477,7 @@ Next_nrTask:
 
                                 For i = 1 To UBound(ACTarray)
                                     If ACTarray(i).ID = ID Then
+                                        ShortID = ACTarray(i).ShortID
                                         'Found an existing matching WP line
                                         If ACTarray(i).BStart > t.BaselineStart Then
                                             ACTarray(i).BStart = t.BaselineStart
@@ -4446,6 +4504,7 @@ Next_nrTask:
                                     ACTarray(X).CAID3 = CAID3
                                 End If
                                 ACTarray(X).ID = ID
+                                
                                 ACTarray(X).CAM = CAM
                                 ACTarray(X).CAID1 = CAID1
                                 ACTarray(X).EVT = EVT
@@ -4455,6 +4514,14 @@ Next_nrTask:
                                     ACTarray(X).CAID2 = CAID2
                                 End If
                                 ACTarray(X).WP = WP
+                                'v3.3.5 - check for ID length limit
+                                If Len(ID) > 58 Then
+                                    ActIDCounter = ActIDCounter + 1
+                                    ACTarray(X).ShortID = ACTarray(X).WP & " (" & ActIDCounter & ")"
+                                    ShortID = ACTarray(X).ShortID
+                                Else
+                                    ACTarray(X).ShortID = ACTarray(X).ID
+                                End If
 
                                 X = X + 1
                                 ActFound = True
@@ -4465,13 +4532,13 @@ WP_Match:
                                 If EVT = "B" Or EVT = "B Milestone" Then
 
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                     End If
 
                                 End If
@@ -4484,7 +4551,7 @@ WP_Match:
 
                                         If TimeScaleExport = True Then
 
-                                            ExportTimeScaleResources ID, t, tAssign, 2, "BCWS"
+                                            ExportTimeScaleResources ShortID, t, tAssign, 2, "BCWS"
 
                                         Else
 
@@ -4492,15 +4559,15 @@ WP_Match:
 
                                                 Case pjResourceTypeWork
 
-                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                                    Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork / 60 & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                                 Case pjResourceTypeCost
 
-                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineCost & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                                    Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineCost & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                                 Case pjResourceTypeMaterial
 
-                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                                    Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                             End Select
 
@@ -4561,7 +4628,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4582,6 +4649,7 @@ Next_SProj_Task:
                                     ACTarray(X).CAID3 = CAID3
                                 End If
                                 ACTarray(X).ID = ID
+                                
                                 ACTarray(X).CAM = CAM
                                 ACTarray(X).CAID1 = CAID1
                                 ACTarray(X).EVT = EVT
@@ -4591,6 +4659,14 @@ Next_SProj_Task:
                                     ACTarray(X).CAID2 = CAID2
                                 End If
                                 ACTarray(X).WP = WP
+                                'v3.3.5 - check for ID length limit
+                                If Len(ID) > 58 Then
+                                    ActIDCounter = ActIDCounter + 1
+                                    ACTarray(X).ShortID = ACTarray(X).WP & " (" & ActIDCounter & ")"
+                                    ShortID = ACTarray(X).ShortID
+                                Else
+                                    ACTarray(X).ShortID = ACTarray(X).ID
+                                End If
 
                                 X = X + 1
                                 ActFound = True
@@ -4601,6 +4677,7 @@ Next_SProj_Task:
 
                             For i = 1 To UBound(ACTarray)
                                 If ACTarray(i).ID = ID Then
+                                    ShortID = ACTarray(i).ShortID
                                     'Found an existing matching WP line
                                     If ACTarray(i).BStart > t.BaselineStart Then
                                         ACTarray(i).BStart = t.BaselineStart
@@ -4629,12 +4706,21 @@ Next_SProj_Task:
                             ACTarray(X).CAID1 = CAID1
                             ACTarray(X).EVT = EVT
                             ACTarray(X).ID = ID
+
                             ACTarray(X).FFinish = t.Finish
                             ACTarray(X).FStart = t.Start
                             If CAID2_Used = True Then
                                 ACTarray(X).CAID2 = CAID2
                             End If
                             ACTarray(X).WP = WP
+                            'v3.3.5 - check for ID length limit
+                            If Len(ID) > 58 Then
+                                ActIDCounter = ActIDCounter + 1
+                                ACTarray(X).ShortID = ACTarray(X).WP & " (" & ActIDCounter & ")"
+                                ShortID = ACTarray(X).ShortID
+                            Else
+                                ACTarray(X).ShortID = ACTarray(X).ID
+                            End If
 
                             X = X + 1
                             ActFound = True
@@ -4644,13 +4730,13 @@ WP_Match_B:
 
                             If EVT = "B" Or EVT = "B Milestone" Then
                                 If CAID3_Used = True And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                    Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                 End If
                                 If CAID3_Used = False And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                    Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                 End If
                                 If CAID3_Used = False And CAID2_Used = False Then
-                                    Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                    Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                 End If
                             End If
 
@@ -4662,7 +4748,7 @@ WP_Match_B:
 
                                     If TimeScaleExport = True Then
 
-                                        ExportTimeScaleResources ID, t, tAssign, 2, "BCWS"
+                                        ExportTimeScaleResources ShortID, t, tAssign, 2, "BCWS"
 
                                     Else
 
@@ -4670,15 +4756,15 @@ WP_Match_B:
 
                                             Case pjResourceTypeWork
 
-                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork / 60 & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                             Case pjResourceTypeCost
 
-                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineCost & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineCost & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                             Case pjResourceTypeMaterial
 
-                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                         End Select
 
@@ -4707,13 +4793,13 @@ next_task:
                 End If
 
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
                 End If
 
             Next i
@@ -4731,7 +4817,7 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
     Dim t As Task
     Dim tAss As Assignments
     Dim tAssign As Assignment
-    Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT As String
+    Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, ShortID, PCNT As String 'v3.3.5
     Dim Milestone As String
     Dim subProj As SubProject
     Dim subProjs As Subprojects
@@ -4746,6 +4832,8 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
     '*******************
     '**What-if Export***
     '*******************
+    
+    ActIDCounter = 0 'v3.3.5
 
     If DescExport = True Then
         Get_WP_Descriptions curproj
@@ -4753,7 +4841,7 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
 
     If ResourceLoaded = False Then
 
-        ACTfilename = destFolder & "\WhatIf ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\WhatIf ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
 
@@ -4821,7 +4909,7 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -4927,23 +5015,23 @@ nrWP_Match:
                                 If EVT = "B" Or EVT = "B Milestone" Then
                                     If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
                                         If CAID3_Used = True And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                         End If
                                         If CAID3_Used = False And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                         End If
                                         If CAID3_Used = False And CAID2_Used = False Then
-                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                         End If
                                     Else
                                         If CAID3_Used = True And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
                                         End If
                                         If CAID3_Used = False And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
                                         End If
                                         If CAID3_Used = False And CAID2_Used = False Then
-                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
                                         End If
                                     End If
 
@@ -4999,7 +5087,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5110,23 +5198,23 @@ nrWP_Match_B:
                             If EVT = "B" Or EVT = "B Milestone" Then
                                 If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                     End If
                                 Else
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
                                     End If
                                 End If
                             End If
@@ -5150,13 +5238,13 @@ Next_nrTask:
                 End If
 
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
                 End If
 
             Next i
@@ -5166,8 +5254,8 @@ Next_nrTask:
 
     Else
 
-        ACTfilename = destFolder & "\WhatIf ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
-        RESfilename = destFolder & "\WhatIf RES_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Name) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        ACTfilename = destFolder & "\WhatIf ACT_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        RESfilename = destFolder & "\WhatIf RES_" & RemoveIllegalCharacters(curproj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
         Open RESfilename For Output As #2
@@ -5235,7 +5323,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -5261,6 +5349,7 @@ Next_nrTask:
                                         ACTarray(X).CAID3 = CAID3
                                     End If
                                     ACTarray(X).ID = ID
+                                    
                                     ACTarray(X).CAM = CAM
                                     ACTarray(X).CAID1 = CAID1
                                     ACTarray(X).EVT = EVT
@@ -5270,6 +5359,14 @@ Next_nrTask:
                                         ACTarray(X).CAID2 = CAID2
                                     End If
                                     ACTarray(X).WP = WP
+                                    'v3.3.5 - check for ID length limit
+                                    If Len(ID) > 58 Then
+                                        ActIDCounter = ActIDCounter + 1
+                                        ACTarray(X).ShortID = ACTarray(X).WP & " (" & ActIDCounter & ")"
+                                        ShortID = ACTarray(X).ShortID
+                                    Else
+                                        ACTarray(X).ShortID = ACTarray(X).ID
+                                    End If
 
                                     X = X + 1
                                     ActFound = True
@@ -5280,6 +5377,7 @@ Next_nrTask:
 
                                 For i = 1 To UBound(ACTarray)
                                     If ACTarray(i).ID = ID Then
+                                        ShortID = ACTarray(i).ShortID
                                         'Found an existing matching WP line
                                         If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
                                             If ACTarray(i).BStart > t.BaselineStart Then
@@ -5321,6 +5419,7 @@ Next_nrTask:
                                     ACTarray(X).CAID3 = CAID3
                                 End If
                                 ACTarray(X).ID = ID
+                                
                                 ACTarray(X).CAM = CAM
                                 ACTarray(X).CAID1 = CAID1
                                 ACTarray(X).EVT = EVT
@@ -5330,6 +5429,14 @@ Next_nrTask:
                                     ACTarray(X).CAID2 = CAID2
                                 End If
                                 ACTarray(X).WP = WP
+                                'v3.3.5 - check for ID length limit
+                                If Len(ID) > 58 Then
+                                    ActIDCounter = ActIDCounter + 1
+                                    ACTarray(X).ShortID = ACTarray(X).WP & " (" & ActIDCounter & ")"
+                                    ShortID = ACTarray(X).ShortID
+                                Else
+                                    ACTarray(X).ShortID = ACTarray(X).ID
+                                End If
 
                                 X = X + 1
                                 ActFound = True
@@ -5341,25 +5448,25 @@ WP_Match:
                                     If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
                                         
                                         If CAID3_Used = True And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                         End If
                                         If CAID3_Used = False And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                         End If
                                         If CAID3_Used = False And CAID2_Used = False Then
-                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                         End If
                                         
                                     Else
                                         
                                         If CAID3_Used = True And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
                                         End If
                                         If CAID3_Used = False And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
                                         End If
                                         If CAID3_Used = False And CAID2_Used = False Then
-                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
                                         End If
                                         
                                     End If
@@ -5374,7 +5481,7 @@ WP_Match:
 
                                         If TimeScaleExport = True Then
 
-                                            ExportTimeScaleResources ID, t, tAssign, 2, "BCWS"
+                                            ExportTimeScaleResources ShortID, t, tAssign, 2, "BCWS"
 
                                         Else
 
@@ -5382,15 +5489,15 @@ WP_Match:
 
                                                 Case pjResourceTypeWork
 
-                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                                    Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork / 60 & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                                 Case pjResourceTypeCost
 
-                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineCost & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                                    Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineCost & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                                 Case pjResourceTypeMaterial
 
-                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                                    Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                             End Select
 
@@ -5402,7 +5509,7 @@ WP_Match:
 
                                             If TimeScaleExport = True Then
     
-                                                ExportTimeScaleResources ID, t, tAssign, 2, "ETC"
+                                                ExportTimeScaleResources ShortID, t, tAssign, 2, "ETC"
     
                                             Else
     
@@ -5410,15 +5517,15 @@ WP_Match:
     
                                                     Case pjResourceTypeWork
     
-                                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                                        Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work / 60 & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
     
                                                     Case pjResourceTypeCost
     
-                                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Cost & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                                        Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Cost & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
     
                                                     Case pjResourceTypeMaterial
     
-                                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                                        Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
     
                                                 End Select
     
@@ -5485,7 +5592,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5511,6 +5618,7 @@ Next_SProj_Task:
                                     ACTarray(X).CAID3 = CAID3
                                 End If
                                 ACTarray(X).ID = ID
+                                
                                 ACTarray(X).CAM = CAM
                                 ACTarray(X).CAID1 = CAID1
                                 ACTarray(X).EVT = EVT
@@ -5520,6 +5628,14 @@ Next_SProj_Task:
                                     ACTarray(X).CAID2 = CAID2
                                 End If
                                 ACTarray(X).WP = WP
+                                'v3.3.5 - check for ID length limit
+                                If Len(ID) > 58 Then
+                                    ActIDCounter = ActIDCounter + 1
+                                    ACTarray(X).ShortID = ACTarray(X).WP & " (" & ActIDCounter & ")"
+                                    ShortID = ACTarray(X).ShortID
+                                Else
+                                    ACTarray(X).ShortID = ACTarray(X).ID
+                                End If
 
                                 X = X + 1
                                 ActFound = True
@@ -5530,6 +5646,7 @@ Next_SProj_Task:
 
                             For i = 1 To UBound(ACTarray)
                                 If ACTarray(i).ID = ID Then
+                                    ShortID = ACTarray(i).ShortID
                                     'Found an existing matching WP line
                                     If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
                                         If ACTarray(i).BStart > t.BaselineStart Then
@@ -5573,12 +5690,21 @@ Next_SProj_Task:
                             ACTarray(X).CAID1 = CAID1
                             ACTarray(X).EVT = EVT
                             ACTarray(X).ID = ID
+                            
                             ACTarray(X).FFinish = t.Finish
                             ACTarray(X).FStart = t.Start
                             If CAID2_Used = True Then
                                 ACTarray(X).CAID2 = CAID2
                             End If
                             ACTarray(X).WP = WP
+                            'v3.3.5 - check for ID length limit
+                            If Len(ID) > 58 Then
+                                ActIDCounter = ActIDCounter + 1
+                                ACTarray(X).ShortID = ACTarray(X).WP & " (" & ActIDCounter & ")"
+                                ShortID = ACTarray(X).ShortID
+                            Else
+                                ACTarray(X).ShortID = ACTarray(X).ID
+                            End If
 
                             X = X + 1
                             ActFound = True
@@ -5590,25 +5716,25 @@ WP_Match_B:
                                 If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
                                         
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, "M/D/YYYY") & "," & Format(t.BaselineFinish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                     End If
                                     
                                 Else
                                     
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, "M/D/YYYY") & "," & Format(t.Finish, "M/D/YYYY") & ","
+                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
                                     End If
                                     
                                 End If
@@ -5623,7 +5749,7 @@ WP_Match_B:
 
                                     If TimeScaleExport = True Then
 
-                                        ExportTimeScaleResources ID, t, tAssign, 2, "BCWS"
+                                        ExportTimeScaleResources ShortID, t, tAssign, 2, "BCWS"
 
                                     Else
 
@@ -5631,15 +5757,15 @@ WP_Match_B:
 
                                             Case pjResourceTypeWork
 
-                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork / 60 & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                             Case pjResourceTypeCost
 
-                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineCost & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineCost & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                             Case pjResourceTypeMaterial
 
-                                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.BaselineWork & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                         End Select
 
@@ -5652,7 +5778,7 @@ WP_Match_B:
 
                                         If TimeScaleExport = True Then
     
-                                            ExportTimeScaleResources ID, t, tAssign, 2, "ETC"
+                                            ExportTimeScaleResources ShortID, t, tAssign, 2, "ETC"
     
                                         Else
     
@@ -5660,15 +5786,15 @@ WP_Match_B:
     
                                                 Case pjResourceTypeWork
     
-                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                                    Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work / 60 & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
     
                                                 Case pjResourceTypeCost
     
-                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Cost & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                                    Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Cost & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
     
                                                 Case pjResourceTypeMaterial
     
-                                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                                    Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
     
                                             End Select
     
@@ -5699,13 +5825,13 @@ next_task:
                 End If
 
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, "M/D/YYYY") & "," & Format(ACTarray(i).BFinish, "M/D/YYYY") & "," & ACTarray(i).EVT
+                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
                 End If
 
             Next i
@@ -6078,7 +6204,7 @@ Private Function RemoveIllegalCharacters(ByVal strText As String) As String
     For lngCounter = LBound(astrChars()) To UBound(astrChars())
         strText = Replace(strText, astrChars(lngCounter), vbNullString)
     Next lngCounter
-
+    
     RemoveIllegalCharacters = strText
 
 End Function
@@ -6225,7 +6351,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                 If tsvs.Count = 1 Then
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                 Else
 
@@ -6233,15 +6359,15 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                         Case 1
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                         Case tsvs.Count
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                         Case Else
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                     End Select
 
@@ -6262,7 +6388,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                 If tsvs.Count = 1 Then
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                 Else
 
@@ -6270,15 +6396,15 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                         Case 1
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.Start, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                         Case tsvs.Count
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                         Case Else
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                     End Select
 
@@ -6315,7 +6441,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                             If tsvs.Count = 1 Then
 
-                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                             Else
 
@@ -6323,15 +6449,15 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                     Case 1
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                     Case tsvs.Count
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                     Case Else
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                 End Select
 
@@ -6352,7 +6478,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                             If tsvs.Count = 1 Then
 
-                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                             Else
 
@@ -6360,15 +6486,15 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                     Case 1
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                     Case tsvs.Count
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                     Case Else
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                 End Select
 
@@ -6405,7 +6531,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                 If tsvs.Count = 1 Then
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                 Else
 
@@ -6413,15 +6539,15 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                         Case 1
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                         Case tsvs.Count
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                         Case Else
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                     End Select
 
@@ -6442,7 +6568,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                 If tsvs.Count = 1 Then
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                 Else
 
@@ -6450,15 +6576,15 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                         Case 1
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.Start, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                         Case tsvs.Count
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.Finish, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
                                         Case Else
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                     End Select
 
@@ -6487,7 +6613,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                             If tsvs.Count = 1 Then
 
-                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                             Else
 
@@ -6495,15 +6621,15 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                     Case 1
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                     Case tsvs.Count
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                     Case Else
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value / 60 & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                 End Select
 
@@ -6524,7 +6650,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                         If tsvs.Count = 1 Then
 
-                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                         Else
 
@@ -6532,15 +6658,15 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                 Case 1
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                 Case tsvs.Count
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                 Case Else
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                             End Select
 
@@ -6561,7 +6687,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                         If tsvs.Count = 1 Then
 
-                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                         Else
 
@@ -6569,15 +6695,15 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                 Case 1
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tAssign.BaselineStart, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                                 Case tsvs.Count
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tAssign.BaselineFinish, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tAssign.BaselineFinish, dateFmt)
 
                                 Case Else
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, "M/D/YYYY") & "," & Format(tsv.EndDate - 1, "M/D/YYYY")
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tsv.Value & "," & Format(tsv.StartDate, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
 
                             End Select
 
