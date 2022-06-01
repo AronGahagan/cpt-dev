@@ -369,7 +369,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptAnalyzeEVT()
+Sub cptAnalyzeEVT(Optional lngImportField As Long)
   'objects
   Dim oRange As Excel.Range
   Dim oWorksheet As Excel.Worksheet
@@ -525,11 +525,31 @@ next_task:
   oExcel.ActiveWindow.FreezePanes = True
   oWorksheet.[A1].AutoFilter
   oWorksheet.Columns.AutoFit
-  MsgBox "Copy UIDs from Excel to 'Filter By Clipboard' to apply bulk EVT changes.", vbInformation + vbOKOnly, "Hint:"
+  If lngImportField > 0 Then
+    cptSpeed True
+    Dim oCell As Excel.Range
+    lngLastRow = oWorksheet.Cells(1048576, 1).End(xlUp).Row
+    Set oRange = oWorksheet.Range(oWorksheet.[A2], oWorksheet.Cells(lngLastRow, 1))
+    lngTasks = oRange.Cells.Count
+    lngTask = 1
+    For Each oCell In oRange.Cells
+      Set oTask = ActiveProject.Tasks.UniqueID(oCell.Value)
+      oTask.SetField lngImportField, oCell.Offset(0, 4)
+      lngTask = lngTask + 1
+      cptFiscal_frm.lblProgress.Width = (lngTask / lngTasks) * cptFiscal_frm.lblStatus.Width
+      cptFiscal_frm.lblStatus.Caption = "Importing...(" & Format(lngTask / lngTasks, "0%") & ")"
+    Next oCell
+    cptFiscal_frm.lblStatus.Caption = "Complete"
+    cptFiscal_frm.lblProgress.Width = cptFiscal_frm.lblStatus.Width
+    cptSpeed False
+  Else
+    MsgBox "Copy UIDs from Excel to 'Filter By Clipboard' to apply bulk EVT changes.", vbInformation + vbOKOnly, "Hint:"
+  End If
   Application.ActivateMicrosoftApp (pjMicrosoftExcel)
   
 exit_here:
   On Error Resume Next
+  cptSpeed False
   Set oRange = Nothing
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
