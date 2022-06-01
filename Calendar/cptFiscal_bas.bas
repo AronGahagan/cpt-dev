@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptFiscal_bas"
 '<cpt_version>v0.1.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
+Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowFiscal_frm()
@@ -30,17 +30,22 @@ Dim lngItem As Long
         oException.Delete
       Next oException
     End If
-    cptFiscal_frm.txtExceptions.ControlTipText = "Drag and Drop data here"
-    cptFiscal_frm.lboExceptions.ControlTipText = "Drag and Drop data here"
+    cptFiscal_frm.txtExceptions.ControlTipText = "Paste list of fiscal end dates here (e.g., from a vertical list or column in Excel), with or without a corresponding label"
+    cptFiscal_frm.lboExceptions.ControlTipText = "Paste list of fiscal end dates here (e.g., from a vertical list or column in Excel), with or without a corresponding label"
   Else
-    cptFiscal_frm.txtExceptions.ControlTipText = ""
-    cptFiscal_frm.lboExceptions.ControlTipText = ""
+    If oCal.Exceptions.Count = 0 Then
+      cptFiscal_frm.txtExceptions.ControlTipText = "Paste list of fiscal end dates here (e.g., from a vertical list or column in Excel), with or without a corresponding label"
+      cptFiscal_frm.lboExceptions.ControlTipText = "Paste list of fiscal end dates here (e.g., from a vertical list or column in Excel), with or without a corresponding label"
+    Else
+      cptFiscal_frm.txtExceptions.ControlTipText = ""
+      cptFiscal_frm.lboExceptions.ControlTipText = ""
+    End If
   End If
   
   With cptFiscal_frm
     
     .lboExceptions.Clear
-  
+    .Caption = "Fiscal Calendar (" & cptGetVersion("cptFiscal_bas") & ")"
     'load exceptions
     '.lboExceptions.ColumnWidths = 45
     For Each oException In oCal.Exceptions
@@ -78,8 +83,8 @@ Dim lngItem As Long
         MsgBox "The project's forecast finish date is after the latest fiscal period end date.", vbInformation + vbOKOnly, "Heads up"
       End If
     End If
-    
-    .Show False 'todo: true
+        
+    .Show 'Modal=True
     
   End With
     
@@ -453,17 +458,17 @@ Sub cptAnalyzeEVT()
   lngFile = FreeFile
   strFile = Environ("tmp") & "\fiscal.csv"
   Open strFile For Output As #lngFile
-  Print #1, "fisc_end,label,"
+  Print #lngFile, "fisc_end,label,"
   For Each oException In oCalendar.Exceptions
-    Print #1, oException.Finish & "," & oException.Name
+    Print #lngFile, oException.Finish & "," & oException.Name
   Next oException
-  Close #1
+  Close #lngFile
   
   'export discrete, PMB tasks
   lngFile = FreeFile
   strFile = Environ("tmp") & "\tasks.csv"
   Open strFile For Output As #lngFile
-  Print #1, "UID,BLS,BLF,EVT,"
+  Print #lngFile, "UID,BLS,BLF,EVT,"
   For Each oTask In oProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.Summary Then GoTo next_task
@@ -474,10 +479,10 @@ Sub cptAnalyzeEVT()
     If Not IsDate(oTask.BaselineStart) Or Not IsDate(oTask.BaselineFinish) Then
       strMissingBaselines = strMissingBaselines = oTask.UniqueID & ","
     End If
-    Print #1, oTask.UniqueID & "," & FormatDateTime(oTask.BaselineStart, vbShortDate) & "," & FormatDateTime(oTask.BaselineFinish, vbShortDate) & "," & oTask.GetField(lngEVT)
+    Print #lngFile, oTask.UniqueID & "," & FormatDateTime(oTask.BaselineStart, vbShortDate) & "," & FormatDateTime(oTask.BaselineFinish, vbShortDate) & "," & oTask.GetField(lngEVT)
 next_task:
   Next oTask
-  Close #1
+  Close #lngFile
   
   If Len(strMissingBaselines) > 0 Then
     Debug.Print "MISSING BASELINES: " & strMissingBaselines
@@ -520,6 +525,8 @@ next_task:
   oExcel.ActiveWindow.FreezePanes = True
   oWorksheet.[A1].AutoFilter
   oWorksheet.Columns.AutoFit
+  MsgBox "Copy UIDs from Excel to 'Filter By Clipboard' to apply bulk EVT changes.", vbInformation + vbOKOnly, "Hint:"
+  Application.ActivateMicrosoftApp (pjMicrosoftExcel)
   
 exit_here:
   On Error Resume Next
@@ -527,7 +534,6 @@ exit_here:
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
   Set oExcel = Nothing
-  'todo: status bar, progress bar
   For lngFile = 1 To FreeFile
     Close #lngFile
   Next lngFile
