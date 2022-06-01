@@ -18,8 +18,64 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+Private Sub chkImportResults_Click()
+  Dim lngItem As Long, lngField As Long
+  Dim strField As String
+  Dim oDict As Scripting.Dictionary
+  Dim vType As Variant
+
+  On Error GoTo 0
+  If chkImportResults Then
+    Me.cboImportField.Visible = True
+    Me.cboImportField.Clear
+    Me.lblProgress.Visible = True
+    Me.lblStatus.Visible = True
+    Me.lblProgress.Width = Me.lblStatus.Width
+    Set oDict = New Scripting.Dictionary
+    oDict.Add "Number", 20
+    oDict.Add "Text", 30
+    For Each vType In oDict.Keys
+      For lngItem = 1 To oDict.Item(vType)
+        strField = vType & lngItem
+        lngField = FieldNameToFieldConstant(strField)
+        If Len(CustomFieldGetName(lngField)) > 0 Then
+          'strField = CustomFieldGetName(lngField) & " (" & strField & ")"
+          'Me.cboImportField.List(Me.cboImportField.ListCount - 1, 1) = strField
+        Else
+          Me.cboImportField.AddItem
+          Me.cboImportField.List(Me.cboImportField.ListCount - 1, 0) = lngField
+          Me.cboImportField.List(Me.cboImportField.ListCount - 1, 1) = strField
+        End If
+      Next lngItem
+    Next vType
+    If Me.cboImportField.ListCount = 0 Then
+      MsgBox "You have no local custom number or text fields available.", vbExclamation + vbOKOnly, "No Room"
+      Me.chkImportResults = False
+    Else
+      Me.cboImportField.SetFocus
+      Me.cboImportField.DropDown
+    End If
+  Else
+    Me.cboImportField.Clear
+    Me.cboImportField.Enabled = False
+    Me.cboImportField.Visible = False
+    Me.lblStatus.Visible = False
+    Me.lblProgress.Visible = False
+  End If
+  
+  Set oDict = Nothing
+End Sub
+
 Private Sub cmdAnalyzeEVT_Click()
-  Call cptAnalyzeEVT
+  If IsNull(Me.cboImportField.Value) Then
+    MsgBox "Please select an avaialable local custom number or text field and try again.", vbCritical + vbOKOnly, "Import...where?"
+    Exit Sub
+  End If
+  If Me.chkImportResults Then
+    Call cptAnalyzeEVT(Me.cboImportField.Value)
+  Else
+    Call cptAnalyzeEVT
+  End If
 End Sub
 
 Private Sub cmdDelete_Click()
