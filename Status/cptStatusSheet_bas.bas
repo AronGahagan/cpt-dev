@@ -2676,7 +2676,222 @@ exit_here:
   
   Exit Sub
 err_here:
-  'Call HandleErr("cptStatusSheet_bas", "cptCaptureJournal", Err)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
+  Call cptHandleErr("cptStatusSheet_bas", "cptCaptureJournal", Err, Erl)
   Resume exit_here
 End Sub
+
+Sub cptExportCompletedWork()
+  'objects
+  Dim oAssignment As Assignment
+  Dim oWorksheet As Object 'Excel.Worksheet
+  Dim oWorkbook As Object 'Excel.Workbook
+  Dim oExcel As Object 'Excel.Application
+  Dim oRecordset As Object 'ADODB.Recordset
+  Dim oTask As Task
+  'strings
+  Dim strEVP As String
+  Dim strEVT As String
+  Dim strLC As String
+  Dim strWPM As String
+  Dim strWPCN As String
+  Dim strCAM As String
+  Dim strOBS As String
+  Dim strCWBS As String
+  Dim strProgram As String
+  Dim strRecord As String
+  Dim strCon As String
+  Dim strDir As String
+  Dim strSQL As String
+  Dim strFile As String
+  'longs
+  Dim lngLC As Long
+  Dim lngEVP As Long
+  Dim lngEVT As Long
+  Dim lngItem As Long
+  Dim lngWPM As Long
+  Dim lngWPCN As Long
+  Dim lngCAM As Long
+  Dim lngOBS As Long
+  Dim lngCWBS As Long
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  Dim lngFile As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnMissing As Boolean
+  'variants
+  'dates
+  Dim dtStatus As Date
+  Dim dtAF As Date
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'todo: error checking
+  strCWBS = ActiveProject.CustomDocumentProperties("fCAID1")
+  strOBS = ActiveProject.CustomDocumentProperties("fCAID2")
+  strCAM = ActiveProject.CustomDocumentProperties("fCAM")
+  strWPCN = ActiveProject.CustomDocumentProperties("fWP")
+  'strWPM = "WPM" 'ActiveProject.CustomDocumentProperties("fWPM") 'todo: where to get WPM?
+  strLC = ActiveProject.CustomDocumentProperties("fResID")
+  strEVT = ActiveProject.CustomDocumentProperties("fEVT")
+  strEVP = ActiveProject.CustomDocumentProperties("fPCNT")
+  
+  blnMissing = False
+  
+  lngCWBS = FieldNameToFieldConstant(strCWBS)
+  lngOBS = FieldNameToFieldConstant(strOBS)
+  lngCAM = FieldNameToFieldConstant(strCAM)
+  lngWPCN = FieldNameToFieldConstant(strWPCN)
+  'lngWPM = FieldNameToFieldConstant(strWPM)
+  lngLC = FieldNameToFieldConstant(strLC, pjResource)
+  lngEVT = FieldNameToFieldConstant(strEVT)
+  lngEVP = FieldNameToFieldConstant(strEVP)
+  
+  cptSaveSetting "Integration", "CWBS", lngCWBS & "|" & strCWBS '& " (" & FieldConstantToFieldName(lngCWBS) & ")"
+  cptSaveSetting "Integration", "OBS", lngOBS & "|" & strOBS '& " (" & FieldConstantToFieldName(lngOBS) & ")"
+  cptSaveSetting "Integration", "CAM", lngCAM & "|" & strCAM '& " (" & FieldConstantToFieldName(lngCAM) & ")"
+  cptSaveSetting "Integration", "WPCN", lngWPCN & "|" & strWPCN '& " (" & FieldConstantToFieldName(lngWPCN) & ")"
+  'cptSaveSetting "Integration", "WPM", lngWPM & "|" & strWPM '& " (" & FieldConstantToFieldName(lngWPM) & ")"
+  cptSaveSetting "Integration", "LC", lngLC & "|" & strLC '& " (" & FieldConstantToFieldName(lngLC) & ")"
+  cptSaveSetting "Integration", "EVT", lngEVT & "|" & strEVT '& " (" & FieldConstantToFieldName(lngEVT) & ")"
+  cptSaveSetting "Integration", "EVP", lngEVP & "|" & strEVP '& " (" & FieldConstantToFieldName(lngEVP) & ")"
+  
+  'create Schema
+  strFile = Environ("tmp") & "\Schema.ini"
+  lngFile = FreeFile
+  Open strFile For Output As #lngFile
+  Print #lngFile, "[wpcn.csv]"
+  Print #lngFile, "Format=CSVDelimited"
+  Print #lngFile, "ColNameHeader=True"
+  Print #lngFile, "Col1=UID Long"
+  Print #lngFile, "Col2=CWBS Text"
+  Print #lngFile, "Col3=OBS Text"
+  Print #lngFile, "Col4=CAM Text"
+  Print #lngFile, "Col5=WPCN Text"
+  'Print #lngFile, "Col6=WPM Text"
+  Print #lngFile, "Col6=LC Text"
+  Print #lngFile, "Col7=AF DateTime"
+  Print #lngFile, "Col8=PercentComplete Long"
+  Close #lngFile
+  
+  strFile = Environ("tmp") & "\wpcn.csv"
+  lngFile = FreeFile
+  Open strFile For Output As #lngFile
+  Print #lngFile, "UID,CWBS,OBS,CAM,WPCN,LC,AF,PercentComplete," 'WPM, after WPCN
+  
+  lngTasks = ActiveProject.Tasks.Count
+    
+  For Each oTask In ActiveProject.Tasks
+    If oTask Is Nothing Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If oTask.ExternalTask Then GoTo next_task
+    For Each oAssignment In oTask.Assignments
+      strRecord = oTask.UniqueID & ","
+      strRecord = strRecord & oTask.GetField(lngCWBS) & ","
+      strRecord = strRecord & oTask.GetField(lngOBS) & ","
+      strRecord = strRecord & oTask.GetField(lngCAM) & ","
+      strRecord = strRecord & oTask.GetField(lngWPCN) & ","
+      'strRecord = strRecord & oTask.GetField(lngWPM) & ","
+      strRecord = strRecord & oAssignment.Resource.GetField(lngLC) & ","
+      If IsDate(oTask.ActualFinish) Then
+        dtAF = FormatDateTime(oTask.ActualFinish, vbShortDate)
+      Else
+        dtAF = #1/1/1984#
+      End If
+      strRecord = strRecord & dtAF & ","
+      strRecord = strRecord & CLng(Replace(oTask.GetField(lngEVP), "%", "")) & "," 'assumes 100
+      Print #lngFile, strRecord
+    Next oAssignment
+    
+next_task:
+    lngTask = lngTask + 1
+    Application.StatusBar = Format(lngTask, "#,##0") & " / " & Format(lngTasks, "#,##0") & "...(" & Format(lngTask / lngTasks, "0%") & ")"
+    DoEvents
+  Next oTask
+  Close #lngFile
+  
+  strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & Environ("tmp") & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
+  strSQL = "SELECT WPCN,MAX(AF),AVG(PercentComplete) AS EV "
+  strSQL = strSQL & "FROM wpcn.csv "
+  strSQL = strSQL & "GROUP BY WPCN "
+  strSQL = strSQL & "HAVING AVG(PercentComplete)=100 "
+  strSQL = strSQL & "ORDER BY MAX(AF) Desc "
+  'strSQL = "SELECT * FROM wpcn.csv"
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  oRecordset.Open strSQL, strCon, 1, 1 '1=adOpenKeyset, 1=adLockReadOnly
+  If oRecordset.RecordCount > 0 Then
+    On Error Resume Next
+    Set oExcel = GetObject(, "Excel.Application")
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If oExcel Is Nothing Then
+      Set oExcel = CreateObject("Excel.Application")
+    End If
+    Set oWorkbook = oExcel.Workbooks.Add
+    Set oWorksheet = oWorkbook.Sheets(1)
+    oWorksheet.Name = "COMPLETED WPCNs"
+    oWorksheet.[A1:C1] = Array("WPCN", "AF", "EV")
+    oWorksheet.[A1:C1].Font.Bold = True
+    oWorksheet.[A2].CopyFromRecordset oRecordset
+    oRecordset.Close
+    oExcel.ActiveWindow.Zoom = 85
+    oWorksheet.Columns(2).HorizontalAlignment = xlCenter
+    oWorksheet.Rows(1).HorizontalAlignment = xlLeft
+    oWorksheet.[A1].AutoFilter
+    oWorksheet.Columns.AutoFit
+    oExcel.ActiveWindow.SplitRow = 1
+    oExcel.ActiveWindow.SplitColumn = 0
+    oExcel.ActiveWindow.FreezePanes = True
+    'get details
+    If oWorkbook.Sheets.Count >= 2 Then
+      Set oWorksheet = oWorkbook.Sheets(2)
+    Else
+      Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
+    End If
+    oWorksheet.Name = "DETAILS"
+    strSQL = "SELECT * FROM wpcn.csv ORDER BY WPCN,PercentComplete"
+    oRecordset.Open strSQL, strCon, 1, 1 '1=adOpenKeyset, 1=adLockReadOnly
+    For lngItem = 0 To oRecordset.Fields.Count - 1
+      oWorksheet.Cells(1, lngItem + 1) = oRecordset.Fields(lngItem).Name
+    Next lngItem
+    oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
+    oWorksheet.[A2].CopyFromRecordset oRecordset
+    oWorksheet.Columns(8).Replace #1/1/1984#, "NA"
+    oExcel.ActiveWindow.Zoom = 85
+    oWorksheet.Columns(8).HorizontalAlignment = xlCenter
+    oWorksheet.Rows(1).HorizontalAlignment = xlLeft
+    oWorksheet.[A1].AutoFilter
+    oWorksheet.Columns.AutoFit
+    oExcel.ActiveWindow.SplitRow = 1
+    oExcel.ActiveWindow.SplitColumn = 0
+    oExcel.ActiveWindow.FreezePanes = True
+    oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)).AutoFilter Field:=8, Criteria1:="100" 'Field:=9
+    oRecordset.Close
+    oWorkbook.Sheets("COMPLETED WPCNs").Activate
+    oExcel.Visible = True
+    oExcel.ActiveWindow.WindowState = xlNormal
+    Application.ActivateMicrosoftApp pjMicrosoftExcel
+  Else
+    MsgBox "No records found!", vbExclamation + vbOKOnly, "Completed Work"
+  End If
+    
+exit_here:
+  On Error Resume Next
+  Set oAssignment = Nothing
+  Application.StatusBar = ""
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
+  If oRecordset.State = 1 Then oRecordset.Close
+  Set oRecordset = Nothing
+  Kill Environ("tmp") & "\Schema.ini"
+  Kill Environ("tmp") & "\wpcn.csv"
+  Set oTask = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptCompletedWork", Err, Erl)
+  Resume exit_here
+End Sub
+
+
