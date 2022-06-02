@@ -2724,10 +2724,8 @@ Sub cptExportCompletedWork()
   'dates
   Dim dtStatus As Date
   Dim dtAF As Date
-
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
-  'todo: error checking
+  On Error Resume Next
   strCWBS = ActiveProject.CustomDocumentProperties("fCAID1")
   strOBS = ActiveProject.CustomDocumentProperties("fCAID2")
   strCAM = ActiveProject.CustomDocumentProperties("fCAM")
@@ -2737,7 +2735,21 @@ Sub cptExportCompletedWork()
   strEVT = ActiveProject.CustomDocumentProperties("fEVT")
   strEVP = ActiveProject.CustomDocumentProperties("fPCNT")
   
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
   blnMissing = False
+  If strCWBS = "" Then blnMissing = True
+  If strOBS = "" Then blnMissing = True
+  If strCAM = "" Then blnMissing = True
+  If strWPCN = "" Then blnMissing = True
+  If strLC = "" Then blnMissing = True
+  If strEVT = "" Then blnMissing = True
+  If strEVP = "" Then blnMissing = True
+  
+  If blnMissing Then
+    MsgBox "Please fill out all required fields in the COBRA Export Tool's Config tab, then try again.", vbExclamation + vbOKOnly, "Fields Unmapped"
+    GoTo exit_here
+  End If
   
   lngCWBS = FieldNameToFieldConstant(strCWBS)
   lngOBS = FieldNameToFieldConstant(strOBS)
