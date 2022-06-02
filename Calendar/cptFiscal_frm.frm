@@ -18,6 +18,19 @@ Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
+Private Sub cboImportField_Change()
+  If Not IsNull(Me.cboImportField.Value) Then
+    Me.lblProgress.Width = Me.lblStatus.Width
+    Me.lblProgress.Visible = True
+    Me.lblStatus.Visible = True
+    Me.cmdAnalyzeEVT.SetFocus
+  Else
+    Me.lblProgress.Width = Me.lblStatus.Width
+    Me.lblProgress.Visible = False
+    Me.lblStatus.Visible = False
+  End If
+End Sub
+
 Private Sub chkImportResults_Click()
   Dim lngItem As Long, lngField As Long
   Dim strField As String
@@ -26,11 +39,9 @@ Private Sub chkImportResults_Click()
 
   On Error GoTo 0
   If chkImportResults Then
+    Me.lblAvailableFields.Visible = True
     Me.cboImportField.Visible = True
     Me.cboImportField.Clear
-    Me.lblProgress.Visible = True
-    Me.lblStatus.Visible = True
-    Me.lblProgress.Width = Me.lblStatus.Width
     Set oDict = New Scripting.Dictionary
     oDict.Add "Number", 20
     oDict.Add "Text", 30
@@ -57,22 +68,23 @@ Private Sub chkImportResults_Click()
     End If
   Else
     Me.cboImportField.Clear
-    Me.cboImportField.Enabled = False
     Me.cboImportField.Visible = False
     Me.lblStatus.Visible = False
     Me.lblProgress.Visible = False
+    Me.lblAvailableFields.Visible = False
   End If
   
   Set oDict = Nothing
 End Sub
 
 Private Sub cmdAnalyzeEVT_Click()
-  If IsNull(Me.cboImportField.Value) Then
-    MsgBox "Please select an avaialable local custom number or text field and try again.", vbCritical + vbOKOnly, "Import...where?"
-    Exit Sub
-  End If
   If Me.chkImportResults Then
-    Call cptAnalyzeEVT(Me.cboImportField.Value)
+    If IsNull(Me.cboImportField.Value) Then
+      MsgBox "Please select an avaialable local custom number or text field and try again.", vbCritical + vbOKOnly, "Import...where?"
+      Exit Sub
+    Else
+      Call cptAnalyzeEVT(Me.cboImportField.Value)
+    End If
   Else
     Call cptAnalyzeEVT
   End If
