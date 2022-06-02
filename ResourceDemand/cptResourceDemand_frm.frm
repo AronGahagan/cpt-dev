@@ -112,7 +112,7 @@ End Sub
 Private Sub cmdExport_Click()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  Call cptExportResourceDemand
+  Call cptExportResourceDemandNew 'todo: revert
 
 exit_here:
   On Error Resume Next
