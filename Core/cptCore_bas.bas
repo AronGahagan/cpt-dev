@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.9.8</cpt_version>
+'<cpt_version>v1.10.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
+'Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
@@ -39,7 +39,7 @@ Dim UserForm As Object
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   For Each UserForm In VBA.UserForms
     If UserForm.Name = strModuleName Then
@@ -69,7 +69,7 @@ Function cptGetUserFullName()
 'used to add user's name to PowerPoint title slide
 Dim objAllNames As Object, objIndName As Object
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   On Error Resume Next
   Set objAllNames = GetObject("Winmgmts:").instancesof("win32_networkloginprofile")
@@ -110,7 +110,7 @@ Function cptGetVersions() As String
 'requires reference: Microsoft Scripting Runtime
 Dim vbComponent As Object, strVersion As String
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   For Each vbComponent In ThisProject.VBProject.VBComponents
     'is the vbComponent one of ours?
@@ -150,7 +150,7 @@ Dim blnExists As Boolean
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(strFileName) = 0 Then strFileName = "Core/cptUpgrades_frm.frm"
 
@@ -192,7 +192,7 @@ frx:
     strNewFileName = strModule & "_" & Format(Now, "hhnnss")
     ThisProject.VBProject.VBComponents(strModule).Name = strNewFileName
     DoEvents
-    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(strNewFileName)
+    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(strNewFileName)
     cptCore_bas.cptStartEvents
     DoEvents
   End If
@@ -235,7 +235,7 @@ Dim strAbout As String
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not cptModuleExists("cptAbout_frm") Then '<issue19>
     MsgBox "Please re-run cptSetup() to restore the missing About form.", vbCritical + vbOKOnly, "Missing Form"
@@ -248,7 +248,7 @@ Dim strAbout As String
   strAbout = strAbout & "This software is provided free of charge," & vbCrLf
   strAbout = strAbout & "AS IS and without warranty." & vbCrLf
   strAbout = strAbout & "It is free to use, free to distribute with prior written consent from the developers/copyright holders and without modification." & vbCrLf & vbCrLf
-  strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright 2019, ClearPlanConsulting, LLC"
+  strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright " & Year(Now()) & ", ClearPlan Consulting, LLC"
   cptAbout_frm.txtAbout.Value = strAbout  '<issue19>
 
   'follow the project
@@ -263,7 +263,9 @@ Dim strAbout As String
   'cptAbout_frm.lblScoreBoard.Caption = "t0 : b3" 'EWR > SAN
   'cptAbout_frm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR
   'cptAbout_frm.lblScoreBoard.Caption = "t0 : b5" 'EWR > NAS
-  cptAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR
+  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR
+  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b7" 'EWR > SAV
+  cptAbout_frm.lblScoreBoard.Caption = "t0 : b8" 'EWR > SAV
   
   cptAbout_frm.Caption = "The ClearPlan Toolbar - " & cptGetVersion("cptAbout_frm")
   cptAbout_frm.Show '<issue19>
@@ -282,7 +284,7 @@ Function cptReferenceExists(strReference As String) As Boolean
 'used to ensure a reference exists, returns boolean
 Dim Ref As Object, blnExists As Boolean
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   blnExists = False
 
@@ -308,7 +310,7 @@ Function cptGetReferences(Optional blnVerbose As Boolean = False)
 'prints the current uesr's selected references
 'this would be used to troubleshoot with users real-time
 'although simply runing setreferences would fix it
-Dim oRef As Reference
+Dim oRef As Object 'Reference
 
   For Each oRef In ThisProject.VBProject.References
     Debug.Print oRef.Name & " (" & oRef.Description & ") " & oRef.FullPath
@@ -333,7 +335,7 @@ Dim strURL As String
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'the calling subroutine should catch the Not cptInternetIsConnected function before calling this
 
@@ -344,7 +346,7 @@ Dim strURL As String
   xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
   strURL = strGitHub & "CurrentVersions.xml"
   If Not xmlDoc.Load(strURL) Then
-    MsgBox xmlDoc.parseError.ErrorCode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
+    MsgBox xmlDoc.parseError.errorcode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
   Else
     Set xmlNode = xmlDoc.SelectSingleNode("//Name[text()='" + strModule + "']").ParentNode.SelectSingleNode("Directory")
     strDirectory = xmlNode.Text
@@ -403,8 +405,8 @@ Dim strRegEx As String
   End Select
     
   'Office Applications
-  strRegEx = "C\:.*Microsoft Office[A-z0-9\\]*Office[0-9]{2}"
-  strDir = Replace(cptRegEx(Environ("PATH"), strRegEx), ";", "")
+  strDir = cptRegEx(Environ("PATH"), "C:\\[^;]*Office[0-9]{1,}\\")
+  If Len(strDir) = 0 Then GoTo windows_common
   Select Case strReference
     Case "Excel"
       If Not cptReferenceExists("Excel") Then
@@ -428,6 +430,7 @@ Dim strRegEx As String
       End If
 
     'Windows Common
+windows_common:
     Case "MSForms"
       If Not cptReferenceExists("MSForms") Then
         ThisProject.VBProject.References.AddFromFile Environ("windir") & "\SysWOW64\FM20.DLL"
@@ -470,9 +473,11 @@ err_here:
   Resume exit_here
 
 End Function
+
 Sub cptResetAll()
   Dim rstSettings As Object 'ADODB.Recordset
   'strings
+  Dim strFilter As String
   Dim strOutlineLevel As String
   Dim strSettings As String
   Dim strFile As String
@@ -483,10 +488,11 @@ Sub cptResetAll()
   'integers
   'doubles
   'booleans
+  Dim blnFilter As Boolean
   'variants
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   '===
   'Validate users selected view type
   If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
@@ -530,15 +536,18 @@ Sub cptResetAll()
       lngSettings = lngSettings - 64
     End If
     If lngSettings >= 32 Then 'clear filter
+      blnFilter = True
       FilterClear
       lngSettings = lngSettings - 32
+    Else
+      blnFilter = False
     End If
     If lngSettings >= 16 Then 'sort by ID
       Sort "ID", , , , , , False, True
       lngSettings = lngSettings - 16
     End If
     If lngSettings >= 8 Then 'expand all tasks
-      OptionsViewEx displaysummaryTasks:=True
+      OptionsViewEx DisplaySummaryTasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -549,10 +558,21 @@ Sub cptResetAll()
           GoTo exit_here
         End If
       End If
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If ActiveProject.Subprojects.Count > 0 Then
+        OptionsViewEx DisplaySummaryTasks:=True
+        If Not blnFilter Then
+          strFilter = ActiveProject.CurrentFilter
+        End If
+        FilterClear
+        SelectAll
+        OutlineShowAllTasks
+        If Len(strFilter) > 0 Then FilterApply strFilter
+      End If
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       lngSettings = lngSettings - 8
     Else 'expand to specific level
-      OptionsViewEx displaysummaryTasks:=True
+      OptionsViewEx DisplaySummaryTasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -563,17 +583,17 @@ Sub cptResetAll()
           GoTo exit_here
         End If
       End If
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       OutlineShowTasks pjTaskOutlineShowLevelMax
       For lngLevel = 20 To lngOutlineLevel Step -1
         OutlineShowTasks lngLevel
       Next lngLevel
     End If
     If lngSettings >= 4 Then 'show summaries
-      OptionsViewEx displaysummaryTasks:=True
+      OptionsViewEx DisplaySummaryTasks:=True
       lngSettings = lngSettings - 4
     Else
-      OptionsViewEx displaysummaryTasks:=False
+      OptionsViewEx DisplaySummaryTasks:=False
     End If
     If lngSettings >= 2 Then 'clear group
       GroupClear
@@ -616,7 +636,7 @@ Sub cptShowResetAll_frm()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   '===
   'Validate users selected view type
@@ -742,7 +762,7 @@ Dim blnUpdatesAreAvailable As Boolean
 'variants
 Dim vCol As Variant
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'update references needed before downloading updates
   Application.StatusBar = "Updating VBA references..."
@@ -776,7 +796,7 @@ Dim vCol As Variant
   xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
   strURL = strGitHub & "CurrentVersions.xml"
   If Not xmlDoc.Load(strURL) Then
-    MsgBox xmlDoc.parseError.ErrorCode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
+    MsgBox xmlDoc.parseError.errorcode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
     GoTo exit_here
   Else
     For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
@@ -969,13 +989,12 @@ Dim strRegEx As String
   End If
 
   'office applications
-  Set oExcel = CreateObject("Excel.Application")
-  If oExcel Is Nothing Then 'weird installation or Excel not installed
+  strDir = cptRegEx(Environ("PATH"), "C:\\[^;]*Office[0-9]{1,}\\")
+  If Len(strDir) = 0 Then 'weird installation or Excel not installed
     MsgBox "Microsoft Office installation is not detetcted. Some features may not operate as expected." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for specialized assistance.", vbCritical + vbOKOnly, "Microsoft Office Compatibility"
     GoTo windows_common
-  Else
-    strDir = oExcel.Path
   End If
+  
   If Not cptReferenceExists("Excel") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
   End If
@@ -1064,7 +1083,7 @@ Dim strURL As String
   'get outlook
   On Error Resume Next
   Set objOutlook = GetObject(, "Outlook.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If objOutlook Is Nothing Then
     Set objOutlook = CreateObject("Outlook.Application")
   End If
@@ -1138,7 +1157,7 @@ Dim lngLevel As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   '===
   'Validate users selected view type
@@ -1170,7 +1189,7 @@ Dim lngLevel As Long
   Application.OpenUndoTransaction "WrapItUp"
   'FilterClear 'do not reset, keep autofilters
   'GroupClear 'do not reset, applies to groups to
-  OptionsViewEx displaysummaryTasks:=True
+  OptionsViewEx DisplaySummaryTasks:=True
   SelectAll
   On Error Resume Next
   If Not OutlineShowAllTasks Then
@@ -1182,7 +1201,7 @@ Dim lngLevel As Long
       GoTo exit_here
     End If
   End If
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   OutlineShowTasks pjTaskOutlineShowLevelMax
   'pjTaskOutlineShowLevelMax = 65,535 = do not use
@@ -1218,8 +1237,12 @@ Sub cptWrapItUpAll()
     ActiveProject.Application.ActiveWindow.TopPane.Activate
   End If
   '===
-  OptionsViewEx displaysummaryTasks:=True
+  OptionsViewEx DisplaySummaryTasks:=True
   On Error Resume Next
+  If ActiveProject.Subprojects.Count > 0 Then
+    FilterClear
+    SelectAll
+  End If
   If Not OutlineShowAllTasks Then
     If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
       Sort "ID", , , , , , False, True
@@ -1272,7 +1295,7 @@ Dim vVersion As Variant
 Dim vLevel As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'clean the versions - include all three levels
   For Each vVersion In Array(strInstalled, strCurrent)
@@ -1358,7 +1381,7 @@ Sub cptGroupReapply()
     MsgBox "Cannot reapply a Custom AutoFilter Group", vbInformation + vbOKCancel, "Reapply Group"
   End If
   ScreenUpdating = True
-  If lngUID > 0 Then EditGoTo ActiveProject.Tasks.UniqueID(lngUID).ID
+  If lngUID > 0 Then Find "Unique ID", "equals", lngUID
 End Sub
 
 Function cptSaveSetting(strFeature As String, strSetting As String, strValue As String) As Boolean
@@ -1391,7 +1414,7 @@ Function cptFilterExists(strFilter As String) As Boolean
 
   On Error Resume Next
   Set oFilter = ActiveProject.TaskFilters(strFilter)
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   cptFilterExists = Not oFilter Is Nothing
   
 exit_here:
@@ -1406,7 +1429,7 @@ End Function
 
 Sub cptCreateFilter(strFilter As String)
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Select Case strFilter
     Case "Marked"
@@ -1429,6 +1452,7 @@ Sub cptShowSettings_frm()
   Dim oStream As Scripting.TextStream
   Dim oFSO As Scripting.FileSystemObject
   'strings
+  Dim strErrorTrapping As String
   Dim strSettingsFileNew As String
   Dim strSettingsFile As String
   Dim strProgramAcronym As String
@@ -1442,7 +1466,7 @@ Sub cptShowSettings_frm()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Set oRecordset = CreateObject("ADODB.Recordset")
   With oRecordset
@@ -1495,6 +1519,13 @@ Sub cptShowSettings_frm()
     If .lboFeatures.ListCount > 0 Then
       .lboFeatures.Value = .lboFeatures.List(0, 0)
     End If
+    'get error-trapping on/off and set toggle button
+    strErrorTrapping = cptGetSetting("General", "ErrorTrapping")
+    If Len(strErrorTrapping) > 0 Then
+      .tglErrorTrapping = strErrorTrapping = 0
+    Else
+      .tglErrorTrapping = False
+    End If
     .Show
   End With
   
@@ -1526,7 +1557,7 @@ Function cptGetProgramAcronym()
   
   On Error Resume Next
   Set oCustomDocumentProperty = ActiveProject.CustomDocumentProperties("cptProgramAcronym")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oCustomDocumentProperty Is Nothing Then
     strMsg = "For some features, a unique program acronym is required to capture data (locally)." & vbCrLf & vbCrLf
     strMsg = strMsg & "This program acronym is saved in a custom document property named 'cptProgramAcronym'." & vbCrLf & vbCrLf
@@ -1557,7 +1588,7 @@ err_here:
 End Function
 
 Sub cptOpenSettingsFile()
-  Shell "notepad.exe '" & cptDir & "\settings\cpt-settings.ini" & "'"
+  shell "notepad.exe '" & cptDir & "\settings\cpt-settings.ini" & "'"
 End Sub
 
 Function cptGetMyHeaders(strTitle As String, Optional blnRequired As Boolean = False) As String
@@ -1573,7 +1604,7 @@ Function cptGetMyHeaders(strTitle As String, Optional blnRequired As Boolean = F
   Dim vMyHeader As Variant
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
 try_again:
   'get other fields
@@ -1624,7 +1655,7 @@ try_again:
       End If
     End If
   Next vMyHeader
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   cptSaveSetting "Metrics", "txtMyHeaders", strMyHeaders
 
@@ -1635,7 +1666,96 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptGetMyHeaders()", Err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptGetMyHeaders", Err, Erl)
   Resume exit_here
 
+End Function
+
+Function cptErrorTrapping() As Boolean
+  'objects
+  'strings
+  Dim strErrorTrapping As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  strErrorTrapping = cptGetSetting("General", "ErrorTrapping")
+  If Len(strErrorTrapping) > 0 Then
+    cptErrorTrapping = CBool(strErrorTrapping)
+  Else
+    cptSaveSetting "General", "ErrorTrapping", "1"
+    cptErrorTrapping = True
+  End If
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptErrorTrapping", Err, Erl)
+  Resume exit_here
+End Function
+
+Function cptMasterUIDToSubUID(lngMasterUID As Long) As Long
+  If ActiveProject.Subprojects.Count = 0 Then Exit Function
+  cptMasterUIDToSubUID = lngMasterUID Mod 4194304
+End Function
+
+Function cptGetSubprojectUID(lngMasterUID As Long) As Long
+  If ActiveProject.Subprojects.Count = 0 Then Exit Function
+  cptGetSubprojectUID = Round(lngMasterUID / 4194304, 0) - 1
+End Function
+
+Function cptSubUIDToMasterUID(lngSubProjectUID As Long, lngSubUID As Long) As Long
+  If ActiveProject.Subprojects.Count = 0 Then Exit Function
+  cptSubUIDToMasterUID = ((lngSubProjectUID + 1) * 4194304) + lngSubUID
+End Function
+
+Function cptConvertToMasterUIDs(oTask As Task, strReturn As String) As String
+  'strReturn variable expects either "p" for predecessors or "s" for successors
+  Dim oSubprojects As MSProject.Subprojects
+  Dim strProject As String, strList As String, strLinkProject As String, strConvertedList As String
+  Dim lngUID As Long, lngLinkUID As Long
+  Dim vLink As Variant
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  Set oSubprojects = ActiveProject.Subprojects
+  If oSubprojects.Count = 0 Then GoTo exit_here
+  
+  strProject = oTask.Project
+  If strReturn = "p" Then
+    strList = oTask.UniqueIDPredecessors
+  ElseIf strReturn = "s" Then
+    strList = oTask.UniqueIDSuccessors
+  End If
+  For Each vLink In Split(strList, ",")
+    If InStr(vLink, "\") > 0 Then 'handle offline and server paths
+      lngUID = CLng(Mid(vLink, InStrRev(vLink, "\") + 1))   'extract source task UID
+      strLinkProject = Replace(vLink, "\" & lngUID, "")     'strip source task UID
+      strLinkProject = Replace(strLinkProject, ".mpp", "")  'strip file extension
+      strLinkProject = Mid(strLinkProject, InStrRev(strLinkProject, "\") + 1) 'strip path
+      lngLinkUID = oSubprojects(strLinkProject).InsertedProjectSummary.UniqueID + 1 'get master task UID seed
+    Else
+      lngUID = vLink
+      lngLinkUID = oSubprojects(strProject).InsertedProjectSummary.UniqueID + 1 'get master task UID seed
+    End If
+    lngLinkUID = (lngLinkUID * 4194304) + lngUID            'derive master task UID
+    strConvertedList = strConvertedList & lngLinkUID & ","  'build return string
+  Next vLink
+  strConvertedList = Left(strConvertedList, Len(strConvertedList) - 1) 'strip last comma avoiding null value
+  cptConvertToMasterUIDs = strConvertedList
+
+exit_here:
+  On Error Resume Next
+  Set oSubprojects = Nothing
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptConvertToMasterUIDs", Err, Erl)
+  Resume exit_here
 End Function

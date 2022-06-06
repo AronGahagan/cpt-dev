@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.1.0</cpt_version>
+'<cpt_version>v1.1.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -136,13 +136,12 @@ Sub cptImportCWBSFromServer(lngOutlineCode As Long)
   Dim oWorkbook As Object
   Dim oLookupTable As LookupTable
   Dim oOutlineCode As OutlineCode
-  Dim oFileDialog As FileDialog
+  Dim oFileDialog As Object 'FileDialog
   Dim oExcel As Object
   'strings
   Dim strDescription As String
   Dim strCode As String
   Dim strOutlineCode As String
-  Dim stroOutlineCode As String
   'longs
   Dim lngItems As Long
   Dim lngOutlineLevel As Long
@@ -155,7 +154,7 @@ Sub cptImportCWBSFromServer(lngOutlineCode As Long)
   
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  If MsgBox("Epected fields/column headers, in range [A1:C1], are LEVEL,VALUE,DESCRIPTION and there should be no blank rows." & vbCrLf & vbCrLf & "Proceed?", vbQuestion + vbYesNo, "Confirm CWBS Import") = vbYes Then
+  If MsgBox("Expected fields/column headers, in range [A1:C1], are LEVEL,VALUE,DESCRIPTION and there should be no blank rows." & vbCrLf & vbCrLf & "Proceed?", vbQuestion + vbYesNo, "Confirm CWBS Import") = vbYes Then
     strOutlineCode = CustomFieldGetName(lngOutlineCode)
     Set oExcel = CreateObject("Excel.Application")
     'allow user to select excel file and import it to chosen
@@ -165,12 +164,12 @@ Sub cptImportCWBSFromServer(lngOutlineCode As Long)
       .ButtonName = "Import"
       .InitialView = 2 'msoFileDialogViewDetails
       .InitialFileName = Environ("USERPROFILE") & "\"
-      .Title = "Select " & stroOutlineCode & " source file:"
+      .Title = "Select " & strOutlineCode & " source file:"
       .Filters.Add "Microsoft Excel Workbook (xlsx)", "*.xlsx"
       .Filters.Add "Comma Separated Values (csv)", "*.csv"
       If .Show = -1 Then
       
-        Application.OpenUndoTransaction "Import " & stroOutlineCode & " from MSP Server Outline Code Export"
+        Application.OpenUndoTransaction "Import " & strOutlineCode & " from MSP Server Outline Code Export"
       
         cptSpeed True
       
@@ -622,9 +621,14 @@ Sub cptExportOutlineCodeToExcel(lngOutlineCode As Long)
     oWorksheet.Cells(lngLastRow, 2).Value = oLookupTable.Item(lngLookupItems).Level
     oWorksheet.Cells(lngLastRow, 3).Value = oLookupTable.Item(lngLookupItems).Description
     oWorksheet.Cells(lngLastRow, 3).IndentLevel = oLookupTable.Item(lngLookupItems).Level - 1
-    oWorksheet.Rows(lngLastRow).OutlineLevel = oLookupTable.Item(lngLookupItems).Level
+    If oLookupTable.Item(lngLookupItems).Level > 8 Then
+      oWorksheet.Rows(lngLastRow).OutlineLevel = 8
+      oWorksheet.Cells(lngLastRow, 2).AddComment "Excel grouping limited to 8 levels"
+    Else
+      oWorksheet.Rows(lngLastRow).OutlineLevel = oLookupTable.Item(lngLookupItems).Level
+    End If
     cptBackbone_frm.lblProgress.Width = (lngLookupItems / oLookupTable.Count) * cptBackbone_frm.lblStatus.Width
-    cptBackbone_frm.lblStatus.Caption = "Exporting Outline Code '" & strOutlineCode & "'...(" & Format((lngLastRow - 1) / lngLookupItems, "0%") & ")"
+    cptBackbone_frm.lblStatus.Caption = "Exporting...(" & Format(lngLookupItems / oLookupTable.Count, "0%") & ")"
   Next lngLookupItems
   
   Application.StatusBar = "Formatting Worksheet..."
@@ -823,8 +827,8 @@ Sub cptExport81334D(lngOutlineCode As Long)
         wsDictionary.Range(wsDictionary.Cells(lngRow, 2), wsDictionary.Cells(lngRow, 3)).Merge
         wsDictionary.Range(wsDictionary.Cells(lngRow, 4), wsDictionary.Cells(lngRow, 11)).Merge
       End If
-      cptBackbone_frm.lblStatus.Caption = "Exporting...(" & Format((lngRow - 6) / oLookupTable.Count, "0%") & ")"
-      cptBackbone_frm.lblProgress.Width = ((lngRow - 6) / oLookupTable.Count) * cptBackbone_frm.lblStatus.Width
+      cptBackbone_frm.lblStatus.Caption = "Exporting...(" & Format(lngItem / oLookupTable.Count, "0%") & ")"
+      cptBackbone_frm.lblProgress.Width = (lngItem / oLookupTable.Count) * cptBackbone_frm.lblStatus.Width
       lngRow = lngRow + 1
     Next
   End If
@@ -1214,6 +1218,8 @@ Sub cptExportOutlineCodeForMPM(lngOutlineCode As Long)
     Else
       strParent = Left(strCode, InStrRev(strCode, ".") - 1)
     End If
+    cptBackbone_frm.lblStatus.Caption = "Exporting...(" & Format(lngItem / oLookupTable.Count, "0%") & ")"
+    cptBackbone_frm.lblProgress.Width = (lngItem / oLookupTable.Count) * cptBackbone_frm.lblStatus.Width
     Print #lngFile, strCode & "," & Chr(34) & strDescription & Chr(34) & String(16, ",") & IIf(blnCA, "C", "") & String(7, ",") & strParent & ",,"
   Next lngItem
   
@@ -1338,6 +1344,8 @@ Sub cptExportOutlineCodeForCOBRA(lngOutlineCode)
       MsgBox "Invalid Code Found! See " & strCode & " : " & strDescription, vbCritical + vbOKOnly, "Error"
       GoTo kill_file
     End If
+    cptBackbone_frm.lblStatus.Caption = "Exporting...(" & Format(lngItem / oLookupTable.Count, "0%") & ")"
+    cptBackbone_frm.lblProgress.Width = (lngItem / oLookupTable.Count) * cptBackbone_frm.lblStatus.Width
     Print #lngFile, strCode & "," & Chr(34) & strDescription & Chr(34) & ","
   Next lngItem
 

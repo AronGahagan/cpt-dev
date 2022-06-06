@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.1.1</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -10,6 +10,28 @@ End Sub
 
 Sub cptGetETC()
   MsgBox Format(cptGetMetric("etc"), "#,##0.00h"), vbInformation + vbOKOnly, "Estimate to Complete (ETC) - hours"
+End Sub
+
+Sub cptGetBCWR()
+  Dim dblBAC As Double
+  Dim dblBCWP As Double
+  
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
+      Exit Sub
+    End If
+  End If
+  
+  dblBAC = cptGetMetric("bac")
+  dblBCWP = cptGetMetric("bcwp")
+  Dim strMsg As String
+  strMsg = "BCWR = (BAC - BCWP)" & vbCrLf
+  strMsg = strMsg & "BCWR = (" & Format(dblBAC, "#,##0.0") & " - " & Format(dblBCWP, "#,##0.0") & ")" & vbCrLf & vbCrLf
+  strMsg = strMsg & "BCWR = " & Format(dblBAC - dblBCWP, "#,##0.0") & "h"
+  MsgBox strMsg, vbInformation + vbOKOnly, "Budgeted Cost of Work Remainning (BCWR) - hours"
+  
 End Sub
 
 Sub cptGetBCWS()
@@ -206,7 +228,7 @@ Dim dtConstraintDate As Date
       FilterClear
       GroupClear
       Application.Sort "ID", , , , , , , True
-      OptionsViewEx displaysummaryTasks:=True, displaynameindent:=True, displayoutlinesymbols:=True
+      OptionsViewEx DisplaySummaryTasks:=True, displaynameindent:=True, displayoutlinesymbols:=True
       OutlineShowAllTasks
       EditGoTo oTask.ID
     Else
@@ -265,10 +287,14 @@ End Sub
 
 Sub cptGET(strWhat As String)
 'objects
+Dim oTask As Object
 Dim oRecordset As ADODB.Recordset
 'strings
+Dim strNotFound As String
 Dim strMsg As String, strProgram As String
 'longs
+Dim lngAF As Long
+Dim lngFF As Long
 Dim lngBEI_AF As Long
 Dim lngBEI_BF As Long
 'integers
@@ -344,24 +370,26 @@ Dim dtStatus As Date, dtPrevious As Date
           If CBool(.Fields("IS_LOE")) Then GoTo next_record
           If .Fields("PROJECT") = strProgram And .Fields("STATUS_DATE") = dtPrevious Then
             If .Fields("TASK_FINISH") > dtPrevious And .Fields("TASK_FINISH") <= dtStatus Then
-              Dim lngFF As Long
               lngFF = lngFF + 1
+              Set oTask = Nothing
               On Error Resume Next
-              Dim oTask As Task
+              Set oTask = ActiveProject.Tasks.UniqueID(CLng(.Fields(1)))
               If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-              Set oTask = ActiveProject.Tasks.UniqueID(.Fields(1))
               If Not oTask Is Nothing Then
                 If IsDate(oTask.ActualFinish) Then
-                  Dim lngAF As Long
                   lngAF = lngAF + 1
                 End If
+              Else
+                MsgBox "Task UID " & .Fields(1) & " '" & .Fields(2) & "' not found in this IMS.", vbExclamation + vbOKOnly, "CEI Invalid"
+                strNotFound = strNotFound & .Fields(1) & ","
               End If
             End If
           End If
 next_record:
           .MoveNext
         Loop
-        strMsg = "CEI = Tasks completed in current period / Tasks forecasted to complete in current period" & vbCrLf & vbCrLf
+        strMsg = "Comparing against previous period: " & FormatDateTime(dtPrevious, vbShortDate) & ":" & vbCrLf & vbCrLf
+        strMsg = strMsg & "CEI = Tasks completed in current period / Tasks forecasted to complete in current period" & vbCrLf & vbCrLf
         strMsg = strMsg & "CEI = " & lngAF & " / " & lngFF & vbCrLf
         strMsg = strMsg & "CEI = " & Round(lngAF / IIf(lngFF = 0, 1, lngFF), 2) & vbCrLf & vbCrLf
         strMsg = strMsg & "- Does not include LOE tasks." & vbCrLf
@@ -369,6 +397,7 @@ next_record:
         strMsg = strMsg & "- See NDIA Predictive Measures Guide for more information."
         Call cptCaptureMetric(strProgram, dtStatus, "CEI", Round(lngAF / IIf(lngFF = 0, 1, lngFF), 2))
         MsgBox strMsg, vbInformation + vbOKOnly, "Current Execution Index"
+        InputBox "The following UIDs were not found:", "Where did these go?", strNotFound
         .Close
       End With
       
@@ -413,6 +442,7 @@ next_record:
   
 exit_here:
   On Error Resume Next
+  Set oTask = Nothing
   Set oRecordset = Nothing
 
   Exit Sub
@@ -486,14 +516,17 @@ End Sub
 Function cptGetMetric(strGet As String) As Double
 'todo: no screen changes!
 'objects
+Dim oShell As Object
 Dim oAssignment As Assignment
 Dim tsv As TimeScaleValue
 Dim tsvs As TimeScaleValues
 Dim oTasks As Tasks
 Dim oTask As Task
 'strings
+Dim strVerbose As String
 Dim strLOE As String
 'longs
+Dim lngFile As Long
 Dim lngLOEField As Long
 Dim lngEVP As Long
 Dim lngYears As Long
@@ -501,6 +534,7 @@ Dim lngYears As Long
 'doubles
 Dim dblResult As Double
 'booleans
+Dim blnVerbose As Boolean
 'variants
 'dates
 Dim dtStatus As Date
@@ -516,12 +550,19 @@ Dim dtStatus As Date
   Else
     dtStatus = ActiveProject.StatusDate
   End If
-  
+  blnVerbose = False 'spits out a CSV with UID,RESOURCE,EVT,BCWP (bcwp only) <easter-egg>
+  If blnVerbose Then
+    lngFile = FreeFile
+    Set oShell = CreateObject("WScript.Shell")
+    strVerbose = oShell.SpecialFolders("Desktop") & "\cptGetMetric_" & StrConv(strGet, vbUpperCase) & ".csv"
+    Open strVerbose For Output As #lngFile
+    Print #lngFile, "UID,RESOURCE,EVT,BCWP,"
+  End If
   cptSpeed True
   ActiveWindow.TopPane.Activate
   FilterClear
   GroupClear
-  OptionsViewEx displaysummaryTasks:=True, displaynameindent:=True
+  OptionsViewEx DisplaySummaryTasks:=True, displaynameindent:=True
   On Error Resume Next
   If Not OutlineShowAllTasks Then
     Sort "ID", , , , , , False, True
@@ -574,7 +615,7 @@ Dim dtStatus As Date
               GoTo exit_here
             End If
           End If
-        
+                    
           lngEVP = CLng(cptGetSetting("Metrics", "cboEVP"))
           lngLOEField = CLng(cptGetSetting("Metrics", "cboLOEField"))
           strLOE = cptGetSetting("Metrics", "txtLOE")
@@ -586,10 +627,12 @@ Dim dtStatus As Date
                   Set tsvs = oAssignment.TimeScaleData(oTask.BaselineStart, dtStatus, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks, 1)
                   For Each tsv In tsvs
                     dblResult = dblResult + (IIf(tsv.Value = "", 0, tsv.Value) / 60)
+                    If blnVerbose Then Print #lngFile, oTask.UniqueID & "," & oAssignment.ResourceName & ",LOE," & IIf(tsv.Value = "", 0, tsv.Value) / 60
                   Next
                 End If
               Else
                 dblResult = dblResult + ((oAssignment.BaselineWork / 60) * (CLng(cptRegEx(oTask.GetField(lngEVP), "[0-9]*")) / 100))
+                If blnVerbose Then Print #lngFile, oTask.UniqueID & "," & oAssignment.ResourceName & ",Discrete," & ((oAssignment.BaselineWork / 60) * (CLng(cptRegEx(oTask.GetField(lngEVP), "[0-9]*")) / 100))
               End If
             End If
           Next oAssignment
@@ -609,9 +652,14 @@ next_task:
   Next
 
   cptGetMetric = dblResult
+  If blnVerbose Then
+    Close #lngFile
+    Shell "C:\Windows\notepad.exe '" & strVerbose & "'", vbNormalFocus
+  End If
 
 exit_here:
   On Error Resume Next
+  Set oShell = Nothing
   Set oAssignment = Nothing
   Application.StatusBar = ""
   cptSpeed False
@@ -803,6 +851,8 @@ Sub cptCaptureWeek()
           If rst("PROJECT") = strProject And rst("STATUS_DATE") = FormatDateTime(dtStatus, vbGeneralDate) Then rst.Delete adAffectCurrent
           rst.MoveNext
         Loop
+      Else
+        GoTo do_not_overwrite
       End If
     End If
     rst.Filter = 0
@@ -862,9 +912,10 @@ next_task:
   Next oTask
   
   rst.Save strFile, adPersistADTG
+  MsgBox "Current Schedule as of " & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & " captured.", vbInformation + vbOKOnly, "Complete"
+do_not_overwrite:
   rst.Close
   Application.StatusBar = "Complete."
-  MsgBox "Current Schedule as of " & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & " captured.", vbInformation + vbOKOnly, "Complete"
   
 exit_here:
   On Error Resume Next
@@ -1253,7 +1304,7 @@ next_task:
   
   'save the file
   'todo: user-defined locations for metrics output
-'  strDir = ActiveProject.Path & "\Metrics\"
+'  strDir = oShell.SpecialFolders("Desktop") & "\Metrics\"
 '  strDir = strDir & Format(dtStatus, "yyyy-mm-dd") & "\"
 '  If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
 '  strFile = strDir & Replace(strProject, " ", "_") & "_IMS_EarlyLateStartsFinishes_" & Format(ActiveProject.StatusDate, "yyyy-mm-dd") & ".xlsx"
@@ -1268,13 +1319,8 @@ next_task:
   cptCaptureMetric strProject, dtStatus, "BEI", Round(oWorksheet.Range("BEI[[#Totals],[BEI (Finishes)]]").Value, 2)
   Application.StatusBar = "Complete."
   DoEvents
-  
-'  If MsgBox("Complete. Open for review?", vbInformation + vbYesNo, "Late Starts and Finishes") = vbYes Then
-'    oExcel.Workbooks.Open strFile
-    oExcel.Visible = True
-'    Application.ActivateMicrosoftApp pjMicrosoftExcel
-'  End If
-
+  oExcel.Visible = True
+    
 exit_here:
   On Error Resume Next
   Application.StatusBar = ""
@@ -1744,6 +1790,10 @@ next_record:
         DoEvents
         oRecordset.MoveNext
       Loop
+    End If
+    If oListObject.ListRows.Count = 0 Then
+      Set oListRow = oListObject.ListRows.Add
+      oWorksheet.[C6] = "<< there were no tasks forecast to complete this week >>"
     End If
     oRecordset.Filter = ""
   Else
@@ -2417,12 +2467,19 @@ Sub cptExportMetricsData()
     GoTo exit_here
   End If
   
+  strFile = cptDir & "\settings\cpt-cei.adtg"
+  If Dir(strFile) = vbNullString Then
+    MsgBox strFile & " not found!", vbCritical + vbOKOnly, "File Not Found"
+    GoTo exit_here
+  End If
+  
   strProgram = cptGetProgramAcronym
   If strProgram = "" Then
     MsgBox "Program Acronym required.", vbExclamation + vbOKOnly, "Invalid Program Acronym"
     GoTo exit_here
   End If
   
+  strFile = cptDir & "\settings\cpt-metrics.adtg"
   Set oRecordset = CreateObject("ADODB.Recordset")
   oRecordset.Open strFile
   oRecordset.Filter = "PROGRAM='" & strProgram & "'"
@@ -2436,7 +2493,7 @@ Sub cptExportMetricsData()
     'oExcel.Visible = True
     Set oWorkbook = oExcel.Workbooks.Add
     Set oWorksheet = oWorkbook.Sheets(1)
-    oWorksheet.Name = strProgram
+    oWorksheet.Name = strProgram & " METRICS"
     For lngField = 0 To oRecordset.Fields.Count - 1
       oWorksheet.Cells(1, lngField + 1) = oRecordset.Fields(lngField).Name
     Next lngField
@@ -2445,16 +2502,55 @@ Sub cptExportMetricsData()
     oExcel.ActiveWindow.Zoom = 85
     oWorksheet.Columns.AutoFit
     oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
+    'Application.StatusBar = "Complete"
+    DoEvents
+    oExcel.Visible = True
+    Application.ActivateMicrosoftApp pjMicrosoftExcel
+    oExcel.WindowState = xlMaximized
+  Else
+    MsgBox "No metrics data found for program '" & strProgram & "'", vbExclamation + vbOKOnly, "No Data"
+  End If
+  oRecordset.Filter = ""
+  oRecordset.Close
+  
+  strFile = cptDir & "\settings\cpt-cei.adtg"
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  oRecordset.Open strFile
+  oRecordset.Filter = "PROJECT='" & strProgram & "'"
+  If oRecordset.RecordCount > 0 Then
+    On Error Resume Next
+    Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
+    oWorksheet.Name = strProgram & " CEI"
+    For lngField = 0 To oRecordset.Fields.Count - 1
+      oWorksheet.Cells(1, lngField + 1) = oRecordset.Fields(lngField).Name
+    Next lngField
+    oWorksheet.[A2].CopyFromRecordset oRecordset
+    'todo: display alerts
+    oWorksheet.Columns(4).Replace "0", False
+    oWorksheet.Columns(4).Replace "1", True
+    oWorksheet.Columns(5).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(7).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(8).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(10).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(11).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(13).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(14).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    
+    oExcel.ActiveWindow.Zoom = 85
+    oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
+    oWorksheet.Columns.AutoFit
     Application.StatusBar = "Complete"
     DoEvents
     oExcel.Visible = True
     Application.ActivateMicrosoftApp pjMicrosoftExcel
     oExcel.WindowState = xlMaximized
   Else
-    MsgBox "No records found for program '" & strProgram & "'", vbExclamation + vbOKOnly, "No Data"
+    MsgBox "No CEI data found for program '" & strProgram & "'", vbExclamation + vbOKOnly, "No Data"
   End If
   oRecordset.Filter = ""
   oRecordset.Close
+  
+  oWorkbook.Sheets(1).Activate
   
 exit_here:
   On Error Resume Next
@@ -2965,7 +3061,9 @@ Sub cptFindOutOfSequence()
   Dim oExcel As Excel.Application
   Dim oWorkbook As Workbook
   Dim oWorksheet As Worksheet
+  'Dim oInsertedIndex As Object 'Scripting.Dictionary
   'strings
+  Dim strProject As String
   Dim strMacro As String
   Dim strMsg As String
   Dim strProjectNumber As String
@@ -2973,12 +3071,19 @@ Sub cptFindOutOfSequence()
   Dim strDir As String
   Dim strFile As String
   'longs
+  'Dim lngInsertedUID As Long
+  Dim lngFactor As Long
+  Dim lngToUID As Long
+  Dim lngFromUID As Long
+  Dim lngSubproject As Long
+  Dim lngSubprojects As Long
   Dim lngTask As Long
   Dim lngTasks As Long
   Dim lngLastRow As Long
   'integers
   'doubles
   'booleans
+  Dim blnSubprojects As Boolean
   Dim blnMarked As Boolean
   'variants
   'dates
@@ -2988,22 +3093,29 @@ Sub cptFindOutOfSequence()
 
   cptSpeed True
   
-  lngTasks = ActiveProject.Tasks.Count
-  For Each oTask In ActiveProject.Tasks
-    If Not oTask Is Nothing Then oTask.Marked = False
-  Next
-
+  lngSubprojects = ActiveProject.Subprojects.Count
+  blnSubprojects = lngSubprojects > 0
+  If blnSubprojects Then
+    'get correct task count
+    lngTasks = ActiveProject.Tasks.Count
+    For lngSubproject = 1 To lngSubprojects
+      lngTasks = lngTasks + ActiveProject.Subprojects(lngSubproject).SourceProject.Tasks.Count
+    Next lngSubproject
+    For Each oTask In ActiveProject.Tasks
+      'todo: note that external tasks will not be included in this metric
+      If Not oTask Is Nothing And Not oTask.ExternalTask Then oTask.Marked = False
+    Next oTask
+  Else
+    lngTasks = ActiveProject.Tasks.Count
+    For Each oTask In ActiveProject.Tasks
+      'todo: note that external tasks will not be included in this metric
+      If Not oTask Is Nothing And Not oTask.ExternalTask Then oTask.Marked = False
+    Next oTask
+  End If
+  
   Set oExcel = CreateObject("Excel.Application")
   On Error Resume Next
-  'todo: create the template
-  'Set oWorkbook = GetTemplate(oExcel, "OutOfSequenceoTasks.xltm")
-'  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-'  If oWorkbook Is Nothing Then
-'    MsgBox "Template 'OutOfSequenceoTasks.xltm' not found!", vbExclamation + vbOKOnly, "Missing Template"
-'    Set oWorkbook = oExcel.Workbooks.Add(oExcel.TemplatesPath & "\OutOfSequenceoTasks.xltm")
-'  End If
   Set oWorkbook = oExcel.Workbooks.Add
-  'Set oWorksheet = oWorkbook.Sheets("OOS")
   Set oWorksheet = oWorkbook.Sheets(1)
   oWorksheet.Name = "OOS"
   oWorksheet.[A2:J2] = Split("UID,ID,TASK,DATE,TYPE,UID,ID,TASK,DATE,COMMENT", ",")
@@ -3015,29 +3127,49 @@ Sub cptFindOutOfSequence()
   oWorksheet.[F1].HorizontalAlignment = xlCenter
   oWorksheet.[A1:J2].Font.Bold = True
   oExcel.EnableEvents = False
-  
+    
   lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
   lngTask = 0
+  
   For Each oTask In ActiveProject.Tasks
     blnMarked = False
     If oTask Is Nothing Then GoTo next_task
     If oTask.Summary Then GoTo next_task
     For Each oTaskDependency In oTask.TaskDependencies
       If Not oTaskDependency.From.Active Or Not oTaskDependency.To.Active Then GoTo next_dependency
-      If oTaskDependency.To = oTask Then
-        Debug.Print "FROM " & oTaskDependency.From.UniqueID & " TO " & oTaskDependency.To.UniqueID
+      If oTaskDependency.To.Guid = oTask.Guid Then 'predecessors only
         lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
+        If blnSubprojects And oTaskDependency.From.ExternalTask Then
+          'fix the pred UID if master-sub
+          lngFromUID = oTaskDependency.From.GetField(185073906) Mod 4194304
+          strProject = oTaskDependency.From.Project
+          If InStr(oTaskDependency.From.Project, "\") > 0 Then
+            strProject = Replace(strProject, ".mpp", "")
+            strProject = Mid(strProject, InStrRev(strProject, "\") + 1)
+          End If
+          lngFactor = ActiveProject.Subprojects(strProject).InsertedProjectSummary.UniqueID + 1
+          lngFromUID = (lngFactor * 4194304) + lngFromUID
+        Else
+          If blnSubprojects Then
+            lngFactor = Round(oTask / 4194304, 0)
+            lngFromUID = (lngFactor * 4194304) + oTaskDependency.From.UniqueID
+          Else
+            lngFromUID = oTaskDependency.From.UniqueID
+          End If
+        End If
+        lngToUID = oTask.UniqueID
+        
         Select Case oTaskDependency.Type
           Case pjFinishToFinish
             If oTaskDependency.From.Finish > oTaskDependency.To.Finish Then
               blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
-              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Finish
               oWorksheet.Cells(lngLastRow, 5) = "FF"
-              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
-              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 6) = lngToUID
+              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
               oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
               oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Finish
               oWorksheet.Cells(lngLastRow, 10) = "Finish <> Finish"
@@ -3045,13 +3177,13 @@ Sub cptFindOutOfSequence()
           Case pjFinishToStart
             If oTaskDependency.From.Finish > oTaskDependency.To.Start Then
               blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
-              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Finish
               oWorksheet.Cells(lngLastRow, 5) = "FS"
-              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
-              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 6) = lngToUID
+              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
               oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
               oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
               oWorksheet.Cells(lngLastRow, 10) = "Finish > Start"
@@ -3059,13 +3191,13 @@ Sub cptFindOutOfSequence()
             lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
             If IsDate(oTaskDependency.To.ActualStart) And Not IsDate(oTaskDependency.From.ActualFinish) Then
               blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
-              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Finish
               oWorksheet.Cells(lngLastRow, 5) = "FS"
-              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
-              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 6) = lngToUID
+              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
               oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
               oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
               oWorksheet.Cells(lngLastRow, 10) = "Actual Start w/o Actual Finish "
@@ -3073,13 +3205,13 @@ Sub cptFindOutOfSequence()
           Case pjStartToStart
             If oTaskDependency.From.Start > oTaskDependency.To.Start Then
               blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
-              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
               oWorksheet.Cells(lngLastRow, 5) = "SS"
-              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
-              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 6) = lngToUID
+              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
               oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
               oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
               oWorksheet.Cells(lngLastRow, 10) = "Start <> Start"
@@ -3087,13 +3219,13 @@ Sub cptFindOutOfSequence()
             lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
             If IsDate(oTaskDependency.To.ActualStart) And Not IsDate(oTaskDependency.From.ActualStart) Then
               blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
-              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
               oWorksheet.Cells(lngLastRow, 5) = "SS"
-              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
-              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 6) = lngToUID
+              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
               oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
               oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
               oWorksheet.Cells(lngLastRow, 10) = "Actual Start w/o Actual Start"
@@ -3102,26 +3234,26 @@ Sub cptFindOutOfSequence()
             'this should never happen
             If oTaskDependency.To.Finish <= oTaskDependency.From.ActualFinish Then
               blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
-              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
               oWorksheet.Cells(lngLastRow, 5) = "SF"
-              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
-              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 6) = lngToUID
+              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
               oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
               oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Finish
               oWorksheet.Cells(lngLastRow, 10) = "Finish <= Actual Finish"
             End If
             If IsDate(oTaskDependency.To.ActualFinish) And Not IsDate(oTaskDependency.From.ActualStart) Then
               blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = oTaskDependency.From.UniqueID
-              oWorksheet.Cells(lngLastRow, 2) = oTaskDependency.From.ID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
               oWorksheet.Cells(lngLastRow, 5) = "SF"
-              oWorksheet.Cells(lngLastRow, 6) = oTaskDependency.To.UniqueID
-              oWorksheet.Cells(lngLastRow, 7) = oTaskDependency.To.ID
+              oWorksheet.Cells(lngLastRow, 6) = lngToUID
+              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
               oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
               oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Finish
               oWorksheet.Cells(lngLastRow, 10) = "Actual Finish w/o Actual Start"
@@ -3130,8 +3262,13 @@ Sub cptFindOutOfSequence()
         
         'mark both if true
         If blnMarked Then
-          oTaskDependency.From.Marked = True
-          oTaskDependency.To.Marked = True
+          If blnSubprojects Then
+            ActiveProject.Tasks.UniqueID(lngFromUID).Marked = True
+            ActiveProject.Tasks.UniqueID(lngToUID).Marked = True
+          Else
+            oTaskDependency.From.Marked = True
+            oTaskDependency.To.Marked = True
+          End If
         End If
         
       End If
@@ -3148,9 +3285,11 @@ next_task:
   
   'only open workbook if OOS oTasks found
   If lngLastRow = 3 Then
-    MsgBox "No Out of Sequence oTasks Found!", vbInformation + vbOKOnly, "Well Done"
+    MsgBox "No Out of Sequence Tasks Found!", vbInformation + vbOKOnly, "Well Done"
     oWorkbook.Close False
     GoTo exit_here
+  Else
+    MsgBox Format(lngLastRow - 3, "#,##0") & " task" & IIf(lngLastRow - 3 = 1, "", "s") & " statused out of sequence.", vbInformation + vbOKOnly, "OOS Found"
   End If
     
   With oExcel.ActiveWindow
@@ -3180,17 +3319,16 @@ next_task:
   strMacro = strMacro & "  strFrom = Me.Cells(Target.Row, 1).Value" & vbCrLf
   strMacro = strMacro & "  strTo = Me.Cells(Target.Row, 6).Value" & vbCrLf
   strMacro = strMacro & "  MSPROJ.SetAutoFilter FieldName:=""Unique ID"", FilterType:=2, Criteria1:=strFrom & Chr$(9) & strTo '1=pjAutoFilterIn" & vbCrLf
-  strMacro = strMacro & "  MSPROJ.EditGoTo MSPROJ.ActiveProject.Tasks.UniqueID(CDbl(strTo)).ID, MSPROJ.ActiveProject.Tasks.UniqueID(strTo).Start" & vbCrLf
-  strMacro = strMacro & "" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.Find ""Unique ID"", ""equals"", CLng(strFrom)" & vbCrLf & vbCrLf
   strMacro = strMacro & "exit_here:" & vbCrLf
   strMacro = strMacro & "  MSPROJ.ScreenUpdating = True" & vbCrLf
-  strMacro = strMacro & "Set MSPROJ = Nothing" & vbCrLf
+  strMacro = strMacro & "  Set MSPROJ = Nothing" & vbCrLf
   strMacro = strMacro & "End Sub"
   
   oWorkbook.VBProject.VBComponents("Sheet1").CodeModule.AddFromString strMacro
   
   oExcel.Visible = True
-  If Application.OptionsViewEx(displaysummaryTasks:=True) Then OutlineShowAllTasks
+  If Application.OptionsViewEx(DisplaySummaryTasks:=True) Then OutlineShowAllTasks
   ActiveWindow.TopPane.Activate
   FilterClear
   SetAutoFilter "Marked", pjAutoFilterFlagYes

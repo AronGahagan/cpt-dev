@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.1.2</cpt_version>
+'<cpt_version>v1.1.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -32,6 +32,9 @@ Dim vField As Variant
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  'todo: start Excel in the background if not already open; close on form close
+  'todo: new options: log{true|false}; verbose{true|false}
 
   'populate comboboxes
   With cptStatusSheetImport_frm
@@ -185,7 +188,7 @@ End Sub
 Sub cptStatusSheetImport()
   'objects
   Dim oRecordset As ADODB.Recordset
-  Dim oSubproject As SubProject
+  Dim oSubproject As Subproject
   Dim oTask As Task
   Dim oResource As Resource
   Dim oAssignment As Assignment
@@ -198,6 +201,8 @@ Sub cptStatusSheetImport()
   Dim oComboBox As ComboBox
   Dim rst As Object 'ADODB.Recordset
   'strings
+  Dim strLOE As String
+  Dim strLOEField As String
   Dim strHeader As String
   Dim strCon As String
   Dim strSQL As String
@@ -211,6 +216,7 @@ Sub cptStatusSheetImport()
   Dim strSettings As String
   Dim strGUID As String
   'longs
+  Dim lngEVT As Long
   Dim lngMultiplier As Long
   Dim lngDeconflictionFile As Long
   Dim lngEVP As Long
@@ -308,6 +314,19 @@ Sub cptStatusSheetImport()
   cptSaveSetting "StatusSheetImport", "chkAppend", IIf(blnAppend, 1, 0)
   cptSaveSetting "StatusSheetImport", "cboAppendTo", strAppendTo
   
+  'ensure metrics settings exist
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "Settings not saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
+      GoTo exit_here
+    End If
+  End If
+  
+  'get LOE settings
+  strLOEField = cptGetSetting("Metrics", "cboLOEField")
+  strLOE = cptGetSetting("Metrics", "txtLOE")
+    
   'set up import log file
   strImportLog = ActiveProject.Path & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
   lngFile = FreeFile
@@ -458,13 +477,19 @@ next_task:
         dtStatus = oWorksheet.Range("STATUS_DATE")
         If Err.Number = 1004 Then 'invalid oWorkbook
           If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-          Print #lngFile, "INVALID Worksheet - UID HEADER NOT FOUND IN COLUMN 1 OF WORKSHEET"
+          Print #lngFile, "INVALID Worksheet - range 'STATUS_DATE' not found"
           GoTo next_worksheet
         End If
         If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
         'get header row
         lngUIDCol = 1
+        On Error Resume Next
         lngHeaderRow = oWorksheet.Columns(lngUIDCol).Find(what:="UID").Row
+        If Err.Number = 1004 Then 'invalid oWorkbook
+          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          Print #lngFile, "INVALID Worksheet - UID column not found"
+          GoTo next_worksheet
+        End If
         'get header columns
         lngTaskNameCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Task Name", lookat:=xlPart).Column
         lngASCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Start", lookat:=xlPart).Column
@@ -506,7 +531,9 @@ next_task:
             GoTo next_row
           End If
           'skip completed tasks (which are also italicized)
-          'If IsDate(oTask.ActualFinish) Then GoTo next_row
+          If IsDate(oTask.ActualFinish) Then
+            If FormatDateTime(oTask.ActualFinish, vbShortDate) = FormatDateTime(oWorksheet.Cells(lngRow, lngAFCol).Value, vbShortDate) Then GoTo next_row
+          End If
           If blnTask Then
             'todo: do we really need to separate AS/FS on the form?
             'new start date
@@ -519,8 +546,10 @@ next_task:
                 Else
                   oTask.SetField lngAS, CDate(dtNewDate & " 08:00 AM")
                 End If
+                Print #lngFile, "UID " & oTask.UniqueID & " AS > " & FormatDateTime(dtNewDate, vbShortDate)
               ElseIf dtNewDate > dtStatus Then 'forecast start
                 If FormatDateTime(oTask.Start, vbShortDate) <> dtNewDate Then oTask.SetField lngFS, CDate(dtNewDate & " 08:00 AM")
+                Print #lngFile, "UID " & oTask.UniqueID & " FS > " & FormatDateTime(dtNewDate, vbShortDate)
               End If
               If FormatDateTime(dtNewDate, vbShortDate) <> FormatDateTime(oTask.Start, vbShortDate) Then
                 Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "START", "", CStr(FormatDateTime(oTask.Start, vbShortDate)), CStr(FormatDateTime(dtNewDate, vbShortDate))), ",")
@@ -528,33 +557,49 @@ next_task:
             End If
             'new finish date
             If oWorksheet.Cells(lngRow, lngAFCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngAFCol).Locked Then
-              dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngAFCol)))
+              dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngAFCol)), vbShortDate)
               If dtNewDate <= dtStatus Then 'actual finish
                 If IsDate(oTask.ActualFinish) Then
                   If FormatDateTime(oTask.ActualFinish, vbShortDate) <> dtNewDate Then oTask.SetField lngAF, CDate(dtNewDate & " 05:00 PM")
                 Else
                   oTask.SetField lngAF, CDate(dtNewDate & " 05:00 PM")
                 End If
+                Print #lngFile, "UID " & oTask.UniqueID & " AF > " & FormatDateTime(dtNewDate, vbShortDate)
               ElseIf dtNewDate > dtStatus Then 'forecast finish
-                If FormatDateTime(oTask.Finish, vbShortDate) <> dtNewDate Then oTask.SetField lngFF, CDate(dtNewDate & " 05:00 PM")
+                If FormatDateTime(oTask.Finish, vbShortDate) <> FormatDateTime(dtNewDate, vbShortDate) Then
+                  oTask.SetField lngFF, CDate(dtNewDate & " 05:00 PM")
+                  Print #lngFile, "UID " & oTask.UniqueID & " FF > " & FormatDateTime(dtNewDate, vbShortDate)
+                End If
               End If
-              If FormatDateTime(dtNewDate, vbShortDate) <> FormatDateTime(oTask.Start, vbShortDate) Then
-                Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "FINISH", "", CStr(FormatDateTime(oTask.Start, vbShortDate)), CStr(FormatDateTime(dtNewDate, vbShortDate))), ",")
+              If FormatDateTime(dtNewDate, vbShortDate) <> FormatDateTime(oTask.Finish, vbShortDate) Then
+                Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "FINISH", "", CStr(FormatDateTime(oTask.Finish, vbShortDate)), CStr(FormatDateTime(dtNewDate, vbShortDate))), ",")
               End If
-            End If
-            'ev
-            lngEVP = Round(oWorksheet.Cells(lngRow, lngEVCol).Value * 100, 0)
-            strEVP = cptGetSetting("StatusSheet", "cboEVP")
-            If Len(strEVP) > 0 Then 'compare
-              If CLng(cptRegEx(oTask.GetField(FieldNameToFieldConstant(strEVP)), "[0-9]{1,}")) <> lngEVP Then
-                oTask.SetField lngEV, lngEVP
-                Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, strEVP, "", cptRegEx(oTask.GetField(FieldNameToFieldConstant(strEVP)), "[0-9]{1,}"), CStr(lngEVP)), ",")
-              End If
-            Else 'log
-              oTask.SetField lngEV, lngEVP
-              Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "EV%", "", "<unknown>", CStr(lngEVP)), ",")
             End If
             
+            'evp
+            'skip LOE
+            If Len(strLOEField) > 0 And Len(strLOE) > 0 Then
+              lngEVT = CLng(strLOEField)
+              If oTask.GetField(lngEVT) = strLOE Then GoTo evp_skipped
+            End If
+            'secondary catch to skip LOE
+            If oWorksheet.Cells(lngRow, lngEVCol).Value <> "-" Then
+              lngEVP = Round(oWorksheet.Cells(lngRow, lngEVCol).Value * 100, 0)
+              strEVP = cptGetSetting("StatusSheet", "cboEVP")
+              If Len(strEVP) > 0 Then 'compare
+                If CLng(cptRegEx(oTask.GetField(FieldNameToFieldConstant(strEVP)), "[0-9]{1,}")) <> lngEVP Then
+                  oTask.SetField lngEV, lngEVP
+                  Print #lngFile, "UID " & oTask.UniqueID & " EV% > " & lngEVP & "%"
+                  Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, strEVP, "", cptRegEx(oTask.GetField(FieldNameToFieldConstant(strEVP)), "[0-9]{1,}"), CStr(lngEVP)), ",")
+                End If
+              Else 'log
+                oTask.SetField lngEV, lngEVP
+                Print #lngFile, "UID " & oTask.UniqueID & " EV% > " & lngEVP & "%"
+                Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "EV%", "", "<unknown>", CStr(lngEVP)), ",")
+              End If
+            End If
+            
+evp_skipped:
             'comments todo: only import if different
             If .chkAppend And oWorksheet.Cells(lngRow, lngCommentsCol).Value <> "" Then
               If .cboAppendTo = "Top of Task Note" Then
@@ -570,138 +615,101 @@ next_task:
             On Error Resume Next
             Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
             If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-            If oAssignment.ResourceType = pjResourceTypeWork Then
-              lngMultiplier = 1
-            Else
-              lngMultiplier = 60
-            End If
             If oAssignment Is Nothing Then
               Print #lngFile, "ASSIGNMENT MISSING: TASK " & oTask.UniqueID & " ASSIGNMENT: " & oWorksheet.Cells(lngRow, lngUIDCol).Value
             Else
+              If oAssignment.ResourceType = pjResourceTypeWork Then
+                lngMultiplier = 1
+              Else
+                lngMultiplier = 60
+              End If
               If Not oWorksheet.Cells(lngRow, lngETCCol).Locked Then
                 dblETC = oWorksheet.Cells(lngRow, lngETCCol).Value
-                If lngETC = pjTaskNumber1 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  If lngETC = pjTaskNumber1 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number1 = dblETC
                     oTask.Number1 = oTask.Number1 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber2 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber2 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number2 = dblETC
                     oTask.Number2 = oTask.Number2 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber3 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber3 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number3 = dblETC
                     oTask.Number3 = oTask.Number3 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber4 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber4 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number4 = dblETC
                     oTask.Number4 = oTask.Number4 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber5 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber5 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number5 = dblETC
                     oTask.Number5 = oTask.Number5 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber6 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber6 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number6 = dblETC
                     oTask.Number6 = oTask.Number6 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber7 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber7 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number7 = dblETC
                     oTask.Number7 = oTask.Number7 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber8 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber8 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number8 = dblETC
                     oTask.Number8 = oTask.Number8 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber9 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber9 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number9 = dblETC
                     oTask.Number9 = oTask.Number9 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber10 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber10 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number10 = dblETC
                     oTask.Number10 = oTask.Number10 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber11 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber11 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number11 = dblETC
                     oTask.Number11 = oTask.Number11 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber12 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber12 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number12 = dblETC
                     oTask.Number12 = oTask.Number12 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber13 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber13 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number13 = dblETC
                     oTask.Number13 = oTask.Number13 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber14 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber14 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number14 = dblETC
                     oTask.Number14 = oTask.Number14 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber15 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber15 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number15 = dblETC
                     oTask.Number15 = oTask.Number15 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber16 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber16 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number16 = dblETC
                     oTask.Number16 = oTask.Number16 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber17 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber17 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number17 = dblETC
                     oTask.Number17 = oTask.Number17 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber18 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber18 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number18 = dblETC
                     oTask.Number18 = oTask.Number18 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber19 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber19 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number19 = dblETC
                     oTask.Number19 = oTask.Number19 + dblETC
-                  End If
-                ElseIf lngETC = pjTaskNumber20 Then
-                  If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                  ElseIf lngETC = pjTaskNumber20 Then
                     Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
                     oAssignment.Number20 = dblETC
                     oTask.Number20 = oTask.Number20 + dblETC
                   End If
+                  Print #lngFile, "UID " & oTask.UniqueID & " [" & oAssignment.Resource.Name & "] ETC > " & dblETC
                 End If
-                If Len(oWorksheet.Cells(lngRow, lngCommentsCol)) > 0 Then
+                If .chkAppend And Len(oWorksheet.Cells(lngRow, lngCommentsCol)) > 0 Then
                   If .cboAppendTo = "Top of Task Note" Then
                     oAssignment.Notes = Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & vbCrLf & oAssignment.Notes
                   'todo: replace assignment note
@@ -786,6 +794,7 @@ exit_here:
   For lngFile = 1 To FreeFile
     Close #lngFile
   Next lngFile
+  Close #lngDeconflictionFile
   If Dir(Environ("tmp") & "\Schema.ini") <> vbNullString Then Kill Environ("tmp") & "\Schema.ini"
   If Dir(Environ("tmp") & "\imported.csv") <> vbNullString Then Kill Environ("tmp") * "\imported.csv"
   Set oRange = Nothing

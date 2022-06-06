@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.5.8</cpt_version>
+ '<cpt_version>v1.6.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -85,11 +85,11 @@ Dim vEvent As Variant
   xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
   strURL = strGitHub & "CurrentVersions.xml"
   If Not xmlDoc.Load(strURL) Then
-    If xmlDoc.parseError.ErrorCode = -2146697210 Or -xmlDoc.parseError.ErrorCode = -2146697208 Then '</issue35>
+    If xmlDoc.parseError.errorcode = -2146697210 Or -xmlDoc.parseError.errorcode = -2146697208 Then '</issue35>
       MsgBox "Please check your internet connection.", vbCritical + vbOKOnly, "Can't Connect"
     Else
       strMsg = "We're having trouble downloading modules:" & vbCrLf & vbCrLf  '</issue35>
-      strMsg = strMsg & xmlDoc.parseError.ErrorCode & ": " & xmlDoc.parseError.reason & vbCrLf & vbCrLf '</issue35>
+      strMsg = strMsg & xmlDoc.parseError.errorcode & ": " & xmlDoc.parseError.reason & vbCrLf & vbCrLf '</issue35>
       strMsg = strMsg & "If the ClearPlan ribbon doesn't show up, please contact cpt@ClearPlanConsulting.com for assistance." '</issue35>
       MsgBox strMsg, vbExclamation + vbOKOnly, "XML Error" '</issue35>
     End If
@@ -342,7 +342,7 @@ exit_here:
   Set rstCore = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptSetup", err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptSetup", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -427,6 +427,9 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountSelected"" label=""Selected"" imageMso=""NumberInsert"" onAction=""cptCountTasksSelected"" visible=""true""/>" 'SelectTaskCell
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountVisible"" label=""Visible"" imageMso=""NumberInsert"" onAction=""cptCountTasksVisible"" visible=""true""/>" 'SelectRows
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCountAll"" label=""All"" imageMso=""NumberInsert"" onAction=""cptCountTasksAll"" visible=""true""/>" 'SelectWholeLayout
+    ribbonXML = ribbonXML + vbCrLf & "<mso:dialogBoxLauncher>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""dbl-count"" screentip=""Status Bar Count Option"" onAction=""cptSetShowStatusBarTaskCount"" />"
+    ribbonXML = ribbonXML + vbCrLf & "</mso:dialogBoxLauncher>"
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
 
@@ -530,6 +533,7 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""After Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBlameReport"" label=""The Blame Report"" imageMso=""ContactProperties"" onAction=""cptBlameReport"" visible=""true"" supertip=""Find out which tasks slipped from last period."" />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCaptureWeek"" label=""Capture Week"" imageMso=""RefreshWebView"" onAction=""cptCaptureWeek"" visible=""true"" supertip=""Capture the Current Schedule to compare against past and future weeks during execution. This is required for certain metrics (e.g., CEI) to run properly."" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCompletedWork"" label=""Export Completed WPCNs"" imageMso=""DisconnectFromServer"" onAction=""cptExportCompletedWork"" visible=""true"" supertip=""Export Completed WPCNs for closure in Time system (uses COBRA Export Tool field settings)."" />"
   'todo: account for EV Tool in cptValidateEVP
   'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bValidateEVT"" enabled=""false"" label=""Validate EVT"" imageMso=""RefreshWebView"" onAction=""cptAnalyzeEVT"" visible=""true"" supertip=""Validate EVT - e.g., ensure incomplete 50/50 tasks with Actual Start are marked as 50% EV % complete."" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
@@ -547,7 +551,7 @@ Dim lngCleanUp As Long
     Else
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCPLI"" enabled=""false"" label=""Critical Path Length Index (CPLI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCPLI"" visible=""true"" supertip=""Select a target task, click to get the CPLI. Raw calculation based on time now and total slack. (Feature not available in this version of MS Project)"" />"
     End If
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCEI"" label=""Current Execution Index (CEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCEI"" visible=""true"" supertip=""Tracks forecast accuracy between periods."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCEI"" label=""Current Execution Index (CEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCEI"" visible=""true"" supertip=""Tracks forecast accuracy between periods. Be sure to 'Capture Week' in previous period's file under Schedule > Status > Capture Week."" />"
 '    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptTFCI"" enabled=""false"" label=""Total Float Consumption Index (TFCI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCEI"" visible=""true"" supertip=""Measures forecast accuracy between reporting periods"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptES"" label=""Earned Schedule"" imageMso=""CalendarToolSelectDate"" onAction=""cptGetEarnedSchedule"" visible=""true"" supertip=""Just what it sounds like. See the NDIA Predictive Measures Guide for more information."" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCaptureAllMetrics"" label=""Capture All Metrics"" imageMso=""DataViewDetailsView"" onAction=""cptCaptureAllMetrics"" visible=""true"" supertip=""Capture all metrics above for this program for this period."" />"
@@ -569,6 +573,7 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Other"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBCWS"" label=""Budgeted Cost of Work Scheduled (BCWS) in hours"" imageMso=""NumberInsert"" onAction=""cptGetBCWS"" visible=""true"" supertip=""Timephased BCWS/PV (in hours)."" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBCWP"" label=""Budgeted Cost of Work Performed (BCWP) in hours"" imageMso=""NumberInsert"" onAction=""cptGetBCWP"" visible=""true"" supertip=""Timephased BCWP/EV (in hours)--relies on baseline work and Physical % Complete."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBCWR"" label=""Budgeted Cost of Work Remaining (BCWR) in hours"" imageMso=""NumberInsert"" onAction=""cptGetBCWR"" visible=""true"" supertip=""Budgeted Cost of Work Remaining = (BAC - BCWP)"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBAC"" label=""Budget at Complete (BAC) in hours"" imageMso=""NumberInsert"" onAction=""cptGetBAC"" visible=""true"" supertip=""Budget at Complete (BAC) in hours"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptETC"" label=""Estimate to Complete (ETC) in hours"" imageMso=""NumberInsert"" onAction=""cptGetETC"" visible=""true"" supertip=""Estimate to Complete (ETC) in hours"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptLSLF"" label=""Late Starts and Finishes"" imageMso=""ChartTypeLineInsertGallery"" onAction=""cptLateStartsFinishes"" visible=""true"" supertip=""Late Starts and Finishes Chart"" />"
@@ -665,7 +670,7 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
 Dim strMsg As String
 
     strMsg = "Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
-    strMsg = strMsg & "Error " & err.Number & ": " & err.Description & vbCrLf & vbCrLf
+    strMsg = strMsg & "Error " & Err.Number & ": " & Err.Description & vbCrLf & vbCrLf
     strMsg = strMsg & "Source: " & strModule & "." & strProcedure
     If lngErl > 0 Then
       strMsg = strMsg & ":" & lngErl
@@ -712,9 +717,9 @@ exit_here:
     Set REMatches = Nothing
     Exit Function
 err_here:
-  If err.Number = 5 Then
+  If Err.Number = 5 Then
     cptRegEx = ""
-    err.Clear
+    Err.Clear
   End If
   Resume exit_here
 End Function
@@ -767,7 +772,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptModuleExists", err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptModuleExists", Err, Erl)
   Resume exit_here
 
 End Function
@@ -851,7 +856,7 @@ exit_here:
   Set cmThisProject = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptUninstall", err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptUninstall", Err, Erl)
   Resume exit_here
 End Sub
 

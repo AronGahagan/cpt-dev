@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.3.1</cpt_version>
+'<cpt_version>v1.3.2</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
@@ -16,6 +16,7 @@ Private strStartingFilter As String
 Private strStartingGroup As String
 Private oAssignmentRange As Excel.Range
 Private oNumberValidationRange As Excel.Range
+Private oETCValidationRange As Excel.Range
 Private oInputRange As Excel.Range
 Private oUnlockedRange As Excel.Range
 Private oEntryHeaderRange As Excel.Range
@@ -26,6 +27,7 @@ Sub cptShowStatusSheet_frm()
 'populate UID,[user selections],Task Name,Duration,Forecast Start,Forecast Finish,Total Slack,[EVT],EV%,New EV%,BLW,Remaining Work,Revised ETC,BLS,BLF,Reason/Impact/Action
 'add pick list for EV% or default to Physical % Complete
 'objects
+Dim oShell As Object
 Dim oTasks As Tasks
 Dim rstFields As ADODB.Recordset 'Object
 Dim rstEVT As ADODB.Recordset 'Object
@@ -128,7 +130,12 @@ Dim vFieldType As Variant
     .chkValidation = True
     .chkLocked = True
     .chkAllItems = False
-    .txtDir = ActiveProject.Path & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
+    If InStr(ActiveProject.Path, "<>\") = 0 Then 'not a server project: use ActiveProject.Path
+      .txtDir = ActiveProject.Path & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
+    Else 'it is a server project: default to Desktop
+      Set oShell = CreateObject("WScript.Shell")
+      .txtDir = oShell.SpecialFolders("Desktop") & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
+    End If
     .txtFileName = "StatusRequest_[yyyy-mm-dd]"
   End With
 
@@ -385,6 +392,10 @@ skip_fields:
           cptStatusSheet_frm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
           cptStatusSheet_frm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
           cptStatusSheet_frm.lboExport.List(lngItem, 2) = .Fields(2) 'Local Field Name
+          'todo: what was this for? no FieldConstantToFieldName(constant) returns "Custom"?
+          'todo: was this for filtering out enterprise fields since CFGN = FCFN?
+          'If cptRegEx(FieldConstantToFieldName(.Fields(0)), "[0-9]{1,}$") = "" Then GoTo next_item
+          'If InStr("Custom", FieldConstantToFieldName(FieldNameToFieldConstant(.Fields(2)))) = 0 Then GoTo next_item
           If CustomFieldGetName(.Fields(0)) <> CStr(.Fields(1)) Then
             strFieldNamesChanged = strFieldNamesChanged & .Fields(2) & " '" & .Fields(1) & "' is now "
             If Len(CustomFieldGetName(.Fields(0))) > 0 Then
@@ -393,6 +404,7 @@ skip_fields:
               strFieldNamesChanged = strFieldNamesChanged & "<unnamed>" & vbCrLf
             End If
           End If
+next_item:
           lngItem = lngItem + 1
           .MoveNext
         Loop
@@ -440,7 +452,7 @@ skip_fields:
   strStartingTable = ActiveProject.CurrentTable
   strStartingFilter = ActiveProject.CurrentFilter
   If ActiveProject.CurrentGroup = "Custom Group" Then
-    MsgBox "A 'Custom Group' cannot be used." & vbCrLf & vbCrLf & "Please save the group and name it, or select another saved Group, before you proceed.", vbInformation + vbOKOnly, "Invalid Group"
+    MsgBox "An ad hoc Autofilter Group cannot be used." & vbCrLf & vbCrLf & "Please save the group and name it, or select another saved Group, before you proceed.", vbInformation + vbOKOnly, "Invalid Group"
     GoTo exit_here
   Else
     strStartingGroup = ActiveProject.CurrentGroup
@@ -462,7 +474,7 @@ skip_fields:
   End If
   DoEvents
   
-  OptionsViewEx displaysummaryTasks:=True, displaynameindent:=True
+  OptionsViewEx DisplaySummaryTasks:=True, displaynameindent:=True
   If strStartingGroup = "No Group" Then
     Sort "ID", , , , , , False, True 'OutlineShowAllTasks won't work without this
   Else
@@ -519,6 +531,7 @@ skip_fields:
   
 exit_here:
   On Error Resume Next
+  Set oShell = Nothing
   Application.StatusBar = ""
   cptSpeed False
   Set oTasks = Nothing
@@ -645,7 +658,13 @@ Sub cptCreateStatusSheet()
   'get task count
   If blnPerformanceTest Then t = GetTickCount
   SelectAll
+  On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If oTasks Is Nothing Then
+    MsgBox "There are no incomplete tasks in this schedule.", vbExclamation + vbOKOnly, "No Tasks Found"
+    GoTo exit_here
+  End If
   lngTaskCount = oTasks.Count
   If blnPerformanceTest Then Debug.Print "<=====PERFORMANCE TEST " & Now() & "=====>"
 
@@ -678,6 +697,18 @@ Sub cptCreateStatusSheet()
   lngHeaderRow = 8
   With cptStatusSheet_frm
     If .cboCreate.Value = "0" Then 'single workbook
+      
+      SelectAll
+      On Error Resume Next
+      Set oTasks = Nothing
+      Set oTasks = ActiveSelection.Tasks
+      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If oTasks Is Nothing Then
+        .lblStatus.Caption = "No incomplete tasks ...skipped"
+        Application.StatusBar = .lblStatus.Caption
+        GoTo exit_here
+      End If
+      
       Set oWorkbook = oExcel.Workbooks.Add
       oExcel.Calculation = xlCalculationManual
       oExcel.ScreenUpdating = False
@@ -702,13 +733,14 @@ Sub cptCreateStatusSheet()
       
       Set oInputRange = Nothing
       Set oNumberValidationRange = Nothing
+      Set oETCValidationRange = Nothing
       Set oUnlockedRange = Nothing
       Set oAssignmentRange = Nothing
       
       oWorksheet.Calculate
       
       If blnLocked Then 'protect the sheet
-        oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
+        oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, userinterfaceonly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
         oWorksheet.EnableSelection = xlNoRestrictions
       End If
       
@@ -742,9 +774,20 @@ Sub cptCreateStatusSheet()
       For lngItem = 0 To .lboItems.ListCount - 1
         If .lboItems.Selected(lngItem) Then
           strItem = .lboItems.List(lngItem, 0)
+          SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", strItem
+          SelectAll
+          On Error Resume Next
+          Set oTasks = ActiveSelection.Tasks
+          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If oTasks Is Nothing Then
+            .lblStatus.Caption = "No incomplete tasks for " & strItem & "...skipped"
+            Application.StatusBar = .lblStatus.Caption
+            GoTo next_worksheet
+          End If
+          
+          'create worksheet
           Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
           oWorksheet.Name = strItem
-          SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", strItem
           'copy data
           If blnPerformanceTest Then t = GetTickCount
           .lblStatus.Caption = "Creating Worksheet for " & strItem & "..."
@@ -763,15 +806,17 @@ Sub cptCreateStatusSheet()
           oWorksheet.Calculate
           
           If blnLocked Then 'protect the sheet
-            oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
+            oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, userinterfaceonly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
             oWorksheet.EnableSelection = xlNoRestrictions
           End If
           
           Set oInputRange = Nothing
           Set oNumberValidationRange = Nothing
+          Set oETCValidationRange = Nothing
           Set oUnlockedRange = Nothing
           Set oAssignmentRange = Nothing
           
+next_worksheet:
           .lblStatus.Caption = "Creating Worksheet for " & strItem & "...done"
           Application.StatusBar = .lblStatus.Caption
           DoEvents
@@ -800,12 +845,24 @@ Sub cptCreateStatusSheet()
       For lngItem = 0 To .lboItems.ListCount - 1
         If .lboItems.Selected(lngItem) Then
           strItem = .lboItems.List(lngItem, 0)
+          SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", strItem
+          SelectAll
+          On Error Resume Next
+          Set oTasks = Nothing
+          Set oTasks = ActiveSelection.Tasks
+          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If oTasks Is Nothing Then
+            .lblStatus.Caption = "No incomplete tasks for " & strItem & "...skipped"
+            Application.StatusBar = .lblStatus.Caption
+            GoTo next_workbook
+          End If
+          
+          'get excel
           Set oWorkbook = oExcel.Workbooks.Add
           oExcel.Calculation = xlCalculationManual
           oExcel.ScreenUpdating = False
           Set oWorksheet = oWorkbook.Sheets(1)
           oWorksheet.Name = "Status Request"
-          SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", .lboItems.List(lngItem, 0)
           
           'copy data
           If blnPerformanceTest Then t = GetTickCount
@@ -826,12 +883,13 @@ Sub cptCreateStatusSheet()
           oWorksheet.Calculate
           
           If blnLocked Then 'protect the sheet
-            oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
+            oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, userinterfaceonly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
             oWorksheet.EnableSelection = xlNoRestrictions
           End If
           
           Set oInputRange = Nothing
           Set oNumberValidationRange = Nothing
+          Set oETCValidationRange = Nothing
           Set oUnlockedRange = Nothing
           Set oAssignmentRange = Nothing
                     
@@ -848,13 +906,16 @@ Sub cptCreateStatusSheet()
             DoEvents
             'must close before attaching to email
             oWorkbook.Close True
-            oWorkbook.Application.Wait Now + TimeValue("00:00:02")
+            'oWorkbook.Application.Wait Now + TimeValue("00:00:02")
             cptSendStatusSheet strFileName, strItem
             .lblStatus.Caption = "Creating Email for " & strItem & "...done"
             Application.StatusBar = .lblStatus.Caption
             DoEvents
-          End If
-        End If
+          End If 'blnEmail
+        End If '.lboItems.Selected(lngItem)
+        
+next_workbook:
+        
       Next lngItem
       
       If Not blnEmail Then
@@ -1465,7 +1526,9 @@ Dim lngItem As Long
   lngItem = 0
   If cptStatusSheet_frm.lboExport.ListCount > 0 Then
     For lngItem = 0 To cptStatusSheet_frm.lboExport.ListCount - 1
-      TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(cptStatusSheet_frm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+      If Not IsNull(cptStatusSheet_frm.lboExport.List(lngItem, 0)) Then
+        TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(cptStatusSheet_frm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+      End If
     Next lngItem
   End If
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Name", Title:="Task Name / Scope", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
@@ -1594,6 +1657,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   'integers
   'doubles
   'booleans
+  Dim blnAlerts As Boolean
   Dim blnLOE As Boolean
   Dim blnLocked As Boolean
   Dim blnValidation As Boolean
@@ -1630,7 +1694,9 @@ try_again:
   oWorksheet.Cells.Font.Size = 11
   oWorksheet.Rows(lngHeaderRow).Font.Bold = True
   oWorksheet.Columns.AutoFit
-  'format the columns
+  'format the colums
+  blnAlerts = oWorksheet.Application.DisplayAlerts
+  If blnAlerts Then oWorksheet.Application.DisplayAlerts = False
   For lngCol = 1 To ActiveSelection.FieldIDList.Count
     oWorksheet.Columns(lngCol).ColumnWidth = ActiveProject.TaskTables("cptStatusSheet Table").TableFields(lngCol + 1).Width + 2
     oWorksheet.Cells(lngHeaderRow, lngCol).WrapText = True
@@ -1651,6 +1717,7 @@ try_again:
       End If
     End If
   Next lngCol
+  oWorksheet.Application.DisplayAlerts = blnAlerts
   
   'format the header
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
@@ -1703,12 +1770,13 @@ try_again:
     If Len(strLOEField) > 0 Then
       lngLOEField = CLng(strLOEField)
     End If
-    strLOE = cptGetSetting("Metrics", "strLOE")
+    strLOE = cptGetSetting("Metrics", "txtLOE")
     'todo: ensure sync between metrics and status sheet
-    With cptStatusSheet_frm
-      'todo: If oTask.GetField(lngLOEField) = strLOE Then blnLOE = True
-      If oTask.GetField(FieldNameToFieldConstant(.cboEVT.Value)) = strLOE Then blnLOE = True
-    End With
+    If Len(strLOE) > 0 Then
+      With cptStatusSheet_frm
+        If oTask.GetField(FieldNameToFieldConstant(.cboEVT.Value)) = strLOE Then blnLOE = True
+      End With
+    End If
     If oTask.Summary Then 'todo: handle group by summary and clear it too
       If oSummaryRange Is Nothing Then
         Set oSummaryRange = oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol))
@@ -1743,6 +1811,10 @@ try_again:
         Set oCompleted = oWorksheet.Application.Union(oCompleted, oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol)))
       End If
       GoTo get_assignments
+    End If
+    If blnLOE Then
+      oWorksheet.Cells(lngRow, lngEVPCol - 1) = "'-"
+      oWorksheet.Cells(lngRow, lngEVPCol) = "'-"
     End If
     'capture status formating:
     'tasks requiring status:
@@ -1800,7 +1872,7 @@ try_again:
         Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngASCol))
       End If
       Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngAFCol))
-      Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngEVPCol))
+      If Not blnLOE Then Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngEVPCol))
       Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngETCCol))
     End If
     
@@ -1819,11 +1891,14 @@ try_again:
         Else
           Set oDateValidationRange = oWorksheet.Application.Union(oDateValidationRange, oWorksheet.Cells(lngRow, lngAFCol))
         End If
-      End If
-      If oNumberValidationRange Is Nothing Then
-        Set oNumberValidationRange = oWorksheet.Cells(lngRow, lngEVPCol)
-      Else
-        Set oNumberValidationRange = oWorksheet.Application.Union(oNumberValidationRange, oWorksheet.Cells(lngRow, lngEVPCol))
+        'allow incomplete tasks to have EVP updated
+        If Not blnLOE Then
+          If oNumberValidationRange Is Nothing Then
+            Set oNumberValidationRange = oWorksheet.Cells(lngRow, lngEVPCol)
+          Else
+            Set oNumberValidationRange = oWorksheet.Application.Union(oNumberValidationRange, oWorksheet.Cells(lngRow, lngEVPCol))
+          End If
+        End If
       End If
     End If 'blnValidation
     
@@ -1933,20 +2008,38 @@ next_task:
       .ShowInput = True
       .ShowError = True
     End With
-    'number validation range
+  End If
+  If blnValidation And Not oNumberValidationRange Is Nothing Then
+    'number validation range (contains EV% only)
     With oNumberValidationRange.Validation
+      .Delete
+      .Add Type:=xlValidateDecimal, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:="0", Formula2:="1"
+      .IgnoreBlank = True
+      .InCellDropdown = True
+      .InputTitle = "Number Only"
+      .ErrorTitle = "Number Only"
+      .InputMessage = "Please enter a percentage between 0% and 100%."
+      .ErrorMessage = "Please enter a percentage between 0% and 100%."
+      .ShowInput = True
+      .ShowError = True
+    End With
+  End If
+  If blnValidation And Not oETCValidationRange Is Nothing Then
+    'ETC validation range (contains ETC only)
+    With oETCValidationRange.Validation
       .Delete
       .Add Type:=xlValidateDecimal, AlertStyle:=xlValidAlertStop, Operator:=xlGreaterEqual, Formula1:="0"
       .IgnoreBlank = True
       .InCellDropdown = True
       .InputTitle = "Number Only"
       .ErrorTitle = "Number Only"
-      .InputMessage = "Please enter a number greater than or equal to zero. Decimals permitted."
-      .ErrorMessage = "Please enter a number greater than or equal to zero. Decimals permitted."
+      .InputMessage = "Please enter a number greater than, or equal to, zero (0)."
+      .ErrorMessage = "Please enter a number greater than, or equal to, zero (0)"
       .ShowInput = True
       .ShowError = True
     End With
   End If
+  'format the Assignment Rows
   If Not oAssignmentRange Is Nothing Then
     With oAssignmentRange.Interior
       .Pattern = xlSolid
@@ -1956,6 +2049,7 @@ next_task:
       .PatternTintAndShade = 0
     End With
   End If
+  'format the input rows
   If Not oInputRange Is Nothing Then
     oInputRange.Style = "Input"
     oInputRange.Locked = False
@@ -2093,11 +2187,12 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
       vAssignment(1, lngRemainingWorkCol + 1) = oAssignment.RemainingCost
     End If
     'add validation
-    If oNumberValidationRange Is Nothing Then
-      Set oNumberValidationRange = oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1)
+    If oETCValidationRange Is Nothing Then
+      Set oETCValidationRange = oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1)
     Else
-      Set oNumberValidationRange = oWorksheet.Application.Union(oNumberValidationRange, oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1))
+      Set oETCValidationRange = oWorksheet.Application.Union(oETCValidationRange, oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1))
     End If
+    'allow input on ETC if task is unstarted or incomplete - i.e., in progress
     If (Not IsDate(oTask.ActualStart) And oTask.Start <= ActiveProject.StatusDate) Or (IsDate(oTask.ActualStart) And Not IsDate(oTask.ActualFinish)) Then
       If oInputRange Is Nothing Then
         Set oInputRange = oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1)
@@ -2192,6 +2287,8 @@ Dim vBorder As Variant
   oWorksheet.Application.ActiveWindow.SplitColumn = 0
   oWorksheet.Application.ActiveWindow.FreezePanes = True
   oWorksheet.Application.WindowState = xlMinimized
+  oWorksheet.Application.ActiveWindow.DisplayHorizontalScrollBar = True
+  oWorksheet.Application.ActiveWindow.DisplayVerticalScrollBar = True
   Set oEntryHeaderRange = Nothing
 End Sub
 
@@ -2309,13 +2406,16 @@ Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem 
   With cptStatusSheet_frm
     strDir = .lblDirSample.Caption
     'create the status date directory
-    If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
+    If Dir(strDir, vbDirectory) = vbNullString Then
+      MkDir strDir
+      oWorkbook.Application.Wait Now + TimeValue("00:00:03")
+    End If
     strFileName = .txtFileName.Value & ".xlsx"
     strFileName = Replace(strFileName, "[yyyy-mm-dd]", Format(dtStatus, "yyyy-mm-dd"))
-    'todo: strFileName = cptRemoveIllegalCharacters(ActiveProject.Name)
     If Len(strItem) > 0 Then
       strFileName = Replace(strFileName, "[item]", strItem)
     End If
+    strFileName = cptRemoveIllegalCharacters(strFileName)
     On Error Resume Next
     If Dir(strDir & strFileName) <> vbNullString Then
       Kill strDir & strFileName
@@ -2330,6 +2430,7 @@ Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem 
       strMsg = strMsg & "The file you are now creating will be named '" & strFileName & "'"
       MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
       oWorkbook.SaveAs strDir & strFileName, 51
+      oWorkbook.Application.Wait Now + TimeValue("00:00:02")
     Else
       oWorkbook.SaveAs strDir & strFileName, 51
       oWorkbook.Application.Wait Now + TimeValue("00:00:02")
@@ -2504,3 +2605,305 @@ End Sub
 Sub cptAdvanceStatusDate()
   Application.ChangeStatusDate
 End Sub
+
+Sub cptCaptureJournal()
+  'objects
+  Dim oRecordset As ADODB.Recordset
+  'strings
+  Dim strProgram As String
+  Dim strFile As String
+  'longs
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  Dim dtStatus As Date
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  strProgram = cptGetProgramAcronym
+  
+  dtStatus = FormatDateTime(ActiveProject.StatusDate, vbGeneralDate)
+  
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  
+  strFile = cptDir & "\settings\cpt-journal.adtg"
+  If Dir(strFile) = vbNullString Then
+    With oRecordset
+      .Fields.Append "PROGRAM", adVarChar, 50
+      .Fields.Append "STATUS_DATE", adDate
+      .Fields.Append "TASK_UID", adInteger
+      .Fields.Append "TASK_NOTE", adVarChar, 255
+      .Fields.Append "ASSIGNMENT_UID", adInteger
+      .Fields.Append "ASSIGNMENT_NOTE", adVarChar, 255
+      .Open
+    End With
+  Else
+    oRecordset.Open strFile
+  End If
+  Dim oTask As Task, oTasks As Tasks
+  Set oTasks = ActiveProject.Tasks
+  lngTasks = oTasks.Count
+  lngTask = 0
+  For Each oTask In oTasks
+    If oTask Is Nothing Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If oTask.ExternalTask Then GoTo next_task
+    If Len(oTask.Notes) > 0 Then
+      oRecordset.AddNew Array(0, 1, 2, 3), Array(strProgram, dtStatus, oTask.UniqueID, Chr(34) & oTask.Notes & Chr(34))
+    End If
+    Dim oAssignment As Assignment
+    For Each oAssignment In oTask.Assignments
+      If Len(oAssignment.Notes) > 0 Then
+        oRecordset.AddNew Array(0, 1, 2, 3, 4, 5), Array(strProgram, dtStatus, oTask.UniqueID, oTask.Notes, oAssignment.UniqueID, oAssignment.Notes)
+      End If
+    Next
+next_task:
+    lngTask = lngTask + 1
+    Debug.Print Format(lngTask / lngTasks, "0%")
+  Next oTask
+  
+  oRecordset.Save strFile
+  oRecordset.Close
+  
+exit_here:
+  On Error Resume Next
+  If oRecordset.State Then oRecordset.Close
+  Set oRecordset = Nothing
+  
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptCaptureJournal", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptExportCompletedWork()
+  'objects
+  Dim oAssignment As Assignment
+  Dim oWorksheet As Object 'Excel.Worksheet
+  Dim oWorkbook As Object 'Excel.Workbook
+  Dim oExcel As Object 'Excel.Application
+  Dim oRecordset As Object 'ADODB.Recordset
+  Dim oTask As Task
+  'strings
+  Dim strEVP As String
+  Dim strEVT As String
+  Dim strLC As String
+  Dim strWPM As String
+  Dim strWPCN As String
+  Dim strCAM As String
+  Dim strOBS As String
+  Dim strCWBS As String
+  Dim strProgram As String
+  Dim strRecord As String
+  Dim strCon As String
+  Dim strDir As String
+  Dim strSQL As String
+  Dim strFile As String
+  'longs
+  Dim lngLC As Long
+  Dim lngEVP As Long
+  Dim lngEVT As Long
+  Dim lngItem As Long
+  Dim lngWPM As Long
+  Dim lngWPCN As Long
+  Dim lngCAM As Long
+  Dim lngOBS As Long
+  Dim lngCWBS As Long
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  Dim lngFile As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnMissing As Boolean
+  'variants
+  'dates
+  Dim dtStatus As Date
+  Dim dtAF As Date
+  
+  On Error Resume Next
+  strCWBS = ActiveProject.CustomDocumentProperties("fCAID1")
+  strOBS = ActiveProject.CustomDocumentProperties("fCAID2")
+  strCAM = ActiveProject.CustomDocumentProperties("fCAM")
+  strWPCN = ActiveProject.CustomDocumentProperties("fWP")
+  'strWPM = "WPM" 'ActiveProject.CustomDocumentProperties("fWPM") 'todo: where to get WPM?
+  strLC = ActiveProject.CustomDocumentProperties("fResID")
+  strEVT = ActiveProject.CustomDocumentProperties("fEVT")
+  strEVP = ActiveProject.CustomDocumentProperties("fPCNT")
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnMissing = False
+  If strCWBS = "" Then blnMissing = True
+  If strOBS = "" Then blnMissing = True
+  If strCAM = "" Then blnMissing = True
+  If strWPCN = "" Then blnMissing = True
+  If strLC = "" Then blnMissing = True
+  If strEVT = "" Then blnMissing = True
+  If strEVP = "" Then blnMissing = True
+  
+  If blnMissing Then
+    MsgBox "Please fill out all required fields in the COBRA Export Tool's Config tab, then try again.", vbExclamation + vbOKOnly, "Fields Unmapped"
+    GoTo exit_here
+  End If
+  
+  lngCWBS = FieldNameToFieldConstant(strCWBS)
+  lngOBS = FieldNameToFieldConstant(strOBS)
+  lngCAM = FieldNameToFieldConstant(strCAM)
+  lngWPCN = FieldNameToFieldConstant(strWPCN)
+  'lngWPM = FieldNameToFieldConstant(strWPM)
+  lngLC = FieldNameToFieldConstant(strLC, pjResource)
+  lngEVT = FieldNameToFieldConstant(strEVT)
+  lngEVP = FieldNameToFieldConstant(strEVP)
+  
+  cptSaveSetting "Integration", "CWBS", lngCWBS & "|" & strCWBS '& " (" & FieldConstantToFieldName(lngCWBS) & ")"
+  cptSaveSetting "Integration", "OBS", lngOBS & "|" & strOBS '& " (" & FieldConstantToFieldName(lngOBS) & ")"
+  cptSaveSetting "Integration", "CAM", lngCAM & "|" & strCAM '& " (" & FieldConstantToFieldName(lngCAM) & ")"
+  cptSaveSetting "Integration", "WPCN", lngWPCN & "|" & strWPCN '& " (" & FieldConstantToFieldName(lngWPCN) & ")"
+  'cptSaveSetting "Integration", "WPM", lngWPM & "|" & strWPM '& " (" & FieldConstantToFieldName(lngWPM) & ")"
+  cptSaveSetting "Integration", "LC", lngLC & "|" & strLC '& " (" & FieldConstantToFieldName(lngLC) & ")"
+  cptSaveSetting "Integration", "EVT", lngEVT & "|" & strEVT '& " (" & FieldConstantToFieldName(lngEVT) & ")"
+  cptSaveSetting "Integration", "EVP", lngEVP & "|" & strEVP '& " (" & FieldConstantToFieldName(lngEVP) & ")"
+  
+  'create Schema
+  strFile = Environ("tmp") & "\Schema.ini"
+  lngFile = FreeFile
+  Open strFile For Output As #lngFile
+  Print #lngFile, "[wpcn.csv]"
+  Print #lngFile, "Format=CSVDelimited"
+  Print #lngFile, "ColNameHeader=True"
+  Print #lngFile, "Col1=UID Long"
+  Print #lngFile, "Col2=CWBS Text"
+  Print #lngFile, "Col3=OBS Text"
+  Print #lngFile, "Col4=CAM Text"
+  Print #lngFile, "Col5=WPCN Text"
+  'Print #lngFile, "Col6=WPM Text"
+  Print #lngFile, "Col6=LC Text"
+  Print #lngFile, "Col7=AF DateTime"
+  Print #lngFile, "Col8=PercentComplete Long"
+  Close #lngFile
+  
+  strFile = Environ("tmp") & "\wpcn.csv"
+  lngFile = FreeFile
+  Open strFile For Output As #lngFile
+  Print #lngFile, "UID,CWBS,OBS,CAM,WPCN,LC,AF,PercentComplete," 'WPM, after WPCN
+  
+  lngTasks = ActiveProject.Tasks.Count
+    
+  For Each oTask In ActiveProject.Tasks
+    If oTask Is Nothing Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If oTask.ExternalTask Then GoTo next_task
+    For Each oAssignment In oTask.Assignments
+      strRecord = oTask.UniqueID & ","
+      strRecord = strRecord & oTask.GetField(lngCWBS) & ","
+      strRecord = strRecord & oTask.GetField(lngOBS) & ","
+      strRecord = strRecord & oTask.GetField(lngCAM) & ","
+      strRecord = strRecord & oTask.GetField(lngWPCN) & ","
+      'strRecord = strRecord & oTask.GetField(lngWPM) & ","
+      strRecord = strRecord & oAssignment.Resource.GetField(lngLC) & ","
+      If IsDate(oTask.ActualFinish) Then
+        dtAF = FormatDateTime(oTask.ActualFinish, vbShortDate)
+      Else
+        dtAF = #1/1/1984#
+      End If
+      strRecord = strRecord & dtAF & ","
+      strRecord = strRecord & CLng(Replace(oTask.GetField(lngEVP), "%", "")) & "," 'assumes 100
+      Print #lngFile, strRecord
+    Next oAssignment
+    
+next_task:
+    lngTask = lngTask + 1
+    Application.StatusBar = Format(lngTask, "#,##0") & " / " & Format(lngTasks, "#,##0") & "...(" & Format(lngTask / lngTasks, "0%") & ")"
+    DoEvents
+  Next oTask
+  Close #lngFile
+  
+  strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & Environ("tmp") & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
+  strSQL = "SELECT WPCN,MAX(AF),AVG(PercentComplete) AS EV "
+  strSQL = strSQL & "FROM wpcn.csv "
+  strSQL = strSQL & "GROUP BY WPCN "
+  strSQL = strSQL & "HAVING AVG(PercentComplete)=100 "
+  strSQL = strSQL & "ORDER BY MAX(AF) Desc "
+  'strSQL = "SELECT * FROM wpcn.csv"
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  oRecordset.Open strSQL, strCon, 1, 1 '1=adOpenKeyset, 1=adLockReadOnly
+  If oRecordset.RecordCount > 0 Then
+    On Error Resume Next
+    Set oExcel = GetObject(, "Excel.Application")
+    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If oExcel Is Nothing Then
+      Set oExcel = CreateObject("Excel.Application")
+    End If
+    Set oWorkbook = oExcel.Workbooks.Add
+    Set oWorksheet = oWorkbook.Sheets(1)
+    oWorksheet.Name = "COMPLETED WPCNs"
+    oWorksheet.[A1:C1] = Array("WPCN", "AF", "EV")
+    oWorksheet.[A1:C1].Font.Bold = True
+    oWorksheet.[A2].CopyFromRecordset oRecordset
+    oRecordset.Close
+    oExcel.ActiveWindow.Zoom = 85
+    oWorksheet.Columns(2).HorizontalAlignment = xlCenter
+    oWorksheet.Rows(1).HorizontalAlignment = xlLeft
+    oWorksheet.[A1].AutoFilter
+    oWorksheet.Columns.AutoFit
+    oExcel.ActiveWindow.SplitRow = 1
+    oExcel.ActiveWindow.SplitColumn = 0
+    oExcel.ActiveWindow.FreezePanes = True
+    'get details
+    If oWorkbook.Sheets.Count >= 2 Then
+      Set oWorksheet = oWorkbook.Sheets(2)
+    Else
+      Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
+    End If
+    oWorksheet.Name = "DETAILS"
+    strSQL = "SELECT * FROM wpcn.csv ORDER BY WPCN,PercentComplete"
+    oRecordset.Open strSQL, strCon, 1, 1 '1=adOpenKeyset, 1=adLockReadOnly
+    For lngItem = 0 To oRecordset.Fields.Count - 1
+      oWorksheet.Cells(1, lngItem + 1) = oRecordset.Fields(lngItem).Name
+    Next lngItem
+    oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
+    oWorksheet.[A2].CopyFromRecordset oRecordset
+    oWorksheet.Columns(8).Replace #1/1/1984#, "NA"
+    oExcel.ActiveWindow.Zoom = 85
+    oWorksheet.Columns(8).HorizontalAlignment = xlCenter
+    oWorksheet.Rows(1).HorizontalAlignment = xlLeft
+    oWorksheet.[A1].AutoFilter
+    oWorksheet.Columns.AutoFit
+    oExcel.ActiveWindow.SplitRow = 1
+    oExcel.ActiveWindow.SplitColumn = 0
+    oExcel.ActiveWindow.FreezePanes = True
+    oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)).AutoFilter Field:=8, Criteria1:="100" 'Field:=9
+    oRecordset.Close
+    oWorkbook.Sheets("COMPLETED WPCNs").Activate
+    oExcel.Visible = True
+    oExcel.ActiveWindow.WindowState = xlNormal
+    Application.ActivateMicrosoftApp pjMicrosoftExcel
+  Else
+    MsgBox "No records found!", vbExclamation + vbOKOnly, "Completed Work"
+  End If
+    
+exit_here:
+  On Error Resume Next
+  Set oAssignment = Nothing
+  Application.StatusBar = ""
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
+  If oRecordset.State = 1 Then oRecordset.Close
+  Set oRecordset = Nothing
+  Kill Environ("tmp") & "\Schema.ini"
+  Kill Environ("tmp") & "\wpcn.csv"
+  Set oTask = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptCompletedWork", Err, Erl)
+  Resume exit_here
+End Sub
+
+

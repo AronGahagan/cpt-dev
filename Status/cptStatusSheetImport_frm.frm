@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.2</cpt_version>
+'<cpt_version>v1.1.3</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -143,7 +143,7 @@ End Sub
 
 Private Sub cmdSelectFiles_Click()
   'objects
-  Dim FileDialog As FileDialog
+  Dim oFileDialog As Object 'FileDialog
   Dim oExcel As Excel.Application
   'strings
   Dim strFile As String
@@ -165,12 +165,12 @@ Private Sub cmdSelectFiles_Click()
   Else
     blnQuit = False
   End If
-  Set FileDialog = oExcel.FileDialog(msoFileDialogFilePicker)
-  With FileDialog
+  Set oFileDialog = oExcel.FileDialog(msoFileDialogFilePicker)
+  With oFileDialog
     .AllowMultiSelect = True
     .ButtonName = "Import"
-    .InitialView = msoFileDialogViewDetails
-    .InitialFileName = ActiveProject.Path & "\"
+    .InitialView = 2 'msoFileDialogViewDetails
+    .InitialFileName = ActiveProject.Path & "\" 'todo: ActiveProject.Path, are you serious?
     .Title = "Select Returned Status Sheet(s):"
     .Filters.Add "Microsoft Excel Workbook (xlsx)", "*.xlsx"
     If .Show = -1 Then
@@ -189,7 +189,7 @@ Private Sub cmdSelectFiles_Click()
 
 exit_here:
   On Error Resume Next
-  Set FileDialog = Nothing
+  Set oFileDialog = Nothing
   If blnQuit Then oExcel.Quit
   Set oExcel = Nothing
 

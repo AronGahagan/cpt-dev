@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptResourceDemand_frm 
    Caption         =   "Export Resource Demand"
-   ClientHeight    =   5415
+   ClientHeight    =   7215
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   9465.001
+   ClientWidth     =   12375
    OleObjectBlob   =   "cptResourceDemand_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -13,11 +13,27 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.4</cpt_version>
+'<cpt_version>v1.4.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
+
+Private Sub cboMonths_Change()
+  If Me.cboMonths.Value = 0 Then
+    Me.cboWeeks.Enabled = True
+    Me.cboWeeks.Locked = False
+    Me.cboWeekday.Enabled = True
+    Me.cboWeekday.Locked = False
+  ElseIf Me.cboMonths.Value = 1 Then 'fiscal
+    Me.cboWeeks.Value = "Ending"
+    Me.cboWeeks.Enabled = False
+    Me.cboWeeks.Locked = True
+    Me.cboWeekday.Value = "Friday"
+    Me.cboWeekday.Enabled = False
+    Me.cboWeekday.Locked = True
+  End If
+End Sub
 
 Private Sub cboWeeks_Change()
   Me.cboWeekday.Clear
@@ -96,7 +112,7 @@ End Sub
 Private Sub cmdExport_Click()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
-  Call cptExportResourceDemand
+  Call cptExportResourceDemandNew 'todo: revert
 
 exit_here:
   On Error Resume Next

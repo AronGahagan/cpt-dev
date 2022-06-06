@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptAbout_frm 
-   Caption         =   "The ClearPlan Toolbar - v1.6.11"
+   Caption         =   "The ClearPlan Toolbar - v1.7.4"
    ClientHeight    =   4410
    ClientLeft      =   120
    ClientTop       =   465
@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.7.0</cpt_version>
+'<cpt_version>v1.7.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -33,6 +33,6 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptAbout_frm", "lblURL", err, Erl)
+  Call cptHandleErr("cptAbout_frm", "lblURL", Err, Erl)
   Resume exit_here
 End Sub

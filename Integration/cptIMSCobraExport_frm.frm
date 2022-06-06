@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIMSCobraExport_frm 
-   Caption         =   "IMS Export Utility v3.3.4"
+   Caption         =   "IMS Export Utility v3.3.5"
    ClientHeight    =   7305
    ClientLeft      =   120
    ClientTop       =   465
@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v3.3.4</cpt_version>
+'<cpt_version>v3.3.5</cpt_version>
 Private Sub AsgnPcntBox_Change() 'v3.3.1
     
     If isIMSfield(AsgnPcntBox.Value) = False And AsgnPcntBox.Value <> "" And AsgnPcntBox.Value <> "<None>" Then
@@ -572,6 +572,33 @@ Private Sub CSVBtn_Change()
 
 End Sub
 
+Private Sub DateFormat_Combobox_Change() 'v3.3.5
+
+    Dim docProps As DocumentProperties
+    Dim curproj As Project
+    
+    Set curproj = ActiveProject
+    Set docProps = curproj.CustomDocumentProperties
+    
+    On Error GoTo PropMissing
+    
+    docProps("dateFmt").Value = Me.DateFormat_Combobox.Value
+
+PropFound:
+
+    Me.TabButtons(1).Tag = VerifyCustFieldUsage
+    
+    Set docProps = Nothing
+    Set curproj = Nothing
+    
+    Exit Sub
+    
+PropMissing:
+
+    docProps.Add "dateFmt", False, msoPropertyTypeString, Me.DateFormat_Combobox.Value
+    Resume PropFound
+
+End Sub
 
 Private Sub ETC_Checkbox_Click()
     If Me.ETC_Checkbox = True Then
@@ -733,7 +760,6 @@ PropMissing:
     Resume PropFound
 End Sub
 
-
 Private Sub PercentBox_Change()
 
     If checkDuplicate(PercentBox) = True Then
@@ -880,7 +906,7 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
 End Sub
 Private Function VerifyCustFieldUsage() As Boolean
 
-    Dim fCAID1, fCAID2, fCAID3, fWP, fCAM, fEVT, fPCNT, fResID As Boolean
+    Dim fCAID1, fCAID2, fCAID3, fWP, fCAM, fEVT, fPCNT, fResID, dateFmt As Boolean 'v3.3.5
     
     If Me.caID1Box.Value <> "" Then fCAID1 = True
     If CAID2TxtBox.Value <> "<None>" Then
@@ -898,8 +924,9 @@ Private Function VerifyCustFieldUsage() As Boolean
     If Me.camBox.Value <> "" Then fCAM = True Else fCAM = False 'v3.2.2
     If Me.evtBox.Value <> "" Then fEVT = True Else fEVT = False 'v3.2.2
     If Me.PercentBox.Value <> "" Then fPCNT = True Else fPCNT = False 'v3.2.2
+    If Me.DateFormat_Combobox.Value <> "" Then dateFmt = True Else dateFmt = False 'v3.3.5
     
-    If fCAID1 And fCAID2 And fCAID3 And fWP And fCAM And fEVT And fPCNT And fResID Then
+    If fCAID1 And fCAID2 And fCAID3 And fWP And fCAM And fEVT And fPCNT And fResID And dateFmt Then 'v3.3.5
     
         VerifyCustFieldUsage = True
     
@@ -950,7 +977,7 @@ Private Function PopulateCustFieldUsage() As Boolean
     Dim curproj As Project
     Dim docProp As DocumentProperty
     Dim docProps As DocumentProperties
-    Dim fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fEVT, fCAID2, fCAID2t, fMSID, fMSW, fBCR, fWhatIf, fPCNT, fAssignPcnt, fResID As Boolean 'v3.3.0
+    Dim fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fEVT, fCAID2, fCAID2t, fMSID, fMSW, fBCR, fWhatIf, fPCNT, fAssignPcnt, fResID, dateFmt As Boolean 'v3.3.0, v3.3.5
     Dim nameTest As Double
     
     Set curproj = ActiveProject
@@ -961,6 +988,11 @@ Private Function PopulateCustFieldUsage() As Boolean
     For Each docProp In docProps
     
         Select Case docProp.Name
+        
+            Case "dateFmt" 'v3.3.5
+            
+                dateFmt = True
+                Me.DateFormat_Combobox.Value = docProp.Value
         
             Case "fAssignPcnt"
             
@@ -1111,7 +1143,7 @@ NextDocProp:
     Set docProps = Nothing
     Set curpro = Nothing
     
-    If fCAID1 And fCAID2 And fWP And fCAM And fEVT And fCAID3 And fPCNT And fResID Then 'v3.2.6
+    If fCAID1 And fCAID2 And fWP And fCAM And fEVT And fCAID3 And fPCNT And fResID And dateFmt Then 'v3.2.6, v3.3.5
     
         PopulateCustFieldUsage = True
     

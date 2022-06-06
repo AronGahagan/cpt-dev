@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDynamicFilter_bas"
-'<cpt_version>v1.5.4</cpt_version>
+'<cpt_version>v1.6.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -8,10 +8,15 @@ Private pCachedRegexes As Scripting.Dictionary
 Sub cptShowDynamicFilter_frm()
 'objects
 'strings
+Dim strCustomFields As String
+Dim strCustomFieldName As String
 'longs
+Dim lngFieldConstant As Long
+Dim lngItem As Long
 'integers
 'booleans
 'variants
+Dim vArray As Variant
 'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -33,8 +38,19 @@ Sub cptShowDynamicFilter_frm()
     .txtFilter = ""
     With .cboField
       .Clear
-      .AddItem "Task Name"
-      'todo: add all local custom text fields
+      For lngItem = 1 To 30
+        lngFieldConstant = FieldNameToFieldConstant("Text" & lngItem)
+        strCustomFieldName = CustomFieldGetName(lngFieldConstant)
+        If Len(strCustomFieldName) > 0 Then
+          strCustomFields = strCustomFields & strCustomFieldName & ","
+        End If
+      Next lngItem
+      'remove terminal comma, reducing array size by one
+      strCustomFields = Left(strCustomFields, Len(strCustomFields) - 1)
+      vArray = Split(strCustomFields, ",")
+      Call cptQuickSort(vArray, 0, UBound(vArray))
+      'join vArray into string, prepend 'Task Name', split into array
+      .List = Split("Task Name," & Join(vArray, ","), ",")
     End With
     With .cboOperator
       .Clear
@@ -72,6 +88,7 @@ Sub cptGoRegEx(strRegEx As String)
   Dim oTask As Task
   'strings
   'longs
+  Dim lngFieldConstant As Long
   Dim lngUID As Long
   'integers
   'doubles
@@ -96,13 +113,14 @@ Sub cptGoRegEx(strRegEx As String)
     If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   End If
   
+  lngFieldConstant = FieldNameToFieldConstant(cptDynamicFilter_frm.cboField.Value)
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.Marked Then oTask.Marked = False
     If cptDynamicFilter_frm.chkHideSummaries And oTask.Summary Then
-      If Len(cptRxMatch(oTask.Name, strRegEx)) > 0 Then oTask.Marked = True
+      If Len(cptRxMatch(oTask.GetField(lngFieldConstant), strRegEx)) > 0 Then oTask.Marked = True
     ElseIf Not oTask.Summary Then
-      If Len(cptRxMatch(oTask.Name, strRegEx)) > 0 Then oTask.Marked = True
+      If Len(cptRxMatch(oTask.GetField(lngFieldConstant), strRegEx)) > 0 Then oTask.Marked = True
     End If
 next_task:
   Next oTask
