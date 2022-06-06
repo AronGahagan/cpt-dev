@@ -308,7 +308,7 @@ Function cptGetReferences(Optional blnVerbose As Boolean = False)
 'prints the current uesr's selected references
 'this would be used to troubleshoot with users real-time
 'although simply runing setreferences would fix it
-Dim oRef As Reference
+Dim oRef As Object 'Reference
 
   For Each oRef In ThisProject.VBProject.References
     Debug.Print oRef.Name & " (" & oRef.Description & ") " & oRef.FullPath
