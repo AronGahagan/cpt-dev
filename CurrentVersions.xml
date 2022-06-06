@@ -66,7 +66,7 @@
 	<Module>
 		<Name>cptCore_bas</Name>
 		<FileName>cptCore_bas.bas</FileName>
-		<Version>v1.9.10</Version>
+		<Version>v1.10.0</Version>
 		<Type>1</Type>
 		<Directory>Core</Directory>
 	</Module>
@@ -192,7 +192,7 @@
 	<Module>
 		<Name>cptMetricsSettings_frm</Name>
 		<FileName>cptMetricsSettings_frm.frm</FileName>
-		<Version>v1.1.0</Version>
+		<Version>v1.2.0</Version>
 		<Type>3</Type>
 		<Directory>Metrics</Directory>
 	</Module>
@@ -269,7 +269,7 @@
 	<Module>
 		<Name>cptSettings_frm</Name>
 		<FileName>cptSettings_frm.frm</FileName>
-		<Version>v1.0.0</Version>
+		<Version>v1.1.0</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>

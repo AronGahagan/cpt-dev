@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -28,6 +28,7 @@ Dim strMsg As String
   strMsg = strMsg & "Contact cpt@ClearPlanConsulting.com if you need help." & vbCrLf & vbCrLf
   strMsg = strMsg & "Do you still wish to venture forth?"
   If MsgBox(strMsg, vbCritical + vbYesNo, "Do Not Attempt This...") = vbYes Then
+    Unload Me
     MsgBox "...you've been warned.", vbInformation + vbOKOnly, "OK"
     Shell "C:\Windows\notepad.exe '" & cptDir & "\settings\cpt-settings.ini" & "'", vbNormalFocus
   End If
@@ -179,7 +180,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub lboFeatures_AfterUpdate()
+Sub lboFeatures_AfterUpdate()
   'objects
   Dim oRecordset As ADODB.Recordset
   'strings
@@ -217,8 +218,81 @@ err_here:
   Resume exit_here
 End Sub
 
+Sub tglErrorTrapping_Click()
+  If Me.tglErrorTrapping Then
+    Me.tglErrorTrapping.Caption = "OFF"
+    Me.tglErrorTrapping.BackColor = 192 'red
+    If Me.Visible Then
+      cptSaveSetting "General", "ErrorTrapping", "0"
+      cptUpdateSetting "General", "ErrorTrapping", "0"
+    End If
+  Else
+    Me.tglErrorTrapping.Caption = "ON"
+    Me.tglErrorTrapping.BackColor = 49152 'green
+    If Me.Visible Then
+      cptSaveSetting "General", "ErrorTrapping", "1"
+      cptUpdateSetting "General", "ErrorTrapping", "1"
+    End If
+  End If
+End Sub
+
 Private Sub UserForm_Terminate()
   Dim strFile As String
   strFile = cptDir & "\settings\cpt-settings.adtg"
   If Dir(strFile) <> vbNullString Then Kill strFile
+End Sub
+
+Sub cptUpdateSetting(strFeature As String, strKey As String, strVal As String)
+  'objects
+  Dim rst As ADODB.Recordset
+  'strings
+  Dim strFeatures As String
+  Dim strFile As String
+  'longs
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vFeatures As Variant
+  'dates
+  
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+  strFile = cptDir & "\settings\cpt-settings.adtg"
+  Set rst = CreateObject("ADODB.Recordset")
+  With rst
+    .Open strFile
+    .MoveFirst
+    .Find "Setting like '" & strKey & "%'"
+    If Not .EOF Then
+      .Fields(1) = strKey & "=" & strVal
+    Else
+      .AddNew Array(0, 1), Array(strFeature, strKey & "=" & strVal)
+      .MoveFirst
+      .Sort = "Feature,Setting"
+      'add it alphabetized
+      For lngItem = 0 To Me.lboFeatures.ListCount - 1
+        strFeatures = strFeatures & Me.lboFeatures.List(lngItem) & ","
+      Next lngItem
+      strFeatures = strFeatures & "General"
+      vFeatures = Split(strFeatures, ",")
+      cptQuickSort vFeatures, 0, UBound(vFeatures)
+      Me.lboFeatures.List = vFeatures
+      Me.lboFeatures.Value = "General"
+    End If
+    .Save strFile, adPersistADTG
+    .Close
+  End With
+  
+  Me.lboFeatures_AfterUpdate
+  
+exit_here:
+  On Error Resume Next
+  Set rst = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSettings_frm", "cptUpdateSettings", Err, Erl)
+  Resume exit_here
 End Sub
