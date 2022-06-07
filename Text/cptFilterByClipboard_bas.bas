@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
 '<cpt_version>v1.1.7</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowFilterByClipboard_frm()
 'objects
@@ -15,7 +13,7 @@ Dim lngFreeField As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   With cptFilterByClipboard_frm
     .Caption = "Filter By Clipboard (" & cptGetVersion("cptFilterByClipboard_frm") & ")"
@@ -84,7 +82,7 @@ Sub cptClipboardJump()
   Dim vList As Variant
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(cptFilterByClipboard_frm.txtFilter.Text) = 0 Then Exit Sub
   vList = Split(cptFilterByClipboard_frm.txtFilter.Text, ",")
@@ -123,7 +121,7 @@ Dim lngUID As Long
 Dim vUID As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   cptSpeed True
   
@@ -168,7 +166,7 @@ next_task:
     Else
       Set oTask = ActiveProject.Tasks(lngUID)
     End If
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oTask Is Nothing Then
       'add to autofilter
       strFilter = strFilter & lngUID & Chr$(9)
@@ -196,7 +194,7 @@ next_item:
       Sort "ID", , , , , , False, True
       OutlineShowAllTasks
     End If
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     SelectBeginning
     strFilter = Left(strFilter, Len(strFilter) - 1)
     If cptFilterByClipboard_frm.optUID Then
@@ -237,7 +235,7 @@ Dim vRecords As Variant
 Dim REMatch As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Set RE = CreateObject("vbscript.regexp")
   With RE
@@ -333,7 +331,7 @@ Dim blnFree As Boolean
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Calculation = pjManual
   
@@ -425,7 +423,7 @@ Sub cptClearFreeField()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Calculation = pjManual
   ScreenUpdating = False

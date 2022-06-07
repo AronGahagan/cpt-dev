@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptText_bas"
 '<cpt_version>v1.4.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptReplicateProcess()
   MsgBox "feature not yet released", vbOKOnly + vbInformation, "todo"
@@ -28,7 +26,7 @@ Sub cptBulkAppend()
   On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
   If oTasks Is Nothing Then Exit Sub
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   strAppend = InputBox("Append what text to selected tasks?", "Append Text")
   
@@ -72,7 +70,7 @@ Sub cptBulkPrepend()
   On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
   If oTasks Is Nothing Then Exit Sub
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   strPrepend = InputBox("Prepend what text to selected tasks?", "Prepend Text")
   
@@ -118,7 +116,7 @@ Sub cptEnumerate()
   On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
   If oTasks Is Nothing Then Exit Sub
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   vResponse = InputBox("How many digits (number input only)?", "Format Enumeration", 3)
   If StrPtr(vResponse) = 0 Then
@@ -190,7 +188,7 @@ Sub cptMyReplace()
   cptSpeed True
   Set oTasks = ActiveSelection.Tasks
   If oTasks Is Nothing Then Exit Sub
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'get string to find
   vFind = InputBox("Find what text:", "Replace")
@@ -379,7 +377,7 @@ Sub cptTrimTaskNames()
   'variants
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   cptSpeed True
 
@@ -444,13 +442,13 @@ Dim lngItem As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not cptModuleExists("cptText_frm") Then GoTo exit_here
 
   On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oTasks Is Nothing Then
     cptText_frm.lboOutput.Clear
     For Each oTask In oTasks
@@ -490,13 +488,13 @@ Sub cptUpdatePreview(Optional strPrepend As String, Optional strAppend As String
   'variants
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   For lngItem = 0 To cptText_frm.lboOutput.ListCount - 1
     If IsNull(cptText_frm.lboOutput.List(lngItem, 0)) Then GoTo exit_here
     On Error Resume Next
     Set oTask = ActiveProject.Tasks.UniqueID(cptText_frm.lboOutput.List(lngItem, 0))
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oTask Is Nothing Then
       If MsgBox("UID " & cptText_frm.lboOutput.List(lngItem, 0) & " not found in " & UCase(ActiveProject.Name) & "! Proceed?", vbCritical + vbYesNo, "Task Not Found") = vbNo Then
         Err.Clear
@@ -583,7 +581,7 @@ End Sub
 
 Sub cptResetRowHeight()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
     '===
   'Validate users selected view type

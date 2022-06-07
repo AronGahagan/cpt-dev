@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptCore_bas"
 '<cpt_version>v1.10.0</cpt_version>
 Option Explicit
-'Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
   Private Declare PtrSafe Function GetPrivateProfileString Lib "Kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long

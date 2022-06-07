@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptSaveMarked_bas"
 '<cpt_version>v1.0.5</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowSaveMarked_frm()
   'objects
@@ -16,7 +14,7 @@ Sub cptShowSaveMarked_frm()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Call cptUpdateMarked
   cptSaveMarked_frm.Caption = "Import Marked (" & cptGetVersion("cptSaveMarked_frm") & ")"
@@ -58,7 +56,7 @@ Sub cptUpdateMarked(Optional strFilter As String)
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   strProject = cptGetProgramAcronym
   If Len(strProject) = 0 Then
     MsgBox "Program Acronym is required for this feature.", vbExclamation + vbOKOnly, "Program Acronym Needed"
@@ -152,7 +150,7 @@ Sub cptSaveMarked()
   'dates
   Dim dtTimestamp As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Set rstMarked = CreateObject("ADODB.Recordset")
   strMarked = cptDir & "\cpt-marked.adtg"

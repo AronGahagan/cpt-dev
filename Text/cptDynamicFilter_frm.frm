@@ -15,8 +15,6 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.6.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboField_Change()
   If Me.Visible Then Me.txtFilter_Change
@@ -40,12 +38,12 @@ End Sub
 Private Sub chkKeepSelected_Click()
 Dim Task As Task
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Me.chkKeepSelected = True Then
     On Error Resume Next
     Set Task = ActiveSelection.Tasks(1)
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Task Is Nothing Then Me.chkKeepSelected = False
     Set Task = Nothing
   End If
@@ -95,7 +93,7 @@ End Sub
 
 Private Sub cmdUndo_Click()
   Dim oTask As Task
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   cptSpeed True
   For Each oTask In ActiveProject.Tasks
@@ -118,7 +116,7 @@ End Sub
 
 Private Sub lblHelp_Click()
     
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then
     If MsgBox("'regex' stands for regular expresssions, or 'pattern matching.' would you like to see a tutorial?", vbYesNo + vbInformation, "pretty '/^[abds]{6}$/g' stuff") = vbYes Then
@@ -140,7 +138,7 @@ End Sub
 
 Private Sub lblURL_Click()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then Application.FollowHyperlink ("http://" & Me.lblURL.Caption)
 
@@ -291,7 +289,7 @@ Dim blnShowRelatedSummaries As Boolean
 'longs
 Dim lgOriginalUID As Long
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Me.tglRegEx Then Exit Sub
   If Me.ActiveControl.Name = "cmdClear" Then Exit Sub
 

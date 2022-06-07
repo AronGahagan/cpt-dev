@@ -15,8 +15,6 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.1.3</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboAF_Change()
   Call cptRefreshStatusImportTable
@@ -116,7 +114,7 @@ Private Sub cmdRemove_Click()
   Dim vRemove As Variant
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   For lngItem = Me.lboStatusSheets.ListCount - 1 To 0 Step -1
     If Me.lboStatusSheets.Selected(lngItem) Then
@@ -158,7 +156,7 @@ Private Sub cmdSelectFiles_Click()
 
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
     blnQuit = True
@@ -201,7 +199,7 @@ End Sub
 
 Private Sub lblURL_Click()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
 
@@ -237,7 +235,7 @@ Private Sub lboStatusSheets_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Me.lboStatusSheets.ListCount > 0 Then
     For lngItem = 0 To Me.lboStatusSheets.ListCount - 1
@@ -246,7 +244,7 @@ Private Sub lboStatusSheets_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
         If Dir(strPath) <> vbNullString Then
           On Error Resume Next
           Set oExcel = GetObject(, "Excel.Application")
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
           oExcel.Workbooks.Open strPath
           oExcel.Visible = True

@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptSetup_bas"
  '<cpt_version>v1.6.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
 #If Win64 And VBA7 Then
@@ -48,7 +46,7 @@ Dim blnExists As Boolean
 Dim vEvent As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   '<issue61> ensure proper installation
   If InStr(ThisProject.FullName, "Global.MPT") = 0 Then
@@ -755,7 +753,7 @@ Dim blnExists As Boolean
 'strings
 Dim strError As String
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   blnExists = False
   For Each vbComponent In ThisProject.VBProject.VBComponents
@@ -793,7 +791,7 @@ Dim lngLine As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If MsgBox("Are you sure?", vbCritical + vbYesNo, "Uninstall CPT") = vbNo Then GoTo exit_here
 

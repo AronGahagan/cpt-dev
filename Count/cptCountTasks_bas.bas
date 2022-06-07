@@ -1,15 +1,13 @@
 Attribute VB_Name = "cptCountTasks_bas"
 '<cpt_version>v1.1.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptCountTasks(strScope As String)
 Dim oTask As Task, oTasks As Tasks
 Dim lngTasks As Long, lngSummary As Long, lngInactive As Long
 Dim strMsg As String
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   '===
   'Validate users selected view type
@@ -110,7 +108,7 @@ Function cptGetShowStatusBarCount() As Boolean
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   strShow = cptGetSetting("Count", "blnShowStatusBarTaskCount")
   If Len(strShow) > 0 Then
@@ -141,7 +139,7 @@ Sub cptSetShowStatusBarTaskCount()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If MsgBox("Show Status Bar Task Count?", vbQuestion + vbYesNo, "Status Bar Task Count") = vbYes Then
     cptSaveSetting "Count", "blnShowStatusBarTaskCount", "1"

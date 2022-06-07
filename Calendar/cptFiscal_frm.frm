@@ -15,8 +15,6 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v0.1.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboImportField_Change()
   If Not IsNull(Me.cboImportField.Value) Then
@@ -135,7 +133,7 @@ Dim vExceptions As Variant
 
   On Error Resume Next
   Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oCalendar Is Nothing Then
     BaseCalendarCreate Name:="cptFiscalCalendar", FromName:="Standard" ' [" & ActiveProject.Name & "]"
     Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar")

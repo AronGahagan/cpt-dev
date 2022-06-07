@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptResourceDemand_bas"
 '<cpt_version>v1.4.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptExportResourceDemand(Optional lngTaskCount As Long)
   'objects
@@ -60,7 +58,7 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
   Dim blnExportBaseline As Boolean
   Dim blnIncludeCosts As Boolean
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Application.StatusBar = "Confirming Status Date..."
   cptResourceDemand_frm.lblStatus.Caption = "Confirming Status Date..."
@@ -195,7 +193,7 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
         Sort "ID", , , , , , False, True
         OutlineShowAllTasks
       End If
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     SelectAll
     lngTasks = ActiveSelection.Tasks.Count
     ViewApply strView
@@ -416,7 +414,7 @@ next_task:
   'set reference to Excel
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If
@@ -424,11 +422,11 @@ next_task:
   'is previous run still open?
   On Error Resume Next
   Set oWorkbook = oExcel.oWorkbooks(strFile)
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oWorkbook Is Nothing Then oWorkbook.Close False
   On Error Resume Next
   Set oWorkbook = oExcel.Workbooks(Environ("TEMP") & "\ExportResourceDemand.xlsx")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oWorkbook Is Nothing Then 'add timestamp to existing file
     If oWorkbook.Application.Visible = False Then oWorkbook.Application.Visible = True
     strMsg = "'" & strFile & "' already exists and is open."
@@ -442,7 +440,7 @@ next_task:
 
   On Error Resume Next
   If Dir(Environ("TEMP") & "\ExportResourceDemand.xlsx") <> vbNullString Then Kill Environ("TEMP") & "\ExportResourceDemand.xlsx"
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Dir(Environ("TEMP") & "\ExportResourceDemand.xlsx") <> vbNullString Then 'kill failed, rename it
     oWorkbook.SaveAs Environ("TEMP") & "\ExportResourceDemand_" & Format(Now, "yyyy-mm-dd-hh-nn-ss") & ".xlsx", 51
   Else
@@ -872,7 +870,7 @@ Dim vCostSets As Variant
 Dim vFieldType As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'requires ms excel
   If Not cptCheckReference("Excel") Then
@@ -1180,7 +1178,7 @@ Function cptCalendarExists(strCalendar As String) As Boolean
   Dim oCalendar As MSProject.Calendar
   On Error Resume Next
   Set oCalendar = ActiveProject.BaseCalendars(strCalendar)
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If oCalendar Is Nothing Then
     cptCalendarExists = False
@@ -1259,7 +1257,7 @@ Sub cptExportResourceDemandNew(Optional lngTaskCount As Long)
   Dim blnExportBaseline As Boolean
   Dim blnIncludeCosts As Boolean
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Application.StatusBar = "Confirming Status Date..."
   cptResourceDemand_frm.lblStatus.Caption = "Confirming Status Date..."
@@ -1392,7 +1390,7 @@ Sub cptExportResourceDemandNew(Optional lngTaskCount As Long)
         Sort "ID", , , , , , False, True
         OutlineShowAllTasks
       End If
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     SelectAll
     lngTasks = ActiveSelection.Tasks.Count
     ViewApply strView
@@ -1625,7 +1623,7 @@ next_task:
   'set reference to Excel
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If
@@ -1633,11 +1631,11 @@ next_task:
   'is previous run still open?
   On Error Resume Next
   Set oWorkbook = oExcel.oWorkbooks(strFile)
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oWorkbook Is Nothing Then oWorkbook.Close False
   On Error Resume Next
   Set oWorkbook = oExcel.Workbooks(Environ("TEMP") & "\ExportResourceDemand.xlsx")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oWorkbook Is Nothing Then 'add timestamp to existing file
     If oWorkbook.Application.Visible = False Then oWorkbook.Application.Visible = True
     strMsg = "'" & strFile & "' already exists and is open."
@@ -1651,7 +1649,7 @@ next_task:
 
   On Error Resume Next
   If Dir(Environ("TEMP") & "\ExportResourceDemand.xlsx") <> vbNullString Then Kill Environ("TEMP") & "\ExportResourceDemand.xlsx"
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Dir(Environ("TEMP") & "\ExportResourceDemand.xlsx") <> vbNullString Then 'kill failed, rename it
     oWorkbook.SaveAs Environ("TEMP") & "\ExportResourceDemand_" & Format(Now, "yyyy-mm-dd-hh-nn-ss") & ".xlsx", 51
   Else

@@ -6,8 +6,6 @@ Option Explicit
 #Else '<issue53>
   Declare Function GetTickCount Lib "kernel32" () As Long
 #End If '<issue53>
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 Private strStartingViewTopPane As String
 Private strStartingViewBottomPane As String
@@ -67,7 +65,7 @@ Dim vFieldType As Variant
   'confirm existence of tasks to export
   On Error Resume Next
   Set oTasks = ActiveProject.Tasks
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oTasks Is Nothing Then
     MsgBox "This Project has no Tasks.", vbExclamation + vbOKOnly, "No Tasks"
     GoTo exit_here
@@ -253,7 +251,7 @@ skip_fields:
         If Not rstFields.EOF Then
           On Error Resume Next
           .cboEVT.Value = strEVT
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If Err.Number > 0 Then
             MsgBox "Unable to set EVT Field to '" & rstFields(1) & "' - contact cpt@ClearPlanConsulting.com if you need assistance.", vbExclamation + vbOKOnly, "Cannot assign EVT"
             Err.Clear
@@ -269,7 +267,7 @@ skip_fields:
         If Not rstFields.EOF Then
           On Error Resume Next
           .cboEVP.Value = strEVP
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If Err.Number > 0 Then
             MsgBox "Unable to set EV% Field to '" & rstFields(1) & "' - contact cpt@ClearPlanConsulting.com if you need assistance.", vbExclamation + vbOKOnly, "Cannot assign EVP"
             Err.Clear
@@ -298,7 +296,7 @@ skip_fields:
             On Error Resume Next
             .cboEach.Value = strEach '<none> would not be found
             .txtFileName = "StatusRequest_[item]_[yyyy-mm-dd]"
-            If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+            If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
             If Err.Number > 0 Then
               MsgBox "Unable to set 'For Each' Field to '" & rstFields(1) & "' - contact cpt@ClearPlanConsulting.com if you need assistance.", vbExclamation + vbOKOnly, "Cannot assign For Each"
               Err.Clear
@@ -481,7 +479,7 @@ next_item:
     If ActiveProject.CurrentGroup <> strStartingGroup Then
       On Error Resume Next
       GroupApply strStartingGroup
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     End If
   End If
   On Error Resume Next
@@ -489,20 +487,20 @@ next_item:
     Sort "ID", , , , , , False, True
     OutlineShowAllTasks
   End If
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   cptRefreshStatusTable True  'this only runs when form is visible
   FilterClear 'added 9/28/2021
   FilterApply "cptStatusSheet Filter"
   If Len(strCreate) > 0 And Len(strEach) > 0 Then
     On Error Resume Next
     SetAutoFilter strEach, pjAutoFilterClear
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     DoEvents
   End If
   If strStartingGroup <> "No Group" Then
     On Error Resume Next
     GroupApply strStartingGroup
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   End If
   DoEvents
   Application.StatusBar = "Ready..."
@@ -629,7 +627,7 @@ Sub cptCreateStatusSheet()
 
   On Error Resume Next
   Set oTasks = ActiveProject.Tasks
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'ensure project has tasks
   If oTasks Is Nothing Then
@@ -660,7 +658,7 @@ Sub cptCreateStatusSheet()
   SelectAll
   On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oTasks Is Nothing Then
     MsgBox "There are no incomplete tasks in this schedule.", vbExclamation + vbOKOnly, "No Tasks Found"
     GoTo exit_here
@@ -677,7 +675,7 @@ Sub cptCreateStatusSheet()
   'oExcel.Visible = False
   oExcel.WindowState = xlMinimized
   '/=== debug ==\
-  If Not BLN_TRAP_ERRORS Then oExcel.Visible = True
+  If Not cptErrorTrapping Then oExcel.Visible = True
   '\=== debug ===/
   
   If blnPerformanceTest Then Debug.Print "set up excel Workbook: " & (GetTickCount - t) / 1000
@@ -702,7 +700,7 @@ Sub cptCreateStatusSheet()
       On Error Resume Next
       Set oTasks = Nothing
       Set oTasks = ActiveSelection.Tasks
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oTasks Is Nothing Then
         .lblStatus.Caption = "No incomplete tasks ...skipped"
         Application.StatusBar = .lblStatus.Caption
@@ -778,7 +776,7 @@ Sub cptCreateStatusSheet()
           SelectAll
           On Error Resume Next
           Set oTasks = ActiveSelection.Tasks
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If oTasks Is Nothing Then
             .lblStatus.Caption = "No incomplete tasks for " & strItem & "...skipped"
             Application.StatusBar = .lblStatus.Caption
@@ -850,7 +848,7 @@ next_worksheet:
           On Error Resume Next
           Set oTasks = Nothing
           Set oTasks = ActiveSelection.Tasks
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If oTasks Is Nothing Then
             .lblStatus.Caption = "No incomplete tasks for " & strItem & "...skipped"
             Application.StatusBar = .lblStatus.Caption
@@ -995,7 +993,7 @@ new_start:
     Err.Clear '<issue52>
     GoTo new_finish '<issue52>
   End If '<issue52>
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
 
   '-->condition 1: blank and start is less than status date > update required
@@ -1088,7 +1086,7 @@ new_start:
   DoEvents
 
 new_finish: '<issue52>
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   If oWorksheet.AutoFilterMode Then oWorksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for task rows [blue font]
@@ -1102,7 +1100,7 @@ new_finish: '<issue52>
     Err.Clear '<issue52>
     GoTo ev_percent '<issue52>
   End If '<issue52>
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
 
   '-->condition 1: blank and finish is less than status date > update required
@@ -1195,7 +1193,7 @@ new_finish: '<issue52>
   DoEvents
 
 ev_percent:
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oWorksheet.AutoFilterMode Then oWorksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for task rows [blue font]
@@ -1207,7 +1205,7 @@ ev_percent:
     Err.Clear '<issue52>
     GoTo revised_etc '<issue52>
   End If '<issue52>
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
 
   '-->condition 0: =IF(AND($H48>$B$1,$L48>$K48,$L48<1),TRUE,FALSE) 'green
@@ -1336,7 +1334,7 @@ ev_percent:
   DoEvents
 
 revised_etc:
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   If oWorksheet.AutoFilterMode Then oWorksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for Task
@@ -1350,7 +1348,7 @@ revised_etc:
     Err.Clear '<issue52>
     GoTo evt_vs_evp '<issue52>
   End If '<issue52>
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   rng.Cells.Locked = False
   strFirstCell = rng(1).Address(False, True)
 
@@ -1509,7 +1507,7 @@ Dim lngItem As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not cptStatusSheet_frm.Visible And blnOverride = False Then GoTo exit_here
 
   If Not blnOverride Then cptSpeed True
@@ -1586,7 +1584,7 @@ Private Sub cptAddLegend(ByRef oWorksheet As Worksheet, dtStatus As Date)
   'booleans
   'variants
   'dates
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     
   oWorksheet.Cells(1, 1).Value = "Status Date:"
   oWorksheet.Cells(1, 1).Font.Bold = True
@@ -1666,7 +1664,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   'dates
   Dim dtStatus As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   dtStatus = ActiveProject.StatusDate
   blnValidation = cptStatusSheet_frm.chkValidation = True
@@ -1686,7 +1684,7 @@ try_again:
     oWorksheet.Paste oWorksheet.Cells(lngHeaderRow, 1), False
     oWorksheet.Application.Wait 5000
   End If
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   oWorksheet.Application.Wait 5000
   oWorksheet.Cells.WrapText = False
   oWorksheet.Application.ActiveWindow.Zoom = 85
@@ -1763,7 +1761,7 @@ try_again:
       MsgBox "UID " & oTask.UniqueID & " not found on worksheet!" & vbCrLf & vbCrLf & "You may need to re-run...", vbExclamation + vbOKOnly, "ERROR"
       GoTo next_task
     End If
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     'capture if task is LOE
     blnLOE = False
     strLOEField = cptGetSetting("Metrics", "cboLOEField")
@@ -1941,7 +1939,7 @@ get_assignments:
         Set oAssignment = Nothing
         On Error Resume Next
         Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow + 1, 1).Value)
-        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If Not oAssignment Is Nothing Then
           oWorksheet.Rows(lngRow + 1).EntireRow.Delete
         End If
@@ -2151,7 +2149,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   Dim vAssignment As Variant
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   lngIndent = Len(cptRegEx(oWorksheet.Cells(lngRow, lngNameCol).Value, "^\s*"))
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
   lngLastRow = oWorksheet.Cells(1048576, 1).End(xlUp).Row
@@ -2307,7 +2305,7 @@ Dim lngItem As Long
 'strings
 Dim strSQL As String
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If blnRefreshOutlook Then
     'refresh QuickParts in Outlook
@@ -2315,7 +2313,7 @@ Dim strSQL As String
     'get Outlook
     On Error Resume Next
     Set oOutlook = GetObject(, "Outlook.Application") 'this works even if Outlook isn't open
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oOutlook Is Nothing Then
       Set oOutlook = CreateObject("Outlook.Application")
     End If
@@ -2326,7 +2324,7 @@ Dim strSQL As String
     'todo: fails if Outlook is not open; can't you just get Word directly?
     On Error Resume Next
     Set objDoc = oMailItem.GetInspector.WordEditor
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If objDoc Is Nothing Then
       oMailItem.Display False
       Set objDoc = oMailItem.GetInspector.WordEditor
@@ -2372,7 +2370,7 @@ Sub cptAddConditionalFormatting(ByRef oWorksheet As Excel.Worksheet)
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   
 
@@ -2399,7 +2397,7 @@ Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem 
   'dates
   Dim dtStatus As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   dtStatus = ActiveProject.StatusDate
 
@@ -2422,7 +2420,7 @@ Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem 
       oWorkbook.Application.Wait Now + TimeValue("00:00:02")
       DoEvents
     End If
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     'account for if the file exists and is open in the background
     If Dir(strDir & strFileName) <> vbNullString Then  'delete failed, rename with timestamp
       strMsg = "'" & strFileName & "' already exists, and is likely open." & vbCrLf
@@ -2472,7 +2470,7 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
   If oOutlook Is Nothing Then
     Set oOutlook = CreateObject("Outlook.Application")
   End If
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Set oMailItem = oOutlook.CreateItem(0) '0 = olMailItem
   oMailItem.Display False
@@ -2492,7 +2490,7 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
       Set oEmailTemplate = oWord.Templates(1)
       On Error Resume Next
       Set oBuildingBlock = oEmailTemplate.BuildingBlockEntries(.cboQuickParts)
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oBuildingBlock Is Nothing Then
         MsgBox "Quick Part '" & .cboQuickParts & "' not found!", vbExclamation + vbOKOnly, "Missing Quick Part"
       Else
@@ -2536,7 +2534,7 @@ Sub cptSaveStatusSheetSettings()
   'variants
   'dates
     
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   With cptStatusSheet_frm
     'save settings
@@ -2622,7 +2620,7 @@ Sub cptCaptureJournal()
   'dates
   Dim dtStatus As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   strProgram = cptGetProgramAcronym
   
@@ -2735,7 +2733,7 @@ Sub cptExportCompletedWork()
   strEVT = ActiveProject.CustomDocumentProperties("fEVT")
   strEVP = ActiveProject.CustomDocumentProperties("fPCNT")
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   blnMissing = False
   If strCWBS = "" Then blnMissing = True
@@ -2835,7 +2833,7 @@ next_task:
   If oRecordset.RecordCount > 0 Then
     On Error Resume Next
     Set oExcel = GetObject(, "Excel.Application")
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oExcel Is Nothing Then
       Set oExcel = CreateObject("Excel.Application")
     End If

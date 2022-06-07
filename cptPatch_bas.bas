@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptPatch_bas"
 '<cpt_version>21.04.10</cpt_version> this one based on date vs. SemVer
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Public Sub cptApplyPatch()
 'objects
@@ -13,7 +11,7 @@ Public Sub cptApplyPatch()
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'patch code goes here
   Application.StatusBar = "Applying patch 21.04.10..."

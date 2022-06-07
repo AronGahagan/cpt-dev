@@ -15,8 +15,6 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboWeeks_Change()
   'objects
@@ -31,7 +29,7 @@ Private Sub cboWeeks_Change()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'If Not Me.Visible Or Me.cboWeeks.Value = "" Then GoTo exit_here
   lngWeeks = CLng(Replace(Replace(Me.cboWeeks.Value, "weeks", ""), "week", ""))
@@ -67,7 +65,7 @@ Private Sub cmdRun_Click()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'save user settings
   cptSaveSetting "AgeDates", "cboWeeks", Me.cboWeeks

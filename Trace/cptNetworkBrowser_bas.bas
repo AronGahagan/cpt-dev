@@ -2,8 +2,6 @@ Attribute VB_Name = "cptNetworkBrowser_bas"
 '<cpt_version>v0.1.0</cpt_version>
 Option Explicit
 Public oInsertedIndex As Object
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowNetworkBrowser_frm()
   'objects
@@ -18,7 +16,7 @@ Sub cptShowNetworkBrowser_frm()
   'variants
   'dates
     
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not cptFilterExists("Marked") Then cptCreateFilter ("Marked")
 
@@ -86,7 +84,7 @@ Dim vPredecessors As Variant
   Set oTask = ActiveSelection.Tasks(1)
   If oTask Is Nothing Then GoTo exit_here
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   lngTasks = ActiveSelection.Tasks.Count
   'determine if there are subprojects loaded (this affects displayed UIDs)
@@ -141,7 +139,7 @@ Dim vPredecessors As Variant
   'only 1 is selected
   On Error Resume Next
   Set oTaskDependencies = oTask.TaskDependencies
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oTaskDependencies Is Nothing Then
     cptNetworkBrowser_frm.lboPredecessors.Clear
     cptNetworkBrowser_frm.lboSuccessors.Clear
@@ -363,7 +361,7 @@ End Sub
 Sub cptHistoryDoubleClick()
   Dim lngTaskUID As Long
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   lngTaskUID = CLng(cptNetworkBrowser_frm.lboHistory.Value)
   WindowActivate TopPane:=True
@@ -388,7 +386,7 @@ Sub cptHistoryDoubleClick()
             GoTo exit_here
           End If
         End If
-        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If Not Find("Unique ID", "equals", lngTaskUID) Then
           MsgBox "Unable to find Task UID " & lngTaskUID & "...", vbExclamation + vbOKOnly, "Task Not Found"
         End If

@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptSaveLocal_bas"
 '<cpt_version>v1.1.4</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Public strStartView As String
 Public strStartTable As String
 Public strStartFilter As String
@@ -49,7 +47,7 @@ Dim vEntity As Variant
 Dim vType As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'get server URL
   If Projects.Count = 0 Then GoTo exit_here
@@ -321,7 +319,7 @@ next_type:
       End If
     Next lngField
     
-    If BLN_TRAP_ERRORS Then
+    If cptErrorTrapping Then
       .Hide
       cptSpeed False
       .Show 'modal to control changes to custom fields
@@ -386,7 +384,7 @@ Dim lngItem As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'get project guid
   If Application.Version < 12 Then
@@ -434,10 +432,10 @@ Dim lngItem As Long
       Sort "ID", , , , , , False, True
       OutlineShowAllTasks
     End If
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     SelectAll
     Set oTasks = ActiveSelection.Tasks
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oTasks Is Nothing Then
       lngItems = oTasks.Count
     Else
@@ -447,7 +445,7 @@ Dim lngItem As Long
   ElseIf lngType = pjResource Then
     SelectAll
     Set oResources = ActiveSelection.Resources
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oResources Is Nothing Then
       lngItems = oResources.Count
     Else
@@ -488,7 +486,7 @@ Dim lngItem As Long
             If Len(CustomFieldGetFormula(lngECF)) > 0 Then GoTo next_task_mapping
             If Len(oTask.GetField(lngECF)) > 0 Then
               oTask.SetField lngLCF, CStr(oTask.GetField(lngECF))
-              If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+              If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
               If oTask.GetField(lngLCF) <> CStr(oTask.GetField(lngECF)) Then
                 If MsgBox("There was an error copying from ECF " & CustomFieldGetName(lngECF) & " to LCF " & CustomFieldGetName(lngLCF) & " on Task UID " & oTask.UniqueID & "." & vbCrLf & vbCrLf & "Please validate data type mapping." & vbCrLf & vbCrLf & "Proceed anyway?", vbExclamation + vbYesNo, "Failed!") = vbNo Then
                   GoTo exit_here
@@ -529,7 +527,7 @@ next_task:
             If Len(CustomFieldGetFormula(lngECF)) > 0 Then GoTo next_resource_mapping
             If Len(oResource.GetField(lngECF)) > 0 Then
               oResource.SetField lngLCF, CStr(oResource.GetField(lngECF))
-              If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+              If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
               If oResource.GetField(lngLCF) <> CStr(oResource.GetField(lngECF)) Then
                 strMsg = "There was an error copying..." & vbCrLf
                 strMsg = strMsg & "- from ECF: '" & CustomFieldGetName(lngECF) & "'" & vbCrLf
@@ -724,7 +722,7 @@ Sub cptGetAllFields(lngFrom As Long, lngTo As Long)
   
   GoTo exit_here
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Set rst = CreateObject("ADODB.Recordset")
   rst.Fields.Append "Constant", adBigInt
@@ -791,7 +789,7 @@ Sub cptAnalyzeAutoMap()
   Dim vType As Variant
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Set rstAvailable = CreateObject("ADODB.Recordset")
   With rstAvailable
@@ -911,7 +909,7 @@ Sub cptAutoMap()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'todo: unselect after complete - if fails, leave selected
   'todo: hide analysis after AutoMap; cptRefreshLCF
@@ -985,7 +983,7 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
   Dim vField As Variant
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'todo: deletecustomfield if overwriting
 
@@ -1086,7 +1084,7 @@ next_formula_field:
     strECF = CustomFieldGetName(lngECF)
     On Error Resume Next
     Set oOutlineCode = GlobalOutlineCodes(strECF)
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oOutlineCode Is Nothing Then
       'make it a picklist
       CustomFieldPropertiesEx lngLCF, pjFieldAttributeValueList
@@ -1196,7 +1194,7 @@ Sub cptExportCFMap()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   strMsg = "Your maps are only valid for other users on this server:" & vbCrLf & vbCrLf
   strMsg = strMsg & ActiveProject.ServerURL & vbCrLf & vbCrLf
@@ -1273,7 +1271,7 @@ Sub cptImportCFMap()
   Dim aLine As Variant
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     
   'get guid
   If Application.Version < 12 Then
@@ -1371,7 +1369,7 @@ Sub cptUpdateECF(Optional strFilter As String)
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'get project guid
   If Application.Version < 12 Then
@@ -1469,7 +1467,7 @@ Dim lngField As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   With cptSaveLocal_frm
     .lboLCF.Clear
@@ -1514,7 +1512,7 @@ Sub cptUpdateSaveLocalView(Optional lngECF As Long, Optional lngLCF As Long)
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   With cptSaveLocal_frm
     If Not .Visible Then
@@ -1533,7 +1531,7 @@ Sub cptUpdateSaveLocalView(Optional lngECF As Long, Optional lngLCF As Long)
       On Error Resume Next
       ActiveProject.Views(".cptSaveLocal Task View").Delete
       ActiveProject.Views(".cptSaveLocal Resource View").Delete
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       ViewEditSingle ".cptSaveLocal Task View", True, , pjTaskSheet, , , ".cptSaveLocal Task Table", "All Tasks", "No Group"
       ViewEditSingle ".cptSaveLocal Resource View", True, , pjResourceSheet, , , ".cptSaveLocal Resource Table", "All Resources", "No Group"
       'update the table

@@ -15,8 +15,6 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.3.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboOpenWorkbooks_Change()
   If Not Me.cboOpenWorkbooks.Visible Then Exit Sub
@@ -49,7 +47,7 @@ Dim lngSelected As Long
 'string
 Dim strDescription As String
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not IsNull(Me.lboCustomFields.Value) Then
     lngSelected = Me.lboCustomFields.Value
@@ -109,7 +107,7 @@ Dim lngItem As Long
 
   On Error Resume Next
   Set xlApp = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not xlApp Is Nothing Then
     Me.cboOpenWorkbooks.Clear
     For lngItem = 1 To xlApp.Workbooks.Count
@@ -145,7 +143,7 @@ End Sub
 
 Private Sub lblURL_Click()
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
 
@@ -174,7 +172,7 @@ Dim strProject As String
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If IsNull(Me.lboCustomFields.Value) Then GoTo exit_here
 
@@ -230,7 +228,7 @@ Dim lngItem As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   strProject = cptGetProgramAcronym
   strDictionary = cptDir & "\settings\cpt-data-dictionary.adtg"

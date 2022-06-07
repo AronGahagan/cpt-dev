@@ -15,8 +15,6 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.4.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 
 Private Sub cboMonths_Change()
@@ -61,7 +59,7 @@ Private Sub cmdAdd_Click()
 Dim lgField As Long, lgExport As Long, lgExists As Long
 Dim blnExists As Boolean
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   For lgField = 0 To Me.lboFields.ListCount - 1
     If Me.lboFields.Selected(lgField) Then
@@ -93,7 +91,7 @@ End Sub
 Private Sub cmdCancel_Click()
 Dim strFileName As String
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   strFileName = Environ("tmp") & "\cpt-resource-demand-search.adtg"
   If Dir(strFileName) <> vbNullString Then Kill strFileName
@@ -110,7 +108,7 @@ err_here:
 End Sub
 
 Private Sub cmdExport_Click()
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Call cptExportResourceDemandNew 'todo: revert
 
@@ -127,7 +125,7 @@ End Sub
 Private Sub cmdRemove_Click()
 Dim lgExport As Long
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   For lgExport = Me.lboExport.ListCount - 1 To 0 Step -1
     If Me.lboExport.Selected(lgExport) Then
@@ -146,7 +144,7 @@ End Sub
 
 Private Sub lblURL_Click()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
 
@@ -171,7 +169,7 @@ Dim lngItem As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Me.lboFields.Clear
 
