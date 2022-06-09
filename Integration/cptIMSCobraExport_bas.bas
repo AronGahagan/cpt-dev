@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.5</cpt_version>
+'<cpt_version>v3.3.6</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -156,6 +156,8 @@ Sub Export_IMS()
         .PercentBox.List = Split("Physical % Complete,% Complete," & Join(CustNumFields, ","), ",")
         .AsgnPcntBox.List = Split("<None>," & Join(CustNumFields, ","), ",")
         .DateFormat_Combobox.List = Split("M/D/YYYY,D/M/YYYY", ",") 'v3.3.5
+        .WeekStartCombobox.List = Split("Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday", ",")
+        .WeekStartCombobox.ListIndex = curproj.StartWeekOn - 1
         
         On Error GoTo CleanUp
         ErrMsg = "Please try again, or contact the developer if this message repeats."
@@ -306,7 +308,7 @@ Private Sub DataChecks(ByVal curproj As Project)
     Dim tAssBFin As String
     Dim tAssBWork As String
     Dim tempID As String
-    Dim subProj As SubProject
+    Dim subproj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim wpCount As Integer
@@ -358,9 +360,9 @@ Private Sub DataChecks(ByVal curproj As Project)
 
         Set subProjs = curproj.Subprojects
 
-        For Each subProj In subProjs
+        For Each subproj In subProjs
 
-            FileOpen Name:=subProj.Path, ReadOnly:=True
+            FileOpen Name:=subproj.Path, ReadOnly:=True
 
             Set curSProj = ActiveProject
 
@@ -486,7 +488,7 @@ Private Sub DataChecks(ByVal curproj As Project)
 
             FileClose pjDoNotSave
 
-        Next subProj
+        Next subproj
 
     Else
 
@@ -1187,7 +1189,7 @@ End Sub
 
 Private Sub MPP_Export(ByVal curproj As Project)
 
-    Dim subProj As SubProject
+    Dim subproj As SubProject
     Dim subProjs As Subprojects
 
     destFolder = SetDirectory(curproj.ProjectSummaryTask.Project)
@@ -1196,12 +1198,12 @@ Private Sub MPP_Export(ByVal curproj As Project)
 
         Set subProjs = curproj.Subprojects
 
-        For Each subProj In subProjs
+        For Each subproj In subProjs
 
-            subProj.SourceProject.SaveAs Name:=destFolder & "\" & subProj.SourceProject.Name
-            curproj.Subprojects(subProj.Index).SourceProject = destFolder & "\" & subProj.SourceProject.Name
+            subproj.SourceProject.SaveAs Name:=destFolder & "\" & subproj.SourceProject.Name
+            curproj.Subprojects(subproj.Index).SourceProject = destFolder & "\" & subproj.SourceProject.Name
 
-        Next subProj
+        Next subproj
 
         curproj.SaveAs Name:=destFolder & "\" & curproj.ProjectSummaryTask.Project
 
@@ -1214,7 +1216,7 @@ Private Sub MPP_Export(ByVal curproj As Project)
 End Sub
 Private Sub XML_Export(ByVal curproj As Project)
 
-    Dim subProj As SubProject
+    Dim subproj As SubProject
     Dim subProjs As Subprojects
 
     destFolder = SetDirectory(curproj.ProjectSummaryTask.Project)
@@ -1223,11 +1225,11 @@ Private Sub XML_Export(ByVal curproj As Project)
 
         Set subProjs = curproj.Subprojects
 
-        For Each subProj In subProjs
+        For Each subproj In subProjs
 
-            subProj.SourceProject.SaveAs Name:=destFolder & "\" & subProj.SourceProject.Name, FormatID:="MSProject.XML"
+            subproj.SourceProject.SaveAs Name:=destFolder & "\" & subproj.SourceProject.Name, FormatID:="MSProject.XML"
 
-        Next subProj
+        Next subproj
 
 
     Else
@@ -1350,7 +1352,7 @@ Private Sub BCWP_Export(ByVal curproj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, ResName, MSWeight, ID, PCNT As String 'v3.3.0
     Dim Milestone As String
-    Dim subProj As SubProject
+    Dim subproj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -1383,9 +1385,9 @@ Private Sub BCWP_Export(ByVal curproj As Project)
 
             Set subProjs = curproj.Subprojects
 
-            For Each subProj In subProjs
+            For Each subproj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subproj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -1421,7 +1423,7 @@ Private Sub BCWP_Export(ByVal curproj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If EVT = "B" Or EVT = "N" Or EVT = "B Milestone" Or EVT = "N Earning Rules" Then
@@ -1719,7 +1721,7 @@ nrBCWP_WP_Match_A:
 
                 FileClose pjDoNotSave
 
-            Next subProj
+            Next subproj
 
         Else
 
@@ -1756,7 +1758,7 @@ nrBCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earning Rules" Then
@@ -2097,9 +2099,9 @@ nrBCWP_WP_Match_B:
 
             Set subProjs = curproj.Subprojects
 
-            For Each subProj In subProjs
+            For Each subproj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subproj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -2136,7 +2138,7 @@ nrBCWP_WP_Match_B:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
                                 
 
@@ -2567,7 +2569,7 @@ BCWP_WP_Match_A:
 
                 FileClose pjDoNotSave
 
-            Next subProj
+            Next subproj
 
         Else
 
@@ -2605,7 +2607,7 @@ BCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
@@ -3068,7 +3070,7 @@ Private Sub ETC_Export(ByVal curproj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT, ShortID As String 'v3.3.5
     Dim Milestone As String
-    Dim subProj As SubProject
+    Dim subproj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -3106,9 +3108,9 @@ Private Sub ETC_Export(ByVal curproj As Project)
 
             Set subProjs = curproj.Subprojects
 
-            For Each subProj In subProjs
+            For Each subproj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subproj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -3273,7 +3275,7 @@ nrETC_WP_Match:
 
                 FileClose pjDoNotSave
 
-            Next subProj
+            Next subproj
 
         Else
 
@@ -3486,9 +3488,9 @@ nrETC_WP_Match_B:
 
             Set subProjs = curproj.Subprojects
 
-            For Each subProj In subProjs
+            For Each subproj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subproj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -3559,6 +3561,7 @@ nrETC_WP_Match_B:
                                         ShortID = ACTarray(X).ShortID
                                     Else
                                         ACTarray(X).ShortID = ACTarray(X).ID
+                                        ShortID = ACTarray(X).ShortID 'v3.3.6
                                     End If
 
                                     X = X + 1
@@ -3653,6 +3656,7 @@ nrETC_WP_Match_B:
                                     ShortID = ACTarray(X).ShortID
                                 Else
                                     ACTarray(X).ShortID = ACTarray(X).ID
+                                    ShortID = ACTarray(X).ShortID 'v3.3.6
                                 End If
 
                                 X = X + 1
@@ -3726,7 +3730,7 @@ ETC_WP_Match:
 
                 FileClose pjDoNotSave
 
-            Next subProj
+            Next subproj
 
         Else
 
@@ -3797,6 +3801,7 @@ ETC_WP_Match:
                                     ShortID = ACTarray(X).ShortID
                                 Else
                                     ACTarray(X).ShortID = ACTarray(X).ID
+                                    ShortID = ACTarray(X).ShortID 'v3.3.6
                                 End If
 
                                 X = X + 1
@@ -3892,6 +3897,7 @@ ETC_WP_Match:
                                 ShortID = ACTarray(X).ShortID
                             Else
                                 ACTarray(X).ShortID = ACTarray(X).ID
+                                ShortID = ACTarray(X).ShortID 'v3.3.6
                             End If
 
 
@@ -4000,7 +4006,7 @@ Private Sub BCWS_Export(ByVal curproj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, ShortID, PCNT As String 'v3.3.5
     Dim Milestone As String
-    Dim subProj As SubProject
+    Dim subproj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -4043,9 +4049,9 @@ Private Sub BCWS_Export(ByVal curproj As Project)
 
             Set subProjs = curproj.Subprojects
 
-            For Each subProj In subProjs
+            For Each subproj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subproj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -4090,7 +4096,7 @@ Private Sub BCWS_Export(ByVal curproj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -4193,7 +4199,7 @@ Next_nrSProj_Task:
 
                 FileClose pjDoNotSave
 
-            Next subProj
+            Next subproj
 
         Else
 
@@ -4233,7 +4239,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4387,9 +4393,9 @@ Next_nrTask:
 
             Set subProjs = curproj.Subprojects
 
-            For Each subProj In subProjs
+            For Each subproj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subproj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -4428,7 +4434,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -4466,6 +4472,7 @@ Next_nrTask:
                                         ShortID = ACTarray(X).ShortID
                                     Else
                                         ACTarray(X).ShortID = ACTarray(X).ID
+                                        ShortID = ACTarray(X).ShortID 'v3.3.6
                                     End If
 
                                     X = X + 1
@@ -4521,6 +4528,7 @@ Next_nrTask:
                                     ShortID = ACTarray(X).ShortID
                                 Else
                                     ACTarray(X).ShortID = ACTarray(X).ID
+                                    ShortID = ACTarray(X).ShortID 'v3.3.6
                                 End If
 
                                 X = X + 1
@@ -4588,7 +4596,7 @@ Next_SProj_Task:
 
                 FileClose pjDoNotSave
 
-            Next subProj
+            Next subproj
 
         Else
 
@@ -4628,7 +4636,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4666,6 +4674,7 @@ Next_SProj_Task:
                                     ShortID = ACTarray(X).ShortID
                                 Else
                                     ACTarray(X).ShortID = ACTarray(X).ID
+                                    ShortID = ACTarray(X).ShortID 'v3.3.6
                                 End If
 
                                 X = X + 1
@@ -4720,6 +4729,7 @@ Next_SProj_Task:
                                 ShortID = ACTarray(X).ShortID
                             Else
                                 ACTarray(X).ShortID = ACTarray(X).ID
+                                ShortID = ACTarray(X).ShortID 'v3.3.6
                             End If
 
                             X = X + 1
@@ -4819,7 +4829,7 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, ShortID, PCNT As String 'v3.3.5
     Dim Milestone As String
-    Dim subProj As SubProject
+    Dim subproj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -4862,9 +4872,9 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
 
             Set subProjs = curproj.Subprojects
 
-            For Each subProj In subProjs
+            For Each subproj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subproj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -4909,7 +4919,7 @@ Private Sub WhatIf_Export(ByVal curproj As Project) 'v3.2
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -5048,7 +5058,7 @@ Next_nrSProj_Task:
 
                 FileClose pjDoNotSave
 
-            Next subProj
+            Next subproj
 
         Else
 
@@ -5087,7 +5097,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5278,9 +5288,9 @@ Next_nrTask:
 
             Set subProjs = curproj.Subprojects
 
-            For Each subProj In subProjs
+            For Each subproj In subProjs
 
-                FileOpen Name:=subProj.Path, ReadOnly:=True
+                FileOpen Name:=subproj.Path, ReadOnly:=True
                 Set curSProj = ActiveProject
 
                 For Each t In curSProj.Tasks
@@ -5323,7 +5333,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -5366,6 +5376,7 @@ Next_nrTask:
                                         ShortID = ACTarray(X).ShortID
                                     Else
                                         ACTarray(X).ShortID = ACTarray(X).ID
+                                        ShortID = ACTarray(X).ShortID 'v3.3.6
                                     End If
 
                                     X = X + 1
@@ -5436,6 +5447,7 @@ Next_nrTask:
                                     ShortID = ACTarray(X).ShortID
                                 Else
                                     ACTarray(X).ShortID = ACTarray(X).ID
+                                    ShortID = ACTarray(X).ShortID 'v3.3.6
                                 End If
 
                                 X = X + 1
@@ -5548,7 +5560,7 @@ Next_SProj_Task:
 
                 FileClose pjDoNotSave
 
-            Next subProj
+            Next subproj
 
         Else
 
@@ -5592,7 +5604,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5635,6 +5647,7 @@ Next_SProj_Task:
                                     ShortID = ACTarray(X).ShortID
                                 Else
                                     ACTarray(X).ShortID = ACTarray(X).ID
+                                    ShortID = ACTarray(X).ShortID 'v3.3.6
                                 End If
 
                                 X = X + 1
@@ -5704,6 +5717,7 @@ Next_SProj_Task:
                                 ShortID = ACTarray(X).ShortID
                             Else
                                 ACTarray(X).ShortID = ACTarray(X).ID
+                                ShortID = ACTarray(X).ShortID 'v3.3.6
                             End If
 
                             X = X + 1
@@ -5904,7 +5918,7 @@ Private Sub Get_WP_Descriptions(ByVal curproj As Project)
     Dim X As Integer
     '<issue47>
     Dim subProjs As Subprojects
-    Dim subProj As SubProject
+    Dim subproj As SubProject
     Dim curSProj As Project
     Dim t As Task '</issue47>
 
@@ -5916,9 +5930,9 @@ Private Sub Get_WP_Descriptions(ByVal curproj As Project)
 
         Set subProjs = curproj.Subprojects
 
-        For Each subProj In subProjs
+        For Each subproj In subProjs
 
-            FileOpen Name:=subProj.Path, ReadOnly:=True
+            FileOpen Name:=subproj.Path, ReadOnly:=True
 
             Set curSProj = ActiveProject
 
@@ -5982,7 +5996,7 @@ Next_SubProj_WPtask:
 
             Next t
 
-        Next subProj
+        Next subproj
 
     Else
 
@@ -6086,7 +6100,7 @@ Private Function Find_BCRs(ByVal curproj As Project, ByVal fWP As String, ByVal 
     Dim X As Integer
     Dim tempBCRstr As String
     Dim subProjs As Subprojects
-    Dim subProj As SubProject
+    Dim subproj As SubProject
     Dim curSProj As Project
 
     i = 0
@@ -6095,9 +6109,9 @@ Private Function Find_BCRs(ByVal curproj As Project, ByVal fWP As String, ByVal 
 
         Set subProjs = curproj.Subprojects
 
-        For Each subProj In subProjs
+        For Each subproj In subProjs
 
-            FileOpen Name:=subProj.Path, ReadOnly:=True
+            FileOpen Name:=subproj.Path, ReadOnly:=True
 
             Set curSProj = ActiveProject
 
@@ -6141,7 +6155,7 @@ Next_SubProj_WPtask:
 
             Next t
 
-        Next subProj
+        Next subproj
 
     Else
 
@@ -6342,7 +6356,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                             tempWork = 0
 
                             If tsva <> "" Then
-                                tempWork = CDbl(tsv.Value) - CLng(tsva.Value)
+                                tempWork = CDbl(tsv.Value) - CDbl(tsva.Value) 'v3.3.6
                             ElseIf tsv.Value <> "" Then
                                 tempWork = CDbl(tsv.Value)
                             End If
@@ -6432,7 +6446,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                         tempWork = 0
 
                         If tsva <> "" Then
-                            tempWork = CDbl(tsv.Value) - CLng(tsva.Value)
+                            tempWork = CDbl(tsv.Value) - CDbl(tsva.Value) 'v3.3.6
                         ElseIf tsv.Value <> "" Then
                             tempWork = CDbl(tsv.Value)
                         End If
@@ -6522,7 +6536,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
                             tempWork = 0
 
                             If tsva <> "" Then
-                                tempWork = CDbl(tsv.Value) - CLng(tsva.Value)
+                                tempWork = CDbl(tsv.Value) - CDbl(tsva.Value) 'v3.3.6
                             ElseIf tsv.Value <> "" Then
                                 tempWork = CDbl(tsv.Value)
                             End If
