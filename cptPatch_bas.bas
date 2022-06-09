@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptPatch_bas"
-'<cpt_version>21.04.10</cpt_version> this one based on date vs. SemVer
+'<cpt_version>22.06.06</cpt_version> this one based on date vs. SemVer
 Option Explicit
 
 Public Sub cptApplyPatch()
@@ -24,6 +24,6 @@ exit_here:
   Application.StatusBar = ""
   Exit Sub
 err_here:
-  Call cptHandleErr("cptPatch_bas", "cptApplyPatch()", Err, Erl)
+  Call cptHandleErr("cptPatch_bas", "cptApplyPatch", Err, Erl)
   Resume exit_here
 End Sub
