@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIMSCobraExport_frm 
-   Caption         =   "IMS Export Utility v3.3.5"
-   ClientHeight    =   7305
+   Caption         =   "IMS Export Utility v3.3.6"
+   ClientHeight    =   7308
    ClientLeft      =   120
-   ClientTop       =   465
-   ClientWidth     =   4395
+   ClientTop       =   468
+   ClientWidth     =   4392
    OleObjectBlob   =   "cptIMSCobraExport_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -13,7 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v3.3.5</cpt_version>
+
+'<cpt_version>v3.3.6</cpt_version>
 Private Sub AsgnPcntBox_Change() 'v3.3.1
     
     If isIMSfield(AsgnPcntBox.Value) = False And AsgnPcntBox.Value <> "" And AsgnPcntBox.Value <> "<None>" Then
@@ -682,6 +683,18 @@ Private Sub ExportBtn_Click()
     
 End Sub
 
+Private Sub exportTPhaseCheckBox_Click() 'v3.3.6
+    If exportTPhaseCheckBox.Value = True Then
+        'if exporting timescaled data
+        'increase visibility of MSP's week start day
+        WeekStartLabel.Enabled = True
+        WeekStartCombobox.Enabled = True
+    Else
+        WeekStartLabel.Enabled = False
+        WeekStartCombobox.Enabled = False
+    End If
+End Sub
+
 Private Sub msidBox_Change()
 
     If checkDuplicate(msidBox) = True Then
@@ -1160,6 +1173,13 @@ DocPropNameChange:
     Resume NextDocProp
 
 End Function
+
+Private Sub WeekStartCombobox_Change() 'v3.3.6
+    'sets project "week starts on" value
+    Dim curproj As Project
+    Set curproj = ActiveProject
+    curproj.StartWeekOn = WeekStartCombobox.ListIndex + 1
+End Sub
 
 Private Sub WhatIf_CheckBox_Click() 'v3.2
     If Me.WhatIf_CheckBox.Value = True Then
