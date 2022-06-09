@@ -13,10 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.2.0</cpt_version>
+'<cpt_version>v1.2.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cmdDone_Click()
   Unload Me
@@ -54,7 +52,7 @@ Private Sub cmdSetProgramAcronym_Click()
   Set oDocProps = ActiveProject.CustomDocumentProperties
   On Error Resume Next
   Set oDocProp = oDocProps("cptProgramAcronym")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oDocProp Is Nothing Then
     oDocProps.Add "cptProgramAcronym", False, msoPropertyTypeString, Me.txtProgramAcronym.Value, False
    Else
@@ -167,7 +165,7 @@ err_here:
 End Sub
 
 Private Sub lblURL_Click()
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
 
@@ -191,7 +189,7 @@ Sub lboFeatures_AfterUpdate()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Me.lboSettings.Clear
   Set oRecordset = CreateObject("ADODB.Recordset")
@@ -257,7 +255,7 @@ Sub cptUpdateSetting(strFeature As String, strKey As String, strVal As String)
   Dim vFeatures As Variant
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   strFile = cptDir & "\settings\cpt-settings.adtg"
   Set rst = CreateObject("ADODB.Recordset")

@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptFiscal_bas"
-'<cpt_version>v0.1.0</cpt_version>
+'<cpt_version>v0.1.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowFiscal_frm()
 'objects
@@ -21,7 +19,7 @@ Dim lngItem As Long
   'get/create fiscal calendar
   On Error Resume Next
   Set oCal = ActiveProject.BaseCalendars("cptFiscalCalendar")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oCal Is Nothing Then
     BaseCalendarCreate Name:="cptFiscalCalendar", FromName:="Standard" ' [" & ActiveProject.Name & "]"
     Set oCal = ActiveProject.BaseCalendars("cptFiscalCalendar")
@@ -116,7 +114,7 @@ Dim lngoCalendar As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Not cptCalendarExists("cptFiscalCalendar") Then
     MsgBox "cptFiscalCalendar has been deleted! Please re-open the form to re-create it.", vbCritical + vbOKOnly, "What happened?"
@@ -127,7 +125,7 @@ Dim lngoCalendar As Long
   If oCalendar.Exceptions.Count > 0 Then
     On Error Resume Next
     Set oExcel = GetObject(, "Excel.Application")
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oExcel Is Nothing Then
       Set oExcel = CreateObject("Excel.Application")
     End If
@@ -192,7 +190,7 @@ Sub cptExportExceptionsTemplate()
   
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If
@@ -248,7 +246,7 @@ Dim dtFiscalEnd As Date
 
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
     oExcel.Visible = True
@@ -269,7 +267,7 @@ Dim dtFiscalEnd As Date
       Set oWorkbook = oExcel.Workbooks.Open(.SelectedItems(1))
       On Error Resume Next
       Set oWorksheet = oWorkbook.Sheets("Fiscal Calendar")
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oWorksheet Is Nothing Then
         MsgBox "A worksheet named 'Fiscal Calendar' was not found in the selected workbook.", vbExclamation + vbOKOnly, "Invalid Selection"
         GoTo exit_here
@@ -278,7 +276,7 @@ Dim dtFiscalEnd As Date
         cptFiscal_frm.lboExceptions.Visible = True
         On Error Resume Next
         Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar")
-        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If oCalendar Is Nothing Then
           BaseCalendarCreate Name:="cptFiscalCalendar", FromName:="Standard" ' [" & ActiveProject.Name & "]"
           Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar")
@@ -305,7 +303,7 @@ Dim dtFiscalEnd As Date
             cptFiscal_frm.lboExceptions.List(cptFiscal_frm.lboExceptions.ListCount - 1, 1) = oException.Name 'CStr(oCell.Offset(0, 1).Value)
             cptFiscal_frm.lblCount.Caption = oCalendar.Exceptions.Count & " exception" & IIf(oCalendar.Exceptions.Count = 1, "", "s") & "."
           End If
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 next_record:
         Next oCell
         oWorkbook.Close False
@@ -343,7 +341,7 @@ Dim lngItem As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   With cptFiscal_frm
     If .txtExceptions.Visible = True Then GoTo exit_here
@@ -404,7 +402,7 @@ Sub cptAnalyzeEVT(Optional lngImportField As Long)
   Dim vbResponse As Variant
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Set oProject = ActiveProject
   
@@ -490,7 +488,7 @@ next_task:
   
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If

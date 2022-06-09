@@ -13,10 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.3</cpt_version>
+'<cpt_version>v1.1.4</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboExport_Change()
 
@@ -107,7 +105,7 @@ Dim lngOutlineCode As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   lngOutlineCode = Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0)
   Select Case Me.cboExport
     Case "To Excel Workbook"
@@ -145,7 +143,7 @@ Dim lngOutlineCode As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Len(Me.txtNameIt.Value) = 0 Then
     MsgBox "Please provide a name.", vbExclamation + vbOKOnly, "No Name"
@@ -209,7 +207,7 @@ End Sub
 
 Private Sub lblURL_Click()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
 
@@ -279,13 +277,13 @@ Dim lngEntry As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   strOutlineCode = CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oLookupTable Is Nothing Then GoTo exit_here
   If Len(Me.txtReplace.Text) > 0 Then
     If Len(Me.txtReplacement.Text) > 0 Then
@@ -313,7 +311,7 @@ Private Sub txtNameIt_Change()
 'longs
 Dim lngField As Long
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'reset to default
   Me.txtNameIt.BorderColor = -2147483642
@@ -324,7 +322,7 @@ Dim lngField As Long
   lngField = 0
   On Error Resume Next
   lngField = FieldNameToFieldConstant(Me.txtNameIt.Text)
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If lngField <> 0 Then 'exists
     If FieldNameToFieldConstant(Me.txtNameIt.Text) <> CLng(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0)) Then
       Me.txtNameIt.BorderColor = 255
@@ -361,7 +359,7 @@ Dim lngSelected As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Exit Sub 'this slows the whole form down
   
@@ -396,7 +394,7 @@ Dim lngSelected As Long
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oLookupTable Is Nothing Then
     If Me.lboOutlineCode.ListCount = 0 Then
       Call cptRefreshOutlineCodePreview(strOutlineCode)

@@ -13,10 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.4</cpt_version>
+'<cpt_version>v1.1.5</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboECF_Change()
   Call cptUpdateECF(Me.txtFilterECF)
@@ -47,7 +45,7 @@ Dim lngSelected As Long
 'string
 Dim strDescription As String
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   ActiveWindow.TopPane.Activate
   Application.CustomizeField
@@ -100,7 +98,7 @@ Private Sub cmdUnmap_Click()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Me.lboECF.ListIndex < 0 Then GoTo exit_here
   If IsNull(Me.lboECF.List(Me.lboECF.ListIndex, 3)) Or Me.lboECF.List(Me.lboECF.ListIndex, 3) = "" Then GoTo exit_here
@@ -196,7 +194,7 @@ Private Sub lblShowFormula_Click()
 End Sub
 
 Private Sub lblURL_Click()
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
 
@@ -222,7 +220,7 @@ Private Sub lboECF_Change()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   Me.lblShowFormula.Visible = False
   If Me.Visible Then
     If Me.ActiveControl.Name = "lboECF" Then
@@ -282,7 +280,7 @@ Private Sub lboECF_Click()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Me.lboECF.MultiSelect = fmMultiSelectSingle Then
     Me.lblShowFormula.Visible = False
@@ -371,7 +369,7 @@ Private Sub tglAutoMap_Click()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Me.tglAutoMap Then
     Me.lboECF.MultiSelect = fmMultiSelectMulti
@@ -417,7 +415,7 @@ End Sub
 
 Private Sub UserForm_Terminate()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   On Error Resume Next
   If Len(strStartView) > 0 Then
     If Not ViewApply(strStartView, True) Then ViewApply "Gantt Chart"

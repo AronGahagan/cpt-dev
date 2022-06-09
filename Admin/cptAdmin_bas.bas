@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptAdmin_bas"
 '>no cpt version - not for release<
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptCreateCurrentVersionsXML(Optional strRepo As String)
 'objects
@@ -25,7 +23,7 @@ Dim lngFile As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'do not use this
   Exit Sub
@@ -150,7 +148,7 @@ Dim lngCountDecl As Long
 Dim arrHeader As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'get excel
   Set xlApp = CreateObject("Excel.Application")
@@ -234,7 +232,7 @@ Function cptSetDirectory(strComponentName As String) As String
 'strings
 Dim strDirectory As String
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'remove the prefix
   strDirectory = Replace(strComponentName, "cpt", "")
@@ -334,7 +332,7 @@ Dim lngField As Long
   'git-vba-repo.adtg
   'vba-backup-modules.adtg
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   strFile = Environ("USERPROFILE") & "\cpt-backup\settings\" & strFile
 
@@ -390,7 +388,7 @@ Sub cptLoadModulesFromPath()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'update this before running - NOT THE GLOBAL!
   Set oVBProject = VBE.VBProjects(3)

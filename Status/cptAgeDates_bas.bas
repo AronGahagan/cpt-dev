@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptAgeDates_bas"
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.0.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowAgeDates_frm()
   'objects
@@ -21,7 +19,7 @@ Sub cptShowAgeDates_frm()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Not IsDate(ActiveProject.StatusDate) Then
     MsgBox "Status Date required.", vbExclamation + vbOKOnly, "Age Dates"
@@ -116,7 +114,7 @@ Sub cptAgeDates()
   'dates
   Dim dtStatus As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Application.Calculation = pjManual
   Application.OpenUndoTransaction "Age Dates"
@@ -124,7 +122,7 @@ Sub cptAgeDates()
   
   On Error Resume Next
   lngTest = FieldNameToFieldConstant("Start (" & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & ")")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If lngTest > 0 Then
     MsgBox "Dates already aged for status date " & Format(dtStatus, "mm/dd/yyyy") & ".", vbExclamation + vbOKOnly, "Age Dates"
     GoTo exit_here
@@ -235,7 +233,7 @@ Sub cptBlameReport()
   Dim dtCurr As Date
   Dim dtPrev As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Application.StatusBar = "Gettings saved settings..."
   DoEvents
@@ -265,7 +263,7 @@ Sub cptBlameReport()
   
   On Error Resume Next
   'Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If

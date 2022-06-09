@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.1.3</cpt_version>
+'<cpt_version>v1.1.4</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
   'objects
@@ -27,7 +25,7 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
   'variants
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     
   If MsgBox("Epected fields/column headers, in range [A1:C1], are CODE,LEVEL,DESCRIPTION and there should be no blank rows." & vbCrLf & vbCrLf & "Proceed?", vbQuestion + vbYesNo, "Confirm CWBS Import") = vbNo Then
     'export a sample template
@@ -152,7 +150,7 @@ Sub cptImportCWBSFromServer(lngOutlineCode As Long)
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If MsgBox("Expected fields/column headers, in range [A1:C1], are LEVEL,VALUE,DESCRIPTION and there should be no blank rows." & vbCrLf & vbCrLf & "Proceed?", vbQuestion + vbYesNo, "Confirm CWBS Import") = vbYes Then
     strOutlineCode = CustomFieldGetName(lngOutlineCode)
@@ -258,7 +256,7 @@ Sub cptImportAppendixB(lngOutlineCode As Long)
   'variants
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Application.OpenUndoTransaction "Import Appendix B"
   
@@ -421,7 +419,7 @@ Sub cptImportAppendixE(lngOutlineCode As Long)
   'variants
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Application.OpenUndoTransaction "Import Appendix E"
   
@@ -588,13 +586,13 @@ Sub cptExportOutlineCodeToExcel(lngOutlineCode As Long)
   'variants
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   strOutlineCode = CustomFieldGetName(lngOutlineCode)
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If oLookupTable Is Nothing Then
     MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbCritical + vbOKOnly, "No Code Defined"
@@ -742,7 +740,7 @@ Sub cptExport81334D(lngOutlineCode As Long)
   'variants
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'get outline code name and export it
   cptBackbone_frm.lblStatus.Caption = "Exporting..."
@@ -750,7 +748,7 @@ Sub cptExport81334D(lngOutlineCode As Long)
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oLookupTable Is Nothing Then
     MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbCritical + vbOKOnly, "No Code Defined"
     GoTo exit_here
@@ -900,7 +898,7 @@ Sub cptExportTemplate()
   'variants
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   strMsg = "Instructions:" & vbCrLf
   strMsg = strMsg & "1. Do not add, edit, move, or remove columns." & vbCrLf
@@ -944,7 +942,7 @@ Sub cptShowBackbone_frm()
   'strings
   Dim strOutlineCode As String, strOutlineCodeName As String
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   With cptBackbone_frm.cboOutlineCodes
     .Clear
@@ -1015,7 +1013,7 @@ Sub cptCreateCode(lngOutlineCode As Long)
 
   tmr = Now
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'ensure name doesn't already exist - trust form formatting
   If cptBackbone_frm.txtNameIt.BorderColor = 255 Then GoTo exit_here
@@ -1066,7 +1064,7 @@ Sub cptRenameInsideOutlineCode(strOutlineCode As String, strFind As String, strR
   Dim lngEntry As Long
   Dim lngReplaced As Long
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   Set oLookupTable = oOutlineCode.LookupTable
@@ -1102,12 +1100,12 @@ Sub cptRefreshOutlineCodePreview(strOutlineCode As String)
   'variants
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   strOutlineCode = Replace(Replace(strOutlineCode, cptRegEx(strOutlineCode, "Outline Code[0-9]{1,}") & " (", ""), ")", "")
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oLookupTable Is Nothing Then
     If oLookupTable.Count > 0 Then
       cptBackbone_frm.lboOutlineCode.Clear
@@ -1152,13 +1150,13 @@ Sub cptExportOutlineCodeForMPM(lngOutlineCode As Long)
   'booleans
   Dim blnCA As Boolean
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'confirm lookuptable exists
   Set oOutlineCode = ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode))
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oLookupTable Is Nothing Then
     strOutlineCode = CustomFieldGetName(lngOutlineCode)
     MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbExclamation + vbOKOnly, "No LookupTable"
@@ -1289,13 +1287,13 @@ Sub cptExportOutlineCodeForCOBRA(lngOutlineCode)
   'variants
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'confirm lookuptable exists
   Set oOutlineCode = ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode))
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oLookupTable Is Nothing Then
     strOutlineCode = CustomFieldGetName(lngOutlineCode)
     MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbExclamation + vbOKOnly, "No LookupTable"

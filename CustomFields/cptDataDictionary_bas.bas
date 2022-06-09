@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptDataDictionary_bas"
-'<cpt_version>v1.3.0</cpt_version>
+'<cpt_version>v1.3.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptExportDataDictionary()
 'objects
@@ -43,7 +41,7 @@ Dim vFieldType As Variant
 Dim vFieldScope As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'ensure project name
   strProject = cptGetProgramAcronym
@@ -134,7 +132,6 @@ Dim vFieldScope As Variant
           blnLookupTable = False
           On Error Resume Next
           blnLookupTable = Len(CustomFieldValueListGetItem(lngField, pjValueListValue, 1)) > 0
-          'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 <- don't put this here
           
           strAttributes = ""
           If blnLookupTable Then
@@ -180,7 +177,7 @@ Dim vFieldScope As Variant
               End If
             Next intListItem
             
-            If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+            If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
             
             If blnLookups Then 'use data validation
               'name the range
@@ -241,7 +238,7 @@ next_field:
       Set oLookupTable = Nothing
       On Error Resume Next
       Set oLookupTable = GlobalOutlineCodes(FieldConstantToFieldName(lngField)).LookupTable
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If Not oLookupTable Is Nothing Then
         If blnLookups Then
           lngLookupCol = wsLookups.[XFD2].End(-4159).Column
@@ -377,7 +374,7 @@ Sub cptShowDataDictionary_frm()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   strProgram = cptGetProgramAcronym
   
@@ -406,7 +403,7 @@ Sub cptShowDataDictionary_frm()
         'create the workbook
         On Error Resume Next
         Set oExcel = GetObject(, "Excel.Application")
-        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
         oExcel.Visible = True
         Set oWorkbook = oExcel.Workbooks.Add
@@ -483,7 +480,7 @@ Dim vFieldType As Variant
 Dim vFieldScope As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'clear the form if it's visible
   If cptDataDictionary_frm.Visible Then
@@ -651,12 +648,12 @@ Dim blnClose As Boolean
 Dim vFile As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'prompt user to select a file
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
     blnClose = True
@@ -691,7 +688,7 @@ skip_that:
     MsgBox strFile & " does not appear to be a valid IMS Data Dictionary workbook. The wheet named 'Data Dictionary' not found.", vbExclamation + vbOKOnly, "Invalid Workbook"
     GoTo exit_here
   End If
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Set rstSaved = CreateObject("ADODB.Recordset")
   strSavedSettings = cptDir & "\settings\cpt-data-dictionary.adtg"

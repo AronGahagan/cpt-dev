@@ -14,14 +14,12 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v0.1.0</cpt_version>
+'<cpt_version>v0.1.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cmdBack_Click()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Me.lboHistory.SetFocus
   
@@ -57,7 +55,7 @@ End Sub
 
 Private Sub cmdFwd_Click()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Me.lboHistory.SetFocus
   
@@ -167,7 +165,7 @@ Private Sub cmdUnmark_Click()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'cptSpeed True
   If ActiveSelection.Tasks.Count = 1 Then
@@ -227,7 +225,7 @@ End Sub
 Private Sub cmdUnmarkAll_Click()
   Dim oTask As Task
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   cptSpeed True
   ActiveWindow.BottomPane.Activate
@@ -264,7 +262,7 @@ End Sub
 Sub lboPredecessors_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
 Dim lngTaskID As Long
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Me.lboPredecessors.ListIndex <= 0 Then GoTo exit_here
   With Me.lboHistory
@@ -289,7 +287,7 @@ Dim lngTaskID As Long
             GoTo exit_here
           End If
         End If
-        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If Not Find("Unique ID", "equals", lngTaskID) Then
           MsgBox "Task not found.", vbExclamation + vbOKOnly, "Missing Task?"
         End If
@@ -349,7 +347,7 @@ Dim lngTaskID As Long, Task As Task
           GoTo exit_here
         End If
       End If
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If Not Find("Unique ID", "equals", lngTaskID) Then
         MsgBox "Task not found.", vbExclamation + vbOKOnly, "Missing Task?"
       End If

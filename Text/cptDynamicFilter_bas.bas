@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptDynamicFilter_bas"
-'<cpt_version>v1.6.0</cpt_version>
+'<cpt_version>v1.6.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private pCachedRegexes As Scripting.Dictionary
 
 Sub cptShowDynamicFilter_frm()
@@ -19,7 +17,7 @@ Dim lngItem As Long
 Dim vArray As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   '===
   'Validate users selected view type
@@ -96,7 +94,7 @@ Sub cptGoRegEx(strRegEx As String)
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   cptSpeed True
   
@@ -110,7 +108,7 @@ Sub cptGoRegEx(strRegEx As String)
     On Error Resume Next
     Set oTask = ActiveSelection.Tasks(1)
     lngUID = oTask.UniqueID
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   End If
   
   lngFieldConstant = FieldNameToFieldConstant(cptDynamicFilter_frm.cboField.Value)
@@ -134,7 +132,7 @@ next_task:
     Sort "ID", , , , , , False, True
     OutlineShowAllTasks
   End If
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   OptionsViewEx displaysummaryTasks:=cptDynamicFilter_frm.chkShowRelatedSummaries
   
   SetAutoFilter "Marked", pjAutoFilterFlagYes
