@@ -952,6 +952,9 @@ Sub txtFileName_Change()
   If InStr(strFileName, "[yyyy-mm-dd]") > 0 Then
     strFileName = Replace(strFileName, "[yyyy-mm-dd]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
   End If
+  If InStr(strFileName, "[Program]") > 0 Then
+    strFileName = Replace(strFileName, "[Program]", cptGetProgramAcronym)
+  End If
   If Me.cboCreate.Value > 0 Then 'for each
     If InStr(strFileName, "[item]") > 0 Then
       If Me.lboItems.ListCount > 0 Then
@@ -1027,6 +1030,7 @@ Private Sub txtSubject_Change()
 Dim strSubject As String
   strSubject = Me.txtSubject.Text
   strSubject = Replace(strSubject, "[yyyy-mm-dd]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
+  strSubject = Replace(strSubject, "[Program]", cptGetProgramAcronym)
   If Me.cboCreate > 0 And Me.lboItems.ListCount > 0 Then
     strSubject = Replace(strSubject, "[item]", Me.lboItems.List(0, 0))
   End If
