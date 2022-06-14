@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.8.0</cpt_version>
+'<cpt_version>v1.7.0</cpt_version>
 Option Explicit
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
@@ -345,7 +345,7 @@ exit_here:
   Set rstCore = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptSetup", Err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptSetup", err, Erl)
   Resume exit_here
 End Sub
 
@@ -537,6 +537,9 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBlameReport"" label=""The Blame Report"" imageMso=""ContactProperties"" onAction=""cptBlameReport"" visible=""true"" supertip=""Find out which tasks slipped from last period."" />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCaptureWeek"" label=""Capture Week"" imageMso=""RefreshWebView"" onAction=""cptCaptureWeek"" visible=""true"" supertip=""Capture the Current Schedule to compare against past and future weeks during execution. This is required for certain metrics (e.g., CEI) to run properly."" />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCompletedWork"" label=""Export Completed WPCNs"" imageMso=""DisconnectFromServer"" onAction=""cptExportCompletedWork"" visible=""true"" supertip=""Export Completed WPCNs for closure in Time system (uses COBRA Export Tool field settings)."" />"
+  If cptModuleExists("cptTaskHistory_bas") And cptModuleExists("cptTaskHistory_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTaskHistory"" label=""Task History"" imageMso=""Archive"" onAction=""cptShowTaskHistoryFrm"" visible=""true"" supertip=""Explore selected task history, take notes, export history, etc. Requires consistent use of Capture Week."" />"
+  End If
   'todo: account for EV Tool in cptValidateEVP
   'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bValidateEVT"" enabled=""false"" label=""Validate EVT"" imageMso=""RefreshWebView"" onAction=""cptAnalyzeEVT"" visible=""true"" supertip=""Validate EVT - e.g., ensure incomplete 50/50 tasks with Actual Start are marked as 50% EV % complete."" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
@@ -614,6 +617,10 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCostRateTables"" onAction=""cptShowCostRateTables_frm""  size=""large"" visible=""true""  label=""Cost Rate Tables"" imageMso=""DataTypeCurrency"" />"
   End If
+  If cptModuleExists("cptAdjustment_bas") And cptModuleExists("cptAdjustment_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdjustment"" label=""ETC Adjustments"" imageMso=""SynchronizationStatus"" onAction=""cptShowAdjustment_frm"" visible=""true"" supertip=""Bulk adjust ETCs by resource, to given target, by percentage, or by a given amount."" />"
+  End If
+
   'mpm
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
@@ -626,7 +633,7 @@ Dim lngCleanUp As Long
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFiscal"" label=""Fiscal"" imageMso=""MonthlyView"" onAction=""cptShowFiscal_frm"" visible=""true"" supertip=""Maintain a fiscal calendar for various reports."" />"
     End If
     If cptModuleExists("cptCalendarExceptions_frm") And cptModuleExists("cptCalendarExceptions_bas") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCalDetails"" label=""Calendar Details"" imageMso=""MonthlyView"" onAction=""cptShowCalendarExceptions_frm"" visible=""true"" supertip=""Export Calendar Exceptions, WorkWeeks, and settings."" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCalDetails"" label=""Details"" imageMso=""MonthlyView"" onAction=""cptShowCalendarExceptions_frm"" visible=""true"" supertip=""Export Calendar Exceptions, WorkWeeks, and settings."" />"
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
@@ -677,7 +684,7 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
 Dim strMsg As String
 
     strMsg = "Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
-    strMsg = strMsg & "Error " & Err.Number & ": " & Err.Description & vbCrLf & vbCrLf
+    strMsg = strMsg & "Error " & err.Number & ": " & err.Description & vbCrLf & vbCrLf
     strMsg = strMsg & "Source: " & strModule & "." & strProcedure
     If lngErl > 0 Then
       strMsg = strMsg & ":" & lngErl
@@ -724,9 +731,9 @@ exit_here:
     Set REMatches = Nothing
     Exit Function
 err_here:
-  If Err.Number = 5 Then
+  If err.Number = 5 Then
     cptRegEx = ""
-    Err.Clear
+    err.Clear
   End If
   Resume exit_here
 End Function
@@ -779,7 +786,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptModuleExists", Err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptModuleExists", err, Erl)
   Resume exit_here
 
 End Function
@@ -863,7 +870,7 @@ exit_here:
   Set cmThisProject = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptUninstall", Err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptUninstall", err, Erl)
   Resume exit_here
 End Sub
 
@@ -931,3 +938,45 @@ Sub cptDate_Www_dd_yy_hh_mmAM()
   DefaultDateFormat = pjDate_Www_dd_yy_hh_mmAM
 End Sub
 
+Sub cptValidateXML(strXML As String)
+  'objects
+  Dim oXML As MSXML2.DOMDocument30
+  'strings
+  Dim strFile As String
+  'longs
+  Dim lngFile As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  strFile = Environ("tmp") & "\cpt-validate.xml"
+  lngFile = FreeFile
+  Open strFile For Output As #lngFile
+  Print #lngFile, strXML
+  Close #lngFile
+  
+  Set oXML = New MSXML2.DOMDocument30
+  If oXML.Load(strFile) Then
+    MsgBox "cpt ribbon xml validated", vbInformation + vbOKOnly, "success"
+  Else
+    MsgBox "cpt ribbon xml validation failed", vbCritical + vbOKOnly, "failure"
+    If oXML.parseError.errorcode <> 0 Then
+      MsgBox oXML.parseError.reason, vbInformation + vbOKOnly, "reason:"
+    End If
+  End If
+
+  Kill strFile
+
+exit_here:
+  On Error Resume Next
+  Set oXML = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSetup_bas", "cptValidateXML", err, Erl)
+  Resume exit_here
+End Sub
