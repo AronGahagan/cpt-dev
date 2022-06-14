@@ -290,7 +290,7 @@
 	<Module>
 		<Name>cptSetup_bas</Name>
 		<FileName>cptSetup_bas.bas</FileName>
-		<Version>v1.8.0</Version>
+		<Version>v1.7.0</Version>
 		<Type>1</Type>
 		<Directory></Directory>
 	</Module>
@@ -333,6 +333,20 @@
 		<Name>cptStatusSheetImport_frm</Name>
 		<FileName>cptStatusSheetImport_frm.frm</FileName>
 		<Version>v1.1.7</Version>
+		<Type>3</Type>
+		<Directory>Status</Directory>
+	</Module>
+	<Module>
+		<Name>cptTaskHistory_bas</Name>
+		<FileName>cptTaskHistory_bas.bas</FileName>
+		<Version>v1.0.0</Version>
+		<Type>1</Type>
+		<Directory>Status</Directory>
+	</Module>
+	<Module>
+		<Name>cptTaskHistory_frm</Name>
+		<FileName>cptTaskHistory_frm.frm</FileName>
+		<Version>v1.0.0</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
