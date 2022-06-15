@@ -50,9 +50,12 @@ End Sub
 Private Sub txtVariance_Change()
   If Me.ActiveControl.Name <> "txtVariance" Then Exit Sub
   If IsNull(Me.lboTaskHistory.Value) Then
-    MsgBox "Please select a Status Date.", vbExclamation + vbOKOnly, "Hold on"
+    Me.lblWarning.Caption = "Please select a Status Date."
+    Me.lblWarning.Visible = True
+    Me.txtVariance.Text = ""
     Exit Sub
   Else
+    Me.lblWarning.Visible = False
     Call cptUpdateTaskHistoryNote(CLng(Me.lblUID.Caption), Me.lboTaskHistory.Value, Me.txtVariance.Text)
   End If
 End Sub

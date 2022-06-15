@@ -4,6 +4,7 @@ Option Explicit
 
 Sub cptShowTaskHistoryFrm()
   Call cptUpdateTaskHistory
+  cptTaskHistory_frm.Caption = "Task History (" & cptGetVersion("cptTaskHistory_bas") & ")"
   cptTaskHistory_frm.Show False
 End Sub
 
@@ -51,6 +52,7 @@ Sub cptUpdateTaskHistory()
     .lboTaskHistory.ColumnCount = 8
     .lblUID.Caption = "-"
     .txtVariance = ""
+    .lblWarning.Visible = False
     If ActiveSelection.Tasks.Count <> 1 Then
       If ActiveSelection.Tasks.Count > 1 Then
         .lboTaskHistory.ColumnCount = 2
@@ -60,6 +62,19 @@ Sub cptUpdateTaskHistory()
         .lboTaskHistory.Clear
       End If
     Else
+      If ActiveSelection.Tasks(1).Summary Then
+        .lblWarning.Caption = "History not captured on summary tasks."
+        .lblWarning.Visible = True
+        GoTo exit_here
+      ElseIf Not ActiveSelection.Tasks(1).Active Then
+        .lblWarning.Caption = "History not captured on inactive tasks."
+        .lblWarning.Visible = True
+        GoTo exit_here
+      ElseIf ActiveSelection.Tasks(1).ExternalTask Then
+        .lblWarning.Caption = "History not captured on external tasks."
+        .lblWarning.Visible = True
+        GoTo exit_here
+      End If
       lngUID = ActiveSelection.Tasks(1).UniqueID
       .lblUID.Caption = lngUID
       Set oRecordset = CreateObject("ADODB.Recordset")
@@ -68,7 +83,8 @@ Sub cptUpdateTaskHistory()
         oRecordset.Filter = "PROJECT='" & strProgramAcronym & "' AND TASK_UID=" & CInt(lngUID)
         oRecordset.Sort = "STATUS_DATE desc"
         If oRecordset.EOF Then
-          MsgBox "No records found for '" & strProgramAcronym & "'!", vbExclamation + vbOKOnly, "No Records Found"
+          .lblWarning.Caption = "No history for UID " & lngUID & "."
+          .lblWarning.Visible = True
           GoTo exit_here
         Else
           oRecordset.MoveFirst
@@ -94,6 +110,8 @@ Sub cptUpdateTaskHistory()
             .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 3) = Application.DateDifference(dtStart, dtFinish) / 480 & "d"
             .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 5) = oRecordset("TASK_RD") & "d"
             'todo: Remaining Work
+            'todo: EV%
+            'todo: remove NOTE?
             strNote = oRecordset("NOTE")
             If Len(strNote) = 0 Then
               .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 7) = ""
@@ -113,7 +131,8 @@ Sub cptUpdateTaskHistory()
           oRecordset.Close
         End If
       Else
-        MsgBox "No records found.", vbExclamation + vbOKOnly, "No Records Found"
+        .lblWarning.Caption = "No records found."
+        .lblWarning.Visible = True
       End If
     End If
   End With
