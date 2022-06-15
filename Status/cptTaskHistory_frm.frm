@@ -37,7 +37,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptTaskHistory_frm", "lblURL", err, Erl)
+  Call cptHandleErr("cptTaskHistory_frm", "lblURL", Err, Erl)
   Resume exit_here
 End Sub
 

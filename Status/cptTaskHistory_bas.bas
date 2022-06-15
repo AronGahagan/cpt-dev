@@ -143,7 +143,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptTaskHistory_bas", "cptUpdateTaskHistory", err, Erl)
+  Call cptHandleErr("cptTaskHistory_bas", "cptUpdateTaskHistory", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -247,7 +247,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptTaskHistory_bas", "cptUpdateTaskHistoryNote", err, Erl)
+  Call cptHandleErr("cptTaskHistory_bas", "cptUpdateTaskHistoryNote", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -286,7 +286,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptTaskHIstory_bas", "cptGetTaskHistoryNote", err, Erl)
+  Call cptHandleErr("cptTaskHIstory_bas", "cptGetTaskHistoryNote", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -368,7 +368,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptTaskHistory_bas", "cptExportTaskHistory", err, Erl)
+  Call cptHandleErr("cptTaskHistory_bas", "cptExportTaskHistory", Err, Erl)
   Resume exit_here
 End Sub
 

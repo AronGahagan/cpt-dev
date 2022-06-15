@@ -1112,8 +1112,8 @@ next_task:
 
   Application.StatusBar = "Analyzing..."
 
-  oWorksheet.Cells(1, oWorksheet.Rows(1).Find("START", lookat:=xlWhole).Column).Value = "CURRENT START"
-  oWorksheet.Cells(1, oWorksheet.Rows(1).Find("FINISH", lookat:=xlWhole).Column).Value = "CURRENT FINISH"
+  oWorksheet.Cells(1, oWorksheet.Rows(1).Find("START", LookAt:=xlWhole).Column).Value = "CURRENT START"
+  oWorksheet.Cells(1, oWorksheet.Rows(1).Find("FINISH", LookAt:=xlWhole).Column).Value = "CURRENT FINISH"
   oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
 
   oExcel.ActiveWindow.Zoom = 85
