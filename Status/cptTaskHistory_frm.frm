@@ -43,6 +43,7 @@ End Sub
 
 Private Sub lboTaskHistory_Click()
   If IsNull(Me.lboTaskHistory.Value) Then Exit Sub
+  If Me.ActiveControl.Name <> "lboTaskHistory" Then Exit Sub
   Call cptGetTaskHistoryNote(CDate(Me.lboTaskHistory.Value), CLng(Me.lblUID.Caption))
 End Sub
 
@@ -54,4 +55,8 @@ Private Sub txtVariance_Change()
   Else
     Call cptUpdateTaskHistoryNote(CLng(Me.lblUID.Caption), Me.lboTaskHistory.Value, Me.txtVariance.Text)
   End If
+End Sub
+
+Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+  Call cptCore_bas.cptStartEvents
 End Sub

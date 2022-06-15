@@ -46,14 +46,19 @@ Sub cptUpdateTaskHistory()
     .lboHeader.List(0, 4) = "FINISH"
     .lboHeader.List(0, 5) = "RDur"
     .lboHeader.List(0, 6) = "RWork"
-    .lboHeader.List(0, 7) = "NOTE"
+    .lboHeader.List(0, 7) = "STATUS NOTE"
     .lboTaskHistory.Clear
     .lboTaskHistory.ColumnCount = 8
     .lblUID.Caption = "-"
     .txtVariance = ""
     If ActiveSelection.Tasks.Count <> 1 Then
-      .lboTaskHistory.ColumnCount = 1
-      .lboTaskHistory.AddItem "Please select a single task."
+      If ActiveSelection.Tasks.Count > 1 Then
+        .lboTaskHistory.ColumnCount = 2
+        .lboTaskHistory.AddItem
+        .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 1) = "One at a time, please..."
+      Else
+        .lboTaskHistory.Clear
+      End If
     Else
       lngUID = ActiveSelection.Tasks(1).UniqueID
       .lblUID.Caption = lngUID
@@ -69,9 +74,8 @@ Sub cptUpdateTaskHistory()
           oRecordset.MoveFirst
           Do While Not oRecordset.EOF
             .lboTaskHistory.AddItem
-            'todo: need hidden status date with full date and time
             .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 0) = oRecordset("STATUS_DATE")
-            .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 1) = FormatDateTime(oRecordset("STATUS_DATE"), vbShortDate)
+            .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 1) = FormatDateTime(oRecordset("STATUS_DATE"), vbShortDate) & IIf(Len(oRecordset("NOTE")) > 0, "*", "")
             If oRecordset("TASK_AS") > 0 Then
               dtStart = oRecordset("TASK_AS")
               .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 2) = "[" & FormatDateTime(dtStart, vbShortDate) & "]"
@@ -97,6 +101,11 @@ Sub cptUpdateTaskHistory()
               .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 7) = Left(strNote, 7) & "..."
             Else
               .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 7) = strNote
+            End If
+            If Len(strNote) > 0 Then
+              .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 1) = FormatDateTime(oRecordset("STATUS_DATE"), vbShortDate) & "*"
+            Else
+              .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 1) = FormatDateTime(oRecordset("STATUS_DATE"), vbShortDate)
             End If
             oRecordset.MoveNext
           Loop
@@ -194,6 +203,11 @@ Sub cptUpdateTaskHistoryNote(lngUID As Long, dtStatus As Date, strVariance As St
       .lboTaskHistory.List(.lboTaskHistory.ListIndex, 7) = Left(strVariance, 7) & "..."
     Else
       .lboTaskHistory.List(.lboTaskHistory.ListIndex, 7) = strVariance
+    End If
+    If Len(strVariance) > 0 Then
+      .lboTaskHistory.List(.lboTaskHistory.ListIndex, 1) = FormatDateTime(dtStatus, vbShortDate) & "*"
+    Else
+      .lboTaskHistory.List(.lboTaskHistory.ListIndex, 1) = FormatDateTime(dtStatus, vbShortDate)
     End If
   End With
   
@@ -346,18 +360,3 @@ Function cptConvertFilteredRecordset(oRecordset As ADODB.Recordset) As Recordset
   Set cptConvertFilteredRecordset = New ADODB.Recordset
   cptConvertFilteredRecordset.Open oStream
 End Function
-
-Sub SampleForRyan()
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
-  'your code codes here
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptSample_bas", "SampleForRyan", err, Erl)
-  Resume exit_here
-End Sub
