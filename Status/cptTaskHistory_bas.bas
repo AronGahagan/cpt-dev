@@ -109,9 +109,10 @@ Sub cptUpdateTaskHistory()
             End If
             .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 3) = Application.DateDifference(dtStart, dtFinish) / 480 & "d"
             .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 5) = oRecordset("TASK_RD") & "d"
-            'todo: Remaining Work
-            'todo: EV%
-            'todo: remove NOTE?
+            'todo: add RWork to cpt-cei.adtg and cptCaptureWeek
+            'todo: add EVP to cpt-cei.adtg and cptCaptureWeek
+            'todo: add BAC to cpt-cei.adtg and cptCaptureWeek?
+            'todo: remove NOTE from lboTaskHistory
             strNote = oRecordset("NOTE")
             If Len(strNote) = 0 Then
               .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 7) = ""
