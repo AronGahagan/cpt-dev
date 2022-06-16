@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>v1.1.8</cpt_version>
+'<cpt_version>v1.1.9</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -364,12 +364,17 @@ Dim blnFree As Boolean
       rstFree.AddNew Array(0, 1), Array(lngField, True)
     End If
   Next lngItem
+  'if all custom task number fields are named, then none available
+  If rstFree.RecordCount = 0 Then
+    lngFree = 0
+    GoTo return_value
+  End If
   
   'next ensure there is no data in that field on the tasks
   'note: use of ActiveProject.Tasks ensures all subprojects included
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
-    If Not rstFree.EOF Then rstFree.MoveFirst
+    rstFree.MoveFirst
     Do While Not rstFree.EOF
       blnFree = True
       If Val(oTask.GetField(rstFree(0))) > 0 Then
@@ -382,7 +387,7 @@ Dim blnFree As Boolean
 next_task:
   Next oTask
 
-  If Not rstFree.EOF Then rstFree.MoveFirst
+  rstFree.MoveFirst
   Do While Not rstFree.EOF
     If rstFree(1) = True Then
       With cptFilterByClipboard_frm.cboFreeField
@@ -396,6 +401,7 @@ next_task:
   Loop
   rstFree.Close
   
+return_value:
   If lngFree > 0 Then
     cptGetFreeField = lngFree
   Else
