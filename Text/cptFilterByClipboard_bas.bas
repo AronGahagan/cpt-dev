@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>v1.1.9</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 
 Sub cptShowFilterByClipboard_frm()
