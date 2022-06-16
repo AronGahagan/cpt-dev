@@ -5,6 +5,7 @@ Option Explicit
 Sub cptShowFilterByClipboard_frm()
 'objects
 'strings
+Dim strMsg As String
 'longs
 Dim lngFreeField As Long
 'integers
@@ -48,7 +49,10 @@ Dim lngFreeField As Long
     End If
   End If
   If lngFreeField = 0 Then
-    MsgBox "Since there are no custom task number fields available, filtered tasks will not appear in the same order as pasted.", vbInformation + vbOKOnly, "No Room at the Inn"
+    strMsg = "Since there are no custom task number fields available*, filtered tasks will not appear in the same order as pasted."
+    strMsg = strMsg & vbCrLf & vbCrLf
+    strMsg = strMsg & "* 'available' means:" & vbCrLf & "> no custom field name" & vbCrLf & "> no data on any task"
+    If MsgBox(strMsg, vbInformation + vbOKCancel, "No Room at the Inn") = vbCancel Then GoTo exit_here
     With cptFilterByClipboard_frm.cboFreeField
       .Clear
       .AddItem 0
@@ -360,9 +364,10 @@ Dim blnFree As Boolean
   Next lngItem
   
   'next ensure there is no data in that field on the tasks
+  'note: use of ActiveProject.Tasks ensures all subprojects included
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
-    rstFree.MoveFirst
+    If Not rstFree.EOF Then rstFree.MoveFirst
     Do While Not rstFree.EOF
       blnFree = True
       If Val(oTask.GetField(rstFree(0))) > 0 Then
@@ -375,7 +380,7 @@ Dim blnFree As Boolean
 next_task:
   Next oTask
 
-  rstFree.MoveFirst
+  If Not rstFree.EOF Then rstFree.MoveFirst
   Do While Not rstFree.EOF
     If rstFree(1) = True Then
       With cptFilterByClipboard_frm.cboFreeField
