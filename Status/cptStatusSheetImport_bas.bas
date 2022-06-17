@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.1.4</cpt_version>
+'<cpt_version>v1.1.5</cpt_version>
 Option Explicit
 
 Sub cptShowStatusSheetImport_frm()
@@ -185,8 +185,9 @@ End Sub
 
 Sub cptStatusSheetImport()
   'objects
+  Dim oShell As Object
   Dim oRecordset As ADODB.Recordset
-  Dim oSubproject As Subproject
+  Dim oSubproject As SubProject
   Dim oTask As Task
   Dim oResource As Resource
   Dim oAssignment As Assignment
@@ -326,6 +327,13 @@ Sub cptStatusSheetImport()
   strLOE = cptGetSetting("Metrics", "txtLOE")
     
   'set up import log file
+  If InStr(ActiveProject.Path, "<>\") = 0 Then 'not a server project: use ActiveProject.Path
+    strImportLog = ActiveProject.Path & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
+  Else 'default to Desktop
+    Set oShell = CreateObject("WScript.Shell")
+    strImportLog = oShell.SpecialFolder("Desktop") & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
+  End If
+  
   strImportLog = ActiveProject.Path & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
   lngFile = FreeFile
   Open strImportLog For Output As #lngFile
@@ -448,22 +456,23 @@ next_task:
     cptStatusSheetImport_frm.lblProgress.Width = (lngTask / lngTasks) * cptStatusSheetImport_frm.lblStatus.Width
     DoEvents
   Next oTask
-    
+  
   'set up excel
   Set oExcel = CreateObject("Excel.Application")
   With cptStatusSheetImport_frm
+    .lblStatus.Caption = "Importing..."
     For lngItem = 0 To .lboStatusSheets.ListCount - 1
       strFile = .lboStatusSheets.List(lngItem, 0) & .lboStatusSheets.List(lngItem, 1)
       Set oWorkbook = oExcel.Workbooks.Open(strFile, ReadOnly:=True)
-      cptStatusSheetImport_frm.lblStatus.Caption = "Importing " & oWorkbook.Name & "..."
+      .lboStatusSheets.Selected(lngItem) = True
       DoEvents
       Print #lngFile, String(25, "=")
       Print #lngFile, "IMPORTING Workbook: " & strFile & " (" & oWorkbook.Sheets.Count & " Worksheets)"
       Print #lngFile, String(25, "-")
       For Each oWorksheet In oWorkbook.Sheets
         Print #lngFile, "IMPORTING Worksheet: " & oWorksheet.Name
-        cptStatusSheetImport_frm.lblStatus.Caption = "Importing Worksheets...(" & Format(oWorksheet.Index / oWorkbook.Sheets.Count, "0%") & ")"
-        cptStatusSheetImport_frm.lblProgress.Width = (oWorksheet.Index / oWorkbook.Sheets.Count) * cptStatusSheetImport_frm.lblStatus.Width
+'        cptStatusSheetImport_frm.lblStatus.Caption = "Importing...(" & Format(oWorksheet.Index / oWorkbook.Sheets.Count, "0%") & ")"
+'        cptStatusSheetImport_frm.lblProgress.Width = (oWorksheet.Index / oWorkbook.Sheets.Count) * cptStatusSheetImport_frm.lblStatus.Width
         DoEvents
         
         'unhide columns and rows (sort is blocked by sheet protection...)
@@ -482,24 +491,24 @@ next_task:
         'get header row
         lngUIDCol = 1
         On Error Resume Next
-        lngHeaderRow = oWorksheet.Columns(lngUIDCol).Find(what:="UID").Row
+        lngHeaderRow = oWorksheet.Columns(lngUIDCol).Find(What:="UID").Row
         If Err.Number = 1004 Then 'invalid oWorkbook
           If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           Print #lngFile, "INVALID Worksheet - UID column not found"
           GoTo next_worksheet
         End If
         'get header columns
-        lngTaskNameCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Task Name", lookat:=xlPart).Column
-        lngASCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Start", lookat:=xlPart).Column
-        lngAFCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Finish", lookat:=xlPart).Column
-        lngEVCol = oWorksheet.Rows(lngHeaderRow).Find(what:="New EV%", lookat:=xlWhole).Column
-        lngETCCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Revised ETC", lookat:=xlWhole).Column
+        lngTaskNameCol = oWorksheet.Rows(lngHeaderRow).Find(What:="Task Name", LookAt:=xlPart).Column
+        lngASCol = oWorksheet.Rows(lngHeaderRow).Find(What:="Actual Start", LookAt:=xlPart).Column
+        lngAFCol = oWorksheet.Rows(lngHeaderRow).Find(What:="Actual Finish", LookAt:=xlPart).Column
+        lngEVCol = oWorksheet.Rows(lngHeaderRow).Find(What:="New EV%", LookAt:=xlWhole).Column
+        lngETCCol = oWorksheet.Rows(lngHeaderRow).Find(What:="Revised ETC", LookAt:=xlWhole).Column
         strNotesColTitle = cptGetSetting("StatusSheet", "txtNotesColTitle")
         On Error Resume Next
         If Len(strNotesColTitle) > 0 Then
-          lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(what:=strNotesColTitle, lookat:=xlWhole).Column
+          lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(What:=strNotesColTitle, LookAt:=xlWhole).Column
         Else
-          lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Reason / Action / Impact", lookat:=xlWhole).Column
+          lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(What:="Reason / Action / Impact", LookAt:=xlWhole).Column
         End If
         If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If lngCommentsCol = 0 Then
@@ -521,18 +530,20 @@ next_task:
             GoTo next_row
           End If
           'set Task
-          On Error Resume Next
-          Set oTask = ActiveProject.Tasks.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-          If oTask Is Nothing Then
-            Print #lngFile, "UID " & oWorksheet.Cells(lngRow, lngUIDCol) & " not found in IMS."
-            GoTo next_row
-          End If
-          'skip completed tasks (which are also italicized)
-          If IsDate(oTask.ActualFinish) Then
-            If FormatDateTime(oTask.ActualFinish, vbShortDate) = FormatDateTime(oWorksheet.Cells(lngRow, lngAFCol).Value, vbShortDate) Then GoTo next_row
-          End If
           If blnTask Then
+            On Error Resume Next
+            Set oTask = ActiveProject.Tasks.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
+            If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+            If oTask Is Nothing Then
+              Print #lngFile, "UID " & oWorksheet.Cells(lngRow, lngUIDCol) & " not found in IMS."
+              GoTo next_row
+            End If
+                    
+            'skip completed tasks (which are also italicized)
+            If IsDate(oTask.ActualFinish) Then
+              If FormatDateTime(oTask.ActualFinish, vbShortDate) = FormatDateTime(oWorksheet.Cells(lngRow, lngAFCol).Value, vbShortDate) Then GoTo next_row
+            End If
+
             'todo: do we really need to separate AS/FS on the form?
             'new start date
             If oWorksheet.Cells(lngRow, lngASCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngASCol).Locked Then
@@ -723,14 +734,15 @@ evp_skipped:
             End If
           End If
 next_row:
-          cptStatusSheetImport_frm.lblStatus.Caption = "Importing " & oWorkbook.Name & "...(" & Format(lngRow / lngLastRow, "0%") & ")"
+          cptStatusSheetImport_frm.lblStatus.Caption = "Importing...(" & Format(lngRow / lngLastRow, "0%") & ")"
           DoEvents
         Next lngRow
 next_worksheet:
         Print #lngFile, String(25, "-")
       Next oWorksheet
 next_file:
-      cptStatusSheetImport_frm.lblStatus.Caption = "Importing " & oWorkbook.Name & "...done"
+      .lblStatus.Caption = "Importing...(" & lngItem + 1 & " of " & .lboStatusSheets.ListCount + 1 & ")"
+      .lboStatusSheets.Selected(lngItem) = False
       oWorkbook.Close False
       DoEvents
     Next lngItem
@@ -770,6 +782,7 @@ next_file:
   
 exit_here:
   On Error Resume Next
+  Set oShell = Nothing
   If oRecordset.State = 1 Then oRecordset.Close
   Set oRecordset = Nothing
   Set oSubproject = Nothing
@@ -794,7 +807,7 @@ exit_here:
   Next lngFile
   Close #lngDeconflictionFile
   If Dir(Environ("tmp") & "\Schema.ini") <> vbNullString Then Kill Environ("tmp") & "\Schema.ini"
-  If Dir(Environ("tmp") & "\imported.csv") <> vbNullString Then Kill Environ("tmp") * "\imported.csv"
+  If Dir(Environ("tmp") & "\imported.csv") <> vbNullString Then Kill Environ("tmp") & "\imported.csv"
   Set oRange = Nothing
   Set oListObject = Nothing
   Set oWorksheet = Nothing
@@ -802,7 +815,9 @@ exit_here:
   Set oWorkbook = Nothing
   Set oExcel = Nothing
   Set oComboBox = Nothing
-  If rst.State = 1 Then rst.Close
+  If Not rst Is Nothing Then
+    If rst.State = 1 Then rst.Close
+  End If
   Set rst = Nothing
 
   Exit Sub
@@ -940,11 +955,11 @@ Dim lngItem As Long
   'Effort Driven
   TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Effort Driven", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   'existing ETC (remaining work)
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="ETC", Width:=20, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="ETC", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   'imported ETC
   If Not IsNull(cptStatusSheetImport_frm.cboETC.Value) Then
     lngETC = cptStatusSheetImport_frm.cboETC.Value
-    TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngETC), Title:="New ETC", Width:=20, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngETC), Title:="New ETC", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   End If
   
   If blnUsageBelow Then
@@ -975,11 +990,11 @@ Dim lngItem As Long
     'Effort Driven
     TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Effort Driven", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     'existing ETC (remaining work)
-    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="ETC", Width:=20, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="ETC", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     'imported ETC
     If Not IsNull(cptStatusSheetImport_frm.cboETC.Value) Then
       lngETC = cptStatusSheetImport_frm.cboETC.Value
-      TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngETC), Title:="New ETC", Width:=20, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+      TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngETC), Title:="New ETC", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     End If
     TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Notes", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     ActiveWindow.TopPane.Activate
