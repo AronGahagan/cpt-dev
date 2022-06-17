@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.4</cpt_version>
+'<cpt_version>v1.1.5</cpt_version>
 Option Explicit
 
 Private Sub cboAF_Change()
@@ -141,6 +141,7 @@ End Sub
 
 Private Sub cmdSelectFiles_Click()
   'objects
+  Dim oShell As Object
   Dim oFileDialog As Object 'FileDialog
   Dim oExcel As Excel.Application
   'strings
@@ -168,7 +169,12 @@ Private Sub cmdSelectFiles_Click()
     .AllowMultiSelect = True
     .ButtonName = "Import"
     .InitialView = 2 'msoFileDialogViewDetails
-    .InitialFileName = ActiveProject.Path & "\" 'todo: ActiveProject.Path, are you serious?
+    If InStr(ActiveProject.Path, "<>\") = 0 Then 'not a server project: use ActiveProject.Path
+      .InitialFileName = ActiveProject.Path & "\"
+    Else 'default to Desktop
+      Set oShell = CreateObject("WScript.Shell")
+      .InitialFileName = oShell.SpecialFolder("Desktop")
+    End If
     .Title = "Select Returned Status Sheet(s):"
     .Filters.Add "Microsoft Excel Workbook (xlsx)", "*.xlsx"
     If .Show = -1 Then
@@ -187,6 +193,7 @@ Private Sub cmdSelectFiles_Click()
 
 exit_here:
   On Error Resume Next
+  Set oShell = Nothing
   Set oFileDialog = Nothing
   If blnQuit Then oExcel.Quit
   Set oExcel = Nothing
@@ -213,6 +220,7 @@ err_here:
 End Sub
 
 Private Sub lboStatusSheets_Change()
+  If InStr(Me.lblStatus.Caption, "Importing") > 0 Then Exit Sub
   If Me.lboStatusSheets.ListCount > 0 Then
     If Not IsNull(Me.lboStatusSheets.ListIndex) Then
       Me.cmdRemove.Enabled = True
