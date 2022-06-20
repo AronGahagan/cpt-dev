@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.6.1</cpt_version>
+'<cpt_version>v1.8.0</cpt_version>
 Option Explicit
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
@@ -49,8 +49,13 @@ Dim vEvent As Variant
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   '<issue61> ensure proper installation
-  If InStr(ThisProject.FullName, "Global.MPT") = 0 Then
-    MsgBox "The VBA module 'cptSetup_bas' must be installed in your Global.MPT, not in this project file.", vbCritical + vbOKOnly, "Faulty Installation"
+  If InStr(ThisProject.FullName, "Global") = 0 Then
+    strMsg = "The CPT can only be installed in one of the following:" & vbCrLf
+    strMsg = strMsg & "> Global.MPT" & vbCrLf
+    strMsg = strMsg & "> Global (+ non-cached Enterprise) for testing purposes only" & vbCrLf
+    strMsg = strMsg & "> Checked-out Enterprise Global (when ready to release to Enterprise user base)" & vbCrLf & vbCrLf
+    strMsg = strMsg & "(Do not install to a *.mpp file.)"
+    MsgBox strMsg, vbCritical + vbOKOnly, "Faulty Installation"
     GoTo exit_here
   End If '</issue61>
 
