@@ -229,7 +229,7 @@ next_task:
     rstReplaced.MoveFirst
     FilterEdit "cptMyReplace", True, True, True, False, , "Unique ID", , "equals", rstReplaced(0), "Or", True
     Do While Not rstReplaced.EOF
-      FilterEdit "cptMyReplace", TaskFilter:=True, FieldName:="", newfieldname:="Unique ID", Test:="equals", Value:=rstReplaced(0), Operation:="Or", ShowInMenu:=True
+      FilterEdit "cptMyReplace", TaskFilter:=True, FieldName:="", newfieldname:="Unique ID", test:="equals", Value:=rstReplaced(0), Operation:="Or", ShowInMenu:=True
       rstReplaced.MoveNext
     Loop
     FilterApply "cptMyReplace", True
@@ -286,10 +286,11 @@ Sub cptFindDuplicateTaskNames()
   
   If Not cptCheckReference("Excel") Then GoTo exit_here
 
-  On Error GoTo err_here
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
   If Edition = pjEditionProfessional Then
     If Not cptFilterExists("Active Tasks") Then
-      FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, overwriteexisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=True
+      FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, overwriteexisting:=False, FieldName:="Active", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
     End If
     MapEdit Name:="ExportTaskNames", Create:=True, overwriteexisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="Active Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
   ElseIf Edition = pjEditionStandard Then
@@ -301,11 +302,15 @@ Sub cptFindDuplicateTaskNames()
   MapEdit Name:="ExportTaskNames", DataCategory:=0, FieldName:="Summary", ExternalFieldName:="Summary"
   MapEdit Name:="ExportTaskNames", DataCategory:=0, FieldName:="Name", ExternalFieldName:="Name"
   Set oShell = CreateObject("WScript.Shell")
-  strFileName = oShell.SpecialFolders("Desktop") & "\DuplicateTaskNames.xlsx"
-  If Dir(strFileName) <> vbNullString Then Kill strFileName
+  strFileName = oShell.SpecialFolders("Desktop") & "\DuplicateTaskNames_" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".xlsx"
   FileSaveAs Name:=strFileName, FormatID:="MSProject.ACE", Map:="ExportTaskNames"
   
-  Set oExcel = CreateObject("Excel.Application")
+  On Error Resume Next
+  Set oExcel = GetObject(, "Excel.Application")
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If oExcel Is Nothing Then
+    Set oExcel = CreateObject("Excel.Application")
+  End If
   Set oWorkbook = oExcel.Workbooks.Open(strFileName)
   Set oWorksheet = oWorkbook.Sheets(1)
   
@@ -329,11 +334,11 @@ Sub cptFindDuplicateTaskNames()
   End With
   oRange.FormatConditions(1).StopIfTrue = False
   'filter for duplicates
-  lgNameCol = oWorksheet.Rows(1).Find("Name", lookat:=xlWhole).Column
+  lgNameCol = oWorksheet.Rows(1).Find("Name", LookAt:=xlWhole).Column
   oListObject.Range.AutoFilter Field:=lgNameCol, Criteria1:=RGB(255, 199, 206), Operator:=xlFilterCellColor
   'sort by task name (to put duplicates together)
   oListObject.Sort.SortFields.Clear
-  oListObject.Sort.SortFields.Add2 key:=oWorksheet.Range("Table1[[#All],[Name]]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortTextAsNumbers
+  oListObject.Sort.SortFields.Add key:=oWorksheet.Range("Table1[[#All],[Name]]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortTextAsNumbers
   With oListObject.Sort
     .Header = xlYes
     .MatchCase = False
