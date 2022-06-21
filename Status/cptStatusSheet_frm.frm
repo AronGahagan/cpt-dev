@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.3</cpt_version>
+'<cpt_version>v1.4.0</cpt_version>
 Option Explicit
 Private Const adVarChar As Long = 200
 Private Const adInteger As Long = 3
@@ -340,6 +340,15 @@ err_here:
   
 End Sub
 
+Private Sub chkKeepOpen_Click()
+  If Me.chkKeepOpen Then
+    Me.chkSendEmails = False
+    Me.chkSendEmails.Enabled = False
+  Else
+    Me.chkSendEmails.Enabled = True
+  End If
+End Sub
+
 Private Sub chkSendEmails_Click()
 Dim strQuickPart As String
 Dim blnExists As Boolean
@@ -349,6 +358,8 @@ Dim lngItem As Long
   Me.txtCC.Enabled = Me.chkSendEmails
   Me.cboQuickParts.Enabled = Me.chkSendEmails
   If Me.chkSendEmails Then
+    Me.chkKeepOpen = False
+    Me.chkKeepOpen.Enabled = False
     Call cptListQuickParts(True)
     strQuickPart = cptGetSetting("StatusSheet", "cboQuickPart")
     If Len(strQuickPart) > 0 Then
@@ -364,6 +375,8 @@ Dim lngItem As Long
         MsgBox "QuickPart '" & strQuickPart & "' not found.", vbExclamation + vbOKOnly, "Stored Setting Invalid"
       End If
     End If
+  Else
+    Me.chkKeepOpen.Enabled = True
   End If
 
 End Sub
