@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.3.3</cpt_version>
+'<cpt_version>v1.4.0</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
@@ -35,6 +35,7 @@ Dim lngField As Long, lngItem As Long, lngSelectedItems As Long
 'integers
 Dim intField As Integer
 'strings
+Dim strKeepOpen As String
 Dim strExportNotes As String
 Dim strAllowAssignmentNotes As String
 Dim strNotesColTitle As String
@@ -324,8 +325,13 @@ skip_fields:
     strEmail = cptGetSetting("StatusSheet", "chkEmail")
     If strEmail <> "" Then
       .chkSendEmails = CBool(strEmail) 'this refreshes the quickparts list
+      If .chkSendEmails Then
+        .chkKeepOpen = False
+        .chkKeepOpen.Enabled = False
+      End If
     Else
       .chkSendEmails = False
+      .chkKeepOpen.Enabled = True
     End If
     If .chkSendEmails Then
       strSubject = cptGetSetting("StatusSheet", "txtSubject")
@@ -373,6 +379,18 @@ skip_fields:
       .chkAllowAssignmentNotes = CBool(strAllowAssignmentNotes)
     Else
       .chkAllowAssignmentNotes = False
+    End If
+    strKeepOpen = cptGetSetting("StatusSheet", "chkKeepOpen")
+    If strKeepOpen <> "" Then
+      .chkKeepOpen = CBool(strKeepOpen)
+      If .chkKeepOpen Then
+        .chkSendEmails = False
+        .chkSendEmails.Enabled = False
+      Else
+        .chkSendEmails.Enabled = True
+      End If
+    Else
+      .chkKeepOpen = False
     End If
   End With
 
@@ -472,7 +490,7 @@ next_item:
   End If
   DoEvents
   
-  OptionsViewEx DisplaySummaryTasks:=True, displaynameindent:=True
+  OptionsViewEx displaysummaryTasks:=True, displaynameindent:=True
   If strStartingGroup = "No Group" Then
     Sort "ID", , , , , , False, True 'OutlineShowAllTasks won't work without this
   Else
@@ -602,6 +620,7 @@ Sub cptCreateStatusSheet()
   Dim vHeader As Variant
   Dim vCol As Variant, vUserFields As Variant
   'booleans
+  Dim blnKeepOpen As Boolean
   Dim blnLocked As Boolean
   Dim blnValidation As Boolean
   Dim blnAddConditionalFormats As Boolean
@@ -653,6 +672,7 @@ Sub cptCreateStatusSheet()
       End If
     End If
   End If
+  blnKeepOpen = cptStatusSheet_frm.chkKeepOpen
   'get task count
   If blnPerformanceTest Then t = GetTickCount
   SelectAll
@@ -762,7 +782,12 @@ Sub cptCreateStatusSheet()
         oWorkbook.Application.Wait Now + TimeValue("00:00:02")
         cptSendStatusSheet strFileName
       Else
-        oExcel.Visible = True
+        If Not blnKeepOpen Then
+          oWorkbook.Close True
+          oWorkbook.Application.Wait Now + TimeValue("00:00:002")
+        Else
+          oExcel.Visible = True
+        End If
       End If
       
     ElseIf .cboCreate.Value = "1" Then  'worksheet for each
@@ -831,12 +856,17 @@ next_worksheet:
       
       'send the workbook
       If blnEmail Then
-        'close the workbook - must save before attaching
+        'close the workbook - must close before attaching
         oWorkbook.Close True
         oWorkbook.Application.Wait Now + TimeValue("00:00:02")
-        Call cptSendStatusSheet(strFileName)
+        cptSendStatusSheet strFileName
       Else
-        oExcel.Visible = True
+        If Not blnKeepOpen Then
+          oWorkbook.Close True
+          oWorkbook.Application.Wait Now + TimeValue("00:00:002")
+        Else
+          oExcel.Visible = True
+        End If
       End If
       
     ElseIf .cboCreate.Value = "2" Then  'workbook for each
@@ -904,14 +934,21 @@ next_worksheet:
             DoEvents
             'must close before attaching to email
             oWorkbook.Close True
-            'oWorkbook.Application.Wait Now + TimeValue("00:00:02")
+            oWorkbook.Application.Wait Now + TimeValue("00:00:02")
             cptSendStatusSheet strFileName, strItem
             .lblStatus.Caption = "Creating Email for " & strItem & "...done"
             Application.StatusBar = .lblStatus.Caption
             DoEvents
+          Else
+            If Not blnKeepOpen Then
+              oWorkbook.Close True
+              oWorkbook.Application.Wait Now + TimeValue("00:00:002")
+            Else
+              oExcel.Visible = True
+            End If
           End If 'blnEmail
         End If '.lboItems.Selected(lngItem)
-        
+                
 next_workbook:
         
       Next lngItem
@@ -1552,12 +1589,12 @@ Dim lngItem As Long
 
   'reset the filter
   Application.StatusBar = "Resetting the cptStatusSheet Filter..."
-  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, overwriteexisting:=True, FieldName:="Actual Finish", Test:="equals", Value:="NA", ShowInMenu:=False, showsummarytasks:=True
+  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, overwriteexisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
   If cptStatusSheet_frm.chkHide And IsDate(cptStatusSheet_frm.txtHideCompleteBefore) Then
-    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Actual Finish", Test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", showsummarytasks:=True
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
   End If
   If Edition = pjEditionProfessional Then
-    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Active", Test:="equals", Value:="Yes", ShowInMenu:=False, showsummarytasks:=True, parenthesis:=True
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Active", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True, parenthesis:=True
   End If
   FilterApply "cptStatusSheet Filter"
   
@@ -2573,6 +2610,7 @@ Sub cptSaveStatusSheetSettings()
     End If
     cptSaveSetting "StatusSheet", "chkExportNotes", IIf(.chkExportNotes, 1, 0)
     cptSaveSetting "StatusSheet", "chkAllowAssignmentNotes", IIf(.chkAllowAssignmentNotes, 1, 0)
+    cptSaveSetting "StatusSheet", "chkKeepOpen", IIf(.chkKeepOpen, 1, 0)
     'save user fields - overwrite
     strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
     Set oRecordset = CreateObject("ADODB.Recordset")
