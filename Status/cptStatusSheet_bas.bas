@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.4.0</cpt_version>
+'<cpt_version>v1.4.1</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
@@ -779,12 +779,12 @@ Sub cptCreateStatusSheet()
       If blnEmail Then
         'close the workbook - must close before attaching
         oWorkbook.Close True
-        oWorkbook.Application.Wait Now + TimeValue("00:00:02")
+        oExcel.Wait Now + TimeValue("00:00:02")
         cptSendStatusSheet strFileName
       Else
         If Not blnKeepOpen Then
           oWorkbook.Close True
-          oWorkbook.Application.Wait Now + TimeValue("00:00:002")
+          oExcel.Wait Now + TimeValue("00:00:002")
         Else
           oExcel.Visible = True
         End If
@@ -858,12 +858,12 @@ next_worksheet:
       If blnEmail Then
         'close the workbook - must close before attaching
         oWorkbook.Close True
-        oWorkbook.Application.Wait Now + TimeValue("00:00:02")
+        oExcel.Wait Now + TimeValue("00:00:02")
         cptSendStatusSheet strFileName
       Else
         If Not blnKeepOpen Then
           oWorkbook.Close True
-          oWorkbook.Application.Wait Now + TimeValue("00:00:002")
+          oExcel.Wait Now + TimeValue("00:00:002")
         Else
           oExcel.Visible = True
         End If
@@ -928,13 +928,14 @@ next_worksheet:
           DoEvents
           
           'send email
+          oExcel.Calculation = xlCalculationAutomatic
           If blnEmail Then
             .lblStatus.Caption = "Creating Email for " & strItem & "..."
             Application.StatusBar = .lblStatus.Caption
             DoEvents
             'must close before attaching to email
             oWorkbook.Close True
-            oWorkbook.Application.Wait Now + TimeValue("00:00:02")
+            oExcel.Wait Now + TimeValue("00:00:02")
             cptSendStatusSheet strFileName, strItem
             .lblStatus.Caption = "Creating Email for " & strItem & "...done"
             Application.StatusBar = .lblStatus.Caption
@@ -942,7 +943,7 @@ next_worksheet:
           Else
             If Not blnKeepOpen Then
               oWorkbook.Close True
-              oWorkbook.Application.Wait Now + TimeValue("00:00:002")
+              oExcel.Wait Now + TimeValue("00:00:002")
             Else
               oExcel.Visible = True
             End If
@@ -954,7 +955,6 @@ next_workbook:
       Next lngItem
       
       If Not blnEmail Then
-        oExcel.Calculation = xlCalculationAutomatic
         oExcel.ScreenUpdating = True
         oExcel.Visible = True
       End If
@@ -1495,9 +1495,13 @@ exit_here:
   Set oTask = Nothing
   Set oAssignment = Nothing
   If blnEmail Then oExcel.Quit
-  Set oExcel = Nothing
-  Set oWorkbook = Nothing
   Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  If Not oExcel Is Nothing Then
+    oExcel.Visible = True
+    oExcel.Quit
+    Set oExcel = Nothing
+  End If
   Set rng = Nothing
   Set rSummaryTasks = Nothing
   Set rLockedCells = Nothing
