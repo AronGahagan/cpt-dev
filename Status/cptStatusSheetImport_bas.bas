@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.1.3</cpt_version>
+'<cpt_version>v1.1.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -512,29 +512,34 @@ next_task:
         'pull in the data
         For lngRow = lngHeaderRow + 1 To lngLastRow
           If oWorksheet.Cells(lngRow, lngUIDCol).Value = 0 Then GoTo next_row
+          
           'determine if row is a oTask or an oAssignment
-          'todo: use a better method: get Task or get Resource if Neither, then ERROR
-          If oWorksheet.Cells(lngRow, lngUIDCol).Font.Italic Then
-            blnTask = False
-            'note: completed tasks are skipped below
-          ElseIf oWorksheet.Cells(lngRow, lngUIDCol).Interior.Color = 16777215 Then
-            blnTask = True
-          Else
-            GoTo next_row
-          End If
-          'set Task
           On Error Resume Next
           Set oTask = ActiveProject.Tasks.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-          If oTask Is Nothing Then
-            Print #lngFile, "UID " & oWorksheet.Cells(lngRow, lngUIDCol) & " not found in IMS."
-            GoTo next_row
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If oTask Is Nothing Or oTask.UniqueID <> oWorksheet.Cells(lngRow, lngUIDCol).Value Then 'check if it's a resource
+            Set oResource = Nothing
+            On Error Resume Next
+            Set oResource = ActiveProject.Resources(oWorksheet.Cells(lngRow, lngTaskNameCol).Value)
+            If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+            If Not oResource Is Nothing Then
+              blnTask = False
+            Else
+              Print #lngFile, "UID " & oWorksheet.Cells(lngRow, lngUIDCol) & " not found in IMS."
+              If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+              GoTo next_row
+            End If
+          Else
+            blnTask = True
           End If
-          'skip completed tasks (which are also italicized)
-          If IsDate(oTask.ActualFinish) Then
-            If FormatDateTime(oTask.ActualFinish, vbShortDate) = FormatDateTime(oWorksheet.Cells(lngRow, lngAFCol).Value, vbShortDate) Then GoTo next_row
-          End If
+          
+          'set Task
           If blnTask Then
+            'skip completed tasks (which are also italicized)
+            If IsDate(oTask.ActualFinish) Then
+              If FormatDateTime(oTask.ActualFinish, vbShortDate) = FormatDateTime(oWorksheet.Cells(lngRow, lngAFCol).Value, vbShortDate) Then GoTo next_row
+            End If
+
             'todo: do we really need to separate AS/FS on the form?
             'new start date
             If oWorksheet.Cells(lngRow, lngASCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngASCol).Locked Then
