@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.5</cpt_version>
+'<cpt_version>v1.1.6</cpt_version>
 Option Explicit
 
 Private Sub cboAF_Change()
@@ -173,7 +173,7 @@ Private Sub cmdSelectFiles_Click()
       .InitialFileName = ActiveProject.Path & "\"
     Else 'default to Desktop
       Set oShell = CreateObject("WScript.Shell")
-      .InitialFileName = oShell.SpecialFolder("Desktop")
+      .InitialFileName = oShell.SpecialFolders("Desktop") & "\"
     End If
     .Title = "Select Returned Status Sheet(s):"
     .Filters.Add "Microsoft Excel Workbook (xlsx)", "*.xlsx"
