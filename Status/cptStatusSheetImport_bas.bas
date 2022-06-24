@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.1.5</cpt_version>
+'<cpt_version>v1.1.6</cpt_version>
 Option Explicit
 
 Sub cptShowStatusSheetImport_frm()
@@ -331,7 +331,7 @@ Sub cptStatusSheetImport()
     strImportLog = ActiveProject.Path & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
   Else 'default to Desktop
     Set oShell = CreateObject("WScript.Shell")
-    strImportLog = oShell.SpecialFolder("Desktop") & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
+    strImportLog = oShell.SpecialFolders("Desktop") & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
   End If
   
   strImportLog = ActiveProject.Path & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
@@ -475,6 +475,7 @@ next_task:
 '        cptStatusSheetImport_frm.lblProgress.Width = (oWorksheet.Index / oWorkbook.Sheets.Count) * cptStatusSheetImport_frm.lblStatus.Width
         DoEvents
         
+        
         'unhide columns and rows (sort is blocked by sheet protection...)
         oWorksheet.Columns.Hidden = False
         oWorksheet.Rows.Hidden = False
@@ -519,26 +520,29 @@ next_task:
         'pull in the data
         For lngRow = lngHeaderRow + 1 To lngLastRow
           If oWorksheet.Cells(lngRow, lngUIDCol).Value = 0 Then GoTo next_row
+          
           'determine if row is a oTask or an oAssignment
-          'todo: use a better method: get Task or get Resource if Neither, then ERROR
-          If oWorksheet.Cells(lngRow, lngUIDCol).Font.Italic Then
-            blnTask = False
-            'note: completed tasks are skipped below
-          ElseIf oWorksheet.Cells(lngRow, lngUIDCol).Interior.Color = 16777215 Then
-            blnTask = True
-          Else
-            GoTo next_row
-          End If
-          'set Task
-          If blnTask Then
+          On Error Resume Next
+          Set oTask = ActiveProject.Tasks.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If oTask Is Nothing Or oTask.UniqueID <> oWorksheet.Cells(lngRow, lngUIDCol).Value Then 'check if it's a resource
+            Set oResource = Nothing
             On Error Resume Next
-            Set oTask = ActiveProject.Tasks.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
+            Set oResource = ActiveProject.Resources(oWorksheet.Cells(lngRow, lngTaskNameCol).Value)
             If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-            If oTask Is Nothing Then
+            If Not oResource Is Nothing Then
+              blnTask = False
+            Else
               Print #lngFile, "UID " & oWorksheet.Cells(lngRow, lngUIDCol) & " not found in IMS."
+              If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
               GoTo next_row
             End If
-                    
+          Else
+            blnTask = True
+          End If
+          
+          'set Task
+          If blnTask Then
             'skip completed tasks (which are also italicized)
             If IsDate(oTask.ActualFinish) Then
               If FormatDateTime(oTask.ActualFinish, vbShortDate) = FormatDateTime(oWorksheet.Cells(lngRow, lngAFCol).Value, vbShortDate) Then GoTo next_row
@@ -741,14 +745,14 @@ next_worksheet:
         Print #lngFile, String(25, "-")
       Next oWorksheet
 next_file:
-      .lblStatus.Caption = "Importing...(" & lngItem + 1 & " of " & .lboStatusSheets.ListCount + 1 & ")"
+      .lblStatus.Caption = "Importing...(" & lngItem + 1 & " of " & .lboStatusSheets.ListCount & ")"
       .lboStatusSheets.Selected(lngItem) = False
       oWorkbook.Close False
       DoEvents
     Next lngItem
   End With 'cptStatusSheetImport_frm
   
-  'where there any conflicts?
+  'were there any conflicts?
   Close #lngDeconflictionFile
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & Environ("temp") & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
   
