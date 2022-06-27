@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.10.1</cpt_version>
+'<cpt_version>v1.10.2</cpt_version>
 Option Explicit
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
@@ -1431,7 +1431,7 @@ Sub cptCreateFilter(strFilter As String)
 
   Select Case strFilter
     Case "Marked"
-      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, overwriteexisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=False
+      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, overwriteexisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
       
   End Select
   
@@ -1465,6 +1465,8 @@ Sub cptShowSettings_frm()
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  cptSettings_frm.Caption = "ClearPlan Toolbar Settings (" & cptGetVersion("cptUpgrades_frm") & ")"
   
   Set oRecordset = CreateObject("ADODB.Recordset")
   With oRecordset
@@ -1586,7 +1588,7 @@ err_here:
 End Function
 
 Sub cptOpenSettingsFile()
-  shell "notepad.exe '" & cptDir & "\settings\cpt-settings.ini" & "'"
+  Shell "notepad.exe '" & cptDir & "\settings\cpt-settings.ini" & "'"
 End Sub
 
 Function cptGetMyHeaders(strTitle As String, Optional blnRequired As Boolean = False) As String
@@ -1755,5 +1757,38 @@ exit_here:
   Exit Function
 err_here:
   Call cptHandleErr("cptCore_bas", "cptConvertToMasterUIDs", Err, Erl)
+  Resume exit_here
+End Function
+
+Function cptGetShowStatusBarCountFirstRun() As Boolean
+  'objects
+  'strings
+  Dim strShow As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  Dim blnShow As Boolean
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  strShow = cptGetSetting("Count", "blnShowStatusBarTaskCount")
+  If Len(strShow) > 0 Then
+    blnShow = CBool(strShow)
+  Else
+    Call cptSaveSetting("Count", "blnShowStatusBarTaskCount", "1") 'default is true
+    blnShow = True
+  End If
+
+  cptGetShowStatusBarCount = blnShow
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptGetShowStatusBarCountFirstRun", Err, Erl)
   Resume exit_here
 End Function

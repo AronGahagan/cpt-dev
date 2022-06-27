@@ -7,7 +7,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 Private WithEvents MyMSPApplication As Application
 Attribute MyMSPApplication.VB_VarHelpID = -1
@@ -41,15 +41,14 @@ Dim lngItem As Long, lngItems As Long
       Set frmText = cptGetUserForm("cptText_frm") 'returns Nothing if form is not loaded
       Set ctl = cptGetControl(frmText, "lboOutput")
       If Not frmText Is Nothing Then
-          frmText.Controls("lboOutput").Clear
-          For Each Task In ActiveSelection.Tasks
-            frmText.Controls("lboOutput").AddItem
-            frmText.Controls("lboOutput").List(lngItem, 0) = Task.UniqueID
-            frmText.Controls("lboOutput").List(lngItem, 1) = Task.Name
-            lngItem = lngItem + 1
-          Next Task
-          Application.Run "cptUpdatePreview"
-        'End If
+        frmText.Controls("lboOutput").Clear
+        For Each Task In ActiveSelection.Tasks
+          frmText.Controls("lboOutput").AddItem
+          frmText.Controls("lboOutput").List(lngItem, 0) = Task.UniqueID
+          frmText.Controls("lboOutput").List(lngItem, 1) = Task.Name
+          lngItem = lngItem + 1
+        Next Task
+        Application.Run "cptUpdatePreview"
       End If
     End If
   End If
@@ -57,7 +56,7 @@ Dim lngItem As Long, lngItems As Long
   On Error Resume Next
   
   'Validate users selected view type
-  If cptGetShowStatusBarCount Then
+  If cptGetShowStatusBarCountFirstRun Then
     If ActiveProject.Application.ActiveWindow.ActivePane.View.Type = pjTaskItem Then
       Set Tasks = ActiveSelection.Tasks
       If Not Tasks Is Nothing Then
