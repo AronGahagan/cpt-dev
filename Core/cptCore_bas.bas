@@ -1782,7 +1782,7 @@ Function cptGetShowStatusBarCountFirstRun() As Boolean
     blnShow = True
   End If
 
-  cptGetShowStatusBarCount = blnShow
+  cptGetShowStatusBarCountFirstRun = blnShow
 
 exit_here:
   On Error Resume Next
