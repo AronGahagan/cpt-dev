@@ -180,6 +180,7 @@ Sub cptUpdateTaskHistoryNote(lngUID As Long, dtStatus As Date, strVariance As St
   'add new field if necessary
   If Not blnFieldExists Then
     Set oRecordsetNew = CreateObject("ADODB.Recordset")
+    
     'recreate the field structure
     For lngItem = 0 To oRecordset.Fields.Count - 1
       If oRecordset.Fields(lngItem).Type = adVarChar Then
@@ -291,7 +292,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptExportTaskHistory(lngUID As Long)
+Sub cptExportTaskHistory(Optional lngUID As Long, Optional blnNotesOnly As Boolean = False)
   'objects
   Dim oWorksheet As Excel.Worksheet
   Dim oWorkbook As Excel.Workbook
@@ -316,8 +317,16 @@ Sub cptExportTaskHistory(lngUID As Long)
   Set oRecordset = CreateObject("ADODB.Recordset")
   oRecordset.Open strFile, , adOpenKeyset
   oRecordset.MoveFirst
-  Application.StatusBar = "Filtering for UID " & lngUID & "..."
-  oRecordset.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND TASK_UID=" & lngUID
+  If lngUID > 0 Then
+    Application.StatusBar = "Filtering for UID " & lngUID & "..."
+    oRecordset.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND TASK_UID=" & lngUID
+  ElseIf blnNotesOnly Then
+    Application.StatusBar = "Fitlering for notes in the current period..."
+    oRecordset.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND STATUS_DATE=#" & FormatDateTime(ActiveProject.StatusDate, vbGeneralDate) & "# AND NOTE <>''"
+  Else
+    Application.StatusBar = "Filtering..."
+    oRecordset.Filter = "PROJECT='" & cptGetProgramAcronym & "'"
+  End If
   Application.StatusBar = "Sorting by STATUS_DATE descending..."
   oRecordset.Sort = "STATUS_DATE desc"
   If Not oRecordset.EOF Then
@@ -354,6 +363,9 @@ Sub cptExportTaskHistory(lngUID As Long)
     oExcel.ScreenUpdating = True
     oExcel.ActiveWindow.FreezePanes = True
     Application.StatusBar = "...done."
+  Else
+    cptTaskHistory_frm.lblWarning.Caption = "No records found."
+    cptTaskHistory_frm.lblWarning.Visible = True
   End If
   
 exit_here:

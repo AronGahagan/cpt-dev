@@ -47,6 +47,63 @@ Private Sub lboTaskHistory_Click()
   Call cptGetTaskHistoryNote(CDate(Me.lboTaskHistory.Value), CLng(Me.lblUID.Caption))
 End Sub
 
+Private Sub optAllHistory_Click()
+  If Me.optAllHistory Then
+    Me.optAllHistory.Value = False
+    Me.tglExport = False
+    Call cptExportTaskHistory
+  End If
+End Sub
+
+Private Sub optCurrentNotes_Click()
+  If Me.optCurrentNotes Then
+    If IsDate(ActiveProject.StatusDate) Then
+      Me.lblWarning.Visible = False
+      Me.tglExport.Value = False
+      Call cptExportTaskHistory(blnNotesOnly:=True)
+    Else
+      Me.optCurrentNotes.Value = False
+      Me.lblWarning.Caption = "No Status Date."
+      Me.lblWarning.Visible = True
+    End If
+  End If
+End Sub
+
+Private Sub optTaskHistory_Click()
+  If Me.optTaskHistory Then
+    If IsNumeric(Me.lblUID) Then
+      Me.lblWarning.Visible = False
+      Me.tglExport.Value = False
+      Call cptExportTaskHistory(lngUID:=CLng(Me.lblUID))
+    Else
+      Me.optTaskHistory.Value = False
+      Me.lblWarning.Caption = "No task selected."
+      Me.lblWarning.Visible = True
+    End If
+  End If
+End Sub
+
+Sub tglExport_Click()
+  Me.lblWarning.Visible = False
+  If tglExport Then
+    Me.txtVariance.Width = 252
+    Me.optAllHistory.Value = False
+    Me.optCurrentNotes.Value = False
+    Me.optTaskHistory.Value = False
+    Me.OptionButton4.Value = False
+    Me.optAllHistory.Visible = True
+    Me.optCurrentNotes.Visible = True
+    Me.optTaskHistory.Visible = True
+    Me.OptionButton4.Visible = True
+  Else
+    Me.optAllHistory.Visible = False
+    Me.optCurrentNotes.Visible = False
+    Me.optTaskHistory.Visible = False
+    Me.OptionButton4.Visible = False
+    Me.txtVariance.Width = 414
+  End If
+End Sub
+
 Private Sub txtVariance_Change()
   If Me.ActiveControl.Name <> "txtVariance" Then Exit Sub
   If IsNull(Me.lboTaskHistory.Value) Then
