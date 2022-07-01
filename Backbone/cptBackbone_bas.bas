@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.1.4</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 
 Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
@@ -778,6 +778,8 @@ Sub cptExport81334D(lngOutlineCode As Long)
         cptBackbone_frm.lblStatus.Caption = "Download failed."
         'fail: prompt to request by email
         If MsgBox("Unable to download template. Request via email?", vbExclamation + vbYesNo, "No Connection") = vbYes Then
+          MsgBox "When the template arrives, please save to:" & vbCrLf & vbCrLf & strTemplateDir, vbOKOnly + vbInformation, "Save Location"
+          Shell "explorer.exe " & strTemplateDir, vbNormalFocus
           On Error Resume Next
           Set oOutlook = GetObject(, "Outlook.Application")
           If oOutlook Is Nothing Then
