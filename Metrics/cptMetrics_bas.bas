@@ -1101,7 +1101,7 @@ next_task:
   oExcel.ActiveWindow.SplitColumn = 0
   oExcel.ActiveWindow.FreezePanes = True
 
-  Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)).Address, , xlYes)
+  Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)), , xlYes)
   
   oListObject.HeaderRowRange.WrapText = True
   oListObject.TableStyle = ""
@@ -1126,7 +1126,7 @@ next_task:
   oListObject.ListColumns(strSummary).Range.Copy oWorksheet.[A5]
   oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A1048576]).RemoveDuplicates Columns:=1, Header:=xlNo
   oWorksheet.Sort.SortFields.Clear
-  oWorksheet.Sort.SortFields.Add2 key:=oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A6].End(xlDown)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+  oWorksheet.Sort.SortFields.Add key:=oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A6].End(xlDown)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
   With oWorksheet.Sort
     .SetRange oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A1048576].End(xlUp))
     .Header = xlNo
@@ -1966,9 +1966,9 @@ next_task:
     'sort by first custom field,FF or by only FF
     oListObject.Sort.SortFields.Clear
     If UBound(Split(strMyHeaders, ",")) > 0 Then
-      oListObject.Sort.SortFields.Add2 key:=oWorksheet.Range("THIS_WEEK[" & Split(strMyHeaders, ",")(0) & "]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add key:=oWorksheet.Range("THIS_WEEK[" & Split(strMyHeaders, ",")(0) & "]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
     End If
-    oListObject.Sort.SortFields.Add2 key:=oWorksheet.Range("THIS_WEEK[FF]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+    oListObject.Sort.SortFields.Add key:=oWorksheet.Range("THIS_WEEK[FF]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
     With oListObject.Sort
       .Header = xlYes
       .MatchCase = False
@@ -2290,7 +2290,7 @@ Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
   End If
   
   'make it nice
-  Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A4].End(xlToRight), oWorksheet.[A4].End(xlDown)).Address, , xlYes)
+  Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A4].End(xlToRight), oWorksheet.[A4].End(xlDown)), , xlYes)
   oListObject.ListColumns("CHANGE").DataBodyRange.Style = "Comma"
   oListObject.Range.Select
   oWorksheet.Shapes.AddChart2 332, xlLineMarkers, oWorksheet.[A4].End(xlToRight).Offset(0, 2).Left, oListObject.Range.Top
