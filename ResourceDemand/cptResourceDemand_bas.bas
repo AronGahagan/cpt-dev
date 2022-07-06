@@ -745,7 +745,7 @@ next_task:
     End If
   
     'make it a oListObject
-    Set oListObject = oWorksheet.ListObjects.Add(1, oWorksheet.Range(oWorksheet.[A1].End(-4161), oWorksheet.[A1].End(-4121)).Address, , 1)
+    Set oListObject = oWorksheet.ListObjects.Add(1, oWorksheet.Range(oWorksheet.[A1].End(-4161), oWorksheet.[A1].End(-4121)), , 1)
     oListObject.Name = "CostRateTables"
     oListObject.TableStyle = ""
     oExcel.ActiveWindow.Zoom = 85
@@ -1958,7 +1958,7 @@ next_task:
     End If
   
     'make it a oListObject
-    Set oListObject = oWorksheet.ListObjects.Add(1, oWorksheet.Range(oWorksheet.[A1].End(-4161), oWorksheet.[A1].End(-4121)).Address, , 1)
+    Set oListObject = oWorksheet.ListObjects.Add(1, oWorksheet.Range(oWorksheet.[A1].End(-4161), oWorksheet.[A1].End(-4121)), , 1)
     oListObject.Name = "CostRateTables"
     oListObject.TableStyle = ""
     oExcel.ActiveWindow.Zoom = 85
