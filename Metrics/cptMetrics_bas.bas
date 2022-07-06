@@ -1558,10 +1558,9 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("foo", "bar", Err, Erl)
+  Call cptHandleErr("cptMetrics_bas", "cptGetSPIDetail", Err, Erl)
   Resume exit_here
 End Sub
-
 
 Sub cptGetTrend_BEI()
   cptGetTrend "BEI"
@@ -1593,8 +1592,8 @@ Sub cptGetTrend_CEI()
   Dim strDir As String
   Dim strTitle As String
   'longs
+  Dim lngNameCol As Long
   Dim lngCol As Long
-
   Dim lngLastRow As Long
   Dim lngTask As Long
   Dim lngTasks As Long
@@ -1725,6 +1724,7 @@ Sub cptGetTrend_CEI()
   Application.StatusBar = "Setting up table for This Week..."
   DoEvents
   oWorksheet.[A4].Value = "Tasks previously forecast to finish This Week:"
+  oWorksheet.[A4:E4].Merge
   oWorksheet.[A4].Font.Bold = True
   oWorksheet.[A4].Font.Italic = True
   
@@ -1735,6 +1735,7 @@ Sub cptGetTrend_CEI()
   
   oWorksheet.Range(oWorksheet.[A5], oWorksheet.[A5].Offset(0, UBound(Split(strHeaders, ",")))) = Split(strHeaders, ",")
   Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A5], oWorksheet.[A5].End(xlToRight)), , xlYes)
+  lngNameCol = oWorksheet.Rows(5).Find(what:="TASK", lookat:=xlWhole).Column
   oListObject.TableStyle = ""
   oListObject.Name = "THIS_WEEK"
   oListObject.ShowTotals = True
@@ -1772,9 +1773,9 @@ Sub cptGetTrend_CEI()
             oListRow.Range(1, lngCol + 1) = oTask.Name
             If IsDate(oTask.ActualFinish) Then
               lngAF = lngAF + 1
-              oListRow.Range(1, 5) = oTask.ActualFinish
+              oListRow.Range(1, lngCol + 2) = oTask.ActualFinish
             Else
-              oListRow.Range(1, 5) = "NA"
+              oListRow.Range(1, lngCol + 2) = "NA"
             End If
           Else
             oListRow.Range(1, lngCol + 1) = " < task not found > "
@@ -1791,11 +1792,11 @@ next_record:
     End If
     If oListObject.ListRows.Count = 0 Then
       Set oListRow = oListObject.ListRows.Add
-      oWorksheet.[C6] = "<< there were no tasks forecast to complete this week >>"
+      oWorksheet.Cells(6, lngNameCol) = "<< there were no tasks forecast to complete this week >>"
     End If
     oRecordset.Filter = ""
   Else
-    oWorksheet.[C6] = "<< there were no tasks forecast to complete this week >>"
+    oWorksheet.Cells(6, lngNameCol) = "<< there were no tasks forecast to complete this week >>"
   End If
   oListObject.ListColumns("FF").Total.FormulaR1C1 = "=COUNT([FF],"">0"")"
   oListObject.ListColumns("AF").Total.FormulaR1C1 = "=COUNT([AF],"">0"")"
@@ -1806,17 +1807,21 @@ next_record:
     oListObject.ListColumns("AF").DataBodyRange.NumberFormat = "m/d/yyyy"
     oListObject.ListColumns("AF").DataBodyRange.HorizontalAlignment = xlCenter
   End If
-  oWorksheet.[D3:E3].Merge
-  oWorksheet.[D3:E3].HorizontalAlignment = xlCenter
-  oWorksheet.[D3:E3].NumberFormat = "0.00"
-  oWorksheet.[D3].FormulaR1C1 = "=IFERROR(THIS_WEEK[[#Totals],[AF]]/THIS_WEEK[[#Totals],[FF]],0)"
-  If oWorksheet.[D3].Value < 0.7 Then
-    oWorksheet.[D3].Style = "Bad"
-  ElseIf oWorksheet.[D3].Value <= 0.75 Then
-    oWorksheet.[D3].Style = "Neutral"
-  ElseIf oWorksheet.[D3].Value > 0.75 Then
-    oWorksheet.[D3].Style = "Good"
+  
+  'set up CEI formula
+  Set oRange = oWorksheet.Range(oWorksheet.Cells(3, lngNameCol + 1), oWorksheet.Cells(3, lngNameCol + 2))
+  oRange.Merge
+  oRange.HorizontalAlignment = xlCenter
+  oRange.NumberFormat = "0.00"
+  oRange.FormulaR1C1 = "=IFERROR(THIS_WEEK[[#Totals],[AF]]/THIS_WEEK[[#Totals],[FF]],0)"
+  If oRange(0, 0).Value < 0.7 Then
+    oRange.Style = "Bad"
+  ElseIf oRange(0, 0).Value <= 0.75 Then
+    oRange.Style = "Neutral"
+  ElseIf oRange(0, 0).Value > 0.75 Then
+    oRange.Style = "Good"
   End If
+  oWorksheet.Names.Add "CEI", oRange
   oWorksheet.Calculate
   oListObject.DataBodyRange.Columns.AutoFit
   oWorksheet.[A2].Columns.AutoFit
@@ -1846,6 +1851,7 @@ next_record:
   oWorksheet.Cells(lngLastRow, 1).Value = "Tasks forecast to complete Next Week:"
   oWorksheet.Cells(lngLastRow, 1).Font.Bold = True
   oWorksheet.Cells(lngLastRow, 1).Font.Italic = True
+  oWorksheet.Range(oWorksheet.Cells(lngLastRow, 1), oWorksheet.Cells(lngLastRow, 5)).Merge
   lngLastRow = lngLastRow + 1
   oListObject.HeaderRowRange.Copy oWorksheet.Cells(lngLastRow, 1)
   
@@ -1893,7 +1899,7 @@ next_task:
     oListObject.ListColumns("FF").DataBodyRange.NumberFormat = "m/d/yyyy"
   Else
     Set oListRow = oListObject.ListRows.Add
-    Set oListRow.Range(0, 3) = "<< there are no tasks forecast to complete next week >>"
+    oListRow.Range(0, lngCol + 1) = "<< there are no tasks forecast to complete next week >>"
   End If
   
   'format tables
@@ -1977,9 +1983,9 @@ next_task:
       .Apply
     End With
     
-    oListObject.Range.Columns.AutoFit
-    
   Next vTable
+  
+  oWorksheet.[A5:Z100].Columns.AutoFit
   
   'get trend
   Set oRange = oWorksheet.Cells(36, 6 + UBound(Split(strMyHeaders, ",")))
@@ -2112,7 +2118,7 @@ next_task:
 
   'final cleanup
   oWorksheet.[A2].Columns.AutoFit
-  oWorksheet.[D3].Select
+  oWorksheet.Range("CEI").Select
   
   Application.StatusBar = "Complete."
   DoEvents
