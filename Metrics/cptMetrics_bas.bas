@@ -1583,6 +1583,8 @@ Sub cptGetTrend_CEI()
   Dim oTask As Task
   Dim oRecordset As ADODB.Recordset
   'strings
+  Dim strLOE As String
+  Dim strLOEField As String
   Dim strHeaders As String
   Dim strMyHeaders As String
   Dim strProgram As String
@@ -1592,6 +1594,7 @@ Sub cptGetTrend_CEI()
   Dim strDir As String
   Dim strTitle As String
   'longs
+  Dim lngEVT As Long
   Dim lngNameCol As Long
   Dim lngCol As Long
   Dim lngLastRow As Long
@@ -1635,6 +1638,15 @@ Sub cptGetTrend_CEI()
   End If
   dtThisWeek = FormatDateTime(ActiveProject.StatusDate, vbGeneralDate)
     
+  'ensure metrics settings exit
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
+      Exit Sub
+    End If
+  End If
+  
   'ensure cei file exists
   Application.StatusBar = "Confirming cpt-cei.adtg exists..."
   DoEvents
@@ -1751,6 +1763,7 @@ Sub cptGetTrend_CEI()
       lngItems = oRecordset.RecordCount
       oRecordset.MoveFirst
       Do While Not oRecordset.EOF
+        If oRecordset("IS_LOE") = 1 Then GoTo next_record
         If oRecordset("PROJECT") = strProgram And oRecordset("TASK_FINISH") > dtLastWeek And oRecordset("TASK_FINISH") <= dtThisWeek And oRecordset("TASK_AF") = 0 Then
           lngFF = lngFF + 1
           Set oTask = Nothing
@@ -1862,6 +1875,12 @@ next_record:
   oListObject.ShowTotals = True
   lngFF = 0
   
+  strLOEField = cptGetSetting("Metrics", "cboLOEField")
+  If Len(strLOEField) > 0 Then
+    lngEVT = CLng(strLOEField)
+  End If
+  strLOE = cptGetSetting("Metrics", "txtLOE")
+  
   dtThisWeek = ActiveProject.StatusDate
   dtNextWeek = DateAdd("d", 7, dtThisWeek)
   lngItems = ActiveProject.Tasks.Count
@@ -1871,7 +1890,7 @@ next_record:
     If oTask.Summary Then GoTo next_task
     If oTask.ExternalTask Then GoTo next_task
     If Not oTask.Active Then GoTo next_task
-    If oTask.Assignments.Count = 0 Then GoTo next_task 'todo: PMB tasks only? NDIA includes "Discrete, Milestones, and LOE" (and, presumably, SVTs and SM?)
+    If oTask.GetField(lngEVT) = strLOE Then GoTo next_task 'exclude LOE based on 2019 PASEG3
     If oTask.Finish > dtThisWeek And oTask.Finish <= dtNextWeek Then
       lngFF = lngFF + 1
       If lngFF = 1 And oListObject.ListRows.Count = 1 Then
@@ -1899,7 +1918,8 @@ next_task:
     oListObject.ListColumns("FF").DataBodyRange.NumberFormat = "m/d/yyyy"
   Else
     Set oListRow = oListObject.ListRows.Add
-    oListRow.Range(0, lngCol + 1) = "<< there are no tasks forecast to complete next week >>"
+    lngLastRow = oWorksheet.[A1048576].End(xlUp).Row
+    oWorksheet.Cells(lngLastRow - 1, lngNameCol) = "<< there are no tasks forecast to complete next week >>"
   End If
   
   'format tables
