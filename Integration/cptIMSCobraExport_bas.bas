@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.6</cpt_version>
+'<cpt_version>v3.3.7</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -2145,13 +2145,13 @@ nrBCWP_WP_Match_B:
                                 If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
 
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & "," 'v3.3.7
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                        Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & "," 'v3.3.7
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                        Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & "," 'v3.3.7
                                     End If
     
                                 ElseIf EVT = "L" Or EVT = "L Assignment % Complete" Then 'v3.3.0
@@ -2613,13 +2613,13 @@ BCWP_WP_Match_A:
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
 
                                 If CAID3_Used = True And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                    Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & "," 'v3.3.7
                                 End If
                                 If CAID3_Used = False And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                    Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & "," 'v3.3.7
                                 End If
                                 If CAID3_Used = False And CAID2_Used = False Then
-                                    Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                    Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & "," 'v3.3.7
                                 End If
                                 
                             ElseIf EVT = "L" Or EVT = "L Assignment % Complete" Then 'v3.3.0
