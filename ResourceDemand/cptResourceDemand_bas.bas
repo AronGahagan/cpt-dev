@@ -507,15 +507,7 @@ next_task:
   If cptResourceDemand_frm.cboMonths.Value = 1 Then 'fiscal
     Set oRange = oWorksheet.Range(oWorksheet.[A1].End(xlToRight).Offset(1, 1), oWorksheet.[A1].End(xlToRight).End(xlDown).Offset(0, 1))
     lngWeekCol = oWorksheet.Rows(1).Find("WEEK", lookat:=xlWhole).Column
-'    If oExcel.Version < 16 Then
-'      oRange.FormulaR1C1 = "=VLOOKUP(MIN((NOT(--(RC[-3]<=FISCAL[fisc_end]))*MAX(FISCAL[fisc_end]))+FISCAL[fisc_end]),FISCAL,2,FALSE)"
-'    Else
-'      oRange.FormulaR1C1 = "=XLOOKUP(RC[-3],FISCAL[fisc_end],FISCAL[label],,1,1)"
-'    End If
-    'the following formula does the above automatically - if XLOOKUP fails or doesn't exist then the VLOOKUP is used
-    'use of formula2 eliminates automatic addition of '@' in formula
-    oRange.Formula2R1C1 = "=IFERROR(XLOOKUP(RC" & lngWeekCol & ",FISCAL[fisc_end],FISCAL[label],,1,1),VLOOKUP(MIN((NOT(--(RC" & lngWeekCol & "<=FISCAL[[fisc_end]]))*MAX(FISCAL[fisc_end]))+FISCAL[[fisc_end]]),FISCAL,2,FALSE))"
-
+    oRange.FormulaR1C1 = "=INDEX(FISCAL,MATCH(RC" & lngWeekCol & ",FISCAL[fisc_end],1)+1)"
     oWorksheet.[A1].End(xlToRight).Offset(0, 1) = "FISCAL_MONTH"
   End If
       
@@ -1663,7 +1655,7 @@ next_task:
     Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
     oWorksheet.Name = "FiscalPeriods"
     oWorksheet.[A1:B1] = Array("fisc_end", "label")
-    Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar")
+    Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar") 'test for cptFiscalCalendar happens on form open
     'use ADO because it's faster
     Set rst = CreateObject("ADODB.Recordset")
     rst.Fields.Append "FISC_END", adDate
@@ -1676,7 +1668,6 @@ next_task:
     rst.Close
     Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)), , xlYes)
     oListObject.Name = "FISCAL"
-    'to_Friday Formula not necessary
     'add Holidays table
     oWorksheet.[E1] = "EXCEPTIONS"
     'convert to a table
@@ -1700,7 +1691,9 @@ next_task:
   Set oWorksheet = oWorkbook.Sheets(1)
   'rename the oWorksheet
   oWorksheet.Name = "SourceData"
-  lngWeekCol = oWorksheet.Rows(1).Find(what:="WEEK").Column
+  lngHoursCol = oWorksheet.Rows(1).Find("HOURS", lookat:=1).Column '1=xlWhole
+  lngDayCol = oWorksheet.Rows(1).Find("DAY", lookat:=1).Column '1=xlWhole
+  lngWeekCol = oWorksheet.Rows(1).Find("WEEK", lookat:=1).Column '1=xlWhole
   dtMin = oExcel.WorksheetFunction.Min(oWorksheet.Columns(lngWeekCol))
   dtMax = oExcel.WorksheetFunction.Max(oWorksheet.Columns(lngWeekCol))
     
@@ -1718,30 +1711,19 @@ next_task:
   'add fiscal month
   If cptResourceDemand_frm.cboMonths.Value = 1 Then 'fiscal
     Set oRange = oWorksheet.Range(oWorksheet.[A1].End(xlToRight).Offset(1, 1), oWorksheet.[A1].End(xlToRight).End(xlDown).Offset(0, 1))
-    lngDayCol = oWorksheet.Rows(1).Find("DAY", lookat:=xlWhole).Column
-'    If oExcel.Version < 16 Then
-'      oRange.FormulaR1C1 = "=VLOOKUP(MIN((NOT(--(RC[-3]<=FISCAL[fisc_end]))*MAX(FISCAL[fisc_end]))+FISCAL[fisc_end]),FISCAL,2,FALSE)"
-'    Else
-'      oRange.FormulaR1C1 = "=XLOOKUP(RC[-3],FISCAL[fisc_end],FISCAL[label],,1,1)"
-'    End If
-    'the following formula does the above automatically - if XLOOKUP fails or doesn't exist then the VLOOKUP is used
-    'use of formula2 eliminates automatic addition of '@' in formula
-    oRange.Formula2R1C1 = "=IFERROR(XLOOKUP(RC" & lngDayCol & ",FISCAL[fisc_end],FISCAL[label],,1,1),VLOOKUP(MIN((NOT(--(RC" & lngDayCol & "<=FISCAL[[fisc_end]]))*MAX(FISCAL[fisc_end]))+FISCAL[[fisc_end]]),FISCAL,2,FALSE))"
-
+    oRange.FormulaR1C1 = "=LOOKUP(MINIFS(FISCAL[fisc_end],FISCAL[fisc_end],"">=""&RC" & lngWeekCol & "),FISCAL[fisc_end],FISCAL[label])"
     oWorksheet.[A1].End(xlToRight).Offset(0, 1) = "FISCAL_MONTH"
   End If
       
   'create FTE_WEEK column
   Set oRange = oWorksheet.[A1].End(xlToRight).End(xlDown).Offset(0, 1)
   Set oRange = oWorksheet.Range(oRange, oWorksheet.[A1].End(xlToRight).Offset(1, 1))
-  lngHoursCol = oWorksheet.Rows(1).Find("HOURS", lookat:=1).Column '1=xlWhole
-  lngWeekCol = oWorksheet.Rows(1).Find("WEEK", lookat:=xlWhole).Column
   If cptResourceDemand_frm.cboMonths.Value = 1 Then 'fiscal
     'get fiscal_month column
     lngFiscalMonthCol = oWorksheet.Rows(1).Find(what:="FISCAL_MONTH", lookat:=xlWhole).Column
     oRange.FormulaR1C1 = "=RC" & lngHoursCol & "/NETWORKDAYS(RC" & lngWeekCol & "-7,RC" & lngWeekCol & ",EXCEPTIONS)"
   Else
-    oRange.FormulaR1C1 = "=RC" & lngHoursCol & "/40" 'todo: allow efficiency factor when not fiscal
+    oRange.FormulaR1C1 = "=RC" & lngHoursCol & "/40"
   End If
   oWorksheet.[A1].End(xlToRight).Offset(0, 1).Value = "FTE_WEEK"
   
@@ -1750,9 +1732,9 @@ next_task:
   Set oRange = oWorksheet.Range(oRange, oWorksheet.[A1].End(xlToRight).Offset(1, 1))
   lngHoursCol = oWorksheet.Rows(1).Find("HOURS", lookat:=1).Column '1=xlWhole
   If cptResourceDemand_frm.cboMonths.Value = 1 Then 'fiscal
-    oRange.FormulaR1C1 = "=RC" & lngHoursCol & "/IFERROR(XLOOKUP(RC" & lngFiscalMonthCol & ",FISCAL[label],FISCAL[hpm],,1,1),LOOKUP(RC" & lngFiscalMonthCol & ",FISCAL[label],FISCAL[hpm]))"
+    oRange.FormulaR1C1 = "=RC" & lngHoursCol & "/LOOKUP(RC" & lngFiscalMonthCol & ",FISCAL[label],FISCAL[hpm])"
   Else
-    oRange.FormulaR1C1 = "=RC" & lngHoursCol & "/160" 'todo: allow efficiency factor when not fiscal
+    oRange.FormulaR1C1 = "=RC" & lngHoursCol & "/160"
   End If
   oWorksheet.[A1].End(xlToRight).Offset(0, 1).Value = "FTE_MONTH"
   
@@ -1766,7 +1748,7 @@ next_task:
       lngFiscalMonthCol = oWorksheet.Rows(1).Find(what:="FISCAL_MONTH", lookat:=xlWhole).Column
       oRange.FormulaR1C1 = "=RC" & lngCol & "/NETWORKDAYS(RC" & lngWeekCol & "-7,RC" & lngWeekCol & ",EXCEPTIONS)"
     Else
-      oRange.FormulaR1C1 = "=RC" & lngCol & "/40" 'todo: allow efficiency factor when not fiscal
+      oRange.FormulaR1C1 = "=RC" & lngCol & "/40"
     End If
     oWorksheet.[A1].End(xlToRight).Offset(0, 1).Value = "FTE_BL_WEEK"
     
@@ -1775,9 +1757,9 @@ next_task:
     Set oRange = oWorksheet.Range(oRange, oWorksheet.[A1].End(xlToRight).Offset(1, 1))
     lngCol = oWorksheet.Rows(1).Find("BL_HOURS", lookat:=1).Column '1=xlWhole
     If cptResourceDemand_frm.cboMonths.Value = 1 Then 'fiscal
-      oRange.FormulaR1C1 = "=RC" & lngCol & "/IFERROR(XLOOKUP(RC" & lngFiscalMonthCol & ",FISCAL[label],FISCAL[hpm],,1,1),LOOKUP(RC" & lngFiscalMonthCol & ",FISCAL[label],FISCAL[hpm]))"
+      oRange.FormulaR1C1 = "=RC" & lngCol & "/LOOKUP(RC" & lngFiscalMonthCol & ",FISCAL[label],FISCAL[hpm])"
     Else
-      oRange.FormulaR1C1 = "=RC" & lngCol & "/160" 'todo: allow efficiency factor when not fiscal
+      oRange.FormulaR1C1 = "=RC" & lngCol & "/160"
     End If
     oWorksheet.[A1].End(xlToRight).Offset(0, 1).Value = "FTE_BL_MONTH"
   End If
