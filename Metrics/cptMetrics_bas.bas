@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 
 Sub cptGetBAC()
@@ -1148,10 +1148,10 @@ next_task:
   oListObject.Name = "BEI"
   
   'ACTUAL
-  oListObject.ListColumns("ES").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],""<0"",Table1[ACTUAL START],""<>"")"
-  oListObject.ListColumns("EF").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],""<0"",Table1[ACTUAL FINISH],""<>"")"
-  oListObject.ListColumns("LS").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],"">0"",Table1[ACTUAL START],""<>"")"
-  oListObject.ListColumns("LF").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],"">0"",Table1[ACTUAL FINISH],""<>"")"
+  oListObject.ListColumns("ES").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],""<0"",Table1[ACTUAL START],""<>"")"
+  oListObject.ListColumns("EF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],""<0"",Table1[ACTUAL FINISH],""<>"")"
+  oListObject.ListColumns("LS").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],"">0"",Table1[ACTUAL START],""<>"")"
+  oListObject.ListColumns("LF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],"">0"",Table1[ACTUAL FINISH],""<>"")"
   oListObject.ListColumns("# BLF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],[@" & strSummary & "],Table1[BASELINE FINISH],""<=" & Format(dtStatus, "mm/dd/yyyy") & """)"
   oListObject.ListColumns("# AF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],[@" & strSummary & "],Table1[ACTUAL FINISH],""<>"")"
   oListObject.ListColumns("BEI (Finishes)").DataBodyRange.FormulaR1C1 = "=[@['# AF]]/IF([@['# BLF]]=0,1,[@['# BLF]])"
@@ -1176,10 +1176,10 @@ next_task:
   oListObject.Range.Copy oWorksheet.Cells(oWorksheet.[A1048576].End(xlUp).Row + 3, 1)
   Set oListObject = oWorksheet.ListObjects(2)
   oListObject.Name = "PROJECTED"
-  oListObject.ListColumns("ES").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],""<0"",Table1[ACTUAL START],""="")"
-  oListObject.ListColumns("EF").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],""<0"",Table1[ACTUAL FINISH],""="")"
-  oListObject.ListColumns("LS").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],"">0"",Table1[ACTUAL START],""="")"
-  oListObject.ListColumns("LF").DataBodyRange.Formula2R1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],"">0"",Table1[ACTUAL FINISH],""="")"
+  oListObject.ListColumns("ES").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],""<0"",Table1[ACTUAL START],""="")"
+  oListObject.ListColumns("EF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],""<0"",Table1[ACTUAL FINISH],""="")"
+  oListObject.ListColumns("LS").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],"">0"",Table1[ACTUAL START],""="")"
+  oListObject.ListColumns("LF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],"">0"",Table1[ACTUAL FINISH],""="")"
   oListObject.ListColumns("# BLF").Name = "# TOTAL"
   oListObject.ListColumns("# TOTAL").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],[@" & strSummary & "])"
   oListObject.ListColumns("# AF").Name = "% TOTAL"
@@ -1219,9 +1219,9 @@ next_task:
   Loop
   Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)))
   oListObject.Name = "ChartData"
-  oListObject.ListColumns("BLF").DataBodyRange.Formula2R1C1 = "=SUMPRODUCT((--Table1[BASELINE FINISH]<=[@WEEK])*--(Table1[BASELINE FINISH]>R[-1]C[-1])*1)"
-  oListObject.ListColumns("AF").DataBodyRange.Formula2R1C1 = "=SUMPRODUCT((--Table1[ACTUAL FINISH]<=[@WEEK])*--(Table1[ACTUAL FINISH]>R[-1]C[-2])*1)"
-  oListObject.ListColumns("FF").DataBodyRange.Formula2R1C1 = "=SUMPRODUCT((--Table1[CURRENT FINISH]<=[@WEEK])*--(Table1[CURRENT FINISH]>R[-1]C[-3])*--(Table1[ACTUAL FINISH]="""")*1)"
+  oListObject.ListColumns("BLF").DataBodyRange.FormulaR1C1 = "=SUMPRODUCT((--Table1[BASELINE FINISH]<=[@WEEK])*--(Table1[BASELINE FINISH]>R[-1]C[-1])*1)"
+  oListObject.ListColumns("AF").DataBodyRange.FormulaR1C1 = "=SUMPRODUCT((--Table1[ACTUAL FINISH]<=[@WEEK])*--(Table1[ACTUAL FINISH]>R[-1]C[-2])*1)"
+  oListObject.ListColumns("FF").DataBodyRange.FormulaR1C1 = "=SUMPRODUCT((--Table1[CURRENT FINISH]<=[@WEEK])*--(Table1[CURRENT FINISH]>R[-1]C[-3])*--(Table1[ACTUAL FINISH]="""")*1)"
   oWorksheet.[I1] = dtStatus
   oWorksheet.[E1] = "BLF_CUM"
   oListObject.ListColumns("BLF_CUM").DataBodyRange.FormulaR1C1 = "=IF(ROW(R[-1]C)=1,[@BLF],R[-1]C+[@BLF])"
@@ -2802,7 +2802,7 @@ next_task:
       '=MATCH(BCWP,C2:C160,1)
       strFormula = "=MATCH(BCWP,"
       strFormula = strFormula & oWorksheet.Range(oWorksheet.[C2], oWorksheet.[C2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",1)"
-      oWorksheet.Cells(lngES + 3, 7).Formula2 = strFormula
+      oWorksheet.Cells(lngES + 3, 7).Formula = strFormula
       oWorksheet.Names.Add "ES", oWorksheet.Cells(lngES + 3, 7)
       oWorksheet.Cells(lngES + 3, 8) = "weeks"
       'AD = duration consumed to hit bcwp
@@ -2810,7 +2810,7 @@ next_task:
       '=MATCH(SD,A2:A160,0)
       strFormula = "=MATCH(SD,"
       strFormula = strFormula & oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",0)"
-      oWorksheet.Cells(lngES + 4, 7).Formula2 = strFormula
+      oWorksheet.Cells(lngES + 4, 7).Formula = strFormula
       oWorksheet.Names.Add "AD", oWorksheet.Cells(lngES + 4, 7)
       oWorksheet.Cells(lngES + 4, 8) = "weeks"
       'SPI(t) = ES/ED
@@ -2820,7 +2820,7 @@ next_task:
       oComment.Shape.TextFrame.Characters.Font.Name = "Courier New"
       oComment.Shape.TextFrame.Characters.Font.Size = 10
       oComment.Shape.TextFrame.AutoSize = True
-      oWorksheet.Cells(lngES + 5, 7).Formula2 = "=ES/AD"
+      oWorksheet.Cells(lngES + 5, 7).Formula = "=ES/AD"
       oWorksheet.Names.Add "SPI_t", oWorksheet.Cells(lngES + 5, 7)
       oWorksheet.Cells(lngES + 5, 7).Style = "Comma"
       If oWorksheet.Cells(lngES + 5, 7) > 1.05 Then
@@ -2845,7 +2845,7 @@ next_task:
       strFormula = strFormula & oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ")),"
       strFormula = strFormula & oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",0)"
       strFormula = strFormula & "-ES"
-      oWorksheet.Cells(lngES + 7, 7).Formula2 = strFormula
+      oWorksheet.Cells(lngES + 7, 7).Formula = strFormula
       oWorksheet.Names.Add "PDWR_1", oWorksheet.Cells(lngES + 7, 7)
       oWorksheet.Cells(lngES + 7, 8) = "weeks"
       'RD = ETC DUR - AD
@@ -2857,7 +2857,7 @@ next_task:
       strFormula = strFormula & oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ")),"
       strFormula = strFormula & oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",0)"
       strFormula = strFormula & "-AD"
-      oWorksheet.Cells(lngES + 8, 7).Formula2 = strFormula
+      oWorksheet.Cells(lngES + 8, 7).Formula = strFormula
       oWorksheet.Names.Add "RD", oWorksheet.Cells(lngES + 8, 7)
       oWorksheet.Cells(lngES + 8, 8) = "weeks"
       'TSPI(ed) = PDWR / RD (ETC)
@@ -2867,7 +2867,7 @@ next_task:
       oComment.Shape.TextFrame.Characters.Font.Name = "Courier New"
       oComment.Shape.TextFrame.Characters.Font.Size = 10
       oComment.Shape.TextFrame.AutoSize = True
-      oWorksheet.Cells(lngES + 9, 7).Formula2 = "=PDWR_1/RD"
+      oWorksheet.Cells(lngES + 9, 7).Formula = "=PDWR_1/RD"
       oWorksheet.Names.Add "TSPI_ed", oWorksheet.Cells(lngES + 9, 7)
       oWorksheet.Cells(lngES + 9, 7).Style = "Comma"
       
