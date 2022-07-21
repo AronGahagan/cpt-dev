@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCalendarExceptions_bas"
-'<cpt_version>v1.0.5</cpt_version>
+'<cpt_version>v1.0.6</cpt_version>
 Option Explicit
 
 Sub cptShowCalendarExceptions_frm()
@@ -133,7 +133,7 @@ next_resource:
   Application.StatusBar = "Formatting Worksheet..."
   DoEvents
   Set oWorksheet = oWorkbook.Sheets("Settings")
-  oWorksheet.[A1:A6].Value = WorksheetFunction.Transpose(Array("Setting", "DefaultStartTime:", "DefaultFinishTime:", "HoursPerDay:", "HoursPerWeek:", "DaysPerMonth:"))
+  oWorksheet.[A1:A6].Value = oExcel.WorksheetFunction.Transpose(Array("Setting", "DefaultStartTime:", "DefaultFinishTime:", "HoursPerDay:", "HoursPerWeek:", "DaysPerMonth:"))
   oWorksheet.[A1:B1].Font.Bold = True
   oWorksheet.[B1] = "Value"
   oWorksheet.[B2] = ActiveProject.DefaultStartTime
