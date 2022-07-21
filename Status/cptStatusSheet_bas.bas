@@ -2207,6 +2207,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
     Else
       oWorksheet.Rows(lngRow + lngItem).ClearContents
     End If
+    'this fills down task custom fields to assignments
     For lngCol = 2 To lngNameCol
       If lngCol <> lngNameCol Then oWorksheet.Cells(lngRow + lngItem, lngCol) = oWorksheet.Cells(lngRow, lngCol)
     Next lngCol
@@ -2337,7 +2338,6 @@ Dim oOutlook As Outlook.Application
 Dim oMailItem As MailItem
 Dim objDoc As Word.Document
 Dim oWord As Word.Application
-'Dim objSel As Word.Selection
 Dim objETemp As Word.Template
 Dim oBuildingBlockEntries As BuildingBlockEntries
 Dim oBuildingBlock As BuildingBlock
@@ -2357,6 +2357,17 @@ Dim strSQL As String
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oOutlook Is Nothing Then
       Set oOutlook = CreateObject("Outlook.Application")
+    End If
+    'validate use of Outlook
+    If Not oOutlook.IsTrusted Then
+      MsgBox "Your Security Settings prevent use of QuickParts. Please contact your IT Amdinistrator to request a change.", vbInformation + vbOKOnly, "Unavailable"
+      With cptStatusSheet_frm
+        .chkSendEmails = False
+        .chkSendEmails.Enabled = False
+        .cboQuickParts.Clear
+        .cboQuickParts.Enabled = False
+      End With
+      GoTo exit_here
     End If
     'create MailItem, insert quickparts, update links, dates
     Set oMailItem = oOutlook.CreateItem(olMailItem)
@@ -2391,7 +2402,6 @@ exit_here:
   Set oMailItem = Nothing
   Set objDoc = Nothing
   Set oWord = Nothing
-  'Set objSel = Nothing
   Set objETemp = Nothing
   Set oBuildingBlockEntries = Nothing
   Set oBuildingBlock = Nothing

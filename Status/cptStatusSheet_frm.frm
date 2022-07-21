@@ -706,12 +706,6 @@ Dim blnIncluded As Boolean
       'Me.lboItems.ForeColor = 92
       blnError = True
     End If
-    'the limiting field must be rolled down to the assignment level
-    If Not Application.CustomFieldPropertiesEx(FieldID:=FieldNameToFieldConstant(Me.cboEach.Value), AutomaticallyRolldownToAssn:=True) Then
-      Me.cboEach.BorderColor = 192
-      blnError = True
-      MsgBox "Unable to automatically roll down values for field '" & Me.cboEach.Value & "' to assignment level." & vbCrLf & vbCrLf & "Please select a different field.", vbExclamation + vbOKOnly, "Invalid"
-    End If
     'the limiting field should be included in the export list
     blnIncluded = False
     For lngItem = 0 To Me.lboExport.ListCount - 1
