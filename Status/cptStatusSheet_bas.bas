@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.4.1</cpt_version>
+'<cpt_version>v1.4.2</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
@@ -129,7 +129,7 @@ Dim vFieldType As Variant
     .chkValidation = True
     .chkLocked = True
     .chkAllItems = False
-    If InStr(ActiveProject.Path, "<>\") = 0 Then 'not a server project: use ActiveProject.Path
+    If InStr(ActiveProject.Path, "<>") = 0 Then 'not a server project: use ActiveProject.Path
       .txtDir = ActiveProject.Path & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
     Else 'it is a server project: default to Desktop
       Set oShell = CreateObject("WScript.Shell")
@@ -490,7 +490,7 @@ next_item:
   End If
   DoEvents
   
-  OptionsViewEx displaysummaryTasks:=True, displaynameindent:=True
+  OptionsViewEx DisplaySummaryTasks:=True, displaynameindent:=True
   If strStartingGroup = "No Group" Then
     Sort "ID", , , , , , False, True 'OutlineShowAllTasks won't work without this
   Else
@@ -1593,12 +1593,12 @@ Dim lngItem As Long
 
   'reset the filter
   Application.StatusBar = "Resetting the cptStatusSheet Filter..."
-  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, overwriteexisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
+  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, overwriteexisting:=True, FieldName:="Actual Finish", Test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
   If cptStatusSheet_frm.chkHide And IsDate(cptStatusSheet_frm.txtHideCompleteBefore) Then
-    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Actual Finish", Test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
   End If
   If Edition = pjEditionProfessional Then
-    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Active", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True, parenthesis:=True
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Active", Test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True, parenthesis:=True
   End If
   FilterApply "cptStatusSheet Filter"
   
@@ -1781,12 +1781,12 @@ try_again:
   End With
   
   'format the data rows
-  lngNameCol = oWorksheet.Rows(lngHeaderRow).Find("Task Name / Scope", LookAt:=xlWhole).Column
-  lngASCol = oWorksheet.Rows(lngHeaderRow).Find("Actual Start", LookAt:=xlPart).Column
-  lngAFCol = oWorksheet.Rows(lngHeaderRow).Find("Actual Finish", LookAt:=xlPart).Column
-  lngEVPCol = oWorksheet.Rows(lngHeaderRow).Find("New EV%", LookAt:=xlWhole).Column
-  lngEVTCol = oWorksheet.Rows(lngHeaderRow).Find("EVT", LookAt:=xlWhole).Column
-  lngETCCol = oWorksheet.Rows(lngHeaderRow).Find("Revised ETC", LookAt:=xlWhole).Column
+  lngNameCol = oWorksheet.Rows(lngHeaderRow).Find("Task Name / Scope", lookat:=xlWhole).Column
+  lngASCol = oWorksheet.Rows(lngHeaderRow).Find("Actual Start", lookat:=xlPart).Column
+  lngAFCol = oWorksheet.Rows(lngHeaderRow).Find("Actual Finish", lookat:=xlPart).Column
+  lngEVPCol = oWorksheet.Rows(lngHeaderRow).Find("New EV%", lookat:=xlWhole).Column
+  lngEVTCol = oWorksheet.Rows(lngHeaderRow).Find("EVT", lookat:=xlWhole).Column
+  lngETCCol = oWorksheet.Rows(lngHeaderRow).Find("Revised ETC", lookat:=xlWhole).Column
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
   lngTasks = ActiveSelection.Tasks.Count
   lngTask = 0
@@ -1797,7 +1797,7 @@ try_again:
     'find the row of the current task
     On Error Resume Next
     lngRow = 0
-    lngRow = oWorksheet.Columns(1).Find(oTask.UniqueID, LookAt:=xlWhole).Row
+    lngRow = oWorksheet.Columns(1).Find(oTask.UniqueID, lookat:=xlWhole).Row
     If Err.Number = 91 Then
       MsgBox "UID " & oTask.UniqueID & " not found on worksheet!" & vbCrLf & vbCrLf & "You may need to re-run...", vbExclamation + vbOKOnly, "ERROR"
       GoTo next_task
@@ -2207,6 +2207,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
     Else
       oWorksheet.Rows(lngRow + lngItem).ClearContents
     End If
+    'this fills down task custom fields to assignments
     For lngCol = 2 To lngNameCol
       If lngCol <> lngNameCol Then oWorksheet.Cells(lngRow + lngItem, lngCol) = oWorksheet.Cells(lngRow, lngCol)
     Next lngCol
@@ -2215,12 +2216,12 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
     vAssignment(1, 1) = oAssignment.UniqueID 'import assumes this is oAssignment.UniqueID
     vAssignment(1, lngNameCol) = String(lngIndent + 3, " ") & oAssignment.ResourceName
     If oAssignment.ResourceType = pjWork Then
-      lngBaselineWorkCol = oWorksheet.Rows(lngHeaderRow).Find("Baseline Work", LookAt:=xlWhole).Column
+      lngBaselineWorkCol = oWorksheet.Rows(lngHeaderRow).Find("Baseline Work", lookat:=xlWhole).Column
       vAssignment(1, lngBaselineWorkCol) = oAssignment.BaselineWork / 60
       vAssignment(1, lngRemainingWorkCol) = oAssignment.RemainingWork / 60
       vAssignment(1, lngRemainingWorkCol + 1) = oAssignment.RemainingWork / 60
     Else
-      lngBaselineCostCol = oWorksheet.Rows(lngHeaderRow).Find("Baseline Work", LookAt:=xlWhole).Column
+      lngBaselineCostCol = oWorksheet.Rows(lngHeaderRow).Find("Baseline Work", lookat:=xlWhole).Column
       vAssignment(1, lngBaselineCostCol) = oAssignment.BaselineCost
       vAssignment(1, lngRemainingWorkCol) = oAssignment.RemainingCost
       vAssignment(1, lngRemainingWorkCol + 1) = oAssignment.RemainingCost
@@ -2337,7 +2338,6 @@ Dim oOutlook As Outlook.Application
 Dim oMailItem As MailItem
 Dim objDoc As Word.Document
 Dim oWord As Word.Application
-'Dim objSel As Word.Selection
 Dim objETemp As Word.Template
 Dim oBuildingBlockEntries As BuildingBlockEntries
 Dim oBuildingBlock As BuildingBlock
@@ -2357,6 +2357,17 @@ Dim strSQL As String
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oOutlook Is Nothing Then
       Set oOutlook = CreateObject("Outlook.Application")
+    End If
+    'validate use of Outlook
+    If Not oOutlook.IsTrusted Then
+      MsgBox "Your Security Settings prevent use of QuickParts. Please contact your IT Amdinistrator to request a change.", vbInformation + vbOKOnly, "Unavailable"
+      With cptStatusSheet_frm
+        .chkSendEmails = False
+        .chkSendEmails.Enabled = False
+        .cboQuickParts.Clear
+        .cboQuickParts.Enabled = False
+      End With
+      GoTo exit_here
     End If
     'create MailItem, insert quickparts, update links, dates
     Set oMailItem = oOutlook.CreateItem(olMailItem)
@@ -2391,7 +2402,6 @@ exit_here:
   Set oMailItem = Nothing
   Set objDoc = Nothing
   Set oWord = Nothing
-  'Set objSel = Nothing
   Set objETemp = Nothing
   Set oBuildingBlockEntries = Nothing
   Set oBuildingBlock = Nothing

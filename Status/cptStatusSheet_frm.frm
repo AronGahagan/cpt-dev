@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.4.1</cpt_version>
+'<cpt_version>v1.4.2</cpt_version>
 Option Explicit
 Private Const adVarChar As Long = 200
 Private Const adInteger As Long = 3
@@ -705,12 +705,6 @@ Dim blnIncluded As Boolean
       Me.lboItems.Selected(0) = True
       'Me.lboItems.ForeColor = 92
       blnError = True
-    End If
-    'the limiting field must be rolled down to the assignment level
-    If Not Application.CustomFieldPropertiesEx(FieldID:=FieldNameToFieldConstant(Me.cboEach.Value), AutomaticallyRolldownToAssn:=True) Then
-      Me.cboEach.BorderColor = 192
-      blnError = True
-      MsgBox "Unable to automatically roll down values for field '" & Me.cboEach.Value & "' to assignment level." & vbCrLf & vbCrLf & "Please select a different field.", vbExclamation + vbOKOnly, "Invalid"
     End If
     'the limiting field should be included in the export list
     blnIncluded = False
