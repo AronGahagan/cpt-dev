@@ -2358,17 +2358,6 @@ Dim strSQL As String
     If oOutlook Is Nothing Then
       Set oOutlook = CreateObject("Outlook.Application")
     End If
-    'validate use of Outlook
-    If Not oOutlook.IsTrusted Then
-      MsgBox "Your Security Settings prevent use of QuickParts. Please contact your IT Amdinistrator to request a change.", vbInformation + vbOKOnly, "Unavailable"
-      With cptStatusSheet_frm
-        .chkSendEmails = False
-        .chkSendEmails.Enabled = False
-        .cboQuickParts.Clear
-        .cboQuickParts.Enabled = False
-      End With
-      GoTo exit_here
-    End If
     'create MailItem, insert quickparts, update links, dates
     Set oMailItem = oOutlook.CreateItem(olMailItem)
     'keep mailitem hidden
