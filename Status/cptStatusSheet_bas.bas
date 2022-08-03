@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.4.2</cpt_version>
+'<cpt_version>v1.4.3</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
@@ -2117,19 +2117,19 @@ next_task:
       strEVTList = strEVTList & "O - Earned As Spent,"
       strEVTList = strEVTList & "P - % Complete Manual Entry,"
     ElseIf cptStatusSheet_frm.cboCostTool = "MPM" Then
-      strEVTList = strEVTList & "0 - No EVM required"
-      strEVTList = strEVTList & "1 - 0/100"
-      strEVTList = strEVTList & "2 - 25/75"
-      strEVTList = strEVTList & "3 - 40/60"
-      strEVTList = strEVTList & "4 - 50/50"
-      strEVTList = strEVTList & "5 - % Complete"
-      strEVTList = strEVTList & "6 - LOE"
-      strEVTList = strEVTList & "7 - Earned Standards"
-      strEVTList = strEVTList & "8 - Milestone Weights"
-      strEVTList = strEVTList & "9 - BCWP Entry"
-      strEVTList = strEVTList & "A - Apportioned"
-      strEVTList = strEVTList & "P - Milestone Weights with % Complete"
-      strEVTList = strEVTList & "K - Key Event"
+      strEVTList = strEVTList & "0 - No EVM required,"
+      strEVTList = strEVTList & "1 - 0/100,"
+      strEVTList = strEVTList & "'2 - 25/75,"
+      strEVTList = strEVTList & "3 - 40/60,"
+      strEVTList = strEVTList & "4 - 50/50,"
+      strEVTList = strEVTList & "5 - % Complete,"
+      strEVTList = strEVTList & "6 - LOE,"
+      strEVTList = strEVTList & "7 - Earned Standards,"
+      strEVTList = strEVTList & "8 - Milestone Weights,"
+      strEVTList = strEVTList & "9 - BCWP Entry,"
+      strEVTList = strEVTList & "A - Apportioned,"
+      strEVTList = strEVTList & "P - Milestone Weights with % Complete,"
+      strEVTList = strEVTList & "K - Key Event,"
     End If
     If Len(strEVTList) > 0 Then
       oWorksheet.Cells(lngHeaderRow, lngLastCol + 2).Value = "Earned Value Techniques (EVT)"
