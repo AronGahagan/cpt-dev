@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.4.3</cpt_version>
+'<cpt_version>v1.4.4</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
@@ -2336,9 +2336,9 @@ Sub cptListQuickParts(Optional blnRefreshOutlook As Boolean = False)
 'objects
 Dim oOutlook As Outlook.Application
 Dim oMailItem As MailItem
-Dim objDoc As Word.Document
+Dim oDocument As Word.Document
 Dim oWord As Word.Application
-Dim objETemp As Word.Template
+Dim oTemplate As Word.Template
 Dim oBuildingBlockEntries As BuildingBlockEntries
 Dim oBuildingBlock As BuildingBlock
 'longs
@@ -2360,20 +2360,28 @@ Dim strSQL As String
     End If
     'create MailItem, insert quickparts, update links, dates
     Set oMailItem = oOutlook.CreateItem(olMailItem)
-    'keep mailitem hidden
     If oMailItem.BodyFormat <> olFormatHTML Then oMailItem.BodyFormat = olFormatHTML
-    'todo: fails if Outlook is not open; can't you just get Word directly?
     On Error Resume Next
-    Set objDoc = oMailItem.GetInspector.WordEditor
+    Set oDocument = oMailItem.GetInspector.WordEditor
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-    If objDoc Is Nothing Then
+    If oDocument Is Nothing Then
+      'try again with MailItem displayed
       oMailItem.Display False
-      Set objDoc = oMailItem.GetInspector.WordEditor
-      oMailItem.GetInspector.WindowState = olMinimized
+      On Error Resume Next
+      Set oDocument = oMailItem.GetInspector.WordEditor
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If oDocument Is Nothing Then
+        'todo: try again by accessing Word directly
+        cptStatusSheet_frm.cboQuickParts.Enabled = False
+        oMailItem.Close olDiscard
+        GoTo exit_here
+      Else
+        oMailItem.GetInspector.WindowState = olMinimized
+      End If
     End If
-    Set oWord = objDoc.Application
-    Set objETemp = oWord.Templates(1)
-    Set oBuildingBlockEntries = objETemp.BuildingBlockEntries
+    Set oWord = oDocument.Application
+    Set oTemplate = oWord.Templates(1)
+    Set oBuildingBlockEntries = oTemplate.BuildingBlockEntries
     'loop through them
     For lngItem = 1 To oBuildingBlockEntries.Count
       Set oBuildingBlock = oBuildingBlockEntries(lngItem)
@@ -2389,9 +2397,9 @@ exit_here:
   Set oWord = Nothing
   Set oOutlook = Nothing
   Set oMailItem = Nothing
-  Set objDoc = Nothing
+  Set oDocument = Nothing
   Set oWord = Nothing
-  Set objETemp = Nothing
+  Set oTemplate = Nothing
   Set oBuildingBlockEntries = Nothing
   Set oBuildingBlock = Nothing
   Exit Sub
@@ -2525,7 +2533,7 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
     oMailItem.CC = .txtCC
   
     If oMailItem.BodyFormat <> olFormatHTML Then oMailItem.BodyFormat = olFormatHTML
-    If Not IsNull(.cboQuickParts.Value) Then
+    If Not IsNull(.cboQuickParts.Value) And .cboQuickParts.Enabled Then
       Set oDocument = oMailItem.GetInspector.WordEditor
       Set oWord = oDocument.Application
       Set oSelection = oDocument.Windows(1).Selection
@@ -2538,9 +2546,10 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
       Else
         oBuildingBlock.Insert oSelection.Range, True
       End If
-      oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, "[STATUS_DATE]", Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
-      oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, "[Program]", cptGetProgramAcronym)
     End If
+    oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, "[STATUS_DATE]", Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+    oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, "[YYYYMM]", Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+    oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, "[PROGRAM]", cptGetProgramAcronym)
     Set oInspector = oMailItem.GetInspector
     oInspector.WindowState = olMinimized
       

@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.4.3</cpt_version>
+'<cpt_version>v1.4.4</cpt_version>
 Option Explicit
 Private Const adVarChar As Long = 200
 Private Const adInteger As Long = 3
@@ -361,6 +361,7 @@ Dim lngItem As Long
   If Me.chkSendEmails Then
     Me.chkKeepOpen = False
     Me.chkKeepOpen.Enabled = False
+    Me.lblEmailHints.Visible = True
     Call cptListQuickParts(True)
     strQuickPart = cptGetSetting("StatusSheet", "cboQuickPart")
     If Len(strQuickPart) > 0 Then
@@ -378,6 +379,7 @@ Dim lngItem As Long
     End If
   Else
     Me.chkKeepOpen.Enabled = True
+    Me.lblEmailHints.Visible = False
   End If
 
 End Sub
@@ -795,6 +797,18 @@ err_here:
   Call cptHandleErr("cptStatusSheet_frm", "cmdUp_Click", Err, Erl)
   Resume exit_here
   
+End Sub
+
+Private Sub lblEmailHints_Click()
+Dim strHints As String
+
+  strHints = "The following fields are available for auto replacement in the subject line and your Email Template (a.k.a., 'Quick Part'):" & vbCrLf & vbCrLf
+  strHints = strHints & "[STATUS_DATE] > Status Date in MM/DD/YYYY format" & vbCrLf
+  strHints = strHints & "[YYYYMM] > Status Date in MM/DD/YYYY format" & vbCrLf
+  strHints = strHints & "[PROGRAM] > Program Acronym" & vbCrLf
+  strHints = strHints & vbCrLf & "Send other suggestions to cpt@ClearPlanConsulting.com"
+  MsgBox strHints, vbInformation + vbOKOnly, "Email Hints"
+
 End Sub
 
 Private Sub lblURL_Click()
