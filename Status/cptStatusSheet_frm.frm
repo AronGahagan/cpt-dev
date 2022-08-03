@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.4.2</cpt_version>
+'<cpt_version>v1.4.3</cpt_version>
 Option Explicit
 Private Const adVarChar As Long = 200
 Private Const adInteger As Long = 3
@@ -176,6 +176,7 @@ Dim lngField As Long
         If Not oTask.Active Then GoTo next_task
         If oTask.ExternalTask Then GoTo next_task
         If oTask.Summary Then GoTo next_task
+        If IsDate(oTask.ActualFinish) Then GoTo next_task
         If Len(oTask.GetField(lngField)) > 0 Then
           If .RecordCount > 0 Then .MoveFirst
           .Find "[" & Me.cboEach.Value & "]='" & oTask.GetField(lngField) & "'"
