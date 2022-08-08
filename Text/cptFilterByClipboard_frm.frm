@@ -97,7 +97,7 @@ Private Sub lboFilter_Click()
         If MsgBox("Task " & strField & " " & lngUID & " is currently hidden. Would you like to remove all filters, show summary tasks, and show all tasks in order to find it?", vbQuestion + vbYesNo, "Reset View?") = vbYes Then
           ScreenUpdating = False
           FilterClear
-          OptionsViewEx displaysummaryTasks:=True
+          OptionsViewEx DisplaySummaryTasks:=True
           SelectAll
           On Error Resume Next
           If Not OutlineShowAllTasks Then
@@ -118,7 +118,7 @@ Private Sub lboFilter_Click()
         If MsgBox("Task " & strField & " " & lngUID & " is currently hidden. Would you like to remove all filters, show summary tasks, and show all tasks in order to find it?", vbQuestion + vbYesNo, "Reset View?") = vbYes Then
           ScreenUpdating = False
           FilterClear
-          OptionsViewEx displaysummaryTasks:=True
+          OptionsViewEx DisplaySummaryTasks:=True
           SelectAll
           On Error Resume Next
           If Not OutlineShowAllTasks Then

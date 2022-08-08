@@ -51,7 +51,11 @@ Dim lngFreeField As Long
   If lngFreeField = 0 Then
     strMsg = "Since there are no custom task number fields available*, filtered tasks will not appear in the same order as pasted."
     strMsg = strMsg & vbCrLf & vbCrLf
-    strMsg = strMsg & "* 'available' means:" & vbCrLf & "> no custom field name" & vbCrLf & "> no data on any task"
+    strMsg = strMsg & "* 'available' means:" & vbCrLf
+    strMsg = strMsg & "> no custom field name" & vbCrLf
+    strMsg = strMsg & "> no formula" & vbCrLf
+    strMsg = strMsg & "> no pick list" & vbCrLf
+    strMsg = strMsg & "> no data on any task"
     If MsgBox(strMsg, vbInformation + vbOKCancel, "No Room at the Inn") = vbCancel Then GoTo exit_here
     With cptFilterByClipboard_frm.cboFreeField
       .Clear
@@ -191,7 +195,7 @@ next_item:
   If Len(strFilter) > 0 And cptFilterByClipboard_frm.chkFilter Then
     ActiveWindow.TopPane.Activate
     ScreenUpdating = False
-    OptionsViewEx displaysummaryTasks:=True
+    OptionsViewEx DisplaySummaryTasks:=True
     SelectAll
     On Error Resume Next
     If Not OutlineShowAllTasks Then
@@ -206,7 +210,7 @@ next_item:
     ElseIf cptFilterByClipboard_frm.optID Then
       SetAutoFilter "ID", FilterType:=pjAutoFilterIn, Criteria1:=strFilter
     End If
-    OptionsViewEx projectsummary:=False, displayoutlinenumber:=False, displaynameindent:=False, displaysummaryTasks:=False
+    OptionsViewEx projectsummary:=False, displayoutlinenumber:=False, displaynameindent:=False, DisplaySummaryTasks:=False
     If lngFreeField > 0 Then Sort FieldConstantToFieldName(lngFreeField)
   End If
   
@@ -359,8 +363,24 @@ Dim blnFree As Boolean
   For lngItem = lngItems To 1 Step -1
     lngField = FieldNameToFieldConstant(strDataType & lngItem, lngType)
     If CustomFieldGetName(lngField) = "" Then
+      'then ensure no formula
+      If CustomFieldGetFormula(lngField) <> "" Then GoTo next_field
+      'then ensure no pick list (brute force)
+      Dim strNum As String
+      strNum = ActiveProject.Tasks(1).GetField(lngField)
+      On Error Resume Next
+      ActiveProject.Tasks(1).SetField lngField, 3.14285714285714 'what are the odds?
+      If Err.Number = 1101 Then
+        Err.Clear
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        GoTo next_field
+      Else
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        ActiveProject.Tasks(1).SetField lngField, strNum
+      End If
       rstFree.AddNew Array(0, 1), Array(lngField, True)
     End If
+next_field:
   Next lngItem
   'if all custom task number fields are named, then none available
   If rstFree.RecordCount = 0 Then
