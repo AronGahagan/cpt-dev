@@ -110,7 +110,7 @@ End Sub
 Private Sub cmdExport_Click()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  Call cptExportResourceDemandNew 'todo: revert
+  Call cptExportResourceDemand
 
 exit_here:
   On Error Resume Next
