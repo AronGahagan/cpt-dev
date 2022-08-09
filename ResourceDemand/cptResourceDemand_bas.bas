@@ -534,11 +534,8 @@ next_task:
   'add fiscal month
   If cptResourceDemand_frm.cboMonths.Value = 1 Then 'fiscal
     Set oRange = oWorksheet.Range(oWorksheet.[A1].End(xlToRight).Offset(1, 1), oWorksheet.[A1].End(xlToRight).End(xlDown).Offset(0, 1))
-    'all this nonsense for Excel 2016 compatibility
-    'oRange.FormulaR1C1 = "=LOOKUP(MINIFS(FISCAL[fisc_end],FISCAL[fisc_end],"">=""&RC" & lngWeekCol & "),FISCAL[fisc_end],FISCAL[label])"
-    'oRange.FormulaR1C1 = "=LOOKUP(MIN(IF(FISCAL[fisc_end]>=RC" & lngWeekCol & ",FISCAL[fisc_end])),FISCAL[fisc_end],FISCAL[label])"
+    'array formula instead of XLOOKUP, MINIFS, etc for Excel 2016 compatibility
     'oRange.FormulaR1C1 = "=XLOOKUP(RC" & lngWeekCol & ",FISCAL[fisc_end],FISCAL[label],""<na>"",1,1)"
-    'oRange.FormulaArray = "=LOOKUP(MIN(IF(FISCAL[fisc_end]>=" & oWorksheet.Cells(2, lngWeekCol).Address(False, False) & ") ,FISCAL[fisc_end])),FISCAL[fisc_end],FISCAL[label])"
     oWorksheet.Cells(2, oRange.Column).FormulaArray = "=LOOKUP(MIN(IF(FISCAL[fisc_end]>=" & oWorksheet.Cells(2, lngWeekCol).Address(False, False) & ",FISCAL[fisc_end])),FISCAL[fisc_end],FISCAL[label])"
     oRange.FillDown
     oWorksheet.[A1].End(xlToRight).Offset(0, 1) = "FISCAL_MONTH"
