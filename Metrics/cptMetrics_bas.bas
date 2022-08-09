@@ -1148,12 +1148,12 @@ next_task:
   oListObject.Name = "BEI"
   
   'ACTUAL
-  oListObject.ListColumns("ES").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],""<0"",Table1[ACTUAL START],""<>"")"
-  oListObject.ListColumns("EF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],""<0"",Table1[ACTUAL FINISH],""<>"")"
-  oListObject.ListColumns("LS").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],"">0"",Table1[ACTUAL START],""<>"")"
-  oListObject.ListColumns("LF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],"">0"",Table1[ACTUAL FINISH],""<>"")"
-  oListObject.ListColumns("# BLF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],[@" & strSummary & "],Table1[BASELINE FINISH],""<=" & Format(dtStatus, "mm/dd/yyyy") & """)"
-  oListObject.ListColumns("# AF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],[@" & strSummary & "],Table1[ACTUAL FINISH],""<>"")"
+  oListObject.ListColumns("ES").DataBodyRange.FormulaR1C1 = "=SUMPRODUCT(--(Table1[" & strSummary & "]=RC1)*--(Table1[START VARIANCE]<0)*--(Table1[ACTUAL START]<>"""")*1)"
+  oListObject.ListColumns("EF").DataBodyRange.FormulaR1C1 = "=SUMPRODUCT(--(Table1[" & strSummary & "]=RC1)*--(Table1[FINISH VARIANCE]<0)*--(Table1[ACTUAL FINISH]<>"""")*1)"
+  oListObject.ListColumns("LS").DataBodyRange.FormulaR1C1 = "=SUMPRODUCT(--(Table1[" & strSummary & "]=RC1)*--(Table1[START VARIANCE]>0)*--(Table1[ACTUAL FINISH]<>"""")*1)"
+  oListObject.ListColumns("LF").DataBodyRange.FormulaR1C1 = "=SUMPRODUCT(--(Table1[" & strSummary & "]=RC1)*--(Table1[FINISH VARIANCE]>0)*--(Table1[ACTUAL FINISH]<>"""")*1)"
+  oListObject.ListColumns("# BLF").DataBodyRange.FormulaR1C1 = "=SUMPRODUCT(--(Table1[" & strSummary & "]=RC1)*--(Table1[BASELINE FINISH]<=R2C1)*1)"
+  oListObject.ListColumns("# AF").DataBodyRange.FormulaR1C1 = "=SUMPRODUCT(--(Table1[" & strSummary & "]=RC1)*--(Table1[ACTUAL FINISH]<>"""")*1)"
   oListObject.ListColumns("BEI (Finishes)").DataBodyRange.FormulaR1C1 = "=[@['# AF]]/IF([@['# BLF]]=0,1,[@['# BLF]])"
   oListObject.ListColumns("BEI (Finishes)").DataBodyRange.Style = "Comma"
   oListObject.ShowTotals = True
@@ -1176,12 +1176,12 @@ next_task:
   oListObject.Range.Copy oWorksheet.Cells(oWorksheet.[A1048576].End(xlUp).Row + 3, 1)
   Set oListObject = oWorksheet.ListObjects(2)
   oListObject.Name = "PROJECTED"
-  oListObject.ListColumns("ES").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],""<0"",Table1[ACTUAL START],""="")"
-  oListObject.ListColumns("EF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],""<0"",Table1[ACTUAL FINISH],""="")"
-  oListObject.ListColumns("LS").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[START VARIANCE],"">0"",Table1[ACTUAL START],""="")"
-  oListObject.ListColumns("LF").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],RC1,Table1[FINISH VARIANCE],"">0"",Table1[ACTUAL FINISH],""="")"
+  oListObject.ListColumns("ES").DataBodyRange.FormulaR1C1 = "=SUMPRODUCT(--(Table1[" & strSummary & "]=RC1)*--(Table1[START VARIANCE]<0)*--(Table1[ACTUAL START]="""")*1)"
+  oListObject.ListColumns("EF").DataBodyRange.FormulaR1C1 = "=SUMPRODUCT(--(Table1[" & strSummary & "]=RC1)*--(Table1[FINISH VARIANCE]<0)*--(Table1[ACTUAL START]="""")*1)"
+  oListObject.ListColumns("LS").DataBodyRange.FormulaR1C1 = "=SUMPRODUCT(--(Table1[" & strSummary & "]=RC1)*--(Table1[START VARIANCE]>0)*--(Table1[ACTUAL START]="""")*1)"
+  oListObject.ListColumns("LF").DataBodyRange.FormulaR1C1 = "=SUMPRODUCT(--(Table1[" & strSummary & "]=RC1)*--(Table1[FINISH VARIANCE]>0)*--(Table1[ACTUAL FINISH]="""")*1)"
   oListObject.ListColumns("# BLF").Name = "# TOTAL"
-  oListObject.ListColumns("# TOTAL").DataBodyRange.FormulaR1C1 = "=COUNTIFS(Table1[" & strSummary & "],[@" & strSummary & "])"
+  oListObject.ListColumns("# TOTAL").DataBodyRange.FormulaR1C1 = "=SUMPRODUCT(--(Table1[" & strSummary & "]=RC1)*1)"
   oListObject.ListColumns("# AF").Name = "% TOTAL"
   oListObject.ListColumns("% TOTAL").DataBodyRange.FormulaR1C1 = "=[@[LF]]/IF([@['# TOTAL]]=0,1,[@['# TOTAL]])"
   oListObject.ListColumns("% TOTAL").DataBodyRange.Style = "Comma"
