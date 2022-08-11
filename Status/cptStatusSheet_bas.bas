@@ -2339,8 +2339,8 @@ Dim oMailItem As MailItem
 Dim oDocument As Word.Document
 Dim oWord As Word.Application
 Dim oTemplate As Word.Template
-Dim oBuildingBlockEntries As BuildingBlockEntries
-Dim oBuildingBlock As BuildingBlock
+Dim oBuildingBlockEntries As Word.BuildingBlockEntries
+Dim oBuildingBlock As Word.BuildingBlock
 'longs
 Dim lngItem As Long
 'strings
@@ -2526,13 +2526,13 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
   oMailItem.Attachments.Add strFullName
   With cptStatusSheet_frm
     strSubject = .txtSubject
-    strSubject = Replace(strSubject, "[yyyy-mm-dd]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
-    strSubject = Replace(strSubject, "[item]", strItem)
-    strSubject = Replace(strSubject, "[Program]", cptGetProgramAcronym)
+    strSubject = Replace(UCase(strSubject), "[STATUS_DATE]", Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+    strSubject = Replace(UCase(strSubject), "[YYYY-MM-DD]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
+    strSubject = Replace(UCase(strSubject), "[ITEM]", strItem)
+    strSubject = Replace(UCase(strSubject), "[PROGRAM]", cptGetProgramAcronym)
     oMailItem.Subject = strSubject
     oMailItem.CC = .txtCC
-  
-    If oMailItem.BodyFormat <> olFormatHTML Then oMailItem.BodyFormat = olFormatHTML
+    If oMailItem.BodyFormat <> 2 Then oMailItem.BodyFormat = 2 '2=olFormatHTML
     If Not IsNull(.cboQuickParts.Value) And .cboQuickParts.Enabled Then
       Set oDocument = oMailItem.GetInspector.WordEditor
       Set oWord = oDocument.Application
@@ -2546,12 +2546,19 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
       Else
         oBuildingBlock.Insert oSelection.Range, True
       End If
+      'only do replacements if QuickPart is used
+      oMailItem.HTMLBody = Replace(UCase(oMailItem.HTMLBody), "[STATUS_DATE]", Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+      oMailItem.HTMLBody = Replace(UCase(oMailItem.HTMLBody), "[YYYY-MM-DD]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
+      oMailItem.HTMLBody = Replace(UCase(oMailItem.HTMLBody), "[PROGRAM]", cptGetProgramAcronym)
     End If
-    oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, "[STATUS_DATE]", Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
-    oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, "[YYYYMM]", Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
-    oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, "[PROGRAM]", cptGetProgramAcronym)
+    On Error Resume Next
     Set oInspector = oMailItem.GetInspector
-    oInspector.WindowState = olMinimized
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If Not oInspector Is Nothing Then
+      oInspector.WindowState = 1 '1=olMinimized
+    Else
+      'todo: how to minimize?
+    End If
       
   End With
   
