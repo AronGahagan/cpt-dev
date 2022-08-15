@@ -2526,10 +2526,10 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
   oMailItem.Attachments.Add strFullName
   With cptStatusSheet_frm
     strSubject = .txtSubject
-    strSubject = Replace(UCase(strSubject), "[STATUS_DATE]", Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
-    strSubject = Replace(UCase(strSubject), "[YYYY-MM-DD]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
-    strSubject = Replace(UCase(strSubject), "[ITEM]", strItem)
-    strSubject = Replace(UCase(strSubject), "[PROGRAM]", cptGetProgramAcronym)
+    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[STATUS\_DATE\]"), Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[YYYY\-MM\-DD\]"), Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
+    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[ITEM\]"), strItem)
+    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[PROGRAM\]"), cptGetProgramAcronym)
     oMailItem.Subject = strSubject
     oMailItem.CC = .txtCC
     If oMailItem.BodyFormat <> 2 Then oMailItem.BodyFormat = 2 '2=olFormatHTML
@@ -2547,9 +2547,9 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
         oBuildingBlock.Insert oSelection.Range, True
       End If
       'only do replacements if QuickPart is used
-      oMailItem.HTMLBody = Replace(UCase(oMailItem.HTMLBody), "[STATUS_DATE]", Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
-      oMailItem.HTMLBody = Replace(UCase(oMailItem.HTMLBody), "[YYYY-MM-DD]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
-      oMailItem.HTMLBody = Replace(UCase(oMailItem.HTMLBody), "[PROGRAM]", cptGetProgramAcronym)
+      oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, cptRegEx(oMailItem.HTMLBody, "\[STATUS\_DATE\]"), Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+      oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, cptRegEx(oMailItem.HTMLBody, "\[YYYY\-MM\-DD\]"), Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
+      oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, cptRegEx(oMailItem.HTMLBody, "\[PROGRAM\]"), cptGetProgramAcronym)
     End If
     On Error Resume Next
     Set oInspector = oMailItem.GetInspector
