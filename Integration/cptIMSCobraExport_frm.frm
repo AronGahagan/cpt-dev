@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIMSCobraExport_frm 
-   Caption         =   "IMS Export Utility v3.3.7"
-   ClientHeight    =   7308
+   Caption         =   "IMS Export Utility v3.3.8"
+   ClientHeight    =   7305
    ClientLeft      =   120
-   ClientTop       =   468
-   ClientWidth     =   4392
+   ClientTop       =   465
+   ClientWidth     =   4395
    OleObjectBlob   =   "cptIMSCobraExport_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -13,8 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-'<cpt_version>v3.3.7</cpt_version>
+'<cpt_version>v3.3.8</cpt_version>
 Private Sub AsgnPcntBox_Change() 'v3.3.1
     
     If isIMSfield(AsgnPcntBox.Value) = False And AsgnPcntBox.Value <> "" And AsgnPcntBox.Value <> "<None>" Then
@@ -24,10 +23,10 @@ Private Sub AsgnPcntBox_Change() 'v3.3.1
     End If
     
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -38,7 +37,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -63,10 +62,10 @@ Private Sub bcrBox_Change()
     End If
     
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -77,7 +76,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -87,7 +86,7 @@ PropMissing:
     Resume PropFound
 End Sub
 
-Private Function checkDuplicate(ByVal cBoxTest As ComboBox) As Boolean
+Private Function checkDuplicate(ByVal cBoxTest As MSForms.ComboBox) As Boolean 'v3.3.8
 
     If cBoxTest.Value = "<None>" Or cBoxTest.Value = "" Then
     
@@ -96,8 +95,8 @@ Private Function checkDuplicate(ByVal cBoxTest As ComboBox) As Boolean
     
     End If
 
-    Dim cBoxOther As ComboBox
-    Dim formObj As control
+    Dim cBoxOther As MSForms.ComboBox 'v3.3.8
+    Dim formObj As MSForms.Control 'v3.3.8
     
     For Each formObj In Me.TabButtons.Pages(1).Controls
     
@@ -138,10 +137,10 @@ End Sub
 
 Private Sub BcrBtn_Click()
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
 
@@ -199,10 +198,10 @@ Private Sub caID1Box_Change()
     End If
 
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -214,7 +213,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -227,10 +226,10 @@ End Sub
 
 Private Sub CAID1TxtBox_Change()
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -241,7 +240,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -253,10 +252,10 @@ End Sub
 
 Private Sub CAID1TxtBox_Exit(ByVal Cancel As MSForms.ReturnBoolean)
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -267,7 +266,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -293,10 +292,10 @@ Private Sub caID2Box_Change()
     End If
     
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -317,7 +316,7 @@ PropFound:
     End If
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -329,10 +328,10 @@ End Sub
 
 Private Sub CAID2TxtBox_Change()
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -343,7 +342,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -355,10 +354,10 @@ End Sub
 
 Private Sub CAID2TxtBox_Exit(ByVal Cancel As MSForms.ReturnBoolean)
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -369,7 +368,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -395,10 +394,10 @@ Private Sub caID3Box_Change()
     End If
     
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -418,7 +417,7 @@ PropFound:
     End If
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -430,10 +429,10 @@ End Sub
 
 Private Sub CAID3TxtBox_Change()
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -444,7 +443,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -456,10 +455,10 @@ End Sub
 
 Private Sub CAID3TxtBox_Exit(ByVal Cancel As MSForms.ReturnBoolean)
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -470,7 +469,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -495,10 +494,10 @@ Private Sub camBox_Change()
     End If
     
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -509,7 +508,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -576,10 +575,10 @@ End Sub
 Private Sub DateFormat_Combobox_Change() 'v3.3.5
 
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -590,7 +589,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -626,10 +625,10 @@ Private Sub evtBox_Change()
     End If
     
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -640,7 +639,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -710,10 +709,10 @@ Private Sub msidBox_Change()
     End If
     
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -724,7 +723,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -749,10 +748,10 @@ Private Sub mswBox_Change()
     End If
     
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -763,7 +762,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -788,10 +787,10 @@ Private Sub PercentBox_Change()
     End If
     
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -802,7 +801,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -815,10 +814,10 @@ End Sub
 Private Sub resBox_Change()
     
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -829,7 +828,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -987,14 +986,14 @@ Private Function VerifyTitles() As Boolean
 End Function
 Private Function PopulateCustFieldUsage() As Boolean
 
-    Dim curproj As Project
+    Dim curProj As Project
     Dim docProp As DocumentProperty
     Dim docProps As DocumentProperties
     Dim fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fEVT, fCAID2, fCAID2t, fMSID, fMSW, fBCR, fWhatIf, fPCNT, fAssignPcnt, fResID, dateFmt As Boolean 'v3.3.0, v3.3.5
     Dim nameTest As Double
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo DocPropNameChange
     
@@ -1176,9 +1175,9 @@ End Function
 
 Private Sub WeekStartCombobox_Change() 'v3.3.6
     'sets project "week starts on" value
-    Dim curproj As Project
-    Set curproj = ActiveProject
-    curproj.StartWeekOn = WeekStartCombobox.ListIndex + 1
+    Dim curProj As Project
+    Set curProj = ActiveProject
+    curProj.StartWeekOn = WeekStartCombobox.ListIndex + 1
 End Sub
 
 Private Sub WhatIf_CheckBox_Click() 'v3.2
@@ -1205,10 +1204,10 @@ Private Sub whatifBox_Change() 'v3.2
     End If
     
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -1219,7 +1218,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -1244,10 +1243,10 @@ Private Sub wpBox_Change()
     End If
     
     Dim docProps As DocumentProperties
-    Dim curproj As Project
+    Dim curProj As Project
     
-    Set curproj = ActiveProject
-    Set docProps = curproj.CustomDocumentProperties
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
     
     On Error GoTo PropMissing
     
@@ -1258,7 +1257,7 @@ PropFound:
     Me.TabButtons(1).Tag = VerifyCustFieldUsage
     
     Set docProps = Nothing
-    Set curproj = Nothing
+    Set curProj = Nothing
     
     Exit Sub
     
@@ -1271,13 +1270,13 @@ Private Function isIMSfield(ByVal mspField As String) As Boolean
 
     On Error GoTo fieldMissing
     
-    Dim curproj As Project
-    Set curproj = ActiveProject
+    Dim curProj As Project
+    Set curProj = ActiveProject
     
-    If curproj.Application.FieldNameToFieldConstant(mspField) Then
+    If curProj.Application.FieldNameToFieldConstant(mspField) Then
     
         isIMSfield = True
-        Set curproj = Nothing
+        Set curProj = Nothing
         Exit Function
     
     End If
@@ -1285,6 +1284,6 @@ Private Function isIMSfield(ByVal mspField As String) As Boolean
 fieldMissing:
 
     isIMSfield = False
-    Set curproj = Nothing
+    Set curProj = Nothing
 
 End Function

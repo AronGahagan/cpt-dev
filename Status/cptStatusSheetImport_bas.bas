@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.1.6</cpt_version>
+'<cpt_version>v1.1.7</cpt_version>
 Option Explicit
 
 Sub cptShowStatusSheetImport_frm()
@@ -197,7 +197,7 @@ Sub cptStatusSheetImport()
   Dim oListObject As Object 'Excel.ListObject
   Dim oRange As Object 'Excel.Range
   Dim oCell As Object 'Excel.Range
-  Dim oComboBox As ComboBox
+  Dim oComboBox As MSForms.ComboBox
   Dim rst As Object 'ADODB.Recordset
   'strings
   Dim strLOE As String
@@ -492,24 +492,24 @@ next_task:
         'get header row
         lngUIDCol = 1
         On Error Resume Next
-        lngHeaderRow = oWorksheet.Columns(lngUIDCol).Find(What:="UID").Row
+        lngHeaderRow = oWorksheet.Columns(lngUIDCol).Find(what:="UID").Row
         If Err.Number = 1004 Then 'invalid oWorkbook
           If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           Print #lngFile, "INVALID Worksheet - UID column not found"
           GoTo next_worksheet
         End If
         'get header columns
-        lngTaskNameCol = oWorksheet.Rows(lngHeaderRow).Find(What:="Task Name", LookAt:=xlPart).Column
-        lngASCol = oWorksheet.Rows(lngHeaderRow).Find(What:="Actual Start", LookAt:=xlPart).Column
-        lngAFCol = oWorksheet.Rows(lngHeaderRow).Find(What:="Actual Finish", LookAt:=xlPart).Column
-        lngEVCol = oWorksheet.Rows(lngHeaderRow).Find(What:="New EV%", LookAt:=xlWhole).Column
-        lngETCCol = oWorksheet.Rows(lngHeaderRow).Find(What:="Revised ETC", LookAt:=xlWhole).Column
+        lngTaskNameCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Task Name", lookat:=xlPart).Column
+        lngASCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Start", lookat:=xlPart).Column
+        lngAFCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Finish", lookat:=xlPart).Column
+        lngEVCol = oWorksheet.Rows(lngHeaderRow).Find(what:="New EV%", lookat:=xlWhole).Column
+        lngETCCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Revised ETC", lookat:=xlWhole).Column
         strNotesColTitle = cptGetSetting("StatusSheet", "txtNotesColTitle")
         On Error Resume Next
         If Len(strNotesColTitle) > 0 Then
-          lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(What:=strNotesColTitle, LookAt:=xlWhole).Column
+          lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(what:=strNotesColTitle, lookat:=xlWhole).Column
         Else
-          lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(What:="Reason / Action / Impact", LookAt:=xlWhole).Column
+          lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Reason / Action / Impact", lookat:=xlWhole).Column
         End If
         If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If lngCommentsCol = 0 Then

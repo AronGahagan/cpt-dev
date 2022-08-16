@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.4.1</cpt_version>
+'<cpt_version>v1.4.2</cpt_version>
 Option Explicit
 
 Sub cptReplicateProcess()
@@ -229,7 +229,7 @@ next_task:
     rstReplaced.MoveFirst
     FilterEdit "cptMyReplace", True, True, True, False, , "Unique ID", , "equals", rstReplaced(0), "Or", True
     Do While Not rstReplaced.EOF
-      FilterEdit "cptMyReplace", TaskFilter:=True, FieldName:="", newfieldname:="Unique ID", test:="equals", Value:=rstReplaced(0), Operation:="Or", ShowInMenu:=True
+      FilterEdit "cptMyReplace", TaskFilter:=True, FieldName:="", newfieldname:="Unique ID", Test:="equals", Value:=rstReplaced(0), Operation:="Or", ShowInMenu:=True
       rstReplaced.MoveNext
     Loop
     FilterApply "cptMyReplace", True
@@ -290,7 +290,7 @@ Sub cptFindDuplicateTaskNames()
   
   If Edition = pjEditionProfessional Then
     If Not cptFilterExists("Active Tasks") Then
-      FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, overwriteexisting:=False, FieldName:="Active", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
+      FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, overwriteexisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
     End If
     MapEdit Name:="ExportTaskNames", Create:=True, overwriteexisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="Active Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
   ElseIf Edition = pjEditionStandard Then
@@ -334,7 +334,7 @@ Sub cptFindDuplicateTaskNames()
   End With
   oRange.FormatConditions(1).StopIfTrue = False
   'filter for duplicates
-  lgNameCol = oWorksheet.Rows(1).Find("Name", LookAt:=xlWhole).Column
+  lgNameCol = oWorksheet.Rows(1).Find("Name", lookat:=xlWhole).Column
   oListObject.Range.AutoFilter Field:=lgNameCol, Criteria1:=RGB(255, 199, 206), Operator:=xlFilterCellColor
   'sort by task name (to put duplicates together)
   oListObject.Sort.SortFields.Clear

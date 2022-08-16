@@ -66,7 +66,7 @@
 	<Module>
 		<Name>cptCore_bas</Name>
 		<FileName>cptCore_bas.bas</FileName>
-		<Version>v1.10.2</Version>
+		<Version>v1.10.3</Version>
 		<Type>1</Type>
 		<Directory>Core</Directory>
 	</Module>
@@ -164,14 +164,14 @@
 	<Module>
 		<Name>cptIMSCobraExport_bas</Name>
 		<FileName>cptIMSCobraExport_bas.bas</FileName>
-		<Version>v3.3.7</Version>
+		<Version>v3.3.8</Version>
 		<Type>1</Type>
 		<Directory>Integration</Directory>
 	</Module>
 	<Module>
 		<Name>cptIMSCobraExport_frm</Name>
 		<FileName>cptIMSCobraExport_frm.frm</FileName>
-		<Version>v3.3.7</Version>
+		<Version>v3.3.8</Version>
 		<Type>3</Type>
 		<Directory>Integration</Directory>
 	</Module>
@@ -311,28 +311,28 @@
 	<Module>
 		<Name>cptStatusSheetImport_bas</Name>
 		<FileName>cptStatusSheetImport_bas.bas</FileName>
-		<Version>v1.1.6</Version>
+		<Version>v1.1.7</Version>
 		<Type>1</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptStatusSheetImport_frm</Name>
 		<FileName>cptStatusSheetImport_frm.frm</FileName>
-		<Version>v1.1.6</Version>
+		<Version>v1.1.7</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptText_bas</Name>
 		<FileName>cptText_bas.bas</FileName>
-		<Version>v1.4.1</Version>
+		<Version>v1.4.2</Version>
 		<Type>1</Type>
 		<Directory>Text</Directory>
 	</Module>
 	<Module>
 		<Name>cptText_frm</Name>
 		<FileName>cptText_frm.frm</FileName>
-		<Version>v1.4.1</Version>
+		<Version>v1.4.2</Version>
 		<Type>3</Type>
 		<Directory>Text</Directory>
 	</Module>
