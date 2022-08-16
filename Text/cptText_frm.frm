@@ -14,7 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.4.1</cpt_version>
+'<cpt_version>v1.4.2</cpt_version>
 Option Explicit
 
 Private Sub cmdApply_Click()
@@ -340,7 +340,7 @@ err_here:
 End Sub
 
 Public Function CheckDirty() As Boolean
-Dim blnDirty As Boolean, ctl As control
+Dim blnDirty As Boolean, ctl As MSForms.Control
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 

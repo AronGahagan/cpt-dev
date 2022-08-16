@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.10.2</cpt_version>
+'<cpt_version>v1.10.3</cpt_version>
 Option Explicit
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
@@ -25,7 +25,7 @@ Sub cptSpeed(blnOn As Boolean)
 
 End Sub
 
-Function cptGetUserForm(strModuleName As String) As UserForm
+Function cptGetUserForm(strModuleName As String) As MSForms.UserForm
 'NOTE: this only works if the form is loaded
 'objects
 Dim UserForm As Object
@@ -52,11 +52,11 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "GetModule()", Err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptGetUserForm", Err, Erl)
   Resume exit_here
 End Function
 
-Function cptGetControl(ByRef cptForm_frm As UserForm, strControlName As String) As control
+Function cptGetControl(ByRef cptForm_frm As MSForms.UserForm, strControlName As String) As MSForms.Control
 'NOTE: this only works for loaded forms
 
   Set cptGetControl = cptForm_frm.Controls(strControlName)
@@ -223,8 +223,6 @@ End Sub '<issue31>
 
 Sub cptShowAbout_frm()
 'objects
-'Dim frmAbout As UserForm
-'Dim ctl As control
 'strings
 Dim strAbout As String
 'longs
