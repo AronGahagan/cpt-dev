@@ -81,6 +81,9 @@ Dim lngItem As Long, lngItems As Long
   
   Set oUserForm = cptGetUserForm("cptSmartDuration_frm") 'returns Nothing if form is not loaded
   If Not oUserForm Is Nothing Then Application.Run "cptUpdateSmartDurationForm"
+
+   Set oUserForm = cptGetUserForm("cptQBD_frm") 'returns Nothing if form is not loaded
+  If Not oUserForm Is Nothing Then Application.Run "cptUpdateQBDForm"
   
 exit_here:
   On Error Resume Next
