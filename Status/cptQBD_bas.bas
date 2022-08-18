@@ -58,10 +58,11 @@ Sub cptShowQBD_frm()
     .lboHeader.List(0, 3) = "AS"
     .lboHeader.List(0, 4) = "AF"
     .lboHeader.List(0, 5) = "%"
-    .Show False
   End With
 
   Call cptUpdateQBDForm
+
+  cptQBD_frm.Show False
 
 exit_here:
   On Error Resume Next
@@ -171,9 +172,7 @@ Sub cptUpdateQBDForm()
   End With
   
   Call cptRefreshQBDCalc
-  
-  cptQBD_frm.Show False
-  
+    
 exit_here:
   On Error Resume Next
   Set oTasks = Nothing
