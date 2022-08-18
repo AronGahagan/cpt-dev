@@ -80,6 +80,43 @@ err_here:
   Resume exit_here
 End Sub
 
+Private Sub cmdCapture_Click()
+  'objects
+  'strings
+  'longs
+  Dim lngEV As Long
+  Dim lngUID As Long
+  Dim lngEVPField As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  If Me.lblUID.Caption = "" Then GoTo exit_here
+  If Not cptMetricsSettingsExist Then
+    'get them
+  End If
+  If CLng(Me.lblUID.Caption) > 0 Then
+    lngUID = CLng(Me.lblUID.Caption)
+    lngEV = CLng(Replace(Me.txtEV.Value, "%", ""))
+    lngEVPField = cptGetSetting("Metrics", "cboEVP")
+    OpenUndoTransaction "Update EV% on UID " & lngUID & " to " & lngEV & "%"
+    ActiveProject.Tasks.UniqueID(lngUID).SetField lngEVPField, lngEV
+    CloseUndoTransaction
+  End If
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptQBD_frm", "cmdCapture_Click", Err, Erl)
+  Resume exit_here
+End Sub
+
 Private Sub cmdDeleteStep_Click()
   'objects
   Dim oRecordset As ADODB.Recordset
@@ -148,6 +185,10 @@ err_here:
   
 End Sub
 
+Private Sub cmdDone_Click()
+  Unload Me
+End Sub
+
 Private Sub cmdDown_Click()
   'objects
   Dim oRecordset As ADODB.Recordset
@@ -193,12 +234,13 @@ Private Sub cmdDown_Click()
         .Save strFile, adPersistADTG
       End If
     End With
+    
+    Call cptUpdateQBDForm
+  
+    Me.lboSteps.Value = lngStepNumber - 1
+    Call cptQBD_frm.lboSteps_AfterUpdate
+    
   End If
-
-  Call cptUpdateQBDForm
-
-  Me.lboSteps.Value = lngStepNumber - 1
-  Call cptQBD_frm.lboSteps_AfterUpdate
 
 exit_here:
   On Error Resume Next
@@ -208,6 +250,41 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptQBD_frm", "cmdDown_Click", Err, Erl)
+  Resume exit_here
+End Sub
+
+Private Sub cmdExport_Click()
+  'objects
+  'strings
+  'longs
+  Dim lngResponse As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnLimit As Boolean
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  lngResponse = MsgBox("Limit to this task? If you click 'No' then all project QBDs will be exported.", vbQuestion + vbYesNoCancel)
+  Select Case lngResponse
+    Case vbYes
+      blnLimit = True
+    Case vbNo
+      blnLimit = False
+    Case vbCancel
+      GoTo exit_here
+  End Select
+  
+  
+  
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptQBD_frm", "cmdExport_Click", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -256,12 +333,13 @@ Private Sub cmdUp_Click()
         .Save strFile, adPersistADTG
       End If
     End With
+    
+    Call cptUpdateQBDForm
+  
+    Me.lboSteps.Value = lngStepNumber + 1
+    Call cptQBD_frm.lboSteps_AfterUpdate
+
   End If
-
-  Call cptUpdateQBDForm
-
-  Me.lboSteps.Value = lngStepNumber + 1
-  Call cptQBD_frm.lboSteps_AfterUpdate
 
 exit_here:
   On Error Resume Next
@@ -284,6 +362,7 @@ Sub lboSteps_AfterUpdate()
     Me.txtAF = Me.lboSteps.List(Me.lboSteps.ListIndex, 4)
     Me.txtPercent.Enabled = True
     Me.txtPercent = Me.lboSteps.List(Me.lboSteps.ListIndex, 5)
+    cptRefreshQBDCalc
   End If
 End Sub
 
@@ -558,6 +637,8 @@ Private Sub txtPercent_Change()
     .Save strFile, adPersistADTG
   End With
 
+  Call cptRefreshQBDCalc
+
 exit_here:
   On Error Resume Next
   If oRecordset.State Then
@@ -626,6 +707,8 @@ Private Sub txtWeight_Change()
     .Filter = 0
     .Save strFile, adPersistADTG
   End With
+  
+  Call cptRefreshQBDCalc
   
 exit_here:
   On Error Resume Next

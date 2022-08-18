@@ -104,6 +104,9 @@ Sub cptUpdateQBDForm()
     .txtAS = ""
     .txtAF = ""
     .txtPercent = ""
+    .txtWeights = 0
+    .txtPerformed = 0
+    .txtEV = 0
   End With
   
   On Error Resume Next
@@ -167,6 +170,8 @@ Sub cptUpdateQBDForm()
     End If
   End With
   
+  Call cptRefreshQBDCalc
+  
   cptQBD_frm.Show False
   
 exit_here:
@@ -181,5 +186,41 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptQBD_bas", "cptUpdateQBDForm", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptRefreshQBDCalc()
+  'objects
+  'strings
+  'longs
+  Dim lngItem As Long
+  Dim lngPercent As Long
+  Dim lngWeights As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  With cptQBD_frm
+    If .lboSteps.ListCount > 0 Then
+      For lngItem = 0 To .lboSteps.ListCount - 1
+        lngWeights = lngWeights + .lboSteps.List(lngItem, 2)
+        lngPercent = lngPercent + (.lboSteps.List(lngItem, 2) * (.lboSteps.List(lngItem, 5) / 100))
+      Next lngItem
+      .txtWeights.Value = lngWeights
+      .txtPerformed.Value = lngPercent
+      .txtEV.Value = Format(lngPercent / lngWeights, "0%")
+    End If
+  End With
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptQBD_bas", "cptRefreshQBDCalc", Err, Erl)
   Resume exit_here
 End Sub
