@@ -97,7 +97,11 @@ Private Sub cmdCapture_Click()
 
   If Me.lblUID.Caption = "" Then GoTo exit_here
   If Not cptMetricsSettingsExist Then
-    'get them
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required"
+      GoTo exit_here
+    End If
   End If
   If CLng(Me.lblUID.Caption) > 0 Then
     lngUID = CLng(Me.lblUID.Caption)
@@ -255,8 +259,13 @@ End Sub
 
 Private Sub cmdExport_Click()
   'objects
+  Dim oWorksheet As Excel.Worksheet
+  Dim oWorkbook As Excel.Workbook
+  Dim oExcel As Excel.Application
   'strings
   'longs
+  Dim lngLastRow As Long
+  Dim lngItem As Long
   Dim lngResponse As Long
   'integers
   'doubles
@@ -277,10 +286,42 @@ Private Sub cmdExport_Click()
       GoTo exit_here
   End Select
   
+  On Error Resume Next
+  Set oExcel = GetObject(, "Excel.Application")
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If oExcel Is Nothing Then
+    Set oExcel = CreateObject("Excel.Application")
+  End If
+  
+  oExcel.Visible = True
+  Set oWorkbook = oExcel.Workbooks.Add
+  With oExcel.ActiveWindow
+    .Zoom = 85
+    .SplitRow = 1
+    .SplitColumn = 0
+    .FreezePanes = True
+  End With
+  Set oWorksheet = oWorkbook.Sheets(1)
+  
+  If blnLimit Then
+    oWorksheet.[A1] = "UID"
+    oWorksheet.Range(oWorksheet.[B1], oWorksheet.[B1].Offset(0, Me.lboHeader.ColumnCount)) = Me.lboHeader.List
+    oWorksheet.Range(oWorksheet.Cells(2, 2), oWorksheet.Cells(1 + Me.lboSteps.ListCount, Me.lboSteps.ColumnCount + 1)) = Me.lboSteps.List
+    lngLastRow = oWorksheet.[B1048576].End(xlUp).Row
+    oWorksheet.Range(oWorksheet.Cells(2, 1), oWorksheet.Cells(lngLastRow, 1)) = CLng(Me.lblUID.Caption)
+    oWorksheet.Columns.AutoFit
+  Else
+    'todo: how would you want to see it?
+    'todo: Workbook per stakeholder, worksheet per WPCN
+  End If
+  
   
   
 exit_here:
   On Error Resume Next
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
 
   Exit Sub
 err_here:
