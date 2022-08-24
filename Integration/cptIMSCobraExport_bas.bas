@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.7</cpt_version>
+'<cpt_version>v3.3.8</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -146,7 +146,7 @@ Sub Export_IMS()
         .wpBox.List = vArray
         .camBox.List = Split("Contact," & Join(vArray, ","), ",")
         .evtBox.List = vArray
-        .mswBox.List = Split("<None>,BaselineWork,BaselineCost,Work,Cost," & Join(vArray, ","), ",")
+        .mswBox.List = Split("<None>,BaselineWork,BaselineCost,Work,Cost," & Join(CustNumFields, ",") & Join(vArray, ","), ",")
         .bcrBox.List = Split("<None>," & Join(vArray, ","), ",")
         .whatifBox.List = Split("<None>," & Join(vArray, ","), ",")
         vArray = Split(Join(CustTextFields, ",") & Join(CustNumFields, ",") & Join(CustOLCodeFields, ",") & Join(EntFields, ","), ",")
