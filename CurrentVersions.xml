@@ -129,7 +129,7 @@
 	<Module>
 		<Name>cptEvents_cls</Name>
 		<FileName>cptEvents_cls.cls</FileName>
-		<Version>v1.2.2</Version>
+		<Version>v1.3.0</Version>
 		<Type>2</Type>
 		<Directory>Core</Directory>
 	</Module>
@@ -283,14 +283,14 @@
 	<Module>
 		<Name>cptSmartDuration_bas</Name>
 		<FileName>cptSmartDuration_bas.bas</FileName>
-		<Version>v1.0</Version>
+		<Version>v2.0.0</Version>
 		<Type>1</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptSmartDuration_frm</Name>
 		<FileName>cptSmartDuration_frm.frm</FileName>
-		<Version>v1.0.1</Version>
+		<Version>v2.0.0</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>

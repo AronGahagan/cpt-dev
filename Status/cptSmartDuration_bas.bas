@@ -1,102 +1,99 @@
 Attribute VB_Name = "cptSmartDuration_bas"
-'<cpt_version>v1.0</cpt_version>
-Sub SmartDuration()
+'<cpt_version>v2.0.0</cpt_version>
 
-    Dim smrtForm As cptSmartDuration_frm
-    Dim t As Task
-    Dim curproj As Project
-    Dim response As Variant
-    
-    Set curproj = ActiveProject
-    
-    If curproj.Tasks.count < 0 Then
-        MsgBox "No Tasks Found"
-        Exit Sub
-    End If
-    
-    On Error GoTo NotATask
-    
-    Set t = curproj.Application.ActiveCell.Task
-    
-    If t.Summary = True Then
-        MsgBox "Please select a non-Summary Task"
-        Set t = Nothing
-        Set curproj = Nothing
-        Exit Sub
-    End If
-    
-    If t.Milestone = True Then
-        response = MsgBox("Proceed with editing a Milestone?", vbYesNo)
-        If response = vbNo Then
-            Set t = Nothing
-            Set curproj = Nothing
-            Exit Sub
-        End If
-    End If
-    
-    If t.ActualFinish <> "NA" Then
-        MsgBox "Please select an incomplete Task"
-        Set t = Nothing
-        Set curproj = Nothing
-        Exit Sub
-    End If
-    
-    Set smrtForm = New cptSmartDuration_frm
-    
-    With smrtForm
-    
-        .StartDate = t.Start
-        .SmartDatePicker.Text = t.GetField(pjTaskFinish)
-        .weekDayLbl = Format(t.Finish, "DDD")
-    
-        .Show
-        
-        If .Tag = "Cancel" Then
-            
-            GoTo CleanUp
-            
-        End If
-    
-        If .Tag = "OK" Then
-            
-            If InStr(t.GetField(pjTaskDuration), "e") > 0 Then
-            
-                OpenUndoTransaction "Smart Duration"
-                t.duration = VBA.DateDiff("n", t.Start, .finDate)
-                CloseUndoTransaction
-                GoTo CleanUp
-            
-            Else
-                
-                If t.Calendar = "None" Or t.Calendar = curproj.Calendar Then
-                    OpenUndoTransaction "Smart Duration"
-                    t.duration = Application.DateDifference(t.Start, .finDate)
-                    CloseUndoTransaction
-                    GoTo CleanUp
-                Else
-                    OpenUndoTransaction "Smart Duration"
-                    t.duration = Application.DateDifference(t.Start, .finDate, t.Calendar)
-                    CloseUndoTransaction
-                    GoTo CleanUp
-                End If
-            End If
-            
-        End If
-            
-    End With
-    
-CleanUp:
+Sub cptShowSmartDuration_frm()
+  'objects
+  Dim oTasks As MSProject.Tasks
+  'strings
+  Dim strKeepOpen As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
-    Set t = Nothing
-    Set curproj = Nothing
-    Set smrtForm = Nothing
-    
-    Exit Sub
-    
-NotATask:
+  On Error Resume Next
+  Set oTasks = ActiveSelection.Tasks
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If oTasks Is Nothing Then GoTo exit_here
+  
+  Call cptUpdateSmartDurationForm
+  With cptSmartDuration_frm
+    .Caption = "Smart Duration " & cptGetVersion("cptSmartDuration_frm")
+    strKeepOpen = cptGetSetting("SmartDuration", "chkKeepOpen")
+    If Len(strKeepOpen) = 0 Then
+      .chkKeepOpen = False 'default to false
+    Else
+      .chkKeepOpen = CBool(strKeepOpen)
+    End If
+    .Show False
+    .txtTargetFinish.SetFocus
+  End With
+  
+  cptCore_bas.cptStartEvents
 
-    MsgBox "Please select a valid Task"
-    Set curproj = Nothing
-    Exit Sub
+exit_here:
+  On Error Resume Next
+  Set oTasks = Nothing
+  Exit Sub
 
+err_here:
+  Call cptHandleErr("cptSmartDuration_bas", "cptShowSmartDuration_frm", Err, Erl)
+  Resume exit_here
 End Sub
+
+Sub cptUpdateSmartDurationForm()
+  'objects
+  Dim oTasks As MSProject.Tasks
+  'strings
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  On Error Resume Next
+  Set oTasks = ActiveSelection.Tasks
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If oTasks Is Nothing Then GoTo exit_here
+  If oTasks.Count > 1 Then
+    MsgBox "Please select a single task.", vbInformation + vbOKOnly, "Smart Duration"
+    GoTo exit_here
+  End If
+  
+  If oTasks(1).Summary Then
+    MsgBox "Please select a Non-summary task.", vbInformation + vbOKOnly, "Smart Duration"
+    GoTo exit_here
+  End If
+  
+  If IsDate(oTasks(1).ActualFinish) Then
+    MsgBox "Please select an incomplete task.", vbInformation + vbOKOnly, "Smart Duration"
+    GoTo exit_here
+  End If
+  
+  If oTasks(1).Milestone Or oTasks(1).Duration = 0 Then
+    If MsgBox("Proceed with editing a zero-duration milestone?", vbQuestion + vbYesNo, "Please confirm") = vbNo Then
+      GoTo exit_here
+    End If
+  End If
+  
+  With cptSmartDuration_frm
+    .lngUID = oTasks(1).UniqueID
+    .StartDate = oTasks(1).Start
+    .txtTargetFinish = FormatDateTime(oTasks(1).Finish, vbShortDate)
+    .lblWeekday.Caption = Format(.txtTargetFinish.Text, "dddd")
+  End With
+
+exit_here:
+  On Error Resume Next
+  Set oTasks = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSmartDuration_bas", "cptUpdateSmartDurationForm", Err, Erl)
+  Resume exit_here
+End Sub
+
