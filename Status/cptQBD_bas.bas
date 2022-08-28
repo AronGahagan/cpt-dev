@@ -40,10 +40,10 @@ Sub cptShowQBD_frm()
     oRecordset.Fields.Append "STEP_ORDER", adInteger
     oRecordset.Fields.Append "STEP_NAME", adVarChar, 255
     oRecordset.Fields.Append "STEP_WEIGHT", adInteger
-    oRecordset.Fields.Append "STEP_AS", adDate
+    oRecordset.Fields.Append "STEP_PF", adDate
     oRecordset.Fields.Append "STEP_AF", adDate
-    oRecordset.Fields.Append "STEP_PERCENT", adInteger 'should we force 50/50?
-    oRecordset.Fields.Append "STATUS_DATE", adDate
+    oRecordset.Fields.Append "STEP_PERCENT", adInteger
+    oRecordset.Fields.Append "STATUS_DATE", adDate 'todo: do we need this? or even want it?
     oRecordset.Open
     oRecordset.Save strFile, adPersistADTG
     oRecordset.Close
@@ -55,7 +55,7 @@ Sub cptShowQBD_frm()
     .lboHeader.List(0, 0) = "#"
     .lboHeader.List(0, 1) = "NAME"
     .lboHeader.List(0, 2) = "WEIGHT"
-    .lboHeader.List(0, 3) = "AS"
+    .lboHeader.List(0, 3) = "PF"
     .lboHeader.List(0, 4) = "AF"
     .lboHeader.List(0, 5) = "%"
   End With
@@ -98,15 +98,13 @@ Sub cptUpdateQBDForm()
   
   'clear the form
   With cptQBD_frm
-    .Caption = "QBD - " & cptGetVersion("cptQBD_frm")
     .lboSteps.Clear
     .txtName = ""
     .txtWeight = ""
-    .txtAS = ""
+    .txtPF = ""
     .txtAF = ""
     .txtPercent = ""
     .txtWeights = 0
-    .txtPerformed = 0
     .txtEV = 0
   End With
   
@@ -153,8 +151,8 @@ Sub cptUpdateQBDForm()
         cptQBD_frm.lboSteps.List(cptQBD_frm.lboSteps.ListCount - 1, 0) = .Fields("STEP_ORDER")
         cptQBD_frm.lboSteps.List(cptQBD_frm.lboSteps.ListCount - 1, 1) = .Fields("STEP_NAME")
         cptQBD_frm.lboSteps.List(cptQBD_frm.lboSteps.ListCount - 1, 2) = .Fields("STEP_WEIGHT")
-        If .Fields("STEP_AS") > 0 Then
-          cptQBD_frm.lboSteps.List(cptQBD_frm.lboSteps.ListCount - 1, 3) = FormatDateTime(.Fields("STEP_AS"), vbShortDate)
+        If .Fields("STEP_PF") > 0 Then
+          cptQBD_frm.lboSteps.List(cptQBD_frm.lboSteps.ListCount - 1, 3) = FormatDateTime(.Fields("STEP_PF"), vbShortDate)
         Else
           cptQBD_frm.lboSteps.List(cptQBD_frm.lboSteps.ListCount - 1, 3) = "NA"
         End If
@@ -207,11 +205,10 @@ Sub cptRefreshQBDCalc()
     If .lboSteps.ListCount > 0 Then
       For lngItem = 0 To .lboSteps.ListCount - 1
         lngWeights = lngWeights + .lboSteps.List(lngItem, 2)
-        lngPercent = lngPercent + (.lboSteps.List(lngItem, 2) * (.lboSteps.List(lngItem, 5) / 100))
+        lngPercent = lngPercent + (CLng(.lboSteps.List(lngItem, 2)) * (Val(.lboSteps.List(lngItem, 5)) / 100))
       Next lngItem
       .txtWeights.Value = lngWeights
-      .txtPerformed.Value = lngPercent
-      .txtEV.Value = Format(lngPercent / lngWeights, "0%")
+      .txtEV.Value = Format((lngPercent / lngWeights) * 100, "0")
     End If
   End With
 
