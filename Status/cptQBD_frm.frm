@@ -83,47 +83,6 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub cmdCapture_Click()
-  'objects
-  'strings
-  'longs
-  Dim lngEV As Long
-  Dim lngUID As Long
-  Dim lngEVPField As Long
-  'integers
-  'doubles
-  'booleans
-  'variants
-  'dates
-  
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
-  If Me.lblUID.Caption = "" Then GoTo exit_here
-  If Not cptMetricsSettingsExist Then
-    Call cptShowMetricsSettings_frm(True)
-    If Not cptMetricsSettingsExist Then
-      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required"
-      GoTo exit_here
-    End If
-  End If
-  If CLng(Me.lblUID.Caption) > 0 Then
-    lngUID = CLng(Me.lblUID.Caption)
-    lngEV = CLng(Replace(Me.txtEV.Value, "%", ""))
-    lngEVPField = cptGetSetting("Metrics", "cboEVP")
-    OpenUndoTransaction "Update EV% on UID " & lngUID & " to " & lngEV & "%"
-    ActiveProject.Tasks.UniqueID(lngUID).SetField lngEVPField, lngEV
-    CloseUndoTransaction
-  End If
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptQBD_frm", "cmdCapture_Click", Err, Erl)
-  Resume exit_here
-End Sub
-
 Private Sub cmdDeleteStep_Click()
   'objects
   Dim oRecordset As ADODB.Recordset
@@ -275,6 +234,7 @@ Private Sub cmdExport_Click()
   Dim strFile As String
   Dim strGroupBy As String
   'longs
+  Dim lngCol As Long
   Dim lngItem As Long
   Dim lngField As Long
   Dim lngLastRow As Long
@@ -308,11 +268,9 @@ Private Sub cmdExport_Click()
 try:
     strMsg = "Group QBDs in a Worksheet per what? (leave blank for a single Worksheet)" & vbCrLf & vbCrLf
     strMsg = strMsg & "Pro Tip:" & vbCrLf
-    strMsg = strMsg & "> Include multiple field names as comma-separated list"
+    strMsg = strMsg & "> Include multiple field names as comma-separated list" & vbCrLf
     strMsg = strMsg & "> To group into worksheets, wrap first item in brackets (e.g., [WPM],WPCN)"
     strGroupBy = InputBox(strMsg, "Group by?", strGroupBy)
-    
-    Stop
     blnValid = True
     For Each vField In Split(strGroupBy, ",")
       On Error Resume Next
@@ -410,8 +368,8 @@ try:
         oWorksheet.Cells(lngLastRow, 2 + UBound(Split(strGroupBy, ","))) = .Fields("STEP_ORDER")
         oWorksheet.Cells(lngLastRow, 3 + UBound(Split(strGroupBy, ","))) = .Fields("STEP_NAME")
         oWorksheet.Cells(lngLastRow, 4 + UBound(Split(strGroupBy, ","))) = .Fields("STEP_WEIGHT")
-        oWorksheet.Cells(lngLastRow, 5 + UBound(Split(strGroupBy, ","))) = .Fields("STEP_PF")
-        oWorksheet.Cells(lngLastRow, 6 + UBound(Split(strGroupBy, ","))) = .Fields("STEP_AF")
+        oWorksheet.Cells(lngLastRow, 5 + UBound(Split(strGroupBy, ","))) = IIf(.Fields("STEP_PF") = 0, "NA", .Fields("STEP_PF"))
+        oWorksheet.Cells(lngLastRow, 6 + UBound(Split(strGroupBy, ","))) = IIf(.Fields("STEP_AF") = 0, "NA", .Fields("STEP_AF"))
         oWorksheet.Cells(lngLastRow, 7 + UBound(Split(strGroupBy, ","))) = .Fields("STEP_PERCENT")
         Set oWorksheet = Nothing
         .MoveNext
@@ -429,13 +387,19 @@ try:
       .SplitColumn = 0
       .FreezePanes = True
     End With
+    lngCol = oWorksheet.Rows(1).Find(what:="PF", lookat:=xlWhole).Column
+    oWorksheet.Columns(lngCol).NumberFormat = "m/d/yyyy"
+    lngCol = oWorksheet.Rows(1).Find(what:="AF", lookat:=xlWhole).Column
+    oWorksheet.Columns(lngCol).NumberFormat = "m/d/yyyy"
     oWorksheet.Columns.AutoFit
   Next oWorksheet
   oWorkbook.Sheets(1).Activate
   
+  'todo: format PF and AF as date
   'todo: alphabetize the worksheets
   'todo: split into worksheets optional
   'todo: <WPM>,WPCN,EVT or *WPM*,WPCN,EVT
+  'todo: should we allow PF=NA?
   
 exit_here:
   On Error Resume Next

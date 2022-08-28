@@ -4,11 +4,15 @@ Option Explicit
 
 Sub cptShowQBD_frm()
   'objects
+  Dim oTasks As MSProject.Tasks
   Dim oRecordset As ADODB.Recordset
   'strings
+  Dim strLOE As String
   Dim strFile As String
   Dim strProgramAcronym As String
   'longs
+  Dim lngUID As Long
+  Dim lngLOEField As Long
   'integers
   'doubles
   'booleans
@@ -16,7 +20,16 @@ Sub cptShowQBD_frm()
   'dates
   Dim dtStatus As Date
   
+  On Error Resume Next
+  Set oTasks = ActiveSelection.Tasks
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If Tasks Is Nothing Then GoTo exit_here
+  If oTasks.Count > 1 Then
+    MsgBox "Please select a single task.", vbExclamation + vbOKOnly, "Invalid Selection"
+    GoTo exit_here
+  End If
+  
+  lngUID = ActiveSelection.Tasks(1).UniqueID
   
   'get/set program acronym
   strProgramAcronym = cptGetProgramAcronym
@@ -28,6 +41,15 @@ Sub cptShowQBD_frm()
     GoTo exit_here
   Else
     dtStatus = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
+  End If
+  
+  'ensure settings exist
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
+      GoTo exit_here
+    End If
   End If
   
   strFile = cptDir & "\settings\cpt-qbd.adtg"
@@ -50,6 +72,7 @@ Sub cptShowQBD_frm()
   End If
 
   With cptQBD_frm
+    .Caption = "Quantifiable Backup Data (" & cptGetVersion("cptQBD_frm") & ")"
     .lboHeader.Clear
     .lboHeader.AddItem
     .lboHeader.List(0, 0) = "#"
@@ -58,7 +81,23 @@ Sub cptShowQBD_frm()
     .lboHeader.List(0, 3) = "PF"
     .lboHeader.List(0, 4) = "AF"
     .lboHeader.List(0, 5) = "%"
+    .lblSource.Caption = strFile
   End With
+
+  'limit to non-LOE tasks
+  lngLOEField = CLng(cptGetSetting("Metrics", "cboLOEField"))
+  strLOE = cptGetSetting("Metrics", "txtLOE")
+  If ActiveSelection.Tasks.UniqueID(lngUID).GetField(lngLOEField) = strLOE Then
+    MsgBox "QBD not allowed on LOE fields.", vbCritical + vbOKOnly, "Discrete Only"
+    cptQBD_frm.cmdAddStep.Enabled = False
+    cptQBD_frm.cmdDeleteStep.Enabled = False
+    cptQBD_frm.cmdImport.Enabled = False
+    GoTo exit_here
+  Else
+    cptQBD_frm.cmdAddStep.Enabled = True
+    cptQBD_frm.cmdDeleteStep.Enabled = True
+    cptQBD_frm.cmdImport.Enabled = True
+  End If
 
   Call cptUpdateQBDForm
 
@@ -66,6 +105,7 @@ Sub cptShowQBD_frm()
 
 exit_here:
   On Error Resume Next
+  Set oTasks = Nothing
   Set oRecordset = Nothing
 
   Exit Sub
@@ -79,9 +119,11 @@ Sub cptUpdateQBDForm()
   Dim oTasks As MSProject.Tasks
   Dim oRecordset As ADODB.Recordset
   'strings
+  Dim strLOE As String
   Dim strFile As String
   Dim strProgramAcronym As String
   'longs
+  Dim lngLOEField As String
   Dim lngSubUID As Long
   Dim lngUID As Long
   'integers
@@ -130,6 +172,30 @@ Sub cptUpdateQBDForm()
     lngSubUID = oTasks(1).UniqueID
   End If
   
+  'ensure settings exist
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."""
+      GoTo exit_here
+    End If
+  End If
+  
+  'limit to non-LOE
+  lngLOEField = CLng(cptGetSetting("Metrics", "cboLOEField"))
+  strLOE = cptGetSetting("Metrics", "txtLOE")
+  If ActiveProject.Tasks.UniqueID(lngUID).GetField(lngLOEField) = strLOE Then
+    MsgBox "QBD not allowed on LOE fields.", vbCritical + vbOKOnly, "Discrete Only"
+    cptQBD_frm.cmdAddStep.Enabled = False
+    cptQBD_frm.cmdDeleteStep.Enabled = False
+    cptQBD_frm.cmdImport.Enabled = False
+    GoTo exit_here
+  Else
+    cptQBD_frm.cmdAddStep.Enabled = True
+    cptQBD_frm.cmdDeleteStep.Enabled = True
+    cptQBD_frm.cmdImport.Enabled = True
+  End If
+    
   'get file
   strFile = cptDir & "\settings\cpt-qbd.adtg"
   Set oRecordset = CreateObject("ADODB.Recordset")
@@ -209,6 +275,24 @@ Sub cptRefreshQBDCalc()
       Next lngItem
       .txtWeights.Value = lngWeights
       .txtEV.Value = Format((lngPercent / lngWeights) * 100, "0")
+    End If
+  End With
+
+  If Not cptMetricsSettingsExist Then
+    Call cptShowMetricsSettings_frm(True)
+    If Not cptMetricsSettingsExist Then
+      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required"
+      GoTo exit_here
+    End If
+  End If
+  With cptQBD_frm
+    If CLng(.lblUID.Caption) > 0 Then
+      lngUID = CLng(.lblUID.Caption)
+      lngEV = CLng(Replace(.txtEV.Value, "%", ""))
+      lngEVPField = cptGetSetting("Metrics", "cboEVP")
+      ActiveProject.Tasks.UniqueID(lngUID).SetField lngEVPField, lngEV
+    Else
+      'todo: do something
     End If
   End With
 
