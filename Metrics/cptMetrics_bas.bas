@@ -2802,7 +2802,7 @@ next_task:
       '=MATCH(BCWP,C2:C160,1)
       strFormula = "=MATCH(BCWP,"
       strFormula = strFormula & oWorksheet.Range(oWorksheet.[C2], oWorksheet.[C2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",1)"
-      oWorksheet.Cells(lngES + 3, 7).Formula = strFormula
+      oWorksheet.Cells(lngES + 3, 7).FormulaArray = strFormula
       oWorksheet.Names.Add "ES", oWorksheet.Cells(lngES + 3, 7)
       oWorksheet.Cells(lngES + 3, 8) = "weeks"
       'AD = duration consumed to hit bcwp
