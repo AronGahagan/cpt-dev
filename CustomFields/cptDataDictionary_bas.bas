@@ -132,6 +132,7 @@ Dim vFieldScope As Variant
           blnLookupTable = False
           On Error Resume Next
           blnLookupTable = Len(CustomFieldValueListGetItem(lngField, pjValueListValue, 1)) > 0
+          'If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 <- don't put this here
           
           strAttributes = ""
           If blnLookupTable Then
@@ -181,7 +182,7 @@ Dim vFieldScope As Variant
             
             If blnLookups Then 'use data validation
               'name the range
-              wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + intListItem, lngLookupCol)).Address(True, True), xllistobjecthasheaders:=1).Name = UCase(Replace(FieldConstantToFieldName(lngField), " ", "_"))
+              wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + intListItem, lngLookupCol)), xlListObjectHasHeaders:=1).Name = UCase(Replace(FieldConstantToFieldName(lngField), " ", "_"))
               wsLookups.Columns(lngLookupCol).AutoFit
               wsLookups.Columns(lngLookupCol + 1).ColumnWidth = 2
               With oWorksheet.Cells(lngRow, 6).Validation
@@ -263,7 +264,7 @@ next_field:
         
         If blnLookups Then 'use validation
           'name the range
-          wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + oLookupTable.Count, lngLookupCol)).Address(True, True), xllistobjecthasheaders:=1).Name = UCase(Replace(FieldConstantToFieldName(lngField), " ", "_"))
+          wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + oLookupTable.Count, lngLookupCol)), xlListObjectHasHeaders:=1).Name = UCase(Replace(FieldConstantToFieldName(lngField), " ", "_"))
           wsLookups.Columns(lngLookupCol).AutoFit
           wsLookups.Columns(lngLookupCol + 1).ColumnWidth = 2
           With oWorksheet.Cells(lngRow, 6).Validation
