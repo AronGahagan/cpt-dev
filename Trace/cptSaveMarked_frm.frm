@@ -98,7 +98,7 @@ End Sub
 
 Private Sub cmdRemove_Click()
   'objects
-  Dim rstMarked As Object 'ADODB.Recordset 'Object
+  Dim rstMarked As ADODB.Recordset 'Object
   'strings
   Dim strMarked As String
   'longs
@@ -123,13 +123,13 @@ Private Sub cmdRemove_Click()
   strMarked = cptDir & "\cpt-marked.adtg"
   rstMarked.Open strMarked
   rstMarked.Filter = "TSTAMP<>#" & dtTimestamp & "#"
-  rstMarked.Save
+  rstMarked.Save strMarked, adPersistADTG
   rstMarked.Close
   'remove from marked details
   strMarked = cptDir & "\cpt-marked-details.adtg"
   rstMarked.Open strMarked
   rstMarked.Filter = "TSTAMP<>#" & dtTimestamp & "#"
-  rstMarked.Save
+  rstMarked.Save strMarked, adPersistADTG
   rstMarked.Close
   
   Call cptUpdateMarked
@@ -166,7 +166,7 @@ End Sub
 Private Sub lboMarked_Click()
   'objects
   Dim oTask As Task
-  Dim rstMarked As Object 'ADODB.Recordset 'Object
+  Dim rstMarked As ADODB.Recordset 'Object
   'strings
   Dim strMarked As String
   'longs

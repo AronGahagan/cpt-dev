@@ -134,8 +134,8 @@ End Sub
 
 Sub cptSaveMarked()
   'objects
-  Dim oTask As Task 'Object
-  Dim rstMarked As Object 'ADODB.Recordset 'Object
+  Dim oTask As MSProject.Task
+  Dim rstMarked As ADODB.Recordset
   'strings
   Dim strProject As String
   Dim strGUID As String
@@ -171,6 +171,10 @@ Sub cptSaveMarked()
     GoTo exit_here
   End If
 
+  If ActiveProject.Subprojects.Count > 0 Then
+    MsgBox "Saved set will use UIDs keyed to this master project. You must, therefore, import this saved set back to this master project. Importing to the standalone subproject will fail.", vbExclamation + vbOKOnly, "Nota Bene"
+  End If
+
   strDescription = InputBox("Describe this capture:", "Save Marked")
   If Len(strDescription) = 0 Then
     MsgBox "No description; nothing saved.", vbExclamation + vbOKOnly
@@ -179,7 +183,7 @@ Sub cptSaveMarked()
   dtTimestamp = Now()
   rstMarked.AddNew Array(1, 2, 3), Array(dtTimestamp, strProject, strDescription)
   rstMarked.Update
-  rstMarked.Save
+  rstMarked.Save strMarked, adPersistADTG
   rstMarked.Close
   
   Set rstMarked = CreateObject("ADODB.Recordset")
@@ -199,7 +203,7 @@ Sub cptSaveMarked()
     End If
 next_task:
   Next oTask
-  rstMarked.Save
+  rstMarked.Save strMarked, adPersistADTG
   rstMarked.Close
   
   dtTimestamp = 0
@@ -217,6 +221,6 @@ exit_here:
   
   Exit Sub
 err_here:
-  Call cptHandleErr("cptNetworkBrowser_bas", "cptSaveMarked", Err, Erl)
+  Call cptHandleErr("cptSaveMarked_bas", "cptSaveMarked", Err, Erl)
   Resume exit_here
 End Sub
