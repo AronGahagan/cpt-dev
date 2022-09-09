@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.10.3</cpt_version>
+'<cpt_version>v1.11.0</cpt_version>
 Option Explicit
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
@@ -1404,6 +1404,44 @@ Function cptGetSetting(strFeature As String, strSetting As String) As String
   End If
 End Function
 
+Function cptViewExists(strView As String) As Boolean
+  'objects
+  Dim oView As MSProject.View
+
+  On Error Resume Next
+  Set oView = ActiveProject.Views(strView)
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  cptViewExists = Not oView Is Nothing
+  
+exit_here:
+  On Error Resume Next
+  Set oView = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptViewExists", Err, Erl)
+  Resume exit_here
+End Function
+
+Function cptTableExists(strTable As String) As Boolean
+  'objects
+  Dim oTable As MSProject.Table
+
+  On Error Resume Next
+  Set oTable = ActiveProject.TaskTables(strTable)
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  cptTableExists = Not oTable Is Nothing
+  
+exit_here:
+  On Error Resume Next
+  Set oTable = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptTableExists", Err, Erl)
+  Resume exit_here
+End Function
+
 Function cptFilterExists(strFilter As String) As Boolean
   'objects
   Dim oFilter As MSProject.Filter
@@ -1420,6 +1458,25 @@ exit_here:
   Exit Function
 err_here:
   Call cptHandleErr("cptCore_bas", "cptFilterExists", Err, Erl)
+  Resume exit_here
+End Function
+
+Function cptGroupExists(strGroup As String) As Boolean
+  'objects
+  Dim oGroup As MSProject.Group
+
+  On Error Resume Next
+  Set oGroup = ActiveProject.TaskGroups(strGroup)
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  cptGroupExists = Not oGroup Is Nothing
+  
+exit_here:
+  On Error Resume Next
+  Set oGroup = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptGroupExists", Err, Erl)
   Resume exit_here
 End Function
 
