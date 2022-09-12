@@ -1,15 +1,13 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
-'<cpt_version>v0.1.1</cpt_version>
+'<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Public oInsertedIndex As Object
+Public oSubMap As Scripting.Dictionary
 
 Sub cptShowNetworkBrowser_frm()
   'objects
   Dim oTask As Task, oLink As TaskDependency
   'strings
   'longs
-  Dim lngInsertedIndex As Long
-  Dim lngInsertedUID As Long
   'integers
   'doubles
   'booleans
@@ -19,20 +17,6 @@ Sub cptShowNetworkBrowser_frm()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not cptFilterExists("Marked") Then cptCreateFilter ("Marked")
-
-  'get multiplier
-  Set oInsertedIndex = CreateObject("Scripting.Dictionary")
-  If ActiveProject.Subprojects.Count > 0 Then
-    For Each oTask In ActiveProject.Tasks
-      If Not oTask.Summary Then
-        lngInsertedUID = ActiveProject.Subprojects(oTask.Project).InsertedProjectSummary.UniqueID
-        lngInsertedIndex = Round(oTask.UniqueID / 4194304, 0)
-        If Not oInsertedIndex.Exists(lngInsertedUID) Then
-          oInsertedIndex.Add lngInsertedUID, lngInsertedIndex
-        End If
-      End If
-    Next
-  End If
   
   Call cptStartEvents
   Call cptShowPreds
@@ -65,8 +49,6 @@ Dim oLink As TaskDependency, oTask As Task
 Dim strProject As String
 'longs
 Dim lngLinkUID As Long
-Dim lngSuccIndex As Long
-Dim lngPredIndex As Long
 Dim lngItem As Long
 Dim lngFactor As Long
 Dim lngTasks As Long
@@ -75,9 +57,7 @@ Dim lngTasks As Long
 'booleans
 Dim blnSubprojects As Boolean
 'variants
-Dim vSuccessors As Variant
 Dim vControl As Variant
-Dim vPredecessors As Variant
 'dates
   
   On Error Resume Next
@@ -89,6 +69,32 @@ Dim vPredecessors As Variant
   lngTasks = ActiveSelection.Tasks.Count
   'determine if there are subprojects loaded (this affects displayed UIDs)
   blnSubprojects = ActiveProject.Subprojects.Count > 0
+  
+  If blnSubprojects Then
+    If oSubMap Is Nothing Then
+      Set oSubMap = CreateObject("Scripting.Dictionary")
+    Else
+      oSubMap.RemoveAll
+    End If
+    For Each oSubproject In ActiveProject.Subprojects
+      If InStr(oSubproject.Path, "\") > 0 Then 'offline
+        oSubMap.Add Replace(Dir(oSubproject.Path), ".mpp", ""), 0
+      ElseIf InStr(oSubproject.Path, "<>") > 0 Then 'online
+        oSubMap.Add oSubproject.Path, 0
+      End If
+    Next oSubproject
+    For Each oTask In ActiveProject.Tasks
+      If oSubMap.Exists(oTask.Project) Then
+        If oSubMap(oTask.Project) > 0 Then GoTo next_mapping_task
+        If Not oTask.Summary Then
+          oSubMap.Item(oTask.Project) = CLng(oTask.UniqueID / 4194304)
+        End If
+      End If
+next_mapping_task:
+    Next oTask
+  End If
+  
+  Set oTask = ActiveSelection.Tasks(1)
   
   With cptNetworkBrowser_frm
     Select Case lngTasks
@@ -147,7 +153,6 @@ Dim vPredecessors As Variant
   End If
     
   'reset both lbos once in an array here
-  'todo: add non-standard link types here SS,FF,SF
   For Each vControl In Array("lboPredecessors", "lboSuccessors")
     With cptNetworkBrowser_frm.Controls(vControl)
       .Clear
@@ -158,7 +163,7 @@ Dim vPredecessors As Variant
         .Column(0, .ListCount - 1) = "UID[M]"
         .Column(1, .ListCount - 1) = "UID[S]"
       Else
-        .ColumnWidths = "24.95 pt;0 pt;24.95 pt;24.95 pt;24.95 pt;45 pt;35 pt;225 pt;35 pt"
+        .ColumnWidths = "35 pt;0 pt;24.95 pt;24.95 pt;24.95 pt;45 pt;35 pt;225 pt;35 pt"
         .Column(0, .ListCount - 1) = "UID"
       End If
       .Column(2, .ListCount - 1) = "ID"
@@ -172,27 +177,19 @@ Dim vPredecessors As Variant
   Next
   
   'capture list of preds with valid native UIDs
-  vPredecessors = Split(oTask.UniqueIDPredecessors, ",")
-  lngPredIndex = 0 'make my own index TEST
-  vSuccessors = Split(oTask.UniqueIDSuccessors, ",")
-  lngSuccIndex = 0
   For Each oLink In oTask.TaskDependencies
     'limit to only predecessors
     If oLink.To.Guid = oTask.Guid Then 'it's a predecessor to selected task
-      lngPredIndex = lngPredIndex + 1
       'handle external tasks
       If blnSubprojects And oLink.From.ExternalTask Then
         'fix the returned UID
-        lngLinkUID = CLng(Mid(vPredecessors(lngPredIndex - 1), InStrRev(vPredecessors(lngPredIndex - 1), "\") + 1))
+        lngLinkUID = oLink.From.GetField(185073906) Mod 4194304
         strProject = oLink.From.Project
-        If InStr(oLink.From.Project, "<>\") > 0 Then
-          strProject = Replace(strProject, "<>\", "")
-        ElseIf InStr(oLink.From.Project, "\") > 0 Then
-          strProject = Replace(Dir(strProject), ".mpp", "")
-        Else
-          'todo: what if it's on a network drive
+        If InStr(oLink.From.Project, "\") > 0 Then
+          strProject = Replace(strProject, ".mpp", "")
+          strProject = Mid(strProject, InStrRev(strProject, "\") + 1)
         End If
-        lngFactor = oInsertedIndex(ActiveProject.Subprojects(strProject).InsertedProjectSummary.UniqueID)
+        lngFactor = oSubMap(strProject)
         lngLinkUID = (lngFactor * 4194304) + lngLinkUID
       Else
         If blnSubprojects Then
@@ -205,30 +202,35 @@ Dim vPredecessors As Variant
       With cptNetworkBrowser_frm.lboPredecessors
         .AddItem
         .Column(0, .ListCount - 1) = lngLinkUID
-        .Column(1, .ListCount - 1) = lngLinkUID Mod 4194304
-        .Column(2, .ListCount - 1) = IIf(blnSubprojects, ActiveProject.Tasks.UniqueID(lngLinkUID).ID, oLink.From.ID)
+        .Column(1, .ListCount - 1) = lngLinkUID Mod 4194304 & IIf(oLink.From.ExternalTask, "x", "")
+        'todo: sort this out - what do you want to show for external links in a standalone project file?
+        If blnSubprojects And oLink.From.ExternalTask Then
+          .Column(2, .ListCount - 1) = ActiveProject.Tasks.UniqueID(lngLinkUID).ID
+          .Column(7, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
+        ElseIf Not blnSubprojects And oLink.From.ExternalTask Then
+          .Column(2, .ListCount - 1) = oLink.From.ID
+          .Column(7, .ListCount - 1) = IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
+        Else
+          .Column(2, .ListCount - 1) = oLink.From.ID
+          .Column(7, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
+        End If
         .Column(3, .ListCount - 1) = Choose(oLink.Type + 1, "FF", "FS", "SF", "SS") & IIf(oLink.Type <> pjFinishToStart, "*", "")
         .Column(4, .ListCount - 1) = Round(oLink.Lag / (ActiveProject.HoursPerDay * 60), 2) & "d"
         .Column(5, .ListCount - 1) = Format(oLink.From.Finish, "mm/dd/yy")
         .Column(6, .ListCount - 1) = Round(oLink.From.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
-        .Column(7, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
         .Column(8, .ListCount - 1) = IIf(oLink.From.Critical, "X", "")
       End With
     ElseIf oLink.To.Guid <> oTask.Guid Then 'it's a successor
-      lngSuccIndex = lngSuccIndex + 1
       'handle external tasks
       If blnSubprojects And oLink.To.ExternalTask Then
         'fix the returned UID
-        lngLinkUID = CLng(Mid(vSuccessors(lngSuccIndex - 1), InStrRev(vSuccessors(lngSuccIndex - 1), "\") + 1))
+        lngLinkUID = oLink.To.GetField(185073906) Mod 4194304
         strProject = oLink.To.Project
-        If InStr(oLink.To.Project, "<>\") > 0 Then
-          strProject = Replace(strProject, "<>\", "")
-        ElseIf InStr(oLink.To.Project, "\") > 0 Then
-          strProject = Replace(Dir(strProject), ".mpp", "")
-        Else
-          'todo: what if it's on a network drive
+        If InStr(oLink.To.Project, "\") > 0 Then
+          strProject = Replace(strProject, ".mpp", "")
+          strProject = Mid(strProject, InStrRev(strProject, "\") + 1)
         End If
-        lngFactor = oInsertedIndex(ActiveProject.Subprojects(strProject).InsertedProjectSummary.UniqueID)
+        lngFactor = oSubMap(strProject)
         lngLinkUID = (lngFactor * 4194304) + lngLinkUID
       Else
         If blnSubprojects Then
@@ -241,13 +243,21 @@ Dim vPredecessors As Variant
       With cptNetworkBrowser_frm.lboSuccessors
         .AddItem
         .Column(0, .ListCount - 1) = lngLinkUID
-        .Column(1, .ListCount - 1) = lngLinkUID Mod 4194304
-        .Column(2, .ListCount - 1) = IIf(blnSubprojects, ActiveProject.Tasks.UniqueID(lngLinkUID).ID, oLink.To.ID)
+        .Column(1, .ListCount - 1) = lngLinkUID Mod 4194304 & IIf(oLink.To.ExternalTask, "x", "")
+        If blnSubprojects And oLink.To.ExternalTask Then
+          .Column(2, .ListCount - 1) = ActiveProject.Tasks.UniqueID(lngLinkUID).ID
+          .Column(7, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.To.Name) > 65, Left(oLink.To.Name, 65) & "... ", oLink.To.Name)
+        ElseIf Not blnSubprojects And oLink.To.ExternalTask Then
+          .Column(2, .ListCount - 1) = oLink.To.ID
+          .Column(7, .ListCount - 1) = IIf(Len(oLink.To.Name) > 65, Left(oLink.To.Name, 65) & "... ", oLink.To.Name)
+        Else
+          .Column(2, .ListCount - 1) = oLink.To.ID
+          .Column(7, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.To.Name) > 65, Left(oLink.To.Name, 65) & "... ", oLink.To.Name)
+        End If
         .Column(3, .ListCount - 1) = Choose(oLink.Type + 1, "FF", "FS", "SF", "SS") & IIf(oLink.Type <> pjFinishToStart, "*", "")
         .Column(4, .ListCount - 1) = Round(oLink.Lag / (ActiveProject.HoursPerDay * 60), 2) & "d"
         .Column(5, .ListCount - 1) = Format(oLink.To.Start, "mm/dd/yy")
         .Column(6, .ListCount - 1) = Round(oLink.To.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
-        .Column(7, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.To.Name) > 65, Left(oLink.To.Name, 65) & "... ", oLink.To.Name)
         .Column(8, .ListCount - 1) = IIf(oLink.To.Critical, "X", "")
       End With
     End If
@@ -343,7 +353,7 @@ next_task:
     cptSpeed True
     If Edition = pjEditionProfessional Then
       If Not cptFilterExists("Active Tasks") Then
-        FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, overwriteexisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=True
+        FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, overwriteexisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
       End If
       FilterApply "Active Tasks"
     ElseIf Edition = pjEditionStandard Then
