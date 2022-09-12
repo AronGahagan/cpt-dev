@@ -14,7 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v0.1.1</cpt_version>
+'<cpt_version>v1.0.0</cpt_version>
 Option Explicit
 
 Private Sub cmdBack_Click()
@@ -49,7 +49,7 @@ Private Sub cmdClearHistory_Click()
 End Sub
 
 Private Sub cmdClose_Click()
-  Set oInsertedIndex = Nothing
+  Set oSubMap = Nothing
   Unload Me
 End Sub
 
@@ -260,7 +260,7 @@ Sub lboHistory_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
 End Sub
 
 Sub lboPredecessors_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
-Dim lngTaskID As Long
+Dim lngTaskUID As Long
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -268,11 +268,11 @@ Dim lngTaskID As Long
   With Me.lboHistory
     .AddItem ActiveSelection.Tasks.Item(1).UniqueID, 0
   End With
-  lngTaskID = CLng(Me.lboPredecessors.List(Me.lboPredecessors.ListIndex, 0))
-  If lngTaskID > 0 Then
+  lngTaskUID = CLng(Me.lboPredecessors.List(Me.lboPredecessors.ListIndex, 0))
+  If lngTaskUID > 0 Then
     WindowActivate TopPane:=True
     On Error Resume Next
-    If Not Find("Unique ID", "equals", lngTaskID) Then
+    If Not Find("Unique ID", "equals", lngTaskUID) Then
       If ActiveWindow.TopPane.View.Name = "Network Diagram" Then GoTo exit_here
       If MsgBox("Task is currently hidden - remove filters and show it?", vbQuestion + vbYesNo, "Confirm Apocalypse") = vbYes Then
         FilterClear
@@ -288,14 +288,14 @@ Dim lngTaskID As Long
           End If
         End If
         If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-        If Not Find("Unique ID", "equals", lngTaskID) Then
+        If Not Find("Unique ID", "equals", lngTaskUID) Then
           MsgBox "Task not found.", vbExclamation + vbOKOnly, "Missing Task?"
         End If
       Else
         GoTo exit_here
       End If
     End If
-    Me.lboHistory.AddItem lngTaskID, 0
+    Me.lboHistory.AddItem lngTaskUID, 0
     Me.lboHistory.ListIndex = Me.lboHistory.TopIndex
     Call cptShowPreds
   End If
@@ -308,7 +308,7 @@ err_here:
 End Sub
 
 Private Sub lboSuccessors_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
-Dim lngTaskID As Long, Task As Task
+Dim lngTaskUID As Long, Task As Task
 
   On Error Resume Next
   If Me.lboSuccessors.ListIndex <= 0 Then GoTo exit_here
@@ -325,12 +325,12 @@ Dim lngTaskID As Long, Task As Task
       End If
     End If
   End With
-  lngTaskID = CLng(Me.lboSuccessors.List(Me.lboSuccessors.ListIndex, 0))
+  lngTaskUID = CLng(Me.lboSuccessors.List(Me.lboSuccessors.ListIndex, 0))
   WindowActivate TopPane:=True
   On Error Resume Next
-  If Not Find("Unique ID", "equals", lngTaskID) Then
+  If Not Find("Unique ID", "equals", lngTaskUID) Then
     If ActiveWindow.TopPane.View.Name = "Network Diagram" Then
-      ActiveProject.Tasks(lngTaskID).Marked = True
+      ActiveProject.Tasks(lngTaskUID).Marked = True
       FilterApply "Marked"
       GoTo exit_here
     End If
@@ -348,14 +348,14 @@ Dim lngTaskID As Long, Task As Task
         End If
       End If
       If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-      If Not Find("Unique ID", "equals", lngTaskID) Then
+      If Not Find("Unique ID", "equals", lngTaskUID) Then
         MsgBox "Task not found.", vbExclamation + vbOKOnly, "Missing Task?"
       End If
     End If
   Else
     GoTo exit_here
   End If
-  Me.lboHistory.AddItem lngTaskID, 0
+  Me.lboHistory.AddItem lngTaskUID, 0
   Me.lboHistory.ListIndex = Me.lboHistory.TopIndex
   Call cptShowPreds
   

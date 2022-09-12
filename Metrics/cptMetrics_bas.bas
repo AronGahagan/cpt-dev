@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.2.2</cpt_version>
+'<cpt_version>v1.2.3</cpt_version>
 Option Explicit
 
 Sub cptGetBAC()
@@ -3080,12 +3080,13 @@ End Sub
 
 Sub cptFindOutOfSequence()
   'objects
+  Dim oSubproject As MSProject.Subproject
+  Dim oSubMap As Scripting.Dictionary
   Dim oTask As Task
   Dim oTaskDependency As TaskDependency
   Dim oExcel As Excel.Application
   Dim oWorkbook As Workbook
   Dim oWorksheet As Worksheet
-  'Dim oInsertedIndex As Object 'Scripting.Dictionary
   'strings
   Dim strProject As String
   Dim strMacro As String
@@ -3095,12 +3096,9 @@ Sub cptFindOutOfSequence()
   Dim strDir As String
   Dim strFile As String
   'longs
-  'Dim lngInsertedUID As Long
   Dim lngFactor As Long
   Dim lngToUID As Long
   Dim lngFromUID As Long
-  Dim lngSubproject As Long
-  Dim lngSubprojects As Long
   Dim lngTask As Long
   Dim lngTasks As Long
   Dim lngLastRow As Long
@@ -3117,18 +3115,36 @@ Sub cptFindOutOfSequence()
 
   cptSpeed True
   
-  lngSubprojects = ActiveProject.Subprojects.Count
-  blnSubprojects = lngSubprojects > 0
+  blnSubprojects = ActiveProject.Subprojects.Count > 0
   If blnSubprojects Then
     'get correct task count
     lngTasks = ActiveProject.Tasks.Count
-    For lngSubproject = 1 To lngSubprojects
-      lngTasks = lngTasks + ActiveProject.Subprojects(lngSubproject).SourceProject.Tasks.Count
-    Next lngSubproject
+    'set up mapping
+    If oSubMap Is Nothing Then
+      Set oSubMap = CreateObject("Scripting.Dictionary")
+    Else
+      oSubMap.RemoveAll
+    End If
+    For Each oSubproject In ActiveProject.Subprojects
+      If InStr(oSubproject.Path, "\") > 0 Then 'offline
+        oSubMap.Add Replace(Dir(oSubproject.Path), ".mpp", ""), 0
+      ElseIf InStr(oSubproject.Path, "<>") > 0 Then 'online
+        oSubMap.Add oSubproject.Path, 0
+      End If
+      lngTasks = lngTasks + oSubproject.SourceProject.Tasks.Count
+    Next oSubproject
     For Each oTask In ActiveProject.Tasks
+      If oSubMap.Exists(oTask.Project) Then
+        If oSubMap(oTask.Project) > 0 Then GoTo next_mapping_task
+        If Not oTask.Summary Then
+          oSubMap.Item(oTask.Project) = CLng(oTask.UniqueID / 4194304)
+        End If
+      End If
+next_mapping_task:
       'todo: note that external tasks will not be included in this metric
       If Not oTask Is Nothing And Not oTask.ExternalTask Then oTask.Marked = False
     Next oTask
+    
   Else
     lngTasks = ActiveProject.Tasks.Count
     For Each oTask In ActiveProject.Tasks
@@ -3171,7 +3187,7 @@ Sub cptFindOutOfSequence()
             strProject = Replace(strProject, ".mpp", "")
             strProject = Mid(strProject, InStrRev(strProject, "\") + 1)
           End If
-          lngFactor = ActiveProject.Subprojects(strProject).InsertedProjectSummary.UniqueID + 1
+          lngFactor = oSubMap(strProject)
           lngFromUID = (lngFactor * 4194304) + lngFromUID
         Else
           If blnSubprojects Then
@@ -3359,6 +3375,8 @@ next_task:
   
 exit_here:
   On Error Resume Next
+  Set oSubproject = Nothing
+  Set oSubMap = Nothing
   Application.StatusBar = ""
   oExcel.EnableEvents = True
   cptSpeed False
