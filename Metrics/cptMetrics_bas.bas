@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.2.3</cpt_version>
+'<cpt_version>v1.3.2</cpt_version>
 Option Explicit
 
 Sub cptGetBAC()
@@ -776,9 +776,9 @@ err_here:
   Resume exit_here
 End Function
 
-
 Sub cptCaptureWeek()
   'objects
+  Dim oNotes As Scripting.Dictionary
   Dim oTasks As Tasks
   Dim oTask As Task
   Dim rst As ADODB.Recordset
@@ -800,6 +800,12 @@ Sub cptCaptureWeek()
   Dim dtStatus As Date
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'ensure status date
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "Project has no Status Date.", vbCritical + vbOKOnly, "Cannot Proceed"
+    GoTo exit_here
+  End If
   
   'ensure program acronym
   strProject = cptGetProgramAcronym
@@ -833,20 +839,28 @@ Sub cptCaptureWeek()
     rst.Fields.Append "TASK_RD", adInteger          '11
     rst.Fields.Append "TASK_FINISH", adDate         '12
     rst.Fields.Append "STATUS_DATE", adDate         '13
+    rst.Fields.Append "NOTE", adVarChar, 255        '14
+    rst.Fields.Append "EV", adInteger               '15
     rst.Open
   Else
     rst.Open strFile
   End If
-  
+    
   dtStatus = ActiveProject.StatusDate
   If rst.RecordCount > 0 Then
     rst.MoveFirst
     rst.Filter = "STATUS_DATE=#" & FormatDateTime(dtStatus, vbGeneralDate) & "# AND PROJECT='" & strProject & "'"
     If Not rst.EOF Then
-      If MsgBox("Status Already Imported for WE " & FormatDateTime(dtStatus, vbShortDate) & "." & vbCrLf & vbCrLf & "Overwrite it?", vbExclamation + vbYesNo, "Overwrite?") = vbYes Then
+      If MsgBox("Status Already Imported for WE " & FormatDateTime(dtStatus, vbShortDate) & "." & vbCrLf & vbCrLf & "Overwrite it?" & vbCrLf & vbCrLf & "(Your Status Notes will be preserved.)", vbExclamation + vbYesNo, "Overwrite?") = vbYes Then
+        Set oNotes = New Dictionary
         rst.MoveFirst
         Do While Not rst.EOF
-          If rst("PROJECT") = strProject And rst("STATUS_DATE") = FormatDateTime(dtStatus, vbGeneralDate) Then rst.Delete adAffectCurrent
+          If rst("PROJECT") = strProject And rst("STATUS_DATE") = FormatDateTime(dtStatus, vbGeneralDate) Then
+            If Len(rst("NOTE")) > 0 Then
+              oNotes.Add CStr(rst("TASK_UID")), CStr(rst("NOTE"))
+            End If
+            rst.Delete adAffectCurrent
+          End If
           rst.MoveNext
         Loop
       Else
@@ -878,7 +892,7 @@ Sub cptCaptureWeek()
     If oTask.ExternalTask Then GoTo next_task 'skip external
     If oTask.Summary Then GoTo next_task 'skip summaries
     'If oTask.Milestone Then GoTo next_task 'skip milestones
-    If oTask.Resources.Count > 0 Or InStr(oTask.Name, "SVT") > 0 Then
+    'If oTask.Resources.Count > 0 Or InStr(oTask.Name, "SVT") > 0 Then
       rst.AddNew
       rst(0) = strProject
       rst(1) = oTask.UniqueID
@@ -902,11 +916,16 @@ Sub cptCaptureWeek()
       rst(11) = Round(oTask.RemainingDuration / (60 * 8), 0)
       rst(12) = FormatDateTime(oTask.Finish, vbGeneralDate)
       rst(13) = FormatDateTime(ActiveProject.StatusDate, vbGeneralDate)
+      If Not oNotes Is Nothing Then
+        If oNotes.Exists(CStr(oTask.UniqueID)) Then
+          rst(14) = oNotes(CStr(oTask.UniqueID))
+        End If
+      End If
       rst.Update
-    End If
+    'End If
 next_task:
     lngTask = lngTask + 1
-    Application.StatusBar = lngTask & " / " & lngTasks & " (" & Format(lngTask / lngTasks, "0%")
+    Application.StatusBar = lngTask & " / " & lngTasks & " (" & Format(lngTask / lngTasks, "0%") & ")"
   Next oTask
   
   rst.Save strFile, adPersistADTG
@@ -917,6 +936,7 @@ do_not_overwrite:
   
 exit_here:
   On Error Resume Next
+  Set oNotes = Nothing
   Application.StatusBar = ""
   Set oTasks = Nothing
   Set oTask = Nothing
@@ -1407,7 +1427,6 @@ End Sub
 Sub cptGetTrend_SPI()
   cptGetTrend "SPI"
 End Sub
-
 
 Sub cptGetSPIDetail(ByRef oWorkbook As Excel.Workbook)
   'objects
@@ -2810,7 +2829,7 @@ next_task:
       '=MATCH(SD,A2:A160,0)
       strFormula = "=MATCH(SD,"
       strFormula = strFormula & oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",0)"
-      oWorksheet.Cells(lngES + 4, 7).Formula = strFormula
+      oWorksheet.Cells(lngES + 4, 7).FormulaArray = strFormula
       oWorksheet.Names.Add "AD", oWorksheet.Cells(lngES + 4, 7)
       oWorksheet.Cells(lngES + 4, 8) = "weeks"
       'SPI(t) = ES/ED
@@ -2845,7 +2864,7 @@ next_task:
       strFormula = strFormula & oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ")),"
       strFormula = strFormula & oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",0)"
       strFormula = strFormula & "-ES"
-      oWorksheet.Cells(lngES + 7, 7).Formula = strFormula
+      oWorksheet.Cells(lngES + 7, 7).FormulaArray = strFormula
       oWorksheet.Names.Add "PDWR_1", oWorksheet.Cells(lngES + 7, 7)
       oWorksheet.Cells(lngES + 7, 8) = "weeks"
       'RD = ETC DUR - AD
@@ -2857,7 +2876,7 @@ next_task:
       strFormula = strFormula & oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ")),"
       strFormula = strFormula & oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",0)"
       strFormula = strFormula & "-AD"
-      oWorksheet.Cells(lngES + 8, 7).Formula = strFormula
+      oWorksheet.Cells(lngES + 8, 7).FormulaArray = strFormula
       oWorksheet.Names.Add "RD", oWorksheet.Cells(lngES + 8, 7)
       oWorksheet.Cells(lngES + 8, 8) = "weeks"
       'TSPI(ed) = PDWR / RD (ETC)
