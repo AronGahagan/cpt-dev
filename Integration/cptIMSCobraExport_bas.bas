@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.8</cpt_version>
+'<cpt_version>v3.3.9</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -138,7 +138,8 @@ Sub Export_IMS()
 
         'populate listboxes
         Dim vArray As Variant
-        vArray = Split(Join(CustTextFields, ",") & Join(CustOLCodeFields, ",") & Join(EntFields, ","), ",")
+        vArray = Split(Join(CustTextFields, ",") & "," & Join(CustOLCodeFields, ",") & "," & Join(EntFields, ","), ",") 'v3.3.9
+        ReDim Preserve vArray(UBound(vArray) - 1) 'v3.3.9
         Call cptQuickSort(vArray, 0, UBound(vArray))
         .caID1Box.List = Split("WBS," & Join(vArray, ","), ",")
         .caID2Box.List = Split("<None>," & Join(vArray, ","), ",")
@@ -146,10 +147,11 @@ Sub Export_IMS()
         .wpBox.List = vArray
         .camBox.List = Split("Contact," & Join(vArray, ","), ",")
         .evtBox.List = vArray
-        .mswBox.List = Split("<None>,BaselineWork,BaselineCost,Work,Cost," & Join(vArray, ","), ",")
+        .mswBox.List = Split("<None>,BaselineWork,BaselineCost,Work,Cost," & Join(CustNumFields, ",") & "," & Join(vArray, ","), ",") 'v3.3.9
         .bcrBox.List = Split("<None>," & Join(vArray, ","), ",")
         .whatifBox.List = Split("<None>," & Join(vArray, ","), ",")
-        vArray = Split(Join(CustTextFields, ",") & Join(CustNumFields, ",") & Join(CustOLCodeFields, ",") & Join(EntFields, ","), ",")
+        vArray = Split(Join(CustTextFields, ",") & "," & Join(CustNumFields, ",") & "," & Join(CustOLCodeFields, ",") & "," & Join(EntFields, ","), ",") 'v3.3.9
+        ReDim Preserve vArray(UBound(vArray) - 1) 'v3.3.9
         Call cptQuickSort(vArray, 0, UBound(vArray))
         .msidBox.List = Split("<None>,UniqueID," & Join(vArray, ","), ",")
         Call cptQuickSort(CustNumFields, 1, UBound(CustNumFields))
@@ -308,7 +310,7 @@ Private Sub DataChecks(ByVal curProj As Project)
     Dim tAssBFin As String
     Dim tAssBWork As String
     Dim tempID As String
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim wpCount As Integer
@@ -1189,7 +1191,7 @@ End Sub
 
 Private Sub MPP_Export(ByVal curProj As Project)
 
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim subProjs As Subprojects
 
     destFolder = SetDirectory(curProj.ProjectSummaryTask.Project)
@@ -1216,7 +1218,7 @@ Private Sub MPP_Export(ByVal curProj As Project)
 End Sub
 Private Sub XML_Export(ByVal curProj As Project)
 
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim subProjs As Subprojects
 
     destFolder = SetDirectory(curProj.ProjectSummaryTask.Project)
@@ -1352,7 +1354,7 @@ Private Sub BCWP_Export(ByVal curProj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, ResName, MSWeight, ID, PCNT As String 'v3.3.0
     Dim Milestone As String
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -3070,7 +3072,7 @@ Private Sub ETC_Export(ByVal curProj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT, ShortID As String 'v3.3.5
     Dim Milestone As String
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -4006,7 +4008,7 @@ Private Sub BCWS_Export(ByVal curProj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, ShortID, PCNT As String 'v3.3.5
     Dim Milestone As String
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -4829,7 +4831,7 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, ShortID, PCNT As String 'v3.3.5
     Dim Milestone As String
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -5918,7 +5920,7 @@ Private Sub Get_WP_Descriptions(ByVal curProj As Project)
     Dim X As Integer
     '<issue47>
     Dim subProjs As Subprojects
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim curSProj As Project
     Dim t As Task '</issue47>
 
@@ -6100,7 +6102,7 @@ Private Function Find_BCRs(ByVal curProj As Project, ByVal fWP As String, ByVal 
     Dim X As Integer
     Dim tempBCRstr As String
     Dim subProjs As Subprojects
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim curSProj As Project
 
     i = 0
