@@ -610,6 +610,10 @@ Dim lngCleanUp As Long
   If cptModuleExists("cptCheckAssignments_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCheckAssignments"" label=""Check Assignments"" imageMso=""SynchronizationStatus"" onAction=""cptCheckAssignments"" visible=""true"" supertip=""Reconcile task vs assignment work, baselines, etc."" />"
   End If
+  If cptModuleExists("cptCostRateTables_bas") And cptModuleExists("cptCostRateTables_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCostRateTables"" onAction=""cptShowCostRateTables_frm""  size=""large"" visible=""true""  label=""Cost Rate Tables"" imageMso=""DataTypeCurrency"" />"
+  End If
   'mpm
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
