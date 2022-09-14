@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.11.0</cpt_version>
+'<cpt_version>v1.12.0</cpt_version>
 Option Explicit
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
@@ -618,8 +618,11 @@ End Sub
 
 Sub cptShowResetAll_frm()
   'objects
+  Dim oView As MSProject.View
   Dim rstSettings As Object 'ADODB.Recordset
   'strings
+  Dim strViewList As String
+  Dim strDefaultView As String
   Dim strOutlineLevel As String
   Dim strSettings As String
   Dim strFile As String
@@ -653,6 +656,25 @@ Sub cptShowResetAll_frm()
   'default to 2
   cptResetAll_frm.cboOutlineLevel.Value = 2
   
+  'populate cboViews
+  cptResetAll_frm.cboViews.Clear
+  For Each oView In ActiveProject.Views
+    If oView.Type = pjTaskItem Then
+      If oView.Screen = 1 Or oView.Screen = 14 Then
+        strViewList = strViewList & oView.Name & ","
+'        Debug.Print oView.Type & vbTab & Choose(oView.Type + 1, "pjTaskItem", "pjResourceItem", "pjOtherItem") & vbTab & oView.Name
+'        Debug.Print oView.Screen & vbTab & Choose(oView.Screen, "pjGantt", "pjNetworkDiagram", "pjRelationshipDiagram", "pjTaskForm", "pjTaskSheet", "pjResourceForm", "pjResourceSheet", "pjResourceGraph", "pjRSVDoNotUse", "pjTaskDetailsForm", "pjTaskNameForm", "pjResourceNameForm", "pjCalendar", "pjTaskUsage", "pjResourceUsage", "pjTimeline", "pjResourceScheduling")
+      End If
+    End If
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  Next oView
+  Set oView = Nothing
+  strViewList = Left(strViewList, Len(strViewList) - 1)
+  Dim vViewList As Variant
+  vViewList = Split(strViewList, ",")
+  cptQuickSort vViewList, 0, UBound(vViewList)
+  cptResetAll_frm.cboViews.List = Split("<None>," & Join(vViewList, ","), ",")
+  
   strFile = cptDir & "\settings\cpt-reset-all.adtg"
   If Dir(strFile) <> vbNullString Then
     'get saved settings
@@ -670,6 +692,21 @@ Sub cptShowResetAll_frm()
     If Len(strSettings) > 0 Then lngSettings = CLng(strSettings)
     strOutlineLevel = cptGetSetting("ResetAll", "OutlineLevel")
     If Len(strOutlineLevel) > 0 Then lngOutlineLevel = CLng(strOutlineLevel)
+    strDefaultView = cptGetSetting("ResetAll", "DefaultView")
+    If Len(strDefaultView) > 0 Then
+      If strDefaultView <> "<None>" Then
+        If Not cptViewExists(strDefaultView) Then
+          MsgBox "Your default view '" & strDefaultView & "' does not exist.", vbExclamation + vbOKOnly, "Saved View Not Found"
+        Else
+          cptResetAll_frm.cboViews.Value = strDefaultView
+        End If
+      Else
+        cptResetAll_frm.cboViews.Value = "<None>"
+      End If
+    Else
+      cptSaveSetting "ResetAll", "DefaultView", "<None>"
+      cptResetAll_frm.cboViews.Value = "<None>"
+    End If
   End If
     
   If lngSettings > 0 Then
@@ -723,6 +760,7 @@ Sub cptShowResetAll_frm()
   
 exit_here:
   On Error Resume Next
+  Set oView = Nothing
   Set rstSettings = Nothing
 
   Exit Sub
@@ -1568,7 +1606,7 @@ Sub cptShowSettings_frm()
     If Dir(cptDir & "\settings\cpt-settings.adtg") <> vbNullString Then Kill cptDir & "\settings\cpt-settings.adtg"
     oRecordset.Save cptDir & "\settings\cpt-settings.adtg", adPersistADTG
     oRecordset.Close
-    .lblDir = strSettingsFile
+    '.lblDir = strSettingsFile
     strProgramAcronym = cptGetProgramAcronym
     .txtProgramAcronym = strProgramAcronym
     If .lboFeatures.ListCount > 0 Then
