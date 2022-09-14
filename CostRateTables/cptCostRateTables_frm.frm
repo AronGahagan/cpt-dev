@@ -21,6 +21,7 @@ Private Sub cboStatusField_KeyPress(ByVal KeyAscii As MSForms.ReturnInteger)
 End Sub
 
 Private Sub cmdGo_Click()
+
   Me.txtCostRateTables.BorderColor = 8421504
   Me.cboStatusField.BorderColor = 8421504
   If Me.tglExport Then
@@ -38,6 +39,11 @@ Private Sub cmdGo_Click()
       Call cptImportCostRateTables(Me.cboStatusField.Value)
     End If
   End If
+  'save user settings
+  cptSaveSetting "CostRateTables", "txtCostRateTables", Me.txtCostRateTables.Text
+  cptSaveSetting "CostRateTables", "chkAddNew", IIf(Me.chkAddNew, "1", "0")
+  cptSaveSetting "CostRateTables", "chkOverwrite", IIf(Me.chkOverwrite, "1", "0")
+
 End Sub
 
 Private Sub cmdGo_KeyPress(ByVal KeyAscii As MSForms.ReturnInteger)

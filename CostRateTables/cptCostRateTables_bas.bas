@@ -6,6 +6,7 @@ Sub cptShowCostRateTablesForm()
   'objects
   'strings
   Dim strOverwrite As String
+  Dim strAddNew As String
   Dim strCustomFieldName As String
   'longs
   Dim lngCustomField As Long
@@ -19,7 +20,7 @@ Sub cptShowCostRateTablesForm()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   With cptCostRateTables_frm
-    .Caption = "CostRateTables (" & cptGetVersion("cptCostRateTables_frm") & ")"
+    .Caption = "Cost Rate Tables (" & cptGetVersion("cptCostRateTables_frm") & ")"
     .lblProgress.Width = .lblStatus.Width
     .lblStatus.Caption = "Ready..."
     With .cboStatusField
@@ -42,6 +43,18 @@ Sub cptShowCostRateTablesForm()
       .tglExport = True
     Else
       .tglImport = True
+    End If
+    strOverwrite = cptGetSetting("CostRateTables", "chkOverwrite")
+    If Len(strOverwrite) > 0 Then
+      .chkOverwrite = CBool(strOverwrite)
+    Else
+      .chkOverwrite = True 'default
+    End If
+    strAddNew = cptGetSetting("CostRateTables", "chkAddNew")
+    If Len(strAddNew) > 0 Then
+      .chkAddNew = CBool(strAddNew)
+    Else
+      .chkAddNew = True 'default
     End If
     .Show
   End With
@@ -295,10 +308,7 @@ cost_rate_tables:
     cptCostRateTables_frm.lblProgress.Width = (lngRow / lngLastRow) * cptCostRateTables_frm.lblStatus.Width
     DoEvents
   Next lngRow
-  
-  'todo: validate rates exist for all remaining work - best method?git
-  'todo: for each oResouces, gap between effective date of first rate > 0 and status date
-  
+    
   With cptCostRateTables_frm
     .lblProgress.Width = .lblStatus.Width
     .lblStatus.Caption = "Complete."

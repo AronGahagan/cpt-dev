@@ -124,7 +124,7 @@ exit_here:
   Exit Sub
 
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "cptCreateCurrentVersionXML", err)
+  Call cptHandleErr("cptAdmin_bas", "cptCreateCurrentVersionXML", Err)
   Resume exit_here
 
 End Sub
@@ -212,7 +212,7 @@ exit_here:
   Set xlApp = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "Document", err)
+  Call cptHandleErr("cptAdmin_bas", "Document", Err)
   Resume exit_here
 End Sub
 
@@ -241,6 +241,10 @@ Dim strDirectory As String
   Select Case strDirectory
     Case "About"
       strDirectory = "Core"
+    Case "Adjustment"
+      strDirectory = "Integration"
+    Case "AgeDates"
+      strDirectory = "Status"
     Case "BrowseFolder"
       strDirectory = "Core"
     Case "CalendarExceptions"
@@ -255,14 +259,20 @@ Dim strDirectory As String
       strDirectory = "Trace"
     Case "CheckAssignments"
       strDirectory = "Integration"
+    Case "CommonFieldMap"
+      strDirectory = "Core"
     Case "DataDictionary"
       strDirectory = "CustomFields"
     Case "DynamicFilter"
       strDirectory = "Text"
     Case "Events"
       strDirectory = "Core"
+    Case "FieldBuilder"
+      strDirectory = "CustomFields"
     Case "FilterByClipboard"
       strDirectory = "Text"
+    Case "Fiscal"
+      strDirectory = "Calendar"
     Case "Graphics"
       strDirectory = "Metrics"
     Case "IMSCobraExport"
@@ -271,14 +281,24 @@ Dim strDirectory As String
       strDirectory = "Status"
     Case "IPMDARMapping"
       strDirectory = "Status"
+    Case "MetricsData"
+      strDirectory = "Metrics"
+    Case "MetricsSettings"
+      strDirectory = "Metrics"
     Case "NetworkBrowser"
       strDirectory = "Trace"
     Case "Patch"
       strDirectory = ""
+    Case "QBD"
+      strDirectory = "Status"
+    Case "ResetAll"
+      strDirectory = "Core"
     Case "SaveLocal"
       strDirectory = "CustomFields"
     Case "SaveMarked"
       strDirectory = "Trace"
+    Case "Settings"
+      strDirectory = "Core"
     Case "Setup"
       strDirectory = ""
     Case "SmartDuration"
@@ -286,6 +306,8 @@ Dim strDirectory As String
     Case "StatusSheet"
       strDirectory = "Status"
     Case "StatusSheetImport"
+      strDirectory = "Status"
+    Case "TaskHistory"
       strDirectory = "Status"
     Case "TaskTypeMapping"
       strDirectory = "Status"
@@ -305,14 +327,18 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "cptSetDirectory()", err)
+  Call cptHandleErr("cptAdmin_bas", "cptSetDirectory()", Err)
   Resume exit_here
 
 End Function
 
-Sub cptSQL(strFile As String, Optional strFilter As String)
+Sub cptSQL(strFile As String, Optional blnExport As Boolean = False)
 'objects
-Dim cn As ADODB.Connection, rst As ADODB.Recordset
+Dim oListObject As Excel.ListObject
+Dim oWorksheet As Excel.Worksheet
+Dim oWorkbook As Excel.Workbook
+Dim oExcel As Excel.Application
+Dim oRecordset As ADODB.Recordset
 'strings
 Dim strRecord As String
 Dim strFields As String
@@ -334,41 +360,81 @@ Dim lngField As Long
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  strFile = Environ("USERPROFILE") & "\cpt-backup\settings\" & strFile
+  strFile = Environ("USERPROFILE") & "\cpt-backup\" & strFile
 
   If Dir(strFile) = vbNullString Then
     Debug.Print "Invalid file: " & strFile
     GoTo exit_here
   End If
-
-  With CreateObject("ADODB.Recordset")
+  
+  If blnExport Then
+    Set oExcel = CreateObject("Excel.Application")
+    Set oWorkbook = oExcel.Workbooks.Add
+    Set oWorksheet = oWorkbook.Sheets(1)
+  End If
+  
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  With oRecordset
     .Open strFile
+    If .EOF Then
+      MsgBox "No records.", vbInformation + vbOKOnly, "cptSQL"
+      .Close
+      GoTo exit_here
+    Else
+      blnExport = MsgBox(Format(.RecordCount, "#,##0") & " record(s). Export to Excel?", vbQuestion + vbYesNo, "cptSQL") = vbYes
+    End If
     'get field names
     For lngField = 0 To .Fields.Count - 1
-      strFields = strFields & .Fields(lngField).Name & " | "
+      If blnExport Then
+        oWorksheet.Cells(1, lngField + 1).Value = .Fields(lngField).Name
+      Else
+        strFields = strFields & .Fields(lngField).Name & " | "
+      End If
     Next lngField
-    Debug.Print strFields
+    If Not blnExport Then Debug.Print strFields
     'get records
     If Not .EOF Then .MoveFirst
-    Do While Not .EOF
-      strRecord = ""
-      For lngField = 0 To .Fields.Count - 1
-        strRecord = strRecord & .Fields(lngField) & " | "
-      Next lngField
-      Debug.Print strRecord
-      .MoveNext
-    Loop
+    If blnExport Then
+      oWorksheet.[A2].CopyFromRecordset oRecordset
+    Else
+      Do While Not .EOF
+        strRecord = ""
+        For lngField = 0 To .Fields.Count - 1
+          strRecord = strRecord & .Fields(lngField) & " | "
+        Next lngField
+        Debug.Print strRecord
+        .MoveNext
+      Loop
+      .Close
+    End If
   End With
+
+  If blnExport Then
+    oExcel.Visible = True
+    oExcel.WindowState = xlMaximized
+    With oExcel.ActiveWindow
+      .Zoom = 85
+      .SplitRow = 1
+      .SplitColumn = 0
+      .FreezePanes = True
+    End With
+    Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)), , xlYes)
+    oListObject.TableStyle = ""
+    oListObject.HeaderRowRange.Font.Bold = True
+    oWorksheet.Columns.AutoFit
+  End If
 
 exit_here:
   On Error Resume Next
-  If rst.State Then rst.Close
-  Set rst = Nothing
-  If cn.State Then cn.Close
-  Set cn = Nothing
+  Set oListObject = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
+  If oRecordset.State Then oRecordset.Close
+  Set oRecordset = Nothing
   Exit Sub
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "cptSQL", err, Erl)
+  Call cptHandleErr("cptAdmin_bas", "cptSQL", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -393,7 +459,7 @@ Sub cptLoadModulesFromPath()
   'update this before running - NOT THE GLOBAL!
   Set oVBProject = VBE.VBProjects(3)
 
-  If MsgBox("Did you update the VBProjects(x)?", vbQuestion + vbYesNo, "Confirm") = vbNo Then GoTo exit_here
+  If MsgBox("Load Modules into '" & Dir(oVBProject.FileName) & "'?", vbQuestion + vbYesNo, "Confirm") = vbNo Then GoTo exit_here
 
   strDir = Environ("USERPROFILE") & "\GitHub\cpt-dev"
   
@@ -401,25 +467,29 @@ Sub cptLoadModulesFromPath()
   Set oFolder = oFSO.GetFolder(strDir)
   For Each oFile In oFolder.Files
     If Len(cptRegEx(oFile.Name, "bas$|frm$|cls$")) > 0 Then
-      Debug.Print "Importing " & oFile.Name & "..."
-      oVBProject.VBComponents.Import oFile.path
+      Application.StatusBar = "Importing " & oFile.Name & "..."
+      oVBProject.VBComponents.Import oFile.Path
     End If
   Next oFile
   For Each oSubFolder In oFolder.SubFolders
     If oSubFolder.Name = "Admin" Then GoTo next_subfolder
     For Each oFile In oSubFolder.Files
       If Len(cptRegEx(oFile.Name, "bas$|frm$|cls$")) > 0 Then
-        Debug.Print "Importing " & oFile.Name & "..."
-        oVBProject.VBComponents.Import oFile.path
+        Application.StatusBar = "Importing " & oFile.Name & "..."
+        oVBProject.VBComponents.Import oFile.Path
       End If
     Next oFile
 next_subfolder:
   Next oSubFolder
   
+  Application.StatusBar = "Complete."
+  
+  'todo: should we go ahead and include any views/tables/filters/groups?
   MsgBox "Run cptSetReferences in newly created file.", vbExclamation + vbOKOnly, "Don't Forget:"
   
 exit_here:
   On Error Resume Next
+  Application.StatusBar = ""
   Set oSubFolder = Nothing
   Set oFolder = Nothing
   Set oFile = Nothing
@@ -428,7 +498,7 @@ exit_here:
   
   Exit Sub
 err_here:
-  Call cptHandleErr("cptAdmin_bas", "cptLoadModulesFromPath", err, Erl)
+  Call cptHandleErr("cptAdmin_bas", "cptLoadModulesFromPath", Err, Erl)
   Resume exit_here
 End Sub
 
