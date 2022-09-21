@@ -58,11 +58,11 @@ Sub cmdDoIt_Click()
     lngSettings = lngSettings + 2
   End If
   If Me.chkSummaries Then
-    OptionsViewEx DisplaySummaryTasks:=True
+    OptionsViewEx displaysummarytasks:=True
     lngSettings = lngSettings + 4
   End If
   'outline options
-  OptionsViewEx DisplaySummaryTasks:=True
+  OptionsViewEx displaysummarytasks:=True
   On Error Resume Next
   blnApplyOutlineLevel = True
   If Not OutlineShowAllTasks Then
@@ -85,18 +85,18 @@ Sub cmdDoIt_Click()
   
   If Me.optShowAllTasks Then
     If ActiveProject.Subprojects.Count > 0 Then
-      OptionsViewEx DisplaySummaryTasks:=True
+      OptionsViewEx displaysummarytasks:=True
       If Not Me.chkFilter Then
         strFilter = ActiveProject.CurrentFilter
       End If
       FilterClear
       SelectAll
       OutlineShowAllTasks
-      If Not Me.chkSummaries Then OptionsViewEx DisplaySummaryTasks:=False
+      If Not Me.chkSummaries Then OptionsViewEx displaysummarytasks:=False
       If Len(strFilter) > 0 Then FilterApply strFilter
     End If
     If Not Me.chkSummaries Then
-      OptionsViewEx DisplaySummaryTasks:=False
+      OptionsViewEx displaysummarytasks:=False
     End If
     lngSettings = lngSettings + 8
   ElseIf Me.optOutlineLevel Then
