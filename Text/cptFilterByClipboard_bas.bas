@@ -409,10 +409,10 @@ next_task:
       If MsgBox("Looks like " & FieldConstantToFieldName(rstFree(0)) & " isn't in use." & vbCrLf & vbCrLf & "OK to temporarily borrow it for this?", vbQuestion + vbYesNo, "Wanted: Custom Number Field") = vbYes Then
         With cptFilterByClipboard_frm.cboFreeField
           .AddItem rstFree(0)
-          .List(cptFilterByClipboard_frm.cboFreeField.ListCount - 1, 1) = FieldNameToFieldConstant(rstFree(0))
+          .List(cptFilterByClipboard_frm.cboFreeField.ListCount - 1, 1) = FieldConstantToFieldName(rstFree(0))
           .Value = rstFree(0)
           .Locked = True
-          cptGetFreeField = rstFree(0)
+          lngFreeField = rstFree(0)
         End With
         Exit Do
       Else
