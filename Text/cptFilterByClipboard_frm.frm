@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.2.0</cpt_version>
+'<cpt_version>v1.2.1</cpt_version>
 Option Explicit
 
 Private Sub chkFilter_Click()
@@ -68,9 +68,6 @@ Private Sub lboFilter_Click()
   'dates
   Dim dtGoTo As Date
 
-  'round([Task's master project UID] / 4194304) = InsertedSubproject ID in Master
-  'Task.UniqueId-(X*4194304)+X) where X is Subproject UID gets Task Index
-  'task.uniqueid
   On Error Resume Next
   If Me.optUID Then
     lngUID = CLng(Me.lboFilter.Value)
@@ -97,7 +94,7 @@ Private Sub lboFilter_Click()
         If MsgBox("Task " & strField & " " & lngUID & " is currently hidden. Would you like to remove all filters, show summary tasks, and show all tasks in order to find it?", vbQuestion + vbYesNo, "Reset View?") = vbYes Then
           ScreenUpdating = False
           FilterClear
-          OptionsViewEx DisplaySummaryTasks:=True
+          OptionsViewEx displaysummarytasks:=True
           SelectAll
           On Error Resume Next
           If Not OutlineShowAllTasks Then
@@ -118,7 +115,7 @@ Private Sub lboFilter_Click()
         If MsgBox("Task " & strField & " " & lngUID & " is currently hidden. Would you like to remove all filters, show summary tasks, and show all tasks in order to find it?", vbQuestion + vbYesNo, "Reset View?") = vbYes Then
           ScreenUpdating = False
           FilterClear
-          OptionsViewEx DisplaySummaryTasks:=True
+          OptionsViewEx displaysummarytasks:=True
           SelectAll
           On Error Resume Next
           If Not OutlineShowAllTasks Then

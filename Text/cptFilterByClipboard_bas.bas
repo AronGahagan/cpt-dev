@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>v1.2.0</cpt_version>
+'<cpt_version>v1.2.1</cpt_version>
 Option Explicit
 
 Sub cptShowFilterByClipboard_frm()
@@ -40,14 +40,7 @@ Dim lngFreeField As Long
   End With
   
   lngFreeField = cptGetFreeField("Number")
-  If lngFreeField > 0 Then
-    If MsgBox("Looks like " & FieldConstantToFieldName(lngFreeField) & " isn't in use." & vbCrLf & vbCrLf & "OK to temporarily borrow it for this?", vbQuestion + vbYesNo, "Wanted: Custom Number Field") = vbYes Then
-      cptFilterByClipboard_frm.cboFreeField.Value = lngFreeField
-      cptFilterByClipboard_frm.cboFreeField.Locked = True
-    Else
-      lngFreeField = 0
-    End If
-  End If
+
   If lngFreeField = 0 Then
     strMsg = "Since there are no custom task number fields available*, filtered tasks will not appear in the same order as pasted."
     strMsg = strMsg & vbCrLf & vbCrLf
@@ -151,6 +144,7 @@ Dim vUID As Variant
 next_task:
       lngTask = lngTask + 1
       Application.StatusBar = "Resetting number field...(" & Format(lngTask / lngTasks, "0%") & ")"
+      DoEvents
     Next oTask
   Else
     lngFreeField = 0
@@ -177,7 +171,7 @@ next_task:
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oTask Is Nothing Then
       'add to autofilter
-      strFilter = strFilter & lngUID & Chr$(9)
+      strFilter = strFilter & oTask.UniqueID & vbTab 'vbTab = Chr$(9)
       cptFilterByClipboard_frm.lboFilter.List(cptFilterByClipboard_frm.lboFilter.ListCount - 1, 1) = oTask.Name
       If lngFreeField > 0 Then oTask.SetField lngFreeField, CStr(lngItem)
       Set oTask = Nothing
@@ -185,6 +179,8 @@ next_task:
       cptFilterByClipboard_frm.lboFilter.List(lngItem, 1) = "< not found >"
     End If
 next_item:
+    Application.StatusBar = "Applying filter...(" & Format(lngItem / UBound(vUID), "0%") & ")"
+    DoEvents
   Next lngItem
   
   If Not cptFilterByClipboard_frm.tglEdit Then
@@ -195,7 +191,7 @@ next_item:
   If Len(strFilter) > 0 And cptFilterByClipboard_frm.chkFilter Then
     ActiveWindow.TopPane.Activate
     ScreenUpdating = False
-    OptionsViewEx DisplaySummaryTasks:=True
+    OptionsViewEx displaysummarytasks:=True
     SelectAll
     On Error Resume Next
     If Not OutlineShowAllTasks Then
@@ -206,11 +202,13 @@ next_item:
     SelectBeginning
     strFilter = Left(strFilter, Len(strFilter) - 1)
     If cptFilterByClipboard_frm.optUID Then
+      cptFilterByClipboard_frm.lboHeader.List(0, 0) = "UID"
       SetAutoFilter "Unique ID", FilterType:=pjAutoFilterIn, Criteria1:=strFilter
     ElseIf cptFilterByClipboard_frm.optID Then
-      SetAutoFilter "ID", FilterType:=pjAutoFilterIn, Criteria1:=strFilter
+      cptFilterByClipboard_frm.lboHeader.List(0, 0) = "ID"
+      SetAutoFilter "Unique ID", FilterType:=pjAutoFilterIn, Criteria1:=strFilter
     End If
-    OptionsViewEx projectsummary:=False, displayoutlinenumber:=False, displaynameindent:=False, DisplaySummaryTasks:=False
+    OptionsViewEx projectsummary:=False, displayoutlinenumber:=False, displaynameindent:=False, displaysummarytasks:=False
     If lngFreeField > 0 Then Sort FieldConstantToFieldName(lngFreeField)
   End If
   
@@ -327,8 +325,9 @@ Dim dTypes As Scripting.Dictionary 'Object
 Dim rstFree As Object 'ADODB.Recordset 'Object
 Dim oTask As Task
 'strings
+Dim strNum As String
 'longs
-Dim lngFree As Long
+Dim lngFreeField As Long
 Dim lngField As Long
 Dim lngItems As Long
 Dim lngItem As Long
@@ -366,7 +365,6 @@ Dim blnFree As Boolean
       'then ensure no formula
       If CustomFieldGetFormula(lngField) <> "" Then GoTo next_field
       'then ensure no pick list (brute force)
-      Dim strNum As String
       strNum = ActiveProject.Tasks(1).GetField(lngField)
       On Error Resume Next
       ActiveProject.Tasks(1).SetField lngField, 3.14285714285714 'what are the odds?
@@ -382,9 +380,9 @@ Dim blnFree As Boolean
     End If
 next_field:
   Next lngItem
-  'if all custom task number fields are named, then none available
+  'if all custom fields are named, then none available
   If rstFree.RecordCount = 0 Then
-    lngFree = 0
+    lngFreeField = 0
     GoTo return_value
   End If
   
@@ -408,20 +406,26 @@ next_task:
   rstFree.MoveFirst
   Do While Not rstFree.EOF
     If rstFree(1) = True Then
-      With cptFilterByClipboard_frm.cboFreeField
-        lngFree = rstFree(0)
-        .AddItem lngFree
-        .List(.ListCount - 1, 1) = FieldConstantToFieldName(lngFree)
+      If MsgBox("Looks like " & FieldConstantToFieldName(rstFree(0)) & " isn't in use." & vbCrLf & vbCrLf & "OK to temporarily borrow it for this?", vbQuestion + vbYesNo, "Wanted: Custom Number Field") = vbYes Then
+        With cptFilterByClipboard_frm.cboFreeField
+          .AddItem rstFree(0)
+          .List(cptFilterByClipboard_frm.cboFreeField.ListCount - 1, 1) = FieldNameToFieldConstant(rstFree(0))
+          .Value = rstFree(0)
+          .Locked = True
+          cptGetFreeField = rstFree(0)
+        End With
         Exit Do
-      End With
+      Else
+        lngFreeField = 0
+      End If
     End If
     rstFree.MoveNext
   Loop
   rstFree.Close
   
 return_value:
-  If lngFree > 0 Then
-    cptGetFreeField = lngFree
+  If lngFreeField > 0 Then
+    cptGetFreeField = lngFreeField
   Else
     cptGetFreeField = 0
   End If
