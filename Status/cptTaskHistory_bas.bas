@@ -150,7 +150,6 @@ End Sub
 
 Sub cptUpdateTaskHistoryNote(lngUID As Long, dtStatus As Date, strVariance As String)
   'objects
-  Dim oRecordsetNew As ADODB.Recordset
   Dim oRecordset As ADODB.Recordset
   'strings
   Dim strFile As String
@@ -169,42 +168,16 @@ Sub cptUpdateTaskHistoryNote(lngUID As Long, dtStatus As Date, strVariance As St
   strFile = cptDir & "\settings\cpt-cei.adtg"
   Set oRecordset = CreateObject("ADODB.Recordset")
   oRecordset.Open strFile
-  blnFieldExists = False
-  For lngItem = 0 To oRecordset.Fields.Count - 1
-    If oRecordset.Fields(lngItem).Name = "NOTE" Then
-      blnFieldExists = True
-      Exit For
-    End If
-  Next lngItem
-  
+  blnFieldExists = True
+  On Error Resume Next
+  Debug.Print oRecordset.Fields("NOTE")
+  If Err.Number = 3265 Then blnFieldExists = False
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    
   'add new field if necessary
   If Not blnFieldExists Then
-    Set oRecordsetNew = CreateObject("ADODB.Recordset")
-    
-    'recreate the field structure
-    For lngItem = 0 To oRecordset.Fields.Count - 1
-      If oRecordset.Fields(lngItem).Type = adVarChar Then
-        oRecordsetNew.Fields.Append CStr(oRecordset.Fields(lngItem).Name), oRecordset.Fields(lngItem).Type, oRecordset.Fields(lngItem).DefinedSize
-      Else
-        oRecordsetNew.Fields.Append CStr(oRecordset.Fields(lngItem).Name), oRecordset.Fields(lngItem).Type
-      End If
-    Next lngItem
-    oRecordsetNew.Fields.Append "NOTE", adVarChar, 255
-    oRecordsetNew.Open
-    'copy recordset in todo: there must be a faster way
-    oRecordset.MoveFirst
-    Do While Not oRecordset.EOF
-      oRecordsetNew.AddNew
-      For lngItem = 0 To oRecordset.Fields.Count - 1
-        oRecordsetNew(lngItem) = oRecordset(lngItem)
-      Next
-      oRecordset.MoveNext
-    Loop
-    oRecordset.Save Replace(strFile, ".adtg", "-backup.adtg"), adPersistADTG
     oRecordset.Close
-    Kill strFile
-    oRecordsetNew.Save strFile, adPersistADTG
-    Set oRecordset = New ADODB.Recordset
+    cptAppendColumn strFile, "NOTE", 203, 500 '203=adLongVarWChar
     oRecordset.Open strFile
   End If
   
@@ -212,10 +185,12 @@ Sub cptUpdateTaskHistoryNote(lngUID As Long, dtStatus As Date, strVariance As St
   oRecordset.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND TASK_UID=" & CInt(lngUID) & " AND STATUS_DATE=#" & FormatDateTime(dtStatus, vbGeneralDate) & "#"
   If Not oRecordset.EOF Then
     oRecordset.Update Array("NOTE"), Array(strVariance)
+  Else
+    'todo: do what if Filter > .EOF=TRUE
   End If
-  oRecordset.Filter = 0
-  oRecordset.Save strFile, adPersistADTG
-  oRecordset.Close
+'  oRecordset.Filter = 0
+'  oRecordset.Save strFile, adPersistADTG
+'  oRecordset.Close
   
   With cptTaskHistory_frm
     If Len(strVariance) = 0 Then
@@ -233,13 +208,6 @@ Sub cptUpdateTaskHistoryNote(lngUID As Long, dtStatus As Date, strVariance As St
   End With
   
 exit_here:
-  On Error Resume Next
-  If oRecordsetNew.State Then
-    oRecordsetNew.Filter = 0
-    oRecordsetNew.Save strFile, adPersistADTG
-    oRecordsetNew.Close
-  End If
-  Set oRecordsetNew = Nothing
   If oRecordset.State Then
     oRecordset.Filter = 0
     oRecordset.Save strFile, adPersistADTG

@@ -114,6 +114,7 @@ Private Sub txtVariance_Change()
   Else
     Me.lblWarning.Visible = False
     Call cptUpdateTaskHistoryNote(CLng(Me.lblUID.Caption), Me.lboTaskHistory.Value, Me.txtVariance.Text)
+    'todo: update character limit caption
   End If
 End Sub
 
