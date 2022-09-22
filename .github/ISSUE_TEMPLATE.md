@@ -1,4 +1,4 @@
-## Problem
+## Problem:
     title-hint:= cpt[ModuleName_(bas|frm)] - 'object not set'
     description-hint:= be detailed
     bonus-points: include screenshot(s)
@@ -7,7 +7,7 @@
 'even-more-bonus-points: offending code snippet here
 ```
 
-## Solution
+## Solution:
     how should this issue be addressed?
 
 ## Todo:
@@ -17,7 +17,6 @@
 - [ ] checkout appropriate branch and create `topic` branch
 - [ ] design, code and test
 - [ ] update codemodule <cpt_version>x.y.z</cpt_version>
-- [ ] reset BLN\_TRAP\_ERRORS
 - [ ] update CurrentVersions.xml **manually**
 - [ ] commit changes prefix comment with `Issue #XXX - `
 - [ ] merge `topic` into appropriate branch(es) and push

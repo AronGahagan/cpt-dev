@@ -5,8 +5,7 @@
 *.bak
 *.csv
 *.xlsm
-status.plx
+*.plx
 todo.txt
-reset-error-traps.plx
 *.sh
 *.xlsx
