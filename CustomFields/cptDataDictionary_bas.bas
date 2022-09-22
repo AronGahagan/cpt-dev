@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDataDictionary_bas"
-'<cpt_version>v1.3.1</cpt_version>
+'<cpt_version>v1.4.0</cpt_version>
 Option Explicit
 
 Sub cptExportDataDictionary()
@@ -32,7 +32,8 @@ Dim intListItem As Integer
 Dim intField As Integer
 'doubles
 'booleans
-Dim blnLookupTable As Boolean
+Dim blnHasFormula As Boolean
+Dim blnHasPickList As Boolean
 Dim blnLookups As Boolean
 Dim blnExists As Boolean
 'variants
@@ -117,8 +118,24 @@ Dim vFieldScope As Variant
     For Each vFieldType In Array("Cost", "Date", "Duration", "Flag", "Finish", "Outline Code", "Number", "Start", "Text")
       For intField = 1 To dFields.Item(vFieldType)
         lngField = FieldNameToFieldConstant(vFieldType & intField, vFieldScope)
+        If blnExists Then 'check if field is ignored
+          rstDictionary.Filter = "PROJECT_NAME='" & strProject & "' AND FIELD_ID=" & lngField
+          If Not rstDictionary.EOF Then
+            If rstDictionary.Fields("IGNORE") Then
+              rstDictionary.Filter = 0
+              GoTo next_field
+            End If
+          End If
+        End If
         strFieldName = CustomFieldGetName(lngField)
-        If Len(strFieldName) > 0 Then
+        If Len(strFielName) = 0 Then
+          blnHasFormula = Len(CustomFieldGetFormula(lngField)) > 0
+          blnHasPickList = False
+          On Error Resume Next
+          blnHasPickList = Len(CustomFieldValueListGetItem(lngField, pjValueListValue, 1)) > 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        End If
+        If Len(strFieldName) > 0 Or blnHasFormula Or blnHasPickList Then
           lngRow = lngRow + 1
           oWorksheet.Cells(lngRow, 1).Value = False
           oWorksheet.Cells(lngRow, 2).Value = Choose(CInt(vFieldScope) + 1, "Task", "Resource", "Project")
@@ -129,13 +146,9 @@ Dim vFieldScope As Variant
           If Len(CustomFieldGetFormula(lngField)) > 0 Then
             oWorksheet.Cells(lngRow, 6).Value = CustomFieldGetFormula(lngField)
           End If
-          blnLookupTable = False
-          On Error Resume Next
-          blnLookupTable = Len(CustomFieldValueListGetItem(lngField, pjValueListValue, 1)) > 0
-          'If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 <- don't put this here
           
           strAttributes = ""
-          If blnLookupTable Then
+          If blnHasPickList Then
             
             If blnLookups Then
               lngLookupCol = wsLookups.[XFD2].End(-4159).Column
@@ -432,15 +445,16 @@ Sub cptShowDataDictionary_frm()
       End If
     End If
   End If
-  'todo: automatically generate the 'recovery' workbook
-  'todo: prompt the user to update the ProjectName field for any items they want to be re-imported
-  'todo: prompt the user to use the 'Import' feature once complete
     
-  cptDataDictionary_frm.lboCustomFields.Clear
-  Call cptRefreshDictionary
-  cptDataDictionary_frm.txtFilter.SetFocus
-  cptDataDictionary_frm.Caption = "IMS Data Dictionary (" & cptGetVersion("cptDataDictionary_frm") & ")"
-  cptDataDictionary_frm.Show
+  With cptDataDictionary_frm
+    .lboCustomFields.Clear
+    Call cptRefreshDictionary
+    .txtFilter.SetFocus
+    .Caption = "IMS Data Dictionary (" & cptGetVersion("cptDataDictionary_frm") & ")"
+    .txtDescription.Enabled = False
+    .chkIgnore.Enabled = False
+    .Show
+  End With
   
 exit_here:
   On Error Resume Next
@@ -474,6 +488,8 @@ Dim lngMax As Long
 Dim intField As Integer
 'doubles
 'booleans
+Dim blnHasPickList As Boolean
+Dim blnHasFormula As Boolean
 Dim blnCreate As Boolean
 Dim blnExists As Boolean
 'variants
@@ -487,7 +503,12 @@ Dim vFieldScope As Variant
   If cptDataDictionary_frm.Visible Then
     cptDataDictionary_frm.lboCustomFields.Clear
     cptDataDictionary_frm.txtFilter.Text = ""
-    'cptDataDictionary_frm.txtDescription.Value = "" 'won't this erase an existing entry?
+    cptDataDictionary_frm.txtDescription.Value = ""
+    cptDataDictionary_frm.txtDescription.Enabled = False
+    cptDataDictionary_frm.chkIgnore.Enabled = False
+    cptDataDictionary_frm.lblAlert.Caption = "-'"
+    cptDataDictionary_frm.lblAlert.Visible = False
+    cptDataDictionary_frm.lboCustomFields.Height = 128.25
   End If
   
   'ensure project acronym
@@ -504,12 +525,26 @@ Dim vFieldScope As Variant
       .Fields.Append "CUSTOM_NAME", 200, 50
       .Fields.Append "DESCRIPTION", 203, 500 'adLongVarWChar
       .Fields.Append "PROJECT_NAME", 200, 50
+      .Fields.Append "IGNORE", 11 'adBoolean
       .Open
     Else
       blnCreate = False
       .Open cptDir & "\settings\cpt-data-dictionary.adtg"
       'todo: has it been upgraded yet?
       .Filter = "PROJECT_NAME='" & strProject & "'"
+      'has it been upgraded with IGNORE?
+      On Error Resume Next
+      Debug.Print .Fields("IGNORE")
+      If Err.Number = 3265 Then 'it has not
+        Err.Clear
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        .Filter = 0
+        .Close
+        cptAppendColumn cptDir & "\settings\cpt-data-dictionary.adtg", "IGNORE", adBoolean, , 0
+        .Open cptDir & "\settings\cpt-data-dictionary.adtg"
+        .Filter = "PROJECT_NAME='" & strProject & "'"
+      End If
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     End If
     
     'get local custom fields
@@ -532,19 +567,34 @@ Dim vFieldScope As Variant
           lngField = FieldNameToFieldConstant(vFieldType & intField, vFieldScope)
           strFieldName = FieldConstantToFieldName(lngField)
           strCustomName = CustomFieldGetName(lngField)
-          If Len(strCustomName) > 0 Then
+          If Len(strCustomName) = 0 Then 'include unnamed but has formula or pick list 'todo: what about has data?
+            If Len(CustomFieldGetFormula(lngField)) > 0 Then blnHasFormula = True Else blnHasFormula = False
+            blnHasPickList = False
+            On Error Resume Next
+            blnHasPickList = Len(CustomFieldValueListGetItem(lngField, pjValueListValue, 1)) > 0
+            If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          End If
+          If Len(strCustomName) > 0 Or blnHasFormula Or blnHasPickList Then
             If blnCreate Then
               'add to data store
-              .AddNew Array("PROJECT_ID", "FIELD_ID", "FIELD_NAME", "CUSTOM_NAME", "DESCRIPTION", "PROJECT_NAME"), Array(strGUID, lngField, strFieldName, strCustomName, "<missing>", strProject)
+              .AddNew Array("PROJECT_ID", "FIELD_ID", "FIELD_NAME", "CUSTOM_NAME", "DESCRIPTION", "PROJECT_NAME", "IGNORE"), Array(strGUID, lngField, strFieldName, strCustomName, "<missing>", strProject, CBool(0))
             Else
               'does it exist?
               .Filter = "PROJECT_NAME='" & strProject & "' AND FIELD_ID=" & CLng(lngField)
+              'todo: update CUSTOM_NAME if changed; wipe out old definition?
               'if not then add it
               If .EOF Then
-                .AddNew Array("PROJECT_ID", "FIELD_ID", "FIELD_NAME", "CUSTOM_NAME", "DESCRIPTION", "PROJECT_NAME"), Array(strGUID, lngField, strFieldName, strCustomName, "<missing>", strProject)
+                .AddNew Array("PROJECT_ID", "FIELD_ID", "FIELD_NAME", "CUSTOM_NAME", "DESCRIPTION", "PROJECT_NAME", "IGNORE"), Array(strGUID, lngField, strFieldName, strCustomName, "<missing>", strProject, CBool(0))
+              Else
+                .Fields("CUSTOM_NAME") = strCustomName
+                .Update
               End If
               .Filter = ""
             End If
+          Else
+            .Filter = "PROJECT_NAME='" & strProject & "' AND FIELD_ID=" & CLng(lngField)
+            If Not .EOF Then .Delete adAffectCurrent
+            .Filter = 0
           End If
         Next intField
       Next vFieldType
@@ -556,21 +606,25 @@ Dim vFieldScope As Variant
         strFieldName = "Enterprise"
         strCustomName = FieldConstantToFieldName(lngField)
         If blnCreate Then
-          .AddNew Array("PROJECT_ID", "FIELD_ID", "FIELD_NAME", "CUSTOM_NAME", "DESCRIPTION", "PROJECT_NAME"), Array(strGUID, lngField, strFieldName, strCustomName, "<missing>", strProject)
+          .AddNew Array("PROJECT_ID", "FIELD_ID", "FIELD_NAME", "CUSTOM_NAME", "DESCRIPTION", "PROJECT_NAME", "IGNORE"), Array(strGUID, lngField, strFieldName, strCustomName, "<missing>", strProject, CBool(0))
         Else
           'does it exist?
           .Filter = "PROJECT_NAME='" & strProject & "' AND FIELD_ID=" & lngField
+          'todo: update CUSTOM_NAME if changed; wipe out old definition?
           'if not, then add it
           If .EOF Then
-            .AddNew Array("PROJECT_ID", "FIELD_ID", "FIELD_NAME", "CUSTOM_NAME", "DESCRIPTION", "PROJECT_NAME"), Array(strGUID, lngField, strFieldName, strCustomName, "<missing>", strProject)
+            .AddNew Array("PROJECT_ID", "FIELD_ID", "FIELD_NAME", "CUSTOM_NAME", "DESCRIPTION", "PROJECT_NAME", "IGNORE"), Array(strGUID, lngField, strFieldName, strCustomName, "<missing>", strProject, CBool(0))
           End If
           .Filter = ""
         End If
       End If
     Next lngField
     
+    'todo: remove PROJECT_ID
+    
     'save the data
-    .Save cptDir & "\settings\cpt-data-dictionary.adtg"
+    .Filter = 0
+    .Save cptDir & "\settings\cpt-data-dictionary.adtg", 0 '0=adPersistADTG
     
     'populate the list
     If Not .EOF Then
@@ -590,7 +644,20 @@ Dim vFieldScope As Variant
         Else
           cptDataDictionary_frm.lboCustomFields.List(lngItem, 1) = .Fields("CUSTOM_NAME") & " (" & .Fields("FIELD_NAME") & ")"
         End If
+        If Len(.Fields("CUSTOM_NAME")) = 0 Then
+          If Len(CustomFieldGetFormula(.Fields("FIELD_ID"))) > 0 Then
+            cptDataDictionary_frm.lboCustomFields.List(lngItem, 4) = "f"
+          End If
+          On Error Resume Next
+          If Len(CustomFieldValueListGetItem(.Fields("FIELD_ID"), pjValueListValue, 1)) > 0 Then
+            If Err.Number <> 1101 Then
+              cptDataDictionary_frm.lboCustomFields.List(lngItem, 4) = cptDataDictionary_frm.lboCustomFields.List(lngItem, 4) & "p"
+            End If
+          End If
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        End If
         cptDataDictionary_frm.lboCustomFields.List(lngItem, 2) = .Fields("DESCRIPTION")
+        cptDataDictionary_frm.lboCustomFields.List(lngItem, 3) = CBool(.Fields("IGNORE"))
         .MoveNext
         lngItem = lngItem + 1
       Loop

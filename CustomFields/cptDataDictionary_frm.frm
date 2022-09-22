@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.1</cpt_version>
+'<cpt_version>v1.4.0</cpt_version>
 Option Explicit
 
 Private Sub cboOpenWorkbooks_Change()
@@ -37,6 +37,50 @@ Private Sub cboOpenWorkbooks_Change()
 
 End Sub
 
+Private Sub chkIgnore_Click()
+'objects
+'strings
+Dim strProject As String
+'longs
+'integers
+'doubles
+'booleans
+'variants
+'dates
+
+  If Me.ActiveControl.Name <> "chkIgnore" Then GoTo exit_here
+
+  If IsNull(Me.lboCustomFields.Value) Then GoTo exit_here
+
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  Me.lblStatus.Caption = "Saving..."
+
+  strProject = cptGetProgramAcronym
+  
+  'find and update the record
+  With CreateObject("ADODB.Recordset")
+    .Open cptDir & "\settings\cpt-data-dictionary.adtg"
+    .Filter = "PROJECT_NAME='" & strProject & "' AND FIELD_ID=" & CLng(Me.lboCustomFields.Value)
+    If Not .EOF Then
+      .Fields("IGNORE") = CBool(Me.chkIgnore)
+      .Update
+      Me.lboCustomFields.Column(3) = CBool(Me.chkIgnore)
+    End If
+    .Filter = ""
+    .Save
+    .Close
+  End With
+  
+exit_here:
+  On Error Resume Next
+  Me.lblStatus.Caption = "Ready..."
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptDataDictionary_frm", "chkIgnore_Click", Err, Erl)
+  Resume exit_here
+End Sub
+
 Private Sub cmdClose_Click()
   Unload Me
 End Sub
@@ -44,6 +88,7 @@ End Sub
 Private Sub cmdCustomFields_Click()
 'long
 Dim lngSelected As Long
+Dim lngItem As Long
 'string
 Dim strDescription As String
 
@@ -51,15 +96,18 @@ Dim strDescription As String
 
   If Not IsNull(Me.lboCustomFields.Value) Then
     lngSelected = Me.lboCustomFields.Value
-    strDescription = Me.lboCustomFields.Column(2)
   End If
   Application.CustomizeField
+  Me.lboCustomFields.ListIndex = Null
   cptRefreshDictionary
   If lngSelected > 0 Then
-    If Len(CustomFieldGetName(lngSelected)) > 0 Then
-      Me.lboCustomFields.Value = lngSelected
-      Me.lboCustomFields.Column(2) = strDescription
-    End If
+    For lngItem = 0 To Me.lboCustomFields.ListCount - 1
+      If Me.lboCustomFields.List(lngItem, 0) = lngSelected Then
+        Me.lboCustomFields.SetFocus
+        Me.lboCustomFields.Value = lngSelected
+        Exit For
+      End If
+    Next lngItem
   End If
 
 exit_here:
@@ -158,7 +206,43 @@ err_here:
 End Sub
 
 Private Sub lboCustomFields_AfterUpdate()
-  If Not IsNull(Me.lboCustomFields.Value) Then Me.txtDescription = Me.lboCustomFields.Column(2)
+Dim strMsg As String
+  
+  'todo: allow user to multi-select
+  'todo: and ignore in bulk
+  'todo: if selecteditems.count>1
+  'todo: txtDescription = "< multiple fields selected >"
+  'todo: and txtDescription.Enabled=False
+  'todo: else proceed
+  
+  If Not IsNull(Me.lboCustomFields.Value) Then
+    Me.txtDescription.Enabled = True
+    Me.txtDescription = Me.lboCustomFields.Column(2)
+    Me.chkIgnore.Enabled = True
+    Me.chkIgnore = CBool(Me.lboCustomFields.Column(3))
+    If Len(Me.lboCustomFields.Column(4)) > 0 Then
+      Select Case Me.lboCustomFields.Column(4)
+        Case "f"
+          strMsg = "a formula"
+        Case "p"
+          strMsg = "a pick list"
+        Case "fp"
+          strMsg = "a formula and a pick list"
+      End Select
+      strMsg = FieldConstantToFieldName(Me.lboCustomFields.Column(0)) & " has " & strMsg & "."
+      Me.lboCustomFields.Height = 108.75
+      Me.lblAlert.Visible = True
+      Me.lblAlert.Caption = strMsg
+    Else
+      Me.lblAlert.Caption = "-"
+      Me.lblAlert.Visible = False
+      Me.lboCustomFields.Height = 128.25
+    End If
+  Else
+    Me.txtDescription.Value = ""
+    Me.txtDescription.Enabled = False
+    Me.chkIgnore.Enabled = False
+  End If
 End Sub
 
 Private Sub txtDescription_AfterUpdate()
@@ -174,7 +258,10 @@ Dim strProject As String
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  If IsNull(Me.lboCustomFields.Value) Then GoTo exit_here
+  If IsNull(Me.lboCustomFields.Value) Then
+    Me.lblStatus.Caption = "Select a Custom Field"
+    GoTo exit_here
+  End If
 
   Me.lblStatus.Caption = "Saving..."
 
@@ -204,10 +291,11 @@ err_here:
 End Sub
 
 Private Sub txtDescription_Change()
-  Me.lblCharacterCount = 500 - Len(Me.txtDescription.Text)
+  Me.lblCharacterCount.Caption = 500 - Len(Me.txtDescription.Text)
 End Sub
 
 Private Sub txtDescription_Enter()
+  Me.lblCharacterCount.Caption = 500 - Len(Me.txtDescription.Text)
   Me.lblCharacterCount.Visible = True
 End Sub
 
@@ -221,6 +309,7 @@ Dim rst As Object 'ADODB.Recordset
 'strings
 Dim strDictionary As String, strFilter As String, strText As String, strProject As String
 'longs
+Dim lngSelected As Long
 Dim lngItem As Long
 'integers
 'doubles
@@ -232,7 +321,14 @@ Dim lngItem As Long
   
   strProject = cptGetProgramAcronym
   strDictionary = cptDir & "\settings\cpt-data-dictionary.adtg"
-
+  
+  If Not IsNull(Me.lboCustomFields.Value) Then
+    lngSelected = Me.lboCustomFields.Value
+  Else
+    Me.txtDescription.Enabled = False
+    Me.chkIgnore.Enabled = False
+  End If
+  
   If Dir(strDictionary) <> vbNullString Then
     Me.lboCustomFields.Clear
     Me.txtDescription = ""
@@ -255,6 +351,19 @@ Dim lngItem As Long
         Me.lboCustomFields.Column(0, lngItem) = .Fields("FIELD_ID")
         Me.lboCustomFields.Column(1, lngItem) = .Fields("CUSTOM_NAME") & " (" & .Fields("FIELD_NAME") & ")"
         Me.lboCustomFields.Column(2, lngItem) = .Fields("DESCRIPTION")
+        Me.lboCustomFields.Column(3, lngItem) = CBool(.Fields("IGNORE"))
+        
+        If Len(CustomFieldGetFormula(.Fields("FIELD_ID"))) > 0 Then
+          Me.lboCustomFields.List(lngItem, 4) = "f"
+        End If
+        On Error Resume Next
+        If Len(CustomFieldValueListGetItem(.Fields("FIELD_ID"), pjValueListValue, 1)) > 0 Then
+          If Err.Number <> 1101 Then
+            Me.lboCustomFields.List(lngItem, 4) = Me.lboCustomFields.List(lngItem, 4) & "p"
+          End If
+        End If
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        
         .MoveNext
         lngItem = lngItem + 1
       Loop
@@ -264,7 +373,23 @@ Dim lngItem As Long
     MsgBox "IMS Data Dictionary file not found!" & vbCrLf & "Please close and re-open the form to reset.", vbExclamation + vbOKOnly, "Error"
     GoTo exit_here
   End If
-
+  
+  For lngItem = 0 To Me.lboCustomFields.ListCount - 1
+    If Me.lboCustomFields.List(lngItem, 0) = lngSelected Then
+      Me.lboCustomFields.SetFocus
+      Me.lboCustomFields.Value = lngSelected
+      Me.txtFilter.SetFocus
+      Exit For
+    End If
+  Next lngItem
+  
+  If IsNull(Me.lboCustomFields.Value) Then
+    Me.txtDescription = ""
+    Me.txtDescription.Enabled = False
+    Me.chkIgnore.Value = False
+    Me.chkIgnore.Enabled = False
+  End If
+  
   Me.lblStatus.Caption = Me.lboCustomFields.ListCount & " result" & IIf(Me.lboCustomFields.ListCount = 1, "", "s")
 
 exit_here:
