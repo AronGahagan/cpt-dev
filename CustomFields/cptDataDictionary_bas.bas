@@ -128,7 +128,7 @@ Dim vFieldScope As Variant
           End If
         End If
         strFieldName = CustomFieldGetName(lngField)
-        If Len(strFielName) = 0 Then
+        If Len(strFieldName) = 0 Then
           blnHasFormula = Len(CustomFieldGetFormula(lngField)) > 0
           blnHasPickList = False
           On Error Resume Next
@@ -198,6 +198,7 @@ Dim vFieldScope As Variant
               wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + intListItem, lngLookupCol)), xlListObjectHasHeaders:=1).Name = UCase(Replace(FieldConstantToFieldName(lngField), " ", "_"))
               wsLookups.Columns(lngLookupCol).AutoFit
               wsLookups.Columns(lngLookupCol + 1).ColumnWidth = 2
+              'todo: how to keep pick list with cell when ListObject gets sorted?
               With oWorksheet.Cells(lngRow, 6).Validation
                  .Delete
                  .Add Type:=3, AlertStyle:=1, Operator:= _
@@ -648,12 +649,9 @@ Dim vFieldScope As Variant
           If Len(CustomFieldGetFormula(.Fields("FIELD_ID"))) > 0 Then
             cptDataDictionary_frm.lboCustomFields.List(lngItem, 4) = "f"
           End If
+          blnHasPickList = False
           On Error Resume Next
-          If Len(CustomFieldValueListGetItem(.Fields("FIELD_ID"), pjValueListValue, 1)) > 0 Then
-            If Err.Number <> 1101 Then
-              cptDataDictionary_frm.lboCustomFields.List(lngItem, 4) = cptDataDictionary_frm.lboCustomFields.List(lngItem, 4) & "p"
-            End If
-          End If
+          blnHasPickList = Len(CustomFieldValueListGetItem(lngField, pjValueListValue, 1)) > 0
           If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         End If
         cptDataDictionary_frm.lboCustomFields.List(lngItem, 2) = .Fields("DESCRIPTION")
