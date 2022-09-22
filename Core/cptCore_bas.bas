@@ -1892,3 +1892,73 @@ err_here:
   Call cptHandleErr("cptCore_bas", "cptGetShowStatusBarCountFirstRun", Err, Erl)
   Resume exit_here
 End Function
+
+Sub cptAppendColumn(strFile As String, strColumn As String, lngType As Long, Optional lngLength As Long, Optional vDefault As Variant)
+  'objects
+  Dim oRecordsetNew As ADODB.Recordset
+  Dim oRecordset As ADODB.Recordset
+  'strings
+  'longs
+  Dim lngField As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  Set oRecordsetNew = CreateObject("ADODB.Recordset")
+  If InStr(strFile, cptDir) = 0 Then strFile = cptDir & strFile
+  oRecordset.Open strFile, , adOpenKeyset, adLockReadOnly
+  On Error Resume Next
+  Debug.Print oRecordset.Fields(strColumn)
+  If Err.Number = 0 Then 'field already exists
+    Err.Clear
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    GoTo exit_here
+  End If
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  'first rebuld the existing fields
+  For lngField = 0 To oRecordset.Fields.Count - 1
+    With oRecordsetNew
+      If oRecordset.Fields(lngField).DefinedSize > 0 Then
+        .Fields.Append oRecordset.Fields(lngField).Name, oRecordset.Fields(lngField).Type, oRecordset.Fields(lngField).DefinedSize
+      Else
+        .Fields.Append oRecordset.Fields(lngField).Name, oRecordset.Fields(lngField).Type
+      End If
+    End With
+  Next lngField
+  'next add the new field
+  If lngLength > 0 Then
+    oRecordsetNew.Fields.Append strColumn, lngType, lngLength
+  Else
+    oRecordsetNew.Fields.Append strColumn, lngType
+  End If
+  oRecordsetNew.Open
+  'next move the existing data over
+  If Not oRecordset.EOF Then oRecordset.MoveFirst
+  Do While Not oRecordset.EOF
+    oRecordsetNew.AddNew
+    For lngField = 0 To oRecordset.Fields.Count - 1
+      oRecordsetNew.Fields(lngField) = oRecordset.Fields(lngField)
+    Next lngField
+    oRecordsetNew.Fields(strColumn) = vDefault
+    oRecordset.MoveNext
+  Loop
+  oRecordset.Close
+  Name strFile As Replace(strFile, ".adtg", "-backup_" & Format(Now, "yyyy-mm-dd-HH-nn-ss") & ".adtg")
+  oRecordsetNew.Save strFile, adPersistADTG
+  oRecordsetNew.Close
+  
+exit_here:
+  On Error Resume Next
+  Set oRecordsetNew = Nothing
+  Set oRecordset = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptAppendColumn", Err, Erl)
+  Resume exit_here
+End Sub
