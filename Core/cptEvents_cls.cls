@@ -78,7 +78,10 @@ Dim lngItem As Long, lngItems As Long
   
   Set oUserForm = cptGetUserForm("cptNetworkBrowser_frm") 'returns Nothing if form is not loaded
   If Not oUserForm Is Nothing Then Application.Run "cptShowPreds"
-  
+ 
+  Set oUserForm = cptGetUserForm("cptTaskHistory_frm") 'returns Nothing if form is not loaded
+  If Not oUserForm Is Nothing Then Application.Run "cptUpdateTaskHistory"
+ 
   Set oUserForm = cptGetUserForm("cptSmartDuration_frm") 'returns Nothing if form is not loaded
   If Not oUserForm Is Nothing Then Application.Run "cptUpdateSmartDurationForm"
   
