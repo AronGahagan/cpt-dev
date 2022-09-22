@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.7.0</cpt_version>
+'<cpt_version>v1.8.0</cpt_version>
 Option Explicit
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
@@ -618,9 +618,6 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCostRateTables"" onAction=""cptShowCostRateTables_frm""  size=""large"" visible=""true""  label=""Cost Rate Tables"" imageMso=""DataTypeCurrency"" />"
   End If
-  If cptModuleExists("cptAdjustment_bas") And cptModuleExists("cptAdjustment_frm") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdjustment"" label=""ETC Adjustments"" imageMso=""SynchronizationStatus"" onAction=""cptShowAdjustment_frm"" visible=""true"" supertip=""Bulk adjust ETCs by resource, to given target, by percentage, or by a given amount."" />"
-  End If
 
   'mpm
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
@@ -939,45 +936,3 @@ Sub cptDate_Www_dd_yy_hh_mmAM()
   DefaultDateFormat = pjDate_Www_dd_yy_hh_mmAM
 End Sub
 
-Sub cptValidateXML(strXML As String)
-  'objects
-  Dim oXML As MSXML2.DOMDocument30
-  'strings
-  Dim strFile As String
-  'longs
-  Dim lngFile As Long
-  'integers
-  'doubles
-  'booleans
-  'variants
-  'dates
-  
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  
-  strFile = Environ("tmp") & "\cpt-validate.xml"
-  lngFile = FreeFile
-  Open strFile For Output As #lngFile
-  Print #lngFile, strXML
-  Close #lngFile
-  
-  Set oXML = New MSXML2.DOMDocument30
-  If oXML.Load(strFile) Then
-    MsgBox "cpt ribbon xml validated", vbInformation + vbOKOnly, "success"
-  Else
-    MsgBox "cpt ribbon xml validation failed", vbCritical + vbOKOnly, "failure"
-    If oXML.parseError.errorcode <> 0 Then
-      MsgBox oXML.parseError.reason, vbInformation + vbOKOnly, "reason:"
-    End If
-  End If
-
-  Kill strFile
-
-exit_here:
-  On Error Resume Next
-  Set oXML = Nothing
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptSetup_bas", "cptValidateXML", Err, Erl)
-  Resume exit_here
-End Sub

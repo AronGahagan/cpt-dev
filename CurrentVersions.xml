@@ -290,7 +290,7 @@
 	<Module>
 		<Name>cptSetup_bas</Name>
 		<FileName>cptSetup_bas.bas</FileName>
-		<Version>v1.7.0</Version>
+		<Version>v1.8.0</Version>
 		<Type>1</Type>
 		<Directory></Directory>
 	</Module>
