@@ -15,14 +15,15 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
+Public lngTaskHistoryUID As Long
 
 Private Sub cmdDone_Click()
   Unload Me
 End Sub
 
 Private Sub cmdExport_Click()
-  If IsNumeric(CLng(Me.lblUID.Caption)) Then
-    Call cptExportTaskHistory(CLng(Me.lblUID.Caption))
+  If IsNumeric(CLng(Me.lngTaskHistoryUID)) Then
+    Call cptExportTaskHistory(CLng(Me.lngTaskHistoryUID))
   End If
 End Sub
 
@@ -44,7 +45,7 @@ End Sub
 Private Sub lboTaskHistory_Click()
   If IsNull(Me.lboTaskHistory.Value) Then Exit Sub
   If Me.ActiveControl.Name <> "lboTaskHistory" Then Exit Sub
-  Call cptGetTaskHistoryNote(CDate(Me.lboTaskHistory.Value), CLng(Me.lblUID.Caption))
+  Call cptGetTaskHistoryNote(CDate(Me.lboTaskHistory.Value), CLng(Me.lngTaskHistoryUID))
 End Sub
 
 Private Sub optAllHistory_Click()
@@ -71,10 +72,10 @@ End Sub
 
 Private Sub optTaskHistory_Click()
   If Me.optTaskHistory Then
-    If IsNumeric(Me.lblUID) Then
+    If IsNumeric(Me.lngTaskHistoryUID) Then
       Me.lblWarning.Visible = False
       Me.tglExport.Value = False
-      Call cptExportTaskHistory(lngUID:=CLng(Me.lblUID))
+      Call cptExportTaskHistory(lngUID:=CLng(Me.lngTaskHistoryUID))
     Else
       Me.optTaskHistory.Value = False
       Me.lblWarning.Caption = "No task selected."
@@ -113,11 +114,20 @@ Private Sub txtVariance_Change()
     Exit Sub
   Else
     Me.lblWarning.Visible = False
-    Call cptUpdateTaskHistoryNote(CLng(Me.lblUID.Caption), Me.lboTaskHistory.Value, Me.txtVariance.Text)
+    Call cptUpdateTaskHistoryNote(CLng(Me.lngTaskHistoryUID), Me.lboTaskHistory.Value, Me.txtVariance.Text)
     'todo: update character limit caption
   End If
 End Sub
 
 Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
   Call cptCore_bas.cptStartEvents
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If oTaskHistory.State Then
+    oTaskHistory.Filter = 0
+    oTaskHistory.Save cptDir & "\settings\cpt-cei.adtg", adPersistADTG
+    oTaskHistory.Close
+    Set oTaskHistory = Nothing
+  End If
 End Sub

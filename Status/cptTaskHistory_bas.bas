@@ -1,16 +1,66 @@
 Attribute VB_Name = "cptTaskHistory_bas"
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
+Public oTaskHistory As ADODB.Recordset
 
 Sub cptShowTaskHistoryFrm()
+  'objects
+  'strings
+  Dim strProgramAcronym As String
+  Dim strFile As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  Dim blnFieldExists As Boolean
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  'ensure program acroynm
+  strProgramAcronym = cptGetProgramAcronym
+  
+  'ensure file exists
+  strFile = cptDir & "\settings\cpt-cei.adtg"
+  If Dir(strFile) = vbNullString Then
+    MsgBox "Please run 'capture week' for each week's file that you want recorded.", vbCritical + vbOKOnly, "File Not Found"
+    GoTo exit_here
+  End If
+  Set oTaskHistory = CreateObject("ADODB.Recordset")
+  oTaskHistory.Open strFile
+  oTaskHistory.MoveFirst
+  
+  'ensure NOTE field exists
+  blnFieldExists = True
+  On Error Resume Next
+  Debug.Print oTaskHistory.Fields("NOTE")
+  If Err.Number = 3265 Then blnFieldExists = False
+  If Not blnFieldExists Then
+    oTaskHistory.Close
+    cptAppendColumn strFile, "NOTE", 203, 500 '203=adLongVarWChar
+    oTaskHistory.Open strFile
+  End If
   Call cptUpdateTaskHistory
-  cptTaskHistory_frm.Caption = "Task History (" & cptGetVersion("cptTaskHistory_bas") & ")"
-  cptTaskHistory_frm.Show False
+  With cptTaskHistory_frm
+    .Caption = "Task History (" & cptGetVersion("cptTaskHistory_bas") & ")"
+    .Show False
+    Debug.Print .lboTaskHistory.Height
+  End With
+  
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptTaskHistory_bas", "cptShowTaskHistoryFrm", Err, Erl)
+  Resume exit_here
+
 End Sub
 
 Sub cptUpdateTaskHistory()
   'objects
-  Dim oRecordset As ADODB.Recordset
+  Dim oTasks As Object
   'strings
   Dim strNote As String
   Dim strFile As String
@@ -25,20 +75,25 @@ Sub cptUpdateTaskHistory()
   Dim dtFinish As Date
   Dim dtStart As Date
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  
-  'ensure program acroynm
-  strProgramAcronym = cptGetProgramAcronym
-  'ensure file exists
-  strFile = cptDir & "\settings\cpt-cei.adtg"
-  If Dir(strFile) = vbNullString Then
-    MsgBox "Please run 'capture week' for each week's file that you want recorded.", vbCritical + vbOKOnly, "File Not Found"
+  On Error Resume Next
+  Set oTasks = ActiveSelection.Tasks
+  cptTaskHistory_frm.lblWarning.Visible = False
+  If oTasks Is Nothing Then
+    cptTaskHistory_frm.lngTaskHistoryUID = 0
+    cptTaskHistory_frm.lboTaskHistory.Clear
+    cptTaskHistory_frm.txtVariance = ""
+    cptTaskHistory_frm.lblWarning.Caption = "Nothing selected"
+    cptTaskHistory_frm.lblWarning.Visible = True
     GoTo exit_here
   End If
   
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  strProgramAcronym = cptGetProgramAcronym
+  
   With cptTaskHistory_frm
     .lboHeader.Clear
-    .lboHeader.ColumnCount = 8
+    .lboHeader.ColumnCount = 7
     .lboHeader.AddItem
     .lboHeader.List(0, 0) = "STATUS_DATE"
     .lboHeader.List(0, 1) = "STATUS DATE"
@@ -46,15 +101,16 @@ Sub cptUpdateTaskHistory()
     .lboHeader.List(0, 3) = "DUR"
     .lboHeader.List(0, 4) = "FINISH"
     .lboHeader.List(0, 5) = "RDur"
-    .lboHeader.List(0, 6) = "RWork"
-    .lboHeader.List(0, 7) = "STATUS NOTE"
+    '.lboHeader.List(0, 6) = "RWork"
+    .lboHeader.List(0, 6) = "STATUS NOTE"
     .lboTaskHistory.Clear
-    .lboTaskHistory.ColumnCount = 8
-    .lblUID.Caption = "-"
+    .lboTaskHistory.ColumnCount = 7
     .txtVariance = ""
     .lblWarning.Visible = False
-    If ActiveSelection.Tasks.Count <> 1 Then
-      If ActiveSelection.Tasks.Count > 1 Then
+    If oTasks.Count <> 1 Then
+      .lngTaskHistoryUID = 0
+      .tglExport.Enabled = False
+      If oTasks.Count > 1 Then
         .lboTaskHistory.ColumnCount = 2
         .lboTaskHistory.AddItem
         .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 1) = "One at a time, please..."
@@ -62,74 +118,72 @@ Sub cptUpdateTaskHistory()
         .lboTaskHistory.Clear
       End If
     Else
-      If ActiveSelection.Tasks(1).Summary Then
+      If .lngTaskHistoryUID > 0 Then .tglExport.Enabled = True
+      If oTasks(1).Summary Then
         .lblWarning.Caption = "History not captured on summary tasks."
         .lblWarning.Visible = True
         GoTo exit_here
-      ElseIf Not ActiveSelection.Tasks(1).Active Then
+      ElseIf Not oTasks(1).Active Then
         .lblWarning.Caption = "History not captured on inactive tasks."
         .lblWarning.Visible = True
         GoTo exit_here
-      ElseIf ActiveSelection.Tasks(1).ExternalTask Then
+      ElseIf oTasks(1).ExternalTask Then
         .lblWarning.Caption = "History not captured on external tasks."
         .lblWarning.Visible = True
         GoTo exit_here
       End If
-      lngUID = ActiveSelection.Tasks(1).UniqueID
-      .lblUID.Caption = lngUID
-      Set oRecordset = CreateObject("ADODB.Recordset")
-      oRecordset.Open strFile
-      If oRecordset.RecordCount > 0 Then
-        oRecordset.Filter = "PROJECT='" & strProgramAcronym & "' AND TASK_UID=" & CInt(lngUID)
-        oRecordset.Sort = "STATUS_DATE desc"
-        If oRecordset.EOF Then
+      .lngTaskHistoryUID = oTasks(1).UniqueID
+      lngUID = .lngTaskHistoryUID
+      If oTaskHistory.RecordCount > 0 Then
+        oTaskHistory.Filter = "PROJECT='" & strProgramAcronym & "' AND TASK_UID=" & CInt(lngUID)
+        oTaskHistory.Sort = "STATUS_DATE desc"
+        If oTaskHistory.EOF Then
           .lblWarning.Caption = "No history for UID " & lngUID & "."
           .lblWarning.Visible = True
           GoTo exit_here
         Else
-          oRecordset.MoveFirst
-          Do While Not oRecordset.EOF
+          oTaskHistory.MoveFirst
+          Do While Not oTaskHistory.EOF
             .lboTaskHistory.AddItem
-            .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 0) = oRecordset("STATUS_DATE")
-            .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 1) = FormatDateTime(oRecordset("STATUS_DATE"), vbShortDate) & IIf(Len(oRecordset("NOTE")) > 0, "*", "")
-            If oRecordset("TASK_AS") > 0 Then
-              dtStart = oRecordset("TASK_AS")
+            .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 0) = oTaskHistory("STATUS_DATE")
+            .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 1) = FormatDateTime(oTaskHistory("STATUS_DATE"), vbShortDate) & IIf(Len(oTaskHistory("NOTE")) > 0, "*", "")
+            If oTaskHistory("TASK_AS") > 0 Then
+              dtStart = oTaskHistory("TASK_AS")
               .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 2) = "[" & FormatDateTime(dtStart, vbShortDate) & "]"
             Else
-              dtStart = oRecordset("TASK_START")
+              dtStart = oTaskHistory("TASK_START")
               .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 2) = FormatDateTime(dtStart, vbShortDate)
             End If
           
-            If oRecordset("TASK_AF") > 0 Then
-              dtFinish = oRecordset("TASK_AF")
+            If oTaskHistory("TASK_AF") > 0 Then
+              dtFinish = oTaskHistory("TASK_AF")
               .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 4) = "[" & FormatDateTime(dtFinish, vbShortDate) & "]"
             Else
-              dtFinish = oRecordset("TASK_FINISH")
+              dtFinish = oTaskHistory("TASK_FINISH")
               .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 4) = FormatDateTime(dtFinish, vbShortDate)
             End If
             .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 3) = Application.DateDifference(dtStart, dtFinish) / 480 & "d"
-            .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 5) = oRecordset("TASK_RD") & "d"
+            .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 5) = oTaskHistory("TASK_RD") & "d"
             'todo: add RWork to cpt-cei.adtg and cptCaptureWeek
             'todo: add EVP to cpt-cei.adtg and cptCaptureWeek
             'todo: add BAC to cpt-cei.adtg and cptCaptureWeek?
             'todo: remove NOTE from lboTaskHistory
-            strNote = oRecordset("NOTE")
+            strNote = oTaskHistory("NOTE")
             If Len(strNote) = 0 Then
-              .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 7) = ""
-            ElseIf Len(strNote) > 10 Then
-              .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 7) = Left(strNote, 7) & "..."
+              .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 6) = ""
+            ElseIf Len(strNote) > 20 Then
+              .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 6) = Left(strNote, 17) & "..."
             Else
-              .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 7) = strNote
+              .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 6) = strNote
             End If
             If Len(strNote) > 0 Then
-              .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 1) = FormatDateTime(oRecordset("STATUS_DATE"), vbShortDate) & "*"
+              .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 1) = FormatDateTime(oTaskHistory("STATUS_DATE"), vbShortDate) & "*"
             Else
-              .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 1) = FormatDateTime(oRecordset("STATUS_DATE"), vbShortDate)
+              .lboTaskHistory.List(.lboTaskHistory.ListCount - 1, 1) = FormatDateTime(oTaskHistory("STATUS_DATE"), vbShortDate)
             End If
-            oRecordset.MoveNext
+            oTaskHistory.MoveNext
           Loop
-          oRecordset.Filter = 0
-          oRecordset.Close
+          oTaskHistory.Filter = 0
         End If
       Else
         .lblWarning.Caption = "No records found."
@@ -140,7 +194,8 @@ Sub cptUpdateTaskHistory()
 
 exit_here:
   On Error Resume Next
-  Set oRecordset = Nothing
+  Set oTasks = Nothing
+  oTaskHistory.Filter = 0
 
   Exit Sub
 err_here:
@@ -150,7 +205,6 @@ End Sub
 
 Sub cptUpdateTaskHistoryNote(lngUID As Long, dtStatus As Date, strVariance As String)
   'objects
-  Dim oRecordset As ADODB.Recordset
   'strings
   Dim strFile As String
   'longs
@@ -163,42 +217,22 @@ Sub cptUpdateTaskHistoryNote(lngUID As Long, dtStatus As Date, strVariance As St
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
-  'ensure NOTE field exists
-  strFile = cptDir & "\settings\cpt-cei.adtg"
-  Set oRecordset = CreateObject("ADODB.Recordset")
-  oRecordset.Open strFile
-  blnFieldExists = True
-  On Error Resume Next
-  Debug.Print oRecordset.Fields("NOTE")
-  If Err.Number = 3265 Then blnFieldExists = False
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-    
-  'add new field if necessary
-  If Not blnFieldExists Then
-    oRecordset.Close
-    cptAppendColumn strFile, "NOTE", 203, 500 '203=adLongVarWChar
-    oRecordset.Open strFile
-  End If
   
-  oRecordset.MoveFirst
-  oRecordset.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND TASK_UID=" & CInt(lngUID) & " AND STATUS_DATE=#" & FormatDateTime(dtStatus, vbGeneralDate) & "#"
-  If Not oRecordset.EOF Then
-    oRecordset.Update Array("NOTE"), Array(strVariance)
+  oTaskHistory.MoveFirst
+  oTaskHistory.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND TASK_UID=" & CInt(lngUID) & " AND STATUS_DATE=#" & FormatDateTime(dtStatus, vbGeneralDate) & "#"
+  If Not oTaskHistory.EOF Then
+    oTaskHistory.Update Array("NOTE"), Array(strVariance)
   Else
     'todo: do what if Filter > .EOF=TRUE
   End If
-'  oRecordset.Filter = 0
-'  oRecordset.Save strFile, adPersistADTG
-'  oRecordset.Close
   
   With cptTaskHistory_frm
     If Len(strVariance) = 0 Then
-      .lboTaskHistory.List(.lboTaskHistory.ListIndex, 7) = ""
+      .lboTaskHistory.List(.lboTaskHistory.ListIndex, 6) = ""
     ElseIf Len(strVariance) > 10 Then
-      .lboTaskHistory.List(.lboTaskHistory.ListIndex, 7) = Left(strVariance, 7) & "..."
+      .lboTaskHistory.List(.lboTaskHistory.ListIndex, 6) = Left(strVariance, 17) & "..."
     Else
-      .lboTaskHistory.List(.lboTaskHistory.ListIndex, 7) = strVariance
+      .lboTaskHistory.List(.lboTaskHistory.ListIndex, 6) = strVariance
     End If
     If Len(strVariance) > 0 Then
       .lboTaskHistory.List(.lboTaskHistory.ListIndex, 1) = FormatDateTime(dtStatus, vbShortDate) & "*"
@@ -208,13 +242,9 @@ Sub cptUpdateTaskHistoryNote(lngUID As Long, dtStatus As Date, strVariance As St
   End With
   
 exit_here:
-  If oRecordset.State Then
-    oRecordset.Filter = 0
-    oRecordset.Save strFile, adPersistADTG
-    oRecordset.Close
-  End If
-  Set oRecordset = Nothing
-
+  On Error Resume Next
+  oTaskHistory.Filter = 0
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptTaskHistory_bas", "cptUpdateTaskHistoryNote", Err, Erl)
@@ -223,9 +253,7 @@ End Sub
 
 Sub cptGetTaskHistoryNote(dtStatus As Date, lngUID As Long)
   'objects
-  Dim oRecordset As ADODB.Recordset
   'strings
-  Dim strFile As String
   'longs
   'integers
   'doubles
@@ -233,26 +261,19 @@ Sub cptGetTaskHistoryNote(dtStatus As Date, lngUID As Long)
   'variants
   'dates
   
-  strFile = cptDir & "\settings\cpt-cei.adtg"
-  If Dir(strFile) = vbNullString Then Exit Sub
-  
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   With cptTaskHistory_frm
     .txtVariance = ""
-    Set oRecordset = CreateObject("ADODB.Recordset")
-    oRecordset.Open strFile
-    oRecordset.MoveFirst
-    oRecordset.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND TASK_UID=" & lngUID & " AND STATUS_DATE=#" & FormatDateTime(dtStatus, vbGeneralDate) & "#"
-    If Not oRecordset.EOF Then
-      .txtVariance = oRecordset("NOTE")
+    oTaskHistory.MoveFirst
+    oTaskHistory.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND TASK_UID=" & lngUID & " AND STATUS_DATE=#" & FormatDateTime(dtStatus, vbGeneralDate) & "#"
+    If Not oTaskHistory.EOF Then
+      .txtVariance = oTaskHistory("NOTE")
     End If
   End With
     
 exit_here:
   On Error Resume Next
-  oRecordset.Filter = 0
-  oRecordset.Close
-  Set oRecordset = Nothing
+  oTaskHistory.Filter = 0
 
   Exit Sub
 err_here:
@@ -265,9 +286,7 @@ Sub cptExportTaskHistory(Optional lngUID As Long, Optional blnNotesOnly As Boole
   Dim oWorksheet As Excel.Worksheet
   Dim oWorkbook As Excel.Workbook
   Dim oExcel As Excel.Application
-  Dim oRecordset As ADODB.Recordset
   'strings
-  Dim strFile As String
   'longs
   Dim lngItem As Long
   'integers
@@ -279,25 +298,21 @@ Sub cptExportTaskHistory(Optional lngUID As Long, Optional blnNotesOnly As Boole
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  strFile = cptDir & "\settings\cpt-cei.adtg"
-  If Dir(strFile) = vbNullString Then Exit Sub
   Application.StatusBar = "Getting data..."
-  Set oRecordset = CreateObject("ADODB.Recordset")
-  oRecordset.Open strFile, , adOpenKeyset
-  oRecordset.MoveFirst
+  oTaskHistory.MoveFirst
   If lngUID > 0 Then
     Application.StatusBar = "Filtering for UID " & lngUID & "..."
-    oRecordset.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND TASK_UID=" & lngUID
+    oTaskHistory.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND TASK_UID=" & lngUID
   ElseIf blnNotesOnly Then
     Application.StatusBar = "Fitlering for notes in the current period..."
-    oRecordset.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND STATUS_DATE=#" & FormatDateTime(ActiveProject.StatusDate, vbGeneralDate) & "# AND NOTE <>''"
+    oTaskHistory.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND STATUS_DATE=#" & FormatDateTime(ActiveProject.StatusDate, vbGeneralDate) & "# AND NOTE <>''"
   Else
     Application.StatusBar = "Filtering..."
-    oRecordset.Filter = "PROJECT='" & cptGetProgramAcronym & "'"
+    oTaskHistory.Filter = "PROJECT='" & cptGetProgramAcronym & "'"
   End If
   Application.StatusBar = "Sorting by STATUS_DATE descending..."
-  oRecordset.Sort = "STATUS_DATE desc"
-  If Not oRecordset.EOF Then
+  oTaskHistory.Sort = "STATUS_DATE desc"
+  If Not oTaskHistory.EOF Then
     Application.StatusBar = "Getting Excel..."
     On Error Resume Next
     Set oExcel = GetObject(, "Excel.Application")
@@ -315,13 +330,13 @@ Sub cptExportTaskHistory(Optional lngUID As Long, Optional blnNotesOnly As Boole
     oWorksheet.[A1].Value = ActiveProject.Name
     oWorksheet.[A1:E1].Merge
     Application.StatusBar = "Building header..."
-    vRow = oWorksheet.Range(oWorksheet.[A3], oWorksheet.Cells(3, oRecordset.Fields.Count)).Value
-    For lngItem = 0 To oRecordset.Fields.Count - 1
-      vRow(1, lngItem + 1) = oRecordset.Fields(lngItem).Name
+    vRow = oWorksheet.Range(oWorksheet.[A3], oWorksheet.Cells(3, oTaskHistory.Fields.Count)).Value
+    For lngItem = 0 To oTaskHistory.Fields.Count - 1
+      vRow(1, lngItem + 1) = oTaskHistory.Fields(lngItem).Name
     Next lngItem
-    oWorksheet.Range(oWorksheet.[A3], oWorksheet.Cells(3, oRecordset.Fields.Count)) = vRow
+    oWorksheet.Range(oWorksheet.[A3], oWorksheet.Cells(3, oTaskHistory.Fields.Count)) = vRow
     Application.StatusBar = "Importing data..."
-    oWorksheet.[A4].CopyFromRecordset cptConvertFilteredRecordset(oRecordset)
+    oWorksheet.[A4].CopyFromRecordset cptConvertFilteredRecordset(oTaskHistory)
     Application.StatusBar = "Formatting..."
     oWorksheet.[A3].AutoFilter
     oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight)).Font.Bold = True
@@ -343,9 +358,7 @@ exit_here:
   oExcel.Calculation = xlCalculationAutomatic
   Set oWorkbook = Nothing
   Set oExcel = Nothing
-  oRecordset.Filter = 0
-  oRecordset.Close
-  Set oRecordset = Nothing
+  oTaskHistory.Filter = 0
 
   Exit Sub
 err_here:
@@ -353,7 +366,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Function cptConvertFilteredRecordset(oRecordset As ADODB.Recordset) As Recordset
+Function cptConvertFilteredRecordset(oRecordset As ADODB.Recordset) As ADODB.Recordset
   Dim oStream As ADODB.Stream
   Set oStream = New ADODB.Stream
   oRecordset.Save oStream, adPersistXML
