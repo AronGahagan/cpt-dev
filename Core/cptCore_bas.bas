@@ -2093,7 +2093,7 @@ next_task:
   ElseIf dblNumber > 0 Then
     Application.StatusBar = Format(lngItems, "#,##0") & " task" & IIf(lngItems = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(dblNumber, "#,###,##0.00")
   ElseIf dblWork > 0 Then
-    Application.StatusBar = Format(lngItems, "#,##0") & " task" & IIf(lngItems = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(dblWork / 60, "#,###,##0.00")
+    Application.StatusBar = Format(lngItems, "#,##0") & " task" & IIf(lngItems = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(dblWork / 60, "#,###,##0.00h")
   Else
     Application.StatusBar = Format(lngItems, "#,##0") & " task" & IIf(lngItems = 1, "", "s") & " selected"
   End If
