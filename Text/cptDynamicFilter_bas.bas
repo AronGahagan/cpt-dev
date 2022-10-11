@@ -110,11 +110,15 @@ Sub cptGoRegEx(strRegEx As String)
     lngUID = oTask.UniqueID
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   End If
-  
-  lngFieldConstant = FieldNameToFieldConstant(cptDynamicFilter_frm.cboField.Value)
+  If cptDynamicFilter_frm.cboField.Value = "Task Name" Then
+    lngFieldConstant = FieldNameToFieldConstant("Name", pjTask)
+  Else
+    lngFieldConstant = FieldNameToFieldConstant(cptDynamicFilter_frm.cboField.Value)
+  End If
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.Marked Then oTask.Marked = False
+    If Len(oTask.GetField(lngFieldConstant)) = 0 Then GoTo next_task
     If cptDynamicFilter_frm.chkHideSummaries And oTask.Summary Then
       If Len(cptRxMatch(oTask.GetField(lngFieldConstant), strRegEx)) > 0 Then oTask.Marked = True
     ElseIf Not oTask.Summary Then
@@ -126,14 +130,14 @@ next_task:
   If lngUID > 0 Then ActiveProject.Tasks.UniqueID(lngUID).Marked = True
   
   FilterClear 'in case Dynamic Filter is applied
-  OptionsViewEx displaysummaryTasks:=True
+  OptionsViewEx DisplaySummaryTasks:=True
   On Error Resume Next
   If Not OutlineShowAllTasks Then
     Sort "ID", , , , , , False, True
     OutlineShowAllTasks
   End If
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  OptionsViewEx displaysummaryTasks:=cptDynamicFilter_frm.chkShowRelatedSummaries
+  OptionsViewEx DisplaySummaryTasks:=cptDynamicFilter_frm.chkShowRelatedSummaries
   
   SetAutoFilter "Marked", pjAutoFilterFlagYes
   'todo: allow user-selected Flag or Marked
