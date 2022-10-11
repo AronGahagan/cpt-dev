@@ -372,7 +372,7 @@ Private Sub DataChecks(ByVal curProj As Project)
 
                 If Not t Is Nothing Then
 
-                    If t.Summary = False And t.Active = True And t.ExternalTask = False Then
+                    If  t.Active = True And t.ExternalTask = False Then
 
                         taskCount = taskCount + 1
                         taskFound = True
@@ -498,7 +498,7 @@ Private Sub DataChecks(ByVal curProj As Project)
 
             If Not t Is Nothing Then
 
-                If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                If t.Active = True And  t.ExternalTask = False Then
 
                     taskCount = taskCount + 1
                     taskFound = True
@@ -1396,7 +1396,7 @@ Private Sub BCWP_Export(ByVal curProj As Project)
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.Active = True And  t.ExternalTask = False Then
 
                             If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
@@ -1731,7 +1731,7 @@ nrBCWP_WP_Match_A:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.Active = True And  t.ExternalTask = False Then
 
                         If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
@@ -2110,7 +2110,7 @@ nrBCWP_WP_Match_B:
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.Active = True And  t.ExternalTask = False Then
 
                             If t.BaselineWork > 0 Or t.BaselineCost > 0 Then
 
@@ -2579,7 +2579,7 @@ BCWP_WP_Match_A:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.Active = True And  t.ExternalTask = False Then
 
                         If t.BaselineWork > 0 Or t.BaselineCost > 0 Then
 
@@ -3119,7 +3119,7 @@ Private Sub ETC_Export(ByVal curProj As Project)
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.Active = True And  t.ExternalTask = False Then
 
                             If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
@@ -3285,7 +3285,7 @@ nrETC_WP_Match:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.Active = True And  t.ExternalTask = False Then
 
                         If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
@@ -3499,7 +3499,7 @@ nrETC_WP_Match_B:
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.Active = True And  t.ExternalTask = False Then
 
                             If t.Work > 0 Or t.Cost > 0 Then
 
@@ -3740,7 +3740,7 @@ ETC_WP_Match:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.Active = True And  t.ExternalTask = False Then
 
                         If t.Work > 0 Or t.Cost > 0 Then
 
@@ -4060,7 +4060,7 @@ Private Sub BCWS_Export(ByVal curProj As Project)
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.Active = True And  t.ExternalTask = False Then
 
                             If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
@@ -4209,7 +4209,7 @@ Next_nrSProj_Task:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.Active = True And  t.ExternalTask = False Then
 
                         If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
@@ -4404,7 +4404,7 @@ Next_nrTask:
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.Active = True And  t.ExternalTask = False Then
 
                             If t.BaselineWork > 0 Or t.BaselineCost > 0 Then
 
@@ -4606,7 +4606,7 @@ Next_SProj_Task:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.Active = True And  t.ExternalTask = False Then
 
                         If t.BaselineWork > 0 Or t.BaselineCost > 0 Then
 
@@ -4883,7 +4883,7 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.Active = True And  t.ExternalTask = False Then
 
                             If t.GetField(FieldNameToFieldConstant(fWP)) <> "" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "D" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "d" Then
 
@@ -5068,7 +5068,7 @@ Next_nrSProj_Task:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.Active = True And  t.ExternalTask = False Then
                         If t.GetField(FieldNameToFieldConstant(fWP)) <> "" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "D" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "d" Then
 
                             CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
@@ -5299,7 +5299,7 @@ Next_nrTask:
 
                     If Not t Is Nothing Then
 
-                        If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                        If t.Active = True And  t.ExternalTask = False Then
                         
                             If ((t.BaselineWork > 0 Or t.BaselineCost > 0) And _
                             (t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "d" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "D")) _
@@ -5570,7 +5570,7 @@ Next_SProj_Task:
 
                 If Not t Is Nothing Then
 
-                    If t.Active = True And t.Summary = False And t.ExternalTask = False Then
+                    If t.Active = True And  t.ExternalTask = False Then
 
                         If ((t.BaselineWork > 0 Or t.BaselineCost > 0) And _
                         (t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "d" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "D")) _
