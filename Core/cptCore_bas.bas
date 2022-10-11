@@ -1988,7 +1988,10 @@ Sub cptGetSums(ByRef oTasks As MSProject.Tasks, lngFieldID As Long)
 
   If Len(cptRegEx(FieldConstantToFieldName(ActiveSelection.FieldIDList(1)), "Cost|Duration|Number|Work")) > 0 Then
     For Each oTask In oTasks
-    
+      If oTask Is Nothing Then GoTo next_task
+      If Not oTask.Active Then GoTo next_task
+      'do not ignore external tasks
+      'do not ignore summary tasks
       If FieldConstantToFieldName(lngFieldID) = "Actual Cost" Then dblCost = dblCost + oTask.ActualCost
       If FieldConstantToFieldName(lngFieldID) = "Cost" Then dblCost = dblCost + oTask.Cost
       If FieldConstantToFieldName(lngFieldID) = "Remaining Cost" Then dblCost = dblCost + oTask.RemainingCost
@@ -2078,7 +2081,7 @@ Sub cptGetSums(ByRef oTasks As MSProject.Tasks, lngFieldID As Long)
       If FieldConstantToFieldName(lngFieldID) = "Baseline8 Work" Then dblWork = dblWork + oTask.Baseline8Work
       If FieldConstantToFieldName(lngFieldID) = "Baseline9 Work" Then dblWork = dblWork + oTask.Baseline9Work
       If FieldConstantToFieldName(lngFieldID) = "Baseline10 Work" Then dblWork = dblWork + oTask.Baseline10Work
-      
+next_task:
     Next oTask
   End If
 
