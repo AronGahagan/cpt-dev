@@ -2,7 +2,7 @@ Attribute VB_Name = "cptCostRateTables_bas"
 '<cpt_version>v1.0.0</cpt_version>
 Option Explicit
 
-Sub cptShowCostRateTablesForm()
+Sub cptShowCostRateTables_frm()
   'objects
   'strings
   Dim strOverwrite As String
@@ -164,7 +164,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  MsgBox Err.Number & ":" & Err.Description, vbInformation + vbOKOnly, "Error"
+  Call cptHandleErr("basCostRateTables_bas", "cptExportCostRateTables", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -331,6 +331,6 @@ exit_here:
 
   Exit Sub
 err_here:
-  MsgBox Err.Number & ":" & Err.Description, vbInformation + vbOKOnly, "Error"
+  Call cptHandleErr("cptCostRateTables_bas", "cptImportCostRateTables", Err, Erl)
   Resume exit_here
 End Sub
