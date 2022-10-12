@@ -301,7 +301,7 @@ cost_rate_tables:
     Else
       oCostRateTable.PayRates(1).StandardRate = vStdRate
       If Not IsEmpty(vOvtRate) Then oCostRateTable.PayRates(1).OvertimeRate = vOvtRate
-      oCostRateTable.PayRates(1).CostPerUse = vCostPerUse
+      If Not IsEmpty(vCostPerUse) Then oCostRateTable.PayRates(1).CostPerUse = vCostPerUse
     End If
     Application.StatusBar = Format(lngRow, "#,##0") & "/" & Format(lngLastRow, "#,##0") & "...(" & Format(lngRow / lngLastRow, "0%") & ")"
     cptCostRateTables_frm.lblStatus.Caption = Format(lngRow, "#,##0") & "/" & Format(lngLastRow, "#,##0") & "...(" & Format(lngRow / lngLastRow, "0%") & ")"
