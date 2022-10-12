@@ -1968,7 +1968,8 @@ Sub cptGetSums(ByRef oTasks As MSProject.Tasks, lngFieldID As Long)
   Dim oTask As MSProject.Task
   'strings
   'longs
-  Dim lngItems As Long
+  Dim lngTask As Long
+  Dim lngTasks As Long
   Dim lngDuration As Long
   'integers
   'doubles
@@ -1985,8 +1986,10 @@ Sub cptGetSums(ByRef oTasks As MSProject.Tasks, lngFieldID As Long)
   lngDuration = 0
   dblNumber = 0
   dblWork = 0#
+  lngTasks = oTasks.Count
 
   If Len(cptRegEx(FieldConstantToFieldName(ActiveSelection.FieldIDList(1)), "Cost|Duration|Number|Work")) > 0 Then
+    lngTask = 0
     For Each oTask In oTasks
       If oTask Is Nothing Then GoTo next_task
       If Not oTask.Active Then GoTo next_task
@@ -2082,20 +2085,21 @@ Sub cptGetSums(ByRef oTasks As MSProject.Tasks, lngFieldID As Long)
       If FieldConstantToFieldName(lngFieldID) = "Baseline9 Work" Then dblWork = dblWork + oTask.Baseline9Work
       If FieldConstantToFieldName(lngFieldID) = "Baseline10 Work" Then dblWork = dblWork + oTask.Baseline10Work
 next_task:
+      lngTask = lngTask + 1
+      Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; Calculating...(" & Format(lngTask / lngTasks, "0%") & ")"
     Next oTask
   End If
 
-  lngItems = oTasks.Count
   If dblCost > 0 Then
-    Application.StatusBar = Format(lngItems, "#,##0") & " task" & IIf(lngItems = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(dblCost, "$#,###,##0.00")
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(dblCost, "$#,###,##0.00")
   ElseIf lngDuration > 0 Then
-    Application.StatusBar = Format(lngItems, "#,##0") & " task" & IIf(lngItems = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(lngDuration / 480, "#,###,##0d")
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(lngDuration / 480, "#,###,##0d")
   ElseIf dblNumber > 0 Then
-    Application.StatusBar = Format(lngItems, "#,##0") & " task" & IIf(lngItems = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(dblNumber, "#,###,##0.00")
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(dblNumber, "#,###,##0.00")
   ElseIf dblWork > 0 Then
-    Application.StatusBar = Format(lngItems, "#,##0") & " task" & IIf(lngItems = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(dblWork / 60, "#,###,##0.00h")
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(dblWork / 60, "#,###,##0.00h")
   Else
-    Application.StatusBar = Format(lngItems, "#,##0") & " task" & IIf(lngItems = 1, "", "s") & " selected"
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected"
   End If
   
 exit_here:
