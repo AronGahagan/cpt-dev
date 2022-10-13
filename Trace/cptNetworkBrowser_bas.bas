@@ -336,6 +336,13 @@ next_mapping_task:
     End If
   Next oLink
   
+  With cptNetworkBrowser_frm
+    If .Visible Then
+      If .lboPredecessors.ListCount > 2 Then cptSortNetworkBrowserLinks "p", cptNetworkBrowser_frm.chkSortPredDescending.Value
+      If .lboSuccessors.ListCount > 2 Then cptSortNetworkBrowserLinks "s", cptNetworkBrowser_frm.chkSortSuccDescending.Value
+    End If
+  End With
+  
 exit_here:
   On Error Resume Next
   cptSpeed False
@@ -515,8 +522,8 @@ Sub cptSortNetworkBrowserLinks(strWhich As String, Optional blnDescending = Fals
   Set oRecordset = CreateObject("ADODB.Recordset")
   'UID,ID,Type,Lag,Date,Slack,Task,Critical
   With oRecordset
-    .Fields.Append "UID0", adInteger
-    .Fields.Append "UID1", adInteger
+    .Fields.Append "UID_M", adInteger
+    .Fields.Append "UID_S", adInteger
     .Fields.Append "ID", adInteger
     .Fields.Append "Type", adVarChar, 3
     .Fields.Append "Lag", adVarChar, 255
@@ -524,6 +531,7 @@ Sub cptSortNetworkBrowserLinks(strWhich As String, Optional blnDescending = Fals
     .Fields.Append "Slack", adInteger
     .Fields.Append "Task", adVarChar, 255
     .Fields.Append "Critical", adBoolean
+    .Fields.Append "indicator", adVarChar, 1
     .Open
     For lngItem = oListBox.ListCount - 1 To 1 Step -1
       .AddNew
@@ -535,6 +543,15 @@ Sub cptSortNetworkBrowserLinks(strWhich As String, Optional blnDescending = Fals
             .Fields(lngCol) = False
           Else
             .Fields(lngCol) = True
+          End If
+        ElseIf .Fields(lngCol).Name = "Date" Then
+          If Len(cptRegEx(oListBox.List(lngItem, lngCol), "<|>|=")) > 0 Then
+            Dim strIndicator As String
+            strIndicator = Left(oListBox.List(lngItem, lngCol), 1)
+            .Fields(lngCol) = Replace(oListBox.List(lngItem, lngCol), strIndicator, "")
+            .Fields("indicator") = strIndicator
+          Else
+            .Fields(lngCol) = oListBox.List(lngItem, lngCol)
           End If
         Else
           .Fields(lngCol) = oListBox.List(lngItem, lngCol)
@@ -549,13 +566,15 @@ Sub cptSortNetworkBrowserLinks(strWhich As String, Optional blnDescending = Fals
     .MoveFirst
     Do While Not .EOF
       oListBox.AddItem
-      For lngCol = 0 To .Fields.Count - 1
+      For lngCol = 0 To .Fields.Count - 2
         If .Fields(lngCol).Name = "Slack" Then
           oListBox.List(oListBox.ListCount - 1, lngCol) = .Fields(lngCol) & "d"
         ElseIf .Fields(lngCol).Name = "Critical" Then
           If .Fields(lngCol) Then
             oListBox.List(oListBox.ListCount - 1, lngCol) = "X"
           End If
+        ElseIf .Fields(lngCol).Name = "Date" And Not IsNull(.Fields("indicator")) Then
+          oListBox.List(oListBox.ListCount - 1, lngCol) = .Fields("indicator") & .Fields(lngCol)
         Else
           oListBox.List(oListBox.ListCount - 1, lngCol) = .Fields(lngCol)
         End If
@@ -569,6 +588,7 @@ exit_here:
   On Error Resume Next
   Set oComboBox = Nothing
   Set oListBox = Nothing
+  If oRecordset.State Then oRecordset.Close
   Set oRecordset = Nothing
 
   Exit Sub
