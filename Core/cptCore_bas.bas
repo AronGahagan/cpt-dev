@@ -1967,6 +1967,8 @@ Sub cptGetSums(ByRef oTasks As MSProject.Tasks, lngFieldID As Long)
   'objects
   Dim oTask As MSProject.Task
   'strings
+  Dim strCustomFieldName As String
+  Dim strFieldName As String
   'longs
   Dim lngTask As Long
   Dim lngTasks As Long
@@ -1984,120 +1986,126 @@ Sub cptGetSums(ByRef oTasks As MSProject.Tasks, lngFieldID As Long)
 
   dblCost = 0#
   lngDuration = 0
-  dblNumber = 0
+  dblNumber = 0#
   dblWork = 0#
   lngTasks = oTasks.Count
-
-  If Len(cptRegEx(FieldConstantToFieldName(ActiveSelection.FieldIDList(1)), "Cost|Duration|Number|Work")) > 0 Then
+  strFieldName = FieldConstantToFieldName(lngFieldID)
+  If Len(CustomFieldGetName(lngFieldID)) > 0 Then
+    strCustomFieldName = CustomFieldGetName(lngFieldID)
+  End If
+  
+  If Len(cptRegEx(strFieldName, "Cost|Duration|Number|Work")) > 0 Then
     lngTask = 0
     For Each oTask In oTasks
       If oTask Is Nothing Then GoTo next_task
       If Not oTask.Active Then GoTo next_task
       'do not ignore external tasks
       'do not ignore summary tasks
-      If FieldConstantToFieldName(lngFieldID) = "Actual Cost" Then dblCost = dblCost + oTask.ActualCost
-      If FieldConstantToFieldName(lngFieldID) = "Cost" Then dblCost = dblCost + oTask.Cost
-      If FieldConstantToFieldName(lngFieldID) = "Remaining Cost" Then dblCost = dblCost + oTask.RemainingCost
-      If FieldConstantToFieldName(lngFieldID) = "Cost" Then dblCost = dblCost + oTask.Cost
-      If FieldConstantToFieldName(lngFieldID) = "Cost1" Then dblCost = dblCost + oTask.Cost1
-      If FieldConstantToFieldName(lngFieldID) = "Cost2" Then dblCost = dblCost + oTask.Cost2
-      If FieldConstantToFieldName(lngFieldID) = "Cost3" Then dblCost = dblCost + oTask.Cost3
-      If FieldConstantToFieldName(lngFieldID) = "Cost4" Then dblCost = dblCost + oTask.Cost4
-      If FieldConstantToFieldName(lngFieldID) = "Cost5" Then dblCost = dblCost + oTask.Cost5
-      If FieldConstantToFieldName(lngFieldID) = "Cost6" Then dblCost = dblCost + oTask.Cost6
-      If FieldConstantToFieldName(lngFieldID) = "Cost7" Then dblCost = dblCost + oTask.Cost7
-      If FieldConstantToFieldName(lngFieldID) = "Cost8" Then dblCost = dblCost + oTask.Cost8
-      If FieldConstantToFieldName(lngFieldID) = "Cost9" Then dblCost = dblCost + oTask.Cost9
-      If FieldConstantToFieldName(lngFieldID) = "Cost10" Then dblCost = dblCost + oTask.Cost10
+      If strFieldName = "Actual Cost" Then dblCost = dblCost + oTask.ActualCost
+      If strFieldName = "Cost" Then dblCost = dblCost + oTask.Cost
+      If strFieldName = "Remaining Cost" Then dblCost = dblCost + oTask.RemainingCost
+      If strFieldName = "Cost" Then dblCost = dblCost + oTask.Cost
+      If strFieldName = "Cost1" Then dblCost = dblCost + oTask.Cost1
+      If strFieldName = "Cost2" Then dblCost = dblCost + oTask.Cost2
+      If strFieldName = "Cost3" Then dblCost = dblCost + oTask.Cost3
+      If strFieldName = "Cost4" Then dblCost = dblCost + oTask.Cost4
+      If strFieldName = "Cost5" Then dblCost = dblCost + oTask.Cost5
+      If strFieldName = "Cost6" Then dblCost = dblCost + oTask.Cost6
+      If strFieldName = "Cost7" Then dblCost = dblCost + oTask.Cost7
+      If strFieldName = "Cost8" Then dblCost = dblCost + oTask.Cost8
+      If strFieldName = "Cost9" Then dblCost = dblCost + oTask.Cost9
+      If strFieldName = "Cost10" Then dblCost = dblCost + oTask.Cost10
       
-      If FieldConstantToFieldName(lngFieldID) = "Baseline Cost" Then dblCost = dblCost + oTask.BaselineCost
-      If FieldConstantToFieldName(lngFieldID) = "Baseline1 Cost" Then dblCost = dblCost + oTask.Baseline1Cost
-      If FieldConstantToFieldName(lngFieldID) = "Baseline2 Cost" Then dblCost = dblCost + oTask.Baseline2Cost
-      If FieldConstantToFieldName(lngFieldID) = "Baseline3 Cost" Then dblCost = dblCost + oTask.Baseline3Cost
-      If FieldConstantToFieldName(lngFieldID) = "Baseline4 Cost" Then dblCost = dblCost + oTask.Baseline4Cost
-      If FieldConstantToFieldName(lngFieldID) = "Baseline5 Cost" Then dblCost = dblCost + oTask.Baseline5Cost
-      If FieldConstantToFieldName(lngFieldID) = "Baseline6 Cost" Then dblCost = dblCost + oTask.Baseline6Cost
-      If FieldConstantToFieldName(lngFieldID) = "Baseline7 Cost" Then dblCost = dblCost + oTask.Baseline7Cost
-      If FieldConstantToFieldName(lngFieldID) = "Baseline8 Cost" Then dblCost = dblCost + oTask.Baseline8Cost
-      If FieldConstantToFieldName(lngFieldID) = "Baseline9 Cost" Then dblCost = dblCost + oTask.Baseline9Cost
-      If FieldConstantToFieldName(lngFieldID) = "Baseline10 Cost" Then dblCost = dblCost + oTask.Baseline10Cost
+      If strFieldName = "Baseline Cost" Then dblCost = dblCost + oTask.BaselineCost
+      If strFieldName = "Baseline1 Cost" Then dblCost = dblCost + oTask.Baseline1Cost
+      If strFieldName = "Baseline2 Cost" Then dblCost = dblCost + oTask.Baseline2Cost
+      If strFieldName = "Baseline3 Cost" Then dblCost = dblCost + oTask.Baseline3Cost
+      If strFieldName = "Baseline4 Cost" Then dblCost = dblCost + oTask.Baseline4Cost
+      If strFieldName = "Baseline5 Cost" Then dblCost = dblCost + oTask.Baseline5Cost
+      If strFieldName = "Baseline6 Cost" Then dblCost = dblCost + oTask.Baseline6Cost
+      If strFieldName = "Baseline7 Cost" Then dblCost = dblCost + oTask.Baseline7Cost
+      If strFieldName = "Baseline8 Cost" Then dblCost = dblCost + oTask.Baseline8Cost
+      If strFieldName = "Baseline9 Cost" Then dblCost = dblCost + oTask.Baseline9Cost
+      If strFieldName = "Baseline10 Cost" Then dblCost = dblCost + oTask.Baseline10Cost
       
-      If FieldConstantToFieldName(lngFieldID) = "Actual Duration" Then lngDuration = lngDuration + oTask.ActualDuration
-      If FieldConstantToFieldName(lngFieldID) = "Duration" Then lngDuration = lngDuration + oTask.Duration
-      If FieldConstantToFieldName(lngFieldID) = "Remaining Duration" Then lngDuration = lngDuration + oTask.RemainingDuration
-      If FieldConstantToFieldName(lngFieldID) = "Duration1" Then lngDuration = lngDuration + oTask.Duration1
-      If FieldConstantToFieldName(lngFieldID) = "Duration2" Then lngDuration = lngDuration + oTask.Duration2
-      If FieldConstantToFieldName(lngFieldID) = "Duration3" Then lngDuration = lngDuration + oTask.Duration3
-      If FieldConstantToFieldName(lngFieldID) = "Duration4" Then lngDuration = lngDuration + oTask.Duration4
-      If FieldConstantToFieldName(lngFieldID) = "Duration5" Then lngDuration = lngDuration + oTask.Duration5
-      If FieldConstantToFieldName(lngFieldID) = "Duration6" Then lngDuration = lngDuration + oTask.Duration6
-      If FieldConstantToFieldName(lngFieldID) = "Duration7" Then lngDuration = lngDuration + oTask.Duration7
-      If FieldConstantToFieldName(lngFieldID) = "Duration8" Then lngDuration = lngDuration + oTask.Duration8
-      If FieldConstantToFieldName(lngFieldID) = "Duration9" Then lngDuration = lngDuration + oTask.Duration9
-      If FieldConstantToFieldName(lngFieldID) = "Duration10" Then lngDuration = lngDuration + oTask.Duration10
+      If strFieldName = "Actual Duration" Then lngDuration = lngDuration + oTask.ActualDuration
+      If strFieldName = "Duration" Then lngDuration = lngDuration + oTask.Duration
+      If strFieldName = "Remaining Duration" Then lngDuration = lngDuration + oTask.RemainingDuration
+      If strFieldName = "Duration1" Then lngDuration = lngDuration + oTask.Duration1
+      If strFieldName = "Duration2" Then lngDuration = lngDuration + oTask.Duration2
+      If strFieldName = "Duration3" Then lngDuration = lngDuration + oTask.Duration3
+      If strFieldName = "Duration4" Then lngDuration = lngDuration + oTask.Duration4
+      If strFieldName = "Duration5" Then lngDuration = lngDuration + oTask.Duration5
+      If strFieldName = "Duration6" Then lngDuration = lngDuration + oTask.Duration6
+      If strFieldName = "Duration7" Then lngDuration = lngDuration + oTask.Duration7
+      If strFieldName = "Duration8" Then lngDuration = lngDuration + oTask.Duration8
+      If strFieldName = "Duration9" Then lngDuration = lngDuration + oTask.Duration9
+      If strFieldName = "Duration10" Then lngDuration = lngDuration + oTask.Duration10
       
-      If FieldConstantToFieldName(lngFieldID) = "Baseline Duration" Then lngDuration = lngDuration + oTask.BaselineDuration
-      If FieldConstantToFieldName(lngFieldID) = "Baseline1 Duration" Then lngDuration = lngDuration + oTask.Baseline1Duration
-      If FieldConstantToFieldName(lngFieldID) = "Baseline2 Duration" Then lngDuration = lngDuration + oTask.Baseline2Duration
-      If FieldConstantToFieldName(lngFieldID) = "Baseline3 Duration" Then lngDuration = lngDuration + oTask.Baseline3Duration
-      If FieldConstantToFieldName(lngFieldID) = "Baseline4 Duration" Then lngDuration = lngDuration + oTask.Baseline4Duration
-      If FieldConstantToFieldName(lngFieldID) = "Baseline5 Duration" Then lngDuration = lngDuration + oTask.Baseline5Duration
-      If FieldConstantToFieldName(lngFieldID) = "Baseline6 Duration" Then lngDuration = lngDuration + oTask.Baseline6Duration
-      If FieldConstantToFieldName(lngFieldID) = "Baseline7 Duration" Then lngDuration = lngDuration + oTask.Baseline7Duration
-      If FieldConstantToFieldName(lngFieldID) = "Baseline8 Duration" Then lngDuration = lngDuration + oTask.Baseline8Duration
-      If FieldConstantToFieldName(lngFieldID) = "Baseline9 Duration" Then lngDuration = lngDuration + oTask.Baseline9Duration
-      If FieldConstantToFieldName(lngFieldID) = "Baseline10 Duration" Then lngDuration = lngDuration + oTask.Baseline10Duration
+      If strFieldName = "Baseline Duration" Then lngDuration = lngDuration + oTask.BaselineDuration
+      If strFieldName = "Baseline1 Duration" Then lngDuration = lngDuration + oTask.Baseline1Duration
+      If strFieldName = "Baseline2 Duration" Then lngDuration = lngDuration + oTask.Baseline2Duration
+      If strFieldName = "Baseline3 Duration" Then lngDuration = lngDuration + oTask.Baseline3Duration
+      If strFieldName = "Baseline4 Duration" Then lngDuration = lngDuration + oTask.Baseline4Duration
+      If strFieldName = "Baseline5 Duration" Then lngDuration = lngDuration + oTask.Baseline5Duration
+      If strFieldName = "Baseline6 Duration" Then lngDuration = lngDuration + oTask.Baseline6Duration
+      If strFieldName = "Baseline7 Duration" Then lngDuration = lngDuration + oTask.Baseline7Duration
+      If strFieldName = "Baseline8 Duration" Then lngDuration = lngDuration + oTask.Baseline8Duration
+      If strFieldName = "Baseline9 Duration" Then lngDuration = lngDuration + oTask.Baseline9Duration
+      If strFieldName = "Baseline10 Duration" Then lngDuration = lngDuration + oTask.Baseline10Duration
             
-      If FieldConstantToFieldName(lngFieldID) = "Number" Then dblNumber = dblNumber + oTask.Number
-      If FieldConstantToFieldName(lngFieldID) = "Number1" Then dblNumber = dblNumber + oTask.Number1
-      If FieldConstantToFieldName(lngFieldID) = "Number2" Then dblNumber = dblNumber + oTask.Number2
-      If FieldConstantToFieldName(lngFieldID) = "Number3" Then dblNumber = dblNumber + oTask.Number3
-      If FieldConstantToFieldName(lngFieldID) = "Number4" Then dblNumber = dblNumber + oTask.Number4
-      If FieldConstantToFieldName(lngFieldID) = "Number5" Then dblNumber = dblNumber + oTask.Number5
-      If FieldConstantToFieldName(lngFieldID) = "Number6" Then dblNumber = dblNumber + oTask.Number6
-      If FieldConstantToFieldName(lngFieldID) = "Number7" Then dblNumber = dblNumber + oTask.Number7
-      If FieldConstantToFieldName(lngFieldID) = "Number8" Then dblNumber = dblNumber + oTask.Number8
-      If FieldConstantToFieldName(lngFieldID) = "Number9" Then dblNumber = dblNumber + oTask.Number9
-      If FieldConstantToFieldName(lngFieldID) = "Number10" Then dblNumber = dblNumber + oTask.Number10
-      If FieldConstantToFieldName(lngFieldID) = "Number11" Then dblNumber = dblNumber + oTask.Number11
-      If FieldConstantToFieldName(lngFieldID) = "Number12" Then dblNumber = dblNumber + oTask.Number12
-      If FieldConstantToFieldName(lngFieldID) = "Number13" Then dblNumber = dblNumber + oTask.Number13
-      If FieldConstantToFieldName(lngFieldID) = "Number14" Then dblNumber = dblNumber + oTask.Number14
-      If FieldConstantToFieldName(lngFieldID) = "Number15" Then dblNumber = dblNumber + oTask.Number15
-      If FieldConstantToFieldName(lngFieldID) = "Number16" Then dblNumber = dblNumber + oTask.Number16
-      If FieldConstantToFieldName(lngFieldID) = "Number17" Then dblNumber = dblNumber + oTask.Number17
-      If FieldConstantToFieldName(lngFieldID) = "Number18" Then dblNumber = dblNumber + oTask.Number18
-      If FieldConstantToFieldName(lngFieldID) = "Number19" Then dblNumber = dblNumber + oTask.Number19
-      If FieldConstantToFieldName(lngFieldID) = "Number20" Then dblNumber = dblNumber + oTask.Number20
+      If strFieldName = "Number" Then dblNumber = dblNumber + oTask.Number
+      If strFieldName = "Number1" Then dblNumber = dblNumber + oTask.Number1
+      If strFieldName = "Number2" Then dblNumber = dblNumber + oTask.Number2
+      If strFieldName = "Number3" Then dblNumber = dblNumber + oTask.Number3
+      If strFieldName = "Number4" Then dblNumber = dblNumber + oTask.Number4
+      If strFieldName = "Number5" Then dblNumber = dblNumber + oTask.Number5
+      If strFieldName = "Number6" Then dblNumber = dblNumber + oTask.Number6
+      If strFieldName = "Number7" Then dblNumber = dblNumber + oTask.Number7
+      If strFieldName = "Number8" Then dblNumber = dblNumber + oTask.Number8
+      If strFieldName = "Number9" Then dblNumber = dblNumber + oTask.Number9
+      If strFieldName = "Number10" Then dblNumber = dblNumber + oTask.Number10
+      If strFieldName = "Number11" Then dblNumber = dblNumber + oTask.Number11
+      If strFieldName = "Number12" Then dblNumber = dblNumber + oTask.Number12
+      If strFieldName = "Number13" Then dblNumber = dblNumber + oTask.Number13
+      If strFieldName = "Number14" Then dblNumber = dblNumber + oTask.Number14
+      If strFieldName = "Number15" Then dblNumber = dblNumber + oTask.Number15
+      If strFieldName = "Number16" Then dblNumber = dblNumber + oTask.Number16
+      If strFieldName = "Number17" Then dblNumber = dblNumber + oTask.Number17
+      If strFieldName = "Number18" Then dblNumber = dblNumber + oTask.Number18
+      If strFieldName = "Number19" Then dblNumber = dblNumber + oTask.Number19
+      If strFieldName = "Number20" Then dblNumber = dblNumber + oTask.Number20
       
-      If FieldConstantToFieldName(lngFieldID) = "Actual Work" Then dblWork = dblWork + oTask.ActualWork
-      If FieldConstantToFieldName(lngFieldID) = "Work" Then dblWork = dblWork + oTask.Work
-      If FieldConstantToFieldName(lngFieldID) = "Remaining Work" Then dblWork = dblWork + oTask.RemainingWork
-      If FieldConstantToFieldName(lngFieldID) = "Baseline Work" Then dblWork = dblWork + oTask.BaselineWork
-      If FieldConstantToFieldName(lngFieldID) = "Baseline1 Work" Then dblWork = dblWork + oTask.Baseline1Work
-      If FieldConstantToFieldName(lngFieldID) = "Baseline2 Work" Then dblWork = dblWork + oTask.Baseline2Work
-      If FieldConstantToFieldName(lngFieldID) = "Baseline3 Work" Then dblWork = dblWork + oTask.Baseline3Work
-      If FieldConstantToFieldName(lngFieldID) = "Baseline4 Work" Then dblWork = dblWork + oTask.Baseline4Work
-      If FieldConstantToFieldName(lngFieldID) = "Baseline5 Work" Then dblWork = dblWork + oTask.Baseline5Work
-      If FieldConstantToFieldName(lngFieldID) = "Baseline6 Work" Then dblWork = dblWork + oTask.Baseline6Work
-      If FieldConstantToFieldName(lngFieldID) = "Baseline7 Work" Then dblWork = dblWork + oTask.Baseline7Work
-      If FieldConstantToFieldName(lngFieldID) = "Baseline8 Work" Then dblWork = dblWork + oTask.Baseline8Work
-      If FieldConstantToFieldName(lngFieldID) = "Baseline9 Work" Then dblWork = dblWork + oTask.Baseline9Work
-      If FieldConstantToFieldName(lngFieldID) = "Baseline10 Work" Then dblWork = dblWork + oTask.Baseline10Work
+      If strFieldName = "Actual Work" Then dblWork = dblWork + oTask.ActualWork
+      If strFieldName = "Work" Then dblWork = dblWork + oTask.Work
+      If strFieldName = "Remaining Work" Then dblWork = dblWork + oTask.RemainingWork
+      If strFieldName = "Baseline Work" Then dblWork = dblWork + oTask.BaselineWork
+      If strFieldName = "Baseline1 Work" Then dblWork = dblWork + oTask.Baseline1Work
+      If strFieldName = "Baseline2 Work" Then dblWork = dblWork + oTask.Baseline2Work
+      If strFieldName = "Baseline3 Work" Then dblWork = dblWork + oTask.Baseline3Work
+      If strFieldName = "Baseline4 Work" Then dblWork = dblWork + oTask.Baseline4Work
+      If strFieldName = "Baseline5 Work" Then dblWork = dblWork + oTask.Baseline5Work
+      If strFieldName = "Baseline6 Work" Then dblWork = dblWork + oTask.Baseline6Work
+      If strFieldName = "Baseline7 Work" Then dblWork = dblWork + oTask.Baseline7Work
+      If strFieldName = "Baseline8 Work" Then dblWork = dblWork + oTask.Baseline8Work
+      If strFieldName = "Baseline9 Work" Then dblWork = dblWork + oTask.Baseline9Work
+      If strFieldName = "Baseline10 Work" Then dblWork = dblWork + oTask.Baseline10Work
 next_task:
       lngTask = lngTask + 1
       Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; Calculating...(" & Format(lngTask / lngTasks, "0%") & ")"
     Next oTask
   End If
 
+  If Len(strCustomFieldName) > 0 Then strFieldName = strCustomFieldName & " (" & strFieldName & ")"
+
   If dblCost > 0 Then
-    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(dblCost, "$#,###,##0.00")
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & strFieldName & ": " & Format(dblCost, "$#,###,##0.00")
   ElseIf lngDuration > 0 Then
-    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(lngDuration / 480, "#,###,##0d")
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & strFieldName & ": " & Format(lngDuration / 480, "#,###,##0d")
   ElseIf dblNumber > 0 Then
-    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(dblNumber, "#,###,##0.00")
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & strFieldName & ": " & Format(dblNumber, "#,###,##0.00")
   ElseIf dblWork > 0 Then
-    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & FieldConstantToFieldName(lngFieldID) & ": " & Format(dblWork / 60, "#,###,##0.00h")
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & strFieldName & ": " & Format(dblWork / 60, "#,###,##0.00h")
   Else
     Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected"
   End If
