@@ -6,6 +6,8 @@ Public oSubMap As Scripting.Dictionary
 Sub cptShowNetworkBrowser_frm()
   'objects
   'strings
+  Dim strDescending As String
+  Dim strSortBy As String
   'longs
   'integers
   'doubles
@@ -25,6 +27,42 @@ Sub cptShowNetworkBrowser_frm()
     .tglTrace.Caption = "Jump"
     .lboPredecessors.MultiSelect = fmMultiSelectSingle
     .lboSuccessors.MultiSelect = fmMultiSelectSingle
+    With .cboSortPredecessorsBy
+      .Clear
+      .AddItem "ID"
+      .AddItem "Finish"
+      .AddItem "Total Slack"
+      strSortBy = cptGetSetting("NetworkBrowser", "cboSortPredecessorsBy")
+      If Len(strSortBy) > 0 Then
+        .Value = strSortBy
+      Else
+        .Value = "Total Slack"
+      End If
+    End With
+    strDescending = cptGetSetting("NetworkBrowser", "chkSortPredDescending")
+    If Len(strDescending) > 0 Then
+      .chkSortPredDescending.Value = CBool(strDescending)
+    Else
+      .chkSortPredDescending.Value = False
+    End If
+    With .cboSortSuccessorsBy
+      .Clear
+      .AddItem "ID"
+      .AddItem "Start"
+      .AddItem "Total Slack"
+      strSortBy = cptGetSetting("NetworkBrowser", "cboSortSuccessorsBy")
+      If Len(strSortBy) > 0 Then
+        .Value = strSortBy
+      Else
+        .Value = "Total Slack"
+      End If
+    End With
+    strDescending = cptGetSetting("NetworkBrowser", "chkSortSuccDescending")
+    If Len(strDescending) > 0 Then
+      .chkSortSuccDescending.Value = CBool(strDescending)
+    Else
+      .chkSortSuccDescending.Value = False
+    End If
     .Show False
   End With
 
@@ -443,5 +481,98 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptNetworkBrowser_bas", "cptHistoryDoubleClick", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptSortNetworkBrowserLinks(strWhich As String, Optional blnDescending = False)
+  'objects
+  Dim oComboBox As ComboBox
+  Dim oListBox As ListBox
+  Dim oRecordset As ADODB.Recordset
+  'strings
+  Dim strSortBy As String
+  'longs
+  Dim lngCol As Long
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  If strWhich = "p" Then
+    Set oListBox = cptNetworkBrowser_frm.lboPredecessors
+    Set oComboBox = cptNetworkBrowser_frm.cboSortPredecessorsBy
+  ElseIf strWhich = "s" Then
+    Set oListBox = cptNetworkBrowser_frm.lboSuccessors
+    Set oComboBox = cptNetworkBrowser_frm.cboSortSuccessorsBy
+  End If
+
+  If oListBox.ListCount <= 2 Then GoTo exit_here
+
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  'UID,ID,Type,Lag,Date,Slack,Task,Critical
+  With oRecordset
+    .Fields.Append "UID0", adInteger
+    .Fields.Append "UID1", adInteger
+    .Fields.Append "ID", adInteger
+    .Fields.Append "Type", adVarChar, 3
+    .Fields.Append "Lag", adVarChar, 255
+    .Fields.Append "Date", adDate
+    .Fields.Append "Slack", adInteger
+    .Fields.Append "Task", adVarChar, 255
+    .Fields.Append "Critical", adBoolean
+    .Open
+    For lngItem = oListBox.ListCount - 1 To 1 Step -1
+      .AddNew
+      For lngCol = 0 To oListBox.ColumnCount - 1
+        If .Fields(lngCol).Name = "Slack" Then
+          .Fields(lngCol) = CInt(Replace(oListBox.List(lngItem, lngCol), "d", ""))
+        ElseIf .Fields(lngCol).Name = "Critical" Then
+          If IsNull(oListBox.List(lngItem, lngCol)) Then
+            .Fields(lngCol) = False
+          Else
+            .Fields(lngCol) = True
+          End If
+        Else
+          .Fields(lngCol) = oListBox.List(lngItem, lngCol)
+        End If
+      Next lngCol
+      oListBox.RemoveItem lngItem
+    Next lngItem
+    strSortBy = oComboBox.Value
+    If strSortBy = "Start" Or strSortBy = "Finish" Then strSortBy = "Date"
+    If strSortBy = "Total Slack" Then strSortBy = "Slack"
+    .Sort = strSortBy & IIf(blnDescending, " desc", "")
+    .MoveFirst
+    Do While Not .EOF
+      oListBox.AddItem
+      For lngCol = 0 To .Fields.Count - 1
+        If .Fields(lngCol).Name = "Slack" Then
+          oListBox.List(oListBox.ListCount - 1, lngCol) = .Fields(lngCol) & "d"
+        ElseIf .Fields(lngCol).Name = "Critical" Then
+          If .Fields(lngCol) Then
+            oListBox.List(oListBox.ListCount - 1, lngCol) = "X"
+          End If
+        Else
+          oListBox.List(oListBox.ListCount - 1, lngCol) = .Fields(lngCol)
+        End If
+      Next lngCol
+      .MoveNext
+    Loop
+    .Close
+  End With
+
+exit_here:
+  On Error Resume Next
+  Set oComboBox = Nothing
+  Set oListBox = Nothing
+  Set oRecordset = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptNetworkBrowser_bas", "cptSortNetworkBrowserLinks", Err, Erl)
   Resume exit_here
 End Sub
