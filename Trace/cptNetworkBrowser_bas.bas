@@ -1,11 +1,10 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.1.0</cpt_version>
 Option Explicit
 Public oSubMap As Scripting.Dictionary
 
 Sub cptShowNetworkBrowser_frm()
   'objects
-  Dim oTask As Task, oLink As TaskDependency
   'strings
   'longs
   'integers
@@ -31,8 +30,6 @@ Sub cptShowNetworkBrowser_frm()
 
 exit_here:
   On Error Resume Next
-  Set oTask = Nothing
-  Set oLink = Nothing
 
   Exit Sub
 err_here:
@@ -159,11 +156,11 @@ next_mapping_task:
       .ColumnCount = 9
       .AddItem
       If blnSubprojects Then
-        .ColumnWidths = "50 pt;35 pt;24.95 pt;24.95 pt;24.95 pt;45 pt;35 pt;225 pt;35 pt"
+        .ColumnWidths = "50 pt;35 pt;24.95 pt;24.95 pt;24.95 pt;55 pt;35 pt;225 pt;35 pt"
         .Column(0, .ListCount - 1) = "UID[M]"
         .Column(1, .ListCount - 1) = "UID[S]"
       Else
-        .ColumnWidths = "35 pt;0 pt;24.95 pt;24.95 pt;24.95 pt;45 pt;35 pt;225 pt;35 pt"
+        .ColumnWidths = "35 pt;0 pt;24.95 pt;24.95 pt;24.95 pt;55 pt;35 pt;225 pt;35 pt"
         .Column(0, .ListCount - 1) = "UID"
       End If
       .Column(2, .ListCount - 1) = "ID"
@@ -216,7 +213,28 @@ next_mapping_task:
         End If
         .Column(3, .ListCount - 1) = Choose(oLink.Type + 1, "FF", "FS", "SF", "SS") & IIf(oLink.Type <> pjFinishToStart, "*", "")
         .Column(4, .ListCount - 1) = Round(oLink.Lag / (ActiveProject.HoursPerDay * 60), 2) & "d"
-        .Column(5, .ListCount - 1) = Format(oLink.From.Finish, "mm/dd/yy")
+        Select Case oLink.From.ConstraintType
+          Case pjFNET
+            If oLink.From.Finish > oLink.From.ConstraintDate Then
+              .Column(5, .ListCount - 1) = Format(oLink.From.Finish, "mm/dd/yy")
+            Else
+              .Column(5, .ListCount - 1) = "<" & Format(oLink.From.Finish, "mm/dd/yy")
+            End If
+          Case pjFNLT
+            If oLink.From.Finish < oLink.From.ConstraintDate Then
+              .Column(5, .ListCount - 1) = Format(oLink.From.Finish, "mm/dd/yy")
+            Else
+              .Column(5, .ListCount - 1) = ">" & Format(oLink.From.Finish, "mm/dd/yy")
+            End If
+          Case pjMFO
+            If oLink.From.Finish = oLink.From.ConstraintDate Then
+              .Column(5, .ListCount - 1) = "=" & Format(oLink.From.Finish, "mm/dd/yy")
+            Else
+              .Column(5, .ListCount - 1) = Format(oLink.From.Finish, "mm/dd/yy")
+            End If
+          Case Else
+            .Column(5, .ListCount - 1) = Format(oLink.From.Finish, "mm/dd/yy")
+        End Select
         .Column(6, .ListCount - 1) = Round(oLink.From.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
         .Column(8, .ListCount - 1) = IIf(oLink.From.Critical, "X", "")
       End With
@@ -256,13 +274,30 @@ next_mapping_task:
         End If
         .Column(3, .ListCount - 1) = Choose(oLink.Type + 1, "FF", "FS", "SF", "SS") & IIf(oLink.Type <> pjFinishToStart, "*", "")
         .Column(4, .ListCount - 1) = Round(oLink.Lag / (ActiveProject.HoursPerDay * 60), 2) & "d"
-        .Column(5, .ListCount - 1) = Format(oLink.To.Start, "mm/dd/yy")
+        Select Case oLink.To.ConstraintType
+          Case pjSNET
+            If oLink.To.ConstraintDate > oLink.To.Start Then
+              .Column(5, .ListCount - 1) = ">" & Format(oLink.To.Start, "mm/dd/yy")
+            Else
+              .Column(5, .ListCount - 1) = Format(oLink.To.Start, "mm/dd/yy")
+            End If
+          Case pjSNLT
+            If oLink.To.ConstraintDate = oLink.To.Start Then
+              .Column(5, .ListCount - 1) = "<" & Format(oLink.To.Start, "mm/dd/yy")
+            Else
+              .Column(5, .ListCount - 1) = Format(oLink.To.Start, "mm/dd/yy")
+            End If
+          Case pjMSO
+            .Column(5, .ListCount - 1) = "=" & Format(oLink.To.Start, "mm/dd/yy")
+          Case Else
+            .Column(5, .ListCount - 1) = Format(oLink.To.Start, "mm/dd/yy")
+        End Select
         .Column(6, .ListCount - 1) = Round(oLink.To.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
         .Column(8, .ListCount - 1) = IIf(oLink.To.Critical, "X", "")
       End With
     End If
   Next oLink
-    
+  
 exit_here:
   On Error Resume Next
   cptSpeed False
@@ -353,7 +388,7 @@ next_task:
     cptSpeed True
     If Edition = pjEditionProfessional Then
       If Not cptFilterExists("Active Tasks") Then
-        FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, overwriteexisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
+        FilterEdit Name:="Active Tasks", TaskFilter:=True, create:=True, OverwriteExisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
       End If
       FilterApply "Active Tasks"
     ElseIf Edition = pjEditionStandard Then
