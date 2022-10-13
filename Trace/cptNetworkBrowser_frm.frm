@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptNetworkBrowser_frm 
-   Caption         =   "Network Browser (v0.0.0-beta)"
+   Caption         =   "Network Browser"
    ClientHeight    =   6330
    ClientLeft      =   45
    ClientTop       =   330
@@ -16,6 +16,26 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.1.0</cpt_version>
 Option Explicit
+
+Private Sub cboSortPredecessorsBy_Change()
+  cptSaveSetting "NetworkBrowser", "cboSortPredecessorsBy", Me.cboSortPredecessorsBy.Value
+  cptSortNetworkBrowserLinks "p", Me.chkSortPredDescending.Value
+End Sub
+
+Private Sub cboSortSuccessorsBy_Change()
+  cptSaveSetting "NetworkBrowser", "cboSortSuccessorsBy", Me.cboSortSuccessorsBy.Value
+  cptSortNetworkBrowserLinks "s", Me.chkSortSuccDescending.Value
+End Sub
+
+Private Sub chkSortPredDescending_Click()
+  cptSaveSetting "NetworkBrowser", "chkSortPredDescending", IIf(Me.chkSortPredDescending, "1", "0")
+  cptSortNetworkBrowserLinks "p", Me.chkSortPredDescending.Value
+End Sub
+
+Private Sub chkSortSuccDescending_Click()
+  cptSaveSetting "NetworkBrowser", "chkSortSuccDescending", IIf(Me.chkSortSuccDescending, "1", "0")
+  cptSortNetworkBrowserLinks "s", Me.chkSortSuccDescending.Value
+End Sub
 
 Private Sub cmdBack_Click()
 
