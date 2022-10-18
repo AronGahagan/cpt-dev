@@ -1,22 +1,25 @@
 Attribute VB_Name = "cptAdjustment_bas"
 '<cpt_version>v0.0.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
-Public vResources As Variant
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowAdjustment_frm()
   'objects
+  Dim oResources As Object  'Scripting.Dictionary
   Dim oResource As MSProject.Resource
   'strings
+  Dim strIgnoreTaskType As String
   Dim strResources As String
-  
-  
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  
+  'variants
+  Dim vResources As Variant
+  Dim vResource As Variant
+ 
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  Set oResources = CreateObject("Scripting.Dictionary")
   For Each oResource In ActiveProject.Resources
     If oResource.Type = pjResourceTypeWork Then
       strResources = strResources & oResource.Name & ","
+      oResources.Add oResource.Name, oResource.UniqueID
     End If
   Next
   strResources = Left(strResources, Len(strResources) - 1)
@@ -24,33 +27,45 @@ Sub cptShowAdjustment_frm()
   
   Call cptQuickSort(vResources, 0, UBound(vResources))
   
-  vResources = Split("All Resources," & Join(vResources, ","), ",")
+  'vResources = Split("All Resources," & Join(vResources, ","), ",")
   
   cptStartEvents
   
   With cptAdjustment_frm
+    .Caption = "ETC Adjustment (" & cptGetVersion("cptAdjustment_frm") & ")"
     .lboHeader.Clear
     .lboHeader.AddItem
     .lboHeader.List(.lboHeader.ListCount - 1, 0) = "UID"
     .lboHeader.List(.lboHeader.ListCount - 1, 1) = "RESOURCE"
     .lboHeader.List(.lboHeader.ListCount - 1, 2) = "ETC"
     .lboHeader.List(.lboHeader.ListCount - 1, 3) = "NEW ETC"
+    .lboTotal.Clear
+    .lboTotal.AddItem
+    .lboTotal.List(.lboTotal.ListCount - 1, 1) = "TOTAL"
     .cboResources.Clear
-    .cboResources.List = vResources
-    .cboResources.Value = "All Resources"
-    .lblETC.Left = .lboAdjustmentPreview.Left + 25 + 150
-    .lblETC.Top = .lboAdjustmentPreview.Top + .lboAdjustmentPreview.Height
-    .lblETC.Caption = "-"
-    .lblNewETC.Left = .lboAdjustmentPreview.Left + 25 + 150 + 54
-    .lblNewETC.Top = .lboAdjustmentPreview.Top + .lboAdjustmentPreview.Height
-    .lblNewETC.Caption = "-"
+    .cboResources.AddItem
+    .cboResources.List(0, 0) = "0"
+    .cboResources.List(0, 1) = "All Resources"
+    For Each vResource In vResources
+      .cboResources.AddItem
+      .cboResources.List(.cboResources.ListCount - 1, 0) = CStr(oResources(vResource))
+      .cboResources.List(.cboResources.ListCount - 1, 1) = vResource
+    Next vResource
+    .cboResources.Value = "0" '"All Resources"
     .optTarget = True
+    strIgnoreTaskType = cptGetSetting("ETCAdjustment", "chkIgnoreTaskType")
+    If Len(strIgnoreTaskType) > 0 Then
+      .chkIgnoreTaskType = CBool(strIgnoreTaskType)
+    Else
+      .chkIgnoreTaskType = True 'defaults to true
+    End If
     cptRefreshAdjustment
     .Show False
   End With
   
 exit_here:
   On Error Resume Next
+  Set oResources = Nothing
 
   Exit Sub
 err_here:
@@ -59,69 +74,74 @@ err_here:
 
 End Sub
 
-Sub cptApplyAdjustment(strResource As String, strType As String, dblAmount As Double)
+Sub cptApplyAdjustment()
   'objects
   Dim oAssignment As MSProject.Assignment
   Dim oTask As MSProject.Task
   'strings
+  Dim strStatusBar As String
   'longs
+  Dim lngItem As Long
   Dim lngType As Long
   'integers
   'doubles
-  Dim dblTotal As Double
   'booleans
+  Dim blnRefreshStatusBar As Boolean
+  Dim blnIgnoreTaskType As Boolean
   Dim blnEffortDriven As Boolean
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  cptSpeed True
   Application.OpenUndoTransaction "cptAdjustment"
-
-  'get total remaining work of all resource assignments
-  For Each oTask In ActiveSelection.Tasks
-    For Each oAssignment In oTask.Assignments
-      'todo: allow application to all assignments on task
-      If cptAdjustment_frm.cboResources.Value = "All Resources" Then
-        dblTotal = dblTotal + (oAssignment.RemainingWork / 60) 'dblTotal starts in HOURS not MINUTES
-      ElseIf oAssignment.ResourceName = cptAdjustment_frm.cboResources.Value Then
-        dblTotal = dblTotal + (oAssignment.RemainingWork / 60) 'dblTotal starts in HOURS not MINUTES
-      End If
-    Next
-  Next
   
-'  Debug.Print "FROM: " & dblTotal
-  
-  'get new total remaining work
-  If dblAdjustment <> 0 Then
-    dblNewTotal = dblTotal + dblAdjustment 'in HOURS not MINUTES
-'    Debug.Print "TO: " & dblNewTotal
-  Else
-'    Debug.Print "TO: " & dblNewTotal 'in HOURS not MINUTES
+  blnRefreshStatusBar = False
+  If InStr(Application.StatusBar, "Remaining Work") > 0 Then
+    blnRefreshStatusBar = True
+    strStatusBar = Replace(Application.StatusBar, cptAdjustment_frm.lboTotal.List(0, 2), cptAdjustment_frm.lboTotal.List(0, 3))
   End If
-
-  'loop through and apply adjustments
-  For Each oTask In ActiveSelection.Tasks
-    'capture task settings
-    lngType = oTask.Type
-    oTask.Type = pjFixedDuration
-    blnEffortDriven = oTask.EffortDriven
-    oTask.EffortDriven = False
-    For Each oAssignment In oTask.Assignments
-      If oAssignment.ResourceName = cptAdjustment_frm.cboResources.Value Then
-        'todo: allow application to all assignments on task
-        'conversion from HOURS to MINUTES happens on next line
-        oAssignment.RemainingWork = (((oAssignment.RemainingWork / 60) / (dblTotal / 60)) * (dblNewTotal / 60)) * 60
-      End If
-    Next oAssignment
-    'restore task settings
-    oTask.Type = lngType
-    If oTask.Type <> pjFixedWork Then oTask.EffortDriven = blnEffortDriven
-  Next oTask
-
+  
+  With cptAdjustment_frm
+    blnIgnoreTaskType = .chkIgnoreTaskType
+    cptSaveSetting "ETCAdjustment", "chkIgnoreTaskType", IIf(.chkIgnoreTaskType, "1", "0")
+    If Not blnIgnoreTaskType Then
+      If MsgBox("Adjustment may alter remaining duration on selected tasks." & vbCrLf & vbCrLf & "Continue?", vbExclamation + vbOKCancel, "Please Confirm") = vbCancel Then GoTo exit_here
+    End If
+    With .lboAdjustmentPreview
+      If .ListCount = 0 Then GoTo exit_here
+      For lngItem = 0 To .ListCount - 1
+        Set oTask = ActiveProject.Tasks.UniqueID(.List(lngItem, 0))
+        For Each oAssignment In oTask.Assignments
+          If oAssignment.ResourceUniqueID = CLng(.List(lngItem, 1)) Then
+            If blnIgnoreTaskType Then 'capture settings
+              lngType = oTask.Type
+              blnEffortDriven = oTask.EffortDriven
+              'change type to apply
+              oTask.Type = pjFixedDuration
+              oTask.EffortDriven = False
+            End If
+            'apply adjustment
+            oAssignment.RemainingWork = CDbl(.List(lngItem, 4)) * 60
+            If blnIgnoreTaskType Then
+              'restore settings
+              oTask.Type = lngType
+              If lngType <> pjFixedWork Then oTask.EffortDriven = blnEffortDriven
+            End If
+          End If
+        Next oAssignment
+      Next lngItem
+    End With
+  End With
+  
+  If blnRefreshStatusBar Then
+    Application.StatusBar = strStatusBar
+  End If
+  
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
+  cptSpeed False
   Set oAssignment = Nothing
   Set oTask = Nothing
 
@@ -131,7 +151,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptRefreshAdjustment(Optional strResource As String, Optional dblAdjustment As Double, Optional dblNewTotal As Double)
+Sub cptRefreshAdjustment()
   'objects
   Dim oTasks As MSProject.Tasks
   Dim oAssignment As MSProject.Assignment
@@ -144,6 +164,7 @@ Sub cptRefreshAdjustment(Optional strResource As String, Optional dblAdjustment 
   Dim dblPercent As Double
   Dim dblETC As Double
   Dim dblNewETC As Double
+  Dim dblNewTotal As Double
   'booleans
   'variants
   'dates
@@ -152,10 +173,9 @@ Sub cptRefreshAdjustment(Optional strResource As String, Optional dblAdjustment 
   Set oTasks = ActiveSelection.Tasks
   If oTasks Is Nothing Then Exit Sub
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   With cptAdjustment_frm
-    If Not IsNull(.cboResources.Value) Then strResource = .cboResources.Value
     .lboAdjustmentPreview.Clear
     For Each oTask In ActiveSelection.Tasks
       If oTask Is Nothing Then GoTo next_task
@@ -165,11 +185,12 @@ Sub cptRefreshAdjustment(Optional strResource As String, Optional dblAdjustment 
       If oTask.Assignments.Count > 0 Then
         For Each oAssignment In oTask.Assignments
           If oAssignment.ResourceType <> pjResourceTypeWork Then GoTo next_assignment
-          If .cboResources.Value <> "All Resources" And oAssignment.ResourceName <> strResource Then GoTo next_assignment
+          If .cboResources.Value <> "0" And oAssignment.ResourceUniqueID <> CLng(.cboResources.Value) Then GoTo next_assignment
           .lboAdjustmentPreview.AddItem
           .lboAdjustmentPreview.List(.lboAdjustmentPreview.ListCount - 1, 0) = oTask.UniqueID
-          .lboAdjustmentPreview.List(.lboAdjustmentPreview.ListCount - 1, 1) = oAssignment.ResourceName 'todo: necessary if filtered?
-          .lboAdjustmentPreview.List(.lboAdjustmentPreview.ListCount - 1, 2) = Round((oAssignment.RemainingWork / 60), 2)
+          .lboAdjustmentPreview.List(.lboAdjustmentPreview.ListCount - 1, 1) = oAssignment.ResourceUniqueID
+          .lboAdjustmentPreview.List(.lboAdjustmentPreview.ListCount - 1, 2) = oAssignment.ResourceName 'todo: necessary if filtered?
+          .lboAdjustmentPreview.List(.lboAdjustmentPreview.ListCount - 1, 3) = Format(Round((oAssignment.RemainingWork / 60), 2), "#,###,##0.00")
           dblETC = dblETC + oAssignment.RemainingWork
 next_assignment:
         Next oAssignment
@@ -201,20 +222,20 @@ next_task:
       End If
       
       For lngItem = 0 To .lboAdjustmentPreview.ListCount - 1
-        If CDbl(.lboAdjustmentPreview.List(lngItem, 2)) = 0 Then
-          .lboAdjustmentPreview.List(lngItem, 3) = 0
+        If CDbl(.lboAdjustmentPreview.List(lngItem, 3)) = 0 Then
+          .lboAdjustmentPreview.List(lngItem, 4) = 0
           GoTo next_item
         Else
           If dblNewETC <> 0 Then
-            .lboAdjustmentPreview.List(lngItem, 3) = Format(((.lboAdjustmentPreview.List(lngItem, 2) * 60) / dblETC) * dblNewETC, "#,##0.00")
-            dblNewTotal = dblNewTotal + ((.lboAdjustmentPreview.List(lngItem, 2) * 60) / dblETC) * dblNewETC
+            .lboAdjustmentPreview.List(lngItem, 4) = Format(((.lboAdjustmentPreview.List(lngItem, 3) * 60) / dblETC) * dblNewETC, "#,##0.00")
+            dblNewTotal = dblNewTotal + ((.lboAdjustmentPreview.List(lngItem, 3) * 60) / dblETC) * dblNewETC
           ElseIf dblPercent <> 0 Then
             If dblPercent < 0 Then dblPercent = 1 + dblPercent
-            .lboAdjustmentPreview.List(lngItem, 3) = Format((.lboAdjustmentPreview.List(lngItem, 2)) * dblPercent, "#,##0.00")
-            dblNewTotal = dblNewTotal + (.lboAdjustmentPreview.List(lngItem, 2) * dblPercent)
+            .lboAdjustmentPreview.List(lngItem, 4) = Format((.lboAdjustmentPreview.List(lngItem, 3)) * dblPercent, "#,##0.00")
+            dblNewTotal = dblNewTotal + (.lboAdjustmentPreview.List(lngItem, 3) * dblPercent)
           Else
-            .lboAdjustmentPreview.List(lngItem, 3) = Format(.lboAdjustmentPreview.List(lngItem, 2), "#,##0.00")
-            dblNewTotal = dblNewTotal + .lboAdjustmentPreview.List(lngItem, 2)
+            .lboAdjustmentPreview.List(lngItem, 4) = Format(.lboAdjustmentPreview.List(lngItem, 3), "#,##0.00")
+            dblNewTotal = dblNewTotal + .lboAdjustmentPreview.List(lngItem, 3)
           End If
         End If
 next_item:
@@ -222,14 +243,11 @@ next_item:
       
     End If
     
-    .lblNewETC.Caption = Format(dblNewTotal, "#,##0.00")
-wrap_up:
-    .lblETC.Caption = Format((dblETC / 60), "#,##0.00")
-    .lblETC.Left = .lboAdjustmentPreview.Left + 25 + 150
-    .lblETC.Top = .lboAdjustmentPreview.Top + .lboAdjustmentPreview.Height
-    .lblNewETC.Left = .lboAdjustmentPreview.Left + 25 + 150 + 54
-    .lblNewETC.Top = .lboAdjustmentPreview.Top + .lboAdjustmentPreview.Height
-
+    'update totals
+    .lboTotal.List(0, 2) = Format((dblETC / 60), "#,##0.00")
+    .lboTotal.List(0, 3) = Format(dblNewTotal, "#,##0.00")
+    .lboTotal.Top = .lboHeader.Top + .lboHeader.Height + .lboAdjustmentPreview.Height
+    
   End With
 
 exit_here:
@@ -243,3 +261,4 @@ err_here:
   Call cptHandleErr("cptAdjustment_bas", "cptRefreshAdjustment", Err, Erl)
   Resume exit_here
 End Sub
+

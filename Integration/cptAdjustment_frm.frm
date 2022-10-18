@@ -15,46 +15,48 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v0.0.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = False
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboResources_Change()
-  Dim strResource As String
-  If Not IsNull(Me.cboResources.Value) Then strResource = Me.cboResources.Value
-  Call cptRefreshAdjustment(strResource:=CStr(Me.cboResources.Value))
+  
+  If Me.Visible Then Call cptRefreshAdjustment
   
 End Sub
 
 Private Sub cmdApply_Click()
 
   'require an amount
-  If Len(Me.txtAmount) = 0 Then
-    'todo: turn the frame red
+  Me.txtAmount.BorderColor = -2147483642
+  If IsNull(Me.txtAmount) Or Len(Me.txtAmount) = 0 Then
+    Me.txtAmount.BorderColor = 192
     Exit Sub
   End If
   
-  Call cptApplyAdjustment(Me.cboResources.Value, "target", CDbl(Me.txtAmount.Value))
+  Call cptApplyAdjustment
+  Call cptRefreshAdjustment
     
 End Sub
 
 Private Sub cmdUndo_Click()
   Application.Undo
-  cptRefreshAdjustment 'todo: pipe in the settings
+  cptRefreshAdjustment
 End Sub
 
 Private Sub optDelta_Click()
-  Me.txtAmount.ControlTipText = ""
-  cptRefreshAdjustment 'todo: pipe in the settings
+  Me.txtAmount.ControlTipText = "Add/Reduce by set number of hours"
+  'stick to apportioning by remaining work
+  cptRefreshAdjustment
 End Sub
 
 Private Sub optPercent_Click()
   Me.txtAmount.ControlTipText = "Please use decimal format"
-  cptRefreshAdjustment 'todo: pipe in the settings
+  'stick to apportioning by remaining work
+  cptRefreshAdjustment
 End Sub
 
 Private Sub optTarget_Click()
-  Me.txtAmount.ControlTipText = ""
-  If Me.Visible Then cptRefreshAdjustment 'todo: pipe in the settings
+  Me.txtAmount.ControlTipText = "Apportion to hit Target"
+  'stick to apportioning by remaining work
+  If Me.Visible Then cptRefreshAdjustment
 End Sub
 
 Private Sub txtAmount_Change()
@@ -69,7 +71,7 @@ Private Sub txtAmount_Change()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   strAmount = Me.txtAmount.Text
   If strAmount = "-" Then GoTo exit_here 'be patient
@@ -94,7 +96,7 @@ Private Sub txtAmount_Change()
       Me.txtAmount.Text = cptRegEx(strAmount, "(-)?([0-9]{1,})?(\.[0-9]{1,})?")
     End If
   End If
-  cptRefreshAdjustment 'todo: pipe in the settings
+  cptRefreshAdjustment
 
 exit_here:
   On Error Resume Next
