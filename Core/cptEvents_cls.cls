@@ -59,7 +59,7 @@ Dim lngItems As Long
       Set oTasks = ActiveSelection.Tasks
       If Not oTasks Is Nothing Then
         lngItems = oTasks.Count
-        If ActiveSelection.FieldIDList.Count = 1 And ActiveSelection.Tasks.Count > 1 Then
+        If ActiveSelection.FieldIDList.Count = 1 And lngItems > 1 Then
           cptGetSums oTasks, ActiveSelection.FieldIDList(1)
         Else
           Application.StatusBar = Format(lngItems, "#,##0") & " task" & IIf(lngItems = 1, "", "s") & " selected"
