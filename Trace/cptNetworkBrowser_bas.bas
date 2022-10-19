@@ -423,8 +423,8 @@ Dim oTask As Task
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.ExternalTask Then GoTo next_task
-    If Not oTask.Active Then GoTo next_task
-    oTask.Marked = False
+    'If Not oTask.Active Then GoTo next_task
+    If oTask.Marked Then oTask.Marked = False
 next_task:
   Next oTask
   ActiveProject.Tasks.UniqueID(0).Marked = False
