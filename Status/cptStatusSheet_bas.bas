@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.3.2</cpt_version>
+'<cpt_version>v1.3.3</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
@@ -776,6 +776,7 @@ Sub cptCreateStatusSheet()
           strItem = .lboItems.List(lngItem, 0)
           SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", strItem
           SelectAll
+	  Set oTasks = Nothing
           On Error Resume Next
           Set oTasks = ActiveSelection.Tasks
           If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
