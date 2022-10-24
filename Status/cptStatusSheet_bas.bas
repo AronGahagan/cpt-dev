@@ -799,6 +799,7 @@ Sub cptCreateStatusSheet()
           strItem = .lboItems.List(lngItem, 0)
           SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", strItem
           SelectAll
+	  Set oTasks = Nothing
           On Error Resume Next
           Set oTasks = ActiveSelection.Tasks
           If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
