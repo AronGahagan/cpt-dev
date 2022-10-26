@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.4.5</cpt_version>
+'<cpt_version>v1.4.6</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
@@ -847,6 +847,13 @@ next_worksheet:
           
         End If
       Next lngItem
+      
+      Set oWorksheet = Nothing
+      On Error Resume Next
+      Set oWorksheet = oWorkbook.Sheets("Sheet1")
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If Not oWorksheet Is Nothing Then oWorksheet.Delete
+      oWorkbook.Sheets(1).Activate
       
       'save the workbook
       strFileName = cptSaveStatusSheet(oWorkbook)
@@ -2330,12 +2337,13 @@ Dim vBorder As Variant
   oWorksheet.Application.Calculation = xlCalculationAutomatic
   oWorksheet.Application.ScreenUpdating = True
   oWorksheet.Application.ActiveWindow.DisplayGridLines = False
+  oWorksheet.[B2].Select
   oWorksheet.Application.ActiveWindow.SplitRow = 8
   oWorksheet.Application.ActiveWindow.SplitColumn = 0
   oWorksheet.Application.ActiveWindow.FreezePanes = True
-  oWorksheet.Application.WindowState = xlMinimized
   oWorksheet.Application.ActiveWindow.DisplayHorizontalScrollBar = True
   oWorksheet.Application.ActiveWindow.DisplayVerticalScrollBar = True
+  oWorksheet.Application.WindowState = xlMinimized
   Set oEntryHeaderRange = Nothing
 End Sub
 
