@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptStatusSheet_frm 
-   Caption         =   "Create Status Sheet (v1.3.0)"
+   Caption         =   "Create Status Sheets"
    ClientHeight    =   7230
    ClientLeft      =   120
    ClientTop       =   465
@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.4.4</cpt_version>
+'<cpt_version>v1.4.5</cpt_version>
 Option Explicit
 Private Const adVarChar As Long = 200
 Private Const adInteger As Long = 3
@@ -501,7 +501,7 @@ Private Sub cmdDir_Click()
       .InitialFileName = oShell.SpecialFolders("Desktop")
     End If
     If .Show Then
-      Me.txtDir = .SelectedItems(1) & "\"
+      Me.txtDir = .SelectedItems(1) & "\" & IIf(Me.chkAppendStatusDate, Format(ActiveProject.StatusDate, "yyyy-mm-dd") & "\", "")
     End If
   End With
   
