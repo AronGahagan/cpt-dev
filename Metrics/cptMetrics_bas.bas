@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.3.2</cpt_version>
+'<cpt_version>v1.4.0</cpt_version>
 Option Explicit
 
 Sub cptGetBAC()
@@ -3099,13 +3099,15 @@ End Sub
 
 Sub cptFindOutOfSequence()
   'objects
+  Dim oOOS As Scripting.Dictionary
+  Dim oCalendar As MSProject.Calendar
   Dim oSubproject As MSProject.Subproject
   Dim oSubMap As Scripting.Dictionary
-  Dim oTask As Task
-  Dim oTaskDependency As TaskDependency
+  Dim oTask As MSProject.Task
+  Dim oLink As MSProject.TaskDependency
   Dim oExcel As Excel.Application
-  Dim oWorkbook As Workbook
-  Dim oWorksheet As Worksheet
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
   'strings
   Dim strProject As String
   Dim strMacro As String
@@ -3115,24 +3117,31 @@ Sub cptFindOutOfSequence()
   Dim strDir As String
   Dim strFile As String
   'longs
+  Dim lngLagType As Long
+  Dim lngLag As Long
   Dim lngFactor As Long
   Dim lngToUID As Long
   Dim lngFromUID As Long
   Dim lngTask As Long
   Dim lngTasks As Long
   Dim lngLastRow As Long
+  Dim lngOOS As Long
   'integers
   'doubles
   'booleans
+  Dim blnElapsed As Boolean
   Dim blnSubprojects As Boolean
-  Dim blnMarked As Boolean
   'variants
   'dates
   Dim dtStatus As Date
+  Dim dtDate As Date
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
-  cptSpeed True
+  If cptErrorTrapping Then
+    On Error GoTo err_here
+    cptSpeed True
+  Else
+    On Error GoTo 0
+  End If
   
   blnSubprojects = ActiveProject.Subprojects.Count > 0
   If blnSubprojects Then
@@ -3161,48 +3170,48 @@ Sub cptFindOutOfSequence()
       End If
 next_mapping_task:
       'todo: note that external tasks will not be included in this metric
-      If Not oTask Is Nothing And Not oTask.ExternalTask Then oTask.Marked = False
     Next oTask
     
   Else
     lngTasks = ActiveProject.Tasks.Count
-    For Each oTask In ActiveProject.Tasks
-      'todo: note that external tasks will not be included in this metric
-      If Not oTask Is Nothing And Not oTask.ExternalTask Then oTask.Marked = False
-    Next oTask
   End If
   
   Set oExcel = CreateObject("Excel.Application")
   On Error Resume Next
   Set oWorkbook = oExcel.Workbooks.Add
   Set oWorksheet = oWorkbook.Sheets(1)
-  oWorksheet.Name = "OOS"
-  oWorksheet.[A2:J2] = Split("UID,ID,TASK,DATE,TYPE,UID,ID,TASK,DATE,COMMENT", ",")
+  oWorksheet.Name = "06A212a"
+  oWorksheet.[A2:K2] = Split("UID,ID,TASK,DATE,TYPE,LAG,UID,ID,TASK,DATE,COMMENT", ",")
   oWorksheet.[A1:D1].Merge
   oWorksheet.[A1].Value = "FROM"
   oWorksheet.[A1].HorizontalAlignment = xlCenter
-  oWorksheet.[F1:I1].Merge
-  oWorksheet.[F1].Value = "TO"
-  oWorksheet.[F1].HorizontalAlignment = xlCenter
-  oWorksheet.[A1:J2].Font.Bold = True
+  oWorksheet.[G1:J1].Merge
+  oWorksheet.[G1].Value = "TO"
+  oWorksheet.[G1].HorizontalAlignment = xlCenter
+  oWorksheet.[A1:K2].Font.Bold = True
   oExcel.EnableEvents = False
     
   lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
   lngTask = 0
   
+  Set oOOS = CreateObject("Scripting.Dictionary")
+  
   For Each oTask In ActiveProject.Tasks
-    blnMarked = False
-    If oTask Is Nothing Then GoTo next_task
-    If oTask.Summary Then GoTo next_task
-    For Each oTaskDependency In oTask.TaskDependencies
-      If Not oTaskDependency.From.Active Or Not oTaskDependency.To.Active Then GoTo next_dependency
-      If oTaskDependency.To.Guid = oTask.Guid Then 'predecessors only
+    If oTask Is Nothing Then GoTo next_task 'skip blank lines
+    If oTask.Summary Then GoTo next_task 'skip summary tasks
+    If Not oTask.Active Then GoTo next_task 'skip inactive tasks
+    If oTask.ExternalTask Then GoTo next_task 'skip external tasks
+    If IsDate(oTask.ActualFinish) Then GoTo next_task 'incomplete predecessors only
+    
+    For Each oLink In oTask.TaskDependencies
+      If oLink.From.Guid = oTask.Guid Then   'predecessors only
+        If Not oLink.To.Active Then GoTo next_link
         lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
-        If blnSubprojects And oTaskDependency.From.ExternalTask Then
+        If blnSubprojects And oLink.From.ExternalTask Then
           'fix the pred UID if master-sub
-          lngFromUID = oTaskDependency.From.GetField(185073906) Mod 4194304
-          strProject = oTaskDependency.From.Project
-          If InStr(oTaskDependency.From.Project, "\") > 0 Then
+          lngFromUID = oLink.From.GetField(185073906) Mod 4194304
+          strProject = oLink.From.Project
+          If InStr(oLink.From.Project, "\") > 0 Then
             strProject = Replace(strProject, ".mpp", "")
             strProject = Mid(strProject, InStrRev(strProject, "\") + 1)
           End If
@@ -3211,131 +3220,154 @@ next_mapping_task:
         Else
           If blnSubprojects Then
             lngFactor = Round(oTask / 4194304, 0)
-            lngFromUID = (lngFactor * 4194304) + oTaskDependency.From.UniqueID
+            lngFromUID = (lngFactor * 4194304) + oLink.From.UniqueID
           Else
-            lngFromUID = oTaskDependency.From.UniqueID
+            lngFromUID = oLink.From.UniqueID
           End If
         End If
-        lngToUID = oTask.UniqueID
-        
-        Select Case oTaskDependency.Type
+        lngToUID = oLink.To.UniqueID
+        lngLag = 0
+        If oLink.Lag <> 0 Then
+          FilterClear
+          'elapsed lagType properties are even
+          'see https://learn.microsoft.com/en-us/office/vba/api/project.pjformatunit
+          blnElapsed = False
+          If (oLink.LagType Mod 2) = 0 Then
+            'todo: use simple datadd
+            blnElapsed = True
+          End If
+          lngLag = oLink.Lag
+        End If
+        'todo: if not elapsed then use successor's task (or resource) calendar OR if no task/resource calendar then use project calendar
+        'todo: if elapsed then use VBA.DateAdd Else use Application.DateAdd
+        If oLink.To.Calendar = "None" Then
+          Set oCalendar = ActiveProject.Calendar
+        Else
+          Set oCalendar = oLink.To.CalendarObject
+        End If
+        Select Case oLink.Type
           Case pjFinishToFinish
-            If oTaskDependency.From.Finish > oTaskDependency.To.Finish Then
-              blnMarked = True
+            'get target successor finish date
+            'todo: resource calendars, leveling delays?
+            If blnElapsed Then
+              dtDate = DateAdd("nn", lngLag, oLink.From.Finish)
+            Else
+              dtDate = Application.DateAdd(oLink.From.Finish, lngLag, oCalendar)
+            End If
+            If dtDate < oLink.To.Finish Or IsDate(oLink.To.ActualFinish) Then
+              lngOOS = lngOOS + 1
+              If Not oOOS.Exists(oLink.From.UniqueID) Then oOOS.Add oLink.From.UniqueID, oLink.From.UniqueID
+              If Not oOOS.Exists(oLink.To.UniqueID) Then oOOS.Add oLink.To.UniqueID, oLink.To.UniqueID
               oWorksheet.Cells(lngLastRow, 1) = lngFromUID
-              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
-              oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
-              oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Finish
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oLink.From.ID)
+              oWorksheet.Cells(lngLastRow, 3) = oLink.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oLink.From.Finish
               oWorksheet.Cells(lngLastRow, 5) = "FF"
-              oWorksheet.Cells(lngLastRow, 6) = lngToUID
-              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
-              oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
-              oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Finish
-              oWorksheet.Cells(lngLastRow, 10) = "Finish <> Finish"
+              oWorksheet.Cells(lngLastRow, 6) = oLink.Lag / (8 * 60)
+              oWorksheet.Cells(lngLastRow, 7) = lngToUID
+              oWorksheet.Cells(lngLastRow, 8) = IIf(blnSubprojects, "-", oLink.To.ID)
+              oWorksheet.Cells(lngLastRow, 9) = oLink.To.Name
+              oWorksheet.Cells(lngLastRow, 10) = oLink.To.Finish
+              If IsDate(oLink.To.ActualFinish) Then
+                oWorksheet.Cells(lngLastRow, 11) = "Successor has Actual Finish"
+              Else
+                oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Finish"
+              End If
             End If
           Case pjFinishToStart
-            If oTaskDependency.From.Finish > oTaskDependency.To.Start Then
-              blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
-              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
-              oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
-              oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Finish
-              oWorksheet.Cells(lngLastRow, 5) = "FS"
-              oWorksheet.Cells(lngLastRow, 6) = lngToUID
-              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
-              oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
-              oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
-              oWorksheet.Cells(lngLastRow, 10) = "Finish > Start"
+            'get target successor start date
+            'todo: resource calendars, leveling delays?
+            If blnElapsed Then
+              dtDate = DateAdd("nn", lngLag, oLink.From.Finish)
+            Else
+              dtDate = Application.DateAdd(oLink.From.Finish, lngLag, oCalendar)
             End If
-            lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
-            If IsDate(oTaskDependency.To.ActualStart) And Not IsDate(oTaskDependency.From.ActualFinish) Then
-              blnMarked = True
+            'compare and report
+            If oLink.To.Start < dtDate Or IsDate(oLink.To.ActualStart) Then
+              lngOOS = lngOOS + 1
+              If Not oOOS.Exists(oLink.From.UniqueID) Then oOOS.Add oLink.From.UniqueID, oLink.From.UniqueID
+              If Not oOOS.Exists(oLink.To.UniqueID) Then oOOS.Add oLink.To.UniqueID, oLink.To.UniqueID
               oWorksheet.Cells(lngLastRow, 1) = lngFromUID
-              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
-              oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
-              oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Finish
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oLink.From.ID)
+              oWorksheet.Cells(lngLastRow, 3) = oLink.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oLink.From.Finish
               oWorksheet.Cells(lngLastRow, 5) = "FS"
-              oWorksheet.Cells(lngLastRow, 6) = lngToUID
-              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
-              oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
-              oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
-              oWorksheet.Cells(lngLastRow, 10) = "Actual Start w/o Actual Finish "
+              oWorksheet.Cells(lngLastRow, 6) = oLink.Lag / (8 * 60)
+              oWorksheet.Cells(lngLastRow, 7) = lngToUID
+              oWorksheet.Cells(lngLastRow, 8) = IIf(blnSubprojects, "-", oLink.To.ID)
+              oWorksheet.Cells(lngLastRow, 9) = oLink.To.Name
+              oWorksheet.Cells(lngLastRow, 10) = oLink.To.Start
+              If IsDate(oLink.To.ActualStart) Then
+                oWorksheet.Cells(lngLastRow, 11) = "Successor has Actual Start"
+              Else
+                oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Finish"
+              End If
             End If
           Case pjStartToStart
-            If oTaskDependency.From.Start > oTaskDependency.To.Start Then
-              blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
-              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
-              oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
-              oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
-              oWorksheet.Cells(lngLastRow, 5) = "SS"
-              oWorksheet.Cells(lngLastRow, 6) = lngToUID
-              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
-              oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
-              oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
-              oWorksheet.Cells(lngLastRow, 10) = "Start <> Start"
+            'get target successor start date
+            'todo: resource calendars, leveling delays?
+            If blnElapsed Then
+              dtDate = DateAdd("nn", lngLag, oLink.From.Start)
+            Else
+              dtDate = Application.DateAdd(oLink.From.Start, lngLag, oCalendar)
             End If
-            lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
-            If IsDate(oTaskDependency.To.ActualStart) And Not IsDate(oTaskDependency.From.ActualStart) Then
-              blnMarked = True
+            'compare and report
+            If IsDate(oLink.To.ActualStart) Or dtDate < oLink.From.Start Then
+              lngOOS = lngOOS + 1
+              If Not oOOS.Exists(oLink.From.UniqueID) Then oOOS.Add oLink.From.UniqueID, oLink.From.UniqueID
+              If Not oOOS.Exists(oLink.To.UniqueID) Then oOOS.Add oLink.To.UniqueID, oLink.To.UniqueID
               oWorksheet.Cells(lngLastRow, 1) = lngFromUID
-              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
-              oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
-              oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oLink.From.ID)
+              oWorksheet.Cells(lngLastRow, 3) = oLink.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oLink.From.Start
               oWorksheet.Cells(lngLastRow, 5) = "SS"
-              oWorksheet.Cells(lngLastRow, 6) = lngToUID
-              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
-              oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
-              oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Start
-              oWorksheet.Cells(lngLastRow, 10) = "Actual Start w/o Actual Start"
+              oWorksheet.Cells(lngLastRow, 6) = oLink.Lag / (8 * 60)
+              oWorksheet.Cells(lngLastRow, 7) = lngToUID
+              oWorksheet.Cells(lngLastRow, 8) = IIf(blnSubprojects, "-", oLink.To.ID)
+              oWorksheet.Cells(lngLastRow, 9) = oLink.To.Name
+              oWorksheet.Cells(lngLastRow, 10) = oLink.To.Start
+              If IsDate(oLink.To.ActualStart) Then
+                oWorksheet.Cells(lngLastRow, 11) = "Successor has Actual Start"
+              Else
+                oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Start"
+              End If
             End If
           Case pjStartToFinish
             'this should never happen
-            If oTaskDependency.To.Finish <= oTaskDependency.From.ActualFinish Then
-              blnMarked = True
-              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
-              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
-              oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
-              oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
-              oWorksheet.Cells(lngLastRow, 5) = "SF"
-              oWorksheet.Cells(lngLastRow, 6) = lngToUID
-              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
-              oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
-              oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Finish
-              oWorksheet.Cells(lngLastRow, 10) = "Finish <= Actual Finish"
+            'get target finish
+            If blnElapsed Then
+              dtDate = DateAdd("nn", lngLag, oLink.From.Start)
+            Else
+              dtDate = Application.DateAdd(oLink.From.Start, lngLag, oCalendar)
             End If
-            If IsDate(oTaskDependency.To.ActualFinish) And Not IsDate(oTaskDependency.From.ActualStart) Then
-              blnMarked = True
+            'compare and report
+            If IsDate(oLink.To.ActualFinish) Or oLink.To.Finish < oLink.From.Start Then
+              lngOOS = lngOOS + 1
+              If Not oOOS.Exists(oLink.From.UniqueID) Then oOOS.Add oLink.From.UniqueID, oLink.From.UniqueID
+              If Not oOOS.Exists(oLink.To.UniqueID) Then oOOS.Add oLink.To.UniqueID, oLink.To.UniqueID
               oWorksheet.Cells(lngLastRow, 1) = lngFromUID
-              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oTaskDependency.From.ID)
-              oWorksheet.Cells(lngLastRow, 3) = oTaskDependency.From.Name
-              oWorksheet.Cells(lngLastRow, 4) = oTaskDependency.From.Start
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oLink.From.ID)
+              oWorksheet.Cells(lngLastRow, 3) = oLink.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oLink.From.Start
               oWorksheet.Cells(lngLastRow, 5) = "SF"
-              oWorksheet.Cells(lngLastRow, 6) = lngToUID
-              oWorksheet.Cells(lngLastRow, 7) = IIf(blnSubprojects, "-", oTaskDependency.To.ID)
-              oWorksheet.Cells(lngLastRow, 8) = oTaskDependency.To.Name
-              oWorksheet.Cells(lngLastRow, 9) = oTaskDependency.To.Finish
-              oWorksheet.Cells(lngLastRow, 10) = "Actual Finish w/o Actual Start"
+              oWorksheet.Cells(lngLastRow, 6) = oLink.Lag / (8 * 60)
+              oWorksheet.Cells(lngLastRow, 7) = lngToUID
+              oWorksheet.Cells(lngLastRow, 8) = IIf(blnSubprojects, "-", oLink.To.ID)
+              oWorksheet.Cells(lngLastRow, 9) = oLink.To.Name
+              oWorksheet.Cells(lngLastRow, 10) = oLink.To.Finish
+              If IsDate(oLink.To.ActualFinish) Then
+                oWorksheet.Cells(lngLastRow, 11) = "Successor has Actual Finish"
+              Else
+                oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Start"
+              End If
             End If
         End Select
-        
-        'mark both if true
-        If blnMarked Then
-          If blnSubprojects Then
-            ActiveProject.Tasks.UniqueID(lngFromUID).Marked = True
-            ActiveProject.Tasks.UniqueID(lngToUID).Marked = True
-          Else
-            oTaskDependency.From.Marked = True
-            oTaskDependency.To.Marked = True
-          End If
-        End If
-        
       End If
-next_dependency:
-    Next oTaskDependency
+next_link:
+    Next oLink
 next_task:
     lngTask = lngTask + 1
-    Application.StatusBar = "Analyzing...(" & Format(lngTask / lngTasks, "0%") & ")"
+    Application.StatusBar = "Analyzing...(" & Format(lngTask / lngTasks, "0%") & ")" & IIf(lngOOS > 0, " | " & lngOOS & " found", "")
     DoEvents
   Next oTask
     
@@ -3343,12 +3375,19 @@ next_task:
   lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
   
   'only open workbook if OOS oTasks found
-  If lngLastRow = 3 Then
+  'If lngLastRow = 3 Then
+  If lngOOS = 0 Then
     MsgBox "No Out of Sequence Tasks Found!", vbInformation + vbOKOnly, "Well Done"
     oWorkbook.Close False
     GoTo exit_here
   Else
-    MsgBox Format(lngLastRow - 3, "#,##0") & " task" & IIf(lngLastRow - 3 = 1, "", "s") & " statused out of sequence.", vbInformation + vbOKOnly, "OOS Found"
+    If MsgBox(Format(lngOOS, "#,##0") & " out of sequence condition" & IIf(lngOOS = 1, "", "s") & " found." & vbCrLf & vbCrLf & "Filter for them?", vbQuestion + vbYesNo, "OOS Found") = vbYes Then
+      strOOS = Join(oOOS.Keys, vbTab)
+      FilterClear
+      OptionsViewEx DisplaySummaryTasks:=True
+      OutlineShowAllTasks
+      SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strOOS
+    End If
   End If
     
   With oExcel.ActiveWindow
@@ -3374,9 +3413,10 @@ next_task:
   strMacro = strMacro & "  MSPROJ.ActiveWindow.TopPane.Activate" & vbCrLf
   strMacro = strMacro & "  MSPROJ.ScreenUpdating = False" & vbCrLf
   strMacro = strMacro & "  MSPROJ.FilterClear" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.OptionsViewEx DisplaySummaryTasks:=True" & vbCrLf
   strMacro = strMacro & "  MSPROJ.OutlineShowAllTasks" & vbCrLf
   strMacro = strMacro & "  strFrom = Me.Cells(Target.Row, 1).Value" & vbCrLf
-  strMacro = strMacro & "  strTo = Me.Cells(Target.Row, 6).Value" & vbCrLf
+  strMacro = strMacro & "  strTo = Me.Cells(Target.Row, 7).Value" & vbCrLf
   strMacro = strMacro & "  MSPROJ.SetAutoFilter FieldName:=""Unique ID"", FilterType:=2, Criteria1:=strFrom & Chr$(9) & strTo '1=pjAutoFilterIn" & vbCrLf
   strMacro = strMacro & "  MSPROJ.Find ""Unique ID"", ""equals"", CLng(strFrom)" & vbCrLf & vbCrLf
   strMacro = strMacro & "exit_here:" & vbCrLf
@@ -3387,20 +3427,19 @@ next_task:
   oWorkbook.VBProject.VBComponents("Sheet1").CodeModule.AddFromString strMacro
   
   oExcel.Visible = True
-  If Application.OptionsViewEx(DisplaySummaryTasks:=True) Then OutlineShowAllTasks
-  ActiveWindow.TopPane.Activate
-  FilterClear
-  SetAutoFilter "Marked", pjAutoFilterFlagYes
   
 exit_here:
   On Error Resume Next
+  oOOS.RemoveAll
+  Set oOOS = Nothing
+  Set oCalendar = Nothing
   Set oSubproject = Nothing
   Set oSubMap = Nothing
   Application.StatusBar = ""
   oExcel.EnableEvents = True
   cptSpeed False
   Set oTask = Nothing
-  Set oTaskDependency = Nothing
+  Set oLink = Nothing
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
   Set oExcel = Nothing
