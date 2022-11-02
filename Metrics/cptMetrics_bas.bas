@@ -3169,7 +3169,6 @@ Sub cptFindOutOfSequence()
         End If
       End If
 next_mapping_task:
-      'todo: note that external tasks will not be included in this metric
     Next oTask
     
   Else
@@ -3200,7 +3199,6 @@ next_mapping_task:
     If oTask Is Nothing Then GoTo next_task 'skip blank lines
     If oTask.Summary Then GoTo next_task 'skip summary tasks
     If Not oTask.Active Then GoTo next_task 'skip inactive tasks
-    If oTask.ExternalTask Then GoTo next_task 'skip external tasks
     If IsDate(oTask.ActualFinish) Then GoTo next_task 'incomplete predecessors only
     
     For Each oLink In oTask.TaskDependencies
@@ -3238,8 +3236,6 @@ next_mapping_task:
           End If
           lngLag = oLink.Lag
         End If
-        'todo: if not elapsed then use successor's task (or resource) calendar OR if no task/resource calendar then use project calendar
-        'todo: if elapsed then use VBA.DateAdd Else use Application.DateAdd
         If oLink.To.Calendar = "None" Then
           Set oCalendar = ActiveProject.Calendar
         Else
