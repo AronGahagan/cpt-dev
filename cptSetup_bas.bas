@@ -515,7 +515,8 @@ Dim lngCleanUp As Long
   'status
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Schedule"" visible=""true"" >"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mHealth"" label=""Health"" imageMso=""CheckWorkflow"" visible=""true"" size=""large"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptOOS"" label=""Out of Sequence"" imageMso=""ExportExcel"" onAction=""cptFindOutOfSequence"" visible=""true"" supertip=""Find tasks statused out of sequence. Select the UID in Column A to AutoFilter the IMS."" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DECM (v5.0)"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptOOS"" label=""06A212a - Out of Sequence"" imageMso=""ExportExcel"" onAction=""cptFindOutOfSequence"" visible=""true"" supertip=""Incomplete Predecessors with Successors statused out of sequence. (Aligned to DECM 06A212a v5.0)"" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mStatus"" label=""Status"" imageMso=""UpdateAsScheduled"" visible=""true"" size=""large"" >"
   If cptModuleExists("cptAgeDates_bas") And cptModuleExists("cptAgeDates_frm") Then
