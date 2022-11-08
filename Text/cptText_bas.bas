@@ -13,7 +13,7 @@ End Sub
 
 Sub cptBulkAppend()
   'objects
-  Dim oTasks As Tasks, oTask As Task
+  Dim oTasks As MSProject.Tasks, oTask As MSProject.Task
   'strings
   Dim strAppend As String
   'longs
@@ -57,7 +57,7 @@ End Sub
 
 Sub cptBulkPrepend()
   'objects
-  Dim oTasks As Tasks, oTask As Task
+  Dim oTasks As MSProject.Tasks, oTask As MSProject.Task
   'strings
   Dim strPrepend As String
   'longs
@@ -101,7 +101,7 @@ End Sub
 
 Sub cptEnumerate()
   'objects
-  Dim oTasks As Tasks, oTask As Task
+  Dim oTasks As MSProject.Tasks, oTask As MSProject.Task
   'strings
   'longs
   Dim lngDigits As Long
@@ -171,7 +171,7 @@ Sub cptMyReplace()
   'fields affected: Marked, Task Name, Text Fields, Outline Code Fields
   'objects
   Dim rstReplaced As Object 'ADODB.Recordset
-  Dim oTasks As Tasks, oTask As Task
+  Dim oTasks As MSProject.Tasks, oTask As MSProject.Task
   'strings
   Dim strMsg As String
   'longs
@@ -229,7 +229,7 @@ next_task:
     rstReplaced.MoveFirst
     FilterEdit "cptMyReplace", True, True, True, False, , "Unique ID", , "equals", rstReplaced(0), "Or", True
     Do While Not rstReplaced.EOF
-      FilterEdit "cptMyReplace", TaskFilter:=True, FieldName:="", newfieldname:="Unique ID", Test:="equals", Value:=rstReplaced(0), Operation:="Or", ShowInMenu:=True
+      FilterEdit "cptMyReplace", TaskFilter:=True, FieldName:="", NewFieldName:="Unique ID", test:="equals", Value:=rstReplaced(0), Operation:="Or", ShowInMenu:=True
       rstReplaced.MoveNext
     Loop
     FilterApply "cptMyReplace", True
@@ -266,8 +266,8 @@ Sub cptFindDuplicateTaskNames()
   'objects
   Dim oShell As Object
   Dim oExcel As Excel.Application
-  Dim oWorkbook As Workbook
-  Dim oWorksheet As Worksheet
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
   Dim oRange As Excel.Range
   Dim oListObject As ListObject
   'strings
@@ -290,11 +290,11 @@ Sub cptFindDuplicateTaskNames()
   
   If Edition = pjEditionProfessional Then
     If Not cptFilterExists("Active Tasks") Then
-      FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, overwriteexisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
+      FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, OverwriteExisting:=False, FieldName:="Active", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
     End If
-    MapEdit Name:="ExportTaskNames", Create:=True, overwriteexisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="Active Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
+    MapEdit Name:="ExportTaskNames", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="Active Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
   ElseIf Edition = pjEditionStandard Then
-    MapEdit Name:="ExportTaskNames", Create:=True, overwriteexisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
+    MapEdit Name:="ExportTaskNames", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
   End If
   If blnMaster Then
     MapEdit Name:="ExportTaskNames", DataCategory:=0, FieldName:="Project", ExternalFieldName:="Project"
@@ -366,7 +366,7 @@ End Sub
 
 Sub cptTrimTaskNames()
   'objects
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngSubproject As Long
@@ -437,8 +437,8 @@ End Sub
 
 Sub cptShowText_frm()
 'objects
-Dim oTasks As Tasks
-Dim oTask As Task
+Dim oTasks As MSProject.Tasks
+Dim oTask As MSProject.Task
 'strings
 'longs
 Dim lngItem As Long

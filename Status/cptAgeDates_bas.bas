@@ -98,7 +98,7 @@ End Sub
 Sub cptAgeDates()
   'run this immediately prior to a status meeting
   'objects
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   Dim strCustom As String
   Dim strStatus As String
@@ -169,6 +169,9 @@ Sub cptAgeDates()
     
     If .chkIncludeDurations Then
       For Each oTask In ActiveProject.Tasks
+        If oTask Is Nothing Then GoTo next_task
+        If Not oTask.Active Then GoTo next_task
+        If oTask.ExternalTask Then GoTo next_task
         For lngControl = 10 To 1 Step -1
           If .Controls("cboWeek" & lngControl).Enabled Then
             lngTo = cptRegEx(.Controls("cboWeek" & lngControl).List(.Controls("cboWeek" & lngControl).ListIndex, 1), "[0-9]")
@@ -180,6 +183,7 @@ Sub cptAgeDates()
             End If
           End If
         Next lngControl
+next_task:
       Next oTask
     End If
   End With
@@ -200,7 +204,7 @@ Sub cptBlameReport()
   'objects
   Dim oRange As Excel.Range
   Dim oListObject As Excel.ListObject
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   Dim oWorksheet As Excel.Worksheet 'Object
   Dim oWorkbook As Excel.Workbook 'Object
   Dim oExcel As Excel.Application 'Object
@@ -490,6 +494,5 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptAgeDates_bas", "cptBlameReport", Err, Erl)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub

@@ -189,7 +189,7 @@ Sub cptStatusSheetImport()
   Dim oShell As Object
   Dim oRecordset As ADODB.Recordset
   Dim oSubproject As Subproject
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   Dim oResource As Resource
   Dim oAssignment As Assignment
   Dim oExcel As Object 'Excel.Application
@@ -642,11 +642,13 @@ evp_skipped:
             If oAssignment Is Nothing Then
               Print #lngFile, "ASSIGNMENT MISSING: TASK " & oTask.UniqueID & " ASSIGNMENT: " & oWorksheet.Cells(lngRow, lngUIDCol).Value
             Else
+              'todo: get value to compare against here instead and reset dblETC
               If oAssignment.ResourceType = pjResourceTypeWork Then
                 lngMultiplier = 1
               Else
                 lngMultiplier = 60
               End If
+              'todo: do this first
               If Not oWorksheet.Cells(lngRow, lngETCCol).Locked Then
                 dblETC = oWorksheet.Cells(lngRow, lngETCCol).Value
                 If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
@@ -902,7 +904,7 @@ Dim lngItem As Long
   strEVT = cptGetSetting("StatusSheet", "cboEVT")
   
   'reset the table
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   
   'import user fields
@@ -988,7 +990,7 @@ Dim lngItem As Long
   End If
   
   If blnUsageBelow Then
-    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, NewFieldName:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     
     'import user fields

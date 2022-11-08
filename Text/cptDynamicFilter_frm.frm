@@ -13,6 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v1.6.1</cpt_version>
 Option Explicit
 
@@ -36,7 +37,7 @@ Private Sub chkHighlight_Click()
 End Sub
 
 Private Sub chkKeepSelected_Click()
-Dim Task As Task
+Dim Task As MSProject.Task
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -92,7 +93,7 @@ exit_here:
 End Sub
 
 Private Sub cmdUndo_Click()
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   cptSpeed True
@@ -341,21 +342,21 @@ Dim lgOriginalUID As Long
   'build custom filter on the fly and apply it
   If Len(strFilterText) > 0 And Len(strOperator) > 0 Then
     If strField = "Task Name" Then strField = "Name"
-    FilterEdit Name:=strFilter, TaskFilter:=True, create:=True, OverwriteExisting:=True, FieldName:=strField, Test:=strOperator, Value:=strFilterText, Operation:=IIf(blnKeepSelected Or blnHideSummaryTasks, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
+    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=strField, test:=strOperator, Value:=strFilterText, Operation:=IIf(blnKeepSelected Or blnHideSummaryTasks, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
   End If
   If blnKeepSelected Then
-    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Unique ID", Test:="equals", Value:=lgOriginalUID, Operation:="Or"
+    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Unique ID", test:="equals", Value:=lgOriginalUID, Operation:="Or"
   End If
   If blnHideSummaryTasks Then
-    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Summary", Test:="equals", Value:="No", Operation:="And", Parenthesis:=blnKeepSelected
+    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Summary", test:="equals", Value:="No", Operation:="And", Parenthesis:=blnKeepSelected
   End If
 
   If Len(strFilterText) > 0 Then
     FilterEdit Name:=strFilter, ShowSummaryTasks:=blnShowRelatedSummaries
   Else
     'build a sterile filter to retain existing autofilters
-    FilterEdit Name:=strFilter, TaskFilter:=True, create:=True, OverwriteExisting:=True, FieldName:="Summary", Test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True
-    FilterEdit Name:=strFilter, TaskFilter:=True, FieldName:="", NewFieldName:="Summary", Test:="equals", Value:="No", Operation:="Or", ShowSummaryTasks:=True
+    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Summary", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True
+    FilterEdit Name:=strFilter, TaskFilter:=True, FieldName:="", NewFieldName:="Summary", test:="equals", Value:="No", Operation:="Or", ShowSummaryTasks:=True
   End If
   FilterApply strFilter, blnHighlight
 

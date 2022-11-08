@@ -100,9 +100,9 @@ End Sub
 Sub cptExportFiscalCalendar()
 'objects
 Dim oExcel As Excel.Application
-Dim oWorkbook As Workbook
-Dim oWorksheet As Worksheet
-Dim oCalendar As Calendar
+Dim oWorkbook As Excel.Workbook
+Dim oWorksheet As Excel.Worksheet
+Dim oCalendar As MSProject.Calendar
 'strings
 'longs
 'integers

@@ -5,6 +5,7 @@ Option Explicit
 Sub cptShowSaveMarked_frm()
   'objects
   'strings
+  Dim strFileName As String
   Dim strApplyFilter As String
   Dim strProgram As String
   'longs
@@ -17,21 +18,24 @@ Sub cptShowSaveMarked_frm()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Call cptUpdateMarked
-  cptSaveMarked_frm.Caption = "Import Marked (" & cptGetVersion("cptSaveMarked_frm") & ")"
-  strApplyFilter = cptGetSetting("SaveMarked", "chkApplyFilter")
-  If Len(strApplyFilter) > 0 Then
-    cptSaveMarked_frm.chkApplyFilter = CBool(strApplyFilter)
-  Else
-    cptSaveMarked_frm.chkApplyFilter = False
-  End If
-  strProgram = cptGetProgramAcronym
-  If Len(strProgram) > 0 Then
-    cptSaveMarked_frm.cboProjects.AddItem strProgram
-    cptSaveMarked_frm.cboProjects.Value = strProgram
-    cptSaveMarked_frm.cboProjects.Locked = True
-    cptSaveMarked_frm.cboProjects.Enabled = False
-  End If
-  cptSaveMarked_frm.Show False
+  With cptSaveMarked_frm
+    .Caption = "Import Marked (" & cptGetVersion("cptSaveMarked_frm") & ")"
+    strApplyFilter = cptGetSetting("SaveMarked", "chkApplyFilter")
+    If Len(strApplyFilter) > 0 Then
+      .chkApplyFilter = CBool(strApplyFilter)
+    Else
+      .chkApplyFilter = False
+    End If
+    strProgram = cptGetProgramAcronym
+    If Len(strProgram) > 0 Then
+      .cboProjects.AddItem strProgram
+      .cboProjects.Value = strProgram
+      .cboProjects.Locked = True
+      .cboProjects.Enabled = False
+    End If
+    .lblDir = cptDir & "\settings\cpt-marked.adtg; cpt-marked-details.adtg"
+    .Show False
+  End With
 
 exit_here:
   On Error Resume Next

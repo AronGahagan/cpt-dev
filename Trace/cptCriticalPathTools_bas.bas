@@ -2,18 +2,21 @@ Attribute VB_Name = "cptCriticalPathTools_bas"
 '<cpt_version>v1.0.5</cpt_version>
 Option Explicit
 
-Sub cptExportCriticalPath(ByRef Project As Project, Optional blnSendEmail As Boolean = False, Optional blnKeepOpen As Boolean = False, Optional ByRef TargetTask As Task)
+Sub cptExportCriticalPath(ByRef oProject As MSProject.Project, Optional blnSendEmail As Boolean = False, Optional blnKeepOpen As Boolean = False, Optional ByRef oTargetTask As MSProject.Task)
 'objects
 Dim oShell As Object
 Dim pptExists As PowerPoint.Presentation
-Dim Task As Task, Tasks As Tasks
-Dim pptApp As PowerPoint.Application, Presentation As PowerPoint.Presentation, Slide As PowerPoint.Slide
+Dim oTask As MSProject.Task
+Dim oTasks As MSProject.Tasks
+Dim oPowerPoint As PowerPoint.Application
+Dim oPresentation As PowerPoint.Presentation
+Dim oSlide As PowerPoint.Slide
 'Dim Shape As PowerPoint.Shape
 'Dim ShapeRange As PowerPoint.ShapeRange
 'strings
 Dim strFileName As String, strProjectName As String, strDir As String
 'longs
-Dim lgTask As Long, lgTasks As Long, lgSlide As Long
+Dim lngTask As Long, lngTasks As Long, lngSlide As Long
 'dates
 Dim dtFrom As Date, dtTo As Date
 'boolean
@@ -33,27 +36,27 @@ Dim vPath As Variant
   Call DrivingPaths
   export_to_PPT = False
   
-  If Not IsDate(Project.StatusDate) Then
-    dtFrom = DateAdd("d", -14, Project.ProjectStart)
+  If Not IsDate(oProject.StatusDate) Then
+    dtFrom = DateAdd("d", -14, oProject.ProjectStart)
   Else
-    dtFrom = DateAdd("d", -14, Project.StatusDate)
+    dtFrom = DateAdd("d", -14, oProject.StatusDate)
   End If
-  dtTo = DateAdd("d", 30, TargetTask.Finish)
+  dtTo = DateAdd("d", 30, oTargetTask.Finish)
 
   EditGoTo Date:=dtFrom
   
-  Set pptApp = CreateObject("PowerPoint.Application")
-  pptApp.Visible = True
-  Set Presentation = pptApp.Presentations.Add(msoCTrue)
+  Set oPowerPoint = CreateObject("PowerPoint.Application")
+  oPowerPoint.Visible = True
+  Set oPresentation = oPowerPoint.Presentations.Add(msoCTrue)
   
   'ensure directory
   Set oShell = CreateObject("WScript.Shell")
   strDir = oShell.SpecialFolders("Desktop") & "\"
   If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
   'build filename
-  strFileName = strDir & Replace(Replace(Project.Name, " ", "-"), ".mpp", "") & "-CriticalPathAnalysis-" & Format(Now, "yyyy-mm-dd") & ".pptx"
+  strFileName = strDir & Replace(Replace(oProject.Name, " ", "-"), ".mpp", "") & "-CriticalPathAnalysis-" & Format(Now, "yyyy-mm-dd") & ".pptx"
   On Error Resume Next
-  Set pptExists = pptApp.Presentations(strFileName)
+  Set pptExists = oPowerPoint.Presentations(strFileName)
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not pptExists Is Nothing Then 'add timestamp to this file
     pptExists.Save
@@ -70,13 +73,13 @@ Dim vPath As Variant
   Else
     
   End If
-  Presentation.SaveAs strFileName
+  oPresentation.SaveAs strFileName
   'make a title slide
-  Set Slide = Presentation.Slides.Add(1, ppLayoutCustom)
-  Slide.Layout = ppLayoutTitle
+  Set oSlide = oPresentation.Slides.Add(1, ppLayoutCustom)
+  oSlide.Layout = ppLayoutTitle
   strProjectName = Replace(ActiveProject.Name, ".mpp", "")
-  Slide.Shapes(1).TextFrame.TextRange.Text = strProjectName & vbCrLf & "Critical Path Analysis"
-  Slide.Shapes(2).TextFrame.TextRange.Text = cptGetUserFullName & vbCrLf & Format(Now, "mm/dd/yyyy") 'Project.ProjectSummaryTask.GetField(FieldNameToFieldConstant("E2E Scheduler"))
+  oSlide.Shapes(1).TextFrame.TextRange.Text = strProjectName & vbCrLf & "Critical Path Analysis"
+  oSlide.Shapes(2).TextFrame.TextRange.Text = cptGetUserFullName & vbCrLf & Format(Now, "mm/dd/yyyy")
   
   'for each primary,secondary,tertiary > make a slide
   For Each vPath In Array("1", "2", "3")
@@ -84,60 +87,60 @@ Dim vPath As Variant
     'SetAutoFilter FieldName:="CP Driving Paths", FilterType:=pjAutoFilterCustom, Test1:="contains", Criteria1:=CStr(vPath)
     SetAutoFilter FieldName:="CP Driving Path Group ID", FilterType:=pjAutoFilterIn, Criteria1:=CStr(vPath)
 
-    Sort key1:="Finish", Key2:="Duration", Ascending2:=False, Renumber:=False
+    Sort Key1:="Finish", Key2:="Duration", Ascending2:=False, Renumber:=False
     TimescaleEdit MajorUnits:=0, MinorUnits:=2, MajorLabel:=0, MinorLabel:=10, MinorTicks:=True, Separator:=True, TierCount:=2
     SelectBeginning
     Debug.Print vPath & ": " & FormatDateTime(dtFrom, vbShortDate) & " - " & FormatDateTime(dtTo, vbShortDate)
     SelectAll
     'account for when a path is somehow not found
     On Error Resume Next
-    Set Tasks = ActiveSelection.Tasks
+    Set oTasks = ActiveSelection.Tasks
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Tasks Is Nothing Then GoTo next_path
     'account for when task count exceeds easily visible range
     'on powerpoint slide
-    lgTasks = Tasks.Count
-    lgSlide = 0
-    lgTask = 0
-    Do While lgTask <= lgTasks
-      lgTask = lgTask + 20
-      lgSlide = lgSlide + 1
+    lngTasks = Tasks.Count
+    lngSlide = 0
+    lngTask = 0
+    Do While lngTask <= lngTasks
+      lngTask = lngTask + 20
+      lngSlide = lngSlide + 1
       SelectBeginning
-      SelectTaskField Row:=lgTask - 20, Column:="Name", Height:=20, Extend:=False
+      SelectTaskField Row:=lngTask - 20, Column:="Name", Height:=20, Extend:=False
       EditCopyPicture Object:=False, ForPrinter:=0, SelectedRows:=1, FromDate:=Format(dtFrom, "mm/dd/yy hh:nn AMPM"), ToDate:=Format(dtTo, "m/d/yy hh:mm ampm"), ScaleOption:=pjCopyPictureTimescale, MaxImageHeight:=-1#, MaxImageWidth:=-1#, MeasurementUnits:=2  'pjCopyPictureShowOptions
       'paste the picture
-      Presentation.Slides.Add Presentation.Slides.Count + 1, ppLayoutCustom
-      Set Slide = Presentation.Slides(Presentation.Slides.Count)
-      Slide.Layout = ppLayoutChart
-      Slide.Shapes(1).TextFrame.TextRange.Text = Choose(vPath, "Primary", "Secondary", "Tertiary") & " Critical Path" & IIf(lgSlide > 1, " (cont'd)", "")
-      Slide.Shapes(2).Delete
-      Slide.Shapes.Paste
-      Slide.Shapes(Slide.Shapes.Count).Width = Slide.Master.Width * 0.9
-      Slide.Shapes(Slide.Shapes.Count).Left = (Slide.Master.Width / 2) - (Slide.Shapes(Slide.Shapes.Count).Width / 2)
-      If Slide.Shapes(Slide.Shapes.Count).Top <> 108 Then Slide.Shapes(Slide.Shapes.Count).Top = 108
+      oPresentation.Slides.Add oPresentation.Slides.Count + 1, ppLayoutCustom
+      Set oSlide = oPresentation.Slides(oPresentation.Slides.Count)
+      oSlide.Layout = ppLayoutChart
+      oSlide.Shapes(1).TextFrame.TextRange.Text = Choose(vPath, "Primary", "Secondary", "Tertiary") & " Critical Path" & IIf(lngSlide > 1, " (cont'd)", "")
+      oSlide.Shapes(2).Delete
+      oSlide.Shapes.Paste
+      oSlide.Shapes(oSlide.Shapes.Count).Width = oSlide.Master.Width * 0.9
+      oSlide.Shapes(oSlide.Shapes.Count).Left = (oSlide.Master.Width / 2) - (oSlide.Shapes(oSlide.Shapes.Count).Width / 2)
+      If oSlide.Shapes(oSlide.Shapes.Count).Top <> 108 Then oSlide.Shapes(oSlide.Shapes.Count).Top = 108
     Loop
-    Presentation.Save
+    oPresentation.Save
 next_path:
-    Set Tasks = Nothing
+    Set oTasks = Nothing
   Next vPath
   SetAutoFilter "CP Driving Path Group ID"
   SelectBeginning
-  If Not Presentation.Saved Then Presentation.Save
+  If Not oPresentation.Saved Then oPresentation.Save
   
   MsgBox "Critical Path slides created.", vbInformation + vbOKOnly, "Complete"
   
-  pptApp.Activate
+  oPowerPoint.Activate
   
 exit_here:
   On Error Resume Next
   Set oShell = Nothing
   cptSpeed False
   Set pptExists = Nothing
-  Set TargetTask = Nothing
-  Set Task = Nothing
-  Set pptApp = Nothing
-  Set Presentation = Nothing
-  Set Slide = Nothing
+  Set oTargetTask = Nothing
+  Set oTask = Nothing
+  Set oPowerPoint = Nothing
+  Set oPresentation = Nothing
+  Set oSlide = Nothing
   Exit Sub
   
 err_here:
@@ -147,17 +150,17 @@ End Sub
 
 Sub cptExportCriticalPathSelected()
 'objects
-Dim TargetTask As Task
+Dim oTargetTask As MSProject.Task
 
   On Error GoTo err_here
 
-  Set TargetTask = ActiveCell.Task
+  Set oTargetTask = ActiveCell.Task
 
-  Call cptExportCriticalPath(ActiveProject, blnKeepOpen:=True, TargetTask:=ActiveSelection.Tasks(1))
+  Call cptExportCriticalPath(ActiveProject, blnKeepOpen:=True, oTargetTask:=ActiveSelection.Tasks(1))
   
 exit_here:
   On Error Resume Next
-  Set TargetTask = Nothing
+  Set oTargetTask = Nothing
   Exit Sub
 err_here:
   If Err.Number = 1101 Then

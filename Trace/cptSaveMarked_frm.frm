@@ -13,6 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v1.0.6</cpt_version>
 Option Explicit
 
@@ -22,7 +23,7 @@ End Sub
 
 Private Sub cmdImport_Click()
   'objects
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngResponse As Long
@@ -165,7 +166,7 @@ End Sub
 
 Private Sub lboMarked_Click()
   'objects
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   Dim rstMarked As ADODB.Recordset 'Object
   'strings
   Dim strMarked As String

@@ -1816,7 +1816,7 @@ Function cptSubUIDToMasterUID(lngSubProjectUID As Long, lngSubUID As Long) As Lo
   cptSubUIDToMasterUID = ((lngSubProjectUID + 1) * 4194304) + lngSubUID
 End Function
 
-Function cptConvertToMasterUIDs(oTask As Task, strReturn As String) As String
+Function cptConvertToMasterUIDs(oTask As MSProject.Task, strReturn As String) As String
   'strReturn variable expects either "p" for predecessors or "s" for successors
   Dim oSubprojects As MSProject.Subprojects
   Dim strProject As String, strList As String, strLinkProject As String, strConvertedList As String

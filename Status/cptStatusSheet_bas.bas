@@ -26,7 +26,7 @@ Sub cptShowStatusSheet_frm()
 'add pick list for EV% or default to Physical % Complete
 'objects
 Dim oShell As Object
-Dim oTasks As Tasks
+Dim oTasks As MSProject.Tasks
 Dim rstFields As ADODB.Recordset 'Object
 Dim rstEVT As ADODB.Recordset 'Object
 Dim rstEVP As ADODB.Recordset 'Object
@@ -570,9 +570,9 @@ End Sub
 
 Sub cptCreateStatusSheet()
   'objects
-  Dim oTasks As Tasks, oTask As Task, oAssignment As Assignment
+  Dim oTasks As MSProject.Tasks, oTask As MSProject.Task, oAssignment As MSProject.Assignment
   'early binding:
-  Dim oExcel As Excel.Application, oWorkbook As Workbook, oWorksheet As Worksheet, rng As Excel.Range
+  Dim oExcel As Excel.Application, oWorkbook As Excel.Workbook, oWorksheet As Excel.Worksheet, rng As Excel.Range
   Dim rSummaryTasks As Excel.Range, rMilestones As Excel.Range, rNormal As Excel.Range, rAssignments As Excel.Range, rLockedCells As Excel.Range
   Dim rDates As Excel.Range, rWork As Excel.Range, rMedium As Excel.Range, rCentered As Excel.Range, rEntry As Excel.Range
   Dim xlCells As Excel.Range, rngAll As Excel.Range
@@ -1629,7 +1629,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub cptAddLegend(ByRef oWorksheet As Worksheet, dtStatus As Date)
+Private Sub cptAddLegend(ByRef oWorksheet As Excel.Worksheet, dtStatus As Date)
   'objects
   'strings
   'longs
@@ -1678,7 +1678,7 @@ err_here:
 
 End Sub
 
-Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
+Private Sub cptCopyData(ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Long)
   'objects
   Dim oComment As Excel.Comment
   Dim oEVTRange As Excel.Range
@@ -1688,7 +1688,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   Dim oSummaryRange As Excel.Range
   Dim oDateValidationRange As Excel.Range
   Dim oTwoWeekWindowRange As Excel.Range
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   Dim strNotesColTitle As String
   Dim strLOE As String
@@ -2183,7 +2183,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksheet, lngRow As Long, lngHeaderRow As Long, lngNameCol As Long, lngRemainingWorkCol As Long)
+Private Sub cptGetAssignmentData(ByRef oTask As MSProject.Task, ByRef oWorksheet As Excel.Worksheet, lngRow As Long, lngHeaderRow As Long, lngNameCol As Long, lngRemainingWorkCol As Long)
   'objects
   Dim oAssignment As Assignment
   'strings
@@ -2310,7 +2310,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptFinalFormats(ByRef oWorksheet As Worksheet)
+Sub cptFinalFormats(ByRef oWorksheet As Excel.Worksheet)
 Dim lngHeaderRow As Long
 Dim vBorder As Variant
   lngHeaderRow = 8
@@ -2719,7 +2719,7 @@ Sub cptCaptureJournal()
   Else
     oRecordset.Open strFile
   End If
-  Dim oTask As Task, oTasks As Tasks
+  Dim oTask As MSProject.Task, oTasks As MSProject.Tasks
   Set oTasks = ActiveProject.Tasks
   lngTasks = oTasks.Count
   lngTask = 0
@@ -2762,7 +2762,7 @@ Sub cptExportCompletedWork()
   Dim oWorkbook As Object 'Excel.Workbook
   Dim oExcel As Object 'Excel.Application
   Dim oRecordset As Object 'ADODB.Recordset
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   Dim strEVP As String
   Dim strEVT As String
