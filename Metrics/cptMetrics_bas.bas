@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.2.0</cpt_version>
+'<cpt_version>v1.2.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptGetBAC()
   MsgBox Format(cptGetMetric("bac"), "#,##0.00h"), vbInformation + vbOKOnly, "Budget at Complete (BAC) - hours"
@@ -156,7 +154,7 @@ Dim dtConstraintDate As Date
 
   On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oTasks Is Nothing Then
     MsgBox "No Target Task selected.", vbExclamation + vbOKOnly, "Oops"
     GoTo exit_here
@@ -307,7 +305,7 @@ Dim dblResult As Double
 'dates
 Dim dtStatus As Date, dtPrevious As Date
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'validate tasks exist
   If ActiveProject.Tasks.Count = 0 Then
@@ -374,7 +372,7 @@ Dim dtStatus As Date, dtPrevious As Date
               Set oTask = Nothing
               On Error Resume Next
               Set oTask = ActiveProject.Tasks.UniqueID(CLng(.Fields(1)))
-              If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+              If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
               If Not oTask Is Nothing Then
                 If IsDate(oTask.ActualFinish) Then
                   lngAF = lngAF + 1
@@ -466,7 +464,7 @@ Dim lngBLF As Long
 'dates
 Dim dtStatus As Date
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
@@ -539,7 +537,7 @@ Dim blnVerbose As Boolean
 'dates
 Dim dtStatus As Date
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   lngYears = Year(ActiveProject.ProjectFinish) - Year(ActiveProject.ProjectStart) + 1
   
@@ -568,7 +566,7 @@ Dim dtStatus As Date
     Sort "ID", , , , , , False, True
     OutlineShowAllTasks
   End If
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   SelectAll
   Set oTasks = ActiveSelection.Tasks
   For Each oTask In oTasks
@@ -691,7 +689,7 @@ Sub cptShowMetricsSettings_frm(Optional blnModal As Boolean = False)
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   With cptMetricsSettings_frm
     .Caption = "cpt Metrics Settings (" & cptGetVersion("cptMetricsSettings_frm") & ")"
@@ -757,7 +755,7 @@ Function cptMetricsSettingsExist() As Boolean
   'variants
   'dates
     
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   strEVP = cptGetSetting("Metrics", "cboEVP")
   strLOEField = cptGetSetting("Metrics", "cboLOEField")
@@ -801,7 +799,7 @@ Sub cptCaptureWeek()
   'dates
   Dim dtStatus As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'ensure program acronym
   strProject = cptGetProgramAcronym
@@ -986,7 +984,7 @@ Sub cptLateStartsFinishes()
   Dim dtMin As Date
   Dim dtStatus As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   dtStatus = ActiveProject.StatusDate
     
@@ -1007,7 +1005,7 @@ Sub cptLateStartsFinishes()
   'get excel
   On Error Resume Next
   'Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
   oExcel.Visible = False
   Set oWorkbook = oExcel.Workbooks.Add
@@ -1362,7 +1360,7 @@ Sub cptCaptureMetric(strProgram As String, dtStatus As Date, strMetric As String
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Set oRecordset = CreateObject("ADODB.Recordset")
   strFile = cptDir & "\settings\cpt-metrics.adtg"
@@ -1445,7 +1443,7 @@ Sub cptGetSPIDetail(ByRef oWorkbook As Excel.Workbook)
   Dim vRecord As Variant
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Application.StatusBar = "Exporting SPI Detail..."
   DoEvents
@@ -1617,7 +1615,7 @@ Sub cptGetTrend_CEI()
   Dim dtThisWeek As Date
   Dim dtNextWeek As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'confirm program acronym
   Application.StatusBar = "Getting Program Acronym..."
@@ -1757,7 +1755,7 @@ Sub cptGetTrend_CEI()
           Set oTask = Nothing
           On Error Resume Next
           Set oTask = ActiveProject.Tasks.UniqueID(oRecordset("TASK_UID"))
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If lngFF = 1 And oListObject.ListRows.Count = 1 Then
             Set oListRow = oListObject.ListRows(1)
           Else
@@ -2174,7 +2172,7 @@ Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
   
   'todo: limit trends to x periods?
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   strFile = cptDir & "\settings\cpt-metrics.adtg"
   If Dir(strFile) = vbNullString Then
     MsgBox strFile & " not found.", vbExclamation + vbOKOnly, "File Not Found"
@@ -2210,7 +2208,7 @@ Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
       'get excel
       On Error Resume Next
       'Set oExcel = GetObject(, "Excel.Application")
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oExcel Is Nothing Then
         Set oExcel = CreateObject("Excel.Application")
       End If
@@ -2486,7 +2484,7 @@ Sub cptExportMetricsData()
   If oRecordset.RecordCount > 0 Then
     On Error Resume Next
     Set oExcel = GetObject(, "Excel.Application")
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oExcel Is Nothing Then
       Set oExcel = CreateObject("Excel.Application")
     End If
@@ -2617,7 +2615,7 @@ Sub cptGetEarnedSchedule()
   
   On Error Resume Next
   Set oTasks = ActiveProject.Tasks
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oTasks Is Nothing Then GoTo exit_here
   
   strProgram = cptGetProgramAcronym
@@ -2729,7 +2727,7 @@ next_task:
     If .RecordCount > 0 Then
       On Error Resume Next
       Set oExcel = GetObject(, "Excel.Application")
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oExcel Is Nothing Then
         Set oExcel = CreateObject("Excel.Application")
         'oExcel.Visible = True
@@ -2982,7 +2980,7 @@ Sub cptShowMetricsData_frm()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'ensure file exists
   strFile = cptDir & "\settings\cpt-metrics.adtg"
@@ -3056,12 +3054,11 @@ End Sub
 
 Sub cptFindOutOfSequence()
   'objects
-  Dim oTask As Task
-  Dim oTaskDependency As TaskDependency
+  Dim oTask As MSProject.Task
+  Dim oTaskDependency As MSProject.TaskDependency
   Dim oExcel As Excel.Application
-  Dim oWorkbook As Workbook
-  Dim oWorksheet As Worksheet
-  'Dim oInsertedIndex As Object 'Scripting.Dictionary
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
   'strings
   Dim strProject As String
   Dim strMacro As String
@@ -3071,7 +3068,6 @@ Sub cptFindOutOfSequence()
   Dim strDir As String
   Dim strFile As String
   'longs
-  'Dim lngInsertedUID As Long
   Dim lngFactor As Long
   Dim lngToUID As Long
   Dim lngFromUID As Long
@@ -3089,7 +3085,7 @@ Sub cptFindOutOfSequence()
   'dates
   Dim dtStatus As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   cptSpeed True
   
@@ -3102,14 +3098,16 @@ Sub cptFindOutOfSequence()
       lngTasks = lngTasks + ActiveProject.Subprojects(lngSubproject).SourceProject.Tasks.Count
     Next lngSubproject
     For Each oTask In ActiveProject.Tasks
-      'todo: note that external tasks will not be included in this metric
-      If Not oTask Is Nothing And Not oTask.ExternalTask Then oTask.Marked = False
+      If Not oTask Is Nothing Then
+        If Not oTask.ExternalTask Then oTask.Marked = False
+      End If
     Next oTask
   Else
     lngTasks = ActiveProject.Tasks.Count
     For Each oTask In ActiveProject.Tasks
-      'todo: note that external tasks will not be included in this metric
-      If Not oTask Is Nothing And Not oTask.ExternalTask Then oTask.Marked = False
+      If Not oTask Is Nothing Then
+        If Not oTask.ExternalTask Then oTask.Marked = False
+      End If
     Next oTask
   End If
   
