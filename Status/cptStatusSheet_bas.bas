@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.4.6</cpt_version>
+'<cpt_version>v1.4.7</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
@@ -31,7 +31,9 @@ Dim rstFields As ADODB.Recordset 'Object
 Dim rstEVT As ADODB.Recordset 'Object
 Dim rstEVP As ADODB.Recordset 'Object
 'longs
-Dim lngField As Long, lngItem As Long, lngSelectedItems As Long
+Dim lngField As Long
+Dim lngItem As Long
+Dim lngSelectedItems As Long
 'integers
 Dim intField As Integer
 'strings
@@ -490,7 +492,7 @@ next_item:
   End If
   DoEvents
   
-  OptionsViewEx displaysummarytasks:=True, displaynameindent:=True
+  OptionsViewEx DisplaySummaryTasks:=True, displaynameindent:=True
   If strStartingGroup = "No Group" Then
     Sort "ID", , , , , , False, True 'OutlineShowAllTasks won't work without this
   Else
