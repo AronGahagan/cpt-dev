@@ -3,8 +3,11 @@ Attribute VB_Name = "cptCountTasks_bas"
 Option Explicit
 
 Sub cptCountTasks(strScope As String)
-Dim oTask As Task, oTasks As Tasks
-Dim lngTasks As Long, lngSummary As Long, lngInactive As Long
+Dim oTask As MSProject.Task
+Dim oTasks As MSProject.Tasks
+Dim lngTasks As Long
+Dim lngSummary As Long
+Dim lngInactive As Long
 Dim strMsg As String
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -148,7 +151,9 @@ Sub cptSetShowStatusBarTaskCount()
     cptSaveSetting "Count", "blnShowStatusBarTaskCount", "0"
     Application.StatusBar = ""
   End If
-
+  
+  cptCore_bas.cptStartEvents
+  
 exit_here:
   On Error Resume Next
 

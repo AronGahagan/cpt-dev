@@ -14,6 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v1.1.0</cpt_version>
 Option Explicit
 
@@ -46,6 +47,7 @@ Private Sub cmdBack_Click()
   If IsNull(Me.lboHistory.Value) Then Me.lboHistory.ListIndex = -1
 
   If Me.lboHistory.ListCount > 0 Then
+    'todo: fix this
     Me.lboHistory.ListIndex = Me.lboHistory.ListIndex + 1
     Call cptHistoryDoubleClick
   End If
@@ -100,7 +102,7 @@ End Sub
 
 Private Sub cmdMark_Click()
   'objects
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngUID As Long
@@ -174,7 +176,7 @@ End Sub
 
 Private Sub cmdUnmark_Click()
   'objects
-  Dim oTask As Object
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngUID As Long
@@ -243,7 +245,7 @@ err_here:
 End Sub
 
 Private Sub cmdUnmarkAll_Click()
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -328,20 +330,20 @@ err_here:
 End Sub
 
 Private Sub lboSuccessors_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
-Dim lngTaskUID As Long, Task As Task
+Dim lngTaskUID As Long, oTask As MSProject.Task
 
   On Error Resume Next
   If Me.lboSuccessors.ListIndex <= 0 Then GoTo exit_here
-  Set Task = ActiveSelection.Tasks(1)
+  Set oTask = ActiveSelection.Tasks(1)
 
   On Error GoTo err_here
   
   With Me.lboHistory
-    If Not Task Is Nothing Then
+    If Not oTask Is Nothing Then
       If Me.lboHistory.ListCount > 0 Then
-        If Me.lboHistory.List(0, 0) <> Task.UniqueID Then .AddItem Task.UniqueID, 0
+        If Me.lboHistory.List(0, 0) <> oTask.UniqueID Then .AddItem oTask.UniqueID, 0
       Else
-        .AddItem Task.UniqueID, 0
+        .AddItem oTask.UniqueID, 0
       End If
     End If
   End With
@@ -380,6 +382,9 @@ Dim lngTaskUID As Long, Task As Task
   Call cptShowPreds
   
 exit_here:
+  On Error Resume Next
+  Set oTask = Nothing
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptNetworkBrowser_frm", "lboSuccessors_DblClick", Err, Erl)

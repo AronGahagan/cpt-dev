@@ -13,6 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v1.1.5</cpt_version>
 Option Explicit
 
@@ -265,7 +266,7 @@ End Sub
 
 Private Sub lboECF_Click()
   'objects
-  Dim oLookupTable  As LookupTable
+  Dim oLookupTable As LookupTable
   'strings
   Dim strSwitch As String
   Dim strECF As String

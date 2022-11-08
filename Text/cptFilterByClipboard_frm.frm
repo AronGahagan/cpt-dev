@@ -13,6 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v1.2.1</cpt_version>
 Option Explicit
 
@@ -55,8 +56,8 @@ End Sub
 
 Private Sub lboFilter_Click()
   'objects
-  Dim oTasks As Tasks
-  Dim oTask As Task
+  Dim oTasks As MSProject.Tasks
+  Dim oTask As MSProject.Task
   'strings
   Dim strField As String
   'longs
@@ -94,7 +95,7 @@ Private Sub lboFilter_Click()
         If MsgBox("Task " & strField & " " & lngUID & " is currently hidden. Would you like to remove all filters, show summary tasks, and show all tasks in order to find it?", vbQuestion + vbYesNo, "Reset View?") = vbYes Then
           ScreenUpdating = False
           FilterClear
-          OptionsViewEx displaysummarytasks:=True
+          OptionsViewEx DisplaySummaryTasks:=True
           SelectAll
           On Error Resume Next
           If Not OutlineShowAllTasks Then
@@ -115,7 +116,7 @@ Private Sub lboFilter_Click()
         If MsgBox("Task " & strField & " " & lngUID & " is currently hidden. Would you like to remove all filters, show summary tasks, and show all tasks in order to find it?", vbQuestion + vbYesNo, "Reset View?") = vbYes Then
           ScreenUpdating = False
           FilterClear
-          OptionsViewEx displaysummarytasks:=True
+          OptionsViewEx DisplaySummaryTasks:=True
           SelectAll
           On Error Resume Next
           If Not OutlineShowAllTasks Then

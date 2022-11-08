@@ -1,10 +1,10 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.2.0</cpt_version>
+'<cpt_version>v1.2.1</cpt_version>
 Option Explicit
 
 Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
   'objects
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   Dim oLookupTable As LookupTable
   Dim oOutlineCode As OutlineCode
   Dim c As Object
@@ -128,7 +128,7 @@ End Sub
 Sub cptImportCWBSFromServer(lngOutlineCode As Long)
   'objects
   Dim c As Object
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   Dim oRange As Object
   Dim oWorksheet As Object
   Dim oWorkbook As Object
@@ -243,8 +243,8 @@ End Sub
 
 Sub cptImportAppendixB(lngOutlineCode As Long)
   'objects
-  Dim TaskTable As Object 'TaskTable
-  Dim Task As Task
+  Dim oTaskTable As Object 'TaskTable
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngItem As Long
@@ -361,13 +361,13 @@ Sub cptImportAppendixB(lngOutlineCode As Long)
     lngItem = 0
     Do While Not .EOF
       lngItem = lngItem + 1
-      Set Task = ActiveProject.Tasks.Add(.Fields(1).Value)
-      Task.SetField lngOutlineCode, .Fields(0)
+      Set oTask = ActiveProject.Tasks.Add(.Fields(1).Value)
+      oTask.SetField lngOutlineCode, .Fields(0)
       ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode)).LookupTable.Item(lngItem).Description = .Fields(1).Value
 
       lngOutlineLevel = Len(.Fields(0).Value) - Len(Replace(.Fields(0).Value, ".", ""))
       If lngOutlineLevel > 0 Then
-        Task.OutlineLevel = lngOutlineLevel + 1
+        oTask.OutlineLevel = lngOutlineLevel + 1
       End If
       
       .MoveNext
@@ -379,9 +379,9 @@ Sub cptImportAppendixB(lngOutlineCode As Long)
   If Len(ActiveProject.CurrentTable) > 0 Then
     SelectBeginning
     SetRowHeight 1, "all"
-    Set TaskTable = ActiveProject.TaskTables(ActiveProject.CurrentTable)
-    For lngField = 1 To TaskTable.TableFields.Count
-      If FieldConstantToFieldName(TaskTable.TableFields(lngField).Field) = "Name" Then
+    Set oTaskTable = ActiveProject.TaskTables(ActiveProject.CurrentTable)
+    For lngField = 1 To oTaskTable.TableFields.Count
+      If FieldConstantToFieldName(oTaskTable.TableFields(lngField).Field) = "Name" Then
         ColumnBestFit lngField
         Exit For
       End If
@@ -395,8 +395,8 @@ Sub cptImportAppendixB(lngOutlineCode As Long)
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
-  Set TaskTable = Nothing
-  Set Task = Nothing
+  Set oTaskTable = Nothing
+  Set oTask = Nothing
 
   Exit Sub
 err_here:
@@ -406,8 +406,8 @@ End Sub
 
 Sub cptImportAppendixE(lngOutlineCode As Long)
   'objects
-  Dim TaskTable As Object 'TaskTable
-  Dim Task As Task
+  Dim oTaskTable As Object 'TaskTable
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngItem As Long
@@ -524,13 +524,13 @@ Sub cptImportAppendixE(lngOutlineCode As Long)
     lngItem = 0
     Do While Not .EOF
       lngItem = lngItem + 1
-      Set Task = ActiveProject.Tasks.Add(.Fields(1).Value)
-      Task.SetField lngOutlineCode, .Fields(0)
+      Set oTask = ActiveProject.Tasks.Add(.Fields(1).Value)
+      oTask.SetField lngOutlineCode, .Fields(0)
       ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode)).LookupTable.Item(lngItem).Description = .Fields(1).Value
 
       lngOutlineLevel = Len(.Fields(0).Value) - Len(Replace(.Fields(0).Value, ".", ""))
       If lngOutlineLevel > 0 Then
-        Task.OutlineLevel = lngOutlineLevel + 1
+        oTask.OutlineLevel = lngOutlineLevel + 1
       End If
       
       .MoveNext
@@ -542,9 +542,9 @@ Sub cptImportAppendixE(lngOutlineCode As Long)
   If Len(ActiveProject.CurrentTable) > 0 Then
     SelectBeginning
     SetRowHeight 1, "all"
-    Set TaskTable = ActiveProject.TaskTables(ActiveProject.CurrentTable)
-    For lngField = 1 To TaskTable.TableFields.Count
-      If FieldConstantToFieldName(TaskTable.TableFields(lngField).Field) = "Name" Then
+    Set oTaskTable = ActiveProject.TaskTables(ActiveProject.CurrentTable)
+    For lngField = 1 To oTaskTable.TableFields.Count
+      If FieldConstantToFieldName(oTaskTable.TableFields(lngField).Field) = "Name" Then
         ColumnBestFit lngField
         Exit For
       End If
@@ -558,8 +558,8 @@ Sub cptImportAppendixE(lngOutlineCode As Long)
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
-  Set TaskTable = Nothing
-  Set Task = Nothing
+  Set oTaskTable = Nothing
+  Set oTask = Nothing
 
   Exit Sub
 err_here:
@@ -1005,7 +1005,7 @@ Sub cptCreateCode(lngOutlineCode As Long)
   Dim objOutlineCode As OutlineCode
   Dim objLookupTable As LookupTable
   Dim objLookupTableEntry As LookupTableEntry
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   Dim strWBS As String, strParent As String, strChild As String
   'longs

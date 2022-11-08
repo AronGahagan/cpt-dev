@@ -141,7 +141,7 @@ End Sub
 Private Sub cboEach_Change()
 'objects
 Dim rstItems As Object 'ADODB.Recordset
-Dim oTask As Task
+Dim oTask As MSProject.Task
 'strings
 Dim strFieldName As String
 'longs

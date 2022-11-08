@@ -79,7 +79,7 @@ Sub cptShowPreds()
 'objects
 Dim oTaskDependencies As TaskDependencies
 Dim oSubproject As Subproject
-Dim oLink As TaskDependency, oTask As Task
+Dim oLink As TaskDependency, oTask As MSProject.Task
 'strings
 Dim strProject As String
 'longs
@@ -359,7 +359,7 @@ End Sub
 
 Sub cptMarkSelected()
   'todo: separate network browser and make it cptMarkSelected(Optional blnRefilter as Boolean)
-  Dim oTask As Task, oTasks As Tasks
+  Dim oTask As MSProject.Task, oTasks As MSProject.Tasks
   On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
   If Not oTasks Is Nothing Then
@@ -384,7 +384,7 @@ End Sub
 Sub cptUnmarkSelected()
 'todo: make cptMark(blnMark as Boolean)
 'todo: separate network browser and make it cptUnmarkSelected(Optional blnRefilter as Boolean)
-Dim Task As Task
+Dim Task As MSProject.Task
 
   For Each Task In ActiveSelection.Tasks
     If Not Task Is Nothing Then Task.Marked = False
@@ -418,7 +418,7 @@ Sub cptMarked()
 End Sub
 
 Sub cptClearMarked()
-Dim oTask As Task
+Dim oTask As MSProject.Task
 
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
@@ -433,7 +433,7 @@ next_task:
     cptSpeed True
     If Edition = pjEditionProfessional Then
       If Not cptFilterExists("Active Tasks") Then
-        FilterEdit Name:="Active Tasks", TaskFilter:=True, create:=True, OverwriteExisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
+        FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, OverwriteExisting:=False, FieldName:="Active", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
       End If
       FilterApply "Active Tasks"
     ElseIf Edition = pjEditionStandard Then

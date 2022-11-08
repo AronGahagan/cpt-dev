@@ -130,9 +130,9 @@ End Sub
 
 Sub cptGetCPLI()
 'objects
-Dim oTasks As Tasks
-Dim oPred As Task
-Dim oTask As Task
+Dim oTasks As MSProject.Tasks
+Dim oPred As MSProject.Task
+Dim oTask As MSProject.Task
 'strings
 Dim strProgram  As String
 Dim strMsg As String
@@ -352,7 +352,7 @@ Dim dtStatus As Date, dtPrevious As Date
       dtStatus = ActiveProject.StatusDate
       With oRecordset
         .MoveFirst
-        'get most previous week_ending
+        'get most previous week_ending 'todo: why not filter and then sort?
         dtPrevious = .Fields("STATUS_DATE")
         Do While Not .EOF
           If .Fields("PROJECT") = strProgram Then
@@ -451,7 +451,7 @@ End Sub
 
 Sub cptGetHitTask()
 'objects
-Dim oTask As Task
+Dim oTask As MSProject.Task
 'strings
 Dim strMsg As String
 'longs
@@ -515,11 +515,11 @@ Function cptGetMetric(strGet As String) As Double
 'todo: no screen changes!
 'objects
 Dim oShell As Object
-Dim oAssignment As Assignment
-Dim tsv As TimeScaleValue
-Dim tsvs As TimeScaleValues
-Dim oTasks As Tasks
-Dim oTask As Task
+Dim oAssignment As MSProject.Assignment
+Dim oTSV As TimeScaleValue
+Dim oTSVS As TimeScaleValues
+Dim oTasks As MSProject.Tasks
+Dim oTask As MSProject.Task
 'strings
 Dim strVerbose As String
 Dim strLOE As String
@@ -596,9 +596,9 @@ Dim dtStatus As Date
           If oTask.BaselineStart < dtStatus Then
             For Each oAssignment In oTask.Assignments
               If oAssignment.ResourceType = pjResourceTypeWork Then
-                Set tsvs = oAssignment.TimeScaleData(oTask.BaselineStart, dtStatus, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
-                For Each tsv In tsvs
-                  dblResult = dblResult + (IIf(tsv.Value = "", 0, tsv.Value) / 60)
+                Set oTSVS = oAssignment.TimeScaleData(oTask.BaselineStart, dtStatus, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
+                For Each oTSV In oTSVS
+                  dblResult = dblResult + (IIf(oTSV.Value = "", 0, oTSV.Value) / 60)
                 Next
               End If
             Next oAssignment
@@ -622,10 +622,10 @@ Dim dtStatus As Date
             If oAssignment.ResourceType = pjResourceTypeWork Then
               If oTask.GetField(lngLOEField) = strLOE Then
                 If oTask.BaselineStart < dtStatus Then
-                  Set tsvs = oAssignment.TimeScaleData(oTask.BaselineStart, dtStatus, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks, 1)
-                  For Each tsv In tsvs
-                    dblResult = dblResult + (IIf(tsv.Value = "", 0, tsv.Value) / 60)
-                    If blnVerbose Then Print #lngFile, oTask.UniqueID & "," & oAssignment.ResourceName & ",LOE," & IIf(tsv.Value = "", 0, tsv.Value) / 60
+                  Set oTSVS = oAssignment.TimeScaleData(oTask.BaselineStart, dtStatus, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks, 1)
+                  For Each oTSV In oTSVS
+                    dblResult = dblResult + (IIf(oTSV.Value = "", 0, oTSV.Value) / 60)
+                    If blnVerbose Then Print #lngFile, oTask.UniqueID & "," & oAssignment.ResourceName & ",LOE," & IIf(oTSV.Value = "", 0, oTSV.Value) / 60
                   Next
                 End If
               Else
@@ -661,8 +661,8 @@ exit_here:
   Set oAssignment = Nothing
   Application.StatusBar = ""
   cptSpeed False
-  Set tsv = Nothing
-  Set tsvs = Nothing
+  Set oTSV = Nothing
+  Set oTSVS = Nothing
   Set oTasks = Nothing
   Set oTask = Nothing
 
@@ -779,8 +779,8 @@ End Function
 Sub cptCaptureWeek()
   'objects
   Dim oNotes As Scripting.Dictionary
-  Dim oTasks As Tasks
-  Dim oTask As Task
+  Dim oTasks As MSProject.Tasks
+  Dim oTask As MSProject.Task
   Dim rst As ADODB.Recordset
   'strings
   Dim strLOE As String
@@ -852,7 +852,7 @@ Sub cptCaptureWeek()
     rst.Filter = "STATUS_DATE=#" & FormatDateTime(dtStatus, vbGeneralDate) & "# AND PROJECT='" & strProject & "'"
     If Not rst.EOF Then
       If MsgBox("Status Already Imported for WE " & FormatDateTime(dtStatus, vbShortDate) & "." & vbCrLf & vbCrLf & "Overwrite it?" & vbCrLf & vbCrLf & "(Your Status Notes will be preserved.)", vbExclamation + vbYesNo, "Overwrite?") = vbYes Then
-        Set oNotes = New Dictionary
+        Set oNotes = New Scripting.Dictionary
         rst.MoveFirst
         Do While Not rst.EOF
           If rst("PROJECT") = strProject And rst("STATUS_DATE") = FormatDateTime(dtStatus, vbGeneralDate) Then
@@ -967,7 +967,7 @@ Sub cptLateStartsFinishes()
   Dim oRange As Excel.Range
   Dim oCell As Excel.Range
   Dim oAssignment As MSProject.Assignment
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   Dim strSummary As String
   Dim strHeaders As String
@@ -1112,8 +1112,8 @@ next_task:
 
   Application.StatusBar = "Analyzing..."
 
-  oWorksheet.Cells(1, oWorksheet.Rows(1).Find("START", LookAt:=xlWhole).Column).Value = "CURRENT START"
-  oWorksheet.Cells(1, oWorksheet.Rows(1).Find("FINISH", LookAt:=xlWhole).Column).Value = "CURRENT FINISH"
+  oWorksheet.Cells(1, oWorksheet.Rows(1).Find("START", lookat:=xlWhole).Column).Value = "CURRENT START"
+  oWorksheet.Cells(1, oWorksheet.Rows(1).Find("FINISH", lookat:=xlWhole).Column).Value = "CURRENT FINISH"
   oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
 
   oExcel.ActiveWindow.Zoom = 85
@@ -1599,7 +1599,7 @@ Sub cptGetTrend_CEI()
   Dim oWorksheet As Excel.Worksheet
   Dim oWorkbook As Excel.Workbook
   Dim oExcel As Excel.Application
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   Dim oRecordset As ADODB.Recordset
   'strings
   Dim strLOE As String
@@ -2614,8 +2614,8 @@ Sub cptGetEarnedSchedule()
   Dim oComment As Excel.Comment
   Dim oAssignment As Assignment
   Dim oRecordset As ADODB.Recordset
-  Dim oTasks As Tasks
-  Dim oTask As Task
+  Dim oTasks As MSProject.Tasks
+  Dim oTask As MSProject.Task
   Dim oTSV As TimeScaleValue
   Dim oTSVS As TimeScaleValues
   Dim oExcel As Excel.Application
@@ -3054,7 +3054,7 @@ Sub cptShowMetricsData_frm()
       .MoveNext
     Loop
     cptMetricsData_frm.Caption = "cpt Metrics Data (" & cptGetVersion("cptMetricsData_frm") & ")"
-    cptMetricsData_frm.lblDir.Caption = strFile
+    'cptMetricsData_frm.lblDir.Caption = strFile
     .MoveFirst
     .Sort = "STATUS_DATE DESC"
     .Filter = "PROGRAM='" & strProgram & "'"
@@ -3099,6 +3099,7 @@ End Sub
 
 Sub cptFindOutOfSequence()
   'objects
+  Dim oAssignment As MSProject.Assignment
   Dim oOOS As Scripting.Dictionary
   Dim oCalendar As MSProject.Calendar
   Dim oSubproject As MSProject.Subproject
@@ -3109,6 +3110,8 @@ Sub cptFindOutOfSequence()
   Dim oWorkbook As Excel.Workbook
   Dim oWorksheet As Excel.Worksheet
   'strings
+  Dim strOOS As String
+  Dim strEarliest As String
   Dim strProject As String
   Dim strMacro As String
   Dim strMsg As String
@@ -3162,6 +3165,7 @@ Sub cptFindOutOfSequence()
       lngTasks = lngTasks + oSubproject.SourceProject.Tasks.Count
     Next oSubproject
     For Each oTask In ActiveProject.Tasks
+      If oTask Is Nothing Then GoTo next_mapping_task
       If oSubMap.Exists(oTask.Project) Then
         If oSubMap(oTask.Project) > 0 Then GoTo next_mapping_task
         If Not oTask.Summary Then
@@ -3226,12 +3230,10 @@ next_mapping_task:
         lngToUID = oLink.To.UniqueID
         lngLag = 0
         If oLink.Lag <> 0 Then
-          FilterClear
           'elapsed lagType properties are even
           'see https://learn.microsoft.com/en-us/office/vba/api/project.pjformatunit
           blnElapsed = False
           If (oLink.LagType Mod 2) = 0 Then
-            'todo: use simple datadd
             blnElapsed = True
           End If
           lngLag = oLink.Lag
@@ -3241,16 +3243,17 @@ next_mapping_task:
         Else
           Set oCalendar = oLink.To.CalendarObject
         End If
+        If oTask.UniqueID = 202 And oLink.To.UniqueID = 200 Then Stop
         Select Case oLink.Type
           Case pjFinishToFinish
             'get target successor finish date
-            'todo: resource calendars, leveling delays?
+            'account for lag
             If blnElapsed Then
-              dtDate = DateAdd("nn", lngLag, oLink.From.Finish)
+              dtDate = DateAdd("n", lngLag, oLink.From.Finish)
             Else
               dtDate = Application.DateAdd(oLink.From.Finish, lngLag, oCalendar)
             End If
-            If dtDate < oLink.To.Finish Or IsDate(oLink.To.ActualFinish) Then
+            If oLink.To.Finish < dtDate Or IsDate(oLink.To.ActualFinish) Then
               lngOOS = lngOOS + 1
               If Not oOOS.Exists(oLink.From.UniqueID) Then oOOS.Add oLink.From.UniqueID, oLink.From.UniqueID
               If Not oOOS.Exists(oLink.To.UniqueID) Then oOOS.Add oLink.To.UniqueID, oLink.To.UniqueID
@@ -3267,14 +3270,22 @@ next_mapping_task:
               If IsDate(oLink.To.ActualFinish) Then
                 oWorksheet.Cells(lngLastRow, 11) = "Successor has Actual Finish"
               Else
-                oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Finish"
+                If IsDate(oLink.To.ConstraintDate) And ActiveProject.HonorConstraints Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Finish (has " & Choose(oLink.To.ConstraintType, "", "MSO", "MFO", "SNET", "SNLT", "FNET", "FNLT") & " constraint)"
+                ElseIf lngLag < 0 Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Finish (has " & Format(lngLag / (60 * 8), "#0d") & " lead)"
+                ElseIf IsDate(oLink.To.Deadline) Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Finish (has deadline)"
+                Else
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Finish" 'what else would cause this?
+                End If
               End If
             End If
           Case pjFinishToStart
             'get target successor start date
-            'todo: resource calendars, leveling delays?
+            'account for lag
             If blnElapsed Then
-              dtDate = DateAdd("nn", lngLag, oLink.From.Finish)
+              dtDate = DateAdd("n", lngLag, oLink.From.Finish)
             Else
               dtDate = Application.DateAdd(oLink.From.Finish, lngLag, oCalendar)
             End If
@@ -3296,19 +3307,27 @@ next_mapping_task:
               If IsDate(oLink.To.ActualStart) Then
                 oWorksheet.Cells(lngLastRow, 11) = "Successor has Actual Start"
               Else
-                oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Finish"
+                If IsDate(oLink.To.ConstraintDate) And ActiveProject.HonorConstraints Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Finish (has " & Choose(oLink.To.ConstraintType, "", "MSO", "MFO", "SNET", "SNLT", "FNET", "FNLT") & " constraint)"
+                ElseIf lngLag < 0 Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Finish (has " & Format(lngLag / (60 * 8), "#0d") & " lead)"
+                ElseIf IsDate(oLink.To.Deadline) Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Finish (has deadline)"
+                Else
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Finish" 'what else could cause this?
+                End If
               End If
             End If
           Case pjStartToStart
             'get target successor start date
-            'todo: resource calendars, leveling delays?
+            'account for lag
             If blnElapsed Then
-              dtDate = DateAdd("nn", lngLag, oLink.From.Start)
+              dtDate = DateAdd("n", lngLag, oLink.From.Start)
             Else
               dtDate = Application.DateAdd(oLink.From.Start, lngLag, oCalendar)
             End If
             'compare and report
-            If IsDate(oLink.To.ActualStart) Or dtDate < oLink.From.Start Then
+            If IsDate(oLink.To.ActualStart) Or oLink.To.Start < dtDate Then 'should not be an issue if both have actual starts
               lngOOS = lngOOS + 1
               If Not oOOS.Exists(oLink.From.UniqueID) Then oOOS.Add oLink.From.UniqueID, oLink.From.UniqueID
               If Not oOOS.Exists(oLink.To.UniqueID) Then oOOS.Add oLink.To.UniqueID, oLink.To.UniqueID
@@ -3325,14 +3344,22 @@ next_mapping_task:
               If IsDate(oLink.To.ActualStart) Then
                 oWorksheet.Cells(lngLastRow, 11) = "Successor has Actual Start"
               Else
-                oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Start"
+                If IsDate(oLink.To.ConstraintDate) And ActiveProject.HonorConstraints Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Start (has " & Choose(oLink.To.ConstraintType, "", "MSO", "MFO", "SNET", "SNLT", "FNET", "FNLT") & " constraint)"
+                ElseIf lngLag < 0 Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Start (has " & Format(lngLag / (60 * 8), "#0d") & " lead)"
+                ElseIf IsDate(oLink.To.Deadline) Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Start (has deadline lead)"
+                Else
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Start" 'what else could cause this?
+                End If
               End If
             End If
           Case pjStartToFinish
             'this should never happen
             'get target finish
             If blnElapsed Then
-              dtDate = DateAdd("nn", lngLag, oLink.From.Start)
+              dtDate = DateAdd("n", lngLag, oLink.From.Start)
             Else
               dtDate = Application.DateAdd(oLink.From.Start, lngLag, oCalendar)
             End If
@@ -3354,7 +3381,15 @@ next_mapping_task:
               If IsDate(oLink.To.ActualFinish) Then
                 oWorksheet.Cells(lngLastRow, 11) = "Successor has Actual Finish"
               Else
-                oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Start"
+                If IsDate(oLink.To.ConstraintDate) And ActiveProject.HonorConstraints Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Start (has " & Choose(oLink.To.ConstraintType, "", "MSO", "MFO", "SNET", "SNLT", "FNET", "FNLT") & " constraint)"
+                ElseIf lngLag < 0 Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Start (has " & Format(lngLag / (60 * 8), "#0d") & " lead)"
+                ElseIf IsDate(oLink.To.Deadline) Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Start (has deadline)"
+                Else
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Start"
+                End If
               End If
             End If
         End Select
@@ -3363,7 +3398,7 @@ next_link:
     Next oLink
 next_task:
     lngTask = lngTask + 1
-    Application.StatusBar = "Analyzing...(" & Format(lngTask / lngTasks, "0%") & ")" & IIf(lngOOS > 0, " | " & lngOOS & " found", "")
+    Application.StatusBar = "[06A212a] Analyzing Out of Sequence Status...(" & Format(lngTask / lngTasks, "0%") & ")" & IIf(lngOOS > 0, " | " & lngOOS & " found", "")
     DoEvents
   Next oTask
     
@@ -3379,10 +3414,12 @@ next_task:
   Else
     If MsgBox(Format(lngOOS, "#,##0") & " out of sequence condition" & IIf(lngOOS = 1, "", "s") & " found." & vbCrLf & vbCrLf & "Filter for them?", vbQuestion + vbYesNo, "OOS Found") = vbYes Then
       strOOS = Join(oOOS.Keys, vbTab)
+      ActiveWindow.TopPane.Activate
       FilterClear
       OptionsViewEx DisplaySummaryTasks:=True
       OutlineShowAllTasks
       SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strOOS
+      SelectBeginning
     End If
   End If
     
@@ -3426,6 +3463,7 @@ next_task:
   
 exit_here:
   On Error Resume Next
+  Set oAssignment = Nothing
   oOOS.RemoveAll
   Set oOOS = Nothing
   Set oCalendar = Nothing

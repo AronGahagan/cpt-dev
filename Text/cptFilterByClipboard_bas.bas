@@ -105,7 +105,7 @@ err_here:
 End Sub
 
 Sub cptUpdateClipboard()
-Dim oTask As Task
+Dim oTask As MSProject.Task
 'strings
 Dim strFilter As String
 'longs
@@ -191,7 +191,7 @@ next_item:
   If Len(strFilter) > 0 And cptFilterByClipboard_frm.chkFilter Then
     ActiveWindow.TopPane.Activate
     ScreenUpdating = False
-    OptionsViewEx displaysummarytasks:=True
+    OptionsViewEx DisplaySummaryTasks:=True
     SelectAll
     On Error Resume Next
     If Not OutlineShowAllTasks Then
@@ -208,7 +208,7 @@ next_item:
       cptFilterByClipboard_frm.lboHeader.List(0, 0) = "ID"
       SetAutoFilter "Unique ID", FilterType:=pjAutoFilterIn, Criteria1:=strFilter
     End If
-    OptionsViewEx projectsummary:=False, displayoutlinenumber:=False, displaynameindent:=False, displaysummarytasks:=False
+    OptionsViewEx projectsummary:=False, displayoutlinenumber:=False, displaynameindent:=False, DisplaySummaryTasks:=False
     If lngFreeField > 0 Then Sort FieldConstantToFieldName(lngFreeField)
   End If
   
@@ -323,7 +323,7 @@ Function cptGetFreeField(strDataType As String, Optional lngType As Long) As Lon
 'objects
 Dim dTypes As Scripting.Dictionary 'Object
 Dim rstFree As Object 'ADODB.Recordset 'Object
-Dim oTask As Task
+Dim oTask As MSProject.Task
 'strings
 Dim strNum As String
 'longs
@@ -446,7 +446,7 @@ End Function
 
 Sub cptClearFreeField()
   'objects
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngFreeField As Long

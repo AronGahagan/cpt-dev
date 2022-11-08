@@ -83,7 +83,7 @@ End Sub
 
 Sub cptGoRegEx(strRegEx As String)
   'objects
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngFieldConstant As Long
@@ -198,7 +198,7 @@ Public Function cptRxTest( _
     Optional ByVal MultiLine As Boolean = True) As Boolean
  
     ' Wow, that was easy:
-    cptRxTest = cptGetRegex(Pattern, IgnoreCase, MultiLine, False).Test(SourceString)
+    cptRxTest = cptGetRegex(Pattern, IgnoreCase, MultiLine, False).test(SourceString)
     
 End Function
 

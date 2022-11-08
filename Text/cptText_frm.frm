@@ -14,12 +14,13 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v1.4.2</cpt_version>
 Option Explicit
 
 Private Sub cmdApply_Click()
 'objects
-Dim oTask As Task
+Dim oTask As MSProject.Task
 'strings
 'longs
 Dim lngItem As Long
