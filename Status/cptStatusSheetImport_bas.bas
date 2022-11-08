@@ -243,6 +243,7 @@ Sub cptStatusSheetImport()
   Dim lngAS As Long
   'integers
   'doubles
+  Dim dblWas As Double
   Dim dblETC As Double
   'booleans
   Dim blnAppend As Boolean
@@ -642,94 +643,94 @@ evp_skipped:
             If oAssignment Is Nothing Then
               Print #lngFile, "ASSIGNMENT MISSING: TASK " & oTask.UniqueID & " ASSIGNMENT: " & oWorksheet.Cells(lngRow, lngUIDCol).Value
             Else
-              'todo: get value to compare against here instead and reset dblETC
-              If oAssignment.ResourceType = pjResourceTypeWork Then
-                lngMultiplier = 1
-              Else
-                lngMultiplier = 60
-              End If
-              'todo: do this first
               If Not oWorksheet.Cells(lngRow, lngETCCol).Locked Then
-                dblETC = oWorksheet.Cells(lngRow, lngETCCol).Value
-                If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                dblETC = oWorksheet.Cells(lngRow, lngETCCol).Value 'get the new value
+                dblWas = 0 'reset was
+                If oAssignment.ResourceType = pjResourceTypeWork Then
+                  dblWas = Val(oAssignment.RemainingWork) / 60
+                Else
+                  dblWas = Val(oAssignment.RemainingCost)
+                End If
+                'only import if updated
+                If Round(dblWas, 2) <> Round(dblETC, 2) Then
                   If lngETC = pjTaskNumber1 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number1 = dblETC
                     oTask.Number1 = oTask.Number1 + dblETC
                   ElseIf lngETC = pjTaskNumber2 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number2 = dblETC
                     oTask.Number2 = oTask.Number2 + dblETC
                   ElseIf lngETC = pjTaskNumber3 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number3 = dblETC
                     oTask.Number3 = oTask.Number3 + dblETC
                   ElseIf lngETC = pjTaskNumber4 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number4 = dblETC
                     oTask.Number4 = oTask.Number4 + dblETC
                   ElseIf lngETC = pjTaskNumber5 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number5 = dblETC
                     oTask.Number5 = oTask.Number5 + dblETC
                   ElseIf lngETC = pjTaskNumber6 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number6 = dblETC
                     oTask.Number6 = oTask.Number6 + dblETC
                   ElseIf lngETC = pjTaskNumber7 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number7 = dblETC
                     oTask.Number7 = oTask.Number7 + dblETC
                   ElseIf lngETC = pjTaskNumber8 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number8 = dblETC
                     oTask.Number8 = oTask.Number8 + dblETC
                   ElseIf lngETC = pjTaskNumber9 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number9 = dblETC
                     oTask.Number9 = oTask.Number9 + dblETC
                   ElseIf lngETC = pjTaskNumber10 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number10 = dblETC
                     oTask.Number10 = oTask.Number10 + dblETC
                   ElseIf lngETC = pjTaskNumber11 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number11 = dblETC
                     oTask.Number11 = oTask.Number11 + dblETC
                   ElseIf lngETC = pjTaskNumber12 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number12 = dblETC
                     oTask.Number12 = oTask.Number12 + dblETC
                   ElseIf lngETC = pjTaskNumber13 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number13 = dblETC
                     oTask.Number13 = oTask.Number13 + dblETC
                   ElseIf lngETC = pjTaskNumber14 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number14 = dblETC
                     oTask.Number14 = oTask.Number14 + dblETC
                   ElseIf lngETC = pjTaskNumber15 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number15 = dblETC
                     oTask.Number15 = oTask.Number15 + dblETC
                   ElseIf lngETC = pjTaskNumber16 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number16 = dblETC
                     oTask.Number16 = oTask.Number16 + dblETC
                   ElseIf lngETC = pjTaskNumber17 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number17 = dblETC
                     oTask.Number17 = oTask.Number17 + dblETC
                   ElseIf lngETC = pjTaskNumber18 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number18 = dblETC
                     oTask.Number18 = oTask.Number18 + dblETC
                   ElseIf lngETC = pjTaskNumber19 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number19 = dblETC
                     oTask.Number19 = oTask.Number19 + dblETC
                   ElseIf lngETC = pjTaskNumber20 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number20 = dblETC
                     oTask.Number20 = oTask.Number20 + dblETC
                   End If
