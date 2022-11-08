@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.4.6</cpt_version>
+'<cpt_version>v1.4.7</cpt_version>
 Option Explicit
 Private Const adVarChar As Long = 200
 Private Const adInteger As Long = 3
@@ -606,6 +606,7 @@ Private Sub cmdRun_Click()
 'objects
 'strings
 'longs
+Dim lngDateFormat As Long
 Dim lngSelectedItems As Long
 Dim lngItem As Long
 'integers
@@ -618,6 +619,7 @@ Dim blnIncluded As Boolean
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
+  lngDateFormat = Application.DefaultDateFormat
   blnError = False
 
   '-2147483630 = Black
@@ -745,12 +747,13 @@ Dim blnIncluded As Boolean
     'save settings
     Call cptSaveStatusSheetSettings
     'create the sheet
+    Application.DefaultDateFormat = pjDate_mm_dd_yy
     Call cptCreateStatusSheet
   End If
 
 exit_here:
   On Error Resume Next
-
+  Application.DefaultDateFormat = lngDateFormat
   Exit Sub
 err_here:
   Call cptHandleErr("cptStatusSheet_frm", "cmdRun_Click", Err, Erl)
