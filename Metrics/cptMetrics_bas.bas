@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 
 Sub cptGetBAC()
@@ -1046,7 +1046,7 @@ Sub cptLateStartsFinishes()
       'only check for tasks with assignments
       If oTask.Resources.Count = 0 Then GoTo next_task
       'only check for discrete tasks
-      If oTask.GetField(lngLOEField) = "A" Then GoTo next_task
+      If oTask.GetField(lngLOEField) = strLOE Then GoTo next_task
       'skip unassigned (currently material/odc/tvl)
       'If oTask.GetField(FieldNameToFieldConstant("WPM")) = "" Then GoTo next_task
       'only report early/late starts/finishes
