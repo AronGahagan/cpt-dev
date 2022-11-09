@@ -1066,7 +1066,7 @@ Sub cptLateStartsFinishes()
       'only check for tasks with assignments
       If oTask.Resources.Count = 0 Then GoTo next_task
       'only check for discrete tasks
-      If oTask.GetField(lngLOEField) = "A" Then GoTo next_task
+      If oTask.GetField(lngLOEField) = strLOE Then GoTo next_task
       'skip unassigned (currently material/odc/tvl)
       'If oTask.GetField(FieldNameToFieldConstant("WPM")) = "" Then GoTo next_task
       'only report early/late starts/finishes
