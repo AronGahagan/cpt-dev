@@ -238,7 +238,7 @@ Dim dtConstraintDate As Date
   If oTask Is Nothing Then GoTo exit_here
   If oTask.Summary Then GoTo exit_here
   If Not oTask.Active Then GoTo exit_here
-  HighlightDrivingPredecessors Set:=True
+  HighlightDrivingPredecessors set:=True
   For Each oPred In ActiveProject.Tasks
     If oPred.PathDrivingPredecessor Then
       If IsDate(oPred.ActualStart) Then
@@ -3243,7 +3243,6 @@ next_mapping_task:
         Else
           Set oCalendar = oLink.To.CalendarObject
         End If
-        If oTask.UniqueID = 202 And oLink.To.UniqueID = 200 Then Stop
         Select Case oLink.Type
           Case pjFinishToFinish
             'get target successor finish date
@@ -3451,7 +3450,8 @@ next_task:
   strMacro = strMacro & "  strFrom = Me.Cells(Target.Row, 1).Value" & vbCrLf
   strMacro = strMacro & "  strTo = Me.Cells(Target.Row, 7).Value" & vbCrLf
   strMacro = strMacro & "  MSPROJ.SetAutoFilter FieldName:=""Unique ID"", FilterType:=2, Criteria1:=strFrom & Chr$(9) & strTo '1=pjAutoFilterIn" & vbCrLf
-  strMacro = strMacro & "  MSPROJ.Find ""Unique ID"", ""equals"", CLng(strFrom)" & vbCrLf & vbCrLf
+  strMacro = strMacro & "  MSPROJ.Find ""Unique ID"", ""equals"", CLng(strFrom)" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.EditGoto Date:=MSPROJ.ActiveProject.Tasks.UniqueID(CLng(strFrom)).Start" & vbCrLf & vbCrLf
   strMacro = strMacro & "exit_here:" & vbCrLf
   strMacro = strMacro & "  MSPROJ.ScreenUpdating = True" & vbCrLf
   strMacro = strMacro & "  Set MSPROJ = Nothing" & vbCrLf
