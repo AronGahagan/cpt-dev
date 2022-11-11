@@ -550,7 +550,7 @@ Sub cptResetAll()
       lngSettings = lngSettings - 16
     End If
     If lngSettings >= 8 Then 'expand all tasks
-      OptionsViewEx DisplaySummaryTasks:=True
+      OptionsViewEx displaysummarytasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -563,7 +563,7 @@ Sub cptResetAll()
       End If
       If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If ActiveProject.Subprojects.Count > 0 Then
-        OptionsViewEx DisplaySummaryTasks:=True
+        OptionsViewEx displaysummarytasks:=True
         If Not blnFilter Then
           strFilter = ActiveProject.CurrentFilter
         End If
@@ -575,7 +575,7 @@ Sub cptResetAll()
       If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       lngSettings = lngSettings - 8
     Else 'expand to specific level
-      OptionsViewEx DisplaySummaryTasks:=True
+      OptionsViewEx displaysummarytasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -593,10 +593,10 @@ Sub cptResetAll()
       Next lngLevel
     End If
     If lngSettings >= 4 Then 'show summaries
-      OptionsViewEx DisplaySummaryTasks:=True
+      OptionsViewEx displaysummarytasks:=True
       lngSettings = lngSettings - 4
     Else
-      OptionsViewEx DisplaySummaryTasks:=False
+      OptionsViewEx displaysummarytasks:=False
     End If
     If lngSettings >= 2 Then 'clear group
       GroupClear
@@ -1241,7 +1241,7 @@ Dim lngLevel As Long
   Application.OpenUndoTransaction "WrapItUp"
   'FilterClear 'do not reset, keep autofilters
   'GroupClear 'do not reset, applies to groups to
-  OptionsViewEx DisplaySummaryTasks:=True
+  OptionsViewEx displaysummarytasks:=True
   SelectAll
   On Error Resume Next
   If Not OutlineShowAllTasks Then
@@ -1289,7 +1289,7 @@ Sub cptWrapItUpAll()
     ActiveProject.Application.ActiveWindow.TopPane.Activate
   End If
   '===
-  OptionsViewEx DisplaySummaryTasks:=True
+  OptionsViewEx displaysummarytasks:=True
   On Error Resume Next
   If ActiveProject.Subprojects.Count > 0 Then
     FilterClear
