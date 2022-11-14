@@ -9,6 +9,8 @@ Private strCAM As String
 Private strWP As String
 Private strEVT As String
 Private strEVP As String
+Private strPass As String
+Private strFail As String
 
 Private lngWBS As Long
 Private lngOBS As Long
@@ -160,8 +162,6 @@ Sub cptDECM_GET_DATA()
   Dim oLink As MSProject.TaskDependency
   Dim oTask As MSProject.Task
   'strings
-  Dim strFail As String
-  Dim strPass As String
   Dim strLinks  As String
   Dim strPE As String
   Dim strSE As String
@@ -171,6 +171,7 @@ Sub cptDECM_GET_DATA()
   Dim strSQL As String
   Dim strFile As String
   Dim strLOE As String
+  Dim strList As String
   'longs
   Dim lngTS As Long
   Dim lngConst As Long
@@ -366,7 +367,7 @@ next_task:
   
   'lboMetrics: METRIC,TITLE,THRESHOLD,X,Y,SCORE,DESCRIPTION,?sql
   strPass = "[+]"
-  strFail = "<->"
+  strFail = "<!>"
   
   '===== EVMS =====
   '05A101a - 1 CA : 1 OBS
@@ -376,7 +377,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "05A101a"
   'cptDECM_frm.lboMetrics.Value = "05A101a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 OBS"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "0%"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
   'X = Count of CAs with more than one OBS element or no OBS elements assigned
   'Y = Total count of CAs
@@ -395,6 +396,14 @@ next_task:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
@@ -408,7 +417,7 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting EVMS: 05A101a...done."
   Application.StatusBar = "Getting EVMS: 05A101a...done."
   DoEvents
@@ -420,7 +429,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "05A102a"
   'cptDECM_frm.lboMetrics.Value = "05A102a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 CAM"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "<=5%"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = Count of CAs that have more than one CAM or no CAM assigned
   'Y = Total count of CAs
@@ -434,6 +443,14 @@ next_task:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
@@ -447,7 +464,7 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting EVMS: 05A102a...done."
   Application.StatusBar = "Getting EVMS: 05A102a...done."
   DoEvents
@@ -459,7 +476,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "05A103a"
   'cptDECM_frm.lboMetrics.Value = "05A103a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 WBS"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "0%"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
   'X = Count of CAs with more than one WBS element or no WBS elements assigned
   'Y = Total count of CAs
@@ -473,6 +490,14 @@ next_task:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
@@ -486,7 +511,7 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting EVMS: 05A103a...done."
   Application.StatusBar = "Getting EVMS: 05A103a...done."
   DoEvents
@@ -498,7 +523,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A102a"
   'cptDECM_frm.lboMetrics.Value = "10A102a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 WP : 1 EVT"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "<=5%"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = count of incomplete WPs that have more than one EVT or no EVT assigned
   'Y = count of incomplete WPs
@@ -510,6 +535,14 @@ next_task:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
@@ -532,20 +565,20 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A102a...done."
   Application.StatusBar = "Getting EVMS: 10A102a...done."
   DoEvents
   
   '===== SCHEDULE =====
-  '06A204b - Dangling Preds
+  '06A204b - Dangling Logic
   '06A204b todo: ignore first/last milestone
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A204b..."
   Application.StatusBar = "Getting Schedule Metric: 06A204b..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A204b"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Dangling Logic"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "0%"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   'cptDECM_frm.lboMetrics.Value = "06A204b"
   DoEvents
   'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = DECM("06A204b")
@@ -623,8 +656,12 @@ next_task:
   Next lngItem
   strLinks = Left(strLinks, Len(strLinks) - 1)
   oDict.RemoveAll
+  strList = ""
   For Each vField In Split(strLinks, ",")
-    If Len(vField) > 0 And Not oDict.Exists(vField) Then oDict.Add vField, vField
+    If Len(vField) > 0 And Not oDict.Exists(vField) Then
+      oDict.Add vField, vField
+      strList = strList & vField & ","
+    End If
   Next vField
   lngX = oDict.Count
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -637,7 +674,7 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A204b...done."
   Application.StatusBar = "Getting Schedule Metric: 06A204b...done."
   DoEvents
@@ -649,7 +686,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A205a"
   'cptDECM_frm.lboMetrics.Value = "06A205a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Lags"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "<=10%"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
   DoEvents
   'X = count of incomplete tasks/activities & milestones with at least one lag in the pred logic
   'Y = count of incomplete tasks/activities & milestones in the IMS
@@ -662,6 +699,14 @@ next_task:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngX = oRecordset.RecordCount
+    If lngX > 0 Then
+      strList = ""
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
@@ -675,7 +720,7 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A205a...done."
   Application.StatusBar = "Getting Schedule Metric: 06A205a...done."
   DoEvents
@@ -687,7 +732,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A208a"
   'cptDECM_frm.lboMetrics.Value = "06A208a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Summary Logic"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "=0"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
   'X = Count of summary tasks/activities with logic applied (# predecessors > 0 or # successors > 0)
   'X = 0
@@ -696,7 +741,15 @@ next_task:
   strSQL = strSQL & "WHERE t.SUMMARY='Yes'"
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
-    lngX = oRecordset.RecordCount
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
     .Close
   End With
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -707,19 +760,19 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A208a...done."
   Application.StatusBar = "Getting Schedule Metric: 06A208a...done."
   DoEvents
   
-  '06A209a - constraints
+  '06A209a - hard constraints
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A209a..."
   Application.StatusBar = "Getting Schedule Metric: 06A209a..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A209a"
   'cptDECM_frm.lboMetrics.Value = "06A209a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Hard Constraints"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "0%"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
   'X = count of incomplete tasks/activities & milestones with hard constraints
   'Y = count of incomplete tasks/activities & milestones
@@ -730,7 +783,15 @@ next_task:
   strSQL = strSQL & "AND (CONST='SNLT' OR CONST='FNLT' OR CONST='MSO' OR CONST='MFO')"
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
-    lngX = oRecordset.RecordCount
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
     .Close
   End With
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -743,7 +804,7 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A209a...done."
   Application.StatusBar = "Getting Schedule Metric: 06A209a...done."
   DoEvents
@@ -755,7 +816,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A210a"
   'cptDECM_frm.lboMetrics.Value = "06A210a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "LOE Driving Discrete"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "0%"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
   'X = count of incomplete LOE tasks/activities in the IMS with at least one Non-LOE successor
   'Y = count of incomplete LOE tasks/activities in the IMS
@@ -775,10 +836,12 @@ next_task:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     oDict.RemoveAll
+    strList = ""
     If .RecordCount > 0 Then
       .MoveFirst
       Do While Not .EOF
         If Not oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Add CStr(oRecordset("UID")), CStr(oRecordset("UID"))
+        strList = strList & .Fields("UID") & ","
         .MoveNext
       Loop
     End If
@@ -796,7 +859,7 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList 'todo: need guilty link too
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A210a...done."
   Application.StatusBar = "Getting Schedule Metric: 06A210a...done."
   DoEvents
@@ -811,7 +874,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A211a"
   'cptDECM_frm.lboMetrics.Value = "06A211a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "High Float"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "<=20%"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 20%"
   DoEvents
 '  X = count of high total float Non-LOE tasks/activities & milestones sampled with inadequate rationale
 '  Y = count of high total float Non-LOE tasks/activities & milestones sampled
@@ -824,6 +887,14 @@ next_task:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngY = oRecordset.RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
@@ -837,7 +908,7 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A211a...done."
   Application.StatusBar = "Getting Schedule Metric: 06A211a...done."
   DoEvents
@@ -853,7 +924,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A501a"
   'cptDECM_frm.lboMetrics.Value = "06A501a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Baselines"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "<=5%"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = Count of tasks/activities & milestones without baseline dates
   'Y = Total count of tasks/activities & milestones
@@ -869,6 +940,14 @@ next_task:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngX = oRecordset.RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
@@ -882,7 +961,7 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A501a...done."
   Application.StatusBar = "Getting Schedule Metric: 06A501a...done."
   DoEvents
@@ -898,7 +977,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A505a"
   'cptDECM_frm.lboMetrics.Value = "06A505a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "In-Progress Tasks w/ Actual Start"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "<=5%"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = count of in-progress tasks/activities & milestones with no actual start date
   'Y = count of in-progress tasks/activities & milestones
@@ -916,7 +995,15 @@ next_task:
   strSQL = strSQL & "AND [AS] IS NULL"
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
-    lngX = oRecordset.RecordCount
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
@@ -930,7 +1017,7 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A505a...done."
   Application.StatusBar = "Getting Schedule Metric: 06A505a...done."
   DoEvents
@@ -942,7 +1029,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A505b"
   'cptDECM_frm.lboMetrics.Value = "06A505b"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Complete Tasks w/ Actual Finish"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "<=5%"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = count of complete tasks/activities & milestones with no actual finish date
   'Y = count of complete tasks/activities & milestones
@@ -960,6 +1047,14 @@ next_task:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngX = oRecordset.RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
@@ -973,7 +1068,7 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A505b...done."
   Application.StatusBar = "Getting Schedule Metric: 06A505b...done."
   DoEvents
@@ -984,7 +1079,7 @@ next_task:
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A506a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Bogus Actuals"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "<=5%"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   'cptDECM_frm.lboMetrics.Value = "06A506a"
   DoEvents
   'X = count of tasks/activities & milestones with either actual start or actual finish after status date
@@ -1002,7 +1097,15 @@ next_task:
   strSQL = strSQL & "WHERE ([AS]>#" & dtStatus & "# OR AF>#" & dtStatus & "#)"
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
-    lngX = oRecordset.RecordCount
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
@@ -1016,7 +1119,7 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506a...done."
   Application.StatusBar = "Getting Schedule Metric: 06A506a...done."
   DoEvents
@@ -1028,7 +1131,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A506b"
   'cptDECM_frm.lboMetrics.Value = "06A506b"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Bogus Forecast"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "=0"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
   'X = Count of incomplete tasks/activities & milestones with either forecast start or forecast finish before the status date
   'X = 0
@@ -1037,7 +1140,15 @@ next_task:
   strSQL = strSQL & "OR (FF<#" & dtStatus & "# AND AF IS NULL))"
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
-    lngX = oRecordset.RecordCount
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
@@ -1049,7 +1160,7 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = "todo: trigger"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506b...done."
   Application.StatusBar = "Getting Schedule Metric: 06A506b...done."
   DoEvents
@@ -1097,7 +1208,7 @@ Function DECM(strDECM As String, Optional blnNotify As Boolean = False) As Doubl
       ActiveWindow.TopPane.Activate
       FilterClear
       GroupClear
-      OptionsViewEx displaysummarytasks:=True
+      OptionsViewEx DisplaySummaryTasks:=True
       OutlineShowAllTasks
     
       Set oLinks = CreateObject("Scripting.Dictionary")
@@ -1159,9 +1270,9 @@ next_task:
       cptSpeed False
       
       ActiveWindow.TopPane.Activate
-      OptionsViewEx displaysummarytasks:=True
+      OptionsViewEx DisplaySummaryTasks:=True
       OutlineShowAllTasks
-      OptionsViewEx displaysummarytasks:=False
+      OptionsViewEx DisplaySummaryTasks:=False
       SetAutoFilter "Marked", pjAutoFilterFlagYes
       
       If blnNotify Then MsgBox "X: " & lngX & vbCrLf & "Y: " & lngY & vbCrLf & "X/Y = " & Format(lngX / lngY, "0%"), vbInformation + vbOKOnly, "06A204b"
@@ -1284,10 +1395,10 @@ Sub cptDECM_EXPORT()
   oWorksheet.Columns(8).HorizontalAlignment = xlLeft
   
   With oWorksheet.Range(oWorksheet.[G2], oWorksheet.[G2].End(xlDown))
-    .Replace What:="[+]", Replacement:="2", LookAt:=xlWhole, _
+    .Replace What:=strPass, Replacement:="2", LookAt:=xlWhole, _
         SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
         ReplaceFormat:=False, FormulaVersion:=xlReplaceFormula2
-    .Replace What:="<->", Replacement:="0", LookAt:=xlWhole, _
+    .Replace What:=strFail, Replacement:="0", LookAt:=xlWhole, _
         SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
         ReplaceFormat:=False, FormulaVersion:=xlReplaceFormula2
     .FormatConditions.AddIconSetCondition
@@ -1326,4 +1437,38 @@ exit_here:
 err_here:
   Call cptHandleErr("cptDECM_bas", "cptDECM_EXPORT", Err, Erl)
   Resume exit_here
+End Sub
+
+Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
+
+  ScreenUpdating = False
+  FilterClear
+  GroupClear
+  OptionsViewEx DisplaySummaryTasks:=True
+  OutlineShowAllTasks
+  OptionsViewEx DisplaySummaryTasks:=False
+
+  Select Case strMetric
+    Case "05A101a" '1 CA : 1 OBS
+      If Len(strList) > 0 Then
+        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+      End If
+      'todo: group by CA,OBS
+      
+    Case "10A102a" '1 WP : 1 EVT
+      If Len(strList) > 0 Then
+        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+      End If
+      'todo: group by WP,EVT
+      
+    Case Else 'Dangling Logic, Lags
+      If Len(strList) > 0 Then
+        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+      End If
+      
+  End Select
+  ScreenUpdating = True
 End Sub
