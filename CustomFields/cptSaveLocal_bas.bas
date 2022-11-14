@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveLocal_bas"
-'<cpt_version>v1.1.5</cpt_version>
+'<cpt_version>v1.1.6</cpt_version>
 Option Explicit
 Public strStartView As String
 Public strStartTable As String
@@ -214,7 +214,7 @@ Dim vType As Variant
 skip_it:
 
   'get project guid
-  If Application.Version < 12 Then
+  If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
@@ -387,7 +387,7 @@ Dim lngItem As Long
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'get project guid
-  If Application.Version < 12 Then
+  If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
@@ -1133,7 +1133,7 @@ next_formula_field:
   strURL = ActiveProject.ServerURL
   
   'update rstSavedMap
-  If Application.Version < 12 Then
+  If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
@@ -1208,7 +1208,7 @@ Sub cptExportCFMap()
     GoTo exit_here
   End If
   
-  If Application.Version < 12 Then
+  If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
@@ -1274,7 +1274,7 @@ Sub cptImportCFMap()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     
   'get guid
-  If Application.Version < 12 Then
+  If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
@@ -1372,7 +1372,7 @@ Sub cptUpdateECF(Optional strFilter As String)
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'get project guid
-  If Application.Version < 12 Then
+  If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
