@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveLocal_bas"
-'<cpt_version>v1.1.4</cpt_version>
+'<cpt_version>v1.1.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -216,7 +216,7 @@ Dim vType As Variant
 skip_it:
 
   'get project guid
-  If Application.Version < 12 Then
+  If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
@@ -389,7 +389,7 @@ Dim lngItem As Long
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   'get project guid
-  If Application.Version < 12 Then
+  If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
@@ -1135,7 +1135,7 @@ next_formula_field:
   strURL = ActiveProject.ServerURL
   
   'update rstSavedMap
-  If Application.Version < 12 Then
+  If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
@@ -1210,7 +1210,7 @@ Sub cptExportCFMap()
     GoTo exit_here
   End If
   
-  If Application.Version < 12 Then
+  If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
@@ -1276,7 +1276,7 @@ Sub cptImportCFMap()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
     
   'get guid
-  If Application.Version < 12 Then
+  If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
@@ -1374,7 +1374,7 @@ Sub cptUpdateECF(Optional strFilter As String)
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   'get project guid
-  If Application.Version < 12 Then
+  If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid

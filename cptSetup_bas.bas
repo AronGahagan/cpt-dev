@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
- '<cpt_version>v1.6.0</cpt_version>
+ '<cpt_version>v1.6.1</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -546,7 +546,7 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptSPI"" label=""Schedule Performance Index (SPI) in hours"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSPI"" visible=""true"" supertip=""SPI (in hours) relies on timephased baseline work and EV% stored in Physical % Complete."" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptSV"" label=""Schedule Variance (SV) in hours"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetSV"" visible=""true"" supertip=""SV (in hours) relies on timephased baseline work and EV% stored in Physical % Complete."" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBEI"" label=""Baseline Execution Index (BEI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetBEI"" visible=""true"" supertip=""Just what it sounds like..."" />"
-    If Application.Version >= 12 Then 'CPLI only available in versions after 2010
+    If CLng(Left(Application.Build, 2)) >= 12 Then 'CPLI only available in versions after 2010
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCPLI"" label=""Critical Path Length Index (CPLI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCPLI"" visible=""true"" supertip=""Select a target task, click to get the CPLI. Raw calculation based on time now and total slack."" />"
     Else
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCPLI"" enabled=""false"" label=""Critical Path Length Index (CPLI)"" imageMso=""ApplyPercentageFormat"" onAction=""cptGetCPLI"" visible=""true"" supertip=""Select a target task, click to get the CPLI. Raw calculation based on time now and total slack. (Feature not available in this version of MS Project)"" />"
@@ -559,7 +559,7 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Schedule Metrics Trends"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptSPItrend"" label=""SPI Trend in hours"" imageMso=""ChartTypeLineInsertGallery"" onAction=""cptGetTrend_SPI"" visible=""true"" supertip=""Relies on timephased baseline work and your metrics settings for EV % Complete."" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptBEItrend"" label=""BEI Trend"" imageMso=""ChartTypeLineInsertGallery"" onAction=""cptGetTrend_BEI"" visible=""true"" supertip=""Just what it sounds like..."" />"
-    If Application.Version >= 12 Then 'CPLI only available in versions after 2010
+    If CLng(Left(Application.Build, 2)) >= 12 Then 'CPLI only available in versions after 2010
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCPLItrend"" label=""CPLI Trend"" imageMso=""ChartTypeLineInsertGallery"" onAction=""cptGetTrend_CPLI"" visible=""true"" supertip=""Create a chart of CPLI Trend."" />"
     Else
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptCPLItrend"" enabled=""false"" label=""CPLI Trend"" imageMso=""ChartTypeLineInsertGallery"" onAction=""cptGetTrend_CPLI"" visible=""true"" supertip=""Create a chart of CPLI Trend. (Feature not available in this version of MS Project)"" />"
