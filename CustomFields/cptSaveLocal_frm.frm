@@ -14,7 +14,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-'<cpt_version>v1.1.5</cpt_version>
+'<cpt_version>v1.1.6</cpt_version>
 Option Explicit
 
 Private Sub cboECF_Change()
@@ -114,7 +114,7 @@ Private Sub cmdUnmap_Click()
   CustomFieldDelete lngLCF
   
   'delete it from saved map
-  If Application.Version < 12 Then
+  If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
