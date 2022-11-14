@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.4</cpt_version>
+'<cpt_version>v1.1.5</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -115,7 +115,7 @@ Private Sub cmdUnmap_Click()
   CustomFieldDelete lngLCF
   
   'delete it from saved map
-  If Application.Version < 12 Then
+  If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
   Else
     strGUID = ActiveProject.GetServerProjectGuid
