@@ -143,7 +143,7 @@ Dim vUID As Variant
       If lngFreeField > 0 Then oTask.SetField lngFreeField, 0
 next_task:
       lngTask = lngTask + 1
-      Application.StatusBar = "Resetting number field...(" & Format(lngTask / lngTasks, "0%") & ")"
+      Application.StatusBar = "Resetting number field...(" & Format(lngTask / IIf(lngTasks = 0, 1, lngTasks), "0%") & ")"
       DoEvents
     Next oTask
   Else
@@ -179,7 +179,7 @@ next_task:
       cptFilterByClipboard_frm.lboFilter.List(lngItem, 1) = "< not found >"
     End If
 next_item:
-    Application.StatusBar = "Applying filter...(" & Format(lngItem / UBound(vUID), "0%") & ")"
+    Application.StatusBar = "Applying filter...(" & Format(lngItem / IIf(UBound(vUID) = 0, 1, UBound(vUID)), "0%") & ")"
     DoEvents
   Next lngItem
   

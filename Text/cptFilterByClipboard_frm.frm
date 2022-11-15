@@ -314,7 +314,10 @@ err_here:
 End Sub
 
 Private Sub txtFilter_Change()
-  If Me.txtFilter.Visible Then Call cptUpdateClipboard
+  If Me.txtFilter.Visible Then
+    Me.lboFilter.Clear
+    If Right(Me.txtFilter.Text, 1) = "," Then Call cptUpdateClipboard
+  End If
 End Sub
 
 Private Sub txtFilter_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
