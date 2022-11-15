@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptDECM_frm 
    Caption         =   "DECM v5.0"
-   ClientHeight    =   4680
+   ClientHeight    =   4980
    ClientLeft      =   120
    ClientTop       =   465
    ClientWidth     =   8760.001
@@ -15,8 +15,29 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
 
+Private Sub cmdDone_Click()
+  Unload Me
+  cptResetAll
+End Sub
+
 Private Sub cmdExport_Click()
   cptDECM_EXPORT
+End Sub
+
+Private Sub lblURL_Click()
+
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptDECM_frm", "lblURL_Click", Err, Erl)
+  Resume exit_here
+
 End Sub
 
 Private Sub lboMetrics_AfterUpdate()

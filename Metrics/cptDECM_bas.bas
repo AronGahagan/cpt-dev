@@ -51,8 +51,8 @@ Function ValidMap() As Boolean
     .Caption = "Integration (" & cptGetVersion("cptIntegration_frm") & ")"
     
     For Each vControl In Split("WBS,OBS,CA,CAM,WP,WPM,EVT,LOE,EVP,EOC", ",")
-      If vControl = "WBS" Then vControl = "CWBS"
-      If vControl = "WP" Then vControl = "WPCN"
+      If vControl = "WBS" Then vControl = "CWBS" 'todo: fix saved setting name
+      If vControl = "WP" Then vControl = "WPCN"  'todo: fix saved setting name
       strSetting = cptGetSetting("Integration", CStr(vControl))
       If Len(strSetting) = 0 Then
         If vControl = "EVP" Then
@@ -67,8 +67,8 @@ Function ValidMap() As Boolean
           .cboLOE.Value = strSetting
         End If
       End If
-      If vControl = "CWBS" Then vControl = "WBS"
-      If vControl = "WPCN" Then vControl = "WP"
+      If vControl = "CWBS" Then vControl = "WBS"  'todo: fix saved setting name
+      If vControl = "WPCN" Then vControl = "WP"   'todo: fix saved setting name
       Set oComboBox = .Controls("cbo" & vControl)
       oComboBox.BorderColor = -2147483642
       If Len(strSetting) = 0 Then
@@ -841,11 +841,12 @@ next_task:
       .MoveFirst
       Do While Not .EOF
         If Not oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Add CStr(oRecordset("UID")), CStr(oRecordset("UID"))
-        strList = strList & .Fields("UID") & ","
+        strList = strList & .Fields("UID") & "," & .Fields("TO") & "," 'includes guilty successors
         .MoveNext
       Loop
     End If
     lngX = oDict.Count
+    
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
@@ -879,7 +880,7 @@ next_task:
 '  X = count of high total float Non-LOE tasks/activities & milestones sampled with inadequate rationale
 '  Y = count of high total float Non-LOE tasks/activities & milestones sampled
 '  X/Y <= 20%
-  strSQL = "SELECT UID,ROUND(TS/480,2) AS HTF "
+  strSQL = "SELECT UID,ROUND(TS/480,2) AS HTF " 'todo: replace 480 with user settings?
   strSQL = strSQL & "FROM [tasks.csv] "
   strSQL = strSQL & "WHERE EVT<>'" & strLOE & "' "
   strSQL = strSQL & "GROUP BY UID,ROUND(TS/480,2) "
@@ -915,7 +916,7 @@ next_task:
 
   '6A301a - vertical integration todo: lower level baselines rollup
   
-  '6A401a - critical path todo: can our tool satisfy
+  '6A401a - critical path todo: can our tool satisfy?
   
   '6A501a - baselines
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A501a..."
@@ -966,9 +967,9 @@ next_task:
   Application.StatusBar = "Getting Schedule Metric: 06A501a...done."
   DoEvents
   
-  '06A504a - AS changed todo: use TaskHistory
+  '06A504a - AS changed - too complicated, keep it manual
   
-  '06A504b - AF changed todo: use TaskHistory
+  '06A504b - AF changed - too complicated, keep it manual
 
   '06A505a - In-Progress Tasks Have AS
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A505a..."
@@ -1442,6 +1443,7 @@ End Sub
 Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
 
   ScreenUpdating = False
+  ActiveWindow.TopPane.Activate
   FilterClear
   GroupClear
   OptionsViewEx DisplaySummaryTasks:=True
@@ -1453,22 +1455,47 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
         SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
       End If
       'todo: group by CA,OBS
-      
+    
+    Case "05A102a" '1 CA : 1 CAM
+      If Len(strList) > 0 Then
+        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+      End If
+      'todo: group by CA,CAM
+    
+    Case "05A103a" '1 CA : 1 WBS
+      If Len(strList) > 0 Then
+        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+      End If
+      'todo: group by CA,WBS
+    
     Case "10A102a" '1 WP : 1 EVT
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
         SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
       End If
       'todo: group by WP,EVT
       
-    Case Else 'Dangling Logic, Lags
+    Case Else
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
         SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
       End If
       
   End Select
+  SelectBeginning
   ScreenUpdating = True
 End Sub
