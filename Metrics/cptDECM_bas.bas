@@ -132,7 +132,15 @@ Function ValidMap() As Boolean
       If lngField > 0 Then oComboBox.Value = lngField
 next_control:
     Next vControl
-
+    
+    .txtFiscalCalendar.BorderColor = 192
+    If cptCalendarExists("cptFiscalCalendar") Then
+      .txtFiscalCalendar.Value = "cptFiscalCalendar"
+      .txtFiscalCalendar.BorderColor = -2147483642
+    End If
+    
+    'todo: rolling wave date
+    
     .Show
     'todo: validate selections
     'todo: save setting and update cbo border after selection
@@ -154,6 +162,7 @@ End Function
 Sub cptDECM_GET_DATA()
 'Optional blnIncompleteOnly As Boolean = True, Optional blnDiscreteOnly As Boolean = True
   'objects
+  Dim oAssignment As MSProject.Assignment
   Dim oDict As Scripting.Dictionary
   Dim oExcel As Excel.Application
   Dim oWorkbook As Excel.Workbook
@@ -173,6 +182,7 @@ Sub cptDECM_GET_DATA()
   Dim strLOE As String
   Dim strList As String
   'longs
+  Dim lngAssignmentFile As Long
   Dim lngTS As Long
   Dim lngConst As Long
   Dim lngX As Long
@@ -264,6 +274,16 @@ Sub cptDECM_GET_DATA()
   Print #lngFile, "Col3=TYPE text"
   Print #lngFile, "Col4=LAG integer"
   Print #lngFile, "Col5=LAG_TYPE integer"
+  Print #lngFile, "[assignments.csv]"
+  Print #lngFile, "Format=CSVDelimited"
+  Print #lngFile, "ColNameHeader=True"
+  Print #lngFile, "Col1=TASK_UID integer"
+  Print #lngFile, "Col2=RESOURCE_UID integer"
+  Print #lngFile, "Col3=BLW Double"
+  Print #lngFile, "Col4=BLC Double"
+  Print #lngFile, "Col5=RW Double"
+  Print #lngFile, "Col6=RC Double"
+  Print #lngFile, "Col7=EOC text"
   Close #lngFile
   
   lngTaskFile = FreeFile
@@ -275,6 +295,11 @@ Sub cptDECM_GET_DATA()
   strFile = strDir & "\links.csv"
   If Dir(strFile) <> vbNullString Then Kill strFile
   Open strFile For Output As #lngLinkFile
+  
+  lngAssignmentFile = FreeFile
+  strFile = strDir & "\assignments.csv"
+  If Dir(strFile) <> vbNullString Then Kill strFile
+  Open strFile For Output As #lngAssignmentFile
   
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
   
@@ -307,6 +332,7 @@ Sub cptDECM_GET_DATA()
   'headers
   Print #lngTaskFile, "UID,WBS,OBS,CA,CAM,WP,WPM,EVT,EVP,FS,FF,BLS,BLF,AS,AF,BDUR,DUR,SUMMARY,CONST,TS,"
   Print #lngLinkFile, "FROM,TO,TYPE,LAG,"
+  Print #lngAssignmentFile, "TASK_UID,RESOURCE_UID,BLW,BLC,RW,RC,EOC,"
   
   cptDECM_frm.Caption = "DECM v5.0 (cpt " & cptGetVersion("cptDECM_bas") & ")"
   lngItem = 0
@@ -348,6 +374,9 @@ Sub cptDECM_GET_DATA()
       'todo: convert lag to effective days
       Print #lngLinkFile, oLink.From & "," & oLink.To & "," & Choose(oLink.Type + 1, "FF", "FS", "SF", "SS") & "," & oLink.Lag & ","
     Next oLink
+    For Each oAssignment In oTask.Assignments
+      Print #lngAssignmentFile, Join(Array(oTask.UniqueID, oAssignment.ResourceUniqueID, oAssignment.BaselineWork, oAssignment.BaselineCost, oAssignment.RemainingWork, oAssignment.RemainingCost, oAssignment.Resource.GetField(Split(cptGetSetting("Integration", "EOC"), "|")(0))), ",")
+    Next
 next_task:
     strRecord = ""
     lngTask = lngTask + 1
@@ -359,6 +388,7 @@ next_task:
   
   Close #lngTaskFile
   Close #lngLinkFile
+  Close #lngAssignmentFile
   
   cptDECM_frm.lblStatus.Caption = "Loading...done."
   Application.StatusBar = "Loading...done."
@@ -568,6 +598,103 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
   cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A102a...done."
   Application.StatusBar = "Getting EVMS: 10A102a...done."
+  DoEvents
+  
+  '10A109b - all WPs have budget
+  cptDECM_frm.lblStatus.Caption = "Getting EVMS Metric: 10A109b..."
+  Application.StatusBar = "Getting EVMS Metric: 10A109b..."
+  cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A109b"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs With Budgets"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  DoEvents
+  'X = Count of WPs/PPs/SLPPs with BAC ? 0
+  'Y = Total count of WPs/PPs/SLPPs
+  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] WHERE WP IS NOT NULL"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngY = .RecordCount
+    'DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  strSQL = "SELECT t.WP,SUM(a.BLW) AS [BLW],SUM(a.BLC) AS [BLC] FROM [tasks.csv] t "
+  strSQL = strSQL & "INNER JOIN [assignments.csv] a on a.TASK_UID=t.UID "
+  strSQL = strSQL & "WHERE t.WP IS NOT NULL "
+  strSQL = strSQL & "GROUP BY t.WP "
+  strSQL = strSQL & "HAVING SUM(a.BLW)=0 AND SUM(a.BLC)=0"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("WP") & ","
+        .MoveNext
+      Loop
+    End If
+    'DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore < 0.05 Then
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A109b...done."
+  Application.StatusBar = "Getting EVMS: 10A109b...done."
+  DoEvents
+  
+  '10A202a - mixed EOC
+  cptDECM_frm.lblStatus.Caption = "Getting EVMS Metric: 10A202a..."
+  Application.StatusBar = "Getting EVMS Metric: 10A109b..."
+  cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A202a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs w/mixed EOCs"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%?"
+  DoEvents
+  'todo: there is not defined criteria for this metric...
+  'X = WPs with multiple EOCs
+  'Y = total count of WPs
+  'we already have lngY
+  strSQL = "SELECT WP,COUNT(EOC) FROM ("
+  strSQL = strSQL & "SELECT DISTINCT t.WP,a.EOC "
+  strSQL = strSQL & "FROM [tasks.csv] as t "
+  strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TASK_UID,EOC FROM [assignments.csv]) AS a ON a.TASK_UID = t.UID) "
+  strSQL = strSQL & "GROUP BY WP "
+  strSQL = strSQL & "HAVING Count(EOC) > 1"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("WP") & ","
+        .MoveNext
+      Loop
+    End If
+    .Close
+  End With
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore < 0.05 Then
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A202a...done."
+  Application.StatusBar = "Getting EVMS: 10A202a...done."
   DoEvents
   
   '===== SCHEDULE =====
@@ -1172,6 +1299,7 @@ next_task:
   
 exit_here:
   On Error Resume Next
+  Set oAssignment = Nothing
   Set oDict = Nothing
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
@@ -1346,21 +1474,24 @@ Sub opencsv(strFile)
   Shell "C:\Windows\notepad.exe '" & Environ("tmp") & "\" & strFile & "'", vbNormalFocus
 End Sub
 
-Sub cptDECM_EXPORT()
+Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
   'objects
+  Dim oTasks As MSProject.Tasks
   Dim oExcel As Excel.Application
   Dim oWorkbook As Excel.Workbook
   Dim oWorksheet As Excel.Worksheet
-  Dim oListObject As Excel.ListObject
   Dim oRange As Excel.Range
   Dim oCell As Excel.Range
   'strings
   'longs
+  Dim lngItem As Long
   'integers
   'doubles
   'booleans
   'variants
   'dates
+  
+  cptSpeed True
   
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
@@ -1383,8 +1514,9 @@ Sub cptDECM_EXPORT()
     .FreezePanes = True
   End With
   oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
+  oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).HorizontalAlignment = xlLeft
   With oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown))
-    .Font.Name = "Consolas"
+    .Font.Name = "Calibri"
     .Font.Size = 11
     .HorizontalAlignment = xlCenter
     .Columns.AutoFilter
@@ -1393,7 +1525,8 @@ Sub cptDECM_EXPORT()
   
   oWorksheet.Columns(1).HorizontalAlignment = xlLeft
   oWorksheet.Columns(2).HorizontalAlignment = xlLeft
-  oWorksheet.Columns(8).HorizontalAlignment = xlLeft
+  'oWorksheet.Columns(8).HorizontalAlignment = xlLeft
+  oWorksheet.Columns("H:I").Delete
   
   With oWorksheet.Range(oWorksheet.[G2], oWorksheet.[G2].End(xlDown))
     .Replace What:=strPass, Replacement:="2", LookAt:=xlWhole, _
@@ -1421,15 +1554,58 @@ Sub cptDECM_EXPORT()
     End With
   End With
   
-  'Application.ActivateMicrosoftApp pjMicrosoftExcel
+  blnDetail = True 'todo: make this an option on the form
   
-  'format it
+  If blnDetail Then
+    With cptDECM_frm
+      For lngItem = 0 To .lboMetrics.ListCount - 1
+        .lboMetrics.Value = .lboMetrics.List(lngItem)
+        .lboMetrics.Selected(lngItem) = True
+        .lboMetrics_AfterUpdate
+        Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
+        oWorksheet.Activate
+        oWorksheet.Name = .lboMetrics.List(lngItem)
+        oWorksheet.Tab.Color = 5287936
+        oExcel.ActiveWindow.Zoom = 85
+        SelectAll
+        EditCopy
+        On Error Resume Next
+        Set oTasks = ActiveSelection.Tasks
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If Not oTasks Is Nothing Then
+          oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
+          oWorksheet.[A2].Select
+          oWorksheet.PasteSpecial Format:="HTML", Link:=False, DisplayAsIcon:=False
+          oWorksheet.Cells.Font.Name = "Calibri"
+          oWorksheet.Cells.Font.Size = 11
+          oWorksheet.Cells.WrapText = False
+          oWorksheet.[B3].Select
+          oExcel.ActiveWindow.FreezePanes = True
+          oWorksheet.Columns.AutoFit
+          If .lboMetrics.List(lngItem, 6) = strFail Then
+            oWorksheet.Tab.Color = 192
+          End If
+        End If
+        Set oTasks = Nothing
+      Next lngItem
+    End With
+    'create hyperlinks
+    Set oWorksheet = oWorkbook.Sheets("DECM Dashboard")
+    oWorksheet.Activate
+    Set oRange = oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown))
+    For Each oCell In oRange.Cells
+      oWorksheet.Hyperlinks.Add Anchor:=oCell, Address:="", SubAddress:="'" & CStr(oCell.Value) & "'!A1", TextToDisplay:=CStr(oCell.Value), ScreenTip:="Jump to " & CStr(oCell.Value)
+    Next oCell
+  End If
+  
+  Application.ActivateMicrosoftApp pjMicrosoftExcel
 
 exit_here:
   On Error Resume Next
+  Set oTasks = Nothing
+  cptSpeed False
   Set oCell = Nothing
   Set oRange = Nothing
-  Set oListObject = Nothing
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
   Set oExcel = Nothing
@@ -1486,7 +1662,23 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
         SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
       End If
       'todo: group by WP,EVT
-      
+    
+    Case "10A109b" 'WP with no budget
+      If Len(strList) > 0 Then
+        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WPCN"), "|")(0)), pjAutoFilterIn, "contains", strList 'todo: "WPCN" > "WP"
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+      End If
+    
+    Case "10A202a" 'WP with Mixed EOCs
+      If Len(strList) > 0 Then
+        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WPCN"), "|")(0)), pjAutoFilterIn, "contains", strList 'todo: "WPCN" > "WP"
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+      End If
+        
     Case Else
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma

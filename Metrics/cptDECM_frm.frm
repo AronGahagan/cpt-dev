@@ -40,7 +40,7 @@ err_here:
 
 End Sub
 
-Private Sub lboMetrics_AfterUpdate()
+Public Sub lboMetrics_AfterUpdate()
   Dim strDescription As String
   Dim blnUpdateView As Boolean
   If Me.lboMetrics.ListIndex = -1 Then Exit Sub
@@ -79,7 +79,7 @@ Private Sub lboMetrics_AfterUpdate()
   End Select
   
   Me.txtTitle.Value = strDescription
-  blnUpdateView = True
+  blnUpdateView = True 'todo: make this a checkbox on the DECM form
   If blnUpdateView Then
     cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)
   End If
