@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.9</cpt_version>
+'<cpt_version>v3.3.10</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -139,7 +139,7 @@ Sub Export_IMS()
         'populate listboxes
         Dim vArray As Variant
         vArray = Split(Join(CustTextFields, ",") & "," & Join(CustOLCodeFields, ",") & "," & Join(EntFields, ","), ",") 'v3.3.9
-        ReDim Preserve vArray(UBound(vArray) - 1) 'v3.3.9
+        If vArray(UBound(vArray)) = "" Then ReDim Preserve vArray(UBound(vArray) - 1) 'v3.3.10
         Call cptQuickSort(vArray, 0, UBound(vArray))
         .caID1Box.List = Split("WBS," & Join(vArray, ","), ",")
         .caID2Box.List = Split("<None>," & Join(vArray, ","), ",")
@@ -151,7 +151,7 @@ Sub Export_IMS()
         .bcrBox.List = Split("<None>," & Join(vArray, ","), ",")
         .whatifBox.List = Split("<None>," & Join(vArray, ","), ",")
         vArray = Split(Join(CustTextFields, ",") & "," & Join(CustNumFields, ",") & "," & Join(CustOLCodeFields, ",") & "," & Join(EntFields, ","), ",") 'v3.3.9
-        ReDim Preserve vArray(UBound(vArray) - 1) 'v3.3.9
+        If vArray(UBound(vArray)) = "" Then ReDim Preserve vArray(UBound(vArray) - 1) 'v3.3.10
         Call cptQuickSort(vArray, 0, UBound(vArray))
         .msidBox.List = Split("<None>,UniqueID," & Join(vArray, ","), ",")
         Call cptQuickSort(CustNumFields, 1, UBound(CustNumFields))
