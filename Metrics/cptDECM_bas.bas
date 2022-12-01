@@ -819,10 +819,10 @@ next_task:
   'Y = count of incomplete tasks/activities & milestones in the IMS
   'X/Y <=10%
   'we already have lngY...
-  strSQL = "SELECT t.UID,p.LAG FROM [tasks.csv] t "
-  strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TO,LAG FROM [links.csv]) p ON p.TO=t.UID "
+  strSQL = "SELECT t.UID FROM [tasks.csv] t "
+  strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TO FROM [links.csv] WHERE LAG>0) p ON p.TO=t.UID " 'todo
+  'todo: ABOVE LINE OR strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TO FROM [links.csv] WHERE LAG<>0) p ON p.TO=t.UID "
   strSQL = strSQL & "WHERE t.SUMMARY='No' AND t.AF IS NULL AND (t.EVT<>'" & strLOE & "' OR t.EVT IS NULL) "
-  strSQL = strSQL & "AND p.LAG>0" 'todo: <>0 to capture leads?
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngX = oRecordset.RecordCount
@@ -937,6 +937,7 @@ next_task:
   DoEvents
   
   '06A210a - LOE Driving Discrete
+  'todo: add note: filter shows both LOE pred and Non-LOE successor
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A210a..."
   Application.StatusBar = "Getting Schedule Metric: 06A210a..."
   cptDECM_frm.lboMetrics.AddItem
@@ -1014,6 +1015,7 @@ next_task:
   strSQL = strSQL & "HAVING ROUND(TS/480,2)>44 "
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
+    lngX = oRecordset.RecordCount
     lngY = oRecordset.RecordCount
     strList = ""
     If lngX > 0 Then
