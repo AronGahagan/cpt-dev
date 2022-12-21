@@ -6068,20 +6068,13 @@ End Sub
 
 Private Function IsInArray(ByVal stringToBeFound As String, ByVal arr As Variant) As Boolean
 'v3.3.11 - rewrote function to mitigate false positives on null WP strings
-
     Dim i As Integer
-    
     For i = 1 To UBound(arr)
-        
         If arr(i) = stringToBeFound Then
-        
             IsInArray = True
             Exit Function
-        
         End If
-        
     Next i
-    
     IsInArray = False
 End Function
 
