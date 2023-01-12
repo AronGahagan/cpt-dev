@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.4.7</cpt_version>
+'<cpt_version>v1.4.8</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
@@ -150,19 +150,21 @@ Dim vFieldType As Variant
   rstFields.Open
   
   'cycle through and add all custom fields
-  For Each vFieldType In Array("Text", "Outline Code", "Number") 'todo: start, finish, date, flag?
-    On Error GoTo err_here
-    For intField = 1 To 30
-      lngField = FieldNameToFieldConstant(vFieldType & intField, pjTask)
+  For Each vFieldType In Array("Text|30", "Outline Code|10", "Number|20") 'todo: start, finish, date, flag?
+    Dim strFieldType As String
+    Dim lngFieldCount As Long
+    strFieldType = Split(vFieldType, "|")(0)
+    lngFieldCount = Split(vFieldType, "|")(1)
+    For intField = 1 To lngFieldCount
+      lngField = FieldNameToFieldConstant(strFieldType & intField, pjTask)
       strFieldName = CustomFieldGetName(lngField)
       If Len(strFieldName) > 0 Then
-        If vFieldType = "Number" Then
+        If strFieldType = "Number" Then
           rstFields.AddNew Array(0, 1, 2), Array(lngField, strFieldName, "Number")
         Else
           rstFields.AddNew Array(0, 1, 2), Array(lngField, strFieldName, "Text")
         End If
       End If
-next_field:
     Next intField
   Next vFieldType
   
@@ -193,7 +195,9 @@ next_field:
         .lboFields.AddItem
         .lboFields.List(.lboFields.ListCount - 1, 0) = rstFields(0)
         .lboFields.List(.lboFields.ListCount - 1, 1) = rstFields(1)
-        If FieldNameToFieldConstant(rstFields(1)) >= 188776000 Then
+        If rstFields(1) = "Resources" Then
+          .lboFields.List(.lboFields.ListCount - 1, 2) = FieldConstantToFieldName(rstFields(0))
+        ElseIf FieldNameToFieldConstant(rstFields(1), pjTask) >= 188776000 Then
           .lboFields.List(.lboFields.ListCount - 1, 2) = "Enterprise"
         Else
           .lboFields.List(.lboFields.ListCount - 1, 2) = FieldConstantToFieldName(rstFields(0))
@@ -492,7 +496,7 @@ next_item:
   End If
   DoEvents
   
-  OptionsViewEx DisplaySummaryTasks:=True, displaynameindent:=True
+  OptionsViewEx displaysummarytasks:=True, displaynameindent:=True
   If strStartingGroup = "No Group" Then
     Sort "ID", , , , , , False, True 'OutlineShowAllTasks won't work without this
   Else
@@ -558,13 +562,8 @@ exit_here:
   Exit Sub
 
 err_here:
-  If Err.Number = 1101 Or Err.Number = 1004 Then
-    Err.Clear
-    Resume next_field
-  Else
-    Call cptHandleErr("cptStatusSheet_frm", "cptShowStatusSheet_frm", Err, Erl)
-    Resume exit_here
-  End If
+  Call cptHandleErr("cptStatusSheet_frm", "cptShowStatusSheet_frm", Err, Erl)
+  Resume exit_here
 
 End Sub
 
