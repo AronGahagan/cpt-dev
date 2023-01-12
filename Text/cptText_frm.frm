@@ -15,14 +15,21 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-'<cpt_version>v1.4.2</cpt_version>
+'<cpt_version>v1.5.0</cpt_version>
 Option Explicit
+
+Private Sub cboScope_Change()
+    cptUpdatePreview
+End Sub
 
 Private Sub cmdApply_Click()
 'objects
 Dim oTask As MSProject.Task
 'strings
+Dim strCustomFieldName As String
+Dim strFormula As String
 'longs
+Dim lngScope As Long
 Dim lngItem As Long
 'integers
 'booleans
@@ -32,6 +39,8 @@ Dim lngItem As Long
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If MsgBox("Are you sure?", vbYesNo + vbExclamation, "Please confirm bulk action.") = vbNo Then GoTo exit_here
+  
+  lngScope = Me.cboScope.Value
   
   Application.OpenUndoTransaction "Advanced Text Action"
   For lngItem = 0 To Me.lboOutput.ListCount - 1
@@ -47,7 +56,29 @@ Dim lngItem As Long
         GoTo next_item
       End If
     End If
-    oTask.Name = Me.lboOutput.List(lngItem, 1)
+    On Error Resume Next
+    oTask.SetField lngScope, Me.lboOutput.List(lngItem, 1)
+    strCustomFieldName = FieldConstantToFieldName(lngScope)
+    If Err.Number > 0 Then
+      If Err.Number = 1101 Then
+        If Err.Description = "The argument value is not valid." Then 'likely a formula
+          strFormula = CustomFieldGetFormula(lngScope)
+          If Len(strFormula) > 0 Then
+            MsgBox "The argument value is not valid. Is " & strCustomFieldName & "'s formula active?" & vbCrLf & vbCrLf & strCustomFieldName & "=" & strFormula, vbExclamation + vbOKOnly, "Invalid Action"
+          Else
+            MsgBox "The argument value is not valid.", vbExclamation + vbOKOnly, "Invalid Action"
+          End If
+        ElseIf Err.Description = "This is not a valid lookup table value." Then
+          MsgBox "'" & Me.lboOutput.List(lngItem, 1) & "' is not a valid lookup table value for the field '" & strCustomFieldName & "'.", vbCritical + vbOKOnly, "Invalid Action"
+        Else
+          MsgBox "'" & strCustomFieldName & "' could not be updated.", vbExclamation + vbOKOnly, "Invalid Action"
+        End If
+        GoTo exit_here
+      Else
+        MsgBox "'" & strCustomFieldName & "' could not be updated.", vbExclamation + vbOKOnly, "Invalid Action"
+      End If
+    End If
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 next_item:
   Next lngItem
 

@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.4.2</cpt_version>
+'<cpt_version>v1.5.0</cpt_version>
 Option Explicit
 
 Sub cptReplicateProcess()
@@ -334,7 +334,7 @@ Sub cptFindDuplicateTaskNames()
   End With
   oRange.FormatConditions(1).StopIfTrue = False
   'filter for duplicates
-  lgNameCol = oWorksheet.Rows(1).Find("Name", lookat:=xlWhole).Column
+  lgNameCol = oWorksheet.Rows(1).Find("Name", LookAt:=xlWhole).Column
   oListObject.Range.AutoFilter Field:=lgNameCol, Criteria1:=RGB(255, 199, 206), Operator:=xlFilterCellColor
   'sort by task name (to put duplicates together)
   oListObject.Sort.SortFields.Clear
@@ -440,6 +440,7 @@ Sub cptShowText_frm()
 Dim oTasks As MSProject.Tasks
 Dim oTask As MSProject.Task
 'strings
+Dim strCustomFieldName As String
 'longs
 Dim lngItem As Long
 'integers
@@ -450,7 +451,29 @@ Dim lngItem As Long
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not cptModuleExists("cptText_frm") Then GoTo exit_here
-
+  
+  With cptText_frm.cboScope
+    .AddItem
+    .List(0, 0) = FieldNameToFieldConstant("Name", pjTask)
+    .List(0, 1) = "Task Name"
+    'todo: others?
+    For lngItem = 1 To 30
+'      If Len(CustomFieldGetFormula(FieldNameToFieldConstant("Text" & lngItem))) = 0 Then
+        .AddItem
+        .List(.ListCount - 1, 0) = FieldNameToFieldConstant("Text" & lngItem)
+        strCustomFieldName = CustomFieldGetName(FieldNameToFieldConstant("Text" & lngItem))
+        If Len(strCustomFieldName) > 0 Then
+          .List(.ListCount - 1, 1) = strCustomFieldName & " (Text" & lngItem & ")"
+        Else
+          .List(.ListCount - 1, 1) = "Text" & lngItem
+        End If
+'      End If
+    Next lngItem
+    .Value = FieldNameToFieldConstant("Name", pjTask)
+  End With
+  
+  lngItem = 0
+  
   On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -481,11 +504,12 @@ End Sub
 Sub cptUpdatePreview(Optional strPrepend As String, Optional strAppend As String, Optional strPrefix As String, Optional lngCharacters As Long, Optional lngStartAt As Long, _
                   Optional lngCountBy As Long, Optional strSuffix As String, Optional strReplaceWhat As String, Optional strReplaceWith As String)
   'objects
-  Dim oTask As Object
+  Dim oTask As MSProject.Task
   'strings
   Dim strTaskName As String
   Dim strEnumerate As String
   'longs
+  Dim lngScope As Long
   Dim lngItem As Long
   Dim lngEnumerate As Long
   'integers
@@ -494,6 +518,12 @@ Sub cptUpdatePreview(Optional strPrepend As String, Optional strAppend As String
   'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  If cptText_frm.Visible Then
+    lngScope = cptText_frm.cboScope.Value
+  Else
+    lngScope = FieldNameToFieldConstant("Name", pjTask)
+  End If
 
   For lngItem = 0 To cptText_frm.lboOutput.ListCount - 1
     If IsNull(cptText_frm.lboOutput.List(lngItem, 0)) Then GoTo exit_here
@@ -510,7 +540,7 @@ Sub cptUpdatePreview(Optional strPrepend As String, Optional strAppend As String
     End If
     
     'start with the task name
-    strTaskName = oTask.Name
+    strTaskName = oTask.GetField(lngScope) 'Name
     
     If Len(strPrepend) > 0 Then
       strTaskName = Trim(strPrepend) & " " & strTaskName
