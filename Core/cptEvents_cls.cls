@@ -7,7 +7,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
-'<cpt_version>v1.4.0</cpt_version>
+'<cpt_version>v1.4.1</cpt_version>
 Option Explicit
 Private WithEvents MyMSPApplication As Application
 Attribute MyMSPApplication.VB_VarHelpID = -1
@@ -60,7 +60,11 @@ Dim lngItems As Long
       If Not oTasks Is Nothing Then
         lngItems = oTasks.Count
         If ActiveSelection.FieldIDList.Count = 1 And lngItems > 1 Then
-          cptGetSums oTasks, ActiveSelection.FieldIDList(1)
+          If ActiveSelection.FieldIDList(1) <> -1 Then
+            cptGetSums oTasks, ActiveSelection.FieldIDList(1)
+          Else
+            Application.StatusBar = ""
+          End If
         Else
           Application.StatusBar = Format(lngItems, "#,##0") & " task" & IIf(lngItems = 1, "", "s") & " selected"
         End If
