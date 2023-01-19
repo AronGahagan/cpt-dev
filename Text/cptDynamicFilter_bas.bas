@@ -68,6 +68,13 @@ Dim vArray As Variant
     If .cboOperator.Value = "" Then
       If .tglRegEx Then .cboOperator.Value = "matches" Else .cboOperator = "contains"
     End If
+    If Application.Edition = pjEditionProfessional Then
+      .chkActiveOnly = cptGetSetting("DynamicFilter", "ActiveOnly") = "1"
+      .chkActiveOnly.Enabled = True
+    Else
+      .chkActiveOnly = True
+      .chkActiveOnly.Enabled = False
+    End If
     .Show False
     .txtFilter.SetFocus
   End With
@@ -118,12 +125,14 @@ Sub cptGoRegEx(strRegEx As String)
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.Marked Then oTask.Marked = False
+    If cptDynamicFilter_frm.chkActiveOnly And Not oTask.Active Then GoTo next_task
     If Len(oTask.GetField(lngFieldConstant)) = 0 Then GoTo next_task
     If cptDynamicFilter_frm.chkHideSummaries And oTask.Summary Then
       If Len(cptRxMatch(oTask.GetField(lngFieldConstant), strRegEx)) > 0 Then oTask.Marked = True
     ElseIf Not oTask.Summary Then
       If Len(cptRxMatch(oTask.GetField(lngFieldConstant), strRegEx)) > 0 Then oTask.Marked = True
     End If
+    
 next_task:
   Next oTask
   
@@ -198,7 +207,7 @@ Public Function cptRxTest( _
     Optional ByVal MultiLine As Boolean = True) As Boolean
  
     ' Wow, that was easy:
-    cptRxTest = cptGetRegex(Pattern, IgnoreCase, MultiLine, False).test(SourceString)
+    cptRxTest = cptGetRegex(Pattern, IgnoreCase, MultiLine, False).Test(SourceString)
     
 End Function
 
