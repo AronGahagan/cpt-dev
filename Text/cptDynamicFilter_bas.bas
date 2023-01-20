@@ -36,6 +36,7 @@ Dim vArray As Variant
     .txtFilter = ""
     With .cboField
       .Clear
+      'get local custom text fields
       For lngItem = 1 To 30
         lngFieldConstant = FieldNameToFieldConstant("Text" & lngItem)
         strCustomFieldName = CustomFieldGetName(lngFieldConstant)
@@ -43,6 +44,14 @@ Dim vArray As Variant
           strCustomFields = strCustomFields & strCustomFieldName & ","
         End If
       Next lngItem
+      
+      'get enterprise custom fields
+      For lngItem = 188776000 To 188778000 '2000 should do it for now
+        If Application.FieldConstantToFieldName(lngItem) <> "<Unavailable>" Then
+          strCustomFields = strCustomFields & FieldConstantToFieldName(lngItem) & ","
+        End If
+      Next lngItem
+      
       'remove terminal comma, reducing array size by one
       strCustomFields = Left(strCustomFields, Len(strCustomFields) - 1)
       vArray = Split(strCustomFields, ",")
