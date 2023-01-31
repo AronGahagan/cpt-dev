@@ -190,7 +190,7 @@ frx:
     strNewFileName = strModule & "_" & Format(Now, "hhnnss")
     ThisProject.VBProject.VBComponents(strModule).Name = strNewFileName
     DoEvents
-    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(strNewFileName)
+    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(strNewFileName)
     cptCore_bas.cptStartEvents
     DoEvents
   End If
@@ -1531,7 +1531,7 @@ Sub cptCreateFilter(strFilter As String)
 
   Select Case strFilter
     Case "Marked"
-      FilterEdit Name:="Marked", TaskFilter:=True, create:=True, OverwriteExisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
+      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
       
   End Select
   
@@ -1989,16 +1989,15 @@ Sub cptGetSums(ByRef oTasks As MSProject.Tasks, lngFieldID As Long)
   dblNumber = 0#
   dblWork = 0#
   lngTasks = oTasks.Count
+  
   strFieldName = FieldConstantToFieldName(lngFieldID)
-  If Len(CustomFieldGetName(lngFieldID)) > 0 Then
-    strCustomFieldName = CustomFieldGetName(lngFieldID)
-  End If
   
   If Len(cptRegEx(strFieldName, "Cost|Duration|Number|Work")) > 0 Then
     lngTask = 0
     For Each oTask In oTasks
       If oTask Is Nothing Then GoTo next_task
       If Not oTask.Active Then GoTo next_task
+      If oTask.GetField(lngFieldID) = "#ERROR" Then GoTo next_task
       'do not ignore external tasks
       'do not ignore summary tasks
       If strFieldName = "Actual Cost" Then dblCost = dblCost + oTask.ActualCost
@@ -2090,22 +2089,24 @@ Sub cptGetSums(ByRef oTasks As MSProject.Tasks, lngFieldID As Long)
       If strFieldName = "Baseline8 Work" Then dblWork = dblWork + oTask.Baseline8Work
       If strFieldName = "Baseline9 Work" Then dblWork = dblWork + oTask.Baseline9Work
       If strFieldName = "Baseline10 Work" Then dblWork = dblWork + oTask.Baseline10Work
+
 next_task:
       lngTask = lngTask + 1
-      Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; Calculating...(" & Format(lngTask / lngTasks, "0%") & ")"
+      Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & " | Calculating...(" & Format(lngTask / lngTasks, "0%") & ")"
     Next oTask
   End If
-
+  
+  strCustomFieldName = CustomFieldGetName(lngFieldID)
   If Len(strCustomFieldName) > 0 Then strFieldName = strCustomFieldName & " (" & strFieldName & ")"
 
   If dblCost > 0 Then
-    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & strFieldName & ": " & Format(dblCost, "$#,###,##0.00")
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & " | " & strFieldName & ": " & Format(dblCost, "$#,###,##0.00")
   ElseIf lngDuration > 0 Then
-    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & strFieldName & ": " & Format(lngDuration / 480, "#,###,##0d")
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & " | " & strFieldName & ": " & Format(lngDuration / 480, "#,###,##0d")
   ElseIf dblNumber > 0 Then
-    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & strFieldName & ": " & Format(dblNumber, "#,###,##0.00")
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & " | " & strFieldName & ": " & Format(dblNumber, "#,###,##0.00")
   ElseIf dblWork > 0 Then
-    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & "; " & strFieldName & ": " & Format(dblWork / 60, "#,###,##0.00h")
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & " | " & strFieldName & ": " & Format(dblWork / 60, "#,###,##0.00h")
   Else
     Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected"
   End If
