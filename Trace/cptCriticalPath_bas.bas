@@ -1156,7 +1156,7 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
     Else
     
         'using edays; calculate date diff in minutes
-        tempFloat = DateDiff("n", pDate, sDate)
+        tempFloat = VBA.DateDiff("n", pDate, sDate)
     
     End If
     

@@ -1069,7 +1069,7 @@ Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, 
   If IsDate(ActiveProject.StatusDate) Then
     dtStatus = FormatDateTime(CDate(Me.txtStatusDate), vbShortDate)
     If dtStatus <> CDate(ActiveProject.StatusDate) Then
-      lngDiff = DateDiff("d", CDate(Me.txtHideCompleteBefore), CDate(Me.txtStatusDate))
+      lngDiff = VBA.DateDiff("d", CDate(Me.txtHideCompleteBefore), CDate(Me.txtStatusDate))
       Me.txtStatusDate = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
       Me.txtHideCompleteBefore = DateAdd("d", -lngDiff, ActiveProject.StatusDate)
     End If
