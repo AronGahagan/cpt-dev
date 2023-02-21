@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.5</cpt_version>
+'<cpt_version>v1.0.6</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -76,6 +76,7 @@ next_task:
   blnApplyFilter = Me.chkApplyFilter
   If blnApplyFilter Then
     ActiveWindow.TopPane.Activate
+    OptionsViewEx DisplaySummaryTasks:=True
     SelectAll
     OutlineShowAllTasks
     On Error Resume Next
