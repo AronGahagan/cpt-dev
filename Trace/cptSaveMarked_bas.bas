@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveMarked_bas"
-'<cpt_version>v1.0.6</cpt_version>
+'<cpt_version>v1.0.7</cpt_version>
 Option Explicit
 
 Sub cptShowSaveMarked_frm()
@@ -33,7 +33,7 @@ Sub cptShowSaveMarked_frm()
       .cboProjects.Locked = True
       .cboProjects.Enabled = False
     End If
-    .lblDir = cptDir & "\settings\cpt-marked.adtg; cpt-marked-details.adtg"
+    .lblDir.Caption = "%UserProfile%\cpt-backup\settings\cpt-marked.adtg; cpt-marked-details.adtg"
     .Show False
   End With
 
@@ -139,7 +139,7 @@ End Sub
 Sub cptSaveMarked()
   'objects
   Dim oTask As MSProject.Task
-  Dim rstMarked As ADODB.Recordset
+  Dim rstMarked As Object 'ADODB.Recordset
   'strings
   Dim strProject As String
   Dim strGUID As String

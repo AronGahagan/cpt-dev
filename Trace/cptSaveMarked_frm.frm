@@ -14,7 +14,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-'<cpt_version>v1.0.6</cpt_version>
+'<cpt_version>v1.0.7</cpt_version>
 Option Explicit
 
 Private Sub cmdDone_Click()
@@ -75,6 +75,7 @@ next_task:
   blnApplyFilter = Me.chkApplyFilter
   If blnApplyFilter Then
     ActiveWindow.TopPane.Activate
+    OptionsViewEx DisplaySummaryTasks:=True
     SelectAll
     OutlineShowAllTasks
     On Error Resume Next
@@ -99,7 +100,7 @@ End Sub
 
 Private Sub cmdRemove_Click()
   'objects
-  Dim rstMarked As ADODB.Recordset 'Object
+  Dim rstMarked As Object 'ADODB.Recordset
   'strings
   Dim strMarked As String
   'longs
