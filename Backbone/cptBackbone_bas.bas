@@ -1,12 +1,12 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.1.3</cpt_version>
+'<cpt_version>v1.1.4</cpt_version>
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
   'objects
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   Dim oLookupTable As LookupTable
   Dim oOutlineCode As OutlineCode
   Dim c As Object
@@ -130,7 +130,7 @@ End Sub
 Sub cptImportCWBSFromServer(lngOutlineCode As Long)
   'objects
   Dim c As Object
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   Dim oRange As Object
   Dim oWorksheet As Object
   Dim oWorkbook As Object
@@ -245,8 +245,8 @@ End Sub
 
 Sub cptImportAppendixB(lngOutlineCode As Long)
   'objects
-  Dim TaskTable As Object 'TaskTable
-  Dim Task As Task
+  Dim oTaskTable As Object 'TaskTable
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngItem As Long
@@ -363,13 +363,13 @@ Sub cptImportAppendixB(lngOutlineCode As Long)
     lngItem = 0
     Do While Not .EOF
       lngItem = lngItem + 1
-      Set Task = ActiveProject.Tasks.Add(.Fields(1).Value)
-      Task.SetField lngOutlineCode, .Fields(0)
+      Set oTask = ActiveProject.Tasks.Add(.Fields(1).Value)
+      oTask.SetField lngOutlineCode, .Fields(0)
       ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode)).LookupTable.Item(lngItem).Description = .Fields(1).Value
 
       lngOutlineLevel = Len(.Fields(0).Value) - Len(Replace(.Fields(0).Value, ".", ""))
       If lngOutlineLevel > 0 Then
-        Task.OutlineLevel = lngOutlineLevel + 1
+        oTask.OutlineLevel = lngOutlineLevel + 1
       End If
       
       .MoveNext
@@ -381,9 +381,9 @@ Sub cptImportAppendixB(lngOutlineCode As Long)
   If Len(ActiveProject.CurrentTable) > 0 Then
     SelectBeginning
     SetRowHeight 1, "all"
-    Set TaskTable = ActiveProject.TaskTables(ActiveProject.CurrentTable)
-    For lngField = 1 To TaskTable.TableFields.Count
-      If FieldConstantToFieldName(TaskTable.TableFields(lngField).Field) = "Name" Then
+    Set oTaskTable = ActiveProject.TaskTables(ActiveProject.CurrentTable)
+    For lngField = 1 To oTaskTable.TableFields.Count
+      If FieldConstantToFieldName(oTaskTable.TableFields(lngField).Field) = "Name" Then
         ColumnBestFit lngField
         Exit For
       End If
@@ -397,8 +397,8 @@ Sub cptImportAppendixB(lngOutlineCode As Long)
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
-  Set TaskTable = Nothing
-  Set Task = Nothing
+  Set oTaskTable = Nothing
+  Set oTask = Nothing
 
   Exit Sub
 err_here:
@@ -408,8 +408,8 @@ End Sub
 
 Sub cptImportAppendixE(lngOutlineCode As Long)
   'objects
-  Dim TaskTable As Object 'TaskTable
-  Dim Task As Task
+  Dim oTaskTable As Object 'TaskTable
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngItem As Long
@@ -526,13 +526,13 @@ Sub cptImportAppendixE(lngOutlineCode As Long)
     lngItem = 0
     Do While Not .EOF
       lngItem = lngItem + 1
-      Set Task = ActiveProject.Tasks.Add(.Fields(1).Value)
-      Task.SetField lngOutlineCode, .Fields(0)
+      Set oTask = ActiveProject.Tasks.Add(.Fields(1).Value)
+      oTask.SetField lngOutlineCode, .Fields(0)
       ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode)).LookupTable.Item(lngItem).Description = .Fields(1).Value
 
       lngOutlineLevel = Len(.Fields(0).Value) - Len(Replace(.Fields(0).Value, ".", ""))
       If lngOutlineLevel > 0 Then
-        Task.OutlineLevel = lngOutlineLevel + 1
+        oTask.OutlineLevel = lngOutlineLevel + 1
       End If
       
       .MoveNext
@@ -544,9 +544,9 @@ Sub cptImportAppendixE(lngOutlineCode As Long)
   If Len(ActiveProject.CurrentTable) > 0 Then
     SelectBeginning
     SetRowHeight 1, "all"
-    Set TaskTable = ActiveProject.TaskTables(ActiveProject.CurrentTable)
-    For lngField = 1 To TaskTable.TableFields.Count
-      If FieldConstantToFieldName(TaskTable.TableFields(lngField).Field) = "Name" Then
+    Set oTaskTable = ActiveProject.TaskTables(ActiveProject.CurrentTable)
+    For lngField = 1 To oTaskTable.TableFields.Count
+      If FieldConstantToFieldName(oTaskTable.TableFields(lngField).Field) = "Name" Then
         ColumnBestFit lngField
         Exit For
       End If
@@ -560,8 +560,8 @@ Sub cptImportAppendixE(lngOutlineCode As Long)
 exit_here:
   On Error Resume Next
   Application.CloseUndoTransaction
-  Set TaskTable = Nothing
-  Set Task = Nothing
+  Set oTaskTable = Nothing
+  Set oTask = Nothing
 
   Exit Sub
 err_here:
@@ -780,6 +780,8 @@ Sub cptExport81334D(lngOutlineCode As Long)
         cptBackbone_frm.lblStatus.Caption = "Download failed."
         'fail: prompt to request by email
         If MsgBox("Unable to download template. Request via email?", vbExclamation + vbYesNo, "No Connection") = vbYes Then
+          MsgBox "When the template arrives, please save to:" & vbCrLf & vbCrLf & strTemplateDir, vbOKOnly + vbInformation, "Save Location"
+          Shell "explorer.exe " & strTemplateDir, vbNormalFocus
           On Error Resume Next
           Set oOutlook = GetObject(, "Outlook.Application")
           If oOutlook Is Nothing Then
@@ -865,16 +867,15 @@ Sub cptExport81334D(lngOutlineCode As Long)
 exit_here:
   On Error Resume Next
   Set oMailItem = Nothing
-  Set oExcel = Nothing
   cptBackbone_frm.lblStatus.Caption = "Ready..."
   cptBackbone_frm.lblProgress.Width = cptBackbone_frm.lblStatus.Width
   Set oLookupTable = Nothing
   Set oOutlineCode = Nothing
   Set wsDictionary = Nothing
   Set wsIndex = Nothing
-  Set oWorkbook = Nothing
   oExcel.Calculation = -4105 'xlAutomatic
   oExcel.ScreenUpdating = True
+  Set oWorkbook = Nothing
   Set oExcel = Nothing
   Set oStream = Nothing
   Set oXMLHttpDoc = Nothing
@@ -1005,7 +1006,7 @@ Sub cptCreateCode(lngOutlineCode As Long)
   Dim objOutlineCode As OutlineCode
   Dim objLookupTable As LookupTable
   Dim objLookupTableEntry As LookupTableEntry
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   Dim strWBS As String, strParent As String, strChild As String
   'longs
