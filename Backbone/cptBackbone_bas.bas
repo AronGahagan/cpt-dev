@@ -865,16 +865,15 @@ Sub cptExport81334D(lngOutlineCode As Long)
 exit_here:
   On Error Resume Next
   Set oMailItem = Nothing
-  Set oExcel = Nothing
   cptBackbone_frm.lblStatus.Caption = "Ready..."
   cptBackbone_frm.lblProgress.Width = cptBackbone_frm.lblStatus.Width
   Set oLookupTable = Nothing
   Set oOutlineCode = Nothing
   Set wsDictionary = Nothing
   Set wsIndex = Nothing
-  Set oWorkbook = Nothing
   oExcel.Calculation = -4105 'xlAutomatic
   oExcel.ScreenUpdating = True
+  Set oWorkbook = Nothing
   Set oExcel = Nothing
   Set oStream = Nothing
   Set oXMLHttpDoc = Nothing
