@@ -56,13 +56,21 @@ Public Sub lboMetrics_AfterUpdate()
   strMetric = Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0)
   strTitle = Me.lboMetrics.List(Me.lboMetrics.ListIndex, 1)
   strTarget = Me.lboMetrics.List(Me.lboMetrics.ListIndex, 2)
-  lngX = CLng(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 3))
+  If Not IsNull(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 3)) Then
+    lngX = CLng(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 3))
+  Else
+    lngX = 0
+  End If
   If Not IsNull(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 4)) Then
     lngY = CLng(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 4))
   Else
     lngY = 0
   End If
-  strScore = Me.lboMetrics.List(Me.lboMetrics.ListIndex, 5)
+  If Not IsNull(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 5)) Then
+    strScore = Me.lboMetrics.List(Me.lboMetrics.ListIndex, 5)
+  Else
+    strScore = "-"
+  End If
   strDescription = strMetric & vbCrLf
   strDescription = strDescription & strTitle & vbCrLf & vbCrLf
   strDescription = strDescription & "TARGET: " & strTarget & vbCrLf
@@ -74,6 +82,8 @@ Public Sub lboMetrics_AfterUpdate()
       strDescription = strDescription & "SCORE: " & strScore
     Case "06A506b"
       strDescription = strDescription & "SCORE: " & strScore
+    Case "06A212a"
+      strDescription = strDescription & vbCrLf & "...pairs exported to Excel" & vbCrLf & "...click to filter"
     Case Else
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
   End Select

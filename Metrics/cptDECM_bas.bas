@@ -215,6 +215,7 @@ Sub cptDECM_GET_DATA()
   'doubles
   Dim dblScore As Double
   'booleans
+  Dim blnDumpToExcel As Boolean
   'variants
   Dim vHeader As Variant
   Dim vField As Variant
@@ -345,6 +346,8 @@ Sub cptDECM_GET_DATA()
   cptDECM_frm.lboMetrics.Clear
   cptDECM_frm.Show False
   
+  blnDumpToExcel = False 'todo: if DumpToExcel then single Workbook, do better with tab names
+  
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If Not oTask.Active Then GoTo next_task
@@ -418,7 +421,7 @@ next_task:
     lngY = .RecordCount
     .Close
   End With
-  strSQL = "SELECT CA,COUNT(OBS) "
+  strSQL = "SELECT CA,COUNT(OBS) AS CountOfOBS "
   strSQL = strSQL & "FROM (SELECT DISTINCT CA,OBS FROM [tasks.csv]) "
   strSQL = strSQL & "WHERE CA IS NOT NULL "
   strSQL = strSQL & "GROUP BY CA "
@@ -430,11 +433,11 @@ next_task:
     If lngX > 0 Then
       .MoveFirst
       Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
+        strList = strList & .Fields("CA") & "," 'todo: UID is not in the query
         .MoveNext
       Loop
     End If
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -465,7 +468,7 @@ next_task:
   'Y = Total count of CAs
   'X/Y <= 5%
   'we already have lngY...
-  strSQL = "SELECT CA,COUNT(CAM) "
+  strSQL = "SELECT CA,COUNT(CAM) AS CountOfCAM "
   strSQL = strSQL & "FROM (SELECT DISTINCT CA,CAM FROM [tasks.csv]) "
   strSQL = strSQL & "WHERE CA IS NOT NULL "
   strSQL = strSQL & "GROUP BY CA "
@@ -477,11 +480,11 @@ next_task:
     If lngX > 0 Then
       .MoveFirst
       Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
+        strList = strList & .Fields("CA") & "," 'todo: fix this - UID is not in the query
         .MoveNext
       Loop
     End If
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -512,7 +515,7 @@ next_task:
   'Y = Total count of CAs
   'X/Y = 0%
   'we already have lngY...
-  strSQL = "SELECT CA,COUNT(WBS) "
+  strSQL = "SELECT CA,COUNT(WBS) AS CountOfWBS "
   strSQL = strSQL & "FROM (SELECT DISTINCT CA,WBS FROM [tasks.csv]) "
   strSQL = strSQL & "WHERE CA IS NOT NULL "
   strSQL = strSQL & "GROUP BY CA "
@@ -524,11 +527,11 @@ next_task:
     If lngX > 0 Then
       .MoveFirst
       Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
+        strList = strList & .Fields("CA") & "," 'todo: fix this - UID is not in the query
         .MoveNext
       Loop
     End If
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -558,7 +561,7 @@ next_task:
   'X = count of incomplete WPs that have more than one EVT or no EVT assigned
   'Y = count of incomplete WPs
   'X/Y <= 5%
-  strSQL = "SELECT WP,COUNT(EVT) "
+  strSQL = "SELECT WP,COUNT(EVT) AS CountOfEVT "
   strSQL = strSQL & "FROM (SELECT DISTINCT WP,EVT FROM [tasks.csv] WHERE WP IS NOT NULL AND AF IS NULL) "
   strSQL = strSQL & "GROUP BY WP "
   strSQL = strSQL & "HAVING COUNT(EVT)>1"
@@ -569,11 +572,11 @@ next_task:
     If lngX > 0 Then
       .MoveFirst
       Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
+        strList = strList & .Fields("WP") & "," 'todo: fix this - UID is not in the query
         .MoveNext
       Loop
     End If
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   strSQL = "SELECT DISTINCT WP "
@@ -1042,7 +1045,34 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A211a...done."
   Application.StatusBar = "Getting Schedule Metric: 06A211a...done."
   DoEvents
-
+  
+  '06A212a - out of sequence
+  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A212a..."
+  Application.StatusBar = "Getting Schedule Metric: 06A212a..."
+  cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A212a"
+  'cptDECM_frm.lboMetrics.Value = "06A501a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Out of Sequence"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  DoEvents
+  'X = Count of out of sequence conditions
+  strList = cptGetOutOfSequence 'function returns lngX|uid vbtab uid vbtab uid
+  lngX = CLng(Split(strList, "|")(0))
+  strList = Split(strList, "|")(1)
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = ""
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
+  If lngX = 0 Then
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  ElseIf lngX > 0 Then
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description; see workbook"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A212a...done."
+  Application.StatusBar = "Getting Schedule Metric: 06A212a...done."
+  DoEvents
+  
   '6A301a - vertical integration todo: lower level baselines rollup
   
   '6A401a - critical path todo: can our tool satisfy?
@@ -1106,7 +1136,7 @@ next_task:
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A505a"
   'cptDECM_frm.lboMetrics.Value = "06A505a"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "In-Progress Tasks w/ Actual Start"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "In-Progress Tasks w/o Actual Start"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = count of in-progress tasks/activities & milestones with no actual start date
@@ -1158,7 +1188,7 @@ next_task:
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A505b"
   'cptDECM_frm.lboMetrics.Value = "06A505b"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Complete Tasks w/ Actual Finish"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Complete Tasks w/o Actual Finish"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = count of complete tasks/activities & milestones with no actual finish date
@@ -1531,10 +1561,10 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
   oWorksheet.Columns("H:I").Delete
   
   With oWorksheet.Range(oWorksheet.[G2], oWorksheet.[G2].End(xlDown))
-    .Replace What:=strPass, Replacement:="2", LookAt:=xlWhole, _
+    .Replace what:=strPass, Replacement:="2", lookat:=xlWhole, _
         SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
         ReplaceFormat:=False, FormulaVersion:=xlReplaceFormula2
-    .Replace What:=strFail, Replacement:="0", LookAt:=xlWhole, _
+    .Replace what:=strFail, Replacement:="0", lookat:=xlWhole, _
         SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
         ReplaceFormat:=False, FormulaVersion:=xlReplaceFormula2
     .FormatConditions.AddIconSetCondition
@@ -1656,6 +1686,13 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       End If
       'todo: group by CA,WBS
     
+    Case "06A212a" 'out of sequence
+      If Len(strList) > 0 Then
+        SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+      End If
+    
     Case "10A102a" '1 WP : 1 EVT
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
@@ -1693,3 +1730,387 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
   SelectBeginning
   ScreenUpdating = True
 End Sub
+
+
+Function cptGetOutOfSequence() As String
+  'todo: rename and convert to function?
+  'objects
+  Dim oAssignment As MSProject.Assignment
+  Dim oOOS As Scripting.Dictionary
+  Dim oCalendar As MSProject.Calendar
+  Dim oSubproject As MSProject.Subproject
+  Dim oSubMap As Scripting.Dictionary
+  Dim oTask As MSProject.Task
+  Dim oLink As MSProject.TaskDependency
+  Dim oExcel As Excel.Application
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
+  'strings
+  Dim strOOS As String
+  Dim strEarliest As String
+  Dim strProject As String
+  Dim strMacro As String
+  Dim strMsg As String
+  Dim strProjectNumber As String
+  Dim strProjectName As String
+  Dim strDir As String
+  Dim strFile As String
+  'longs
+  Dim lngLagType As Long
+  Dim lngLag As Long
+  Dim lngFactor As Long
+  Dim lngToUID As Long
+  Dim lngFromUID As Long
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  Dim lngLastRow As Long
+  Dim lngOOS As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnElapsed As Boolean
+  Dim blnSubprojects As Boolean
+  'variants
+  'dates
+  Dim dtStatus As Date
+  Dim dtDate As Date
+  
+  If cptErrorTrapping Then
+    On Error GoTo err_here
+    cptSpeed True
+  Else
+    On Error GoTo 0
+  End If
+  
+  blnSubprojects = ActiveProject.Subprojects.Count > 0
+  If blnSubprojects Then
+    'get correct task count
+    lngTasks = ActiveProject.Tasks.Count
+    'set up mapping
+    If oSubMap Is Nothing Then
+      Set oSubMap = CreateObject("Scripting.Dictionary")
+    Else
+      oSubMap.RemoveAll
+    End If
+    For Each oSubproject In ActiveProject.Subprojects
+      If InStr(oSubproject.Path, "\") > 0 Then 'offline
+        oSubMap.Add Replace(Dir(oSubproject.Path), ".mpp", ""), 0
+      ElseIf InStr(oSubproject.Path, "<>") > 0 Then 'online
+        oSubMap.Add oSubproject.Path, 0
+      End If
+      lngTasks = lngTasks + oSubproject.SourceProject.Tasks.Count
+    Next oSubproject
+    For Each oTask In ActiveProject.Tasks
+      If oTask Is Nothing Then GoTo next_mapping_task
+      If oSubMap.Exists(oTask.Project) Then
+        If oSubMap(oTask.Project) > 0 Then GoTo next_mapping_task
+        If Not oTask.Summary Then
+          oSubMap.Item(oTask.Project) = CLng(oTask.UniqueID / 4194304)
+        End If
+      End If
+next_mapping_task:
+    Next oTask
+    
+  Else
+    lngTasks = ActiveProject.Tasks.Count
+  End If
+  
+  Set oExcel = CreateObject("Excel.Application")
+  On Error Resume Next
+  Set oWorkbook = oExcel.Workbooks.Add
+  Set oWorksheet = oWorkbook.Sheets(1)
+  oWorksheet.Name = "06A212a"
+  oWorksheet.[A2:K2] = Split("UID,ID,TASK,DATE,TYPE,LAG,UID,ID,TASK,DATE,COMMENT", ",")
+  oWorksheet.[A1:D1].Merge
+  oWorksheet.[A1].Value = "FROM"
+  oWorksheet.[A1].HorizontalAlignment = xlCenter
+  oWorksheet.[G1:J1].Merge
+  oWorksheet.[G1].Value = "TO"
+  oWorksheet.[G1].HorizontalAlignment = xlCenter
+  oWorksheet.[A1:K2].Font.Bold = True
+  oExcel.EnableEvents = False
+    
+  lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
+  lngTask = 0
+  
+  Set oOOS = CreateObject("Scripting.Dictionary")
+  
+  For Each oTask In ActiveProject.Tasks
+    If oTask Is Nothing Then GoTo next_task 'skip blank lines
+    If oTask.Summary Then GoTo next_task 'skip summary tasks
+    If Not oTask.Active Then GoTo next_task 'skip inactive tasks
+    If IsDate(oTask.ActualFinish) Then GoTo next_task 'incomplete predecessors only
+    
+    For Each oLink In oTask.TaskDependencies
+      If oLink.From.Guid = oTask.Guid Then   'predecessors only
+        If Not oLink.To.Active Then GoTo next_link
+        lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
+        If blnSubprojects And oLink.From.ExternalTask Then
+          'fix the pred UID if master-sub
+          lngFromUID = oLink.From.GetField(185073906) Mod 4194304
+          strProject = oLink.From.Project
+          If InStr(oLink.From.Project, "\") > 0 Then
+            strProject = Replace(strProject, ".mpp", "")
+            strProject = Mid(strProject, InStrRev(strProject, "\") + 1)
+          End If
+          lngFactor = oSubMap(strProject)
+          lngFromUID = (lngFactor * 4194304) + lngFromUID
+        Else
+          If blnSubprojects Then
+            lngFactor = Round(oTask / 4194304, 0)
+            lngFromUID = (lngFactor * 4194304) + oLink.From.UniqueID
+          Else
+            lngFromUID = oLink.From.UniqueID
+          End If
+        End If
+        lngToUID = oLink.To.UniqueID
+        lngLag = 0
+        If oLink.Lag <> 0 Then
+          'elapsed lagType properties are even
+          'see https://learn.microsoft.com/en-us/office/vba/api/project.pjformatunit
+          blnElapsed = False
+          If (oLink.LagType Mod 2) = 0 Then
+            blnElapsed = True
+          End If
+          lngLag = oLink.Lag
+        End If
+        If oLink.To.Calendar = "None" Then
+          Set oCalendar = ActiveProject.Calendar
+        Else
+          Set oCalendar = oLink.To.CalendarObject
+        End If
+        Select Case oLink.Type
+          Case pjFinishToFinish
+            'get target successor finish date
+            'account for lag
+            If blnElapsed Then
+              dtDate = DateAdd("n", lngLag, oLink.From.Finish)
+            Else
+              dtDate = Application.DateAdd(oLink.From.Finish, lngLag, oCalendar)
+            End If
+            If oLink.To.Finish < dtDate Or IsDate(oLink.To.ActualFinish) Then
+              lngOOS = lngOOS + 1
+              If Not oOOS.Exists(oLink.From.UniqueID) Then oOOS.Add oLink.From.UniqueID, oLink.From.UniqueID
+              If Not oOOS.Exists(oLink.To.UniqueID) Then oOOS.Add oLink.To.UniqueID, oLink.To.UniqueID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oLink.From.ID)
+              oWorksheet.Cells(lngLastRow, 3) = oLink.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oLink.From.Finish
+              oWorksheet.Cells(lngLastRow, 5) = "FF"
+              oWorksheet.Cells(lngLastRow, 6) = oLink.Lag / (8 * 60)
+              oWorksheet.Cells(lngLastRow, 7) = lngToUID
+              oWorksheet.Cells(lngLastRow, 8) = IIf(blnSubprojects, "-", oLink.To.ID)
+              oWorksheet.Cells(lngLastRow, 9) = oLink.To.Name
+              oWorksheet.Cells(lngLastRow, 10) = oLink.To.Finish
+              If IsDate(oLink.To.ActualFinish) Then
+                oWorksheet.Cells(lngLastRow, 11) = "Successor has Actual Finish"
+              Else
+                If IsDate(oLink.To.ConstraintDate) And ActiveProject.HonorConstraints Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Finish (has " & Choose(oLink.To.ConstraintType, "", "MSO", "MFO", "SNET", "SNLT", "FNET", "FNLT") & " constraint)"
+                ElseIf lngLag < 0 Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Finish (has " & Format(lngLag / (60 * 8), "#0d") & " lead)"
+                ElseIf IsDate(oLink.To.Deadline) Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Finish (has deadline)"
+                Else
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Finish" 'what else would cause this?
+                End If
+              End If
+            End If
+          Case pjFinishToStart
+            'get target successor start date
+            'account for lag
+            If blnElapsed Then
+              dtDate = DateAdd("n", lngLag, oLink.From.Finish)
+            Else
+              dtDate = Application.DateAdd(oLink.From.Finish, lngLag, oCalendar)
+            End If
+            'compare and report
+            If oLink.To.Start < dtDate Or IsDate(oLink.To.ActualStart) Then
+              lngOOS = lngOOS + 1
+              If Not oOOS.Exists(oLink.From.UniqueID) Then oOOS.Add oLink.From.UniqueID, oLink.From.UniqueID
+              If Not oOOS.Exists(oLink.To.UniqueID) Then oOOS.Add oLink.To.UniqueID, oLink.To.UniqueID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oLink.From.ID)
+              oWorksheet.Cells(lngLastRow, 3) = oLink.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oLink.From.Finish
+              oWorksheet.Cells(lngLastRow, 5) = "FS"
+              oWorksheet.Cells(lngLastRow, 6) = oLink.Lag / (8 * 60)
+              oWorksheet.Cells(lngLastRow, 7) = lngToUID
+              oWorksheet.Cells(lngLastRow, 8) = IIf(blnSubprojects, "-", oLink.To.ID)
+              oWorksheet.Cells(lngLastRow, 9) = oLink.To.Name
+              oWorksheet.Cells(lngLastRow, 10) = oLink.To.Start
+              If IsDate(oLink.To.ActualStart) Then
+                oWorksheet.Cells(lngLastRow, 11) = "Successor has Actual Start"
+              Else
+                If IsDate(oLink.To.ConstraintDate) And ActiveProject.HonorConstraints Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Finish (has " & Choose(oLink.To.ConstraintType, "", "MSO", "MFO", "SNET", "SNLT", "FNET", "FNLT") & " constraint)"
+                ElseIf lngLag < 0 Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Finish (has " & Format(lngLag / (60 * 8), "#0d") & " lead)"
+                ElseIf IsDate(oLink.To.Deadline) Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Finish (has deadline)"
+                Else
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Finish" 'what else could cause this?
+                End If
+              End If
+            End If
+          Case pjStartToStart
+            'get target successor start date
+            'account for lag
+            If blnElapsed Then
+              dtDate = DateAdd("n", lngLag, oLink.From.Start)
+            Else
+              dtDate = Application.DateAdd(oLink.From.Start, lngLag, oCalendar)
+            End If
+            'compare and report
+            If IsDate(oLink.To.ActualStart) Or oLink.To.Start < dtDate Then 'should not be an issue if both have actual starts
+              lngOOS = lngOOS + 1
+              If Not oOOS.Exists(oLink.From.UniqueID) Then oOOS.Add oLink.From.UniqueID, oLink.From.UniqueID
+              If Not oOOS.Exists(oLink.To.UniqueID) Then oOOS.Add oLink.To.UniqueID, oLink.To.UniqueID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oLink.From.ID)
+              oWorksheet.Cells(lngLastRow, 3) = oLink.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oLink.From.Start
+              oWorksheet.Cells(lngLastRow, 5) = "SS"
+              oWorksheet.Cells(lngLastRow, 6) = oLink.Lag / (8 * 60)
+              oWorksheet.Cells(lngLastRow, 7) = lngToUID
+              oWorksheet.Cells(lngLastRow, 8) = IIf(blnSubprojects, "-", oLink.To.ID)
+              oWorksheet.Cells(lngLastRow, 9) = oLink.To.Name
+              oWorksheet.Cells(lngLastRow, 10) = oLink.To.Start
+              If IsDate(oLink.To.ActualStart) Then
+                oWorksheet.Cells(lngLastRow, 11) = "Successor has Actual Start"
+              Else
+                If IsDate(oLink.To.ConstraintDate) And ActiveProject.HonorConstraints Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Start (has " & Choose(oLink.To.ConstraintType, "", "MSO", "MFO", "SNET", "SNLT", "FNET", "FNLT") & " constraint)"
+                ElseIf lngLag < 0 Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Start (has " & Format(lngLag / (60 * 8), "#0d") & " lead)"
+                ElseIf IsDate(oLink.To.Deadline) Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Start (has deadline lead)"
+                Else
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Start < Predecessor Start" 'what else could cause this?
+                End If
+              End If
+            End If
+          Case pjStartToFinish
+            'this should never happen
+            'get target finish
+            If blnElapsed Then
+              dtDate = DateAdd("n", lngLag, oLink.From.Start)
+            Else
+              dtDate = Application.DateAdd(oLink.From.Start, lngLag, oCalendar)
+            End If
+            'compare and report
+            If IsDate(oLink.To.ActualFinish) Or oLink.To.Finish < oLink.From.Start Then
+              lngOOS = lngOOS + 1
+              If Not oOOS.Exists(oLink.From.UniqueID) Then oOOS.Add oLink.From.UniqueID, oLink.From.UniqueID
+              If Not oOOS.Exists(oLink.To.UniqueID) Then oOOS.Add oLink.To.UniqueID, oLink.To.UniqueID
+              oWorksheet.Cells(lngLastRow, 1) = lngFromUID
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oLink.From.ID)
+              oWorksheet.Cells(lngLastRow, 3) = oLink.From.Name
+              oWorksheet.Cells(lngLastRow, 4) = oLink.From.Start
+              oWorksheet.Cells(lngLastRow, 5) = "SF"
+              oWorksheet.Cells(lngLastRow, 6) = oLink.Lag / (8 * 60)
+              oWorksheet.Cells(lngLastRow, 7) = lngToUID
+              oWorksheet.Cells(lngLastRow, 8) = IIf(blnSubprojects, "-", oLink.To.ID)
+              oWorksheet.Cells(lngLastRow, 9) = oLink.To.Name
+              oWorksheet.Cells(lngLastRow, 10) = oLink.To.Finish
+              If IsDate(oLink.To.ActualFinish) Then
+                oWorksheet.Cells(lngLastRow, 11) = "Successor has Actual Finish"
+              Else
+                If IsDate(oLink.To.ConstraintDate) And ActiveProject.HonorConstraints Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Start (has " & Choose(oLink.To.ConstraintType, "", "MSO", "MFO", "SNET", "SNLT", "FNET", "FNLT") & " constraint)"
+                ElseIf lngLag < 0 Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Start (has " & Format(lngLag / (60 * 8), "#0d") & " lead)"
+                ElseIf IsDate(oLink.To.Deadline) Then
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Start (has deadline)"
+                Else
+                  oWorksheet.Cells(lngLastRow, 11) = "Successor Finish < Predecessor Start"
+                End If
+              End If
+            End If
+        End Select
+      End If
+next_link:
+    Next oLink
+next_task:
+    lngTask = lngTask + 1
+    Application.StatusBar = "[06A212a] Analyzing Out of Sequence Status...(" & Format(lngTask / lngTasks, "0%") & ")" & IIf(lngOOS > 0, " | " & lngOOS & " found", "")
+    DoEvents
+  Next oTask
+    
+  'get ~count of OOS oTasks
+  lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
+  
+  'only open workbook if OOS oTasks found
+  If lngOOS = 0 Then
+    oWorkbook.Close False
+    GoTo return_val
+  Else
+    strOOS = Join(oOOS.Keys, vbTab)
+  End If
+    
+  With oExcel.ActiveWindow
+    .Zoom = 85
+    .SplitRow = 2
+    .SplitColumn = 0
+    .FreezePanes = True
+  End With
+  oWorksheet.Columns.AutoFit
+  
+  'add a macro
+  strMacro = "Private Sub Worksheet_SelectionChange(ByVal Target As Range)" & vbCrLf
+  strMacro = strMacro & " Dim MSPROJ As Object, Task As Object" & vbCrLf
+  strMacro = strMacro & " Dim strFrom As String, strTo As String" & vbCrLf
+  strMacro = strMacro & "" & vbCrLf
+  strMacro = strMacro & " On Error GoTo exit_here" & vbCrLf
+  strMacro = strMacro & "" & vbCrLf
+  strMacro = strMacro & " If Target.Cells.Count <> 1 Then Exit Sub" & vbCrLf
+  strMacro = strMacro & "  If Target.Row < 3 Then Exit Sub" & vbCrLf
+  strMacro = strMacro & "  If Target.Column > Me.[A2].End(xlToRight).Column Then Exit Sub" & vbCrLf
+  strMacro = strMacro & "  If Target.Row > Me.[A1048576].End(xlUp).Row Then Exit Sub" & vbCrLf
+  strMacro = strMacro & "  Set MSPROJ = GetObject(, ""MSProject.Application"")" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.ActiveWindow.TopPane.Activate" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.ScreenUpdating = False" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.FilterClear" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.OptionsViewEx DisplaySummaryTasks:=True" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.OutlineShowAllTasks" & vbCrLf
+  strMacro = strMacro & "  strFrom = Me.Cells(Target.Row, 1).Value" & vbCrLf
+  strMacro = strMacro & "  strTo = Me.Cells(Target.Row, 7).Value" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.SetAutoFilter FieldName:=""Unique ID"", FilterType:=2, Criteria1:=strFrom & Chr$(9) & strTo '1=pjAutoFilterIn" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.Find ""Unique ID"", ""equals"", CLng(strFrom)" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.EditGoto Date:=MSPROJ.ActiveProject.Tasks.UniqueID(CLng(strFrom)).Start" & vbCrLf & vbCrLf
+  strMacro = strMacro & "exit_here:" & vbCrLf
+  strMacro = strMacro & "  MSPROJ.ScreenUpdating = True" & vbCrLf
+  strMacro = strMacro & "  Set MSPROJ = Nothing" & vbCrLf
+  strMacro = strMacro & "End Sub"
+  
+  oWorkbook.VBProject.VBComponents("Sheet1").CodeModule.AddFromString strMacro
+  
+  oExcel.Visible = True
+  oExcel.WindowState = xlMinimized
+  
+return_val:
+  cptGetOutOfSequence = CStr(lngOOS) & "|" & strOOS
+  
+exit_here:
+  On Error Resume Next
+  Set oAssignment = Nothing
+  oOOS.RemoveAll
+  Set oOOS = Nothing
+  Set oCalendar = Nothing
+  Set oSubproject = Nothing
+  Set oSubMap = Nothing
+  Application.StatusBar = ""
+  oExcel.EnableEvents = True
+  cptSpeed False
+  Set oTask = Nothing
+  Set oLink = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
+  Exit Function
+err_here:
+  Call cptHandleErr("cptMetrics_bas", "cptFindOutOfSequence", Err, Erl)
+  Resume exit_here
+  
+End Function
+
