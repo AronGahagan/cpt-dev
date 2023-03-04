@@ -17,6 +17,13 @@ Option Explicit
 
 Private Sub cmdDone_Click()
   Unload Me
+  'then clean up after yourself
+  Dim vFile As Variant
+  Dim strFile As String
+  For Each vFile In Split("Schema.ini,tasks.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,pp-x.csv", ",")
+    strFile = Environ("tmp") & "\" & vFile
+    If Dir(strFile) <> vbNullString Then Kill strFile
+  Next vFile
   cptResetAll
 End Sub
 
@@ -101,17 +108,20 @@ Public Sub lboMetrics_AfterUpdate()
         strDir = Environ("tmp")
         Set oFile = oFSO.CreateTextFile(strDir & "\wp-ev.sql.txt", True)
         strMsg = "Hi [person]," & vbCrLf & vbCrLf
-        strMsg = strMsg & "I'm running DECM metric 06A101a which compares the list of discrete, incomplete WPs in the IMS vs what's in the EV Tool. "
-        strMsg = strMsg & "In order to complete this, I need some data from the EV Tool." & vbCrLf
-        strMsg = strMsg & "Could you please provide, in *.csv or *.xlsx format, the list of distinct, discrete, and incomplete WPs currently in the EV Tool?" & vbCrLf & vbCrLf
+        strMsg = strMsg & "I'm running DECM metric 06A101a which compares the list of discrete, incomplete WPs in the IMS vs what's in the EV Tool. " & vbCrLf
+        strMsg = strMsg & "Could you please provide the list of discrete, incomplete WPs currently in the EV Tool?" & vbCrLf & vbCrLf
         strMsg = strMsg & "An example query for COBRA would be:" & vbCrLf
         strMsg = strMsg & String(25, "-") & vbCrLf
-        strMsg = strMsg & "@MyProj = InputBox('Project Name:')" & vbCrLf
+        
+        strMsg = strMsg & "DECLARE @MyProj VARCHAR(MAX) " & vbCrLf
+        strMsg = strMsg & "SET @MyProj=inputbox('Project Name:') " & vbCrLf
         strMsg = strMsg & "SELECT DISTINCT WP " & vbCrLf
         strMsg = strMsg & "FROM CAWP " & vbCrLf
-        strMsg = strMsg & "WHERE PMT <> 'A' " & vbCrLf 'todo: NOT IN ('A',apportioned?)
-        strMsg = strMsg & "AND PCT_COMP<100 " & vbCrLf
-        strMsg = strMsg & "AND PROGRAM=@PROGRAM" & vbCrLf
+        strMsg = strMsg & "WHERE PROGRAM=@MyProj " & vbCrLf
+        strMsg = strMsg & "AND WP<>'' " & vbCrLf
+        strMsg = strMsg & "AND PMT NOT IN ('A','J','M') " & vbCrLf
+        strMsg = strMsg & "AND BCWP<(BAC-100) " & vbCrLf
+        
         strMsg = strMsg & String(25, "-") & vbCrLf & vbCrLf
         strMsg = strMsg & "I appreciate your assistance. Please let me know if you have any questions."
         oFile.Write strMsg
@@ -278,25 +288,7 @@ Private Sub txtTitle_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, By
   Me.txtTitle.Text = strDescription
   
   'todo: user can re-paste data
-  
-  'todo: kick out excel report
-  'todo: three worksheets:
-  'todo: > 1: wp_all,wp_ev,wp_ims
-  'todo: > 2: wp_ims,
-'  strSQL = "SELECT DISTINCT wp_ims.WP FROM [wp-ims.csv] "
-'  strSQL = strSQL & "UNION "
-'  strSQL = strSQL & "SELECT DISTINCT wp_ev.WP FROM [wp-ev.csv]"
-'  Set oRecordset = CreateObject("ADODB.Recordset")
-'  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-'  lngY = oRecordset.RecordCount
-  
-'  Me.lboMetrics.List(Me.lboMetrics.ListIndex, 4) = oRecordset.RecordCount
-'  Set oFile = oFSO.CreateTextFile(strDir & "\wp-all.csv", True)
-'  oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
-'  oFile.Close
-'  oRecordset.Close
-  
-  
+    
 exit_here:
   On Error Resume Next
   Set oRecordset = Nothing

@@ -295,6 +295,10 @@ Sub cptDECM_GET_DATA()
   Print #lngFile, "Format=CSVDelimited"
   Print #lngFile, "ColNameHeader=False"
   Print #lngFile, "Col1=WP text"
+  Print #lngFile, "[pp-x.csv]"
+  Print #lngFile, "Format=CSVDelimited"
+  Print #lngFile, "ColNameHeader=False"
+  Print #lngFile, "Col1=WP text"
   
   Close #lngFile
   
@@ -711,6 +715,64 @@ next_task:
   Application.StatusBar = "Getting EVMS: 10A202a...done."
   DoEvents
   
+  '10A302b - PPs with progress
+  Set oFSO = CreateObject("Scripting.FileSystemObject")
+  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 10A302b..."
+  Application.StatusBar = "Getting Schedule Metric: 10A302b..."
+  cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A302b"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs w EVP > 0"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 2%"
+  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE EVT='K' " 'todo: what about other values/tools
+  oRecordset.Open strSQL, strCon, adOpenStatic, adLockReadOnly
+  If oRecordset.EOF Then
+    lngY = 0
+    lngX = 0
+    dblScore = 0
+    strList = ""
+  Else
+    lngY = oRecordset.RecordCount
+    oRecordset.Close
+    strSQL = "SELECT WP,IIF(SUM(EVP)>0,TRUE,FALSE) AS HasProgress  FROM [tasks.csv] "
+    strSQL = strSQL & "WHERE EVT='K' "
+    strSQL = strSQL & "GROUP BY WP "
+    strSQL = strSQL & "HAVING SUM(EVP)>0"
+    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    If oRecordset.EOF Then
+      lngX = 0
+    Else
+      lngX = oRecordset.RecordCount
+    End If
+    dblScore = Round(lngX / lngY, 2)
+    strList = ""
+    With oRecordset
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & oRecordset(0) & ","
+        .MoveNext
+      Loop
+    End With
+    Set oFile = oFSO.CreateTextFile(strDir & "\pp-x.csv", True)
+    oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+    oFile.Close
+    'todo: export list of PPs with EVP>0
+  End If
+  oRecordset.Close
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore <= 0.02 Then
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A302b...done."
+  Application.StatusBar = "Getting EVMS: 10A302b...done."
+  DoEvents
+  
   '===== SCHEDULE =====
   '06A101a - WPs Missing between IMS vs EV
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A101a..."
@@ -724,7 +786,6 @@ next_task:
   oRecordset.Open strSQL, strCon, adOpenKeyset
   lngX = oRecordset.RecordCount 'pending upload
   lngY = oRecordset.RecordCount 'pending upload
-  Set oFSO = CreateObject("Scripting.FileSystemObject")
   Set oFile = oFSO.CreateTextFile(strDir & "\wp-ims.csv", True)
   oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
   oRecordset.Close
@@ -1637,6 +1698,9 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
   
   blnDetail = True 'todo: make this an option on the form
   
+  strDir = Environ("tmp")
+  strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
+  
   If blnDetail Then
     With cptDECM_frm
       For lngItem = 0 To .lboMetrics.ListCount - 1
@@ -1653,8 +1717,6 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
             'run queries
             oWorksheet.[A2].Value = "NOT IN IMS:"
             Set oRecordset = CreateObject("ADODB.Recordset")
-            strDir = Environ("tmp")
-            strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
             strSQL = "SELECT * FROM [wp-not-in-ims.csv]"
             oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
             oWorksheet.[A3].CopyFromRecordset oRecordset
@@ -1673,6 +1735,24 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
             oWorksheet.Tab.Color = 192
           End If
           GoTo next_item
+        ElseIf .lboMetrics.List(lngItem) = "10A302b" Then
+          If .lboMetrics.List(lngItem, 6) = strFail Then
+            oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
+            'run query
+            oWorksheet.[A2].Value = "PPs with EVP>0"
+            Set oRecordset = CreateObject("ADODB.Recordset")
+            strSQL = "SELECT * FROM [pp-x.csv]"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[C3].CopyFromRecordset oRecordset
+            oRecordset.Close
+            oWorksheet.Cells.Font.Name = "Calibri"
+            oWorksheet.Cells.Font.Size = 11
+            oWorksheet.Cells.WrapText = False
+            oWorksheet.[B3].Select
+            oExcel.ActiveWindow.FreezePanes = True
+            oWorksheet.Columns.AutoFit
+            oWorksheet.Tab.Color = 192
+          End If
         Else
           .lboMetrics_AfterUpdate
         End If
@@ -1813,9 +1893,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
   ScreenUpdating = True
 End Sub
 
-
 Function cptGetOutOfSequence() As String
-  'todo: rename and convert to function?
   'objects
   Dim oAssignment As MSProject.Assignment
   Dim oOOS As Scripting.Dictionary
