@@ -295,10 +295,12 @@ Sub cptDECM_GET_DATA()
   Print #lngFile, "Format=CSVDelimited"
   Print #lngFile, "ColNameHeader=False"
   Print #lngFile, "Col1=WP text"
-  Print #lngFile, "[pp-x.csv]"
-  Print #lngFile, "Format=CSVDelimited"
-  Print #lngFile, "ColNameHeader=False"
-  Print #lngFile, "Col1=WP text"
+  For Each vFile In Split("10A302b-x.csv,10A303a-x.csv", ",")
+    Print #lngFile, "[" & vFile & "]"
+    Print #lngFile, "Format=CSVDelimited"
+    Print #lngFile, "ColNameHeader=False"
+    Print #lngFile, "Col1=WP text"
+  Next vFile
   
   Close #lngFile
   
@@ -753,10 +755,9 @@ next_task:
         .MoveNext
       Loop
     End With
-    Set oFile = oFSO.CreateTextFile(strDir & "\pp-x.csv", True)
+    Set oFile = oFSO.CreateTextFile(strDir & "\10A302b-x.csv", True) 'todo: rename to 10A302b-x.csv
     oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
     oFile.Close
-    'todo: export list of PPs with EVP>0
   End If
   oRecordset.Close
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -773,6 +774,57 @@ next_task:
   Application.StatusBar = "Getting EVMS: 10A302b...done."
   DoEvents
   
+  '10A303a - all PPs have duration?
+  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 10A303a..."
+  Application.StatusBar = "Getting Schedule Metric: 06A101a..."
+  cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A303a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs duration > 0"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+  'we already have lngY
+  If lngY = 0 Then
+    lngX = 0
+    dblScore = 0
+    strList = ""
+  Else
+    strSQL = "SELECT WP,IIF(SUM(DUR)>0,TRUE,FALSE) AS HasProgress  FROM [tasks.csv] "
+    strSQL = strSQL & "WHERE EVT='K' "
+    strSQL = strSQL & "GROUP BY WP "
+    strSQL = strSQL & "HAVING SUM(EVP)>0"
+    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    strList = ""
+    If oRecordset.EOF Then
+      lngX = 0
+    Else
+      lngX = oRecordset.RecordCount
+      With oRecordset
+        .MoveFirst
+        Do While Not .EOF
+          strList = strList & oRecordset(0) & ","
+          .MoveNext
+        Loop
+      End With
+      Set oFile = oFSO.CreateTextFile(strDir & "\10A303a-x.csv", True)
+      oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+      oFile.Close
+    End If
+    dblScore = Round(lngX / lngY, 2)
+  End If
+  oRecordset.Close
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore <= 0.02 Then
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A303a...done."
+  Application.StatusBar = "Getting EVMS: 10A303a...done."
+  DoEvents
+
   '===== SCHEDULE =====
   '06A101a - WPs Missing between IMS vs EV
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A101a..."
@@ -1741,7 +1793,25 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
             'run query
             oWorksheet.[A2].Value = "PPs with EVP>0"
             Set oRecordset = CreateObject("ADODB.Recordset")
-            strSQL = "SELECT * FROM [pp-x.csv]"
+            strSQL = "SELECT * FROM [10A302b-x.csv]"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[C3].CopyFromRecordset oRecordset
+            oRecordset.Close
+            oWorksheet.Cells.Font.Name = "Calibri"
+            oWorksheet.Cells.Font.Size = 11
+            oWorksheet.Cells.WrapText = False
+            oWorksheet.[B3].Select
+            oExcel.ActiveWindow.FreezePanes = True
+            oWorksheet.Columns.AutoFit
+            oWorksheet.Tab.Color = 192
+          End If
+        ElseIf .lboMetrics.List(lngItem) = "10A303a" Then
+          If .lboMetrics.List(lngItem, 6) = strFail Then
+            oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
+            'run query
+            oWorksheet.[A2].Value = "PPs with Duration = 0"
+            Set oRecordset = CreateObject("ADODB.Recordset")
+            strSQL = "SELECT * FROM [10A303a-x.csv]"
             oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
             oWorksheet.[C3].CopyFromRecordset oRecordset
             oRecordset.Close
