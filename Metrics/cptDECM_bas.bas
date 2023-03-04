@@ -162,6 +162,8 @@ End Function
 Sub cptDECM_GET_DATA()
 'Optional blnIncompleteOnly As Boolean = True, Optional blnDiscreteOnly As Boolean = True
   'objects
+  Dim oFile As Scripting.TextStream
+  Dim oFSO As Scripting.FileSystemObject
   Dim oAssignment As MSProject.Assignment
   Dim oDict As Scripting.Dictionary
   Dim oExcel As Excel.Application
@@ -285,6 +287,15 @@ Sub cptDECM_GET_DATA()
   Print #lngFile, "Col5=RW Double"
   Print #lngFile, "Col6=RC Double"
   Print #lngFile, "Col7=EOC text"
+  Print #lngFile, "[wp-ims.csv]"
+  Print #lngFile, "Format=CSVDelimited"
+  Print #lngFile, "ColNameHeader=False"
+  Print #lngFile, "Col1=WP text"
+  Print #lngFile, "[wp-ev.csv]"
+  Print #lngFile, "Format=CSVDelimited"
+  Print #lngFile, "ColNameHeader=False"
+  Print #lngFile, "Col1=WP text"
+  
   Close #lngFile
   
   lngTaskFile = FreeFile
@@ -662,7 +673,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs w/mixed EOCs"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%?"
   DoEvents
-  'todo: there is not defined criteria for this metric...
+  'todo: there is no defined criteria for this metric...
   'X = WPs with multiple EOCs
   'Y = total count of WPs
   'we already have lngY
@@ -701,6 +712,38 @@ next_task:
   DoEvents
   
   '===== SCHEDULE =====
+  '06A101a - WPs Missing between IMS vs EV
+  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A101a..."
+  Application.StatusBar = "Getting Schedule Metric: 06A101a..."
+  cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A101a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs IMS vs EV Tool"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE AF IS NULL AND EVT<>'" & strLOE & "' AND SUMMARY='No'"
+  oRecordset.Open strSQL, strCon, adOpenKeyset
+  lngX = oRecordset.RecordCount 'pending upload
+  lngY = oRecordset.RecordCount 'pending upload
+  Set oFSO = CreateObject("Scripting.FileSystemObject")
+  Set oFile = oFSO.CreateTextFile(strDir & "\wp-ims.csv", True)
+  oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+  oRecordset.Close
+  oFile.Close
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore = 0 Then
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 06A101a...done."
+  Application.StatusBar = "Getting EVMS: 06A101a...done."
+  DoEvents
+    
   '06A204b - Dangling Logic
   '06A204b todo: ignore first/last milestone
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A204b..."
@@ -1331,6 +1374,8 @@ next_task:
   
 exit_here:
   On Error Resume Next
+  Set oFile = Nothing
+  Set oFSO = Nothing
   Set oAssignment = Nothing
   Set oDict = Nothing
   Set oWorksheet = Nothing
@@ -1508,6 +1553,7 @@ End Sub
 
 Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
   'objects
+  Dim oRecordset As ADODB.Recordset
   Dim oTasks As MSProject.Tasks
   Dim oExcel As Excel.Application
   Dim oWorkbook As Excel.Workbook
@@ -1515,6 +1561,9 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
   Dim oRange As Excel.Range
   Dim oCell As Excel.Range
   'strings
+  Dim strDir As String
+  Dim strCon As String
+  Dim strSQL As String
   'longs
   Dim lngItem As Long
   'integers
@@ -1593,12 +1642,40 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
       For lngItem = 0 To .lboMetrics.ListCount - 1
         .lboMetrics.Value = .lboMetrics.List(lngItem)
         .lboMetrics.Selected(lngItem) = True
-        .lboMetrics_AfterUpdate
         Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
         oWorksheet.Activate
         oWorksheet.Name = .lboMetrics.List(lngItem)
         oWorksheet.Tab.Color = 5287936
         oExcel.ActiveWindow.Zoom = 85
+        If .lboMetrics.List(lngItem) = "06A101a" Then
+          If .lboMetrics.List(lngItem, 6) = strFail Then
+            oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
+            'run queries
+            oWorksheet.[A2].Value = "NOT IN IMS:"
+            Set oRecordset = CreateObject("ADODB.Recordset")
+            strDir = Environ("tmp")
+            strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
+            strSQL = "SELECT * FROM [wp-not-in-ims.csv]"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3].CopyFromRecordset oRecordset
+            oRecordset.Close
+            oWorksheet.[C2].Value = "NOT IN EV TOOL:"
+            strSQL = "SELECT * FROM [wp-not-in-ev.csv]"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[C3].CopyFromRecordset oRecordset
+            oRecordset.Close
+            oWorksheet.Cells.Font.Name = "Calibri"
+            oWorksheet.Cells.Font.Size = 11
+            oWorksheet.Cells.WrapText = False
+            oWorksheet.[B3].Select
+            oExcel.ActiveWindow.FreezePanes = True
+            oWorksheet.Columns.AutoFit
+            oWorksheet.Tab.Color = 192
+          End If
+          GoTo next_item
+        Else
+          .lboMetrics_AfterUpdate
+        End If
         SelectAll
         EditCopy
         On Error Resume Next
@@ -1618,6 +1695,7 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
             oWorksheet.Tab.Color = 192
           End If
         End If
+next_item:
         Set oTasks = Nothing
       Next lngItem
     End With
@@ -1634,6 +1712,7 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
 
 exit_here:
   On Error Resume Next
+  Set oRecordset = Nothing
   Set oTasks = Nothing
   cptSpeed False
   Set oCell = Nothing
@@ -1685,6 +1764,9 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
         SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
       End If
       'todo: group by CA,WBS
+    
+    Case "06A101a" 'WP mismatches
+      'todo: do what?
     
     Case "06A212a" 'out of sequence
       If Len(strList) > 0 Then
