@@ -162,13 +162,15 @@ End Function
 Sub cptDECM_GET_DATA()
 'Optional blnIncompleteOnly As Boolean = True, Optional blnDiscreteOnly As Boolean = True
   'objects
+  Dim oCell As excel.Range
+  Dim oListObject As excel.ListObject
   Dim oFile As Scripting.TextStream
   Dim oFSO As Scripting.FileSystemObject
   Dim oAssignment As MSProject.Assignment
   Dim oDict As Scripting.Dictionary
-  Dim oExcel As Excel.Application
-  Dim oWorkbook As Excel.Workbook
-  Dim oWorksheet As Excel.Worksheet
+  Dim oExcel As excel.Application
+  Dim oWorkbook As excel.Workbook
+  Dim oWorksheet As excel.Worksheet
   Dim oRecordset As ADODB.Recordset
   Dim oLink As MSProject.TaskDependency
   Dim oTask As MSProject.Task
@@ -219,6 +221,7 @@ Sub cptDECM_GET_DATA()
   'booleans
   Dim blnDumpToExcel As Boolean
   'variants
+  Dim vFile As Variant
   Dim vHeader As Variant
   Dim vField As Variant
   'dates
@@ -287,20 +290,17 @@ Sub cptDECM_GET_DATA()
   Print #lngFile, "Col5=RW Double"
   Print #lngFile, "Col6=RC Double"
   Print #lngFile, "Col7=EOC text"
-  Print #lngFile, "[wp-ims.csv]"
-  Print #lngFile, "Format=CSVDelimited"
-  Print #lngFile, "ColNameHeader=False"
-  Print #lngFile, "Col1=WP text"
-  Print #lngFile, "[wp-ev.csv]"
-  Print #lngFile, "Format=CSVDelimited"
-  Print #lngFile, "ColNameHeader=False"
-  Print #lngFile, "Col1=WP text"
-  For Each vFile In Split("10A302b-x.csv,10A303a-x.csv", ",")
+  For Each vFile In Split("wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv", ",")
     Print #lngFile, "[" & vFile & "]"
     Print #lngFile, "Format=CSVDelimited"
     Print #lngFile, "ColNameHeader=False"
     Print #lngFile, "Col1=WP text"
   Next vFile
+  Print #1, "[fiscal.csv]"
+  Print #1, "ColNameHeader=True"
+  Print #1, "Format=CSVDelimited"
+  Print #1, "Col1=FISCAL_END date"
+  Print #1, "Col2=LABEL text"
   
   Close #lngFile
   
@@ -620,6 +620,60 @@ next_task:
   Application.StatusBar = "Getting EVMS: 10A102a...done."
   DoEvents
   
+  '10A103a - 0/100 EVTs in one fiscal period
+  cptDECM_frm.lblStatus.Caption = "Getting EVMS Metric: 10A103a..."
+  Application.StatusBar = "Getting EVMS Metric: 10A109b..."
+  cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A103a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "0/100 EVTs in >1 period"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  DoEvents
+  'X = Count of 0-100 EVT incomplete WPs with more than one accounting period of budget
+  'Y = Total count of 0-100 EVT incomplete WPs
+  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE WP IS NOT NULL "
+  strSQL = strSQL & "AND AF IS NULL "
+  strSQL = strSQL & "AND EVT='F'" 'todo: what about other tools or values?
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    lngY = .RecordCount
+    'DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  If lngY > 0 Then
+    Set oWorkbook = cptGetEVTAnalysis
+    'todo: all wps with even 1 EVT=F
+    'todo: then min(BLS),max(BLF)
+    'todo: then FiscalPeriods
+    Set oWorksheet = oWorkbook.Sheets(1)
+    Set oListObject = oWorksheet.ListObjects(1)
+    lngY = oListObject.DataBodyRange.Rows.Count
+    oListObject.Range.AutoFilter Field:=6, Criteria1:=">1", Operator:=xlAnd
+    lngX = oListObject.DataBodyRange.SpecialCells(xlCellTypeVisible).Rows.Count
+    strList = ""
+    If lngX > 0 Then
+      For Each oCell In oListObject.ListColumns("WP").DataBodyRange.SpecialCells(xlCellTypeVisible).Cells
+        If InStr(strList, oCell.Value) = 0 Then strList = strList & oCell.Value & vbTab
+      Next oCell
+    End If
+  Else
+    lngX = 0
+  End If
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore < 0.05 Then
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A103a...done."
+  Application.StatusBar = "Getting EVMS: 10A103a...done."
+  DoEvents
+  
   '10A109b - all WPs have budget
   cptDECM_frm.lblStatus.Caption = "Getting EVMS Metric: 10A109b..."
   Application.StatusBar = "Getting EVMS Metric: 10A109b..."
@@ -628,7 +682,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs With Budgets"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
-  'X = Count of WPs/PPs/SLPPs with BAC ? 0
+  'X = Count of WPs/PPs/SLPPs with BAC = 0
   'Y = Total count of WPs/PPs/SLPPs
   strSQL = "SELECT DISTINCT WP FROM [tasks.csv] WHERE WP IS NOT NULL"
   With oRecordset
@@ -723,7 +777,7 @@ next_task:
   Application.StatusBar = "Getting Schedule Metric: 10A302b..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A302b"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs w EVP > 0"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs w/EVP > 0"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 2%"
   strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
   strSQL = strSQL & "WHERE EVT='K' " 'todo: what about other values/tools
@@ -779,7 +833,7 @@ next_task:
   Application.StatusBar = "Getting Schedule Metric: 06A101a..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A303a"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs duration > 0"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs duration = 0"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
   'we already have lngY
   If lngY = 0 Then
@@ -809,8 +863,8 @@ next_task:
       oFile.Close
     End If
     dblScore = Round(lngX / lngY, 2)
+    oRecordset.Close
   End If
-  oRecordset.Close
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
@@ -842,6 +896,7 @@ next_task:
   oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
   oRecordset.Close
   oFile.Close
+  FileCopy strDir & "\wp-ims.csv", strDir & "\wp-not-in-ev.csv"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
@@ -1487,6 +1542,8 @@ next_task:
   
 exit_here:
   On Error Resume Next
+  Set oCell = Nothing
+  Set oListObject = Nothing
   Set oFile = Nothing
   Set oFSO = Nothing
   Set oAssignment = Nothing
@@ -1611,9 +1668,9 @@ End Function
 
 Private Sub DumpRecordsetToExcel(ByRef oRecordset As ADODB.Recordset)
   'objects
-  Dim oExcel As Excel.Application
-  Dim oWorkbook As Excel.Workbook
-  Dim oWorksheet As Excel.Worksheet
+  Dim oExcel As excel.Application
+  Dim oWorkbook As excel.Workbook
+  Dim oWorksheet As excel.Worksheet
   'strings
   'longs
   Dim lngItem As Long
@@ -1668,11 +1725,11 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
   'objects
   Dim oRecordset As ADODB.Recordset
   Dim oTasks As MSProject.Tasks
-  Dim oExcel As Excel.Application
-  Dim oWorkbook As Excel.Workbook
-  Dim oWorksheet As Excel.Worksheet
-  Dim oRange As Excel.Range
-  Dim oCell As Excel.Range
+  Dim oExcel As excel.Application
+  Dim oWorkbook As excel.Workbook
+  Dim oWorksheet As excel.Worksheet
+  Dim oRange As excel.Range
+  Dim oCell As excel.Range
   'strings
   Dim strDir As String
   Dim strCon As String
@@ -1768,16 +1825,21 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
             oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
             'run queries
             oWorksheet.[A2].Value = "NOT IN IMS:"
-            Set oRecordset = CreateObject("ADODB.Recordset")
-            strSQL = "SELECT * FROM [wp-not-in-ims.csv]"
-            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-            oWorksheet.[A3].CopyFromRecordset oRecordset
-            oRecordset.Close
+            If Dir(strDir & "\wp-not-in-ims.csv") <> vbNullString Then
+              Set oRecordset = CreateObject("ADODB.Recordset")
+              strSQL = "SELECT * FROM [wp-not-in-ims.csv]"
+              oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+              oWorksheet.[A3].CopyFromRecordset oRecordset
+              oRecordset.Close
+            End If
             oWorksheet.[C2].Value = "NOT IN EV TOOL:"
-            strSQL = "SELECT * FROM [wp-not-in-ev.csv]"
-            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-            oWorksheet.[C3].CopyFromRecordset oRecordset
-            oRecordset.Close
+            If Dir(strDir & "\wp-not-in-ev.csv") <> vbNullString Then
+              Set oRecordset = CreateObject("ADODB.Recordset")
+              strSQL = "SELECT * FROM [wp-not-in-ev.csv]"
+              oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+              oWorksheet.[C3].CopyFromRecordset oRecordset
+              oRecordset.Close
+            End If
             oWorksheet.Cells.Font.Name = "Calibri"
             oWorksheet.Cells.Font.Size = 11
             oWorksheet.Cells.WrapText = False
@@ -1934,6 +1996,14 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       End If
       'todo: group by WP,EVT
     
+    Case "10A103a" '0/100 >1 fiscal periods
+      If Len(strList) > 0 Then
+        strList = Left(strList, Len(strList) - 1) 'remove last tab
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WPCN"), "|")(0)), pjAutoFilterIn, "contains", strList 'todo: "WPCN" > "WP"
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+      End If
+      
     Case "10A109b" 'WP with no budget
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
@@ -1972,9 +2042,9 @@ Function cptGetOutOfSequence() As String
   Dim oSubMap As Scripting.Dictionary
   Dim oTask As MSProject.Task
   Dim oLink As MSProject.TaskDependency
-  Dim oExcel As Excel.Application
-  Dim oWorkbook As Excel.Workbook
-  Dim oWorksheet As Excel.Worksheet
+  Dim oExcel As excel.Application
+  Dim oWorkbook As excel.Workbook
+  Dim oWorksheet As excel.Worksheet
   'strings
   Dim strOOS As String
   Dim strEarliest As String
@@ -2344,3 +2414,147 @@ err_here:
   
 End Function
 
+Private Function cptGetEVTAnalysis() As excel.Workbook
+  'objects
+  Dim oListObject As excel.ListObject
+  Dim oRange As excel.Range
+  Dim oWorksheet As excel.Worksheet
+  Dim oWorkbook As excel.Workbook
+  Dim oExcel As excel.Application
+  Dim rst As ADODB.Recordset
+  Dim oException As MSProject.Exception
+  Dim oCalendar As MSProject.Calendar
+  Dim oProject As MSProject.Project
+  Dim oTask As MSProject.Task
+  'strings
+  Dim strMissingBaselines As String
+  Dim strLOE As String
+  Dim strLOEField As String
+  Dim strCon As String
+  Dim strDir As String
+  Dim strSQL As String
+  Dim strFile As String
+  'longs
+  Dim lngWP As Long
+  Dim lngFiscalPeriodsCol As Long
+  Dim lngFiscalEndCol As Long
+  Dim lngLastRow As Long
+  Dim lngFile As Long
+  Dim lngEVT As Long
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnExists As Boolean
+  'variants
+  Dim vbResponse As Variant
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  Set oProject = ActiveProject
+  
+  'ensure project is baselined
+  If Not IsDate(oProject.BaselineSavedDate(pjBaseline)) Then
+    MsgBox "This project is not yet baselined.", vbCritical + vbOKOnly, "No Baseline"
+    GoTo exit_here
+  End If
+  
+  'ensure fiscal calendar is still loaded
+  If Not cptCalendarExists("cptFiscalCalendar") Then
+    MsgBox "The Fiscal Calendar (cptFiscalCalendar) is missing! Please reset it and try again.", vbCritical + vbOKOnly, "What happened?"
+    GoTo exit_here
+  End If
+      
+  'export the calendar
+  Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar")
+  lngFile = FreeFile
+  strFile = Environ("tmp") & "\fiscal.csv"
+  Open strFile For Output As #lngFile
+  Print #lngFile, "fisc_end,label,"
+  For Each oException In oCalendar.Exceptions
+    Print #lngFile, oException.Finish & "," & oException.Name
+  Next oException
+  Close #lngFile
+  
+  On Error Resume Next
+  Set oExcel = GetObject(, "Excel.Application")
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If oExcel Is Nothing Then
+    Set oExcel = CreateObject("Excel.Application")
+  End If
+  oExcel.Visible = True
+  Set oWorkbook = oExcel.Workbooks.Add
+  Set oWorksheet = oWorkbook.Sheets(1)
+  oWorksheet.Name = "EVT Analysis"
+  oWorksheet.[A1:F1] = Split("UID,WP,BLS,BLF,EVT,FiscalPeriods", ",")
+  
+  Set rst = CreateObject("ADODB.Recordset")
+  strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & Environ("tmp") & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
+  strSQL = "SELECT UID,WP,BLS,BLF,EVT FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE WP IS NOT NULL "
+  strSQL = strSQL & "AND AF IS NULL "
+  strSQL = strSQL & "AND EVT='F'" 'todo: what about other ways of identifying 0/100?
+  
+  strSQL = "SELECT '-' AS [UID],t1.WP,t2.BLS,t2.BLF,t1.EVT "
+  strSQL = strSQL & "FROM [tasks.csv] AS t1 "
+  strSQL = strSQL & "LEFT JOIN (SELECT WP,MIN(BLS) AS [BLS],MAX(BLF) AS [BLF] FROM [tasks.csv] GROUP BY WP) AS t2 ON T2.WP=T1.WP "
+  strSQL = strSQL & "WHERE t1.WP IS NOT NULL "
+  strSQL = strSQL & "AND t1.AF IS NULL "
+  strSQL = strSQL & "AND t1.EVT='F'" 'todo: what about other ways of identifying 0/100?
+  
+  rst.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  oWorksheet.[A2].CopyFromRecordset rst
+  rst.Close
+  
+  strSQL = "SELECT * FROM [fiscal.csv]"
+  rst.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  oWorksheet.[H1:I1] = Split("fisc_end,label", ",")
+  oWorksheet.[H2].CopyFromRecordset rst
+  rst.Close
+  
+  Set oRange = oWorksheet.Range(oWorksheet.[A1].End(xlToRight).Offset(1, 0), oWorksheet.[A1].End(xlDown).Offset(0, 5))
+  lngFiscalEndCol = oWorksheet.Rows(1).Find(what:="fisc_end").Column
+  lngLastRow = oWorksheet.Cells(2, lngFiscalEndCol).End(xlDown).Row
+  'Excel 2016 compatibility
+  'oRange.FormulaR1C1 = "=COUNTIFS(R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & ","">=""&RC[-3],R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & ",""<""&RC[-2])+1"
+  '=SUMPRODUCT(--($G$2:$G$109>=B15)*--($G$2:$G$109<C15)*1)+1
+  oRange.FormulaR1C1 = "=SUMPRODUCT(--(R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & ">=RC[-3])*--(R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & "<RC[-2])*1)+1"
+  lngFiscalPeriodsCol = oWorksheet.Rows(1).Find(what:="FiscalPeriods").Column
+  oWorksheet.Columns(lngFiscalPeriodsCol).NumberFormat = "#0"
+  oExcel.ActiveWindow.Zoom = 85
+  oExcel.ActiveWindow.SplitRow = 1
+  oExcel.ActiveWindow.SplitColumn = 0
+  oExcel.ActiveWindow.FreezePanes = True
+  
+  Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)), , xlYes)
+  oListObject.TableStyle = ""
+  oWorksheet.[A1].AutoFilter
+  oWorksheet.Columns.AutoFit
+  
+  Set cptGetEVTAnalysis = oWorkbook
+  
+exit_here:
+  On Error Resume Next
+  Set oListObject = Nothing
+  cptSpeed False
+  Set oRange = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
+  For lngFile = 1 To FreeFile
+    Close #lngFile
+  Next lngFile
+  If rst.State = 1 Then rst.Close
+  Set rst = Nothing
+  Set oException = Nothing
+  Set oCalendar = Nothing
+  Set oTask = Nothing
+  Set oProject = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptDECM_bas", "cptGetEVTAnalysis", Err, Erl)
+  Resume exit_here
+End Function

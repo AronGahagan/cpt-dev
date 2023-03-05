@@ -20,7 +20,7 @@ Private Sub cmdDone_Click()
   'then clean up after yourself
   Dim vFile As Variant
   Dim strFile As String
-  For Each vFile In Split("Schema.ini,tasks.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv", ",")
+  For Each vFile In Split("Schema.ini,tasks.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,10A103a.csv", ",")
     strFile = Environ("tmp") & "\" & vFile
     If Dir(strFile) <> vbNullString Then Kill strFile
   Next vFile
@@ -146,6 +146,9 @@ Public Sub lboMetrics_AfterUpdate()
       strDescription = strDescription & "SCORE: " & strScore
     Case "06A212a"
       strDescription = strDescription & vbCrLf & "...pairs exported to Excel" & vbCrLf & "...click to filter"
+    Case "10A103a"
+      strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore & vbCrLf
+      strDescription = strDescription & vbCrLf & "...details exported to Excel"
     Case Else
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
   End Select
