@@ -46,7 +46,7 @@ Function ValidMap() As Boolean
   
   blnValid = True
   
-  With cptIntegration_frm
+  With New cptIntegration_frm
     
     .Caption = "Integration (" & cptGetVersion("cptIntegration_frm") & ")"
     
@@ -151,6 +151,7 @@ next_control:
 exit_here:
   On Error Resume Next
   Set oComboBox = Nothing
+  Unload cptDECM_frm
 
   Exit Function
 err_here:
@@ -162,15 +163,15 @@ End Function
 Sub cptDECM_GET_DATA()
 'Optional blnIncompleteOnly As Boolean = True, Optional blnDiscreteOnly As Boolean = True
   'objects
-  Dim oCell As excel.Range
-  Dim oListObject As excel.ListObject
+  Dim oCell As Excel.Range
+  Dim oListObject As Excel.ListObject
   Dim oFile As Scripting.TextStream
   Dim oFSO As Scripting.FileSystemObject
   Dim oAssignment As MSProject.Assignment
   Dim oDict As Scripting.Dictionary
-  Dim oExcel As excel.Application
-  Dim oWorkbook As excel.Workbook
-  Dim oWorksheet As excel.Worksheet
+  Dim oExcel As Excel.Application
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
   Dim oRecordset As ADODB.Recordset
   Dim oLink As MSProject.TaskDependency
   Dim oTask As MSProject.Task
@@ -1035,13 +1036,13 @@ next_task:
   'we already have lngY...
   strSQL = "SELECT t.UID FROM [tasks.csv] t "
   strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TO FROM [links.csv] WHERE LAG>0) p ON p.TO=t.UID " 'todo
-  'todo: ABOVE LINE OR strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TO FROM [links.csv] WHERE LAG<>0) p ON p.TO=t.UID "
+  'todo: to include leads replace above with strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TO FROM [links.csv] WHERE LAG<>0) p ON p.TO=t.UID "
   strSQL = strSQL & "WHERE t.SUMMARY='No' AND t.AF IS NULL AND (t.EVT<>'" & strLOE & "' OR t.EVT IS NULL) "
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngX = oRecordset.RecordCount
+    strList = ""
     If lngX > 0 Then
-      strList = ""
       .MoveFirst
       Do While Not .EOF
         strList = strList & .Fields("UID") & ","
@@ -1668,9 +1669,9 @@ End Function
 
 Private Sub DumpRecordsetToExcel(ByRef oRecordset As ADODB.Recordset)
   'objects
-  Dim oExcel As excel.Application
-  Dim oWorkbook As excel.Workbook
-  Dim oWorksheet As excel.Worksheet
+  Dim oExcel As Excel.Application
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
   'strings
   'longs
   Dim lngItem As Long
@@ -1723,13 +1724,14 @@ End Sub
 
 Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
   'objects
+  Dim o10A103a As Excel.Workbook
   Dim oRecordset As ADODB.Recordset
   Dim oTasks As MSProject.Tasks
-  Dim oExcel As excel.Application
-  Dim oWorkbook As excel.Workbook
-  Dim oWorksheet As excel.Worksheet
-  Dim oRange As excel.Range
-  Dim oCell As excel.Range
+  Dim oExcel As Excel.Application
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
+  Dim oRange As Excel.Range
+  Dim oCell As Excel.Range
   'strings
   Dim strDir As String
   Dim strCon As String
@@ -1849,6 +1851,31 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
             oWorksheet.Tab.Color = 192
           End If
           GoTo next_item
+        ElseIf .lboMetrics.List(lngItem) = "10A103a" Then '0/100 in >1 fiscal period
+          If .lboMetrics.List(lngItem, 6) = strFail Then
+            On Error Resume Next
+            Set o10A103a = oExcel.Workbooks(oExcel.Windows("10A103a.xlsx").Index)
+            If o10A103a Is Nothing Then
+              Set o10A103a = oExcel.Workbooks.Open(strDir & "\10A103a.xlsx")
+            End If
+            If o10A103a Is Nothing Then
+              'todo: what if it doesn't exist?
+            Else
+              If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+              'replace current worksheet with worksheet from saved workbook
+              oExcel.DisplayAlerts = False
+              oWorksheet.Delete
+              oExcel.DisplayAlerts = True
+              o10A103a.Sheets(1).Copy After:=oWorkbook.Sheets(oWorkbook.Sheets.Count)
+              o10A103a.Close True
+              Set oWorksheet = oWorkbook.Sheets("10A103a")
+              oWorksheet.Rows("1:2").Insert
+              oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
+              oWorksheet.[A2].Value = "0/100 WPs in more than 1 fiscal period"
+              oWorksheet.Tab.Color = 192
+            End If
+          End If
+          GoTo next_item
         ElseIf .lboMetrics.List(lngItem) = "10A302b" Then
           If .lboMetrics.List(lngItem, 6) = strFail Then
             oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
@@ -1867,6 +1894,7 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
             oWorksheet.Columns.AutoFit
             oWorksheet.Tab.Color = 192
           End If
+          GoTo next_item
         ElseIf .lboMetrics.List(lngItem) = "10A303a" Then
           If .lboMetrics.List(lngItem, 6) = strFail Then
             oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
@@ -1885,6 +1913,7 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
             oWorksheet.Columns.AutoFit
             oWorksheet.Tab.Color = 192
           End If
+          GoTo next_item
         Else
           .lboMetrics_AfterUpdate
         End If
@@ -1895,12 +1924,13 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
         If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If Not oTasks Is Nothing Then
           oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
-          oWorksheet.[A2].Select
+          oWorksheet.[A2] = .lboMetrics.List(lngItem, 1)
+          oWorksheet.[A3].Select
           oWorksheet.PasteSpecial Format:="HTML", Link:=False, DisplayAsIcon:=False
           oWorksheet.Cells.Font.Name = "Calibri"
           oWorksheet.Cells.Font.Size = 11
           oWorksheet.Cells.WrapText = False
-          oWorksheet.[B3].Select
+          oWorksheet.[B4].Select
           oExcel.ActiveWindow.FreezePanes = True
           oWorksheet.Columns.AutoFit
           If .lboMetrics.List(lngItem, 6) = strFail Then
@@ -1924,6 +1954,7 @@ next_item:
 
 exit_here:
   On Error Resume Next
+  Set o10A103a = Nothing
   Set oRecordset = Nothing
   Set oTasks = Nothing
   cptSpeed False
@@ -2042,9 +2073,9 @@ Function cptGetOutOfSequence() As String
   Dim oSubMap As Scripting.Dictionary
   Dim oTask As MSProject.Task
   Dim oLink As MSProject.TaskDependency
-  Dim oExcel As excel.Application
-  Dim oWorkbook As excel.Workbook
-  Dim oWorksheet As excel.Worksheet
+  Dim oExcel As Excel.Application
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
   'strings
   Dim strOOS As String
   Dim strEarliest As String
@@ -2334,6 +2365,9 @@ next_link:
 next_task:
     lngTask = lngTask + 1
     Application.StatusBar = "[06A212a] Analyzing Out of Sequence Status...(" & Format(lngTask / lngTasks, "0%") & ")" & IIf(lngOOS > 0, " | " & lngOOS & " found", "")
+    If cptDECM_frm.Visible Then
+      cptDECM_frm.lblProgress.Width = (lngTask / lngTasks) * cptDECM_frm.lblStatus.Width
+    End If
     DoEvents
   Next oTask
     
@@ -2414,13 +2448,13 @@ err_here:
   
 End Function
 
-Private Function cptGetEVTAnalysis() As excel.Workbook
+Private Function cptGetEVTAnalysis() As Excel.Workbook
   'objects
-  Dim oListObject As excel.ListObject
-  Dim oRange As excel.Range
-  Dim oWorksheet As excel.Worksheet
-  Dim oWorkbook As excel.Workbook
-  Dim oExcel As excel.Application
+  Dim oListObject As Excel.ListObject
+  Dim oRange As Excel.Range
+  Dim oWorksheet As Excel.Worksheet
+  Dim oWorkbook As Excel.Workbook
+  Dim oExcel As Excel.Application
   Dim rst As ADODB.Recordset
   Dim oException As MSProject.Exception
   Dim oCalendar As MSProject.Calendar
@@ -2487,16 +2521,11 @@ Private Function cptGetEVTAnalysis() As excel.Workbook
   oExcel.Visible = True
   Set oWorkbook = oExcel.Workbooks.Add
   Set oWorksheet = oWorkbook.Sheets(1)
-  oWorksheet.Name = "EVT Analysis"
+  oWorksheet.Name = "10A103a"
   oWorksheet.[A1:F1] = Split("UID,WP,BLS,BLF,EVT,FiscalPeriods", ",")
   
   Set rst = CreateObject("ADODB.Recordset")
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & Environ("tmp") & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
-  strSQL = "SELECT UID,WP,BLS,BLF,EVT FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE WP IS NOT NULL "
-  strSQL = strSQL & "AND AF IS NULL "
-  strSQL = strSQL & "AND EVT='F'" 'todo: what about other ways of identifying 0/100?
-  
   strSQL = "SELECT '-' AS [UID],t1.WP,t2.BLS,t2.BLF,t1.EVT "
   strSQL = strSQL & "FROM [tasks.csv] AS t1 "
   strSQL = strSQL & "LEFT JOIN (SELECT WP,MIN(BLS) AS [BLS],MAX(BLF) AS [BLF] FROM [tasks.csv] GROUP BY WP) AS t2 ON T2.WP=T1.WP "
@@ -2532,7 +2561,8 @@ Private Function cptGetEVTAnalysis() As excel.Workbook
   oListObject.TableStyle = ""
   oWorksheet.[A1].AutoFilter
   oWorksheet.Columns.AutoFit
-  
+  If Dir(Environ("tmp") & "\10A103a.xlsx") <> vbNullString Then Kill Environ("tmp") & "\10A103a.xlsx"
+  oWorkbook.SaveAs Environ("tmp") & "\10A103a.xlsx", 51
   Set cptGetEVTAnalysis = oWorkbook
   
 exit_here:
