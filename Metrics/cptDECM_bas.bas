@@ -176,6 +176,7 @@ Sub cptDECM_GET_DATA()
   Dim oLink As MSProject.TaskDependency
   Dim oTask As MSProject.Task
   'strings
+  Dim strProgramAcronym As String
   Dim strLinks  As String
   Dim strPE As String
   Dim strSE As String
@@ -643,9 +644,6 @@ next_task:
   End With
   If lngY > 0 Then
     Set oWorkbook = cptGetEVTAnalysis
-    'todo: all wps with even 1 EVT=F
-    'todo: then min(BLS),max(BLF)
-    'todo: then FiscalPeriods
     Set oWorksheet = oWorkbook.Sheets(1)
     Set oListObject = oWorksheet.ListObjects(1)
     lngY = oListObject.DataBodyRange.Rows.Count
@@ -1285,7 +1283,7 @@ next_task:
   Application.StatusBar = "Getting Schedule Metric: 06A212a...done."
   DoEvents
   
-  '6A301a - vertical integration todo: lower level baselines rollup
+  '6A301a - vertical integration todo: lower level baselines rollup...refers to supplemental schedules...too complicated
   
   '6A401a - critical path todo: can our tool satisfy?
   
@@ -1338,10 +1336,94 @@ next_task:
   Application.StatusBar = "Getting Schedule Metric: 06A501a...done."
   DoEvents
   
-  '06A504a - AS changed - too complicated, keep it manual
+  'todo: 06A504a - AS changed - only if task history otherwise notify to 'use capture period'
+  strFile = cptDir & "\settings\cpt-cei.adtg"
+  If Dir(strFile) <> vbNullString Then
+    'copy cpt-cei.adtg to tmp dir
+    FileCopy strFile, strDir & "\cpt-cei.adtg"
+    
+    'convert to csv for sql query...
+    strFile = strDir & "\cpt-cei.adtg"
+    Set oRecordset = CreateObject("ADODB.Recordset")
+    oRecordset.Open strFile
+    
+    'clean it up
+    oRecordset.Filter = "TASK_NAME LIKE '%,%'"
+    If Not oRecordset.EOF Then
+      oRecordset.MoveFirst
+      Do While Not oRecordset.EOF
+        oRecordset.Fields("TASK_NAME") = Replace(oRecordset.Fields("TASK_NAME"), ",", "-")
+        oRecordset.MoveNext
+      Loop
+    End If
+    oRecordset.Filter = 0
+    oRecordset.Save strFile
+    
+    'capture field names
+    strList = ""
+    For lngItem = 0 To oRecordset.Fields.Count - 1
+      strList = strList & oRecordset.Fields(lngItem).Name & ","
+    Next lngItem
+    'save as csv
+    Set oFile = oFSO.CreateTextFile(strDir & "\cpt-cei.csv", True)
+    oFile.Write strList & vbCrLf
+    oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+    oRecordset.Close
+    oFile.Close
+    
+    'query, get Y
+    strProgramAcronym = cptGetProgramAcronym
+    strSQL = "SELECT TASK_UID,TASK_AS FROM [cpt-cei.csv] "
+    strSQL = strSQL & "WHERE PROJECT='" & strProgramAcronym & "' AND TASK_AS IS NOT NULL "
+    strSQL = strSQL & "AND STATUS_DATE = (SELECT MAX(STATUS_DATE) FROM [cpt-cei.csv] WHERE PROJECT='" & strProgramAcronym & "')"
+    oRecordset.Open strSQL, strCon, adOpenKeyset
+    If Not oRecordset.EOF Then lngY = oRecordset.RecordCount Else lngY = 1
+    oRecordset.Close
+    
+    'get X 'todo: limit to status date? this query is incorrect
+    strSQL = "SELECT TASK_UID,COUNT(TASK_AF) "
+    strSQL = strSQL & "FROM (SELECT DISTINCT TASK_UID,TASK_AF FROM [cpt-cei.csv] WHERE PROJECT='" & strProgramAcronym & "' AND TASK_AF IS NOT NULL) "
+    strSQL = strSQL & "GROUP BY TASK_UID HAVING COUNT(TASK_AF)>1"
+    oRecordset.Open strSQL, strCon, adOpenKeyset
+    If Not oRecordset.EOF Then lngX = oRecordset.RecordCount Else lngX = 0
+    If lngX > 0 Then
+      'save results for later - todo: add to export if 06A504a.csv exists
+      Set oFile = oFSO.CreateTextFile(strDir & "\06A504a.csv", True)
+      oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+      oFile.Close
+    End If
+    oRecordset.Close
+    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504a..."
+    Application.StatusBar = "Getting Schedule Metric: 06A504a..."
+    cptDECM_frm.lboMetrics.AddItem
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A504a"
+    'cptDECM_frm.lboMetrics.Value = "06A505a"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Start"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+    DoEvents
+    'X = Count of tasks/activities & milestones where actual start date does not equal previously reported actual start date
+    'Y = Total count of tasks/activities & milestones with actual start dates
+    'todo: technically, 06A504a should be this (fiscal) month-end vs previous (fiscal) month-end
+    'X/Y <= 10%
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+    dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+    If dblScore <= 0.1 Then
+      cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    Else
+      cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    End If
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+    'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504a...done."
+    Application.StatusBar = "Getting Schedule Metric: 06A504a...done."
+    DoEvents
+  End If
   
-  '06A504b - AF changed - too complicated, keep it manual
-
+  'todo: 06A504b - AF changed - only if task history
+  'todo: if more than one status period for current program
+  
   '06A505a - In-Progress Tasks Have AS
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A505a..."
   Application.StatusBar = "Getting Schedule Metric: 06A505a..."

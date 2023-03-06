@@ -155,7 +155,7 @@ Public Sub lboMetrics_AfterUpdate()
   
   Me.txtTitle.Value = strDescription
   blnUpdateView = True 'todo: make this a checkbox on the DECM form
-  If blnUpdateView Then
+  If blnUpdateView And Not IsNull(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)) Then
     cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)
   End If
   
