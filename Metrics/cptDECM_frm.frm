@@ -142,6 +142,12 @@ Public Sub lboMetrics_AfterUpdate()
     
     Case "06A208a"
       strDescription = strDescription & "SCORE: " & strScore
+    Case "06A504a"
+      strDescription = strDescription & "SCORE: " & strScore
+      strDescription = strDescription & vbCrLf & "requires CPT > Status > Capture Week, two periods"
+    Case "06A504b"
+      strDescription = strDescription & "SCORE: " & strScore
+      strDescription = strDescription & vbCrLf & "requires CPT > Status > Capture Week, two periods"
     Case "06A506b"
       strDescription = strDescription & "SCORE: " & strScore
     Case "06A212a"
