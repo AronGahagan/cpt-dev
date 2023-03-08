@@ -232,7 +232,7 @@ Private Sub tglRegEx_Click()
     
     Me.lblURL.ForeColor = RGB(255, 203, 107)
   Else
-    Me.Caption = "Dynamic Filter - " & cptGetVersion("cptDynamicFilter_bas")
+    Me.Caption = "Dynamic Filter (" & cptGetVersion("cptDynamicFilter_bas") & ")"
     Me.BackColor = -2147483633 'default light grey
     
     Me.cboField.Font.Name = "Tahoma"
