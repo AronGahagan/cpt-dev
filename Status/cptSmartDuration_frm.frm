@@ -13,6 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v2.0.0</cpt_version>
 Public dateError As Boolean
 Public finDate As Date
@@ -20,20 +21,22 @@ Public StartDate As Date
 Public lngUID As Long
 
 Private Sub cmdApply_Click()
+  Dim oTask As MSProject.Task
+  Dim dtStart As Date
   If finDate = 0 Then Exit Sub
   If Len(cptRegEx(CStr(finDate), "(AM|PM)")) = 0 Then
     finDate = CDate(finDate & " 5:00 PM")
   End If
-  Dim oTask As MSProject.Task
   Set oTask = ActiveProject.Tasks.UniqueID(Me.lngUID)
+  If IsDate(oTask.Resume) Then dtStart = oTask.Resume Else dtStart = oTask.Start
   OpenUndoTransaction "Smart Duration"
   If Left(cptRegEx(oTask.DurationText, "[A-z]{1,}"), 1) = "e" Then
-    oTask.Duration = VBA.DateDiff("n", oTask.Start, Me.finDate)
+    oTask.RemainingDuration = VBA.DateDiff("n", dtStart, Me.finDate)
   Else
     If oTask.Calendar = "None" Or oTask.Calendar = ActiveProject.Calendar Then
-      oTask.Duration = Application.DateDifference(oTask.Start, Me.finDate)
+      oTask.RemainingDuration = Application.DateDifference(dtStart, Me.finDate)
     Else
-      oTask.Duration = Application.DateDifference(oTask.Start, Me.finDate, oTask.Calendar)
+      oTask.RemainingDuration = Application.DateDifference(dtStart, Me.finDate, oTask.Calendar)
     End If
   End If
   CloseUndoTransaction

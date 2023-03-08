@@ -20,7 +20,7 @@ Sub cptShowSmartDuration_frm()
   
   Call cptUpdateSmartDurationForm
   With cptSmartDuration_frm
-    .Caption = "Smart Duration " & cptGetVersion("cptSmartDuration_frm")
+    .Caption = "Smart Duration (" & cptGetVersion("cptSmartDuration_frm") & ")"
     strKeepOpen = cptGetSetting("SmartDuration", "chkKeepOpen")
     If Len(strKeepOpen) = 0 Then
       .chkKeepOpen = False 'default to false
@@ -60,17 +60,26 @@ Sub cptUpdateSmartDurationForm()
   
   If oTasks Is Nothing Then GoTo exit_here
   If oTasks.Count > 1 Then
-    MsgBox "Please select a single task.", vbInformation + vbOKOnly, "Smart Duration"
+    cptSmartDuration_frm.txtTargetFinish = ""
+    cptSmartDuration_frm.lblWeekday.Caption = "< focus >"
+    cptSmartDuration_frm.lblWeekday.ControlTipText = "Please select a single task."
+    GoTo exit_here
+  ElseIf oTasks.Count = 0 Then
+    cptSmartDuration_frm.txtTargetFinish = "-"
     GoTo exit_here
   End If
   
   If oTasks(1).Summary Then
-    MsgBox "Please select a Non-summary task.", vbInformation + vbOKOnly, "Smart Duration"
+    cptSmartDuration_frm.txtTargetFinish = ""
+    cptSmartDuration_frm.lblWeekday.Caption = "< summary >"
+    cptSmartDuration_frm.lblWeekday.ControlTipText = "Please select a Non-summary task."
     GoTo exit_here
   End If
   
   If IsDate(oTasks(1).ActualFinish) Then
-    MsgBox "Please select an incomplete task.", vbInformation + vbOKOnly, "Smart Duration"
+    cptSmartDuration_frm.txtTargetFinish = ""
+    cptSmartDuration_frm.lblWeekday.Caption = "< complete >"
+    cptSmartDuration_frm.lblWeekday.ControlTipText = "Please select an incomplete task."
     GoTo exit_here
   End If
   
@@ -85,6 +94,7 @@ Sub cptUpdateSmartDurationForm()
     .StartDate = oTasks(1).Start
     .txtTargetFinish = FormatDateTime(oTasks(1).Finish, vbShortDate)
     .lblWeekday.Caption = Format(.txtTargetFinish.Text, "dddd")
+    .lblWeekday.ControlTipText = ""
   End With
 
 exit_here:
