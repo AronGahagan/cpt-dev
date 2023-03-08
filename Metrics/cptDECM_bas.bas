@@ -163,6 +163,7 @@ End Function
 Sub cptDECM_GET_DATA()
 'Optional blnIncompleteOnly As Boolean = True, Optional blnDiscreteOnly As Boolean = True
   'objects
+  Dim oTasks As MSProject.Tasks
   Dim oCell As Excel.Range
   Dim oListObject As Excel.ListObject
   Dim oFile As Scripting.TextStream
@@ -778,6 +779,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A302b"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs w/EVP > 0"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 2%"
+  DoEvents
   strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
   strSQL = strSQL & "WHERE EVT='K' " 'todo: what about other values/tools
   oRecordset.Open strSQL, strCon, adOpenStatic, adLockReadOnly
@@ -834,6 +836,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A303a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs duration = 0"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+  DoEvents
   'we already have lngY
   If lngY = 0 Then
     lngX = 0
@@ -886,6 +889,7 @@ next_task:
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A101a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs IMS vs EV Tool"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  DoEvents
   strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
   strSQL = strSQL & "WHERE AF IS NULL AND EVT<>'" & strLOE & "' AND SUMMARY='No'"
   oRecordset.Open strSQL, strCon, adOpenKeyset
@@ -1339,6 +1343,15 @@ next_task:
   '06A504a - AS changed - only if task history otherwise notify to 'use capture period'
   strFile = cptDir & "\settings\cpt-cei.adtg"
   If Dir(strFile) <> vbNullString Then
+    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504a..."
+    Application.StatusBar = "Getting Schedule Metric: 06A504a..."
+    cptDECM_frm.lboMetrics.AddItem
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A504a"
+    'cptDECM_frm.lboMetrics.Value = "06A505a"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Start"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+    DoEvents
+    
     'copy cpt-cei.adtg to tmp dir
     FileCopy strFile, strDir & "\cpt-cei.adtg"
     
@@ -1434,14 +1447,6 @@ next_task:
       oFile.Close
     End If
     oRecordset.Close
-    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504a..."
-    Application.StatusBar = "Getting Schedule Metric: 06A504a..."
-    cptDECM_frm.lboMetrics.AddItem
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A504a"
-    'cptDECM_frm.lboMetrics.Value = "06A505a"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Start"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
-    DoEvents
     'X = Count of tasks/activities & milestones where actual start date does not equal previously reported actual start date
     'Y = Total count of tasks/activities & milestones with actual start dates
     'todo: technically, 06A504a should be this (fiscal) month-end vs previous (fiscal) month-end
@@ -1464,6 +1469,15 @@ next_task:
   
   '06A504b - AF changed - only if task history
   If Dir(strDir & "\cpt-cei.csv") <> vbNullString Then
+    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504b..."
+    Application.StatusBar = "Getting Schedule Metric: 06A504b..."
+    cptDECM_frm.lboMetrics.AddItem
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A504b"
+    'cptDECM_frm.lboMetrics.Value = "06A505a"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Finish"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+    DoEvents
+  
     'query, get Y
     strProgramAcronym = cptGetProgramAcronym
     strSQL = "SELECT TASK_UID,TASK_AF FROM [cpt-cei.csv] "
@@ -1528,14 +1542,6 @@ next_task:
     End If
     oRecordset.Close
     
-    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504b..."
-    Application.StatusBar = "Getting Schedule Metric: 06A504b..."
-    cptDECM_frm.lboMetrics.AddItem
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A504b"
-    'cptDECM_frm.lboMetrics.Value = "06A505a"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Finish"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
-    DoEvents
     'X = Count of tasks/activities & milestones where actual finish date does not equal previously reported actual finish date
     'Y = Total count of tasks/activities & milestones with actual finish dates
     'todo: technically, 06A504b should be this (fiscal) month-end vs previous (fiscal) month-end
@@ -1710,13 +1716,13 @@ next_task:
   Application.StatusBar = "Getting Schedule Metric: 06A506a...done."
   DoEvents
   
-  '06A506b - bogus forecast
+  '06A506b - invalid forecast
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506b..."
   Application.StatusBar = "Getting Schedule Metric: 06A506b..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A506b"
   'cptDECM_frm.lboMetrics.Value = "06A506b"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Bogus Forecast"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Invalid Forecast"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
   'X = Count of incomplete tasks/activities & milestones with either forecast start or forecast finish before the status date
@@ -1739,6 +1745,7 @@ next_task:
     .Close
   End With
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngX there is no Y
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
   If lngX = 0 Then
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
@@ -1751,12 +1758,67 @@ next_task:
   Application.StatusBar = "Getting Schedule Metric: 06A506b...done."
   DoEvents
   
+  '06I201a - SVTs todo: capture task names with "^SVT" ; allow alternative
+  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06I201a..."
+  Application.StatusBar = "Getting Schedule Metric: 06I201a..."
+  cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06I201a"
+  'cptDECM_frm.lboMetrics.Value = "06I201a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Schedule Visibility Tasks (SVTs)"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  DoEvents
+  'X = Count of incomplete tasks/activities and milestones that are not properly identified and controlled as SVTs in the IMS
+  'X = 0
+      
+  Application.OpenUndoTransaction "cpt DECM 06I201a"
+  ActiveWindow.TopPane.Activate
+  FilterClear
+  GroupClear
+  OptionsViewEx DisplaySummaryTasks:=True
+  OutlineShowAllTasks
+  FilterEdit "cpt DECM Filter - 06I201a", True, True, True, , , "Active", , "equals", "Yes"
+  FilterEdit "cpt DECM Filter - 06I201a", True, , , , , , "Actual Finish", "equals", "NA"
+  FilterEdit "cpt DECM Filter - 06I201a", True, , , , , , "Resource Names", "does not equal", ""
+  FilterEdit "cpt DECM Filter - 06I201a", True, , , , , , "Name", "contains", "SVT", , , False
+  FilterApply "cpt DECM Filter - 06I201a"
+  SelectAll
+  Set oTasks = Nothing
+  On Error Resume Next
+  Set oTasks = ActiveSelection.Tasks
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  strList = ""
+  If Not oTasks Is Nothing Then
+    lngX = ActiveSelection.Tasks.Count
+    For Each oTask In oTasks
+      strList = strList & oTask.UniqueID & ","
+    Next oTask
+  Else
+    lngX = 0
+  End If
+  Application.CloseUndoTransaction
+  Application.Undo
+  
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY there is no Y
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
+  If lngX = 0 Then
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06I201a...done."
+  Application.StatusBar = "Getting Schedule Metric: 06I201a...done."
+  DoEvents
+  
   Application.StatusBar = "DECM Scoring Complete"
   cptDECM_frm.lblStatus.Caption = "DECM Scoring Complete"
   DoEvents
   
 exit_here:
   On Error Resume Next
+  Set oTasks = Nothing
   Set oCell = Nothing
   Set oListObject = Nothing
   Set oFile = Nothing
@@ -2304,7 +2366,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
       End If
-        
+    
     Case Else
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma

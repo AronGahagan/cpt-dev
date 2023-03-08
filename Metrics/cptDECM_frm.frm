@@ -81,7 +81,7 @@ Public Sub lboMetrics_AfterUpdate()
   Else
     lngX = 0
   End If
-  If Not IsNull(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 4)) Then
+  If Not IsNull(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 4)) Then 'todo: not all metrics have Y
     lngY = CLng(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 4))
   Else
     lngY = 0
@@ -144,17 +144,20 @@ Public Sub lboMetrics_AfterUpdate()
       strDescription = strDescription & "SCORE: " & strScore
     Case "06A504a"
       strDescription = strDescription & "SCORE: " & strScore
-      strDescription = strDescription & vbCrLf & "requires CPT > Status > Capture Week, two periods"
+      strDescription = strDescription & vbCrLf & "...requires CPT > Status > Capture Week, two periods"
     Case "06A504b"
       strDescription = strDescription & "SCORE: " & strScore
-      strDescription = strDescription & vbCrLf & "requires CPT > Status > Capture Week, two periods"
+      strDescription = strDescription & vbCrLf & "...requires CPT > Status > Capture Week, two periods"
     Case "06A506b"
       strDescription = strDescription & "SCORE: " & strScore
     Case "06A212a"
-      strDescription = strDescription & vbCrLf & "...pairs exported to Excel" & vbCrLf & "...click to filter"
+      strDescription = strDescription & vbCrLf & "...pairs exported to Excel" & vbCrLf & "...select to filter"
     Case "10A103a"
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore & vbCrLf
       strDescription = strDescription & vbCrLf & "...details exported to Excel"
+    Case "06I201a"
+      strDescription = strDescription & "SCORE: " & strScore & vbCrLf
+      strDescription = strDescription & vbCrLf & "Task Name contains 'SVT' and has resource assignments"
     Case Else
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
   End Select
