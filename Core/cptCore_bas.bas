@@ -1439,7 +1439,7 @@ End Function
 Function cptGetSetting(strFeature As String, strSetting As String) As String
   Dim strSettingsFile As String, strReturned As String, lngSize As Long, lngWorked As Long
   strSettingsFile = cptDir & "\settings\cpt-settings.ini"
-  strReturned = Space(128)
+  strReturned = Space(255)
   lngSize = Len(strReturned)
   lngWorked = GetPrivateProfileString(strFeature, strSetting, "", strReturned, lngSize, strSettingsFile)
   If lngWorked Then
