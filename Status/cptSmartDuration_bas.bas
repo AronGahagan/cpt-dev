@@ -28,7 +28,7 @@ Sub cptShowSmartDuration_frm()
       .chkKeepOpen = CBool(strKeepOpen)
     End If
     .Show False
-    .txtTargetFinish.SetFocus
+    If .txtTargetFinish.Enabled Then .txtTargetFinish.SetFocus
   End With
   
   cptCore_bas.cptStartEvents
@@ -51,50 +51,57 @@ Sub cptUpdateSmartDurationForm()
   'integers
   'doubles
   'booleans
+  Dim blnValid As Boolean
   'variants
   'dates
   
   On Error Resume Next
+  Set oTasks = Nothing
   Set oTasks = ActiveSelection.Tasks
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If oTasks Is Nothing Then GoTo exit_here
+  blnValid = True
   If oTasks.Count > 1 Then
     cptSmartDuration_frm.txtTargetFinish = ""
     cptSmartDuration_frm.lblWeekday.Caption = "< focus >"
     cptSmartDuration_frm.lblWeekday.ControlTipText = "Please select a single task."
-    GoTo exit_here
+    blnValid = False
   ElseIf oTasks.Count = 0 Then
     cptSmartDuration_frm.txtTargetFinish = "-"
-    GoTo exit_here
+    blnValid = False
+    GoTo skip 'avoid error when Group By Summary is selected
   End If
   
   If oTasks(1).Summary Then
     cptSmartDuration_frm.txtTargetFinish = ""
     cptSmartDuration_frm.lblWeekday.Caption = "< summary >"
     cptSmartDuration_frm.lblWeekday.ControlTipText = "Please select a Non-summary task."
-    GoTo exit_here
+    blnValid = False
   End If
   
   If IsDate(oTasks(1).ActualFinish) Then
     cptSmartDuration_frm.txtTargetFinish = ""
     cptSmartDuration_frm.lblWeekday.Caption = "< complete >"
     cptSmartDuration_frm.lblWeekday.ControlTipText = "Please select an incomplete task."
-    GoTo exit_here
+    blnValid = False
   End If
   
-  If oTasks(1).Milestone Or oTasks(1).Duration = 0 Then
-    If MsgBox("Proceed with editing a zero-duration milestone?", vbQuestion + vbYesNo, "Please confirm") = vbNo Then
-      GoTo exit_here
-    End If
-  End If
-  
+skip:
   With cptSmartDuration_frm
-    .lngUID = oTasks(1).UniqueID
-    .StartDate = oTasks(1).Start
-    .txtTargetFinish = FormatDateTime(oTasks(1).Finish, vbShortDate)
-    .lblWeekday.Caption = Format(.txtTargetFinish.Text, "dddd")
-    .lblWeekday.ControlTipText = ""
+    If blnValid Then
+      .lngUID = oTasks(1).UniqueID
+      .StartDate = oTasks(1).Start
+      .txtTargetFinish = FormatDateTime(oTasks(1).Finish, vbShortDate)
+      .lblWeekday.Caption = Format(.txtTargetFinish.Text, "dddd")
+      .lblWeekday.ControlTipText = ""
+      .txtTargetFinish.Enabled = True
+      '.txtTargetFinish.SetFocus
+      .cmdApply.Enabled = True
+    Else
+      .txtTargetFinish.Enabled = False
+      .cmdApply.Enabled = False
+    End If
   End With
 
 exit_here:
