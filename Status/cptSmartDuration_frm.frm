@@ -23,25 +23,45 @@ Public lngUID As Long
 Private Sub cmdApply_Click()
   Dim oTask As MSProject.Task
   Dim dtStart As Date
+  Dim lngDelta As Long
+  
   If finDate = 0 Then Exit Sub
+  Set oTask = ActiveProject.Tasks.UniqueID(Me.lngUID)
+  
+  If oTask.Milestone Or oTask.Duration = 0 Then
+    If MsgBox("Proceed with editing a zero-duration milestone?", vbQuestion + vbYesNo, "Please confirm") = vbNo Then
+      GoTo exit_here
+    End If
+  End If
+  'todo: should we assume 5 PM finish for elapsed durations?
+  'todo: ...maybe yes, to make TS calcs a little cleaner?
   If Len(cptRegEx(CStr(finDate), "(AM|PM)")) = 0 Then
     finDate = CDate(finDate & " 5:00 PM")
   End If
-  Set oTask = ActiveProject.Tasks.UniqueID(Me.lngUID)
+  
   If IsDate(oTask.Resume) Then dtStart = oTask.Resume Else dtStart = oTask.Start
   OpenUndoTransaction "Smart Duration"
   If Left(cptRegEx(oTask.DurationText, "[A-z]{1,}"), 1) = "e" Then
-    oTask.RemainingDuration = VBA.DateDiff("n", dtStart, Me.finDate)
+    oTask.RemainingDuration = oTask.RemainingDuration + VBA.DateDiff("n", oTask.Finish, Me.finDate)
   Else
     If oTask.Calendar = "None" Or oTask.Calendar = ActiveProject.Calendar Then
-      oTask.RemainingDuration = Application.DateDifference(dtStart, Me.finDate)
+      If oTask.Finish > Me.finDate Then
+        oTask.RemainingDuration = oTask.RemainingDuration - Application.DateDifference(Me.finDate, oTask.Finish)
+      ElseIf oTask.Finish < Me.finDate Then
+        oTask.RemainingDuration = oTask.RemainingDuration + Application.DateDifference(oTask.Finish, Me.finDate)
+      End If
     Else
-      oTask.RemainingDuration = Application.DateDifference(dtStart, Me.finDate, oTask.Calendar)
+      If oTask.Finish > Me.finDate Then
+        oTask.RemainingDuration = oTask.RemainingDuration - Application.DateDifference(Me.finDate, oTask.Finish, oTask.Calendar)
+      ElseIf oTask.Finish < Me.finDate Then
+        oTask.RemainingDuration = oTask.RemainingDuration + Application.DateDifference(oTask.Finish, Me.finDate, oTask.Calendar)
+      End If
     End If
   End If
   CloseUndoTransaction
   cptSaveSetting "SmartDuration", "chkKeepOpen", IIf(Me.chkKeepOpen, "1", "0")
   If Not Me.chkKeepOpen Then Me.Hide
+exit_here:
   Set oTask = Nothing
 End Sub
 
@@ -60,7 +80,7 @@ Private Sub txtTargetFinish_Change()
     Me.Repaint
   Else
     'limit to dates after the start date
-    If CDate(Me.txtTargetFinish.Text) <= ActiveProject.Tasks.UniqueID(Me.lngUID).Start Then
+    If CDate(Format(Me.txtTargetFinish.Text, "mm/dd/yyyy") & " 5:00 PM") < ActiveProject.Tasks.UniqueID(Me.lngUID).Start Then
       Me.txtTargetFinish.BorderColor = 192
       Me.lblWeekday.Caption = "-"
       Me.cmdApply.Enabled = False
