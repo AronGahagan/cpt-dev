@@ -314,7 +314,7 @@ Dim oRef As Object 'Reference
       Debug.Print "-- " & oRef.Guid & " | " & oRef.Major & " | " & oRef.Minor
     End If
   Next oRef
-
+  
 End Function
 
 Function cptGetDirectory(strModule As String) As String
@@ -1007,6 +1007,7 @@ Sub cptSetReferences()
 Dim oExcel As Object
 Dim strDir As String
 Dim strRegEx As String
+Dim vPath As Variant
 
   On Error Resume Next
 
@@ -1030,12 +1031,20 @@ Dim strRegEx As String
   End If
 
   'office applications
-  strDir = cptRegEx(Environ("PATH"), "C:\\[^;]*Office[0-9]{1,}\\")
+  For Each vPath In Split(Environ("PATH"), ";")
+    If InStr(vPath, "Office") > 0 Then
+      If Dir(CStr(vPath) & "EXCEL.EXE") <> vbNullString Then
+        strDir = vPath
+      End If
+    End If
+  Next vPath
+  
   If Len(strDir) = 0 Then 'weird installation or Excel not installed
     MsgBox "Microsoft Office installation is not detetcted. Some features may not operate as expected." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for specialized assistance.", vbCritical + vbOKOnly, "Microsoft Office Compatibility"
     GoTo windows_common
   End If
   
+  'todo: change this to a loop through PATH variables; if dir(...excel.exe)<>vbnullstring then add all the rest too
   If Not cptReferenceExists("Excel") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
   End If
@@ -1393,17 +1402,6 @@ Sub cptFilterReapply()
   GroupApply ActiveProject.CurrentGroup
   Exit Sub
 
-'  Dim strCurrentFilter As String
-'  strCurrentFilter = ActiveProject.CurrentFilter
-'  ScreenUpdating = False
-'  ActiveWindow.TopPane.Activate
-'  FilterApply "All Tasks"
-'  'todo: how to reapply a custom AutoFilter?
-'  On Error Resume Next
-'  If Not FilterApply(strCurrentFilter) Then
-'    MsgBox "Cannot reapply a Custom AutoFilter", vbInformation + vbOKCancel, "Reapply Filter"
-'  End If
-'  ScreenUpdating = True
 End Sub
 
 Sub cptGroupReapply()
@@ -1439,7 +1437,7 @@ End Function
 Function cptGetSetting(strFeature As String, strSetting As String) As String
   Dim strSettingsFile As String, strReturned As String, lngSize As Long, lngWorked As Long
   strSettingsFile = cptDir & "\settings\cpt-settings.ini"
-  strReturned = Space(255)
+  strReturned = Space(255) 'this determines the length of the returned value, not the length of the stored value
   lngSize = Len(strReturned)
   lngWorked = GetPrivateProfileString(strFeature, strSetting, "", strReturned, lngSize, strSettingsFile)
   If lngWorked Then
@@ -1531,7 +1529,7 @@ Sub cptCreateFilter(strFilter As String)
 
   Select Case strFilter
     Case "Marked"
-      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
+      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
       
   End Select
   
@@ -1589,8 +1587,15 @@ Sub cptShowSettings_frm()
       strLine = oStream.ReadLine
       If Left(strLine, 1) = "[" Then
         strFeature = Replace(Replace(strLine, "[", ""), "]", "")
+        'todo: If [Driving Path Group] OR [Driving Path] Then skip
+        'todo: If Count Then StatusBar: StatusBar.blnSummarizeSelection; StatusBar.blnShowStatusBarTaskCount
         oRecordset.AddNew Array(0), Array(strFeature)
       Else
+        'todo: If [Metrics] Then remove cboLOEField > Integration.EVT
+        'todo: If [Metrics] Then remove txtLOE > Integration.LOE
+        'todo: If [Driving Path Group] OR [Driving Path] Then skip
+        'todo: If [Integration] Then rename CWBS as WBS
+        'todo: If [Integration] Then rename WPCN as WP
         oRecordset.AddNew Array(0, 1), Array(strFeature, strLine)
       End If
     Loop
@@ -2052,7 +2057,7 @@ Sub cptGetSums(ByRef oTasks As MSProject.Tasks, lngFieldID As Long)
       If strFieldName = "Baseline8 Duration" Then lngDuration = lngDuration + oTask.Baseline8Duration
       If strFieldName = "Baseline9 Duration" Then lngDuration = lngDuration + oTask.Baseline9Duration
       If strFieldName = "Baseline10 Duration" Then lngDuration = lngDuration + oTask.Baseline10Duration
-            
+                  
       If strFieldName = "Number" Then dblNumber = dblNumber + oTask.Number
       If strFieldName = "Number1" Then dblNumber = dblNumber + oTask.Number1
       If strFieldName = "Number2" Then dblNumber = dblNumber + oTask.Number2
@@ -2120,3 +2125,92 @@ err_here:
   Call cptHandleErr("cptCore_bas", "cptGetSums", Err, Erl)
   Resume exit_here
 End Sub
+
+Function cptGetCustomFields(strFieldTypes As String, strDataTypes As String, strInclude As String, Optional blnIncludeEnterprise As Boolean = False) As Variant
+  'strFieldTypes  := comma-separated list of any of "p,t,r" [project,task,resource]
+  'strDataTypes   := comma-separated list of any of "Cost,Date,Duration,Flag,Finish,Number,Start,Text,Outline Code"
+  'strInclude     := comma-separated list of any of "c,fn,cfn" [constant,fieldname,customfieldname]
+  'blnIncludeEnterprise := self-explanatory
+  'objects
+  Dim oFieldTypes As Scripting.Dictionary
+  'strings
+  Dim strFieldName As String
+  Dim strCustomFieldName As String
+  Dim strResult As String
+  Dim strRow As String
+  'longs
+  Dim lngInclude As Long
+  Dim lngFieldCount As Long
+  Dim lngFieldType As Long
+  Dim lngField As Long
+  Dim lngConstant As Long
+  Dim lngResultCount As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vInclude As Variant
+  Dim vFieldType As Variant
+  Dim vField As Variant
+  Dim vRow() As Variant
+  Dim vResult() As Variant
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  Set oFieldTypes = CreateObject("Scripting.Dictionary")
+  oFieldTypes.Add "p", pjProject
+  oFieldTypes.Add "t", pjTask
+  oFieldTypes.Add "r", pjResource
+  
+  vInclude = Split(strInclude, ",")
+  ReDim vRow(0 To UBound(vInclude))
+  For Each vFieldType In Split(strFieldTypes, ",")
+    lngFieldType = oFieldTypes(vFieldType)
+    For Each vField In Split(strDataTypes, ",")
+      lngFieldCount = 10
+      If vField = "Flag" Then lngFieldCount = 20
+      If vField = "Number" Then lngFieldCount = 20
+      If vField = "Text" Then lngFieldCount = 30
+      For lngField = 1 To lngFieldCount
+        lngConstant = FieldNameToFieldConstant(vField & lngField, lngFieldType)
+        'Debug.Print lngConstant; FieldConstantToFieldName(lngConstant)
+        For lngInclude = 0 To UBound(vInclude)
+          If vInclude(lngInclude) = "c" Then
+            vRow(lngInclude) = lngConstant
+          ElseIf vInclude(lngInclude) = "fn" Then
+            vRow(lngInclude) = FieldConstantToFieldName(lngConstant)
+          ElseIf vInclude(lngInclude) = "cfn" Then
+            If Len(CustomFieldGetName(lngConstant)) > 0 Then
+              vRow(lngInclude) = CustomFieldGetName(lngConstant)
+            Else
+              vRow(lngInclude) = FieldConstantToFieldName(lngConstant)
+            End If
+          End If
+        Next lngInclude
+        strResult = strResult & Join(vRow, ",") & vbCrLf
+        lngResultCount = lngResultCount + 1
+      Next lngField
+    Next vField
+  Next vFieldType
+  
+  ReDim vResult(0 To UBound(Split(strResult, vbCrLf)), 0 To UBound(vInclude))
+  For lngField = 0 To UBound(Split(strResult, vbCrLf)) - 1
+    For lngInclude = 0 To UBound(vInclude)
+      vResult(lngField, lngInclude) = Split(Split(strResult, vbCrLf)(lngField), ",")(lngInclude)
+    Next lngInclude
+  Next lngField
+  
+  cptGetCustomFields = vResult
+  
+exit_here:
+  On Error Resume Next
+  Set oFieldTypes = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptGetCustomFields", Err, Erl)
+  Resume exit_here
+  
+End Function
+
