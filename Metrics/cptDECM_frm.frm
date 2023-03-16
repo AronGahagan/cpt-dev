@@ -20,7 +20,7 @@ Private Sub cmdDone_Click()
   'then clean up after yourself
   Dim vFile As Variant
   Dim strFile As String
-  For Each vFile In Split("Schema.ini,tasks.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv", ",")
+  For Each vFile In Split("Schema.ini,tasks.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv", ",")
     strFile = Environ("tmp") & "\" & vFile
     If Dir(strFile) <> vbNullString Then Kill strFile
   Next vFile
@@ -144,12 +144,15 @@ Public Sub lboMetrics_AfterUpdate()
       strDescription = strDescription & "SCORE: " & strScore
     Case "06A504a"
       strDescription = strDescription & "SCORE: " & strScore
-      strDescription = strDescription & vbCrLf & "...requires CPT > Status > Capture Week, two periods"
+      strDescription = strDescription & vbCrLf & vbCrLf & "...requires CPT > Status > Capture Week, two periods"
     Case "06A504b"
       strDescription = strDescription & "SCORE: " & strScore
-      strDescription = strDescription & vbCrLf & "...requires CPT > Status > Capture Week, two periods"
+      strDescription = strDescription & vbCrLf & vbCrLf & "...requires CPT > Status > Capture Week, two periods"
     Case "06A506b"
       strDescription = strDescription & "SCORE: " & strScore
+    Case "06A506c"
+      strDescription = strDescription & "SCORE: " & strScore
+      strDescription = strDescription & vbCrLf & vbCrLf & "...requires CPT > Status > Capture Week, two periods"
     Case "06A212a"
       strDescription = strDescription & vbCrLf & "...pairs exported to Excel" & vbCrLf & "...select to filter"
     Case "10A103a"
