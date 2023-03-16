@@ -1031,20 +1031,22 @@ Dim vPath As Variant
   End If
 
   'office applications
+  'strDir = cptRegEx(Environ("PATH"), "C:\\[^;]*Office[0-9]{1,}\\")
+  strDir = ""
   For Each vPath In Split(Environ("PATH"), ";")
     If InStr(vPath, "Office") > 0 Then
       If Dir(CStr(vPath) & "EXCEL.EXE") <> vbNullString Then
         strDir = vPath
+        Exit For
       End If
     End If
   Next vPath
-  
+
   If Len(strDir) = 0 Then 'weird installation or Excel not installed
     MsgBox "Microsoft Office installation is not detetcted. Some features may not operate as expected." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for specialized assistance.", vbCritical + vbOKOnly, "Microsoft Office Compatibility"
     GoTo windows_common
   End If
   
-  'todo: change this to a loop through PATH variables; if dir(...excel.exe)<>vbnullstring then add all the rest too
   If Not cptReferenceExists("Excel") Then
     ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
   End If
@@ -2213,4 +2215,3 @@ err_here:
   Resume exit_here
   
 End Function
-
