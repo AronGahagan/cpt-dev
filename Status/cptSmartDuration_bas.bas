@@ -96,7 +96,7 @@ skip:
       .lblWeekday.Caption = Format(.txtTargetFinish.Text, "dddd")
       .lblWeekday.ControlTipText = ""
       .txtTargetFinish.Enabled = True
-      '.txtTargetFinish.SetFocus
+      '.txtTargetFinish.SetFocus 'this steals focus when user may not want it to
       .cmdApply.Enabled = True
     Else
       .txtTargetFinish.Enabled = False

@@ -41,7 +41,7 @@ Private Sub cmdApply_Click()
   
   If IsDate(oTask.Resume) Then dtStart = oTask.Resume Else dtStart = oTask.Start
   OpenUndoTransaction "Smart Duration"
-  If Left(cptRegEx(oTask.DurationText, "[A-z]{1,}"), 1) = "e" Then
+  If cptRegEx(oTask.DurationText, "[A-z]") = "e" Then
     oTask.RemainingDuration = oTask.RemainingDuration + VBA.DateDiff("n", oTask.Finish, Me.finDate)
   Else
     If oTask.Calendar = "None" Or oTask.Calendar = ActiveProject.Calendar Then
