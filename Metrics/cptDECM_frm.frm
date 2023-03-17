@@ -20,7 +20,7 @@ Private Sub cmdDone_Click()
   'then clean up after yourself
   Dim vFile As Variant
   Dim strFile As String
-  For Each vFile In Split("Schema.ini,tasks.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv", ",")
+  For Each vFile In Split("Schema.ini,tasks.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv,06A504a.csv", ",")
     strFile = Environ("tmp") & "\" & vFile
     If Dir(strFile) <> vbNullString Then Kill strFile
   Next vFile
@@ -156,11 +156,11 @@ Public Sub lboMetrics_AfterUpdate()
     Case "06A212a"
       strDescription = strDescription & vbCrLf & "...pairs exported to Excel" & vbCrLf & "...select to filter"
     Case "10A103a"
-      strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore & vbCrLf
-      strDescription = strDescription & vbCrLf & "...details exported to Excel"
+      strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
+      If lngX > 0 Then strDescription = strDescription & vbCrLf & vbCrLf & "...details exported to Excel"
     Case "06I201a"
-      strDescription = strDescription & "SCORE: " & strScore & vbCrLf
-      strDescription = strDescription & vbCrLf & "Task Name contains 'SVT' and has resource assignments"
+      strDescription = strDescription & "SCORE: " & strScore
+      strDescription = strDescription & vbCrLf & vbCrLf & "Task Name contains 'SVT' and has resource assignments"
     Case Else
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
   End Select

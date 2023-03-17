@@ -163,6 +163,7 @@ End Function
 Sub cptDECM_GET_DATA()
 'Optional blnIncompleteOnly As Boolean = True, Optional blnDiscreteOnly As Boolean = True
   'objects
+  Dim oException As MSProject.Exception
   Dim oTasks As MSProject.Tasks
   Dim oCell As Excel.Range
   Dim oListObject As Excel.ListObject
@@ -223,6 +224,7 @@ Sub cptDECM_GET_DATA()
   'doubles
   Dim dblScore As Double
   'booleans
+  Dim blnFiscalExists As Boolean
   Dim blnDumpToExcel As Boolean
   'variants
   Dim vFile As Variant
@@ -247,6 +249,8 @@ Sub cptDECM_GET_DATA()
   dtStatus = ActiveProject.StatusDate 'todo: what dates does GetField return? times?
   
   If Not ValidMap Then GoTo exit_here
+  
+  strProgramAcronym = cptGetProgramAcronym
   
   cptSpeed True
   
@@ -823,7 +827,7 @@ next_task:
         .MoveNext
       Loop
     End With
-    Set oFile = oFSO.CreateTextFile(strDir & "\10A302b-x.csv", True) 'todo: rename to 10A302b-x.csv
+    Set oFile = oFSO.CreateTextFile(strDir & "\10A302b-x.csv", True)
     oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
     oFile.Close
   End If
@@ -929,7 +933,7 @@ next_task:
   DoEvents
     
   '06A204b - Dangling Logic
-  '06A204b todo: ignore first/last milestone
+  '06A204b - todo: ignore first/last milestone - how?
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A204b..."
   Application.StatusBar = "Getting Schedule Metric: 06A204b..."
   cptDECM_frm.lboMetrics.AddItem
@@ -1204,7 +1208,6 @@ next_task:
       Loop
     End If
     lngX = oDict.Count
-    
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
@@ -1353,18 +1356,25 @@ next_task:
   Application.StatusBar = "Getting Schedule Metric: 06A501a...done."
   DoEvents
   
-  '06A504a - AS changed - only if task history otherwise notify to 'use capture period'
+  'confirm fiscal calendar exists and export it
+  'needed for: 06A504a; 06A504b;
+  blnFiscalExists = cptCalendarExists("cptFiscalCalendar")
+  If blnFiscalExists Then
+    'export fiscal.csv
+    lngFile = FreeFile
+    strFile = strDir & "\fiscal.csv"
+    Open strFile For Output As #lngFile
+    Print #1, "FISCAL_END,LABEL,"
+    For Each oException In ActiveProject.BaseCalendars("cptFiscalCalendar").Exceptions
+      Print #1, oException.Finish & " 5:00 PM," & oException.Name & ","
+    Next oException
+    Close #lngFile
+  End If
+  
+  'confirm cpt-cei.adtg exists and convert it
+  'needed for: 06A504a; 06A504b;
   strFile = cptDir & "\settings\cpt-cei.adtg"
   If Dir(strFile) <> vbNullString Then
-    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504a..."
-    Application.StatusBar = "Getting Schedule Metric: 06A504a..."
-    cptDECM_frm.lboMetrics.AddItem
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A504a"
-    'cptDECM_frm.lboMetrics.Value = "06A505a"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Start"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
-    DoEvents
-    
     'copy cpt-cei.adtg to tmp dir
     FileCopy strFile, strDir & "\cpt-cei.adtg"
     
@@ -1393,20 +1403,78 @@ next_task:
     'save as csv
     Set oFile = oFSO.CreateTextFile(strDir & "\cpt-cei.csv", True)
     oFile.Write strList & vbCrLf
+    oRecordset.MoveFirst
     oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
     oRecordset.Close
+    Kill strDir & "\cpt-cei.adtg"
     oFile.Close
     
-    'query, get Y
-    strProgramAcronym = cptGetProgramAcronym
+  End If
+  
+  If Dir(strDir & "\cpt-cei.csv") <> vbNullString And blnFiscalExists Then
+    Set oRecordset = CreateObject("ADODB.Recordset")
+    strSQL = "SELECT "
+    strSQL = strSQL & "    MAX(STATUS_DATE) "
+    strSQL = strSQL & "FROM "
+    strSQL = strSQL & "    ( "
+    strSQL = strSQL & "        SELECT "
+    strSQL = strSQL & "            T1.FISCAL_END, "
+    strSQL = strSQL & "            T2.STATUS_DATE "
+    strSQL = strSQL & "        FROM "
+    strSQL = strSQL & "            [fiscal.csv] T1 "
+    strSQL = strSQL & "            LEFT JOIN ( "
+    strSQL = strSQL & "                SELECT "
+    strSQL = strSQL & "                    DISTINCT STATUS_DATE "
+    strSQL = strSQL & "                FROM "
+    strSQL = strSQL & "                    [cpt-cei.csv] "
+    strSQL = strSQL & "                WHERE "
+    strSQL = strSQL & "                    PROJECT = '" & strProgramAcronym & "' "
+    strSQL = strSQL & "            ) T2 ON T2.[STATUS_DATE] = T1.FISCAL_END "
+    strSQL = strSQL & "    )"
+    oRecordset.Open strSQL, strCon, adOpenKeyset
+    If oRecordset.EOF Then
+      oRecordset.Close
+      blnFiscalExists = False
+      GoTo skip_fiscal
+    End If
+    dtCurrent = oRecordset(0)
+    oRecordset.Close
+    'get 2nd most recent fiscal end/status date
+    strSQL = strSQL & " WHERE STATUS_DATE<#" & dtCurrent & "#"
+    oRecordset.Open strSQL, strCon, adOpenKeyset
+    If oRecordset.EOF Then
+      oRecordset.Close
+      blnFiscalExists = False
+      GoTo skip_fiscal
+    End If
+    dtPrevious = oRecordset(0)
+    oRecordset.Close
+  End If
+  
+  '06A504a - AS changed - only if task history otherwise notify to 'use capture period'
+  strFile = strDir & "\cpt-cei.csv"
+  If Dir(strFile) <> vbNullString And blnFiscalExists Then
+    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504a..."
+    Application.StatusBar = "Getting Schedule Metric: 06A504a..."
+    cptDECM_frm.lboMetrics.AddItem
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A504a"
+    'cptDECM_frm.lboMetrics.Value = "06A505a"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Start"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+    DoEvents
+    
+    'X = Count of tasks/activities & milestones where actual start date does not equal previously reported actual start date
+    'Y = Total count of tasks/activities & milestones with actual start dates
+        
+    'get Y
     strSQL = "SELECT TASK_UID,TASK_AS FROM [cpt-cei.csv] "
     strSQL = strSQL & "WHERE PROJECT='" & strProgramAcronym & "' AND TASK_AS IS NOT NULL "
-    strSQL = strSQL & "AND STATUS_DATE = (SELECT MAX(STATUS_DATE) FROM [cpt-cei.csv] WHERE PROJECT='" & strProgramAcronym & "')"
+    strSQL = strSQL & "AND STATUS_DATE = #" & dtCurrent & "#"
     oRecordset.Open strSQL, strCon, adOpenKeyset
     If Not oRecordset.EOF Then lngY = oRecordset.RecordCount Else lngY = 1
     oRecordset.Close
     
-    'get X 'todo: limit to status date? this query is incorrect
+    'get X
     strSQL = "SELECT "
     strSQL = strSQL & "    t1.TASK_UID, "
     strSQL = strSQL & "    t1.TASK_AS AS TASK_AS_IS, "
@@ -1422,34 +1490,12 @@ next_task:
     strSQL = strSQL & "        WHERE "
     strSQL = strSQL & "            PROJECT = '" & strProgramAcronym & "' "
     strSQL = strSQL & "            AND TASK_AS IS NOT NULL "
-    strSQL = strSQL & "            AND STATUS_DATE = ( "
-    strSQL = strSQL & "                SELECT "
-    strSQL = strSQL & "                    MAX(STATUS_DATE) "
-    strSQL = strSQL & "                FROM "
-    strSQL = strSQL & "                    [cpt-cei.csv] "
-    strSQL = strSQL & "                WHERE "
-    strSQL = strSQL & "                    PROJECT = '" & strProgramAcronym & "' "
-    strSQL = strSQL & "                    AND STATUS_DATE <( "
-    strSQL = strSQL & "                        SELECT "
-    strSQL = strSQL & "                            MAX(STATUS_DATE) "
-    strSQL = strSQL & "                        FROM "
-    strSQL = strSQL & "                            [cpt-cei.csv] "
-    strSQL = strSQL & "                        WHERE "
-    strSQL = strSQL & "                            PROJECT = '" & strProgramAcronym & "' "
-    strSQL = strSQL & "                    ) "
-    strSQL = strSQL & "            ) "
+    strSQL = strSQL & "            AND STATUS_DATE = #" & dtPrevious & "#"
     strSQL = strSQL & "    ) AS T2 ON T2.TASK_UID = T1.TASK_UID "
     strSQL = strSQL & "WHERE "
     strSQL = strSQL & "    PROJECT = '" & strProgramAcronym & "' "
     strSQL = strSQL & "    AND TASK_AS IS NOT NULL "
-    strSQL = strSQL & "    AND STATUS_DATE = ( "
-    strSQL = strSQL & "        SELECT "
-    strSQL = strSQL & "            MAX(STATUS_DATE) "
-    strSQL = strSQL & "        FROM "
-    strSQL = strSQL & "            [cpt-cei.csv] "
-    strSQL = strSQL & "        WHERE "
-    strSQL = strSQL & "            PROJECT = '" & strProgramAcronym & "' "
-    strSQL = strSQL & "    ) "
+    strSQL = strSQL & "    AND STATUS_DATE = #" & dtCurrent & "# "
     strSQL = strSQL & "    AND T1.TASK_AS <> T2.TASK_AS_WAS; "
     oRecordset.Open strSQL, strCon, adOpenKeyset
     If Not oRecordset.EOF Then lngX = oRecordset.RecordCount Else lngX = 0
@@ -1460,9 +1506,6 @@ next_task:
       oFile.Close
     End If
     oRecordset.Close
-    'X = Count of tasks/activities & milestones where actual start date does not equal previously reported actual start date
-    'Y = Total count of tasks/activities & milestones with actual start dates
-    'todo: technically, 06A504a should be this (fiscal) month-end vs previous (fiscal) month-end
     'X/Y <= 10%
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
@@ -1481,7 +1524,7 @@ next_task:
   End If
   
   '06A504b - AF changed - only if task history
-  If Dir(strDir & "\cpt-cei.csv") <> vbNullString Then
+  If Dir(strDir & "\cpt-cei.csv") <> vbNullString And blnFiscalExists Then
     cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504b..."
     Application.StatusBar = "Getting Schedule Metric: 06A504b..."
     cptDECM_frm.lboMetrics.AddItem
@@ -1491,11 +1534,13 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
     DoEvents
   
-    'query, get Y
-    strProgramAcronym = cptGetProgramAcronym
+    'X = Count of tasks/activities & milestones where actual finish date does not equal previously reported actual finish date
+    'Y = Total count of tasks/activities & milestones with actual finish dates
+  
+    'get Y
     strSQL = "SELECT TASK_UID,TASK_AF FROM [cpt-cei.csv] "
     strSQL = strSQL & "WHERE PROJECT='" & strProgramAcronym & "' AND TASK_AF IS NOT NULL "
-    strSQL = strSQL & "AND STATUS_DATE = (SELECT MAX(STATUS_DATE) FROM [cpt-cei.csv] WHERE PROJECT='" & strProgramAcronym & "')"
+    strSQL = strSQL & "AND STATUS_DATE = #" & dtCurrent & "#"
     oRecordset.Open strSQL, strCon, adOpenKeyset
     If Not oRecordset.EOF Then lngY = oRecordset.RecordCount Else lngY = 1
     oRecordset.Close
@@ -1516,34 +1561,12 @@ next_task:
     strSQL = strSQL & "        WHERE "
     strSQL = strSQL & "            PROJECT = '" & strProgramAcronym & "' "
     strSQL = strSQL & "            AND TASK_AF IS NOT NULL "
-    strSQL = strSQL & "            AND STATUS_DATE = ( "
-    strSQL = strSQL & "                SELECT "
-    strSQL = strSQL & "                    MAX(STATUS_DATE) "
-    strSQL = strSQL & "                FROM "
-    strSQL = strSQL & "                    [cpt-cei.csv] "
-    strSQL = strSQL & "                WHERE "
-    strSQL = strSQL & "                    PROJECT = '" & strProgramAcronym & "' "
-    strSQL = strSQL & "                    AND STATUS_DATE <( "
-    strSQL = strSQL & "                        SELECT "
-    strSQL = strSQL & "                            MAX(STATUS_DATE) "
-    strSQL = strSQL & "                        FROM "
-    strSQL = strSQL & "                            [cpt-cei.csv] "
-    strSQL = strSQL & "                        WHERE "
-    strSQL = strSQL & "                            PROJECT = '" & strProgramAcronym & "' "
-    strSQL = strSQL & "                    ) "
-    strSQL = strSQL & "            ) "
+    strSQL = strSQL & "            AND STATUS_DATE = #" & dtPrevious & "#"
     strSQL = strSQL & "    ) AS T2 ON T2.TASK_UID = T1.TASK_UID "
     strSQL = strSQL & "WHERE "
     strSQL = strSQL & "    PROJECT = '" & strProgramAcronym & "' "
     strSQL = strSQL & "    AND TASK_AF IS NOT NULL "
-    strSQL = strSQL & "    AND STATUS_DATE = ( "
-    strSQL = strSQL & "        SELECT "
-    strSQL = strSQL & "            MAX(STATUS_DATE) "
-    strSQL = strSQL & "        FROM "
-    strSQL = strSQL & "            [cpt-cei.csv] "
-    strSQL = strSQL & "        WHERE "
-    strSQL = strSQL & "            PROJECT = '" & strProgramAcronym & "' "
-    strSQL = strSQL & "    ) "
+    strSQL = strSQL & "    AND STATUS_DATE = #" & dtCurrent & "# "
     strSQL = strSQL & "    AND T1.TASK_AF <> T2.TASK_AF_WAS; "
     oRecordset.Open strSQL, strCon, adOpenKeyset
     If Not oRecordset.EOF Then lngX = oRecordset.RecordCount Else lngX = 0
@@ -1555,9 +1578,6 @@ next_task:
     End If
     oRecordset.Close
     
-    'X = Count of tasks/activities & milestones where actual finish date does not equal previously reported actual finish date
-    'Y = Total count of tasks/activities & milestones with actual finish dates
-    'todo: technically, 06A504b should be this (fiscal) month-end vs previous (fiscal) month-end
     'X/Y <= 10%
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
@@ -1574,6 +1594,8 @@ next_task:
     Application.StatusBar = "Getting Schedule Metric: 06A504b...done."
     DoEvents
   End If
+  
+skip_fiscal:
   
   '06A505a - In-Progress Tasks Have AS
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A505a..."
@@ -1771,141 +1793,107 @@ next_task:
   Application.StatusBar = "Getting Schedule Metric: 06A506b...done."
   DoEvents
   
-  'todo: all user to refresh analysis on a one-by-one basis?
+  'todo: allow user to refresh analysis on a one-by-one basis?
   
   '06A506c - riding status date
-  'todo: 06A506c perhaps allow user to select two status periods?
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506c..."
-  Application.StatusBar = "Getting Schedule Metric: 06A506c..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A506c"
-  'cptDECM_frm.lboMetrics.Value = "06A506b"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Riding the Status Date"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
-  DoEvents
-  If Dir(cptDir & "\settings\cpt-cei.adtg") = vbNullString Then
-    GoTo skip_06A506c
-  End If
-  'X = Count of incomplete tasks/activities & milestones with either forecast start or forecast finish date riding the status date
-  'Y = Total count of incomplete tasks/activities & milestones
-  strSQL = "SELECT UID FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE SUMMARY='No' AND [AF] IS NULL "
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngY = oRecordset.RecordCount
-    'DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  Set oRecordset = CreateObject("ADODB.Recordset")
-  oRecordset.Open cptDir & "\settings\cpt-cei.adtg"
-  If cptConvertADTGtoCSV(oRecordset, strDir & "\cpt-cei.csv") = "fail" Then GoTo skip_06A506c
-  oRecordset.Close
-  Set oRecordset = Nothing
-  'get current status date from cpt-cei.csv
-  strProgramAcroymn = cptGetProgramAcronym
-  strSQL = "SELECT PROJECT,MAX(STATUS_DATE FROM [cpt-cei.csv] "
-  strSQL = strSQL & "WHERE PROJECT='" & strProgramAcronym & "' "
-  strSQL = strSQL & "GROUP BY PROJECT"
-  Set oRecordset = CreateObject("ADODB.Recordset")
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    If Not .EOF Then
-      dtCurrent = oRecordset(1)
-    Else
+  If Dir(strDir & "\cpt-cei.csv") <> vbNullString And blnFiscalExists Then
+    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506c..."
+    Application.StatusBar = "Getting Schedule Metric: 06A506c..."
+    cptDECM_frm.lboMetrics.AddItem
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A506c"
+    'cptDECM_frm.lboMetrics.Value = "06A506b"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Riding the Status Date"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
+    DoEvents
+    
+    'X = Count of incomplete tasks/activities & milestones with either forecast start or forecast finish date riding the status date
+    'Y = Total count of incomplete tasks/activities & milestones
+    strSQL = "SELECT UID FROM [tasks.csv] "
+    strSQL = strSQL & "WHERE SUMMARY='No' AND [AF] IS NULL "
+    With oRecordset
+      .Open strSQL, strCon, adOpenKeyset
+      lngY = oRecordset.RecordCount
+      'DumpRecordsetToExcel oRecordset
       .Close
-      GoTo skip_06A506c
-    End If
-    .Close
-  End With
-
-  'get previous status period from cpt-cei.csv
-  strSQL = "SELECT PROJECT,MAX(STATUS_DATE) FROM [cpt-cei.csv] "
-  strSQL = strSQL & "WHERE PROJECT='" & strProgramAcronym & "' "
-  strSQL = strSQL & "AND STATUS_DATE<#" & dtCurrent & "# "
-  strSQL = strSQL & "GROUP BY PROJECT"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-    If Not .EOF Then
-      dtPrevious = oRecordset(1)
-    Else
+    End With
+      
+    'get list of incomplete UID,finish1,status1,delta1,finish2,status2,delta2 where delta2=delta1
+    strSQL = "SELECT "
+    strSQL = strSQL & "    P1.*, "
+    strSQL = strSQL & "    P2.TASK_FINISH, "
+    strSQL = strSQL & "    P2.STATUS_DATE, "
+    strSQL = strSQL & "    P2.DELTA "
+    strSQL = strSQL & "FROM "
+    strSQL = strSQL & "    ( "
+    strSQL = strSQL & "        SELECT "
+    strSQL = strSQL & "            TASK_UID, "
+    strSQL = strSQL & "            TASK_FINISH, "
+    strSQL = strSQL & "            STATUS_DATE, "
+    strSQL = strSQL & "            TASK_FINISH - STATUS_DATE AS [DELTA] "
+    strSQL = strSQL & "        FROM "
+    strSQL = strSQL & "            [cpt-cei.csv] "
+    strSQL = strSQL & "        WHERE "
+    strSQL = strSQL & "            PROJECT = 'IBL' "
+    strSQL = strSQL & "            AND IS_LOE = FALSE "
+    strSQL = strSQL & "            AND TASK_AF IS NULL "
+    strSQL = strSQL & "            AND TASK_FINISH >= #" & dtCurrent & "# "
+    strSQL = strSQL & "            AND STATUS_DATE = #" & dtCurrent & "# "
+    strSQL = strSQL & "    ) P1 "
+    strSQL = strSQL & "    INNER JOIN ( "
+    strSQL = strSQL & "        SELECT "
+    strSQL = strSQL & "            TASK_UID, "
+    strSQL = strSQL & "            TASK_FINISH, "
+    strSQL = strSQL & "            STATUS_DATE, "
+    strSQL = strSQL & "            TASK_FINISH - STATUS_DATE AS [DELTA] "
+    strSQL = strSQL & "        FROM "
+    strSQL = strSQL & "            [cpt-cei.csv] "
+    strSQL = strSQL & "        WHERE "
+    strSQL = strSQL & "            PROJECT = 'IBL' "
+    strSQL = strSQL & "            AND IS_LOE = FALSE "
+    strSQL = strSQL & "            AND TASK_AF IS NULL "
+    strSQL = strSQL & "            AND TASK_FINISH >= #" & dtPrevious & "# "
+    strSQL = strSQL & "            AND STATUS_DATE = #" & dtPrevious & "# "
+    strSQL = strSQL & "    ) P2 ON P2.TASK_UID = P1.TASK_UID "
+    strSQL = strSQL & "WHERE "
+    strSQL = strSQL & "    P1.DELTA = P2.DELTA "
+    Set oRecordset = CreateObject("ADODB.Recordset")
+    With oRecordset
+      .Open strSQL, strCon, adOpenKeyset
+      If .EOF Then
+        lngX = 0
+      Else
+        lngX = .RecordCount
+        Set oFile = oFSO.CreateTextFile(strDir & "\06A506c-x.csv", True)
+        oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+        oFile.Close
+      End If
+      strList = ""
+      If lngX > 0 Then
+        .MoveFirst
+        Do While Not .EOF
+          strList = strList & .Fields("UID") & ","
+          .MoveNext
+        Loop
+      End If
+      'DumpRecordsetToExcel oRecordset
       .Close
-      GoTo skip_06A506c
-    End If
-    .Close
-  End With
-  strSQL = "SELECT "
-  strSQL = strSQL & "    P1.*, "
-  strSQL = strSQL & "    P2.TASK_FINISH, "
-  strSQL = strSQL & "    P2.STATUS_DATE, "
-  strSQL = strSQL & "    P2.DELTA "
-  strSQL = strSQL & "FROM "
-  strSQL = strSQL & "    ( "
-  strSQL = strSQL & "        SELECT "
-  strSQL = strSQL & "            TASK_UID, "
-  strSQL = strSQL & "            TASK_FINISH, "
-  strSQL = strSQL & "            STATUS_DATE, "
-  strSQL = strSQL & "            TASK_FINISH - STATUS_DATE AS [DELTA] "
-  strSQL = strSQL & "        FROM "
-  strSQL = strSQL & "            [cpt-cei.csv] "
-  strSQL = strSQL & "        WHERE "
-  strSQL = strSQL & "            PROJECT = 'IBL' "
-  strSQL = strSQL & "            AND IS_LOE = FALSE "
-  strSQL = strSQL & "            AND TASK_AF IS NULL "
-  strSQL = strSQL & "            AND STATUS_DATE = #" & dtCurrent & "# "
-  strSQL = strSQL & "    ) P1 "
-  strSQL = strSQL & "    INNER JOIN ( "
-  strSQL = strSQL & "        SELECT "
-  strSQL = strSQL & "            TASK_UID, "
-  strSQL = strSQL & "            TASK_FINISH, "
-  strSQL = strSQL & "            STATUS_DATE, "
-  strSQL = strSQL & "            TASK_FINISH - STATUS_DATE AS [DELTA] "
-  strSQL = strSQL & "        FROM "
-  strSQL = strSQL & "            [cpt-cei.csv] "
-  strSQL = strSQL & "        WHERE "
-  strSQL = strSQL & "            PROJECT = 'IBL' "
-  strSQL = strSQL & "            AND IS_LOE = FALSE "
-  strSQL = strSQL & "            AND TASK_AF IS NULL "
-  strSQL = strSQL & "            AND STATUS_DATE = #" & dtPrevious & "# "
-  strSQL = strSQL & "    ) P2 ON P2.TASK_UID = P1.TASK_UID "
-  strSQL = strSQL & "WHERE "
-  strSQL = strSQL & "    P1.DELTA = P2.DELTA "
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    If .EOF Then
-      lngX = 0
+    End With
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+    dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+    If dblScore < 0.01 Then
+      cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
     Else
-      lngX = .RecordCount
-      Set oFile = oFSO.CreateTextFile(strDir & "\06A506c-x.csv", True)
-      oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
-      oFile.Close
+      cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
     End If
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
-        .MoveNext
-      Loop
-    End If
-    'DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore < 0.01 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506c...done."
+    Application.StatusBar = "Getting Schedule Metric: 06A506c...done."
+    DoEvents
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506c...done."
-  Application.StatusBar = "Getting Schedule Metric: 06A506c...done."
-  DoEvents
   
-skip_06A506c:
   '06I201a - SVTs todo: capture task names with "^SVT" ; allow alternative
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06I201a..."
   Application.StatusBar = "Getting Schedule Metric: 06I201a..."
@@ -1966,6 +1954,7 @@ skip_06A506c:
   
 exit_here:
   On Error Resume Next
+  Set oException = Nothing
   Set oTasks = Nothing
   Set oCell = Nothing
   Set oListObject = Nothing
