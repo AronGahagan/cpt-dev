@@ -535,7 +535,7 @@ Sub cptResetAll()
       lngSettings = lngSettings - 128
     End If
     If lngSettings >= 64 Then 'display name indent
-      OptionsViewEx displaynameindent:=True
+      OptionsViewEx DisplayNameIndent:=True
       lngSettings = lngSettings - 64
     End If
     If lngSettings >= 32 Then 'clear filter
@@ -2215,3 +2215,9 @@ err_here:
   Resume exit_here
   
 End Function
+
+Sub cptGetValidMap()
+  If ValidMap Then
+    'do nothing
+  End If
+End Sub
