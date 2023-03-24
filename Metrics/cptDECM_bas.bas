@@ -123,7 +123,9 @@ Function ValidMap() As Boolean
           oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
         Next lngItem
       ElseIf vControl = "LOE" Then
+        On Error Resume Next
         .cboLOE.Value = strLOE
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         GoTo next_control
       Else 'WP
         oComboBox.List = cptGetCustomFields("t", "Text,Outline Code", "c,cfn", False)
@@ -1872,7 +1874,7 @@ skip_fiscal:
       If lngX > 0 Then
         .MoveFirst
         Do While Not .EOF
-          strList = strList & .Fields("UID") & ","
+          strList = strList & .Fields("TASK_UID") & ","
           .MoveNext
         Loop
       End If
