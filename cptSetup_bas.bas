@@ -521,8 +521,8 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mHealth"" label=""Health"" imageMso=""CheckWorkflow"" visible=""true"" size=""large"" >"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DECM (v5.0)"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDECM"" label=""DECM Dashboard"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DECM Dashboard (Aligned to DECM 06A212a v5.0)"" />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DCMA 14"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDCMA14"" label=""DCMA 01"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DCMA 14-pt Analysis"" />"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DCMA 14"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDCMA14"" label=""DCMA 01"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DCMA 14-pt Analysis"" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mStatus"" label=""Status"" imageMso=""UpdateAsScheduled"" visible=""true"" size=""large"" >"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Before Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
@@ -635,6 +635,14 @@ Dim lngCleanUp As Long
   End If
   
   'mpm
+  
+  'integration settings
+  If cptModuleExists("cptIntegration_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:dialogBoxLauncher>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIntegrationSettings"" screentip=""Integration Settings"" onAction=""cptGetValidMap"" />"
+    ribbonXML = ribbonXML + vbCrLf & "</mso:dialogBoxLauncher>"
+  End If
+  
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
   'bcr
@@ -733,10 +741,10 @@ Dim strMatch As String
 
     Set RE = CreateObject("vbscript.regexp")
     With RE
-        .MultiLine = blnMultiline
-        .Global = True
-        .IgnoreCase = True
-        .Pattern = strRegEx
+      .MultiLine = blnMultiline
+      .Global = True
+      .IgnoreCase = True
+      .Pattern = strRegEx
     End With
 
     Set REMatches = RE.Execute(strText)
