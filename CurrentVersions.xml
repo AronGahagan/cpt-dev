@@ -141,6 +141,20 @@
 		<Directory>CustomFields</Directory>
 	</Module>
 	<Module>
+		<Name>cptDECM_bas</Name>
+		<FileName>cptDECM_bas.bas</FileName>
+		<Version>v0.0.1</Version>
+		<Type>1</Type>
+		<Directory>Metrics</Directory>
+	</Module>
+	<Module>
+		<Name>cptDECM_frm</Name>
+		<FileName>cptDECM_frm.frm</FileName>
+		<Version>v0.0.1</Version>
+		<Type>3</Type>
+		<Directory>Metrics</Directory>
+	</Module>
+	<Module>
 		<Name>cptDynamicFilter_bas</Name>
 		<FileName>cptDynamicFilter_bas.bas</FileName>
 		<Version>v1.6.1</Version>
@@ -200,6 +214,13 @@
 		<Name>cptIMSCobraExport_frm</Name>
 		<FileName>cptIMSCobraExport_frm.frm</FileName>
 		<Version>v3.3.11</Version>
+		<Type>3</Type>
+		<Directory>Integration</Directory>
+	</Module>
+	<Module>
+		<Name>cptIntegration_frm</Name>
+		<FileName>cptIntegration_frm.frm</FileName>
+		<Version>v0.0.1</Version>
 		<Type>3</Type>
 		<Directory>Integration</Directory>
 	</Module>

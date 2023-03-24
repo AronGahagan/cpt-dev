@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v0.0.0</cpt_version>
+'<cpt_version>v0.0.1</cpt_version>
 Option Explicit
 Public blnValidIntegrationMap As Boolean
 
@@ -95,7 +95,7 @@ End Sub
 
 Private Sub cmdCancel_Click()
   Me.blnValidIntegrationMap = False
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub cmdConfirm_Click()
@@ -127,7 +127,12 @@ Private Sub UpdateIntegrationSettings()
   strControl = Replace(strControl, "cbo", "")
   strField = CustomFieldGetName(lngField)
   If Len(strField) = 0 Then strField = FieldConstantToFieldName(lngField)
-  If strControl = "WBS" Then strControl = "CWBS"
-  If strControl = "WP" Then strControl = "WPCN"
+  If strControl = "WBS" Then strControl = "CWBS" 'todo: fix this
+  If strControl = "WP" Then strControl = "WPCN" 'todo: fix this
   cptSaveSetting "Integration", strControl, lngField & "|" & strField
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = 1 Then Me.blnValidIntegrationMap = False
+  If Cancel = 1 Then Me.blnValidIntegrationMap = False
 End Sub

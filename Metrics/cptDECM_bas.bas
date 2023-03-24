@@ -22,8 +22,9 @@ Private lngEVP As Long
 
 Function ValidMap() As Boolean
   'objects
-  Dim oComboBox As ComboBox
+  Dim oComboBox As MSForms.ComboBox
   'strings
+  Dim strLOE As String
   Dim strSetting As String
   'longs
   Dim lngItem  As Long
@@ -79,7 +80,6 @@ Function ValidMap() As Boolean
         If vControl <> "LOE" Then
           lngField = CLng(Split(strSetting, "|")(0))
         Else
-          Dim strLOE As String
           strLOE = strSetting
         End If
       End If
@@ -326,6 +326,7 @@ Sub cptDECM_GET_DATA()
   
   lngTaskFile = FreeFile
   strFile = strDir & "\tasks.csv"
+  
   If Dir(strFile) <> vbNullString Then Kill strFile
   Open strFile For Output As #lngTaskFile
   
@@ -1905,7 +1906,7 @@ skip_fiscal:
   DoEvents
   'X = Count of incomplete tasks/activities and milestones that are not properly identified and controlled as SVTs in the IMS
   'X = 0
-      
+        
   Application.OpenUndoTransaction "cpt DECM 06I201a"
   ActiveWindow.TopPane.Activate
   FilterClear
@@ -1932,7 +1933,7 @@ skip_fiscal:
     lngX = 0
   End If
   Application.CloseUndoTransaction
-  Application.Undo 'todo: why is this triggering a fail?
+  If Application.GetUndoListCount > 0 Then Application.Undo 'todo: why is this triggering a fail?
   
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
   'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY there is no Y
