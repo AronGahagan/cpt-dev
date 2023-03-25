@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.10</cpt_version>
+'<cpt_version>v3.3.11</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -6067,13 +6067,14 @@ Next_WPtask:
 End Sub
 
 Private Function IsInArray(ByVal stringToBeFound As String, ByVal arr As Variant) As Boolean
-    On Error GoTo NullArray
-    Dim testInt As Integer
-    testInt = UBound(Filter(arr, stringToBeFound))
-    IsInArray = (testInt > -1)
-    Debug.Print "Searching for WP ID: " & stringToBeFound
-    Exit Function
-NullArray:
+'v3.3.11 - rewrote function to mitigate false positives on null WP strings
+    Dim i As Integer
+    For i = 1 To UBound(arr)
+        If arr(i) = stringToBeFound Then
+            IsInArray = True
+            Exit Function
+        End If
+    Next i
     IsInArray = False
 End Function
 
