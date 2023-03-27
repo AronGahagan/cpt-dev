@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptCalendarExceptions_bas"
-'<cpt_version>v1.0.4</cpt_version>
+'<cpt_version>v1.0.6</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowCalendarExceptions_frm()
   'objects
@@ -20,7 +18,7 @@ Sub cptShowCalendarExceptions_frm()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   With cptCalendarExceptions_frm
     .Caption = "Calendar Details (" & cptGetVersion("cptCalendarExceptions_frm") & ")"
@@ -92,14 +90,14 @@ Sub cptExportCalendarExceptionsMain(Optional blnDetail As Boolean = False)
   Dim vBorder As Variant
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'set up file
   Application.StatusBar = "Setting up Excel Workbook..."
   DoEvents
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If
@@ -135,7 +133,7 @@ next_resource:
   Application.StatusBar = "Formatting Worksheet..."
   DoEvents
   Set oWorksheet = oWorkbook.Sheets("Settings")
-  oWorksheet.[A1:A6].Value = WorksheetFunction.Transpose(Array("Setting", "DefaultStartTime:", "DefaultFinishTime:", "HoursPerDay:", "HoursPerWeek:", "DaysPerMonth:"))
+  oWorksheet.[A1:A6].Value = oExcel.WorksheetFunction.Transpose(Array("Setting", "DefaultStartTime:", "DefaultFinishTime:", "HoursPerDay:", "HoursPerWeek:", "DaysPerMonth:"))
   oWorksheet.[A1:B1].Font.Bold = True
   oWorksheet.[B1] = "Value"
   oWorksheet.[B2] = ActiveProject.DefaultStartTime
@@ -277,7 +275,7 @@ Sub cptExportCalendarExceptions(ByRef oWorkbook As Excel.Workbook, ByRef oCalend
   'dates
   Dim dtDate As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'exceptions
   Set oWorksheet = oWorkbook.Sheets("Exceptions")
@@ -789,7 +787,7 @@ Function cptGetShifts(ByRef oException As MSProject.Exception) As Double
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   With oException
     dblShift1 = Hour(.Shift1.Finish) - Hour(.Shift1.Start)
     dblShift2 = Hour(.Shift2.Finish) - Hour(.Shift2.Start)

@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptFiscal_bas"
-'<cpt_version>v0.1.0</cpt_version>
+'<cpt_version>v1.0.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowFiscal_frm()
 'objects
@@ -21,7 +19,7 @@ Dim lngItem As Long
   'get/create fiscal calendar
   On Error Resume Next
   Set oCal = ActiveProject.BaseCalendars("cptFiscalCalendar")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oCal Is Nothing Then
     BaseCalendarCreate Name:="cptFiscalCalendar", FromName:="Standard" ' [" & ActiveProject.Name & "]"
     Set oCal = ActiveProject.BaseCalendars("cptFiscalCalendar")
@@ -102,21 +100,18 @@ End Sub
 Sub cptExportFiscalCalendar()
 'objects
 Dim oExcel As Excel.Application
-Dim oWorkbook As Workbook
-Dim oWorksheet As Worksheet
-Dim oCalendar As Calendar
-Dim oException As Exception
+Dim oWorkbook As Excel.Workbook
+Dim oWorksheet As Excel.Worksheet
+Dim oCalendar As MSProject.Calendar
 'strings
 'longs
-Dim lngRow As Long
-Dim lngoCalendar As Long
 'integers
 'doubles
 'booleans
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Not cptCalendarExists("cptFiscalCalendar") Then
     MsgBox "cptFiscalCalendar has been deleted! Please re-open the form to re-create it.", vbCritical + vbOKOnly, "What happened?"
@@ -125,48 +120,48 @@ Dim lngoCalendar As Long
   
   Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar")
   If oCalendar.Exceptions.Count > 0 Then
+    
+    Application.StatusBar = "Getting Excel..."
     On Error Resume Next
     Set oExcel = GetObject(, "Excel.Application")
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oExcel Is Nothing Then
       Set oExcel = CreateObject("Excel.Application")
     End If
-    oExcel.Visible = True
     Set oWorkbook = oExcel.Workbooks.Add
     Set oWorksheet = oWorkbook.Sheets(1)
-    oWorksheet.Name = "Calendar Exceptions"
+    oWorksheet.Name = "Fiscal Calendar"
     'add header
-    oWorksheet.[A1:D1] = Array("Calendar", "Name", "Start", "Finish")
+    Application.StatusBar = "Adding header..."
+    oWorksheet.[A1:B1] = cptFiscal_frm.lboHeaders.List
     'export oExceptions
-    For Each oException In oCalendar.Exceptions
-      lngRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row + 1
-      oWorksheet.Cells(lngRow, 1) = oCalendar.Name
-      oWorksheet.Cells(lngRow, 2) = oException.Name
-      oWorksheet.Cells(lngRow, 3) = oException.Start
-      oWorksheet.Cells(lngRow, 4) = oException.Finish
-    Next oException
+    oWorksheet.Range(oWorksheet.Cells(2, 1), oWorksheet.Cells(cptFiscal_frm.lboExceptions.ListCount + 1, 2)) = cptFiscal_frm.lboExceptions.List
     'make it pretty
-    oWorksheet.ListObjects.Add 1, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)), 1
+    Application.StatusBar = "Formatting..."
+    oWorksheet.ListObjects.Add xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)), False, xlYes 'xlSrcRange;
     oExcel.ActiveWindow.Zoom = 85
     oWorksheet.[A2].Select
     oExcel.ActiveWindow.FreezePanes = True
     oWorksheet.Columns.AutoFit
+    Application.StatusBar = "Complete."
+    Application.ActivateMicrosoftApp pjMicrosoftExcel
   Else
+    Application.StatusBar = "Fiscal Calendar is empty"
     MsgBox "Fiscal Calendar has not yet been populated.", vbInformation + vbOKOnly, "No Exceptions"
   End If
-
+  
 exit_here:
   On Error Resume Next
-  Set oException = Nothing
+  Application.StatusBar = ""
   Set oCalendar = Nothing
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
   Set oExcel = Nothing
-
+  
   Exit Sub
   
 err_here:
-  Call cptHandleErr("cptFiscal_bas", "cptExportoCalendaroExceptions", Err, Erl)
+  Call cptHandleErr("cptFiscal_bas", "cptExportCalendarExceptions", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -192,7 +187,7 @@ Sub cptExportExceptionsTemplate()
   
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If
@@ -212,7 +207,7 @@ Sub cptExportExceptionsTemplate()
   Do Until Weekday(dtLastFriday, vbSunday) = vbFriday
     dtLastFriday = DateAdd("d", -1, dtLastFriday)
   Loop
-  oWorksheet.[A2] = Array(dtLastFriday, Year(Now) & "01")
+  oWorksheet.[A2:B2] = Array(dtLastFriday, "'" & Year(Now) & "01")
   
 exit_here:
   On Error Resume Next
@@ -248,7 +243,7 @@ Dim dtFiscalEnd As Date
 
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
     oExcel.Visible = True
@@ -269,7 +264,7 @@ Dim dtFiscalEnd As Date
       Set oWorkbook = oExcel.Workbooks.Open(.SelectedItems(1))
       On Error Resume Next
       Set oWorksheet = oWorkbook.Sheets("Fiscal Calendar")
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oWorksheet Is Nothing Then
         MsgBox "A worksheet named 'Fiscal Calendar' was not found in the selected workbook.", vbExclamation + vbOKOnly, "Invalid Selection"
         GoTo exit_here
@@ -278,7 +273,7 @@ Dim dtFiscalEnd As Date
         cptFiscal_frm.lboExceptions.Visible = True
         On Error Resume Next
         Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar")
-        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If oCalendar Is Nothing Then
           BaseCalendarCreate Name:="cptFiscalCalendar", FromName:="Standard" ' [" & ActiveProject.Name & "]"
           Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar")
@@ -305,7 +300,7 @@ Dim dtFiscalEnd As Date
             cptFiscal_frm.lboExceptions.List(cptFiscal_frm.lboExceptions.ListCount - 1, 1) = oException.Name 'CStr(oCell.Offset(0, 1).Value)
             cptFiscal_frm.lblCount.Caption = oCalendar.Exceptions.Count & " exception" & IIf(oCalendar.Exceptions.Count = 1, "", "s") & "."
           End If
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 next_record:
         Next oCell
         oWorkbook.Close False
@@ -343,7 +338,7 @@ Dim lngItem As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   With cptFiscal_frm
     If .txtExceptions.Visible = True Then GoTo exit_here
@@ -404,7 +399,7 @@ Sub cptAnalyzeEVT(Optional lngImportField As Long)
   Dim vbResponse As Variant
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Set oProject = ActiveProject
   
@@ -490,7 +485,7 @@ next_task:
   
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If
@@ -513,10 +508,13 @@ next_task:
   oWorksheet.[G2].CopyFromRecordset rst
   rst.Close
   
-  Set oRange = oWorksheet.Range(oWorksheet.[D2].Offset(0, 1), oWorksheet.[D2].End(xlDown).Offset(0, 1))
+  Set oRange = oWorksheet.Range(oWorksheet.[A1].End(xlToRight).Offset(1, 0), oWorksheet.[A1].End(xlDown).Offset(0, 4))
   lngFiscalEndCol = oWorksheet.Rows(1).Find(what:="fisc_end").Column
   lngLastRow = oWorksheet.Cells(2, lngFiscalEndCol).End(xlDown).Row
-  oRange.FormulaR1C1 = "=COUNTIFS(R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & ","">=""&RC[-3],R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & ",""<""&RC[-2])+1"
+  'Excel 2016 compatibility
+  'oRange.FormulaR1C1 = "=COUNTIFS(R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & ","">=""&RC[-3],R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & ",""<""&RC[-2])+1"
+  '=SUMPRODUCT(--($G$2:$G$109>=B15)*--($G$2:$G$109<C15)*1)+1
+  oRange.FormulaR1C1 = "=SUMPRODUCT(--(R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & ">=RC[-3])*--(R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & "<RC[-2])*1)+1"
   lngFiscalPeriodsCol = oWorksheet.Rows(1).Find(what:="FiscalPeriods").Column
   oWorksheet.Columns(lngFiscalPeriodsCol).NumberFormat = "#0"
   oExcel.ActiveWindow.Zoom = 85

@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.1.4</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowStatusSheetImport_frm()
 'objects
@@ -31,7 +29,7 @@ Dim blnTaskUsageBelow As Boolean
 Dim vField As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'todo: start Excel in the background if not already open; close on form close
   'todo: new options: log{true|false}; verbose{true|false}
@@ -187,9 +185,11 @@ End Sub
 
 Sub cptStatusSheetImport()
   'objects
+  Dim oDict As Scripting.Dictionary
+  Dim oShell As Object
   Dim oRecordset As ADODB.Recordset
   Dim oSubproject As Subproject
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   Dim oResource As Resource
   Dim oAssignment As Assignment
   Dim oExcel As Object 'Excel.Application
@@ -198,9 +198,10 @@ Sub cptStatusSheetImport()
   Dim oListObject As Object 'Excel.ListObject
   Dim oRange As Object 'Excel.Range
   Dim oCell As Object 'Excel.Range
-  Dim oComboBox As ComboBox
+  Dim oComboBox As MSForms.ComboBox
   Dim rst As Object 'ADODB.Recordset
   'strings
+  Dim strUIDList As String
   Dim strLOE As String
   Dim strLOEField As String
   Dim strHeader As String
@@ -242,19 +243,21 @@ Sub cptStatusSheetImport()
   Dim lngAS As Long
   'integers
   'doubles
+  Dim dblWas As Double
   Dim dblETC As Double
   'booleans
   Dim blnAppend As Boolean
   Dim blnTask As Boolean
   Dim blnValid As Boolean
   'variants
+  Dim vKey As Variant
   Dim vField As Variant
   Dim vControl As Variant
   'dates
   Dim dtNewDate As Date
   Dim dtStatus As Date
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'todo: do we need to import actual and forecast dates separately? Why not simply 'New Start'?
   
@@ -328,6 +331,13 @@ Sub cptStatusSheetImport()
   strLOE = cptGetSetting("Metrics", "txtLOE")
     
   'set up import log file
+  If InStr(ActiveProject.Path, "<>\") = 0 Then 'not a server project: use ActiveProject.Path
+    strImportLog = ActiveProject.Path & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
+  Else 'default to Desktop
+    Set oShell = CreateObject("WScript.Shell")
+    strImportLog = oShell.SpecialFolders("Desktop") & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
+  End If
+  
   strImportLog = ActiveProject.Path & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
   lngFile = FreeFile
   Open strImportLog For Output As #lngFile
@@ -450,22 +460,26 @@ next_task:
     cptStatusSheetImport_frm.lblProgress.Width = (lngTask / lngTasks) * cptStatusSheetImport_frm.lblStatus.Width
     DoEvents
   Next oTask
-    
+  
+  'set up array of updated  UIDs
+  Set oDict = CreateObject("Scripting.Dictionary")
+  
   'set up excel
   Set oExcel = CreateObject("Excel.Application")
   With cptStatusSheetImport_frm
+    .lblStatus.Caption = "Importing..."
     For lngItem = 0 To .lboStatusSheets.ListCount - 1
       strFile = .lboStatusSheets.List(lngItem, 0) & .lboStatusSheets.List(lngItem, 1)
       Set oWorkbook = oExcel.Workbooks.Open(strFile, ReadOnly:=True)
-      cptStatusSheetImport_frm.lblStatus.Caption = "Importing " & oWorkbook.Name & "..."
+      .lboStatusSheets.Selected(lngItem) = True
       DoEvents
       Print #lngFile, String(25, "=")
       Print #lngFile, "IMPORTING Workbook: " & strFile & " (" & oWorkbook.Sheets.Count & " Worksheets)"
       Print #lngFile, String(25, "-")
       For Each oWorksheet In oWorkbook.Sheets
         Print #lngFile, "IMPORTING Worksheet: " & oWorksheet.Name
-        cptStatusSheetImport_frm.lblStatus.Caption = "Importing Worksheets...(" & Format(oWorksheet.Index / oWorkbook.Sheets.Count, "0%") & ")"
-        cptStatusSheetImport_frm.lblProgress.Width = (oWorksheet.Index / oWorkbook.Sheets.Count) * cptStatusSheetImport_frm.lblStatus.Width
+'        cptStatusSheetImport_frm.lblStatus.Caption = "Importing...(" & Format(oWorksheet.Index / oWorkbook.Sheets.Count, "0%") & ")"
+'        cptStatusSheetImport_frm.lblProgress.Width = (oWorksheet.Index / oWorkbook.Sheets.Count) * cptStatusSheetImport_frm.lblStatus.Width
         DoEvents
         
         'unhide columns and rows (sort is blocked by sheet protection...)
@@ -476,17 +490,17 @@ next_task:
         On Error Resume Next
         dtStatus = oWorksheet.Range("STATUS_DATE")
         If Err.Number = 1004 Then 'invalid oWorkbook
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           Print #lngFile, "INVALID Worksheet - range 'STATUS_DATE' not found"
           GoTo next_worksheet
         End If
-        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         'get header row
         lngUIDCol = 1
         On Error Resume Next
         lngHeaderRow = oWorksheet.Columns(lngUIDCol).Find(what:="UID").Row
         If Err.Number = 1004 Then 'invalid oWorkbook
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           Print #lngFile, "INVALID Worksheet - UID column not found"
           GoTo next_worksheet
         End If
@@ -503,7 +517,7 @@ next_task:
         Else
           lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Reason / Action / Impact", lookat:=xlWhole).Column
         End If
-        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If lngCommentsCol = 0 Then
           lngCommentsCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
         End If
@@ -552,9 +566,11 @@ next_task:
                   oTask.SetField lngAS, CDate(dtNewDate & " 08:00 AM")
                 End If
                 Print #lngFile, "UID " & oTask.UniqueID & " AS > " & FormatDateTime(dtNewDate, vbShortDate)
+                If Not oDict.Exists(oTask.UniqueID) Then oDict.Add oTask.UniqueID, oTask.UniqueID
               ElseIf dtNewDate > dtStatus Then 'forecast start
                 If FormatDateTime(oTask.Start, vbShortDate) <> dtNewDate Then oTask.SetField lngFS, CDate(dtNewDate & " 08:00 AM")
                 Print #lngFile, "UID " & oTask.UniqueID & " FS > " & FormatDateTime(dtNewDate, vbShortDate)
+                If Not oDict.Exists(oTask.UniqueID) Then oDict.Add oTask.UniqueID, oTask.UniqueID
               End If
               If FormatDateTime(dtNewDate, vbShortDate) <> FormatDateTime(oTask.Start, vbShortDate) Then
                 Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "START", "", CStr(FormatDateTime(oTask.Start, vbShortDate)), CStr(FormatDateTime(dtNewDate, vbShortDate))), ",")
@@ -570,10 +586,12 @@ next_task:
                   oTask.SetField lngAF, CDate(dtNewDate & " 05:00 PM")
                 End If
                 Print #lngFile, "UID " & oTask.UniqueID & " AF > " & FormatDateTime(dtNewDate, vbShortDate)
+                If Not oDict.Exists(oTask.UniqueID) Then oDict.Add oTask.UniqueID, oTask.UniqueID
               ElseIf dtNewDate > dtStatus Then 'forecast finish
                 If FormatDateTime(oTask.Finish, vbShortDate) <> FormatDateTime(dtNewDate, vbShortDate) Then
                   oTask.SetField lngFF, CDate(dtNewDate & " 05:00 PM")
                   Print #lngFile, "UID " & oTask.UniqueID & " FF > " & FormatDateTime(dtNewDate, vbShortDate)
+                  If Not oDict.Exists(oTask.UniqueID) Then oDict.Add oTask.UniqueID, oTask.UniqueID
                 End If
               End If
               If FormatDateTime(dtNewDate, vbShortDate) <> FormatDateTime(oTask.Finish, vbShortDate) Then
@@ -595,11 +613,13 @@ next_task:
                 If CLng(cptRegEx(oTask.GetField(FieldNameToFieldConstant(strEVP)), "[0-9]{1,}")) <> lngEVP Then
                   oTask.SetField lngEV, lngEVP
                   Print #lngFile, "UID " & oTask.UniqueID & " EV% > " & lngEVP & "%"
+                  If Not oDict.Exists(oTask.UniqueID) Then oDict.Add oTask.UniqueID, oTask.UniqueID
                   Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, strEVP, "", cptRegEx(oTask.GetField(FieldNameToFieldConstant(strEVP)), "[0-9]{1,}"), CStr(lngEVP)), ",")
                 End If
               Else 'log
                 oTask.SetField lngEV, lngEVP
                 Print #lngFile, "UID " & oTask.UniqueID & " EV% > " & lngEVP & "%"
+                If Not oDict.Exists(oTask.UniqueID) Then oDict.Add oTask.UniqueID, oTask.UniqueID
                 Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "EV%", "", "<unknown>", CStr(lngEVP)), ",")
               End If
             End If
@@ -619,100 +639,103 @@ evp_skipped:
           ElseIf Not blnTask Then 'it's an Assignment
             On Error Resume Next
             Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
-            If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+            If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
             If oAssignment Is Nothing Then
               Print #lngFile, "ASSIGNMENT MISSING: TASK " & oTask.UniqueID & " ASSIGNMENT: " & oWorksheet.Cells(lngRow, lngUIDCol).Value
             Else
-              If oAssignment.ResourceType = pjResourceTypeWork Then
-                lngMultiplier = 1
-              Else
-                lngMultiplier = 60
-              End If
               If Not oWorksheet.Cells(lngRow, lngETCCol).Locked Then
-                dblETC = oWorksheet.Cells(lngRow, lngETCCol).Value
-                If Round(oAssignment.RemainingWork / (60 / lngMultiplier), 2) <> Round(dblETC, 2) Then
+                dblETC = oWorksheet.Cells(lngRow, lngETCCol).Value 'get the new value
+                dblWas = 0 'reset was
+                If oAssignment.ResourceType = pjResourceTypeWork Then
+                  dblWas = Val(oAssignment.RemainingWork) / 60
+                Else
+                  dblWas = Val(oAssignment.RemainingCost)
+                End If
+                'only import if updated
+                If Round(dblWas, 2) <> Round(dblETC, 2) Then
                   If lngETC = pjTaskNumber1 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number1 = dblETC
                     oTask.Number1 = oTask.Number1 + dblETC
                   ElseIf lngETC = pjTaskNumber2 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number2 = dblETC
                     oTask.Number2 = oTask.Number2 + dblETC
                   ElseIf lngETC = pjTaskNumber3 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number3 = dblETC
                     oTask.Number3 = oTask.Number3 + dblETC
                   ElseIf lngETC = pjTaskNumber4 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number4 = dblETC
                     oTask.Number4 = oTask.Number4 + dblETC
                   ElseIf lngETC = pjTaskNumber5 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number5 = dblETC
                     oTask.Number5 = oTask.Number5 + dblETC
                   ElseIf lngETC = pjTaskNumber6 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number6 = dblETC
                     oTask.Number6 = oTask.Number6 + dblETC
                   ElseIf lngETC = pjTaskNumber7 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number7 = dblETC
                     oTask.Number7 = oTask.Number7 + dblETC
                   ElseIf lngETC = pjTaskNumber8 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number8 = dblETC
                     oTask.Number8 = oTask.Number8 + dblETC
                   ElseIf lngETC = pjTaskNumber9 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number9 = dblETC
                     oTask.Number9 = oTask.Number9 + dblETC
                   ElseIf lngETC = pjTaskNumber10 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number10 = dblETC
                     oTask.Number10 = oTask.Number10 + dblETC
                   ElseIf lngETC = pjTaskNumber11 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number11 = dblETC
                     oTask.Number11 = oTask.Number11 + dblETC
                   ElseIf lngETC = pjTaskNumber12 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number12 = dblETC
                     oTask.Number12 = oTask.Number12 + dblETC
                   ElseIf lngETC = pjTaskNumber13 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number13 = dblETC
                     oTask.Number13 = oTask.Number13 + dblETC
                   ElseIf lngETC = pjTaskNumber14 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number14 = dblETC
                     oTask.Number14 = oTask.Number14 + dblETC
                   ElseIf lngETC = pjTaskNumber15 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number15 = dblETC
                     oTask.Number15 = oTask.Number15 + dblETC
                   ElseIf lngETC = pjTaskNumber16 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number16 = dblETC
                     oTask.Number16 = oTask.Number16 + dblETC
                   ElseIf lngETC = pjTaskNumber17 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number17 = dblETC
                     oTask.Number17 = oTask.Number17 + dblETC
                   ElseIf lngETC = pjTaskNumber18 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number18 = dblETC
                     oTask.Number18 = oTask.Number18 + dblETC
                   ElseIf lngETC = pjTaskNumber19 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number19 = dblETC
                     oTask.Number19 = oTask.Number19 + dblETC
                   ElseIf lngETC = pjTaskNumber20 Then
-                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, oAssignment.RemainingWork / (60 / lngMultiplier), dblETC), ",")
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, FieldConstantToFieldName(lngETC), oAssignment.ResourceName, dblWas, dblETC), ",")
                     oAssignment.Number20 = dblETC
                     oTask.Number20 = oTask.Number20 + dblETC
                   End If
                   Print #lngFile, "UID " & oTask.UniqueID & " [" & oAssignment.Resource.Name & "] ETC > " & dblETC
+                  If Not oDict.Exists(oTask.UniqueID) Then oDict.Add oTask.UniqueID, oTask.UniqueID
                 End If
                 If .chkAppend And Len(oWorksheet.Cells(lngRow, lngCommentsCol)) > 0 Then
                   If .cboAppendTo = "Top of Task Note" Then
@@ -730,20 +753,21 @@ evp_skipped:
             End If
           End If
 next_row:
-          cptStatusSheetImport_frm.lblStatus.Caption = "Importing " & oWorkbook.Name & "...(" & Format(lngRow / lngLastRow, "0%") & ")"
+          cptStatusSheetImport_frm.lblStatus.Caption = "Importing...(" & Format(lngRow / lngLastRow, "0%") & ")"
           DoEvents
         Next lngRow
 next_worksheet:
         Print #lngFile, String(25, "-")
       Next oWorksheet
 next_file:
-      cptStatusSheetImport_frm.lblStatus.Caption = "Importing " & oWorkbook.Name & "...done"
+      .lblStatus.Caption = "Importing...(" & lngItem + 1 & " of " & .lboStatusSheets.ListCount & ")"
+      .lboStatusSheets.Selected(lngItem) = False
       oWorkbook.Close False
       DoEvents
     Next lngItem
   End With 'cptStatusSheetImport_frm
   
-  'where there any conflicts?
+  'were there any conflicts?
   Close #lngDeconflictionFile
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & Environ("temp") & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
   
@@ -775,8 +799,16 @@ next_file:
     End If
   End If
   
+  'get the string of UIDs updated
+  For Each vKey In oDict.Keys
+    strUIDList = strUIDList & vKey & ","
+  Next vKey
+  strUIDList = Left(strUIDList, Len(strUIDList) - 1)
+  
 exit_here:
   On Error Resume Next
+  Set oDict = Nothing
+  Set oShell = Nothing
   If oRecordset.State = 1 Then oRecordset.Close
   Set oRecordset = Nothing
   Set oSubproject = Nothing
@@ -786,7 +818,9 @@ exit_here:
   If blnValid Then
     'close log for output
     Print #lngFile, String(25, "=")
-    Print #lngFile, "IMPORT COMPLETE."
+    Print #lngFile, "IMPORT COMPLETE." & vbCrLf
+    Print #lngFile, "UPDATED UIDs:"
+    Print #lngFile, strUIDList
     Close #lngFile
     'open log in notepad
     Shell "C:\WINDOWS\notepad.exe " & strImportLog, vbNormalFocus
@@ -801,7 +835,7 @@ exit_here:
   Next lngFile
   Close #lngDeconflictionFile
   If Dir(Environ("tmp") & "\Schema.ini") <> vbNullString Then Kill Environ("tmp") & "\Schema.ini"
-  If Dir(Environ("tmp") & "\imported.csv") <> vbNullString Then Kill Environ("tmp") * "\imported.csv"
+  If Dir(Environ("tmp") & "\imported.csv") <> vbNullString Then Kill Environ("tmp") & "\imported.csv"
   Set oRange = Nothing
   Set oListObject = Nothing
   Set oWorksheet = Nothing
@@ -809,7 +843,9 @@ exit_here:
   Set oWorkbook = Nothing
   Set oExcel = Nothing
   Set oComboBox = Nothing
-  If rst.State = 1 Then rst.Close
+  If Not rst Is Nothing Then
+    If rst.State = 1 Then rst.Close
+  End If
   Set rst = Nothing
 
   Exit Sub
@@ -842,7 +878,7 @@ Dim lngItem As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not cptStatusSheetImport_frm.Visible Then GoTo exit_here
 
   cptSpeed True
@@ -869,8 +905,8 @@ Dim lngItem As Long
   strEVT = cptGetSetting("StatusSheet", "cboEVT")
   
   'reset the table
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, Create:=True, overwriteexisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   
   'import user fields
   strSettings = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
@@ -883,47 +919,47 @@ Dim lngItem As Long
       Do While Not rst.EOF
         'does field name still match?
         If CustomFieldGetName(rst(0)) = rst(1) Then
-          TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=rst(1), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+          TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:=rst(1), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
         End If
         rst.MoveNext
       Loop
     End If
     rst.Close
   End If
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Name", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Total Slack", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Actual Start", Title:="", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:="Name", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:="Total Slack", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:="Actual Start", Title:="", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   If Not IsNull(cptStatusSheetImport_frm.cboAS.Value) Then
     lngAS = cptStatusSheetImport_frm.cboAS.Value
     If lngAS <> FieldNameToFieldConstant("Actual Start") Then
-      TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngAS), Title:="New Actual Start", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+      TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:=FieldConstantToFieldName(lngAS), Title:="New Actual Start", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     End If
   End If
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Start", Title:="", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:="Start", Title:="", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   If Not IsNull(cptStatusSheetImport_frm.cboFS.Value) Then
     lngFS = cptStatusSheetImport_frm.cboFS.Value
-    TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngFS), Title:="New Forecast Start", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:=FieldConstantToFieldName(lngFS), Title:="New Forecast Start", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   End If
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Actual Finish", Title:="", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:="Actual Finish", Title:="", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   If Not IsNull(cptStatusSheetImport_frm.cboAF.Value) Then
     lngAF = cptStatusSheetImport_frm.cboAF.Value
     If lngAF <> FieldNameToFieldConstant("Actual Finish") Then
-      TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngAF), Title:="New Actual Finish", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+      TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:=FieldConstantToFieldName(lngAF), Title:="New Actual Finish", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     End If
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Remaining Duration", Title:="", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Finish", Title:="", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:="Remaining Duration", Title:="", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:="Finish", Title:="", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   End If
   If Not IsNull(cptStatusSheetImport_frm.cboFF.Value) Then
     lngFF = cptStatusSheetImport_frm.cboFF.Value
-    TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngFF), Title:="New Forecast Finish", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:=FieldConstantToFieldName(lngFF), Title:="New Forecast Finish", Width:=14, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   End If
   'EVT
   If Len(strEVT) > 0 Then
     On Error Resume Next
     lngEVT = FieldNameToFieldConstant(strEVT)
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If lngEVT > 0 Then
-      TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=strEVT, Title:="EVT", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+      TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:=strEVT, Title:="EVT", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     End If
   End If
   'existing EV%
@@ -931,32 +967,32 @@ Dim lngItem As Long
     'does field still exist?
     On Error Resume Next
     lngEVP = FieldNameToFieldConstant(strEVP)
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If lngEVP > 0 Then
-      TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=strEVP, Title:="EV%", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+      TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:=strEVP, Title:="EV%", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     End If
   End If
   'imported EV
   If Not IsNull(cptStatusSheetImport_frm.cboEV.Value) Then
     lngNewEVP = cptStatusSheetImport_frm.cboEV.Value
-    TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngNewEVP), Title:="New EV%", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:=FieldConstantToFieldName(lngNewEVP), Title:="New EV%", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   End If
   'keep these here so user can filter on changes above, make edits below
   'Type
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Type", Width:=17, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:="Type", Width:=17, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   'Effort Driven
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Effort Driven", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:="Effort Driven", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   'existing ETC (remaining work)
-  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="ETC", Width:=20, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="ETC", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   'imported ETC
   If Not IsNull(cptStatusSheetImport_frm.cboETC.Value) Then
     lngETC = cptStatusSheetImport_frm.cboETC.Value
-    TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngETC), Title:="New ETC", Width:=20, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:=FieldConstantToFieldName(lngETC), Title:="New ETC", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   End If
   
   If blnUsageBelow Then
-    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, Create:=True, overwriteexisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, NewFieldName:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     
     'import user fields
     strSettings = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
@@ -969,26 +1005,26 @@ Dim lngItem As Long
         Do While Not rst.EOF
           'does field name still match?
           If CustomFieldGetName(rst(0)) = rst(1) Then
-            TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:=rst(1), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+            TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, NewFieldName:=rst(1), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
           End If
           rst.MoveNext
         Loop
       End If
       rst.Close
     End If
-    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Name", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, NewFieldName:="Name", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     'Type
-    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Type", Width:=17, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, NewFieldName:="Type", Width:=17, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     'Effort Driven
-    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Effort Driven", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, NewFieldName:="Effort Driven", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     'existing ETC (remaining work)
-    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="ETC", Width:=20, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="ETC", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     'imported ETC
     If Not IsNull(cptStatusSheetImport_frm.cboETC.Value) Then
       lngETC = cptStatusSheetImport_frm.cboETC.Value
-      TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(lngETC), Title:="New ETC", Width:=20, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+      TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, NewFieldName:=FieldConstantToFieldName(lngETC), Title:="New ETC", Width:=15, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     End If
-    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, newfieldname:="Notes", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, NewFieldName:="Notes", Title:="", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
     ActiveWindow.TopPane.Activate
     'If ActiveProject.CurrentView <> "Gantt Chart" Then ViewApply Name:="Gantt Chart"
     ViewApply Name:="Gantt Chart"
@@ -1004,7 +1040,7 @@ Dim lngItem As Long
       'Application.ToggleTaskDetails
     End If
     ActiveWindow.BottomPane.Activate
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     'If ActiveProject.CurrentView <> "Task Usage" Then ViewApply "Task Usage"
     ViewApply "Task Usage"
     'If ActiveProject.CurrentTable <> "cptStatusSheetImportDetails Table" Then TableApply "cptStatusSheetImportDetails Table"
@@ -1019,7 +1055,7 @@ Dim lngItem As Long
     TableApply Name:="cptStatusSheetImport Table"
     On Error Resume Next
     strBottomPaneViewName = ActiveWindow.BottomPane.View.Name
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Len(strBottomPaneViewName) > 0 Then
       DetailsPaneToggle
     End If

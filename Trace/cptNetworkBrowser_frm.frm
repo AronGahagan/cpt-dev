@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptNetworkBrowser_frm 
-   Caption         =   "Network Browser (v0.0.0-beta)"
+   Caption         =   "Network Browser"
    ClientHeight    =   6330
    ClientLeft      =   45
    ClientTop       =   330
@@ -14,20 +14,40 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v0.1.0</cpt_version>
+
+'<cpt_version>v1.1.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+
+Private Sub cboSortPredecessorsBy_Change()
+  cptSaveSetting "NetworkBrowser", "cboSortPredecessorsBy", Me.cboSortPredecessorsBy.Value
+  cptSortNetworkBrowserLinks "p", Me.chkSortPredDescending.Value
+End Sub
+
+Private Sub cboSortSuccessorsBy_Change()
+  cptSaveSetting "NetworkBrowser", "cboSortSuccessorsBy", Me.cboSortSuccessorsBy.Value
+  cptSortNetworkBrowserLinks "s", Me.chkSortSuccDescending.Value
+End Sub
+
+Private Sub chkSortPredDescending_Click()
+  cptSaveSetting "NetworkBrowser", "chkSortPredDescending", IIf(Me.chkSortPredDescending, "1", "0")
+  cptSortNetworkBrowserLinks "p", Me.chkSortPredDescending.Value
+End Sub
+
+Private Sub chkSortSuccDescending_Click()
+  cptSaveSetting "NetworkBrowser", "chkSortSuccDescending", IIf(Me.chkSortSuccDescending, "1", "0")
+  cptSortNetworkBrowserLinks "s", Me.chkSortSuccDescending.Value
+End Sub
 
 Private Sub cmdBack_Click()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Me.lboHistory.SetFocus
   
   If IsNull(Me.lboHistory.Value) Then Me.lboHistory.ListIndex = -1
 
   If Me.lboHistory.ListCount > 0 Then
+    'todo: fix this
     Me.lboHistory.ListIndex = Me.lboHistory.ListIndex + 1
     Call cptHistoryDoubleClick
   End If
@@ -51,13 +71,13 @@ Private Sub cmdClearHistory_Click()
 End Sub
 
 Private Sub cmdClose_Click()
-  Set oInsertedIndex = Nothing
+  Set oSubMap = Nothing
   Unload Me
 End Sub
 
 Private Sub cmdFwd_Click()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Me.lboHistory.SetFocus
   
@@ -82,7 +102,7 @@ End Sub
 
 Private Sub cmdMark_Click()
   'objects
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngUID As Long
@@ -156,7 +176,7 @@ End Sub
 
 Private Sub cmdUnmark_Click()
   'objects
-  Dim oTask As Object
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngUID As Long
@@ -167,7 +187,7 @@ Private Sub cmdUnmark_Click()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'cptSpeed True
   If ActiveSelection.Tasks.Count = 1 Then
@@ -225,9 +245,9 @@ err_here:
 End Sub
 
 Private Sub cmdUnmarkAll_Click()
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   cptSpeed True
   ActiveWindow.BottomPane.Activate
@@ -262,19 +282,19 @@ Sub lboHistory_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
 End Sub
 
 Sub lboPredecessors_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
-Dim lngTaskID As Long
+Dim lngTaskUID As Long
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Me.lboPredecessors.ListIndex <= 0 Then GoTo exit_here
   With Me.lboHistory
     .AddItem ActiveSelection.Tasks.Item(1).UniqueID, 0
   End With
-  lngTaskID = CLng(Me.lboPredecessors.List(Me.lboPredecessors.ListIndex, 0))
-  If lngTaskID > 0 Then
+  lngTaskUID = CLng(Me.lboPredecessors.List(Me.lboPredecessors.ListIndex, 0))
+  If lngTaskUID > 0 Then
     WindowActivate TopPane:=True
     On Error Resume Next
-    If Not Find("Unique ID", "equals", lngTaskID) Then
+    If Not Find("Unique ID", "equals", lngTaskUID) Then
       If ActiveWindow.TopPane.View.Name = "Network Diagram" Then GoTo exit_here
       If MsgBox("Task is currently hidden - remove filters and show it?", vbQuestion + vbYesNo, "Confirm Apocalypse") = vbYes Then
         FilterClear
@@ -289,15 +309,15 @@ Dim lngTaskID As Long
             GoTo exit_here
           End If
         End If
-        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-        If Not Find("Unique ID", "equals", lngTaskID) Then
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If Not Find("Unique ID", "equals", lngTaskUID) Then
           MsgBox "Task not found.", vbExclamation + vbOKOnly, "Missing Task?"
         End If
       Else
         GoTo exit_here
       End If
     End If
-    Me.lboHistory.AddItem lngTaskID, 0
+    Me.lboHistory.AddItem lngTaskUID, 0
     Me.lboHistory.ListIndex = Me.lboHistory.TopIndex
     Call cptShowPreds
   End If
@@ -310,29 +330,29 @@ err_here:
 End Sub
 
 Private Sub lboSuccessors_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
-Dim lngTaskID As Long, Task As Task
+Dim lngTaskUID As Long, oTask As MSProject.Task
 
   On Error Resume Next
   If Me.lboSuccessors.ListIndex <= 0 Then GoTo exit_here
-  Set Task = ActiveSelection.Tasks(1)
+  Set oTask = ActiveSelection.Tasks(1)
 
   On Error GoTo err_here
   
   With Me.lboHistory
-    If Not Task Is Nothing Then
+    If Not oTask Is Nothing Then
       If Me.lboHistory.ListCount > 0 Then
-        If Me.lboHistory.List(0, 0) <> Task.UniqueID Then .AddItem Task.UniqueID, 0
+        If Me.lboHistory.List(0, 0) <> oTask.UniqueID Then .AddItem oTask.UniqueID, 0
       Else
-        .AddItem Task.UniqueID, 0
+        .AddItem oTask.UniqueID, 0
       End If
     End If
   End With
-  lngTaskID = CLng(Me.lboSuccessors.List(Me.lboSuccessors.ListIndex, 0))
+  lngTaskUID = CLng(Me.lboSuccessors.List(Me.lboSuccessors.ListIndex, 0))
   WindowActivate TopPane:=True
   On Error Resume Next
-  If Not Find("Unique ID", "equals", lngTaskID) Then
+  If Not Find("Unique ID", "equals", lngTaskUID) Then
     If ActiveWindow.TopPane.View.Name = "Network Diagram" Then
-      ActiveProject.Tasks(lngTaskID).Marked = True
+      ActiveProject.Tasks(lngTaskUID).Marked = True
       FilterApply "Marked"
       GoTo exit_here
     End If
@@ -349,19 +369,22 @@ Dim lngTaskID As Long, Task As Task
           GoTo exit_here
         End If
       End If
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-      If Not Find("Unique ID", "equals", lngTaskID) Then
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If Not Find("Unique ID", "equals", lngTaskUID) Then
         MsgBox "Task not found.", vbExclamation + vbOKOnly, "Missing Task?"
       End If
     End If
   Else
     GoTo exit_here
   End If
-  Me.lboHistory.AddItem lngTaskID, 0
+  Me.lboHistory.AddItem lngTaskUID, 0
   Me.lboHistory.ListIndex = Me.lboHistory.TopIndex
   Call cptShowPreds
   
 exit_here:
+  On Error Resume Next
+  Set oTask = Nothing
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptNetworkBrowser_frm", "lboSuccessors_DblClick", Err, Erl)

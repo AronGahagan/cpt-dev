@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptAgeDates_bas"
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.0.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowAgeDates_frm()
   'objects
@@ -21,7 +19,7 @@ Sub cptShowAgeDates_frm()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Not IsDate(ActiveProject.StatusDate) Then
     MsgBox "Status Date required.", vbExclamation + vbOKOnly, "Age Dates"
@@ -100,7 +98,7 @@ End Sub
 Sub cptAgeDates()
   'run this immediately prior to a status meeting
   'objects
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   Dim strCustom As String
   Dim strStatus As String
@@ -116,7 +114,7 @@ Sub cptAgeDates()
   'dates
   Dim dtStatus As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Application.Calculation = pjManual
   Application.OpenUndoTransaction "Age Dates"
@@ -124,7 +122,7 @@ Sub cptAgeDates()
   
   On Error Resume Next
   lngTest = FieldNameToFieldConstant("Start (" & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & ")")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If lngTest > 0 Then
     MsgBox "Dates already aged for status date " & Format(dtStatus, "mm/dd/yyyy") & ".", vbExclamation + vbOKOnly, "Age Dates"
     GoTo exit_here
@@ -171,6 +169,9 @@ Sub cptAgeDates()
     
     If .chkIncludeDurations Then
       For Each oTask In ActiveProject.Tasks
+        If oTask Is Nothing Then GoTo next_task
+        If Not oTask.Active Then GoTo next_task
+        If oTask.ExternalTask Then GoTo next_task
         For lngControl = 10 To 1 Step -1
           If .Controls("cboWeek" & lngControl).Enabled Then
             lngTo = cptRegEx(.Controls("cboWeek" & lngControl).List(.Controls("cboWeek" & lngControl).ListIndex, 1), "[0-9]")
@@ -182,6 +183,7 @@ Sub cptAgeDates()
             End If
           End If
         Next lngControl
+next_task:
       Next oTask
     End If
   End With
@@ -202,7 +204,7 @@ Sub cptBlameReport()
   'objects
   Dim oRange As Excel.Range
   Dim oListObject As Excel.ListObject
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   Dim oWorksheet As Excel.Worksheet 'Object
   Dim oWorkbook As Excel.Workbook 'Object
   Dim oExcel As Excel.Application 'Object
@@ -235,7 +237,7 @@ Sub cptBlameReport()
   Dim dtCurr As Date
   Dim dtPrev As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Application.StatusBar = "Gettings saved settings..."
   DoEvents
@@ -265,7 +267,7 @@ Sub cptBlameReport()
   
   On Error Resume Next
   'Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If
@@ -454,8 +456,8 @@ next_task:
   For Each vColumn In Array("START DELTA", "DURATION DELTA", "FINISH DELTA")
     If lngMin = oExcel.WorksheetFunction.Min(oListObject.ListColumns(vColumn).DataBodyRange) Then
       oListObject.Sort.SortFields.Clear
-      oListObject.Sort.SortFields.Add2 key:=oListObject.ListColumns(vColumn).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-      oListObject.Sort.SortFields.Add2 key:=oListObject.ListColumns("CURRENT " & Replace(vColumn, " DELTA", "")).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add key:=oListObject.ListColumns(vColumn).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add key:=oListObject.ListColumns("CURRENT " & Replace(vColumn, " DELTA", "")).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
       With oListObject.Sort
         .Header = xlYes
         .MatchCase = False
@@ -492,6 +494,5 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptAgeDates_bas", "cptBlameReport", Err, Erl)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub

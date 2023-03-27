@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptDynamicFilter_bas"
-'<cpt_version>v1.6.0</cpt_version>
+'<cpt_version>v1.6.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private pCachedRegexes As Scripting.Dictionary
 
 Sub cptShowDynamicFilter_frm()
@@ -19,7 +17,7 @@ Dim lngItem As Long
 Dim vArray As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   '===
   'Validate users selected view type
@@ -38,6 +36,7 @@ Dim vArray As Variant
     .txtFilter = ""
     With .cboField
       .Clear
+      'get local custom text fields
       For lngItem = 1 To 30
         lngFieldConstant = FieldNameToFieldConstant("Text" & lngItem)
         strCustomFieldName = CustomFieldGetName(lngFieldConstant)
@@ -45,6 +44,14 @@ Dim vArray As Variant
           strCustomFields = strCustomFields & strCustomFieldName & ","
         End If
       Next lngItem
+      
+      'get enterprise custom fields
+      For lngItem = 188776000 To 188778000 '2000 should do it for now
+        If Application.FieldConstantToFieldName(lngItem) <> "<Unavailable>" Then
+          strCustomFields = strCustomFields & FieldConstantToFieldName(lngItem) & ","
+        End If
+      Next lngItem
+      
       'remove terminal comma, reducing array size by one
       strCustomFields = Left(strCustomFields, Len(strCustomFields) - 1)
       vArray = Split(strCustomFields, ",")
@@ -70,6 +77,13 @@ Dim vArray As Variant
     If .cboOperator.Value = "" Then
       If .tglRegEx Then .cboOperator.Value = "matches" Else .cboOperator = "contains"
     End If
+    If Application.Edition = pjEditionProfessional Then
+      .chkActiveOnly = cptGetSetting("DynamicFilter", "ActiveOnly") = "1"
+      .chkActiveOnly.Enabled = True
+    Else
+      .chkActiveOnly = True
+      .chkActiveOnly.Enabled = False
+    End If
     .Show False
     .txtFilter.SetFocus
   End With
@@ -85,7 +99,7 @@ End Sub
 
 Sub cptGoRegEx(strRegEx As String)
   'objects
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngFieldConstant As Long
@@ -96,7 +110,7 @@ Sub cptGoRegEx(strRegEx As String)
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   cptSpeed True
   
@@ -110,32 +124,38 @@ Sub cptGoRegEx(strRegEx As String)
     On Error Resume Next
     Set oTask = ActiveSelection.Tasks(1)
     lngUID = oTask.UniqueID
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   End If
-  
-  lngFieldConstant = FieldNameToFieldConstant(cptDynamicFilter_frm.cboField.Value)
+  If cptDynamicFilter_frm.cboField.Value = "Task Name" Then
+    lngFieldConstant = FieldNameToFieldConstant("Name", pjTask)
+  Else
+    lngFieldConstant = FieldNameToFieldConstant(cptDynamicFilter_frm.cboField.Value)
+  End If
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.Marked Then oTask.Marked = False
+    If cptDynamicFilter_frm.chkActiveOnly And Not oTask.Active Then GoTo next_task
+    If Len(oTask.GetField(lngFieldConstant)) = 0 Then GoTo next_task
     If cptDynamicFilter_frm.chkHideSummaries And oTask.Summary Then
       If Len(cptRxMatch(oTask.GetField(lngFieldConstant), strRegEx)) > 0 Then oTask.Marked = True
     ElseIf Not oTask.Summary Then
       If Len(cptRxMatch(oTask.GetField(lngFieldConstant), strRegEx)) > 0 Then oTask.Marked = True
     End If
+    
 next_task:
   Next oTask
   
   If lngUID > 0 Then ActiveProject.Tasks.UniqueID(lngUID).Marked = True
   
   FilterClear 'in case Dynamic Filter is applied
-  OptionsViewEx displaysummaryTasks:=True
+  OptionsViewEx DisplaySummaryTasks:=True
   On Error Resume Next
   If Not OutlineShowAllTasks Then
     Sort "ID", , , , , , False, True
     OutlineShowAllTasks
   End If
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  OptionsViewEx displaysummaryTasks:=cptDynamicFilter_frm.chkShowRelatedSummaries
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  OptionsViewEx DisplaySummaryTasks:=cptDynamicFilter_frm.chkShowRelatedSummaries
   
   SetAutoFilter "Marked", pjAutoFilterFlagYes
   'todo: allow user-selected Flag or Marked

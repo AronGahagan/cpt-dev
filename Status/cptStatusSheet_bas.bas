@@ -1,13 +1,11 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.3.3</cpt_version>
+'<cpt_version>v1.4.8</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
 #Else '<issue53>
   Declare Function GetTickCount Lib "kernel32" () As Long
 #End If '<issue53>
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 Private strStartingViewTopPane As String
 Private strStartingViewBottomPane As String
@@ -28,15 +26,18 @@ Sub cptShowStatusSheet_frm()
 'add pick list for EV% or default to Physical % Complete
 'objects
 Dim oShell As Object
-Dim oTasks As Tasks
+Dim oTasks As MSProject.Tasks
 Dim rstFields As ADODB.Recordset 'Object
 Dim rstEVT As ADODB.Recordset 'Object
 Dim rstEVP As ADODB.Recordset 'Object
 'longs
-Dim lngField As Long, lngItem As Long, lngSelectedItems As Long
+Dim lngField As Long
+Dim lngItem As Long
+Dim lngSelectedItems As Long
 'integers
 Dim intField As Integer
 'strings
+Dim strKeepOpen As String
 Dim strExportNotes As String
 Dim strAllowAssignmentNotes As String
 Dim strNotesColTitle As String
@@ -67,7 +68,7 @@ Dim vFieldType As Variant
   'confirm existence of tasks to export
   On Error Resume Next
   Set oTasks = ActiveProject.Tasks
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oTasks Is Nothing Then
     MsgBox "This Project has no Tasks.", vbExclamation + vbOKOnly, "No Tasks"
     GoTo exit_here
@@ -130,7 +131,7 @@ Dim vFieldType As Variant
     .chkValidation = True
     .chkLocked = True
     .chkAllItems = False
-    If InStr(ActiveProject.Path, "<>\") = 0 Then 'not a server project: use ActiveProject.Path
+    If InStr(ActiveProject.Path, "<>") = 0 Then 'not a server project: use ActiveProject.Path
       .txtDir = ActiveProject.Path & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
     Else 'it is a server project: default to Desktop
       Set oShell = CreateObject("WScript.Shell")
@@ -149,19 +150,21 @@ Dim vFieldType As Variant
   rstFields.Open
   
   'cycle through and add all custom fields
-  For Each vFieldType In Array("Text", "Outline Code", "Number") 'todo: start, finish, date, flag?
-    On Error GoTo err_here
-    For intField = 1 To 30
-      lngField = FieldNameToFieldConstant(vFieldType & intField, pjTask)
+  For Each vFieldType In Array("Text|30", "Outline Code|10", "Number|20") 'todo: start, finish, date, flag?
+    Dim strFieldType As String
+    Dim lngFieldCount As Long
+    strFieldType = Split(vFieldType, "|")(0)
+    lngFieldCount = Split(vFieldType, "|")(1)
+    For intField = 1 To lngFieldCount
+      lngField = FieldNameToFieldConstant(strFieldType & intField, pjTask)
       strFieldName = CustomFieldGetName(lngField)
       If Len(strFieldName) > 0 Then
-        If vFieldType = "Number" Then
+        If strFieldType = "Number" Then
           rstFields.AddNew Array(0, 1, 2), Array(lngField, strFieldName, "Number")
         Else
           rstFields.AddNew Array(0, 1, 2), Array(lngField, strFieldName, "Text")
         End If
       End If
-next_field:
     Next intField
   Next vFieldType
   
@@ -192,7 +195,9 @@ next_field:
         .lboFields.AddItem
         .lboFields.List(.lboFields.ListCount - 1, 0) = rstFields(0)
         .lboFields.List(.lboFields.ListCount - 1, 1) = rstFields(1)
-        If FieldNameToFieldConstant(rstFields(1)) >= 188776000 Then
+        If rstFields(1) = "Resources" Then
+          .lboFields.List(.lboFields.ListCount - 1, 2) = FieldConstantToFieldName(rstFields(0))
+        ElseIf FieldNameToFieldConstant(rstFields(1), pjTask) >= 188776000 Then
           .lboFields.List(.lboFields.ListCount - 1, 2) = "Enterprise"
         Else
           .lboFields.List(.lboFields.ListCount - 1, 2) = FieldConstantToFieldName(rstFields(0))
@@ -253,7 +258,7 @@ skip_fields:
         If Not rstFields.EOF Then
           On Error Resume Next
           .cboEVT.Value = strEVT
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If Err.Number > 0 Then
             MsgBox "Unable to set EVT Field to '" & rstFields(1) & "' - contact cpt@ClearPlanConsulting.com if you need assistance.", vbExclamation + vbOKOnly, "Cannot assign EVT"
             Err.Clear
@@ -269,7 +274,7 @@ skip_fields:
         If Not rstFields.EOF Then
           On Error Resume Next
           .cboEVP.Value = strEVP
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If Err.Number > 0 Then
             MsgBox "Unable to set EV% Field to '" & rstFields(1) & "' - contact cpt@ClearPlanConsulting.com if you need assistance.", vbExclamation + vbOKOnly, "Cannot assign EVP"
             Err.Clear
@@ -298,7 +303,7 @@ skip_fields:
             On Error Resume Next
             .cboEach.Value = strEach '<none> would not be found
             .txtFileName = "StatusRequest_[item]_[yyyy-mm-dd]"
-            If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+            If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
             If Err.Number > 0 Then
               MsgBox "Unable to set 'For Each' Field to '" & rstFields(1) & "' - contact cpt@ClearPlanConsulting.com if you need assistance.", vbExclamation + vbOKOnly, "Cannot assign For Each"
               Err.Clear
@@ -326,8 +331,13 @@ skip_fields:
     strEmail = cptGetSetting("StatusSheet", "chkEmail")
     If strEmail <> "" Then
       .chkSendEmails = CBool(strEmail) 'this refreshes the quickparts list
+      If .chkSendEmails Then
+        .chkKeepOpen = False
+        .chkKeepOpen.Enabled = False
+      End If
     Else
       .chkSendEmails = False
+      .chkKeepOpen.Enabled = True
     End If
     If .chkSendEmails Then
       strSubject = cptGetSetting("StatusSheet", "txtSubject")
@@ -375,6 +385,18 @@ skip_fields:
       .chkAllowAssignmentNotes = CBool(strAllowAssignmentNotes)
     Else
       .chkAllowAssignmentNotes = False
+    End If
+    strKeepOpen = cptGetSetting("StatusSheet", "chkKeepOpen")
+    If strKeepOpen <> "" Then
+      .chkKeepOpen = CBool(strKeepOpen)
+      If .chkKeepOpen Then
+        .chkSendEmails = False
+        .chkSendEmails.Enabled = False
+      Else
+        .chkSendEmails.Enabled = True
+      End If
+    Else
+      .chkKeepOpen = False
     End If
   End With
 
@@ -474,14 +496,14 @@ next_item:
   End If
   DoEvents
   
-  OptionsViewEx DisplaySummaryTasks:=True, displaynameindent:=True
+  OptionsViewEx displaysummarytasks:=True, displaynameindent:=True
   If strStartingGroup = "No Group" Then
     Sort "ID", , , , , , False, True 'OutlineShowAllTasks won't work without this
   Else
     If ActiveProject.CurrentGroup <> strStartingGroup Then
       On Error Resume Next
       GroupApply strStartingGroup
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     End If
   End If
   On Error Resume Next
@@ -489,20 +511,20 @@ next_item:
     Sort "ID", , , , , , False, True
     OutlineShowAllTasks
   End If
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   cptRefreshStatusTable True  'this only runs when form is visible
   FilterClear 'added 9/28/2021
   FilterApply "cptStatusSheet Filter"
   If Len(strCreate) > 0 And Len(strEach) > 0 Then
     On Error Resume Next
     SetAutoFilter strEach, pjAutoFilterClear
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     DoEvents
   End If
   If strStartingGroup <> "No Group" Then
     On Error Resume Next
     GroupApply strStartingGroup
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   End If
   DoEvents
   Application.StatusBar = "Ready..."
@@ -540,21 +562,16 @@ exit_here:
   Exit Sub
 
 err_here:
-  If Err.Number = 1101 Or Err.Number = 1004 Then
-    Err.Clear
-    Resume next_field
-  Else
-    Call cptHandleErr("cptStatusSheet_frm", "cptShowStatusSheet_frm", Err, Erl)
-    Resume exit_here
-  End If
+  Call cptHandleErr("cptStatusSheet_frm", "cptShowStatusSheet_frm", Err, Erl)
+  Resume exit_here
 
 End Sub
 
 Sub cptCreateStatusSheet()
   'objects
-  Dim oTasks As Tasks, oTask As Task, oAssignment As Assignment
+  Dim oTasks As MSProject.Tasks, oTask As MSProject.Task, oAssignment As MSProject.Assignment
   'early binding:
-  Dim oExcel As Excel.Application, oWorkbook As Workbook, oWorksheet As Worksheet, rng As Excel.Range
+  Dim oExcel As Excel.Application, oWorkbook As Excel.Workbook, oWorksheet As Excel.Worksheet, rng As Excel.Range
   Dim rSummaryTasks As Excel.Range, rMilestones As Excel.Range, rNormal As Excel.Range, rAssignments As Excel.Range, rLockedCells As Excel.Range
   Dim rDates As Excel.Range, rWork As Excel.Range, rMedium As Excel.Range, rCentered As Excel.Range, rEntry As Excel.Range
   Dim xlCells As Excel.Range, rngAll As Excel.Range
@@ -604,6 +621,7 @@ Sub cptCreateStatusSheet()
   Dim vHeader As Variant
   Dim vCol As Variant, vUserFields As Variant
   'booleans
+  Dim blnKeepOpen As Boolean
   Dim blnLocked As Boolean
   Dim blnValidation As Boolean
   Dim blnAddConditionalFormats As Boolean
@@ -629,7 +647,7 @@ Sub cptCreateStatusSheet()
 
   On Error Resume Next
   Set oTasks = ActiveProject.Tasks
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'ensure project has tasks
   If oTasks Is Nothing Then
@@ -655,12 +673,13 @@ Sub cptCreateStatusSheet()
       End If
     End If
   End If
+  blnKeepOpen = cptStatusSheet_frm.chkKeepOpen
   'get task count
   If blnPerformanceTest Then t = GetTickCount
   SelectAll
   On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oTasks Is Nothing Then
     MsgBox "There are no incomplete tasks in this schedule.", vbExclamation + vbOKOnly, "No Tasks Found"
     GoTo exit_here
@@ -677,7 +696,7 @@ Sub cptCreateStatusSheet()
   'oExcel.Visible = False
   oExcel.WindowState = xlMinimized
   '/=== debug ==\
-  If Not BLN_TRAP_ERRORS Then oExcel.Visible = True
+  If Not cptErrorTrapping Then oExcel.Visible = True
   '\=== debug ===/
   
   If blnPerformanceTest Then Debug.Print "set up excel Workbook: " & (GetTickCount - t) / 1000
@@ -702,7 +721,7 @@ Sub cptCreateStatusSheet()
       On Error Resume Next
       Set oTasks = Nothing
       Set oTasks = ActiveSelection.Tasks
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oTasks Is Nothing Then
         .lblStatus.Caption = "No incomplete tasks ...skipped"
         Application.StatusBar = .lblStatus.Caption
@@ -761,10 +780,15 @@ Sub cptCreateStatusSheet()
       If blnEmail Then
         'close the workbook - must close before attaching
         oWorkbook.Close True
-        oWorkbook.Application.Wait Now + TimeValue("00:00:02")
+        oExcel.Wait Now + TimeValue("00:00:02")
         cptSendStatusSheet strFileName
       Else
-        oExcel.Visible = True
+        If Not blnKeepOpen Then
+          oWorkbook.Close True
+          oExcel.Wait Now + TimeValue("00:00:002")
+        Else
+          oExcel.Visible = True
+        End If
       End If
       
     ElseIf .cboCreate.Value = "1" Then  'worksheet for each
@@ -776,10 +800,10 @@ Sub cptCreateStatusSheet()
           strItem = .lboItems.List(lngItem, 0)
           SetAutoFilter .cboEach.Value, pjAutoFilterCustom, "equals", strItem
           SelectAll
-	  Set oTasks = Nothing
+          Set oTasks = Nothing
           On Error Resume Next
           Set oTasks = ActiveSelection.Tasks
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If oTasks Is Nothing Then
             .lblStatus.Caption = "No incomplete tasks for " & strItem & "...skipped"
             Application.StatusBar = .lblStatus.Caption
@@ -825,6 +849,13 @@ next_worksheet:
         End If
       Next lngItem
       
+      Set oWorksheet = Nothing
+      On Error Resume Next
+      Set oWorksheet = oWorkbook.Sheets("Sheet1")
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If Not oWorksheet Is Nothing Then oWorksheet.Delete
+      oWorkbook.Sheets(1).Activate
+      
       'save the workbook
       strFileName = cptSaveStatusSheet(oWorkbook)
       
@@ -834,12 +865,17 @@ next_worksheet:
       
       'send the workbook
       If blnEmail Then
-        'close the workbook - must save before attaching
+        'close the workbook - must close before attaching
         oWorkbook.Close True
-        oWorkbook.Application.Wait Now + TimeValue("00:00:02")
-        Call cptSendStatusSheet(strFileName)
+        oExcel.Wait Now + TimeValue("00:00:02")
+        cptSendStatusSheet strFileName
       Else
-        oExcel.Visible = True
+        If Not blnKeepOpen Then
+          oWorkbook.Close True
+          oExcel.Wait Now + TimeValue("00:00:002")
+        Else
+          oExcel.Visible = True
+        End If
       End If
       
     ElseIf .cboCreate.Value = "2" Then  'workbook for each
@@ -851,7 +887,7 @@ next_worksheet:
           On Error Resume Next
           Set oTasks = Nothing
           Set oTasks = ActiveSelection.Tasks
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If oTasks Is Nothing Then
             .lblStatus.Caption = "No incomplete tasks for " & strItem & "...skipped"
             Application.StatusBar = .lblStatus.Caption
@@ -859,6 +895,7 @@ next_worksheet:
           End If
           
           'get excel
+          If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application") 'todo: added
           Set oWorkbook = oExcel.Workbooks.Add
           oExcel.Calculation = xlCalculationManual
           oExcel.ScreenUpdating = False
@@ -901,26 +938,35 @@ next_worksheet:
           DoEvents
           
           'send email
+          oExcel.Calculation = xlCalculationAutomatic
           If blnEmail Then
             .lblStatus.Caption = "Creating Email for " & strItem & "..."
             Application.StatusBar = .lblStatus.Caption
             DoEvents
             'must close before attaching to email
             oWorkbook.Close True
-            'oWorkbook.Application.Wait Now + TimeValue("00:00:02")
+            oExcel.Wait Now + TimeValue("00:00:02")
+            oExcel.Quit 'todo: added
+            Set oExcel = Nothing 'todo: added
             cptSendStatusSheet strFileName, strItem
             .lblStatus.Caption = "Creating Email for " & strItem & "...done"
             Application.StatusBar = .lblStatus.Caption
             DoEvents
+          Else
+            If Not blnKeepOpen Then
+              oWorkbook.Close True
+              oExcel.Wait Now + TimeValue("00:00:002")
+            Else
+              oExcel.Visible = True
+            End If
           End If 'blnEmail
         End If '.lboItems.Selected(lngItem)
-        
+                
 next_workbook:
         
       Next lngItem
       
       If Not blnEmail Then
-        oExcel.Calculation = xlCalculationAutomatic
         oExcel.ScreenUpdating = True
         oExcel.Visible = True
       End If
@@ -996,7 +1042,7 @@ new_start:
     Err.Clear '<issue52>
     GoTo new_finish '<issue52>
   End If '<issue52>
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
 
   '-->condition 1: blank and start is less than status date > update required
@@ -1089,7 +1135,7 @@ new_start:
   DoEvents
 
 new_finish: '<issue52>
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   If oWorksheet.AutoFilterMode Then oWorksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for task rows [blue font]
@@ -1103,7 +1149,7 @@ new_finish: '<issue52>
     Err.Clear '<issue52>
     GoTo ev_percent '<issue52>
   End If '<issue52>
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
 
   '-->condition 1: blank and finish is less than status date > update required
@@ -1196,7 +1242,7 @@ new_finish: '<issue52>
   DoEvents
 
 ev_percent:
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oWorksheet.AutoFilterMode Then oWorksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for task rows [blue font]
@@ -1208,7 +1254,7 @@ ev_percent:
     Err.Clear '<issue52>
     GoTo revised_etc '<issue52>
   End If '<issue52>
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   strFirstCell = rng(1).Address(False, True)
 
   '-->condition 0: =IF(AND($H48>$B$1,$L48>$K48,$L48<1),TRUE,FALSE) 'green
@@ -1337,7 +1383,7 @@ ev_percent:
   DoEvents
 
 revised_etc:
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   If oWorksheet.AutoFilterMode Then oWorksheet.ShowAllData
   xlCells(lngHeaderRow, 1).AutoFilter
   'filter for Task
@@ -1351,7 +1397,7 @@ revised_etc:
     Err.Clear '<issue52>
     GoTo evt_vs_evp '<issue52>
   End If '<issue52>
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
   rng.Cells.Locked = False
   strFirstCell = rng(1).Address(False, True)
 
@@ -1461,9 +1507,13 @@ exit_here:
   Set oTask = Nothing
   Set oAssignment = Nothing
   If blnEmail Then oExcel.Quit
-  Set oExcel = Nothing
-  Set oWorkbook = Nothing
   Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  If Not oExcel Is Nothing Then
+    oExcel.Visible = True
+    oExcel.Quit
+    Set oExcel = Nothing
+  End If
   Set rng = Nothing
   Set rSummaryTasks = Nothing
   Set rLockedCells = Nothing
@@ -1510,7 +1560,7 @@ Dim lngItem As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not cptStatusSheet_frm.Visible And blnOverride = False Then GoTo exit_here
 
   If Not blnOverride Then cptSpeed True
@@ -1522,45 +1572,45 @@ Dim lngItem As Long
     GroupApply "No Group"
   End If
   
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, Create:=True, overwriteexisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   lngItem = 0
   If cptStatusSheet_frm.lboExport.ListCount > 0 Then
     For lngItem = 0 To cptStatusSheet_frm.lboExport.ListCount - 1
       If Not IsNull(cptStatusSheet_frm.lboExport.List(lngItem, 0)) Then
-        TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=FieldConstantToFieldName(cptStatusSheet_frm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+        TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=FieldConstantToFieldName(cptStatusSheet_frm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
       End If
     Next lngItem
   End If
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Name", Title:="Task Name / Scope", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Duration", Title:="", Width:=12, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Total Slack", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False, ShowAddNewColumn:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Start", Title:="Forecast Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Finish", Title:="Forecast Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Actual Start", Title:="New Forecast/ Actual Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Actual Finish", Title:="New Forecast/ Actual Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Name", Title:="Task Name / Scope", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Duration", Title:="", Width:=12, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Total Slack", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False, ShowAddNewColumn:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Start", Title:="Forecast Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Finish", Title:="Forecast Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Actual Start", Title:="New Forecast/ Actual Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Actual Finish", Title:="New Forecast/ Actual Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   If cptStatusSheet_frm.cboEVT <> 0 Then
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVT.Value, Title:="EVT", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVT.Value, Title:="EVT", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   End If
   If cptStatusSheet_frm.cboEVP <> 0 Then
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVP.Value, Title:="EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:=cptStatusSheet_frm.cboEVP.Value, Title:="New EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVP.Value, Title:="EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVP.Value, Title:="New EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   End If
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Baseline Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Previous ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, newfieldname:="Remaining Work", Title:="Revised ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="Previous ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="Revised ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
   TableApply Name:="cptStatusSheet Table"
 
   'reset the filter
   Application.StatusBar = "Resetting the cptStatusSheet Filter..."
-  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, overwriteexisting:=True, FieldName:="Actual Finish", Test:="equals", Value:="NA", ShowInMenu:=False, showsummarytasks:=True
+  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
   If cptStatusSheet_frm.chkHide And IsDate(cptStatusSheet_frm.txtHideCompleteBefore) Then
-    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Actual Finish", Test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", showsummarytasks:=True
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
   End If
   If Edition = pjEditionProfessional Then
-    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", newfieldname:="Active", Test:="equals", Value:="Yes", ShowInMenu:=False, showsummarytasks:=True, parenthesis:=True
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Active", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True, Parenthesis:=True
   End If
   FilterApply "cptStatusSheet Filter"
   
@@ -1578,7 +1628,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub cptAddLegend(ByRef oWorksheet As Worksheet, dtStatus As Date)
+Private Sub cptAddLegend(ByRef oWorksheet As Excel.Worksheet, dtStatus As Date)
   'objects
   'strings
   'longs
@@ -1587,7 +1637,7 @@ Private Sub cptAddLegend(ByRef oWorksheet As Worksheet, dtStatus As Date)
   'booleans
   'variants
   'dates
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     
   oWorksheet.Cells(1, 1).Value = "Status Date:"
   oWorksheet.Cells(1, 1).Font.Bold = True
@@ -1595,6 +1645,9 @@ Private Sub cptAddLegend(ByRef oWorksheet As Worksheet, dtStatus As Date)
   oWorksheet.Names.Add "STATUS_DATE", oWorksheet.[B1]
   oWorksheet.Cells(1, 2).Font.Bold = True
   oWorksheet.Cells(1, 2).Font.Size = 14
+  oWorksheet.Cells(1, 2).HorizontalAlignment = xlCenter
+  oWorksheet.Cells(1, 2).Style = "Note"
+  oWorksheet.Cells(1, 2).Columns.AutoFit
   'current
   oWorksheet.Cells(3, 1).Style = "Input" '<issue58>
   oWorksheet.Cells(3, 2) = "Task is active or within current status window. Cell requires update."
@@ -1624,7 +1677,7 @@ err_here:
 
 End Sub
 
-Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
+Private Sub cptCopyData(ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Long)
   'objects
   Dim oComment As Excel.Comment
   Dim oEVTRange As Excel.Range
@@ -1634,7 +1687,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   Dim oSummaryRange As Excel.Range
   Dim oDateValidationRange As Excel.Range
   Dim oTwoWeekWindowRange As Excel.Range
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   Dim strNotesColTitle As String
   Dim strLOE As String
@@ -1667,7 +1720,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Worksheet, lngHeaderRow As Long)
   'dates
   Dim dtStatus As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   dtStatus = ActiveProject.StatusDate
   blnValidation = cptStatusSheet_frm.chkValidation = True
@@ -1687,7 +1740,7 @@ try_again:
     oWorksheet.Paste oWorksheet.Cells(lngHeaderRow, 1), False
     oWorksheet.Application.Wait 5000
   End If
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   oWorksheet.Application.Wait 5000
   oWorksheet.Cells.WrapText = False
   oWorksheet.Application.ActiveWindow.Zoom = 85
@@ -1764,7 +1817,7 @@ try_again:
       MsgBox "UID " & oTask.UniqueID & " not found on worksheet!" & vbCrLf & vbCrLf & "You may need to re-run...", vbExclamation + vbOKOnly, "ERROR"
       GoTo next_task
     End If
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     'capture if task is LOE
     blnLOE = False
     strLOEField = cptGetSetting("Metrics", "cboLOEField")
@@ -1942,7 +1995,7 @@ get_assignments:
         Set oAssignment = Nothing
         On Error Resume Next
         Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow + 1, 1).Value)
-        If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If Not oAssignment Is Nothing Then
           oWorksheet.Rows(lngRow + 1).EntireRow.Delete
         End If
@@ -2079,19 +2132,19 @@ next_task:
       strEVTList = strEVTList & "O - Earned As Spent,"
       strEVTList = strEVTList & "P - % Complete Manual Entry,"
     ElseIf cptStatusSheet_frm.cboCostTool = "MPM" Then
-      strEVTList = strEVTList & "0 - No EVM required"
-      strEVTList = strEVTList & "1 - 0/100"
-      strEVTList = strEVTList & "2 - 25/75"
-      strEVTList = strEVTList & "3 - 40/60"
-      strEVTList = strEVTList & "4 - 50/50"
-      strEVTList = strEVTList & "5 - % Complete"
-      strEVTList = strEVTList & "6 - LOE"
-      strEVTList = strEVTList & "7 - Earned Standards"
-      strEVTList = strEVTList & "8 - Milestone Weights"
-      strEVTList = strEVTList & "9 - BCWP Entry"
-      strEVTList = strEVTList & "A - Apportioned"
-      strEVTList = strEVTList & "P - Milestone Weights with % Complete"
-      strEVTList = strEVTList & "K - Key Event"
+      strEVTList = strEVTList & "0 - No EVM required,"
+      strEVTList = strEVTList & "1 - 0/100,"
+      strEVTList = strEVTList & "'2 - 25/75,"
+      strEVTList = strEVTList & "3 - 40/60,"
+      strEVTList = strEVTList & "4 - 50/50,"
+      strEVTList = strEVTList & "5 - % Complete,"
+      strEVTList = strEVTList & "6 - LOE,"
+      strEVTList = strEVTList & "7 - Earned Standards,"
+      strEVTList = strEVTList & "8 - Milestone Weights,"
+      strEVTList = strEVTList & "9 - BCWP Entry,"
+      strEVTList = strEVTList & "A - Apportioned,"
+      strEVTList = strEVTList & "P - Milestone Weights with % Complete,"
+      strEVTList = strEVTList & "K - Key Event,"
     End If
     If Len(strEVTList) > 0 Then
       oWorksheet.Cells(lngHeaderRow, lngLastCol + 2).Value = "Earned Value Techniques (EVT)"
@@ -2129,7 +2182,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksheet, lngRow As Long, lngHeaderRow As Long, lngNameCol As Long, lngRemainingWorkCol As Long)
+Private Sub cptGetAssignmentData(ByRef oTask As MSProject.Task, ByRef oWorksheet As Excel.Worksheet, lngRow As Long, lngHeaderRow As Long, lngNameCol As Long, lngRemainingWorkCol As Long)
   'objects
   Dim oAssignment As Assignment
   'strings
@@ -2152,7 +2205,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
   Dim vAssignment As Variant
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   lngIndent = Len(cptRegEx(oWorksheet.Cells(lngRow, lngNameCol).Value, "^\s*"))
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
   lngLastRow = oWorksheet.Cells(1048576, 1).End(xlUp).Row
@@ -2169,6 +2222,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As Task, ByRef oWorksheet As Worksh
     Else
       oWorksheet.Rows(lngRow + lngItem).ClearContents
     End If
+    'this fills down task custom fields to assignments
     For lngCol = 2 To lngNameCol
       If lngCol <> lngNameCol Then oWorksheet.Cells(lngRow + lngItem, lngCol) = oWorksheet.Cells(lngRow, lngCol)
     Next lngCol
@@ -2255,7 +2309,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptFinalFormats(ByRef oWorksheet As Worksheet)
+Sub cptFinalFormats(ByRef oWorksheet As Excel.Worksheet)
 Dim lngHeaderRow As Long
 Dim vBorder As Variant
   lngHeaderRow = 8
@@ -2284,12 +2338,13 @@ Dim vBorder As Variant
   oWorksheet.Application.Calculation = xlCalculationAutomatic
   oWorksheet.Application.ScreenUpdating = True
   oWorksheet.Application.ActiveWindow.DisplayGridLines = False
+  oWorksheet.[B2].Select
   oWorksheet.Application.ActiveWindow.SplitRow = 8
   oWorksheet.Application.ActiveWindow.SplitColumn = 0
   oWorksheet.Application.ActiveWindow.FreezePanes = True
-  oWorksheet.Application.WindowState = xlMinimized
   oWorksheet.Application.ActiveWindow.DisplayHorizontalScrollBar = True
   oWorksheet.Application.ActiveWindow.DisplayVerticalScrollBar = True
+  oWorksheet.Application.WindowState = xlMinimized
   Set oEntryHeaderRange = Nothing
 End Sub
 
@@ -2297,18 +2352,17 @@ Sub cptListQuickParts(Optional blnRefreshOutlook As Boolean = False)
 'objects
 Dim oOutlook As Outlook.Application
 Dim oMailItem As MailItem
-Dim objDoc As Word.Document
+Dim oDocument As Word.Document
 Dim oWord As Word.Application
-'Dim objSel As Word.Selection
-Dim objETemp As Word.Template
-Dim oBuildingBlockEntries As BuildingBlockEntries
-Dim oBuildingBlock As BuildingBlock
+Dim oTemplate As Word.Template
+Dim oBuildingBlockEntries As Word.BuildingBlockEntries
+Dim oBuildingBlock As Word.BuildingBlock
 'longs
 Dim lngItem As Long
 'strings
 Dim strSQL As String
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If blnRefreshOutlook Then
     'refresh QuickParts in Outlook
@@ -2316,26 +2370,34 @@ Dim strSQL As String
     'get Outlook
     On Error Resume Next
     Set oOutlook = GetObject(, "Outlook.Application") 'this works even if Outlook isn't open
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oOutlook Is Nothing Then
       Set oOutlook = CreateObject("Outlook.Application")
     End If
     'create MailItem, insert quickparts, update links, dates
     Set oMailItem = oOutlook.CreateItem(olMailItem)
-    'keep mailitem hidden
     If oMailItem.BodyFormat <> olFormatHTML Then oMailItem.BodyFormat = olFormatHTML
-    'todo: fails if Outlook is not open; can't you just get Word directly?
     On Error Resume Next
-    Set objDoc = oMailItem.GetInspector.WordEditor
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-    If objDoc Is Nothing Then
+    Set oDocument = oMailItem.GetInspector.WordEditor
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If oDocument Is Nothing Then
+      'try again with MailItem displayed
       oMailItem.Display False
-      Set objDoc = oMailItem.GetInspector.WordEditor
-      oMailItem.GetInspector.WindowState = olMinimized
+      On Error Resume Next
+      Set oDocument = oMailItem.GetInspector.WordEditor
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If oDocument Is Nothing Then
+        'todo: try again by accessing Word directly
+        cptStatusSheet_frm.cboQuickParts.Enabled = False
+        oMailItem.Close olDiscard
+        GoTo exit_here
+      Else
+        oMailItem.GetInspector.WindowState = olMinimized
+      End If
     End If
-    Set oWord = objDoc.Application
-    Set objETemp = oWord.Templates(1)
-    Set oBuildingBlockEntries = objETemp.BuildingBlockEntries
+    Set oWord = oDocument.Application
+    Set oTemplate = oWord.Templates(1)
+    Set oBuildingBlockEntries = oTemplate.BuildingBlockEntries
     'loop through them
     For lngItem = 1 To oBuildingBlockEntries.Count
       Set oBuildingBlock = oBuildingBlockEntries(lngItem)
@@ -2351,10 +2413,9 @@ exit_here:
   Set oWord = Nothing
   Set oOutlook = Nothing
   Set oMailItem = Nothing
-  Set objDoc = Nothing
+  Set oDocument = Nothing
   Set oWord = Nothing
-  'Set objSel = Nothing
-  Set objETemp = Nothing
+  Set oTemplate = Nothing
   Set oBuildingBlockEntries = Nothing
   Set oBuildingBlock = Nothing
   Exit Sub
@@ -2373,7 +2434,7 @@ Sub cptAddConditionalFormatting(ByRef oWorksheet As Excel.Worksheet)
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   
 
@@ -2400,7 +2461,7 @@ Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem 
   'dates
   Dim dtStatus As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   dtStatus = ActiveProject.StatusDate
 
@@ -2413,6 +2474,7 @@ Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem 
     End If
     strFileName = .txtFileName.Value & ".xlsx"
     strFileName = Replace(strFileName, "[yyyy-mm-dd]", Format(dtStatus, "yyyy-mm-dd"))
+    strFileName = Replace(strFileName, "[Program]", cptGetProgramAcronym)
     If Len(strItem) > 0 Then
       strFileName = Replace(strFileName, "[item]", strItem)
     End If
@@ -2423,7 +2485,7 @@ Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem 
       oWorkbook.Application.Wait Now + TimeValue("00:00:02")
       DoEvents
     End If
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     'account for if the file exists and is open in the background
     If Dir(strDir & strFileName) <> vbNullString Then  'delete failed, rename with timestamp
       strMsg = "'" & strFileName & "' already exists, and is likely open." & vbCrLf
@@ -2473,36 +2535,46 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
   If oOutlook Is Nothing Then
     Set oOutlook = CreateObject("Outlook.Application")
   End If
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Set oMailItem = oOutlook.CreateItem(0) '0 = olMailItem
   oMailItem.Display False
   oMailItem.Attachments.Add strFullName
   With cptStatusSheet_frm
     strSubject = .txtSubject
-    strSubject = Replace(strSubject, "[yyyy-mm-dd]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
-    strSubject = Replace(strSubject, "[item]", strItem)
+    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[STATUS\_DATE\]"), Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[YYYY\-MM\-DD\]"), Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
+    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[ITEM\]"), strItem)
+    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[PROGRAM\]"), cptGetProgramAcronym)
     oMailItem.Subject = strSubject
     oMailItem.CC = .txtCC
-  
-    If oMailItem.BodyFormat <> olFormatHTML Then oMailItem.BodyFormat = olFormatHTML
-    If Not IsNull(.cboQuickParts.Value) Then
+    If oMailItem.BodyFormat <> 2 Then oMailItem.BodyFormat = 2 '2=olFormatHTML
+    If Not IsNull(.cboQuickParts.Value) And .cboQuickParts.Enabled Then
       Set oDocument = oMailItem.GetInspector.WordEditor
       Set oWord = oDocument.Application
       Set oSelection = oDocument.Windows(1).Selection
       Set oEmailTemplate = oWord.Templates(1)
       On Error Resume Next
       Set oBuildingBlock = oEmailTemplate.BuildingBlockEntries(.cboQuickParts)
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oBuildingBlock Is Nothing Then
         MsgBox "Quick Part '" & .cboQuickParts & "' not found!", vbExclamation + vbOKOnly, "Missing Quick Part"
       Else
         oBuildingBlock.Insert oSelection.Range, True
       End If
-      oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, "[STATUS_DATE]", Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+      'only do replacements if QuickPart is used
+      oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, cptRegEx(oMailItem.HTMLBody, "\[STATUS\_DATE\]"), Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+      oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, cptRegEx(oMailItem.HTMLBody, "\[YYYY\-MM\-DD\]"), Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
+      oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, cptRegEx(oMailItem.HTMLBody, "\[PROGRAM\]"), cptGetProgramAcronym)
     End If
+    On Error Resume Next
     Set oInspector = oMailItem.GetInspector
-    oInspector.WindowState = olMinimized
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If Not oInspector Is Nothing Then
+      oInspector.WindowState = 1 '1=olMinimized
+    Else
+      'todo: how to minimize?
+    End If
       
   End With
   
@@ -2537,7 +2609,7 @@ Sub cptSaveStatusSheetSettings()
   'variants
   'dates
     
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   With cptStatusSheet_frm
     'save settings
@@ -2573,6 +2645,7 @@ Sub cptSaveStatusSheetSettings()
     End If
     cptSaveSetting "StatusSheet", "chkExportNotes", IIf(.chkExportNotes, 1, 0)
     cptSaveSetting "StatusSheet", "chkAllowAssignmentNotes", IIf(.chkAllowAssignmentNotes, 1, 0)
+    cptSaveSetting "StatusSheet", "chkKeepOpen", IIf(.chkKeepOpen, 1, 0)
     'save user fields - overwrite
     strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
     Set oRecordset = CreateObject("ADODB.Recordset")
@@ -2623,7 +2696,7 @@ Sub cptCaptureJournal()
   'dates
   Dim dtStatus As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   strProgram = cptGetProgramAcronym
   
@@ -2645,7 +2718,7 @@ Sub cptCaptureJournal()
   Else
     oRecordset.Open strFile
   End If
-  Dim oTask As Task, oTasks As Tasks
+  Dim oTask As MSProject.Task, oTasks As MSProject.Tasks
   Set oTasks = ActiveProject.Tasks
   lngTasks = oTasks.Count
   lngTask = 0
@@ -2688,7 +2761,7 @@ Sub cptExportCompletedWork()
   Dim oWorkbook As Object 'Excel.Workbook
   Dim oExcel As Object 'Excel.Application
   Dim oRecordset As Object 'ADODB.Recordset
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   Dim strEVP As String
   Dim strEVT As String
@@ -2736,7 +2809,7 @@ Sub cptExportCompletedWork()
   strEVT = ActiveProject.CustomDocumentProperties("fEVT")
   strEVP = ActiveProject.CustomDocumentProperties("fPCNT")
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   blnMissing = False
   If strCWBS = "" Then blnMissing = True
@@ -2836,7 +2909,7 @@ next_task:
   If oRecordset.RecordCount > 0 Then
     On Error Resume Next
     Set oExcel = GetObject(, "Excel.Application")
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oExcel Is Nothing Then
       Set oExcel = CreateObject("Excel.Application")
     End If
@@ -2848,8 +2921,8 @@ next_task:
     oWorksheet.[A2].CopyFromRecordset oRecordset
     oRecordset.Close
     oExcel.ActiveWindow.Zoom = 85
-    oWorksheet.Columns(2).HorizontalAlignment = xlCenter
-    oWorksheet.Rows(1).HorizontalAlignment = xlLeft
+    oWorksheet.Columns(2).HorizontalAlignment = -4108 'xlCenter
+    oWorksheet.Rows(1).HorizontalAlignment = -4131 'xlLeft
     oWorksheet.[A1].AutoFilter
     oWorksheet.Columns.AutoFit
     oExcel.ActiveWindow.SplitRow = 1
@@ -2867,12 +2940,12 @@ next_task:
     For lngItem = 0 To oRecordset.Fields.Count - 1
       oWorksheet.Cells(1, lngItem + 1) = oRecordset.Fields(lngItem).Name
     Next lngItem
-    oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
+    oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(-4161)).Font.Bold = True 'xlToRight
     oWorksheet.[A2].CopyFromRecordset oRecordset
     oWorksheet.Columns(8).Replace #1/1/1984#, "NA"
     oExcel.ActiveWindow.Zoom = 85
-    oWorksheet.Columns(8).HorizontalAlignment = xlCenter
-    oWorksheet.Rows(1).HorizontalAlignment = xlLeft
+    oWorksheet.Columns(8).HorizontalAlignment = -4108 'xlCenter
+    oWorksheet.Rows(1).HorizontalAlignment = -4131 'xlLeft
     oWorksheet.[A1].AutoFilter
     oWorksheet.Columns.AutoFit
     oExcel.ActiveWindow.SplitRow = 1
@@ -2882,7 +2955,7 @@ next_task:
     oRecordset.Close
     oWorkbook.Sheets("COMPLETED WPCNs").Activate
     oExcel.Visible = True
-    oExcel.ActiveWindow.WindowState = xlNormal
+    oExcel.ActiveWindow.WindowState = -4143 'xlNormal
     Application.ActivateMicrosoftApp pjMicrosoftExcel
   Else
     MsgBox "No records found!", vbExclamation + vbOKOnly, "Completed Work"

@@ -13,10 +13,9 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.6.0</cpt_version>
+
+'<cpt_version>v1.6.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboField_Change()
   If Me.Visible Then Me.txtFilter_Change
@@ -29,6 +28,10 @@ Private Sub cboOperator_Change()
   End If
 End Sub
 
+Private Sub chkActiveOnly_Click()
+  If Me.Visible Then Me.txtFilter_Change
+End Sub
+
 Private Sub chkHideSummaries_Click()
   If Me.Visible Then Me.txtFilter_Change
 End Sub
@@ -38,14 +41,14 @@ Private Sub chkHighlight_Click()
 End Sub
 
 Private Sub chkKeepSelected_Click()
-Dim Task As Task
+Dim Task As MSProject.Task
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Me.chkKeepSelected = True Then
     On Error Resume Next
     Set Task = ActiveSelection.Tasks(1)
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Task Is Nothing Then Me.chkKeepSelected = False
     Set Task = Nothing
   End If
@@ -75,6 +78,7 @@ End Sub
 
 Private Sub cmdGoRegEx_Click()
   Dim strMsg As String, lngResponse As Long
+  'todo: this logic doesn't work right
   If cptGetSetting("DynamicFilter", "IgnoreOverwriteWarning") = "" Then
     strMsg = "OK to overwrite the 'Marked' field?" & vbCrLf & vbCrLf
     strMsg = strMsg & "Abort = No it is not OK" & vbCrLf
@@ -85,7 +89,7 @@ Private Sub cmdGoRegEx_Click()
       'todo: switch to normie view
       GoTo exit_here
     ElseIf lngResponse = vbIgnore Then
-      If cptSaveSetting("DynamicFilter", "IgnoreOverwriteWarning", "1") Then Debug.Print "that worked fin"
+      If cptSaveSetting("DynamicFilter", "IgnoreOverwriteWarning", "1") Then Debug.Print "that worked fine"
     End If
   End If
   Call cptGoRegEx(Me.txtFilter)
@@ -94,8 +98,8 @@ exit_here:
 End Sub
 
 Private Sub cmdUndo_Click()
-  Dim oTask As Task
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  Dim oTask As MSProject.Task
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   cptSpeed True
   For Each oTask In ActiveProject.Tasks
@@ -118,7 +122,7 @@ End Sub
 
 Private Sub lblHelp_Click()
     
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then
     If MsgBox("'regex' stands for regular expresssions, or 'pattern matching.' would you like to see a tutorial?", vbYesNo + vbInformation, "pretty '/^[abds]{6}$/g' stuff") = vbYes Then
@@ -140,7 +144,7 @@ End Sub
 
 Private Sub lblURL_Click()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then Application.FollowHyperlink ("http://" & Me.lblURL.Caption)
 
@@ -159,7 +163,7 @@ Private Sub tglRegEx_Click()
 'converter credit: https://www.rapidtables.com/convert/color/hex-to-rgb.html
 
   If Me.tglRegEx Then
-    Me.Caption = "dynamicFilter.geekMode()"
+    Me.Caption = "dynamicFilter.geekMode() - " & cptGetVersion("cptDynamicFilter_bas")
     Me.BackColor = RGB(33, 33, 33)
     
     Me.cboField.Font.Name = "Consolas"
@@ -209,6 +213,11 @@ Private Sub tglRegEx_Click()
     Me.chkHighlight.BackColor = RGB(84, 84, 84)
     Me.chkHighlight.Visible = False
     
+    Me.chkActiveOnly.Font.Name = "Consolas"
+    Me.chkActiveOnly.ForeColor = RGB(195, 232, 141)
+    Me.chkActiveOnly.BackColor = RGB(84, 84, 84)
+    Me.chkActiveOnly.Left = 12
+    
     'font is always consolas
     'Me.tglRegEx.ForeColor = RGB(195, 232, 141)
     'Me.tglRegEx.BackColor = RGB(84, 84, 84)
@@ -223,7 +232,7 @@ Private Sub tglRegEx_Click()
     
     Me.lblURL.ForeColor = RGB(255, 203, 107)
   Else
-    Me.Caption = "Dynamic Filter"
+    Me.Caption = "Dynamic Filter (" & cptGetVersion("cptDynamicFilter_bas") & ")"
     Me.BackColor = -2147483633 'default light grey
     
     Me.cboField.Font.Name = "Tahoma"
@@ -263,6 +272,11 @@ Private Sub tglRegEx_Click()
     Me.chkHighlight.BackColor = -2147483633
     Me.chkHighlight.Visible = True
     
+    Me.chkActiveOnly.Font.Name = "Tahoma"
+    Me.chkActiveOnly.ForeColor = -2147483640
+    Me.chkActiveOnly.BackColor = -2147483633
+    Me.chkActiveOnly.Left = 66
+    
     Me.tglRegEx.ForeColor = -2147483640
     Me.tglRegEx.BackColor = -2147483633
     
@@ -286,12 +300,13 @@ Sub txtFilter_Change()
 'strings
 Dim strField As String, strOperator As String, strFilterText As String, strFilter As String
 'booleans
+Dim blnActiveOnly As Boolean
 Dim blnHideSummaryTasks As Boolean, blnHighlight As Boolean, blnKeepSelected As Boolean
 Dim blnShowRelatedSummaries As Boolean
 'longs
 Dim lgOriginalUID As Long
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Me.tglRegEx Then Exit Sub
   If Me.ActiveControl.Name = "cmdClear" Then Exit Sub
 
@@ -311,7 +326,13 @@ Dim lgOriginalUID As Long
     strFilter = "Dynamic Filter"
   End If
   strFilterText = Me.txtFilter.Text
-
+  'field Active only accessible in Professional
+  If Application.Edition = pjEditionProfessional Then
+    blnActiveOnly = Me.chkActiveOnly
+  Else
+    blnActiveOnly = True
+  End If
+  
   '===
   'Validate users selected view type
   If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
@@ -343,22 +364,32 @@ Dim lgOriginalUID As Long
   'build custom filter on the fly and apply it
   If Len(strFilterText) > 0 And Len(strOperator) > 0 Then
     If strField = "Task Name" Then strField = "Name"
-    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, overwriteexisting:=True, FieldName:=strField, Test:=strOperator, Value:=strFilterText, Operation:=IIf(blnKeepSelected Or blnHideSummaryTasks, "Or", "None"), ShowInMenu:=False, showsummarytasks:=blnShowRelatedSummaries
+    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=strField, Test:=strOperator, Value:=strFilterText, Operation:=IIf(blnKeepSelected Or blnHideSummaryTasks, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
   End If
   If blnKeepSelected Then
-    FilterEdit Name:=strFilter, TaskFilter:=True, newfieldname:="Unique ID", Test:="equals", Value:=lgOriginalUID, Operation:="Or"
+    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Unique ID", Test:="equals", Value:=lgOriginalUID, Operation:="Or"
   End If
   If blnHideSummaryTasks Then
-    FilterEdit Name:=strFilter, TaskFilter:=True, newfieldname:="Summary", Test:="equals", Value:="No", Operation:="And", parenthesis:=blnKeepSelected
+    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Summary", Test:="equals", Value:="No", Operation:="And", Parenthesis:=blnKeepSelected
+    OptionsViewEx DisplaySummaryTasks:=True
   End If
 
   If Len(strFilterText) > 0 Then
-    FilterEdit Name:=strFilter, showsummarytasks:=blnShowRelatedSummaries
+    FilterEdit Name:=strFilter, ShowSummaryTasks:=blnShowRelatedSummaries
+    If blnShowRelatedSummaries Then OptionsViewEx DisplaySummaryTasks:=True
   Else
     'build a sterile filter to retain existing autofilters
-    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, overwriteexisting:=True, FieldName:="Summary", Test:="equals", Value:="Yes", ShowInMenu:=False, showsummarytasks:=True
-    FilterEdit Name:=strFilter, TaskFilter:=True, FieldName:="", newfieldname:="Summary", Test:="equals", Value:="No", Operation:="Or", showsummarytasks:=True
+    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Summary", Test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True
+    FilterEdit Name:=strFilter, TaskFilter:=True, FieldName:="", NewFieldName:="Summary", Test:="equals", Value:="No", Operation:="Or", ShowSummaryTasks:=True
   End If
+  
+  If Application.Edition = pjEditionProfessional Then
+    If blnActiveOnly Then
+      FilterEdit Name:=strFilter, TaskFilter:=True, Parenthesis:=True, NewFieldName:="Active", Test:="equals", Value:="Yes", Operation:="And"
+    End If
+  End If
+  
+  FilterClear
   FilterApply strFilter, blnHighlight
 
   On Error Resume Next
@@ -381,4 +412,5 @@ Private Sub UserForm_Terminate()
   If Not cptSaveSetting("DynamicFilter", "RelatedSummaries", CStr(IIf(Me.chkShowRelatedSummaries, "1", "0"))) Then Debug.Print "RelatedSummaries not saved."
   If Not cptSaveSetting("DynamicFilter", "Highlight", CStr(IIf(Me.chkHighlight, "1", "0"))) Then Debug.Print "Highlight not saved."
   If Not cptSaveSetting("DynamicFilter", "geekMode", CStr(IIf(Me.tglRegEx, "1", "0"))) Then Debug.Print "geekMode not saved."
+  If Not cptSaveSetting("DynamicFilter", "ActiveOnly", CStr(IIf(Me.chkActiveOnly, "1", "0"))) Then Debug.Print "Active Only not saved."
 End Sub

@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptStatusSheet_frm 
-   Caption         =   "Create Status Sheet (v1.3.0)"
+   Caption         =   "Create Status Sheets"
    ClientHeight    =   7230
    ClientLeft      =   120
    ClientTop       =   465
@@ -13,10 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.3</cpt_version>
+'<cpt_version>v1.4.8</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private Const adVarChar As Long = 200
 Private Const adInteger As Long = 3
 
@@ -30,7 +28,7 @@ Private Sub cboCostTool_Change()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'setup EVT dictionary
   Set oEVTs = CreateObject("Scripting.Dictionary")
@@ -92,7 +90,7 @@ Dim lngField As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Select Case Me.cboCreate
     Case 0 'A single workbook
@@ -143,7 +141,7 @@ End Sub
 Private Sub cboEach_Change()
 'objects
 Dim rstItems As Object 'ADODB.Recordset
-Dim oTask As Task
+Dim oTask As MSProject.Task
 'strings
 Dim strFieldName As String
 'longs
@@ -155,7 +153,7 @@ Dim lngField As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Me.lboItems.Clear
   Me.lboItems.ForeColor = -2147483630
@@ -166,7 +164,7 @@ Dim lngField As Long
   
   On Error Resume Next
   lngField = FieldNameToFieldConstant(Me.cboEach)
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If lngField > 0 Then
     Set rstItems = CreateObject("ADODB.Recordset")
@@ -178,6 +176,7 @@ Dim lngField As Long
         If Not oTask.Active Then GoTo next_task
         If oTask.ExternalTask Then GoTo next_task
         If oTask.Summary Then GoTo next_task
+        If IsDate(oTask.ActualFinish) Then GoTo next_task
         If Len(oTask.GetField(lngField)) > 0 Then
           If .RecordCount > 0 Then .MoveFirst
           .Find "[" & Me.cboEach.Value & "]='" & oTask.GetField(lngField) & "'"
@@ -221,7 +220,7 @@ End Sub
 
 Private Sub cboEVP_AfterUpdate()
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Len(Me.cboEVP.Value) > 0 Then
     Me.lblEVP.ForeColor = -2147483630 '"Black"
@@ -239,7 +238,7 @@ End Sub
 
 Private Sub cboEVP_Change()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptStatusSheet_frm.Visible Then Call cptRefreshStatusTable
 
@@ -254,7 +253,7 @@ End Sub
 
 Private Sub cboEVT_AfterUpdate()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.cboEVT.Value) > 0 Then
     Me.lblEVT.ForeColor = -2147483630 '"Black"
@@ -273,7 +272,7 @@ End Sub
 
 Private Sub cboEVT_Change()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptStatusSheet_frm.Visible Then Call cptRefreshStatusTable
 
@@ -327,7 +326,7 @@ End Sub
 Private Sub chkHide_Click()
 
   If Not Me.Visible Then GoTo exit_here
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Me.txtHideCompleteBefore.Enabled = Me.chkHide
   If Me.Visible Then Call cptRefreshStatusTable
@@ -342,6 +341,15 @@ err_here:
   
 End Sub
 
+Private Sub chkKeepOpen_Click()
+  If Me.chkKeepOpen Then
+    Me.chkSendEmails = False
+    Me.chkSendEmails.Enabled = False
+  Else
+    Me.chkSendEmails.Enabled = True
+  End If
+End Sub
+
 Private Sub chkSendEmails_Click()
 Dim strQuickPart As String
 Dim blnExists As Boolean
@@ -351,6 +359,9 @@ Dim lngItem As Long
   Me.txtCC.Enabled = Me.chkSendEmails
   Me.cboQuickParts.Enabled = Me.chkSendEmails
   If Me.chkSendEmails Then
+    Me.chkKeepOpen = False
+    Me.chkKeepOpen.Enabled = False
+    Me.lblEmailHints.Visible = True
     Call cptListQuickParts(True)
     strQuickPart = cptGetSetting("StatusSheet", "cboQuickPart")
     If Len(strQuickPart) > 0 Then
@@ -366,6 +377,9 @@ Dim lngItem As Long
         MsgBox "QuickPart '" & strQuickPart & "' not found.", vbExclamation + vbOKOnly, "Stored Setting Invalid"
       End If
     End If
+  Else
+    Me.chkKeepOpen.Enabled = True
+    Me.lblEmailHints.Visible = False
   End If
 
 End Sub
@@ -374,7 +388,7 @@ Sub cmdAdd_Click()
 Dim lgField As Long, lgExport As Long, lgExists As Long
 Dim blnExists As Boolean
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   For lgField = 0 To Me.lboFields.ListCount - 1
     If Me.lboFields.Selected(lgField) Then
@@ -410,7 +424,7 @@ Private Sub cmdAddAll_Click()
 Dim lgField As Long, lgExport As Long, lgExists As Long
 Dim blnExists As Boolean
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   For lgField = 0 To Me.lboFields.ListCount - 1
     'ensure doesn't already exist
@@ -443,7 +457,7 @@ End Sub
 Private Sub cmdCancel_Click()
 Dim strFileName As String
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   strFileName = cptDir & "\settings\cpt-status-sheet-search.adtg"
   If Dir(strFileName) <> vbNullString Then Kill strFileName
@@ -474,7 +488,7 @@ Private Sub cmdDir_Click()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Set oExcel = CreateObject("Excel.Application")
   Set oFileDialog = oExcel.FileDialog(msoFileDialogFolderPicker)
@@ -487,7 +501,7 @@ Private Sub cmdDir_Click()
       .InitialFileName = oShell.SpecialFolders("Desktop")
     End If
     If .Show Then
-      Me.txtDir = .SelectedItems(1) & "\"
+      Me.txtDir = .SelectedItems(1) & "\" & IIf(Me.chkAppendStatusDate, Format(ActiveProject.StatusDate, "yyyy-mm-dd") & "\", "")
     End If
   End With
   
@@ -508,7 +522,7 @@ Dim lngExport As Long
 Dim lgField As Long, strField As String, strField2 As String
 Dim blnSelected As Boolean
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   blnSelected = False
   For lngExport = Me.lboExport.ListCount - 1 To 0 Step -1
@@ -547,7 +561,7 @@ End Sub
 Private Sub cmdRemove_Click()
 Dim lgExport As Long
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   For lgExport = Me.lboExport.ListCount - 1 To 0 Step -1
     If Me.lboExport.Selected(lgExport) Then
@@ -570,7 +584,7 @@ End Sub
 Private Sub cmdRemoveAll_Click()
 Dim lgExport As Long
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   For lgExport = Me.lboExport.ListCount - 1 To 0 Step -1
     Me.lboExport.RemoveItem lgExport
@@ -592,6 +606,7 @@ Private Sub cmdRun_Click()
 'objects
 'strings
 'longs
+Dim lngDateFormat As Long
 Dim lngSelectedItems As Long
 Dim lngItem As Long
 'integers
@@ -602,8 +617,9 @@ Dim blnIncluded As Boolean
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
+  lngDateFormat = Application.DefaultDateFormat
   blnError = False
 
   '-2147483630 = Black
@@ -695,12 +711,6 @@ Dim blnIncluded As Boolean
       'Me.lboItems.ForeColor = 92
       blnError = True
     End If
-    'the limiting field must be rolled down to the assignment level
-    If Not Application.CustomFieldPropertiesEx(FieldID:=FieldNameToFieldConstant(Me.cboEach.Value), AutomaticallyRolldownToAssn:=True) Then
-      Me.cboEach.BorderColor = 192
-      blnError = True
-      MsgBox "Unable to automatically roll down values for field '" & Me.cboEach.Value & "' to assignment level." & vbCrLf & vbCrLf & "Please select a different field.", vbExclamation + vbOKOnly, "Invalid"
-    End If
     'the limiting field should be included in the export list
     blnIncluded = False
     For lngItem = 0 To Me.lboExport.ListCount - 1
@@ -737,12 +747,13 @@ Dim blnIncluded As Boolean
     'save settings
     Call cptSaveStatusSheetSettings
     'create the sheet
+    Application.DefaultDateFormat = pjDate_mm_dd_yy
     Call cptCreateStatusSheet
   End If
 
 exit_here:
   On Error Resume Next
-
+  Application.DefaultDateFormat = lngDateFormat
   Exit Sub
 err_here:
   Call cptHandleErr("cptStatusSheet_frm", "cmdRun_Click", Err, Erl)
@@ -755,7 +766,7 @@ Private Sub cmdUp_Click()
   Dim lgField As Long, strField As String, strField2 As String
   Dim blnSelected As Boolean
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   blnSelected = False
   For lngExport = 0 To Me.lboExport.ListCount - 1
@@ -791,9 +802,21 @@ err_here:
   
 End Sub
 
+Private Sub lblEmailHints_Click()
+Dim strHints As String
+
+  strHints = "The following fields are available for auto replacement in the subject line and your Email Template (a.k.a., 'Quick Part'):" & vbCrLf & vbCrLf
+  strHints = strHints & "[STATUS_DATE] > Status Date in MM/DD/YYYY format" & vbCrLf
+  strHints = strHints & "[YYYYMM] > Status Date in MM/DD/YYYY format" & vbCrLf
+  strHints = strHints & "[PROGRAM] > Program Acronym" & vbCrLf
+  strHints = strHints & vbCrLf & "Send other suggestions to cpt@ClearPlanConsulting.com"
+  MsgBox strHints, vbInformation + vbOKOnly, "Email Hints"
+
+End Sub
+
 Private Sub lblURL_Click()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
 
@@ -819,7 +842,7 @@ Dim lngItem As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Not Me.Visible Then Exit Sub
   If Me.ActiveControl.Name <> Me.lboItems.Name Then Exit Sub
@@ -866,7 +889,7 @@ End Sub
 Private Sub stxtSearch_Change()
 Dim lgItem As Long
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Me.lboFields.Clear
   
@@ -902,7 +925,7 @@ End Sub
 Private Sub stxtSearch_Enter()
 Dim lgField As Long, strFileName As String
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   strFileName = cptDir & "\settings\cpt-status-sheet-search.adtg"
   If Dir(strFileName) <> vbNullString Then Exit Sub
@@ -954,6 +977,9 @@ Sub txtFileName_Change()
   If InStr(strFileName, "[yyyy-mm-dd]") > 0 Then
     strFileName = Replace(strFileName, "[yyyy-mm-dd]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
   End If
+  If InStr(strFileName, "[Program]") > 0 Then
+    strFileName = Replace(strFileName, "[Program]", cptGetProgramAcronym)
+  End If
   If Me.cboCreate.Value > 0 Then 'for each
     If InStr(strFileName, "[item]") > 0 Then
       If Me.lboItems.ListCount > 0 Then
@@ -972,7 +998,7 @@ End Sub
 Private Sub txtHideCompleteBefore_Change()
 Dim stxt As String
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not Me.Visible Then GoTo exit_here
   stxt = cptRegEx(Me.txtHideCompleteBefore.Text, "[0-9\/]*")
   Me.txtHideCompleteBefore.Text = stxt
@@ -1000,7 +1026,7 @@ End Sub
 Private Sub txtStatusDate_Change()
 Dim stxt As String
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not Me.Visible Then GoTo exit_here
   stxt = cptRegEx(Me.txtStatusDate.Text, "[0-9\/]*")
   Me.txtStatusDate.Text = stxt
@@ -1029,6 +1055,7 @@ Private Sub txtSubject_Change()
 Dim strSubject As String
   strSubject = Me.txtSubject.Text
   strSubject = Replace(strSubject, "[yyyy-mm-dd]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
+  strSubject = Replace(strSubject, "[Program]", cptGetProgramAcronym)
   If Me.cboCreate > 0 And Me.lboItems.ListCount > 0 Then
     strSubject = Replace(strSubject, "[item]", Me.lboItems.List(0, 0))
   End If
@@ -1042,7 +1069,7 @@ Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, 
   If IsDate(ActiveProject.StatusDate) Then
     dtStatus = FormatDateTime(CDate(Me.txtStatusDate), vbShortDate)
     If dtStatus <> CDate(ActiveProject.StatusDate) Then
-      lngDiff = DateDiff("d", CDate(Me.txtHideCompleteBefore), CDate(Me.txtStatusDate))
+      lngDiff = VBA.DateDiff("d", CDate(Me.txtHideCompleteBefore), CDate(Me.txtStatusDate))
       Me.txtStatusDate = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
       Me.txtHideCompleteBefore = DateAdd("d", -lngDiff, ActiveProject.StatusDate)
     End If

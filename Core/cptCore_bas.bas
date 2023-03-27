@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.10.0</cpt_version>
+'<cpt_version>v1.13.0</cpt_version>
 Option Explicit
-'Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
   Private Declare PtrSafe Function GetPrivateProfileString Lib "Kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
@@ -27,7 +25,7 @@ Sub cptSpeed(blnOn As Boolean)
 
 End Sub
 
-Function cptGetUserForm(strModuleName As String) As UserForm
+Function cptGetUserForm(strModuleName As String) As MSForms.UserForm
 'NOTE: this only works if the form is loaded
 'objects
 Dim UserForm As Object
@@ -54,11 +52,11 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "GetModule()", Err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptGetUserForm", Err, Erl)
   Resume exit_here
 End Function
 
-Function cptGetControl(ByRef cptForm_frm As UserForm, strControlName As String) As control
+Function cptGetControl(ByRef cptForm_frm As MSForms.UserForm, strControlName As String) As MSForms.Control
 'NOTE: this only works for loaded forms
 
   Set cptGetControl = cptForm_frm.Controls(strControlName)
@@ -192,7 +190,7 @@ frx:
     strNewFileName = strModule & "_" & Format(Now, "hhnnss")
     ThisProject.VBProject.VBComponents(strModule).Name = strNewFileName
     DoEvents
-    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(strNewFileName)
+    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(strNewFileName)
     cptCore_bas.cptStartEvents
     DoEvents
   End If
@@ -225,8 +223,6 @@ End Sub '<issue31>
 
 Sub cptShowAbout_frm()
 'objects
-'Dim frmAbout As UserForm
-'Dim ctl As control
 'strings
 Dim strAbout As String
 'longs
@@ -248,7 +244,7 @@ Dim strAbout As String
   strAbout = strAbout & "This software is provided free of charge," & vbCrLf
   strAbout = strAbout & "AS IS and without warranty." & vbCrLf
   strAbout = strAbout & "It is free to use, free to distribute with prior written consent from the developers/copyright holders and without modification." & vbCrLf & vbCrLf
-  strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright " & Year(Now()) & ", ClearPlan Consulting, LLC"
+  strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright " & Chr(169) & " " & Year(Now()) & ", ClearPlan Consulting, LLC"
   cptAbout_frm.txtAbout.Value = strAbout  '<issue19>
 
   'follow the project
@@ -318,7 +314,7 @@ Dim oRef As Object 'Reference
       Debug.Print "-- " & oRef.Guid & " | " & oRef.Major & " | " & oRef.Minor
     End If
   Next oRef
-
+  
 End Function
 
 Function cptGetDirectory(strModule As String) As String
@@ -477,6 +473,7 @@ End Function
 Sub cptResetAll()
   Dim rstSettings As Object 'ADODB.Recordset
   'strings
+  Dim strDefaultView As String
   Dim strFilter As String
   Dim strOutlineLevel As String
   Dim strSettings As String
@@ -525,6 +522,12 @@ Sub cptResetAll()
     If Len(strOutlineLevel) > 0 Then lngOutlineLevel = CLng(strOutlineLevel)
   End If
   
+  strDefaultView = cptGetSetting("ResetAll", "DefaultView")
+  If Len(strDefaultView) > 0 And cptViewExists(strDefaultView) Then
+    ActiveWindow.TopPane.Activate
+    ViewApply strDefaultView
+  End If
+  
   If lngSettings > 0 Then
     'parse and apply
     If lngSettings >= 128 Then 'outline symbols
@@ -532,7 +535,7 @@ Sub cptResetAll()
       lngSettings = lngSettings - 128
     End If
     If lngSettings >= 64 Then 'display name indent
-      OptionsViewEx displaynameindent:=True
+      OptionsViewEx DisplayNameIndent:=True
       lngSettings = lngSettings - 64
     End If
     If lngSettings >= 32 Then 'clear filter
@@ -547,7 +550,7 @@ Sub cptResetAll()
       lngSettings = lngSettings - 16
     End If
     If lngSettings >= 8 Then 'expand all tasks
-      OptionsViewEx DisplaySummaryTasks:=True
+      OptionsViewEx displaysummarytasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -560,7 +563,7 @@ Sub cptResetAll()
       End If
       If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If ActiveProject.Subprojects.Count > 0 Then
-        OptionsViewEx DisplaySummaryTasks:=True
+        OptionsViewEx displaysummarytasks:=True
         If Not blnFilter Then
           strFilter = ActiveProject.CurrentFilter
         End If
@@ -572,7 +575,7 @@ Sub cptResetAll()
       If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       lngSettings = lngSettings - 8
     Else 'expand to specific level
-      OptionsViewEx DisplaySummaryTasks:=True
+      OptionsViewEx displaysummarytasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -590,10 +593,10 @@ Sub cptResetAll()
       Next lngLevel
     End If
     If lngSettings >= 4 Then 'show summaries
-      OptionsViewEx DisplaySummaryTasks:=True
+      OptionsViewEx displaysummarytasks:=True
       lngSettings = lngSettings - 4
     Else
-      OptionsViewEx DisplaySummaryTasks:=False
+      OptionsViewEx displaysummarytasks:=False
     End If
     If lngSettings >= 2 Then 'clear group
       GroupClear
@@ -622,8 +625,11 @@ End Sub
 
 Sub cptShowResetAll_frm()
   'objects
+  Dim oView As MSProject.View
   Dim rstSettings As Object 'ADODB.Recordset
   'strings
+  Dim strViewList As String
+  Dim strDefaultView As String
   Dim strOutlineLevel As String
   Dim strSettings As String
   Dim strFile As String
@@ -657,6 +663,25 @@ Sub cptShowResetAll_frm()
   'default to 2
   cptResetAll_frm.cboOutlineLevel.Value = 2
   
+  'populate cboViews
+  cptResetAll_frm.cboViews.Clear
+  For Each oView In ActiveProject.Views
+    If oView.Type = pjTaskItem Then
+      If oView.Screen = 1 Or oView.Screen = 14 Then
+        strViewList = strViewList & oView.Name & ","
+'        Debug.Print oView.Type & vbTab & Choose(oView.Type + 1, "pjTaskItem", "pjResourceItem", "pjOtherItem") & vbTab & oView.Name
+'        Debug.Print oView.Screen & vbTab & Choose(oView.Screen, "pjGantt", "pjNetworkDiagram", "pjRelationshipDiagram", "pjTaskForm", "pjTaskSheet", "pjResourceForm", "pjResourceSheet", "pjResourceGraph", "pjRSVDoNotUse", "pjTaskDetailsForm", "pjTaskNameForm", "pjResourceNameForm", "pjCalendar", "pjTaskUsage", "pjResourceUsage", "pjTimeline", "pjResourceScheduling")
+      End If
+    End If
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  Next oView
+  Set oView = Nothing
+  strViewList = Left(strViewList, Len(strViewList) - 1)
+  Dim vViewList As Variant
+  vViewList = Split(strViewList, ",")
+  cptQuickSort vViewList, 0, UBound(vViewList)
+  cptResetAll_frm.cboViews.List = Split("<None>," & Join(vViewList, ","), ",")
+  
   strFile = cptDir & "\settings\cpt-reset-all.adtg"
   If Dir(strFile) <> vbNullString Then
     'get saved settings
@@ -674,6 +699,21 @@ Sub cptShowResetAll_frm()
     If Len(strSettings) > 0 Then lngSettings = CLng(strSettings)
     strOutlineLevel = cptGetSetting("ResetAll", "OutlineLevel")
     If Len(strOutlineLevel) > 0 Then lngOutlineLevel = CLng(strOutlineLevel)
+    strDefaultView = cptGetSetting("ResetAll", "DefaultView")
+    If Len(strDefaultView) > 0 Then
+      If strDefaultView <> "<None>" Then
+        If Not cptViewExists(strDefaultView) Then
+          MsgBox "Your default view '" & strDefaultView & "' does not exist.", vbExclamation + vbOKOnly, "Saved View Not Found"
+        Else
+          cptResetAll_frm.cboViews.Value = strDefaultView
+        End If
+      Else
+        cptResetAll_frm.cboViews.Value = "<None>"
+      End If
+    Else
+      cptSaveSetting "ResetAll", "DefaultView", "<None>"
+      cptResetAll_frm.cboViews.Value = "<None>"
+    End If
   End If
     
   If lngSettings > 0 Then
@@ -727,6 +767,7 @@ Sub cptShowResetAll_frm()
   
 exit_here:
   On Error Resume Next
+  Set oView = Nothing
   Set rstSettings = Nothing
 
   Exit Sub
@@ -966,6 +1007,7 @@ Sub cptSetReferences()
 Dim oExcel As Object
 Dim strDir As String
 Dim strRegEx As String
+Dim vPath As Variant
 
   On Error Resume Next
 
@@ -989,7 +1031,17 @@ Dim strRegEx As String
   End If
 
   'office applications
-  strDir = cptRegEx(Environ("PATH"), "C:\\[^;]*Office[0-9]{1,}\\")
+  'strDir = cptRegEx(Environ("PATH"), "C:\\[^;]*Office[0-9]{1,}\\")
+  strDir = ""
+  For Each vPath In Split(Environ("PATH"), ";")
+    If InStr(vPath, "Office") > 0 Then
+      If Dir(CStr(vPath) & "EXCEL.EXE") <> vbNullString Then
+        strDir = vPath
+        Exit For
+      End If
+    End If
+  Next vPath
+
   If Len(strDir) = 0 Then 'weird installation or Excel not installed
     MsgBox "Microsoft Office installation is not detetcted. Some features may not operate as expected." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for specialized assistance.", vbCritical + vbOKOnly, "Microsoft Office Compatibility"
     GoTo windows_common
@@ -1189,7 +1241,7 @@ Dim lngLevel As Long
   Application.OpenUndoTransaction "WrapItUp"
   'FilterClear 'do not reset, keep autofilters
   'GroupClear 'do not reset, applies to groups to
-  OptionsViewEx DisplaySummaryTasks:=True
+  OptionsViewEx displaysummarytasks:=True
   SelectAll
   On Error Resume Next
   If Not OutlineShowAllTasks Then
@@ -1237,7 +1289,7 @@ Sub cptWrapItUpAll()
     ActiveProject.Application.ActiveWindow.TopPane.Activate
   End If
   '===
-  OptionsViewEx DisplaySummaryTasks:=True
+  OptionsViewEx displaysummarytasks:=True
   On Error Resume Next
   If ActiveProject.Subprojects.Count > 0 Then
     FilterClear
@@ -1352,17 +1404,6 @@ Sub cptFilterReapply()
   GroupApply ActiveProject.CurrentGroup
   Exit Sub
 
-'  Dim strCurrentFilter As String
-'  strCurrentFilter = ActiveProject.CurrentFilter
-'  ScreenUpdating = False
-'  ActiveWindow.TopPane.Activate
-'  FilterApply "All Tasks"
-'  'todo: how to reapply a custom AutoFilter?
-'  On Error Resume Next
-'  If Not FilterApply(strCurrentFilter) Then
-'    MsgBox "Cannot reapply a Custom AutoFilter", vbInformation + vbOKCancel, "Reapply Filter"
-'  End If
-'  ScreenUpdating = True
 End Sub
 
 Sub cptGroupReapply()
@@ -1398,7 +1439,7 @@ End Function
 Function cptGetSetting(strFeature As String, strSetting As String) As String
   Dim strSettingsFile As String, strReturned As String, lngSize As Long, lngWorked As Long
   strSettingsFile = cptDir & "\settings\cpt-settings.ini"
-  strReturned = Space(128)
+  strReturned = Space(255) 'this determines the length of the returned value, not the length of the stored value
   lngSize = Len(strReturned)
   lngWorked = GetPrivateProfileString(strFeature, strSetting, "", strReturned, lngSize, strSettingsFile)
   If lngWorked Then
@@ -1406,6 +1447,44 @@ Function cptGetSetting(strFeature As String, strSetting As String) As String
   Else
     cptGetSetting = ""
   End If
+End Function
+
+Function cptViewExists(strView As String) As Boolean
+  'objects
+  Dim oView As MSProject.View
+
+  On Error Resume Next
+  Set oView = ActiveProject.Views(strView)
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  cptViewExists = Not oView Is Nothing
+  
+exit_here:
+  On Error Resume Next
+  Set oView = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptViewExists", Err, Erl)
+  Resume exit_here
+End Function
+
+Function cptTableExists(strTable As String) As Boolean
+  'objects
+  Dim oTable As MSProject.Table
+
+  On Error Resume Next
+  Set oTable = ActiveProject.TaskTables(strTable)
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  cptTableExists = Not oTable Is Nothing
+  
+exit_here:
+  On Error Resume Next
+  Set oTable = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptTableExists", Err, Erl)
+  Resume exit_here
 End Function
 
 Function cptFilterExists(strFilter As String) As Boolean
@@ -1427,13 +1506,32 @@ err_here:
   Resume exit_here
 End Function
 
+Function cptGroupExists(strGroup As String) As Boolean
+  'objects
+  Dim oGroup As MSProject.Group
+
+  On Error Resume Next
+  Set oGroup = ActiveProject.TaskGroups(strGroup)
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  cptGroupExists = Not oGroup Is Nothing
+  
+exit_here:
+  On Error Resume Next
+  Set oGroup = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptGroupExists", Err, Erl)
+  Resume exit_here
+End Function
+
 Sub cptCreateFilter(strFilter As String)
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Select Case strFilter
     Case "Marked"
-      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, overwriteexisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, showsummarytasks:=False
+      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
       
   End Select
   
@@ -1468,6 +1566,8 @@ Sub cptShowSettings_frm()
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
+  cptSettings_frm.Caption = "ClearPlan Toolbar Settings (" & cptGetVersion("cptUpgrades_frm") & ")"
+  
   Set oRecordset = CreateObject("ADODB.Recordset")
   With oRecordset
     .Fields.Append "Feature", adVarChar, 100
@@ -1489,8 +1589,15 @@ Sub cptShowSettings_frm()
       strLine = oStream.ReadLine
       If Left(strLine, 1) = "[" Then
         strFeature = Replace(Replace(strLine, "[", ""), "]", "")
+        'todo: If [Driving Path Group] OR [Driving Path] Then skip
+        'todo: If Count Then StatusBar: StatusBar.blnSummarizeSelection; StatusBar.blnShowStatusBarTaskCount
         oRecordset.AddNew Array(0), Array(strFeature)
       Else
+        'todo: If [Metrics] Then remove cboLOEField > Integration.EVT
+        'todo: If [Metrics] Then remove txtLOE > Integration.LOE
+        'todo: If [Driving Path Group] OR [Driving Path] Then skip
+        'todo: If [Integration] Then rename CWBS as WBS
+        'todo: If [Integration] Then rename WPCN as WP
         oRecordset.AddNew Array(0, 1), Array(strFeature, strLine)
       End If
     Loop
@@ -1513,7 +1620,7 @@ Sub cptShowSettings_frm()
     If Dir(cptDir & "\settings\cpt-settings.adtg") <> vbNullString Then Kill cptDir & "\settings\cpt-settings.adtg"
     oRecordset.Save cptDir & "\settings\cpt-settings.adtg", adPersistADTG
     oRecordset.Close
-    .lblDir = strSettingsFile
+    '.lblDir = strSettingsFile
     strProgramAcronym = cptGetProgramAcronym
     .txtProgramAcronym = strProgramAcronym
     If .lboFeatures.ListCount > 0 Then
@@ -1588,7 +1695,7 @@ err_here:
 End Function
 
 Sub cptOpenSettingsFile()
-  shell "notepad.exe '" & cptDir & "\settings\cpt-settings.ini" & "'"
+  Shell "notepad.exe '" & cptDir & "\settings\cpt-settings.ini" & "'"
 End Sub
 
 Function cptGetMyHeaders(strTitle As String, Optional blnRequired As Boolean = False) As String
@@ -1716,7 +1823,7 @@ Function cptSubUIDToMasterUID(lngSubProjectUID As Long, lngSubUID As Long) As Lo
   cptSubUIDToMasterUID = ((lngSubProjectUID + 1) * 4194304) + lngSubUID
 End Function
 
-Function cptConvertToMasterUIDs(oTask As Task, strReturn As String) As String
+Function cptConvertToMasterUIDs(oTask As MSProject.Task, strReturn As String) As String
   'strReturn variable expects either "p" for predecessors or "s" for successors
   Dim oSubprojects As MSProject.Subprojects
   Dim strProject As String, strList As String, strLinkProject As String, strConvertedList As String
@@ -1759,3 +1866,358 @@ err_here:
   Call cptHandleErr("cptCore_bas", "cptConvertToMasterUIDs", Err, Erl)
   Resume exit_here
 End Function
+
+Function cptGetShowStatusBarCountFirstRun() As Boolean
+  'objects
+  'strings
+  Dim strShow As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  Dim blnShow As Boolean
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  strShow = cptGetSetting("Count", "blnShowStatusBarTaskCount")
+  If Len(strShow) > 0 Then
+    blnShow = CBool(strShow)
+  Else
+    Call cptSaveSetting("Count", "blnShowStatusBarTaskCount", "1") 'default is true
+    blnShow = True
+  End If
+
+  cptGetShowStatusBarCountFirstRun = blnShow
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptGetShowStatusBarCountFirstRun", Err, Erl)
+  Resume exit_here
+End Function
+
+Sub cptAppendColumn(strFile As String, strColumn As String, lngType As Long, Optional lngLength As Long, Optional vDefault As Variant)
+  'objects
+  Dim oRecordsetNew As ADODB.Recordset
+  Dim oRecordset As ADODB.Recordset
+  'strings
+  'longs
+  Dim lngField As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  Set oRecordsetNew = CreateObject("ADODB.Recordset")
+  If InStr(strFile, cptDir) = 0 Then strFile = cptDir & strFile
+  oRecordset.Open strFile, , adOpenKeyset, adLockReadOnly
+  On Error Resume Next
+  Debug.Print oRecordset.Fields(strColumn)
+  If Err.Number = 0 Then 'field already exists
+    Err.Clear
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    GoTo exit_here
+  End If
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  'first rebuld the existing fields
+  For lngField = 0 To oRecordset.Fields.Count - 1
+    With oRecordsetNew
+      If oRecordset.Fields(lngField).DefinedSize > 0 Then
+        .Fields.Append oRecordset.Fields(lngField).Name, oRecordset.Fields(lngField).Type, oRecordset.Fields(lngField).DefinedSize
+      Else
+        .Fields.Append oRecordset.Fields(lngField).Name, oRecordset.Fields(lngField).Type
+      End If
+    End With
+  Next lngField
+  'next add the new field
+  If lngLength > 0 Then
+    oRecordsetNew.Fields.Append strColumn, lngType, lngLength
+  Else
+    oRecordsetNew.Fields.Append strColumn, lngType
+  End If
+  oRecordsetNew.Open
+  'next move the existing data over
+  If Not oRecordset.EOF Then oRecordset.MoveFirst
+  Do While Not oRecordset.EOF
+    oRecordsetNew.AddNew
+    For lngField = 0 To oRecordset.Fields.Count - 1
+      oRecordsetNew.Fields(lngField) = oRecordset.Fields(lngField)
+    Next lngField
+    oRecordsetNew.Fields(strColumn) = vDefault
+    oRecordset.MoveNext
+  Loop
+  oRecordset.Close
+  Name strFile As Replace(strFile, ".adtg", "-backup_" & Format(Now, "yyyy-mm-dd-HH-nn-ss") & ".adtg")
+  oRecordsetNew.Save strFile, adPersistADTG
+  oRecordsetNew.Close
+  
+exit_here:
+  On Error Resume Next
+  Set oRecordsetNew = Nothing
+  Set oRecordset = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptAppendColumn", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptGetSums(ByRef oTasks As MSProject.Tasks, lngFieldID As Long)
+  'objects
+  Dim oTask As MSProject.Task
+  'strings
+  Dim strCustomFieldName As String
+  Dim strFieldName As String
+  'longs
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  Dim lngDuration As Long
+  'integers
+  'doubles
+  Dim dblWork As Double
+  Dim dblCost As Double
+  Dim dblNumber As Double
+  'booleans
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  dblCost = 0#
+  lngDuration = 0
+  dblNumber = 0#
+  dblWork = 0#
+  lngTasks = oTasks.Count
+  
+  strFieldName = FieldConstantToFieldName(lngFieldID)
+  
+  If Len(cptRegEx(strFieldName, "Cost|Duration|Number|Work")) > 0 Then
+    lngTask = 0
+    For Each oTask In oTasks
+      If oTask Is Nothing Then GoTo next_task
+      If Not oTask.Active Then GoTo next_task
+      If oTask.GetField(lngFieldID) = "#ERROR" Then GoTo next_task
+      'do not ignore external tasks
+      'do not ignore summary tasks
+      If strFieldName = "Actual Cost" Then dblCost = dblCost + oTask.ActualCost
+      If strFieldName = "Cost" Then dblCost = dblCost + oTask.Cost
+      If strFieldName = "Remaining Cost" Then dblCost = dblCost + oTask.RemainingCost
+      If strFieldName = "Cost" Then dblCost = dblCost + oTask.Cost
+      If strFieldName = "Cost1" Then dblCost = dblCost + oTask.Cost1
+      If strFieldName = "Cost2" Then dblCost = dblCost + oTask.Cost2
+      If strFieldName = "Cost3" Then dblCost = dblCost + oTask.Cost3
+      If strFieldName = "Cost4" Then dblCost = dblCost + oTask.Cost4
+      If strFieldName = "Cost5" Then dblCost = dblCost + oTask.Cost5
+      If strFieldName = "Cost6" Then dblCost = dblCost + oTask.Cost6
+      If strFieldName = "Cost7" Then dblCost = dblCost + oTask.Cost7
+      If strFieldName = "Cost8" Then dblCost = dblCost + oTask.Cost8
+      If strFieldName = "Cost9" Then dblCost = dblCost + oTask.Cost9
+      If strFieldName = "Cost10" Then dblCost = dblCost + oTask.Cost10
+      
+      If strFieldName = "Baseline Cost" Then dblCost = dblCost + oTask.BaselineCost
+      If strFieldName = "Baseline1 Cost" Then dblCost = dblCost + oTask.Baseline1Cost
+      If strFieldName = "Baseline2 Cost" Then dblCost = dblCost + oTask.Baseline2Cost
+      If strFieldName = "Baseline3 Cost" Then dblCost = dblCost + oTask.Baseline3Cost
+      If strFieldName = "Baseline4 Cost" Then dblCost = dblCost + oTask.Baseline4Cost
+      If strFieldName = "Baseline5 Cost" Then dblCost = dblCost + oTask.Baseline5Cost
+      If strFieldName = "Baseline6 Cost" Then dblCost = dblCost + oTask.Baseline6Cost
+      If strFieldName = "Baseline7 Cost" Then dblCost = dblCost + oTask.Baseline7Cost
+      If strFieldName = "Baseline8 Cost" Then dblCost = dblCost + oTask.Baseline8Cost
+      If strFieldName = "Baseline9 Cost" Then dblCost = dblCost + oTask.Baseline9Cost
+      If strFieldName = "Baseline10 Cost" Then dblCost = dblCost + oTask.Baseline10Cost
+      
+      If strFieldName = "Actual Duration" Then lngDuration = lngDuration + oTask.ActualDuration
+      If strFieldName = "Duration" Then lngDuration = lngDuration + oTask.Duration
+      If strFieldName = "Remaining Duration" Then lngDuration = lngDuration + oTask.RemainingDuration
+      If strFieldName = "Duration1" Then lngDuration = lngDuration + oTask.Duration1
+      If strFieldName = "Duration2" Then lngDuration = lngDuration + oTask.Duration2
+      If strFieldName = "Duration3" Then lngDuration = lngDuration + oTask.Duration3
+      If strFieldName = "Duration4" Then lngDuration = lngDuration + oTask.Duration4
+      If strFieldName = "Duration5" Then lngDuration = lngDuration + oTask.Duration5
+      If strFieldName = "Duration6" Then lngDuration = lngDuration + oTask.Duration6
+      If strFieldName = "Duration7" Then lngDuration = lngDuration + oTask.Duration7
+      If strFieldName = "Duration8" Then lngDuration = lngDuration + oTask.Duration8
+      If strFieldName = "Duration9" Then lngDuration = lngDuration + oTask.Duration9
+      If strFieldName = "Duration10" Then lngDuration = lngDuration + oTask.Duration10
+      
+      If strFieldName = "Baseline Duration" Then lngDuration = lngDuration + oTask.BaselineDuration
+      If strFieldName = "Baseline1 Duration" Then lngDuration = lngDuration + oTask.Baseline1Duration
+      If strFieldName = "Baseline2 Duration" Then lngDuration = lngDuration + oTask.Baseline2Duration
+      If strFieldName = "Baseline3 Duration" Then lngDuration = lngDuration + oTask.Baseline3Duration
+      If strFieldName = "Baseline4 Duration" Then lngDuration = lngDuration + oTask.Baseline4Duration
+      If strFieldName = "Baseline5 Duration" Then lngDuration = lngDuration + oTask.Baseline5Duration
+      If strFieldName = "Baseline6 Duration" Then lngDuration = lngDuration + oTask.Baseline6Duration
+      If strFieldName = "Baseline7 Duration" Then lngDuration = lngDuration + oTask.Baseline7Duration
+      If strFieldName = "Baseline8 Duration" Then lngDuration = lngDuration + oTask.Baseline8Duration
+      If strFieldName = "Baseline9 Duration" Then lngDuration = lngDuration + oTask.Baseline9Duration
+      If strFieldName = "Baseline10 Duration" Then lngDuration = lngDuration + oTask.Baseline10Duration
+                  
+      If strFieldName = "Number" Then dblNumber = dblNumber + oTask.Number
+      If strFieldName = "Number1" Then dblNumber = dblNumber + oTask.Number1
+      If strFieldName = "Number2" Then dblNumber = dblNumber + oTask.Number2
+      If strFieldName = "Number3" Then dblNumber = dblNumber + oTask.Number3
+      If strFieldName = "Number4" Then dblNumber = dblNumber + oTask.Number4
+      If strFieldName = "Number5" Then dblNumber = dblNumber + oTask.Number5
+      If strFieldName = "Number6" Then dblNumber = dblNumber + oTask.Number6
+      If strFieldName = "Number7" Then dblNumber = dblNumber + oTask.Number7
+      If strFieldName = "Number8" Then dblNumber = dblNumber + oTask.Number8
+      If strFieldName = "Number9" Then dblNumber = dblNumber + oTask.Number9
+      If strFieldName = "Number10" Then dblNumber = dblNumber + oTask.Number10
+      If strFieldName = "Number11" Then dblNumber = dblNumber + oTask.Number11
+      If strFieldName = "Number12" Then dblNumber = dblNumber + oTask.Number12
+      If strFieldName = "Number13" Then dblNumber = dblNumber + oTask.Number13
+      If strFieldName = "Number14" Then dblNumber = dblNumber + oTask.Number14
+      If strFieldName = "Number15" Then dblNumber = dblNumber + oTask.Number15
+      If strFieldName = "Number16" Then dblNumber = dblNumber + oTask.Number16
+      If strFieldName = "Number17" Then dblNumber = dblNumber + oTask.Number17
+      If strFieldName = "Number18" Then dblNumber = dblNumber + oTask.Number18
+      If strFieldName = "Number19" Then dblNumber = dblNumber + oTask.Number19
+      If strFieldName = "Number20" Then dblNumber = dblNumber + oTask.Number20
+      
+      If strFieldName = "Actual Work" Then dblWork = dblWork + oTask.ActualWork
+      If strFieldName = "Work" Then dblWork = dblWork + oTask.Work
+      If strFieldName = "Remaining Work" Then dblWork = dblWork + oTask.RemainingWork
+      If strFieldName = "Baseline Work" Then dblWork = dblWork + oTask.BaselineWork
+      If strFieldName = "Baseline1 Work" Then dblWork = dblWork + oTask.Baseline1Work
+      If strFieldName = "Baseline2 Work" Then dblWork = dblWork + oTask.Baseline2Work
+      If strFieldName = "Baseline3 Work" Then dblWork = dblWork + oTask.Baseline3Work
+      If strFieldName = "Baseline4 Work" Then dblWork = dblWork + oTask.Baseline4Work
+      If strFieldName = "Baseline5 Work" Then dblWork = dblWork + oTask.Baseline5Work
+      If strFieldName = "Baseline6 Work" Then dblWork = dblWork + oTask.Baseline6Work
+      If strFieldName = "Baseline7 Work" Then dblWork = dblWork + oTask.Baseline7Work
+      If strFieldName = "Baseline8 Work" Then dblWork = dblWork + oTask.Baseline8Work
+      If strFieldName = "Baseline9 Work" Then dblWork = dblWork + oTask.Baseline9Work
+      If strFieldName = "Baseline10 Work" Then dblWork = dblWork + oTask.Baseline10Work
+
+next_task:
+      lngTask = lngTask + 1
+      Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & " | Calculating...(" & Format(lngTask / lngTasks, "0%") & ")"
+    Next oTask
+  End If
+  
+  strCustomFieldName = CustomFieldGetName(lngFieldID)
+  If Len(strCustomFieldName) > 0 Then strFieldName = strCustomFieldName & " (" & strFieldName & ")"
+
+  If dblCost > 0 Then
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & " | " & strFieldName & ": " & Format(dblCost, "$#,###,##0.00")
+  ElseIf lngDuration > 0 Then
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & " | " & strFieldName & ": " & Format(lngDuration / 480, "#,###,##0d")
+  ElseIf dblNumber > 0 Then
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & " | " & strFieldName & ": " & Format(dblNumber, "#,###,##0.00")
+  ElseIf dblWork > 0 Then
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected" & " | " & strFieldName & ": " & Format(dblWork / 60, "#,###,##0.00h")
+  Else
+    Application.StatusBar = Format(lngTasks, "#,##0") & " task" & IIf(lngTasks = 1, "", "s") & " selected"
+  End If
+  
+exit_here:
+  On Error Resume Next
+  Set oTask = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptGetSums", Err, Erl)
+  Resume exit_here
+End Sub
+
+Function cptGetCustomFields(strFieldTypes As String, strDataTypes As String, strInclude As String, Optional blnIncludeEnterprise As Boolean = False) As Variant
+  'strFieldTypes  := comma-separated list of any of "p,t,r" [project,task,resource]
+  'strDataTypes   := comma-separated list of any of "Cost,Date,Duration,Flag,Finish,Number,Start,Text,Outline Code"
+  'strInclude     := comma-separated list of any of "c,fn,cfn" [constant,fieldname,customfieldname]
+  'blnIncludeEnterprise := self-explanatory
+  'objects
+  Dim oFieldTypes As Scripting.Dictionary
+  'strings
+  Dim strFieldName As String
+  Dim strCustomFieldName As String
+  Dim strResult As String
+  Dim strRow As String
+  'longs
+  Dim lngInclude As Long
+  Dim lngFieldCount As Long
+  Dim lngFieldType As Long
+  Dim lngField As Long
+  Dim lngConstant As Long
+  Dim lngResultCount As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vInclude As Variant
+  Dim vFieldType As Variant
+  Dim vField As Variant
+  Dim vRow() As Variant
+  Dim vResult() As Variant
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  Set oFieldTypes = CreateObject("Scripting.Dictionary")
+  oFieldTypes.Add "p", pjProject
+  oFieldTypes.Add "t", pjTask
+  oFieldTypes.Add "r", pjResource
+  
+  vInclude = Split(strInclude, ",")
+  ReDim vRow(0 To UBound(vInclude))
+  For Each vFieldType In Split(strFieldTypes, ",")
+    lngFieldType = oFieldTypes(vFieldType)
+    For Each vField In Split(strDataTypes, ",")
+      lngFieldCount = 10
+      If vField = "Flag" Then lngFieldCount = 20
+      If vField = "Number" Then lngFieldCount = 20
+      If vField = "Text" Then lngFieldCount = 30
+      For lngField = 1 To lngFieldCount
+        lngConstant = FieldNameToFieldConstant(vField & lngField, lngFieldType)
+        'Debug.Print lngConstant; FieldConstantToFieldName(lngConstant)
+        For lngInclude = 0 To UBound(vInclude)
+          If vInclude(lngInclude) = "c" Then
+            vRow(lngInclude) = lngConstant
+          ElseIf vInclude(lngInclude) = "fn" Then
+            vRow(lngInclude) = FieldConstantToFieldName(lngConstant)
+          ElseIf vInclude(lngInclude) = "cfn" Then
+            If Len(CustomFieldGetName(lngConstant)) > 0 Then
+              vRow(lngInclude) = CustomFieldGetName(lngConstant)
+            Else
+              vRow(lngInclude) = FieldConstantToFieldName(lngConstant)
+            End If
+          End If
+        Next lngInclude
+        strResult = strResult & Join(vRow, ",") & vbCrLf
+        lngResultCount = lngResultCount + 1
+      Next lngField
+    Next vField
+  Next vFieldType
+  
+  ReDim vResult(0 To UBound(Split(strResult, vbCrLf)), 0 To UBound(vInclude))
+  For lngField = 0 To UBound(Split(strResult, vbCrLf)) - 1
+    For lngInclude = 0 To UBound(vInclude)
+      vResult(lngField, lngInclude) = Split(Split(strResult, vbCrLf)(lngField), ",")(lngInclude)
+    Next lngInclude
+  Next lngField
+  
+  cptGetCustomFields = vResult
+  
+exit_here:
+  On Error Resume Next
+  Set oFieldTypes = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptGetCustomFields", Err, Erl)
+  Resume exit_here
+  
+End Function
+
+Sub cptGetValidMap()
+  If ValidMap Then
+    'do nothing
+  End If
+End Sub

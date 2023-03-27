@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptSaveLocal_bas"
-'<cpt_version>v1.1.5</cpt_version>
+'<cpt_version>v1.1.6</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Public strStartView As String
 Public strStartTable As String
 Public strStartFilter As String
@@ -13,12 +11,12 @@ Sub cptShowSaveLocal_frm()
 Dim oRange As Excel.Range
 Dim oListObject As ListObject
 Dim rstProjects As Object 'ADODB.Recordset
-Dim oSubproject As SubProject
+Dim oSubproject As Subproject
 Dim oMasterProject As Project
-Dim oWorksheet As Worksheet
-Dim oWorkbook As Workbook
+Dim oWorksheet As Excel.Worksheet
+Dim oWorkbook As Excel.Workbook
 Dim oExcel As Excel.Application
-Dim oTask As Task
+Dim oTask As MSProject.Task
 Dim rstSavedMap As Object 'ADODB.Recordset
 Dim dTypes As Scripting.Dictionary
 Dim rstECF As Object 'ADODB.Recordset
@@ -49,7 +47,7 @@ Dim vEntity As Variant
 Dim vType As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'get server URL
   If Projects.Count = 0 Then GoTo exit_here
@@ -321,7 +319,7 @@ next_type:
       End If
     Next lngField
     
-    If BLN_TRAP_ERRORS Then
+    If cptErrorTrapping Then
       .Hide
       cptSpeed False
       .Show 'modal to control changes to custom fields
@@ -365,8 +363,8 @@ End Sub
 Sub cptSaveLocal()
 'objects
 Dim rstSavedMap As Object 'ADODB.Recordset
-Dim oTasks As Tasks
-Dim oTask As Task
+Dim oTasks As MSProject.Tasks
+Dim oTask As MSProject.Task
 Dim oResources As Resources
 Dim oResource As Resource
 'strings
@@ -386,7 +384,7 @@ Dim lngItem As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'get project guid
   If CLng(Left(Application.Build, 2)) < 12 Then
@@ -434,10 +432,10 @@ Dim lngItem As Long
       Sort "ID", , , , , , False, True
       OutlineShowAllTasks
     End If
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     SelectAll
     Set oTasks = ActiveSelection.Tasks
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oTasks Is Nothing Then
       lngItems = oTasks.Count
     Else
@@ -447,7 +445,7 @@ Dim lngItem As Long
   ElseIf lngType = pjResource Then
     SelectAll
     Set oResources = ActiveSelection.Resources
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oResources Is Nothing Then
       lngItems = oResources.Count
     Else
@@ -488,7 +486,7 @@ Dim lngItem As Long
             If Len(CustomFieldGetFormula(lngECF)) > 0 Then GoTo next_task_mapping
             If Len(oTask.GetField(lngECF)) > 0 Then
               oTask.SetField lngLCF, CStr(oTask.GetField(lngECF))
-              If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+              If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
               If oTask.GetField(lngLCF) <> CStr(oTask.GetField(lngECF)) Then
                 If MsgBox("There was an error copying from ECF " & CustomFieldGetName(lngECF) & " to LCF " & CustomFieldGetName(lngLCF) & " on Task UID " & oTask.UniqueID & "." & vbCrLf & vbCrLf & "Please validate data type mapping." & vbCrLf & vbCrLf & "Proceed anyway?", vbExclamation + vbYesNo, "Failed!") = vbNo Then
                   GoTo exit_here
@@ -529,7 +527,7 @@ next_task:
             If Len(CustomFieldGetFormula(lngECF)) > 0 Then GoTo next_resource_mapping
             If Len(oResource.GetField(lngECF)) > 0 Then
               oResource.SetField lngLCF, CStr(oResource.GetField(lngECF))
-              If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+              If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
               If oResource.GetField(lngLCF) <> CStr(oResource.GetField(lngECF)) Then
                 strMsg = "There was an error copying..." & vbCrLf
                 strMsg = strMsg & "- from ECF: '" & CustomFieldGetName(lngECF) & "'" & vbCrLf
@@ -569,7 +567,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Function cptInterrogateECF(ByRef oTask As Task, lngField As Long)
+Function cptInterrogateECF(ByRef oTask As MSProject.Task, lngField As Long)
   'objects
   Dim oOutlineCode As OutlineCode
   'strings
@@ -702,8 +700,8 @@ End Function
 
 Sub cptGetAllFields(lngFrom As Long, lngTo As Long)
   'objects
-  Dim oWorksheet As Worksheet
-  Dim oWorkbook As Workbook
+  Dim oWorksheet As Excel.Worksheet
+  Dim oWorkbook As Excel.Workbook
   Dim rst As Object 'ADODB.Recordset
   Dim oExcel As Excel.Application
   'strings
@@ -724,7 +722,7 @@ Sub cptGetAllFields(lngFrom As Long, lngTo As Long)
   
   GoTo exit_here
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Set rst = CreateObject("ADODB.Recordset")
   rst.Fields.Append "Constant", adBigInt
@@ -791,7 +789,7 @@ Sub cptAnalyzeAutoMap()
   Dim vType As Variant
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Set rstAvailable = CreateObject("ADODB.Recordset")
   With rstAvailable
@@ -911,7 +909,7 @@ Sub cptAutoMap()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'todo: unselect after complete - if fails, leave selected
   'todo: hide analysis after AutoMap; cptRefreshLCF
@@ -985,7 +983,7 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
   Dim vField As Variant
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'todo: deletecustomfield if overwriting
 
@@ -1086,7 +1084,7 @@ next_formula_field:
     strECF = CustomFieldGetName(lngECF)
     On Error Resume Next
     Set oOutlineCode = GlobalOutlineCodes(strECF)
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oOutlineCode Is Nothing Then
       'make it a picklist
       CustomFieldPropertiesEx lngLCF, pjFieldAttributeValueList
@@ -1196,7 +1194,7 @@ Sub cptExportCFMap()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   strMsg = "Your maps are only valid for other users on this server:" & vbCrLf & vbCrLf
   strMsg = strMsg & ActiveProject.ServerURL & vbCrLf & vbCrLf
@@ -1273,7 +1271,7 @@ Sub cptImportCFMap()
   Dim aLine As Variant
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     
   'get guid
   If CLng(Left(Application.Build, 2)) < 12 Then
@@ -1371,7 +1369,7 @@ Sub cptUpdateECF(Optional strFilter As String)
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'get project guid
   If CLng(Left(Application.Build, 2)) < 12 Then
@@ -1469,7 +1467,7 @@ Dim lngField As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   With cptSaveLocal_frm
     .lboLCF.Clear
@@ -1514,7 +1512,7 @@ Sub cptUpdateSaveLocalView(Optional lngECF As Long, Optional lngLCF As Long)
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   With cptSaveLocal_frm
     If Not .Visible Then
@@ -1533,7 +1531,7 @@ Sub cptUpdateSaveLocalView(Optional lngECF As Long, Optional lngLCF As Long)
       On Error Resume Next
       ActiveProject.Views(".cptSaveLocal Task View").Delete
       ActiveProject.Views(".cptSaveLocal Resource View").Delete
-      If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       ViewEditSingle ".cptSaveLocal Task View", True, , pjTaskSheet, , , ".cptSaveLocal Task Table", "All Tasks", "No Group"
       ViewEditSingle ".cptSaveLocal Resource View", True, , pjResourceSheet, , , ".cptSaveLocal Resource Table", "All Resources", "No Group"
       'update the table
@@ -1582,3 +1580,245 @@ err_here:
   Call cptHandleErr("cptSaveLocal_bas", "cptUpdateSaveLocalView", Err, Erl)
   Resume exit_here
 End Sub
+
+Function cptLocalCustomFieldsMatch() As Boolean
+  'objects
+  Dim oRange As Excel.Range
+  Dim oListObject As Excel.ListObject
+  Dim dTypes As Scripting.Dictionary
+  Dim oMasterProject As MSProject.Project
+  Dim oSubproject As MSProject.Subproject
+  Dim rstProjects As ADODB.Recordset
+  Dim oWorksheet As Excel.Worksheet
+  Dim oWorkbook As Excel.Workbook
+  Dim oExcel As Excel.Application
+  'strings
+  Dim strFormula As String
+  'longs
+  Dim lngCol As Long
+  Dim lngMismatchCount As Long
+  Dim lngLCF As Long
+  Dim lngProject As Long
+  Dim lngField As Long
+  Dim lngType As Long
+  Dim lngLastRow As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vLine As Variant
+  Dim vType As Variant
+  Dim vEntity As Variant
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If ActiveProject.Subprojects.Count = 0 Then
+    cptLocalCustomFieldsMatch = True
+    GoTo exit_here
+  End If
+  
+  'setup array of types/counts
+  Set dTypes = CreateObject("Scripting.Dictionary")
+  'record: field type, number of available custom fields
+  For Each vType In Array("Cost", "Date", "Duration", "Finish", "Start", "Outline Code")
+    dTypes.Add vType, 10
+  Next
+  dTypes.Add "Flag", 20
+  dTypes.Add "Number", 20
+  dTypes.Add "Text", 30
+  
+  Set oMasterProject = ActiveProject
+  Application.StatusBar = "Setting up Excel..."
+  'set up Excel
+  Set oExcel = CreateObject("Excel.Application")
+  oExcel.Visible = False
+  Set oWorkbook = oExcel.Workbooks.Add
+  oExcel.ScreenUpdating = False
+  oExcel.Calculation = xlCalculationManual
+  Set oWorksheet = oWorkbook.Sheets(1)
+  oExcel.ActiveWindow.Zoom = 85
+  oExcel.ActiveWindow.SplitRow = 1
+  oExcel.ActiveWindow.SplitColumn = 4
+  oExcel.ActiveWindow.FreezePanes = True
+  oWorksheet.Name = "Sync"
+  'set up headers
+  oWorksheet.[A1:D1] = Array("ENTITY", "TYPE", "CONSTANT", "NAME")
+  'capture master and subproject names
+  oWorksheet.Cells(1, 5) = oMasterProject.Name
+  oWorksheet.Columns.AutoFit
+  cptSpeed True
+  Application.StatusBar = "Opening subprojects..."
+  Set rstProjects = CreateObject("ADODB.Recordset")
+  rstProjects.Fields.Append "PROJECT", adVarChar, 200
+  rstProjects.Open
+  rstProjects.AddNew Array(0), Array(oMasterProject.Name)
+  For Each oSubproject In oMasterProject.Subprojects
+    FileOpenEx oSubproject.SourceProject.FullName, True
+    rstProjects.AddNew Array(0), Array(ActiveProject.Name)
+  Next oSubproject
+  rstProjects.MoveFirst
+  Do While Not rstProjects.EOF
+    Application.StatusBar = "Analyzing " & rstProjects(0) & "..."
+    DoEvents
+    lngLastRow = 1
+    Projects(CStr(rstProjects(0))).Activate
+    oWorksheet.Cells(1, 5 + CLng(rstProjects.AbsolutePosition) - 1) = rstProjects(0)
+    For Each vEntity In Array(pjTask, pjResource)
+      For lngType = 0 To dTypes.Count - 1
+        For lngField = 1 To dTypes.Items(lngType)
+          lngLastRow = lngLastRow + 1
+          If lngProject = 0 Then
+            oWorksheet.Cells(lngLastRow, 1) = Choose(vEntity + 1, "Task", "Resource")
+            oWorksheet.Cells(lngLastRow, 2) = dTypes.Keys(lngType)
+          End If
+          lngLCF = FieldNameToFieldConstant(dTypes.Keys(lngType) & lngField, vEntity)
+          If lngProject = 0 Then
+            oWorksheet.Cells(lngLastRow, 3) = lngLCF
+            oWorksheet.Cells(lngLastRow, 4) = FieldConstantToFieldName(lngLCF)
+          End If
+          oExcel.ActiveWindow.ScrollRow = lngLastRow
+          lngCol = 5 + CLng(rstProjects.AbsolutePosition) - 1
+          oWorksheet.Cells(lngLastRow, lngCol).Value = CustomFieldGetName(lngLCF)
+          If Len(CustomFieldGetName(lngLCF)) > 0 Then
+            strFormula = CustomFieldGetFormula(lngLCF)
+            If Len(strFormula) > 0 Then
+              On Error Resume Next
+              Dim oComment As Excel.Comment
+              Set oComment = oWorksheet.Cells(lngLastRow, lngCol).Comment
+              If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+              If oComment Is Nothing Then Set oComment = oWorksheet.Cells(lngLastRow, lngCol).AddComment("<formula>" & strFormula & "</formula>" & vbCrLf)
+              oComment.Shape.TextFrame.Characters.Font.Bold = False
+              oComment.Shape.TextFrame.Characters.Font.Name = "Consolas"
+              oComment.Shape.TextFrame.Characters.Font.Size = 11
+              oComment.Shape.TextFrame.AutoSize = True
+              Set oComment = Nothing
+            End If
+            'lookuptables
+            
+          End If
+          oWorksheet.Cells.Columns.AutoFit
+        Next lngField
+      Next lngType
+    Next vEntity
+    rstProjects.MoveNext
+  Loop
+  
+  'todo: this should populate an ADODB recordset and just run queries against it
+  'entity(task,resource);type(text,cost...);constant;name;custom_name;formula;pick_list;otherproperties?
+  
+  'todo: compare formulae
+  Dim lngRow As Long
+  lngRow = oWorksheet.Comments(1).Parent.Row
+  oWorksheet.Cells(lngRow, lngCol + 2) = oWorksheet.Comments(1).Text
+  For Each oComment In oWorksheet.Comments
+    If oComment.Parent.Row = lngRow Then
+      If oComment.Text <> oWorksheet.Cells(lngRow, lngCol + 2) Then
+        oWorksheet.Cells(lngRow, lngCol + 2).Value = "MISMATCHED FORMULA"
+      End If
+    Else
+      lngRow = oWorksheet.Comments(1).Parent.Row
+      oWorksheet.Cells(lngRow, lngCol + 2) = oWorksheet.Comments(1).Text
+    End If
+  Next
+  
+  'add a formula
+  oWorksheet.Cells(1, 5 + rstProjects.RecordCount) = "MATCH"
+  oWorksheet.Range(oWorksheet.Cells(2, 5 + rstProjects.RecordCount), oWorksheet.Cells(lngLastRow, 5 + rstProjects.RecordCount)).FormulaR1C1 = "=AND(EXACT(RC[-5],RC[-4]),EXACT(RC[-4],RC[-3]),EXACT(RC[-3],RC[-2]),EXACT(RC[-2],RC[-1]))"
+  Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)), , xlYes)
+  oListObject.TableStyle = ""
+  oListObject.HeaderRowRange.Font.Bold = True
+  'throw some shade
+  With oListObject.HeaderRowRange.Interior
+    .Pattern = xlSolid
+    .PatternColorIndex = xlAutomatic
+    .ThemeColor = xlThemeColorDark1
+    .TintAndShade = -0.149998474074526
+    .PatternTintAndShade = 0
+  End With
+
+  oListObject.Range.Borders(xlDiagonalDown).LineStyle = xlNone
+  oListObject.Range.Borders(xlDiagonalUp).LineStyle = xlNone
+  For Each vLine In Array(xlEdgeLeft, xlEdgeTop, xlEdgeBottom, xlEdgeRight, xlInsideVertical, xlInsideHorizontal)
+    With oListObject.Range.Borders(vLine)
+      .LineStyle = xlContinuous
+      .ThemeColor = 1
+      .TintAndShade = -0.249946592608417
+      .Weight = xlThin
+    End With
+  Next vLine
+  oExcel.Calculation = xlCalculationAutomatic
+  'add conditional formatting
+  Set oRange = oListObject.ListColumns("MATCH").DataBodyRange
+  oRange.FormatConditions.Add Type:=xlCellValue, Operator:=xlEqual, Formula1:="=FALSE"
+  oRange.FormatConditions(oRange.FormatConditions.Count).SetFirstPriority
+  With oRange.FormatConditions(1).Font
+      .Color = -16383844
+      .TintAndShade = 0
+  End With
+  With oRange.FormatConditions(1).Interior
+      .PatternColorIndex = xlAutomatic
+      .Color = 13551615
+      .TintAndShade = 0
+  End With
+  oRange.FormatConditions(1).StopIfTrue = False
+  oRange.FormatConditions.Add Type:=xlCellValue, Operator:=xlEqual, Formula1:="=TRUE"
+  oRange.FormatConditions(oRange.FormatConditions.Count).SetFirstPriority
+  With oRange.FormatConditions(1).Font
+      .Color = -16752384
+      .TintAndShade = 0
+  End With
+  With oRange.FormatConditions(1).Interior
+      .PatternColorIndex = xlAutomatic
+      .Color = 13561798
+      .TintAndShade = 0
+  End With
+  oRange.FormatConditions(1).StopIfTrue = False
+  'autofilter it
+  oListObject.Range.AutoFilter oRange.Column, False
+  oWorksheet.Columns.AutoFit
+  oExcel.ActiveWindow.ScrollRow = 1
+  oMasterProject.Activate
+  rstProjects.MoveFirst
+  Do While Not rstProjects.EOF
+    If CStr(rstProjects(0)) <> oMasterProject.Name Then
+      Projects(CStr(rstProjects(0))).Activate
+      Application.FileCloseEx pjDoNotSave
+    End If
+    rstProjects.MoveNext
+  Loop
+  cptSpeed False
+  oExcel.ScreenUpdating = True
+  oExcel.Visible = True
+  oExcel.WindowState = xlMaximized
+  lngMismatchCount = oRange.SpecialCells(xlCellTypeVisible).Count
+  If lngMismatchCount > 0 Then
+    oExcel.ActivateMicrosoftApp xlMicrosoftProject
+    MsgBox lngMismatchCount & " Local Custom Fields do not match between Master and all Subprojects!", vbCritical + vbOKOnly, "Warning"
+    Application.ActivateMicrosoftApp pjMicrosoftExcel
+    GoTo exit_here
+    cptLocalCustomFieldsMatch = False
+  Else
+    oWorkbook.Close False
+    oExcel.Quit
+    cptLocalCustomFieldsMatch = True
+  End If
+
+exit_here:
+  On Error Resume Next
+  Set oRange = Nothing
+  Set oListObject = Nothing
+  Set dTypes = Nothing
+  Set oMasterProject = Nothing
+  Set oSubproject = Nothing
+  If rstProjects.State Then rstProjects.Close
+  Set rstProjects = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptSaveLocal_bas", "cptLocalCustomFieldsMatch", Err, Erl)
+  Resume exit_here
+End Function

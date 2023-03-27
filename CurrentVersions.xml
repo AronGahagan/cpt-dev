@@ -3,35 +3,49 @@
 	<Module>
 		<Name>cptAbout_frm</Name>
 		<FileName>cptAbout_frm.frm</FileName>
-		<Version>v1.7.10</Version>
+		<Version>v1.8.0</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
+		<Name>cptAdjustment_bas</Name>
+		<FileName>cptAdjustment_bas.bas</FileName>
+		<Version>v0.0.1</Version>
+		<Type>1</Type>
+		<Directory>Integration</Directory>
+	</Module>
+	<Module>
+		<Name>cptAdjustment_frm</Name>
+		<FileName>cptAdjustment_frm.frm</FileName>
+		<Version>v0.0.1</Version>
+		<Type>3</Type>
+		<Directory>Integration</Directory>
+	</Module>
+	<Module>
 		<Name>cptAgeDates_bas</Name>
 		<FileName>cptAgeDates_bas.bas</FileName>
-		<Version>v1.0.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>1</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptAgeDates_frm</Name>
 		<FileName>cptAgeDates_frm.frm</FileName>
-		<Version>v1.0.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptBackbone_bas</Name>
 		<FileName>cptBackbone_bas.bas</FileName>
-		<Version>v1.1.4</Version>
+		<Version>v1.2.1</Version>
 		<Type>1</Type>
 		<Directory>Backbone</Directory>
 	</Module>
 	<Module>
 		<Name>cptBackbone_frm</Name>
 		<FileName>cptBackbone_frm.frm</FileName>
-		<Version>v1.1.4</Version>
+		<Version>v1.2.1</Version>
 		<Type>3</Type>
 		<Directory>Backbone</Directory>
 	</Module>
@@ -45,14 +59,14 @@
 	<Module>
 		<Name>cptCalendarExceptions_bas</Name>
 		<FileName>cptCalendarExceptions_bas.bas</FileName>
-		<Version>v1.0.4</Version>
+		<Version>v1.0.6</Version>
 		<Type>1</Type>
 		<Directory>Calendar</Directory>
 	</Module>
 	<Module>
 		<Name>cptCalendarExceptions_frm</Name>
 		<FileName>cptCalendarExceptions_frm.frm</FileName>
-		<Version>v1.0.4</Version>
+		<Version>v1.0.6</Version>
 		<Type>3</Type>
 		<Directory>Calendar</Directory>
 	</Module>
@@ -66,16 +80,30 @@
 	<Module>
 		<Name>cptCore_bas</Name>
 		<FileName>cptCore_bas.bas</FileName>
-		<Version>v1.10.0</Version>
+		<Version>v1.13.0</Version>
 		<Type>1</Type>
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
 		<Name>cptCountTasks_bas</Name>
 		<FileName>cptCountTasks_bas.bas</FileName>
-		<Version>v1.1.0</Version>
+		<Version>v1.1.1</Version>
 		<Type>1</Type>
 		<Directory>Count</Directory>
+	</Module>
+	<Module>
+		<Name>cptCostRateTables_bas</Name>
+		<FileName>cptCostRateTables_bas.bas</FileName>
+		<Version>v1.0.0</Version>
+		<Type>1</Type>
+		<Directory>CostRateTables</Directory>
+	</Module>
+	<Module>
+		<Name>cptCostRateTables_frm</Name>
+		<FileName>cptCostRateTables_frm.frm</FileName>
+		<Version>v1.0.0</Version>
+		<Type>3</Type>
+		<Directory>CostRateTables</Directory>
 	</Module>
 	<Module>
 		<Name>cptCriticalPath_bas</Name>
@@ -87,7 +115,7 @@
 	<Module>
 		<Name>cptCriticalPathTools_bas</Name>
 		<FileName>cptCriticalPathTools_bas.bas</FileName>
-		<Version>v1.0.4</Version>
+		<Version>v1.0.5</Version>
 		<Type>1</Type>
 		<Directory>Trace</Directory>
 	</Module>
@@ -101,238 +129,273 @@
 	<Module>
 		<Name>cptDataDictionary_bas</Name>
 		<FileName>cptDataDictionary_bas.bas</FileName>
-		<Version>v1.3.0</Version>
+		<Version>v1.4.0</Version>
 		<Type>1</Type>
 		<Directory>CustomFields</Directory>
 	</Module>
 	<Module>
 		<Name>cptDataDictionary_frm</Name>
 		<FileName>cptDataDictionary_frm.frm</FileName>
-		<Version>v1.3.0</Version>
+		<Version>v1.4.0</Version>
 		<Type>3</Type>
 		<Directory>CustomFields</Directory>
 	</Module>
 	<Module>
+		<Name>cptDECM_bas</Name>
+		<FileName>cptDECM_bas.bas</FileName>
+		<Version>v0.0.1</Version>
+		<Type>1</Type>
+		<Directory>Metrics</Directory>
+	</Module>
+	<Module>
+		<Name>cptDECM_frm</Name>
+		<FileName>cptDECM_frm.frm</FileName>
+		<Version>v0.0.1</Version>
+		<Type>3</Type>
+		<Directory>Metrics</Directory>
+	</Module>
+	<Module>
 		<Name>cptDynamicFilter_bas</Name>
 		<FileName>cptDynamicFilter_bas.bas</FileName>
-		<Version>v1.6.0</Version>
+		<Version>v1.6.1</Version>
 		<Type>1</Type>
 		<Directory>Text</Directory>
 	</Module>
 	<Module>
 		<Name>cptDynamicFilter_frm</Name>
 		<FileName>cptDynamicFilter_frm.frm</FileName>
-		<Version>v1.6.0</Version>
+		<Version>v1.6.1</Version>
 		<Type>3</Type>
 		<Directory>Text</Directory>
 	</Module>
 	<Module>
 		<Name>cptEvents_cls</Name>
 		<FileName>cptEvents_cls.cls</FileName>
-		<Version>v1.2.0</Version>
+		<Version>v1.4.1</Version>
 		<Type>2</Type>
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
 		<Name>cptFilterByClipboard_bas</Name>
 		<FileName>cptFilterByClipboard_bas.bas</FileName>
-		<Version>v1.1.9</Version>
+		<Version>v1.2.1</Version>
 		<Type>1</Type>
 		<Directory>Text</Directory>
 	</Module>
 	<Module>
 		<Name>cptFilterByClipboard_frm</Name>
 		<FileName>cptFilterByClipboard_frm.frm</FileName>
-		<Version>v1.1.9</Version>
+		<Version>v1.2.1</Version>
 		<Type>3</Type>
 		<Directory>Text</Directory>
 	</Module>
 	<Module>
 		<Name>cptFiscal_bas</Name>
 		<FileName>cptFiscal_bas.bas</FileName>
-		<Version>v0.1.0</Version>
+		<Version>v1.0.0</Version>
 		<Type>1</Type>
 		<Directory>Calendar</Directory>
 	</Module>
 	<Module>
 		<Name>cptFiscal_frm</Name>
 		<FileName>cptFiscal_frm.frm</FileName>
-		<Version>v0.1.0</Version>
+		<Version>v1.0.0</Version>
 		<Type>3</Type>
 		<Directory>Calendar</Directory>
 	</Module>
 	<Module>
 		<Name>cptIMSCobraExport_bas</Name>
 		<FileName>cptIMSCobraExport_bas.bas</FileName>
-		<Version>v3.3.10</Version>
+		<Version>v3.3.11</Version>
 		<Type>1</Type>
 		<Directory>Integration</Directory>
 	</Module>
 	<Module>
 		<Name>cptIMSCobraExport_frm</Name>
 		<FileName>cptIMSCobraExport_frm.frm</FileName>
-		<Version>v3.3.10</Version>
+		<Version>v3.3.11</Version>
+		<Type>3</Type>
+		<Directory>Integration</Directory>
+	</Module>
+	<Module>
+		<Name>cptIntegration_frm</Name>
+		<FileName>cptIntegration_frm.frm</FileName>
+		<Version>v0.0.1</Version>
 		<Type>3</Type>
 		<Directory>Integration</Directory>
 	</Module>
 	<Module>
 		<Name>cptMetrics_bas</Name>
 		<FileName>cptMetrics_bas.bas</FileName>
-		<Version>v1.2.2</Version>
+		<Version>v1.4.0</Version>
 		<Type>1</Type>
 		<Directory>Metrics</Directory>
 	</Module>
 	<Module>
 		<Name>cptMetricsData_frm</Name>
 		<FileName>cptMetricsData_frm.frm</FileName>
-		<Version>v0.0.1</Version>
+		<Version>v0.0.2</Version>
 		<Type>3</Type>
 		<Directory>Metrics</Directory>
 	</Module>
 	<Module>
 		<Name>cptMetricsSettings_frm</Name>
 		<FileName>cptMetricsSettings_frm.frm</FileName>
-		<Version>v1.1.0</Version>
+		<Version>v1.1.1</Version>
 		<Type>3</Type>
 		<Directory>Metrics</Directory>
 	</Module>
 	<Module>
 		<Name>cptNetworkBrowser_bas</Name>
 		<FileName>cptNetworkBrowser_bas.bas</FileName>
-		<Version>v0.1.0</Version>
+		<Version>v1.1.0</Version>
 		<Type>1</Type>
 		<Directory>Trace</Directory>
 	</Module>
 	<Module>
 		<Name>cptNetworkBrowser_frm</Name>
 		<FileName>cptNetworkBrowser_frm.frm</FileName>
-		<Version>v0.1.0</Version>
+		<Version>v1.1.0</Version>
 		<Type>3</Type>
 		<Directory>Trace</Directory>
 	</Module>
 	<Module>
 		<Name>cptPatch_bas</Name>
 		<FileName>cptPatch_bas.bas</FileName>
-		<Version>21.04.10</Version>
+		<Version>22.06.06</Version>
 		<Type>1</Type>
 		<Directory></Directory>
 	</Module>
 	<Module>
 		<Name>cptResetAll_frm</Name>
 		<FileName>cptResetAll_frm.frm</FileName>
-		<Version>v1.2.0</Version>
+		<Version>v1.3.0</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
 		<Name>cptResourceDemand_bas</Name>
 		<FileName>cptResourceDemand_bas.bas</FileName>
-		<Version>v1.4.0</Version>
+		<Version>v1.4.1</Version>
 		<Type>1</Type>
 		<Directory>ResourceDemand</Directory>
 	</Module>
 	<Module>
 		<Name>cptResourceDemand_frm</Name>
 		<FileName>cptResourceDemand_frm.frm</FileName>
-		<Version>v1.4.0</Version>
+		<Version>v1.4.1</Version>
 		<Type>3</Type>
 		<Directory>ResourceDemand</Directory>
 	</Module>
 	<Module>
 		<Name>cptSaveLocal_bas</Name>
 		<FileName>cptSaveLocal_bas.bas</FileName>
-		<Version>v1.1.5</Version>
+		<Version>v1.1.6</Version>
 		<Type>1</Type>
 		<Directory>CustomFields</Directory>
 	</Module>
 	<Module>
 		<Name>cptSaveLocal_frm</Name>
 		<FileName>cptSaveLocal_frm.frm</FileName>
-		<Version>v1.1.5</Version>
+		<Version>v1.1.6</Version>
 		<Type>3</Type>
 		<Directory>CustomFields</Directory>
 	</Module>
 	<Module>
 		<Name>cptSaveMarked_bas</Name>
 		<FileName>cptSaveMarked_bas.bas</FileName>
-		<Version>v1.0.6</Version>
+		<Version>v1.0.7</Version>
 		<Type>1</Type>
 		<Directory>Trace</Directory>
 	</Module>
 	<Module>
 		<Name>cptSaveMarked_frm</Name>
 		<FileName>cptSaveMarked_frm.frm</FileName>
-		<Version>v1.0.6</Version>
+		<Version>v1.0.7</Version>
 		<Type>3</Type>
 		<Directory>Trace</Directory>
 	</Module>
 	<Module>
 		<Name>cptSettings_frm</Name>
 		<FileName>cptSettings_frm.frm</FileName>
-		<Version>v1.2.0</Version>
+		<Version>v1.2.1</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
 		<Name>cptSetup_bas</Name>
 		<FileName>cptSetup_bas.bas</FileName>
-		<Version>v1.6.1</Version>
+		<Version>v1.8.0</Version>
 		<Type>1</Type>
 		<Directory></Directory>
 	</Module>
 	<Module>
 		<Name>cptSmartDuration_bas</Name>
 		<FileName>cptSmartDuration_bas.bas</FileName>
-		<Version>v1.0</Version>
+		<Version>v2.0.0</Version>
 		<Type>1</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptSmartDuration_frm</Name>
 		<FileName>cptSmartDuration_frm.frm</FileName>
-		<Version>v1.0.1</Version>
+		<Version>v2.0.0</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptStatusSheet_bas</Name>
 		<FileName>cptStatusSheet_bas.bas</FileName>
-		<Version>v1.3.3</Version>
+		<Version>v1.4.8</Version>
 		<Type>1</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptStatusSheet_frm</Name>
 		<FileName>cptStatusSheet_frm.frm</FileName>
-		<Version>v1.3.3</Version>
+		<Version>v1.4.8</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptStatusSheetImport_bas</Name>
 		<FileName>cptStatusSheetImport_bas.bas</FileName>
-		<Version>v1.1.4</Version>
+		<Version>v1.2.0</Version>
 		<Type>1</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptStatusSheetImport_frm</Name>
 		<FileName>cptStatusSheetImport_frm.frm</FileName>
-		<Version>v1.1.4</Version>
+		<Version>v1.2.0</Version>
+		<Type>3</Type>
+		<Directory>Status</Directory>
+	</Module>
+	<Module>
+		<Name>cptTaskHistory_bas</Name>
+		<FileName>cptTaskHistory_bas.bas</FileName>
+		<Version>v1.0.0</Version>
+		<Type>1</Type>
+		<Directory>Status</Directory>
+	</Module>
+	<Module>
+		<Name>cptTaskHistory_frm</Name>
+		<FileName>cptTaskHistory_frm.frm</FileName>
+		<Version>v1.0.0</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptText_bas</Name>
 		<FileName>cptText_bas.bas</FileName>
-		<Version>v1.4.0</Version>
+		<Version>v1.5.0</Version>
 		<Type>1</Type>
 		<Directory>Text</Directory>
 	</Module>
 	<Module>
 		<Name>cptText_frm</Name>
 		<FileName>cptText_frm.frm</FileName>
-		<Version>v1.4.0</Version>
+		<Version>v1.5.0</Version>
 		<Type>3</Type>
 		<Directory>Text</Directory>
 	</Module>

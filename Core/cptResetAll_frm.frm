@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptResetAll_frm 
    Caption         =   "How would you like to Reset All?"
-   ClientHeight    =   3015
+   ClientHeight    =   3375
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   5055
+   ClientWidth     =   6180
    OleObjectBlob   =   "cptResetAll_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -13,10 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.2.0</cpt_version>
+'<cpt_version>v1.3.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cmdCancel_Click()
   Unload Me
@@ -38,9 +36,17 @@ Sub cmdDoIt_Click()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   cptSpeed True
+  
+  'first apply the view
+  If Me.cboViews.Value <> "<None>" Then
+    If cptViewExists(Me.cboViews.Value) Then
+      ViewApply Me.cboViews.Value
+    End If
+  End If
+  cptSaveSetting "ResetAll", "DefaultView", Me.cboViews.Value
   
   'capture bitwise value
   If Me.chkActiveOnly Then
@@ -52,11 +58,11 @@ Sub cmdDoIt_Click()
     lngSettings = lngSettings + 2
   End If
   If Me.chkSummaries Then
-    OptionsViewEx DisplaySummaryTasks:=True
+    OptionsViewEx displaysummarytasks:=True
     lngSettings = lngSettings + 4
   End If
   'outline options
-  OptionsViewEx DisplaySummaryTasks:=True
+  OptionsViewEx displaysummarytasks:=True
   On Error Resume Next
   blnApplyOutlineLevel = True
   If Not OutlineShowAllTasks Then
@@ -75,22 +81,22 @@ Sub cmdDoIt_Click()
       blnApplyOutlineLevel = True
     End If
   End If
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Me.optShowAllTasks Then
     If ActiveProject.Subprojects.Count > 0 Then
-      OptionsViewEx DisplaySummaryTasks:=True
+      OptionsViewEx displaysummarytasks:=True
       If Not Me.chkFilter Then
         strFilter = ActiveProject.CurrentFilter
       End If
       FilterClear
       SelectAll
       OutlineShowAllTasks
-      If Not Me.chkSummaries Then OptionsViewEx DisplaySummaryTasks:=False
+      If Not Me.chkSummaries Then OptionsViewEx displaysummarytasks:=False
       If Len(strFilter) > 0 Then FilterApply strFilter
     End If
     If Not Me.chkSummaries Then
-      OptionsViewEx DisplaySummaryTasks:=False
+      OptionsViewEx displaysummarytasks:=False
     End If
     lngSettings = lngSettings + 8
   ElseIf Me.optOutlineLevel Then

@@ -13,10 +13,9 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.6</cpt_version>
+
+'<cpt_version>v1.0.7</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cmdDone_Click()
   Unload Me
@@ -24,7 +23,7 @@ End Sub
 
 Private Sub cmdImport_Click()
   'objects
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngResponse As Long
@@ -37,7 +36,7 @@ Private Sub cmdImport_Click()
   'dates
   Dim dtTimestamp As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If IsNull(Me.lboMarked.Value) Then GoTo exit_here
   If Me.lboDetails.ListCount <= 1 Then GoTo exit_here
@@ -101,7 +100,7 @@ End Sub
 
 Private Sub cmdRemove_Click()
   'objects
-  Dim rstMarked As Object 'ADODB.Recordset 'Object
+  Dim rstMarked As Object 'ADODB.Recordset
   'strings
   Dim strMarked As String
   'longs
@@ -112,7 +111,7 @@ Private Sub cmdRemove_Click()
   'dates
   Dim dtTimestamp As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Me.lboMarked.Value = "TIMESTAMP" Then GoTo exit_here
   If Me.lboMarked.ListIndex < 1 Then GoTo exit_here
@@ -126,13 +125,13 @@ Private Sub cmdRemove_Click()
   strMarked = cptDir & "\cpt-marked.adtg"
   rstMarked.Open strMarked
   rstMarked.Filter = "TSTAMP<>#" & dtTimestamp & "#"
-  rstMarked.Save
+  rstMarked.Save strMarked, adPersistADTG
   rstMarked.Close
   'remove from marked details
   strMarked = cptDir & "\cpt-marked-details.adtg"
   rstMarked.Open strMarked
   rstMarked.Filter = "TSTAMP<>#" & dtTimestamp & "#"
-  rstMarked.Save
+  rstMarked.Save strMarked, adPersistADTG
   rstMarked.Close
   
   Call cptUpdateMarked
@@ -152,7 +151,7 @@ End Sub
 
 Private Sub lblURL_Click()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
 
@@ -168,8 +167,8 @@ End Sub
 
 Private Sub lboMarked_Click()
   'objects
-  Dim oTask As Task
-  Dim rstMarked As Object 'ADODB.Recordset 'Object
+  Dim oTask As MSProject.Task
+  Dim rstMarked As ADODB.Recordset 'Object
   'strings
   Dim strMarked As String
   'longs
@@ -180,7 +179,7 @@ Private Sub lboMarked_Click()
   'dates
   Dim dtTimestamp As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Me.lboMarked.Value = "TIMESTAMP" Then
     Me.lboMarked.Value = Null
@@ -214,7 +213,7 @@ Private Sub lboMarked_Click()
           Set oTask = Nothing
           On Error Resume Next
           Set oTask = ActiveProject.Tasks.UniqueID(CLng(rstMarked(1)))
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If oTask Is Nothing Then
             Me.lboDetails.List(Me.lboDetails.ListCount - 1, 1) = "< task not found >"
           Else
@@ -247,7 +246,7 @@ Private Sub txtFilter_Change()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.txtFilter.Text) > 0 Then
     Call cptUpdateMarked(Me.txtFilter.Text)

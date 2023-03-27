@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>v1.1.9</cpt_version>
+'<cpt_version>v1.2.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowFilterByClipboard_frm()
 'objects
@@ -16,7 +14,7 @@ Dim lngFreeField As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   With cptFilterByClipboard_frm
     .Caption = "Filter By Clipboard (" & cptGetVersion("cptFilterByClipboard_frm") & ")"
@@ -42,18 +40,15 @@ Dim lngFreeField As Long
   End With
   
   lngFreeField = cptGetFreeField("Number")
-  If lngFreeField > 0 Then
-    If MsgBox("Looks like " & FieldConstantToFieldName(lngFreeField) & " isn't in use." & vbCrLf & vbCrLf & "OK to temporarily borrow it for this?", vbQuestion + vbYesNo, "Wanted: Custom Number Field") = vbYes Then
-      cptFilterByClipboard_frm.cboFreeField.Value = lngFreeField
-      cptFilterByClipboard_frm.cboFreeField.Locked = True
-    Else
-      lngFreeField = 0
-    End If
-  End If
+
   If lngFreeField = 0 Then
     strMsg = "Since there are no custom task number fields available*, filtered tasks will not appear in the same order as pasted."
     strMsg = strMsg & vbCrLf & vbCrLf
-    strMsg = strMsg & "* 'available' means:" & vbCrLf & "> no custom field name" & vbCrLf & "> no data on any task"
+    strMsg = strMsg & "* 'available' means:" & vbCrLf
+    strMsg = strMsg & "> no custom field name" & vbCrLf
+    strMsg = strMsg & "> no formula" & vbCrLf
+    strMsg = strMsg & "> no pick list" & vbCrLf
+    strMsg = strMsg & "> no data on any task"
     If MsgBox(strMsg, vbInformation + vbOKCancel, "No Room at the Inn") = vbCancel Then GoTo exit_here
     With cptFilterByClipboard_frm.cboFreeField
       .Clear
@@ -88,7 +83,7 @@ Sub cptClipboardJump()
   Dim vList As Variant
   'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(cptFilterByClipboard_frm.txtFilter.Text) = 0 Then Exit Sub
   vList = Split(cptFilterByClipboard_frm.txtFilter.Text, ",")
@@ -110,7 +105,7 @@ err_here:
 End Sub
 
 Sub cptUpdateClipboard()
-Dim oTask As Task
+Dim oTask As MSProject.Task
 'strings
 Dim strFilter As String
 'longs
@@ -127,7 +122,7 @@ Dim lngUID As Long
 Dim vUID As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   cptSpeed True
   
@@ -148,7 +143,8 @@ Dim vUID As Variant
       If lngFreeField > 0 Then oTask.SetField lngFreeField, 0
 next_task:
       lngTask = lngTask + 1
-      Application.StatusBar = "Resetting number field...(" & Format(lngTask / lngTasks, "0%") & ")"
+      Application.StatusBar = "Resetting number field...(" & Format(lngTask / IIf(lngTasks = 0, 1, lngTasks), "0%") & ")"
+      DoEvents
     Next oTask
   Else
     lngFreeField = 0
@@ -172,10 +168,10 @@ next_task:
     Else
       Set oTask = ActiveProject.Tasks(lngUID)
     End If
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oTask Is Nothing Then
       'add to autofilter
-      strFilter = strFilter & lngUID & Chr$(9)
+      strFilter = strFilter & oTask.UniqueID & vbTab 'vbTab = Chr$(9)
       cptFilterByClipboard_frm.lboFilter.List(cptFilterByClipboard_frm.lboFilter.ListCount - 1, 1) = oTask.Name
       If lngFreeField > 0 Then oTask.SetField lngFreeField, CStr(lngItem)
       Set oTask = Nothing
@@ -183,6 +179,8 @@ next_task:
       cptFilterByClipboard_frm.lboFilter.List(lngItem, 1) = "< not found >"
     End If
 next_item:
+    Application.StatusBar = "Applying filter...(" & Format(lngItem / IIf(UBound(vUID) = 0, 1, UBound(vUID)), "0%") & ")"
+    DoEvents
   Next lngItem
   
   If Not cptFilterByClipboard_frm.tglEdit Then
@@ -193,22 +191,24 @@ next_item:
   If Len(strFilter) > 0 And cptFilterByClipboard_frm.chkFilter Then
     ActiveWindow.TopPane.Activate
     ScreenUpdating = False
-    OptionsViewEx displaysummaryTasks:=True
+    OptionsViewEx DisplaySummaryTasks:=True
     SelectAll
     On Error Resume Next
     If Not OutlineShowAllTasks Then
       Sort "ID", , , , , , False, True
       OutlineShowAllTasks
     End If
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     SelectBeginning
     strFilter = Left(strFilter, Len(strFilter) - 1)
     If cptFilterByClipboard_frm.optUID Then
+      cptFilterByClipboard_frm.lboHeader.List(0, 0) = "UID"
       SetAutoFilter "Unique ID", FilterType:=pjAutoFilterIn, Criteria1:=strFilter
     ElseIf cptFilterByClipboard_frm.optID Then
-      SetAutoFilter "ID", FilterType:=pjAutoFilterIn, Criteria1:=strFilter
+      cptFilterByClipboard_frm.lboHeader.List(0, 0) = "ID"
+      SetAutoFilter "Unique ID", FilterType:=pjAutoFilterIn, Criteria1:=strFilter
     End If
-    OptionsViewEx projectsummary:=False, displayoutlinenumber:=False, displaynameindent:=False, displaysummaryTasks:=False
+    OptionsViewEx projectsummary:=False, displayoutlinenumber:=False, displaynameindent:=False, DisplaySummaryTasks:=False
     If lngFreeField > 0 Then Sort FieldConstantToFieldName(lngFreeField)
   End If
   
@@ -241,7 +241,7 @@ Dim vRecords As Variant
 Dim REMatch As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Set RE = CreateObject("vbscript.regexp")
   With RE
@@ -323,10 +323,11 @@ Function cptGetFreeField(strDataType As String, Optional lngType As Long) As Lon
 'objects
 Dim dTypes As Scripting.Dictionary 'Object
 Dim rstFree As Object 'ADODB.Recordset 'Object
-Dim oTask As Task
+Dim oTask As MSProject.Task
 'strings
+Dim strNum As String
 'longs
-Dim lngFree As Long
+Dim lngFreeField As Long
 Dim lngField As Long
 Dim lngItems As Long
 Dim lngItem As Long
@@ -337,7 +338,7 @@ Dim blnFree As Boolean
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Calculation = pjManual
   
@@ -361,12 +362,27 @@ Dim blnFree As Boolean
   For lngItem = lngItems To 1 Step -1
     lngField = FieldNameToFieldConstant(strDataType & lngItem, lngType)
     If CustomFieldGetName(lngField) = "" Then
+      'then ensure no formula
+      If CustomFieldGetFormula(lngField) <> "" Then GoTo next_field
+      'then ensure no pick list (brute force)
+      strNum = ActiveProject.Tasks(1).GetField(lngField)
+      On Error Resume Next
+      ActiveProject.Tasks(1).SetField lngField, 3.14285714285714 'what are the odds?
+      If Err.Number = 1101 Then
+        Err.Clear
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        GoTo next_field
+      Else
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        ActiveProject.Tasks(1).SetField lngField, strNum
+      End If
       rstFree.AddNew Array(0, 1), Array(lngField, True)
     End If
+next_field:
   Next lngItem
-  'if all custom task number fields are named, then none available
+  'if all custom fields are named, then none available
   If rstFree.RecordCount = 0 Then
-    lngFree = 0
+    lngFreeField = 0
     GoTo return_value
   End If
   
@@ -390,20 +406,26 @@ next_task:
   rstFree.MoveFirst
   Do While Not rstFree.EOF
     If rstFree(1) = True Then
-      With cptFilterByClipboard_frm.cboFreeField
-        lngFree = rstFree(0)
-        .AddItem lngFree
-        .List(.ListCount - 1, 1) = FieldConstantToFieldName(lngFree)
+      If MsgBox("Looks like " & FieldConstantToFieldName(rstFree(0)) & " isn't in use." & vbCrLf & vbCrLf & "OK to temporarily borrow it for this?", vbQuestion + vbYesNo, "Wanted: Custom Number Field") = vbYes Then
+        With cptFilterByClipboard_frm.cboFreeField
+          .AddItem rstFree(0)
+          .List(cptFilterByClipboard_frm.cboFreeField.ListCount - 1, 1) = FieldConstantToFieldName(rstFree(0))
+          .Value = rstFree(0)
+          .Locked = True
+          lngFreeField = rstFree(0)
+        End With
         Exit Do
-      End With
+      Else
+        lngFreeField = 0
+      End If
     End If
     rstFree.MoveNext
   Loop
   rstFree.Close
   
 return_value:
-  If lngFree > 0 Then
-    cptGetFreeField = lngFree
+  If lngFreeField > 0 Then
+    cptGetFreeField = lngFreeField
   Else
     cptGetFreeField = 0
   End If
@@ -424,7 +446,7 @@ End Function
 
 Sub cptClearFreeField()
   'objects
-  Dim oTask As Task
+  Dim oTask As MSProject.Task
   'strings
   'longs
   Dim lngFreeField As Long
@@ -436,7 +458,7 @@ Sub cptClearFreeField()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Calculation = pjManual
   ScreenUpdating = False

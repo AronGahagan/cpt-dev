@@ -1,12 +1,11 @@
 Attribute VB_Name = "cptSaveMarked_bas"
-'<cpt_version>v1.0.6</cpt_version>
+'<cpt_version>v1.0.7</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Sub cptShowSaveMarked_frm()
   'objects
   'strings
+  Dim strFileName As String
   Dim strApplyFilter As String
   Dim strProgram As String
   'longs
@@ -16,24 +15,27 @@ Sub cptShowSaveMarked_frm()
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Call cptUpdateMarked
-  cptSaveMarked_frm.Caption = "Import Marked (" & cptGetVersion("cptSaveMarked_frm") & ")"
-  strApplyFilter = cptGetSetting("SaveMarked", "chkApplyFilter")
-  If Len(strApplyFilter) > 0 Then
-    cptSaveMarked_frm.chkApplyFilter = CBool(strApplyFilter)
-  Else
-    cptSaveMarked_frm.chkApplyFilter = False
-  End If
-  strProgram = cptGetProgramAcronym
-  If Len(strProgram) > 0 Then
-    cptSaveMarked_frm.cboProjects.AddItem strProgram
-    cptSaveMarked_frm.cboProjects.Value = strProgram
-    cptSaveMarked_frm.cboProjects.Locked = True
-    cptSaveMarked_frm.cboProjects.Enabled = False
-  End If
-  cptSaveMarked_frm.Show False
+  With cptSaveMarked_frm
+    .Caption = "Import Marked (" & cptGetVersion("cptSaveMarked_frm") & ")"
+    strApplyFilter = cptGetSetting("SaveMarked", "chkApplyFilter")
+    If Len(strApplyFilter) > 0 Then
+      .chkApplyFilter = CBool(strApplyFilter)
+    Else
+      .chkApplyFilter = False
+    End If
+    strProgram = cptGetProgramAcronym
+    If Len(strProgram) > 0 Then
+      .cboProjects.AddItem strProgram
+      .cboProjects.Value = strProgram
+      .cboProjects.Locked = True
+      .cboProjects.Enabled = False
+    End If
+    .lblDir.Caption = "%UserProfile%\cpt-backup\settings\cpt-marked.adtg; cpt-marked-details.adtg"
+    .Show False
+  End With
 
 exit_here:
   On Error Resume Next
@@ -58,7 +60,7 @@ Sub cptUpdateMarked(Optional strFilter As String)
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   strProject = cptGetProgramAcronym
   If Len(strProject) = 0 Then
     MsgBox "Program Acronym is required for this feature.", vbExclamation + vbOKOnly, "Program Acronym Needed"
@@ -136,8 +138,8 @@ End Sub
 
 Sub cptSaveMarked()
   'objects
-  Dim oTask As Task 'Object
-  Dim rstMarked As Object 'ADODB.Recordset 'Object
+  Dim oTask As MSProject.Task
+  Dim rstMarked As Object 'ADODB.Recordset
   'strings
   Dim strProject As String
   Dim strGUID As String
@@ -152,7 +154,7 @@ Sub cptSaveMarked()
   'dates
   Dim dtTimestamp As Date
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Set rstMarked = CreateObject("ADODB.Recordset")
   strMarked = cptDir & "\cpt-marked.adtg"
@@ -173,6 +175,10 @@ Sub cptSaveMarked()
     GoTo exit_here
   End If
 
+  If ActiveProject.Subprojects.Count > 0 Then
+    MsgBox "Saved set will use UIDs keyed to this master project. You must, therefore, import this saved set back to this master project. Importing to the standalone subproject will fail.", vbExclamation + vbOKOnly, "Nota Bene"
+  End If
+
   strDescription = InputBox("Describe this capture:", "Save Marked")
   If Len(strDescription) = 0 Then
     MsgBox "No description; nothing saved.", vbExclamation + vbOKOnly
@@ -181,7 +187,7 @@ Sub cptSaveMarked()
   dtTimestamp = Now()
   rstMarked.AddNew Array(1, 2, 3), Array(dtTimestamp, strProject, strDescription)
   rstMarked.Update
-  rstMarked.Save
+  rstMarked.Save strMarked, adPersistADTG
   rstMarked.Close
   
   Set rstMarked = CreateObject("ADODB.Recordset")
@@ -201,7 +207,7 @@ Sub cptSaveMarked()
     End If
 next_task:
   Next oTask
-  rstMarked.Save
+  rstMarked.Save strMarked, adPersistADTG
   rstMarked.Close
   
   dtTimestamp = 0
@@ -219,6 +225,6 @@ exit_here:
   
   Exit Sub
 err_here:
-  Call cptHandleErr("cptNetworkBrowser_bas", "cptSaveMarked", Err, Erl)
+  Call cptHandleErr("cptSaveMarked_bas", "cptSaveMarked", Err, Erl)
   Resume exit_here
 End Sub

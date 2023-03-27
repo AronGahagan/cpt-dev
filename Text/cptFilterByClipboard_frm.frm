@@ -13,10 +13,9 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.9</cpt_version>
+
+'<cpt_version>v1.2.1</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub chkFilter_Click()
   Dim strFilter As String
@@ -41,7 +40,7 @@ End Sub
 
 Private Sub lblURL_Click()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then Application.FollowHyperlink ("http://" & Me.lblURL.Caption)
 
@@ -57,8 +56,8 @@ End Sub
 
 Private Sub lboFilter_Click()
   'objects
-  Dim oTasks As Tasks
-  Dim oTask As Task
+  Dim oTasks As MSProject.Tasks
+  Dim oTask As MSProject.Task
   'strings
   Dim strField As String
   'longs
@@ -70,9 +69,6 @@ Private Sub lboFilter_Click()
   'dates
   Dim dtGoTo As Date
 
-  'round([Task's master project UID] / 4194304) = InsertedSubproject ID in Master
-  'Task.UniqueId-(X*4194304)+X) where X is Subproject UID gets Task Index
-  'task.uniqueid
   On Error Resume Next
   If Me.optUID Then
     lngUID = CLng(Me.lboFilter.Value)
@@ -83,7 +79,7 @@ Private Sub lboFilter_Click()
     Set oTask = ActiveProject.Tasks.Item(lngUID)
     strField = "ID"
   End If
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oTask Is Nothing Then
     
     If IsDate(oTask.Stop) Then
@@ -99,14 +95,14 @@ Private Sub lboFilter_Click()
         If MsgBox("Task " & strField & " " & lngUID & " is currently hidden. Would you like to remove all filters, show summary tasks, and show all tasks in order to find it?", vbQuestion + vbYesNo, "Reset View?") = vbYes Then
           ScreenUpdating = False
           FilterClear
-          OptionsViewEx displaysummaryTasks:=True
+          OptionsViewEx DisplaySummaryTasks:=True
           SelectAll
           On Error Resume Next
           If Not OutlineShowAllTasks Then
             Sort "ID", , , , , , False, True
             OutlineShowAllTasks
           End If
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           ScreenUpdating = True
           If Not EditGoTo(oTask.ID, dtGoTo) Then
             MsgBox "An unknown error has occured--can't find it!", vbCritical + vbOKOnly, "Still can't find it"
@@ -120,14 +116,14 @@ Private Sub lboFilter_Click()
         If MsgBox("Task " & strField & " " & lngUID & " is currently hidden. Would you like to remove all filters, show summary tasks, and show all tasks in order to find it?", vbQuestion + vbYesNo, "Reset View?") = vbYes Then
           ScreenUpdating = False
           FilterClear
-          OptionsViewEx displaysummaryTasks:=True
+          OptionsViewEx DisplaySummaryTasks:=True
           SelectAll
           On Error Resume Next
           If Not OutlineShowAllTasks Then
             Sort "ID", , , , , , False, True
             OutlineShowAllTasks
           End If
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           ScreenUpdating = True
           If Not FindEx(strField, "equals", lngUID) Then
             MsgBox "An unknown error has occured--can't find it!", vbCritical + vbOKOnly, "Still can't find it"
@@ -219,7 +215,7 @@ Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, B
   'FilterClear
   
   'todo: why no error trapping here?
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'scrub the incoming data
   vData = Split(Data.GetText, vbCrLf)
@@ -243,7 +239,7 @@ next_record:
     
   Else 'user pasted single line of delimited values, possibly including ranges
 
-    If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     
     strFilter = Data.GetText
        
@@ -318,7 +314,10 @@ err_here:
 End Sub
 
 Private Sub txtFilter_Change()
-  If Me.txtFilter.Visible Then Call cptUpdateClipboard
+  If Me.txtFilter.Visible Then
+    Me.lboFilter.Clear
+    If Right(Me.txtFilter.Text, 1) = "," Then Call cptUpdateClipboard
+  End If
 End Sub
 
 Private Sub txtFilter_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)

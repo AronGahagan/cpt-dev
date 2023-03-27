@@ -1,8 +1,6 @@
 Attribute VB_Name = "cptSetup_bas"
- '<cpt_version>v1.6.1</cpt_version>
+'<cpt_version>v1.8.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
 #If Win64 And VBA7 Then
@@ -48,11 +46,16 @@ Dim blnExists As Boolean
 Dim vEvent As Variant
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   '<issue61> ensure proper installation
-  If InStr(ThisProject.FullName, "Global.MPT") = 0 Then
-    MsgBox "The VBA module 'cptSetup_bas' must be installed in your Global.MPT, not in this project file.", vbCritical + vbOKOnly, "Faulty Installation"
+  If InStr(ThisProject.FullName, "Global") = 0 Then
+    strMsg = "The CPT can only be installed in one of the following:" & vbCrLf
+    strMsg = strMsg & "> Global.MPT" & vbCrLf
+    strMsg = strMsg & "> Global (+ non-cached Enterprise) for testing purposes only" & vbCrLf
+    strMsg = strMsg & "> Checked-out Enterprise Global (when ready to release to Enterprise user base)" & vbCrLf & vbCrLf
+    strMsg = strMsg & "(Do not install to a *.mpp file.)"
+    MsgBox strMsg, vbCritical + vbOKOnly, "Faulty Installation"
     GoTo exit_here
   End If '</issue61>
 
@@ -149,7 +152,7 @@ frx:
             '<issue19> revised
             vbComponent.Name = vbComponent.Name & "_" & Format(Now, "hhnnss")
             DoEvents
-            ThisProject.VBProject.VBComponents.remove vbComponent 'ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
+            ThisProject.VBProject.VBComponents.Remove vbComponent 'ThisProject.VBProject.VBComponents(CStr(vbComponent.Name))
             DoEvents '</issue19>
             Exit For
           End If
@@ -192,7 +195,7 @@ this_project:
     Name strFileName As strCptFileName
     'import the module
     If cptModuleExists("cptThisProject_cls") Then
-      ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents("cptThisProject_cls")
+      ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents("cptThisProject_cls")
       DoEvents
     End If
     Set cmCptThisProject = ThisProject.VBProject.VBComponents.Import(strCptFileName).CodeModule
@@ -239,13 +242,13 @@ this_project:
       rstCode.Update
     Next vEvent
   End With
-  ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
+  ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents(cmCptThisProject.Parent.Name)
   DoEvents
   If cptModuleExists("ThisProject1") Then
-    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents("ThisProject1")
+    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents("ThisProject1")
   End If
   If cptModuleExists("cptThisProject_cls") Then
-    ThisProject.VBProject.VBComponents.remove ThisProject.VBProject.VBComponents("cptThisProject_cls")
+    ThisProject.VBProject.VBComponents.Remove ThisProject.VBProject.VBComponents("cptThisProject_cls")
   End If
   '<issue19> added
   DoEvents '</issue19>
@@ -419,6 +422,9 @@ Dim lngCleanUp As Long
   'ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bGroupReapply""  label=""ReGroup"" imageMso=""RefreshWebView"" onAction=""cptGroupReapply"" visible=""true"" supertip=""Reapply Group"" />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFilterReapply"" label=""ReFilter"" imageMso=""RefreshWebView"" onAction=""cptFilterReapply"" visible=""true"" supertip=""Reapply Filter"" />"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:dialogBoxLauncher>"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""dbl-reset"" screentip=""Settings for Reset All"" onAction=""cptShowResetAll_frm"" />"
+'  ribbonXML = ribbonXML + vbCrLf & "</mso:dialogBoxLauncher>"
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
   'task counters
@@ -456,6 +462,7 @@ Dim lngCleanUp As Long
       'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process (WIP)"" imageMso=""DuplicateSelectedSlides"" onAction=""cptReplicateProcess"" visible=""true"" />"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""cptFindDuplicateTaskNames"" visible=""true"" supertip=""Clearly worded tasks represent well-defined tasks and are important for estimating and providing status. Click to find duplicate task names and create a report in Excel. Remember: Noun and Verb!"" />"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetRowHeight"" label=""Reset Row Height"" imageMso=""RowHeight"" onAction=""cptResetRowHeight"" visible=""true"" supertip=""Another one for our fellow 'Type A' folks out there--reset all row heights after they get all jacked up. Give it a go; you'll like it."" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAnnoyances"" label=""Annoyances"" imageMso=""SnapToRulerSubdivisions"" onAction=""cptCheckAnnoyances"" visible=""true"" supertip=""Yet another 'Type A' friendly utility--check for start times not equal to 8:00 AM or finish times not equal to 5:00 PM or fractional durations. Have another idea? Let us know cpt@ClearPlanConsulting.com."" />"
       ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
       ribbonXML = ribbonXML + vbCrLf & "</mso:splitButton>"
     Else
@@ -509,17 +516,24 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
 
-  'status
+  'schedule
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Schedule"" visible=""true"" >"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mHealth"" label=""Health"" imageMso=""CheckWorkflow"" visible=""true"" size=""large"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptOOS"" label=""Out of Sequence"" imageMso=""ExportExcel"" onAction=""cptFindOutOfSequence"" visible=""true"" supertip=""Find tasks statused out of sequence. Select the UID in Column A to AutoFilter the IMS."" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DECM (v5.0)"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDECM"" label=""DECM Dashboard"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DECM Dashboard (Aligned to DECM 06A212a v5.0)"" />"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DCMA 14"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDCMA14"" label=""DCMA 01"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DCMA 14-pt Analysis"" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mStatus"" label=""Status"" imageMso=""UpdateAsScheduled"" visible=""true"" size=""large"" >"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Before Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  If cptModuleExists("cptQBD_frm") And cptModuleExists("cptQBD_bas") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bQBD"" label=""Quantifiable Backup Data (QBD)"" imageMso=""ExportExcel"" onAction=""cptShowQBD_frm"" visible=""true"" supertip=""Yes, Quantifiable Backup Data."" />"
+  End If
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cpt_bAdvanceStatusDate"" label=""Advance Status Date"" imageMso=""CalendarToolSelectDate"" onAction=""cptAdvanceStatusDate"" visible=""true"" supertip=""Advance the Status Date prior to kicking off a status cycle."" />"
   If cptModuleExists("cptAgeDates_bas") And cptModuleExists("cptAgeDates_frm") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Before Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cpt_bAdvanceStatusDate"" label=""Advance Status Date"" imageMso=""CalendarToolSelectDate"" onAction=""cptAdvanceStatusDate"" visible=""true"" supertip=""Advance the Status Date prior to kicking off a status cycle."" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cpt_bAgeDates"" label=""Age Dates"" imageMso=""CalendarToolSelectDate"" onAction=""cptShowAgeDates_frm"" visible=""true"" supertip=""Keep a rolling history of the current schedule.""  />"
   End If
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCaptureWeek1"" label=""Capture Week"" imageMso=""RefreshWebView"" onAction=""cptCaptureWeek"" visible=""true"" supertip=""OPTIONAL: Capture the Current Schedule before updates if you want to record task-level notes for the current status date."" />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Status Export &amp;&amp; Import"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   If cptModuleExists("cptStatusSheet_bas") And cptModuleExists("cptStatusSheet_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheet"" label=""Create Status Sheet(s)"" imageMso=""ExportExcel"" onAction=""cptShowStatusSheet_frm"" visible=""true"" supertip=""Just what it sounds like. Include any fields you like. Settings are saved between sessions."" />" 'DateAndTimeInsertOneNote
@@ -528,12 +542,15 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheetImport"" label=""Import Status Sheet(s)"" imageMso=""ImportExcel"" onAction=""cptShowStatusSheetImport_frm"" visible=""true"" supertip=""Just what it sounds like. (Note: Assignment ETC is at the Assignment level, so use the Task Usage view to review after import.)"" />"
   End If
   If cptModuleExists("cptSmartDuration_frm") And cptModuleExists("cptSmartDuration_bas") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSmartDuration"" label=""Smart Duration"" imageMso=""CalendarToolSelectDate"" onAction=""SmartDuration"" visible=""true"" supertip=""We've all been there: how many days between Time Now and the finish date the CAM just gave me? No more guess work: click here and improve your life."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSmartDuration"" label=""Smart Duration"" imageMso=""CalendarToolSelectDate"" onAction=""cptShowSmartDuration_frm"" visible=""true"" supertip=""We've all been there: how many days between Time Now and the finish date the CAM just gave me? No more guess work: click here and improve your life."" />"
   End If
   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""After Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBlameReport"" label=""The Blame Report"" imageMso=""ContactProperties"" onAction=""cptBlameReport"" visible=""true"" supertip=""Find out which tasks slipped from last period."" />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCaptureWeek"" label=""Capture Week"" imageMso=""RefreshWebView"" onAction=""cptCaptureWeek"" visible=""true"" supertip=""Capture the Current Schedule to compare against past and future weeks during execution. This is required for certain metrics (e.g., CEI) to run properly."" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCaptureWeek2"" label=""Capture Week"" imageMso=""RefreshWebView"" onAction=""cptCaptureWeek"" visible=""true"" supertip=""Capture the Current Schedule after updates to compare against past and future weeks during execution. This is required for certain metrics (e.g., CEI, all Trending) to run properly."" />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCompletedWork"" label=""Export Completed WPCNs"" imageMso=""DisconnectFromServer"" onAction=""cptExportCompletedWork"" visible=""true"" supertip=""Export Completed WPCNs for closure in Time system (uses COBRA Export Tool field settings)."" />"
+  If cptModuleExists("cptTaskHistory_bas") And cptModuleExists("cptTaskHistory_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTaskHistory"" label=""Task History"" imageMso=""Archive"" onAction=""cptShowTaskHistoryFrm"" visible=""true"" supertip=""Explore selected task history, take notes, export history, etc. Requires consistent use of Capture Week."" />"
+  End If
   'todo: account for EV Tool in cptValidateEVP
   'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bValidateEVT"" enabled=""false"" label=""Validate EVT"" imageMso=""RefreshWebView"" onAction=""cptAnalyzeEVT"" visible=""true"" supertip=""Validate EVT - e.g., ensure incomplete 50/50 tasks with Actual Start are marked as 50% EV % complete."" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
@@ -598,7 +615,7 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gIntegration"" label=""Integration"" visible=""true"" >"
   'outline codes
   If cptModuleExists("cptBackbone_frm") And cptModuleExists("cptBackbone_bas") Then
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBackbone"" label=""Outline Codes"" imageMso=""WbsMenu"" onAction=""cptShowBackbone_frm"" visible=""true"" size=""large"" supertip=""Quickly create or edit Outline Codes (CWBS, IMP, etc.); import and/or export; create DI-MGMT-81334D, etc."" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBackbone"" label=""Outline Codes"" imageMso=""OrganizationChartLayoutRightHanging"" onAction=""cptShowBackbone_frm"" visible=""true"" size=""large"" supertip=""Quickly create or edit Outline Codes (CWBS, IMP, etc.); import and/or export; create DI-MGMT-81334D, etc."" />"
   End If
   ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   If cptModuleExists("cptIMSCobraExport_bas") And cptModuleExists("cptIMSCobraExport_frm") Then
@@ -607,7 +624,25 @@ Dim lngCleanUp As Long
   If cptModuleExists("cptCheckAssignments_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCheckAssignments"" label=""Check Assignments"" imageMso=""SynchronizationStatus"" onAction=""cptCheckAssignments"" visible=""true"" supertip=""Reconcile task vs assignment work, baselines, etc."" />"
   End If
+
+  If cptModuleExists("cptAdjustment_bas") And cptModuleExists("cptAdjustment_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAdjustment"" label=""ETC Adjustments"" imageMso=""SynchronizationStatus"" onAction=""cptShowAdjustment_frm"" visible=""true"" supertip=""Bulk adjust ETCs by resource, to given target, by percentage, or by a given amount."" />"
+  End If
+  
+  If cptModuleExists("cptCostRateTables_bas") And cptModuleExists("cptCostRateTables_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCostRateTables"" onAction=""cptShowCostRateTables_frm""  size=""large"" visible=""true""  label=""Cost Rate Tables"" imageMso=""DataTypeCurrency"" />"
+  End If
+  
   'mpm
+  
+  'integration settings
+  If cptModuleExists("cptIntegration_frm") Then
+    ribbonXML = ribbonXML + vbCrLf & "<mso:dialogBoxLauncher>"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIntegrationSettings"" screentip=""Integration Settings"" onAction=""cptGetValidMap"" />"
+    ribbonXML = ribbonXML + vbCrLf & "</mso:dialogBoxLauncher>"
+  End If
+  
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
   'bcr
@@ -619,7 +654,7 @@ Dim lngCleanUp As Long
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFiscal"" label=""Fiscal"" imageMso=""MonthlyView"" onAction=""cptShowFiscal_frm"" visible=""true"" supertip=""Maintain a fiscal calendar for various reports."" />"
     End If
     If cptModuleExists("cptCalendarExceptions_frm") And cptModuleExists("cptCalendarExceptions_bas") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCalDetails"" label=""Calendar Details"" imageMso=""MonthlyView"" onAction=""cptShowCalendarExceptions_frm"" visible=""true"" supertip=""Export Calendar Exceptions, WorkWeeks, and settings."" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCalDetails"" label=""Details"" imageMso=""MonthlyView"" onAction=""cptShowCalendarExceptions_frm"" visible=""true"" supertip=""Export Calendar Exceptions, WorkWeeks, and settings."" />"
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
@@ -659,7 +694,15 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
   ribbonXML = ribbonXML + vbCrLf & "</mso:tab>"
-
+  
+'  If cptModuleExists("cptCostRateTables_bas") And cptModuleExists("cptCostRateTables_frm") Then
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:tab idMso=""TabResource"">"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""ClearPlan"" label=""ClearPlan"" visible=""true"">"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCostRateTables2"" onAction=""cptShowCostRateTables_frm""  size=""large"" visible=""true""  label=""Cost Rate Tables"" imageMso=""DataTypeCurrency"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+'    ribbonXML = ribbonXML + vbCrLf & "</mso:tab>"
+'  End If
+  
   'Debug.Print "<mso:customUI ""xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui"" >" & ribbonXML
   cptBuildRibbonTab = ribbonXML
 
@@ -679,9 +722,9 @@ Dim strMsg As String
 
 End Sub
 
-Function cptIncrement(ByRef lgCleanUp As Long) As Long
-  lgCleanUp = lgCleanUp + 1
-  cptIncrement = lgCleanUp
+Function cptIncrement(ByRef lngCleanUp As Long) As Long
+  lngCleanUp = lngCleanUp + 1
+  cptIncrement = lngCleanUp
 End Function
 
 Public Function cptInternetIsConnected() As Boolean
@@ -698,10 +741,10 @@ Dim strMatch As String
 
     Set RE = CreateObject("vbscript.regexp")
     With RE
-        .MultiLine = blnMultiline
-        .Global = True
-        .IgnoreCase = True
-        .Pattern = strRegEx
+      .MultiLine = blnMultiline
+      .Global = True
+      .IgnoreCase = True
+      .Pattern = strRegEx
     End With
 
     Set REMatches = RE.Execute(strText)
@@ -755,7 +798,7 @@ Dim blnExists As Boolean
 'strings
 Dim strError As String
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   blnExists = False
   For Each vbComponent In ThisProject.VBProject.VBComponents
@@ -793,7 +836,7 @@ Dim lngLine As Long
 'variants
 'dates
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If MsgBox("Are you sure?", vbCritical + vbYesNo, "Uninstall CPT") = vbNo Then GoTo exit_here
 
@@ -840,7 +883,7 @@ Dim lngLine As Long
       Application.StatusBar = "Purging module " & vbComponent.Name & "..."
       If Dir(cptDir & "\modules\", vbDirectory) = vbNullString Then MkDir cptDir & "\modules"
       vbComponent.Export cptDir & "\modules\" & vbComponent.Name
-      ThisProject.VBProject.VBComponents.remove vbComponent
+      ThisProject.VBProject.VBComponents.Remove vbComponent
     End If
 next_component:
   Next vbComponent
@@ -924,3 +967,45 @@ Sub cptDate_Www_dd_yy_hh_mmAM()
   DefaultDateFormat = pjDate_Www_dd_yy_hh_mmAM
 End Sub
 
+Sub cptValidateXML(strXML As String)
+  'objects
+  Dim oXML As MSXML2.DOMDocument30
+  'strings
+  Dim strFile As String
+  'longs
+  Dim lngFile As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  strFile = Environ("tmp") & "\cpt-validate.xml"
+  lngFile = FreeFile
+  Open strFile For Output As #lngFile
+  Print #lngFile, strXML
+  Close #lngFile
+  
+  Set oXML = New MSXML2.DOMDocument30
+  If oXML.Load(strFile) Then
+    MsgBox "cpt ribbon xml validated", vbInformation + vbOKOnly, "success"
+  Else
+    MsgBox "cpt ribbon xml validation failed", vbCritical + vbOKOnly, "failure"
+    If oXML.parseError.errorcode <> 0 Then
+      MsgBox oXML.parseError.reason, vbInformation + vbOKOnly, "reason:"
+    End If
+  End If
+
+  Kill strFile
+
+exit_here:
+  On Error Resume Next
+  Set oXML = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptSetup_bas", "cptValidateXML", Err, Erl)
+  Resume exit_here
+End Sub

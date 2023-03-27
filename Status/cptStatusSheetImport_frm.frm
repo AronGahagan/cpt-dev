@@ -13,10 +13,9 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.4</cpt_version>
+
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
-Private Const BLN_TRAP_ERRORS As Boolean = True
-'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
 Private Sub cboAF_Change()
   Call cptRefreshStatusImportTable
@@ -116,7 +115,7 @@ Private Sub cmdRemove_Click()
   Dim vRemove As Variant
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   For lngItem = Me.lboStatusSheets.ListCount - 1 To 0 Step -1
     If Me.lboStatusSheets.Selected(lngItem) Then
@@ -143,6 +142,7 @@ End Sub
 
 Private Sub cmdSelectFiles_Click()
   'objects
+  Dim oShell As Object
   Dim oFileDialog As Object 'FileDialog
   Dim oExcel As Excel.Application
   'strings
@@ -158,7 +158,7 @@ Private Sub cmdSelectFiles_Click()
 
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
     blnQuit = True
@@ -170,7 +170,12 @@ Private Sub cmdSelectFiles_Click()
     .AllowMultiSelect = True
     .ButtonName = "Import"
     .InitialView = 2 'msoFileDialogViewDetails
-    .InitialFileName = ActiveProject.Path & "\" 'todo: ActiveProject.Path, are you serious?
+    If InStr(ActiveProject.Path, "<>\") = 0 Then 'not a server project: use ActiveProject.Path
+      .InitialFileName = ActiveProject.Path & "\"
+    Else 'default to Desktop
+      Set oShell = CreateObject("WScript.Shell")
+      .InitialFileName = oShell.SpecialFolders("Desktop") & "\"
+    End If
     .Title = "Select Returned Status Sheet(s):"
     .Filters.Add "Microsoft Excel Workbook (xlsx)", "*.xlsx"
     If .Show = -1 Then
@@ -189,6 +194,7 @@ Private Sub cmdSelectFiles_Click()
 
 exit_here:
   On Error Resume Next
+  Set oShell = Nothing
   Set oFileDialog = Nothing
   If blnQuit Then oExcel.Quit
   Set oExcel = Nothing
@@ -201,7 +207,7 @@ End Sub
 
 Private Sub lblURL_Click()
 
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If cptInternetIsConnected Then Application.FollowHyperlink "http://www.ClearPlanConsulting.com"
 
@@ -215,6 +221,7 @@ err_here:
 End Sub
 
 Private Sub lboStatusSheets_Change()
+  If InStr(Me.lblStatus.Caption, "Importing") > 0 Then Exit Sub
   If Me.lboStatusSheets.ListCount > 0 Then
     If Not IsNull(Me.lboStatusSheets.ListIndex) Then
       Me.cmdRemove.Enabled = True
@@ -237,7 +244,7 @@ Private Sub lboStatusSheets_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
   'variants
   'dates
   
-  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Me.lboStatusSheets.ListCount > 0 Then
     For lngItem = 0 To Me.lboStatusSheets.ListCount - 1
@@ -246,7 +253,7 @@ Private Sub lboStatusSheets_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
         If Dir(strPath) <> vbNullString Then
           On Error Resume Next
           Set oExcel = GetObject(, "Excel.Application")
-          If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
           oExcel.Workbooks.Open strPath
           oExcel.Visible = True
