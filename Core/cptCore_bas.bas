@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.13.0</cpt_version>
+'<cpt_version>v1.13.1</cpt_version>
 Option Explicit
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
@@ -1789,7 +1789,7 @@ Function cptErrorTrapping() As Boolean
   'variants
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  On Error GoTo err_here 'some users experiencing error on recursive call
 
   strErrorTrapping = cptGetSetting("General", "ErrorTrapping")
   If Len(strErrorTrapping) > 0 Then
