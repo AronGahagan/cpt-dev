@@ -13,7 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.2.1</cpt_version>
+
+'<cpt_version>v1.3.0</cpt_version>
 Option Explicit
 
 Private Sub cmdDone_Click()
@@ -38,6 +39,7 @@ Private Sub cmdSetProgramAcronym_Click()
   Dim oDocProp As DocumentProperty
   Dim oDocProps As DocumentProperties
   'strings
+  Dim strUpdated As String
   Dim strFile As String
   Dim strOld As String, strNew As String
   'longs
@@ -59,7 +61,7 @@ Private Sub cmdSetProgramAcronym_Click()
     strOld = oDocProp.Value
     strNew = Me.txtProgramAcronym
     oDocProp.Value = strNew
-    lngResponse = MsgBox("Also replace all instances of '" & strOld & "' with '" & strNew & "' in stored program data and settings (CEI, Metrics, Marked, Data Dictionary)?" & vbCrLf & vbCrLf & "Hit Cancel to ignore all updates.", vbQuestion + vbYesNoCancel, "Confirm Overwrite")
+    lngResponse = MsgBox("Also replace all instances of '" & strOld & "' with '" & strNew & "' in stored program data and settings (CEI, Data Dictionary, Marked tasks, and Metrics)?" & vbCrLf & vbCrLf & "Hit Cancel to ignore all updates.", vbQuestion + vbYesNoCancel, "Confirm Overwrite")
     Select Case lngResponse
       Case vbYes
         Set oRecordset = CreateObject("ADODB.Recordset")
@@ -80,45 +82,7 @@ Private Sub cmdSetProgramAcronym_Click()
             .Save strFile, adPersistADTG
             .Close
           End With
-          MsgBox Format(lngUpdated, "#,##0") & " record(s) updated in cpt-cei.adtg.", vbInformation + vbOKOnly, "CEI Updated"
-        End If
-        '\settings\cpt-metrics.adtg
-        strFile = cptDir & "\settings\cpt-metrics.adtg"
-        lngUpdated = 0
-        If Dir(strFile) <> vbNullString Then
-          With oRecordset
-            .Open strFile
-            .MoveFirst
-            Do While Not .EOF
-              If .Fields("PROGRAM") = strOld Then
-                .Fields("PROGRAM") = strNew
-                lngUpdated = lngUpdated + 1
-              End If
-              .MoveNext
-            Loop
-            .Save strFile, adPersistADTG
-            .Close
-          End With
-          MsgBox Format(lngUpdated, "#,##0") & " record(s) updated in cpt-metrics.adtg.", vbInformation + vbOKOnly, "Metrics Updated"
-        End If
-        '\cpt-marked.adtg
-        strFile = cptDir & "\cpt-marked.adtg"
-        lngUpdated = 0
-        If Dir(strFile) <> vbNullString Then
-          With oRecordset
-            .Open strFile
-            .MoveFirst
-            Do While Not .EOF
-              If .Fields("PROJECT_ID") = strOld Then
-                .Fields("PROJECT_ID") = strNew
-                lngUpdated = lngUpdated + 1
-              End If
-              .MoveNext
-            Loop
-            .Save strFile, adPersistADTG
-            .Close
-          End With
-          MsgBox Format(lngUpdated, "#,##0") & " record(s) updated in cpt-marked.adtg.", vbInformation + vbOKOnly, "Marked Updated"
+          strUpdated = Format(lngUpdated, "#,##0") & " record(s) updated in CEI data." & vbCrLf
         End If
         'settings\cpt-data-dictionary.adtg
         strFile = cptDir & "\settings\cpt-data-dictionary.adtg"
@@ -137,11 +101,68 @@ Private Sub cmdSetProgramAcronym_Click()
             .Save strFile, adPersistADTG
             .Close
           End With
-          MsgBox Format(lngUpdated, "#,##0") & " record(s) updated in cpt-data-dictionary.adtg.", vbInformation + vbOKOnly, "Data Dictionary Updated"
+          strUpdated = strUpdated & Format(lngUpdated, "#,##0") & " record(s) updated in Data Dictionary." & vbCrLf
         End If
-        
+        '\cpt-marked.adtg
+        strFile = cptDir & "\cpt-marked.adtg"
+        lngUpdated = 0
+        If Dir(strFile) <> vbNullString Then
+          With oRecordset
+            .Open strFile
+            .MoveFirst
+            Do While Not .EOF
+              If .Fields("PROJECT_ID") = strOld Then
+                .Fields("PROJECT_ID") = strNew
+                lngUpdated = lngUpdated + 1
+              End If
+              .MoveNext
+            Loop
+            .Save strFile, adPersistADTG
+            .Close
+          End With
+          strUpdated = strUpdated & Format(lngUpdated, "#,##0") & " record(s) updated in Marked tasks data." & vbCrLf
+        End If
+        '\settings\cpt-metrics.adtg
+        strFile = cptDir & "\settings\cpt-metrics.adtg"
+        lngUpdated = 0
+        If Dir(strFile) <> vbNullString Then
+          With oRecordset
+            .Open strFile
+            .MoveFirst
+            Do While Not .EOF
+              If .Fields("PROGRAM") = strOld Then
+                .Fields("PROGRAM") = strNew
+                lngUpdated = lngUpdated + 1
+              End If
+              .MoveNext
+            Loop
+            .Save strFile, adPersistADTG
+            .Close
+          End With
+          strUpdated = strUpdated & Format(lngUpdated, "#,##0") & " record(s) updated in Metrics data." & vbCrLf
+        End If
+        '\settings\cpt-qbd.adtg
+        strFile = cptDir & "\settings\cpt-qbd.adtg"
+        lngUpdated = 0
+        If Dir(strFile) <> vbNullString Then
+          With oRecordset
+            .Open strFile
+            .MoveFirst
+            Do While Not .EOF
+              If .Fields("PROGRAM") = strOld Then
+                .Fields("PROGRAM") = strNew
+                lngUpdated = lngUpdated + 1
+              End If
+              .MoveNext
+            Loop
+            .Save strFile, adPersistADTG
+            .Close
+          End With
+          strUpdated = strUpdated & Format(lngUpdated, "#,##0") & " record(s) updated in QBD data."
+        End If
+        MsgBox strUpdated, vbInformation + vbOKOnly, "Data Files Updated"
       Case vbNo
-        If MsgBox("CEI, Metrics, Marked tasks, and Data Dictionary entries associated with '" & strOld & "' will be disconnected from this project file. Are you sure you wish to proceed?", vbQuestion + vbYesNo) = vbNo Then
+        If MsgBox("CEI, Data Dictionary, Marked tasks, and Metrics entries associated with '" & strOld & "' will be disconnected from this project file. Are you sure you wish to proceed?", vbQuestion + vbYesNo) = vbNo Then
           oDocProp.Value = strOld
           Me.txtProgramAcronym.Value = strOld
         End If
