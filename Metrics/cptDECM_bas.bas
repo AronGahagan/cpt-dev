@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDECM_bas"
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v0.0.1</cpt_version>
 Option Explicit
 
 Private strWBS As String
