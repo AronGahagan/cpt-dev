@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.11</cpt_version>
+'<cpt_version>v3.3.12</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -310,7 +310,7 @@ Private Sub DataChecks(ByVal curProj As Project)
     Dim tAssBFin As String
     Dim tAssBWork As String
     Dim tempID As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim wpCount As Integer
@@ -1191,7 +1191,7 @@ End Sub
 
 Private Sub MPP_Export(ByVal curProj As Project)
 
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
 
     destFolder = SetDirectory(curProj.ProjectSummaryTask.Project)
@@ -1218,7 +1218,7 @@ Private Sub MPP_Export(ByVal curProj As Project)
 End Sub
 Private Sub XML_Export(ByVal curProj As Project)
 
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
 
     destFolder = SetDirectory(curProj.ProjectSummaryTask.Project)
@@ -1354,7 +1354,7 @@ Private Sub BCWP_Export(ByVal curProj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, ResName, MSWeight, ID, PCNT As String 'v3.3.0
     Dim Milestone As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -1425,7 +1425,7 @@ Private Sub BCWP_Export(ByVal curProj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If EVT = "B" Or EVT = "N" Or EVT = "B Milestone" Or EVT = "N Earning Rules" Then
@@ -1760,7 +1760,7 @@ nrBCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earning Rules" Then
@@ -2140,7 +2140,7 @@ nrBCWP_WP_Match_B:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
                                 
 
@@ -2609,7 +2609,7 @@ BCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
@@ -3072,7 +3072,7 @@ Private Sub ETC_Export(ByVal curProj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT, ShortID As String 'v3.3.5
     Dim Milestone As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -4008,7 +4008,7 @@ Private Sub BCWS_Export(ByVal curProj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, ShortID, PCNT As String 'v3.3.5
     Dim Milestone As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -4098,7 +4098,7 @@ Private Sub BCWS_Export(ByVal curProj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -4241,7 +4241,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4436,7 +4436,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -4638,7 +4638,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4831,7 +4831,7 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, ShortID, PCNT As String 'v3.3.5
     Dim Milestone As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -4921,7 +4921,7 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -5099,7 +5099,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5335,7 +5335,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -5606,7 +5606,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5920,7 +5920,7 @@ Private Sub Get_WP_Descriptions(ByVal curProj As Project)
     Dim X As Integer
     '<issue47>
     Dim subProjs As Subprojects
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim curSProj As Project
     Dim t As Task '</issue47>
 
@@ -6068,13 +6068,20 @@ End Sub
 
 Private Function IsInArray(ByVal stringToBeFound As String, ByVal arr As Variant) As Boolean
 'v3.3.11 - rewrote function to mitigate false positives on null WP strings
+
     Dim i As Integer
+    
     For i = 1 To UBound(arr)
+        
         If arr(i) = stringToBeFound Then
+        
             IsInArray = True
             Exit Function
+        
         End If
+        
     Next i
+    
     IsInArray = False
 End Function
 
@@ -6103,7 +6110,7 @@ Private Function Find_BCRs(ByVal curProj As Project, ByVal fWP As String, ByVal 
     Dim X As Integer
     Dim tempBCRstr As String
     Dim subProjs As Subprojects
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim curSProj As Project
 
     i = 0
@@ -6121,38 +6128,44 @@ Private Function Find_BCRs(ByVal curProj As Project, ByVal fWP As String, ByVal 
             For Each t In curSProj.Tasks
 
                 If Not t Is Nothing Then
-
-                    tempBCRstr = t.GetField(FieldNameToFieldConstant(fBCR))
-
-                    If InStr(tempBCRstr, BCRnum) > 0 Then
-
-                        If i = 0 Then
-                            i = 1
+                
+                    If t.Active = True And t.Summary = False Then
+                    '3.3.12: ignore summary and inactive tasks
+                    
+                        tempBCRstr = t.GetField(FieldNameToFieldConstant(fBCR))
+    
+                        If InStr(tempBCRstr, BCRnum) > 0 Then
+    
+                            If i = 0 Then
+                                i = 1
+                            End If
+    
+                            If i = 1 Then
+    
+                                ReDim BCR_WP(1 To i)
+                                BCR_WP(i) = t.GetField(FieldNameToFieldConstant(fWP))
+                                Debug.Print "Storing BCR ID: " & BCR_WP(i)
+                                i = i + 1
+    
+                            Else
+    
+                                For X = 1 To UBound(BCR_WP)
+                                    If BCR_WP(X) = t.GetField(FieldNameToFieldConstant(fWP)) Then
+                                        GoTo Next_SubProj_WPtask
+                                    End If
+                                Next X
+    
+                                ReDim Preserve BCR_WP(1 To i)
+                                BCR_WP(i) = t.GetField(FieldNameToFieldConstant(fWP))
+                                Debug.Print "Storing BCR ID: " & BCR_WP(i)
+                                i = i + 1
+    
+                            End If
+    
                         End If
-
-                        If i = 1 Then
-
-                            ReDim BCR_WP(1 To i)
-                            BCR_WP(i) = t.GetField(FieldNameToFieldConstant(fWP))
-                            Debug.Print "Storing BCR ID: " & BCR_WP(i)
-                            i = i + 1
-
-                        Else
-
-                            For X = 1 To UBound(BCR_WP)
-                                If BCR_WP(X) = t.GetField(FieldNameToFieldConstant(fWP)) Then
-                                    GoTo Next_SubProj_WPtask
-                                End If
-                            Next X
-
-                            ReDim Preserve BCR_WP(1 To i)
-                            BCR_WP(i) = t.GetField(FieldNameToFieldConstant(fWP))
-                            Debug.Print "Storing BCR ID: " & BCR_WP(i)
-                            i = i + 1
-
-                        End If
-
+                        
                     End If
+                    
                 End If
 Next_SubProj_WPtask:
 
@@ -6165,36 +6178,42 @@ Next_SubProj_WPtask:
         For Each t In curProj.Tasks
 
             If Not t Is Nothing Then
-                tempBCRstr = t.GetField(FieldNameToFieldConstant(fBCR))
-
-                If InStr(tempBCRstr, BCRnum) > 0 Then
-
-                    If i = 0 Then
-                        i = 1
+            
+                If t.Active = True And t.Summary = False Then
+                '3.3.12: ignore summary and inactive tasks
+                
+                    tempBCRstr = t.GetField(FieldNameToFieldConstant(fBCR))
+    
+                    If InStr(tempBCRstr, BCRnum) > 0 Then
+    
+                        If i = 0 Then
+                            i = 1
+                        End If
+    
+                        If i = 1 Then
+    
+                            ReDim BCR_WP(1 To i)
+                            BCR_WP(i) = t.GetField(FieldNameToFieldConstant(fWP))
+                            Debug.Print "Storing BCR ID: " & BCR_WP(i)
+                            i = i + 1
+    
+                        Else
+    
+                            For X = 1 To UBound(BCR_WP)
+                                If BCR_WP(X) = t.GetField(FieldNameToFieldConstant(fWP)) Then
+                                    GoTo Next_WPtask
+                                End If
+                            Next X
+    
+                            ReDim Preserve BCR_WP(1 To i)
+                            BCR_WP(i) = t.GetField(FieldNameToFieldConstant(fWP))
+                            Debug.Print "Storing BCR ID: " & BCR_WP(i)
+                            i = i + 1
+    
+                        End If
+    
                     End If
-
-                    If i = 1 Then
-
-                        ReDim BCR_WP(1 To i)
-                        BCR_WP(i) = t.GetField(FieldNameToFieldConstant(fWP))
-                        Debug.Print "Storing BCR ID: " & BCR_WP(i)
-                        i = i + 1
-
-                    Else
-
-                        For X = 1 To UBound(BCR_WP)
-                            If BCR_WP(X) = t.GetField(FieldNameToFieldConstant(fWP)) Then
-                                GoTo Next_WPtask
-                            End If
-                        Next X
-
-                        ReDim Preserve BCR_WP(1 To i)
-                        BCR_WP(i) = t.GetField(FieldNameToFieldConstant(fWP))
-                        Debug.Print "Storing BCR ID: " & BCR_WP(i)
-                        i = i + 1
-
-                    End If
-
+                    
                 End If
 
             End If
