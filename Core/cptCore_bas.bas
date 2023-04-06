@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.13.1</cpt_version>
+'<cpt_version>v1.13.2</cpt_version>
 Option Explicit
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
@@ -550,7 +550,7 @@ Sub cptResetAll()
       lngSettings = lngSettings - 16
     End If
     If lngSettings >= 8 Then 'expand all tasks
-      OptionsViewEx displaysummarytasks:=True
+      OptionsViewEx DisplaySummaryTasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -563,7 +563,7 @@ Sub cptResetAll()
       End If
       If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If ActiveProject.Subprojects.Count > 0 Then
-        OptionsViewEx displaysummarytasks:=True
+        OptionsViewEx DisplaySummaryTasks:=True
         If Not blnFilter Then
           strFilter = ActiveProject.CurrentFilter
         End If
@@ -575,7 +575,7 @@ Sub cptResetAll()
       If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       lngSettings = lngSettings - 8
     Else 'expand to specific level
-      OptionsViewEx displaysummarytasks:=True
+      OptionsViewEx DisplaySummaryTasks:=True
       On Error Resume Next
       If Not OutlineShowAllTasks Then
         If MsgBox("In order to Expand All Tasks, the Outline Structure must be retained in the Sort order. OK to Sort by ID?", vbExclamation + vbYesNo, "Conflict: Sort") = vbYes Then
@@ -593,10 +593,10 @@ Sub cptResetAll()
       Next lngLevel
     End If
     If lngSettings >= 4 Then 'show summaries
-      OptionsViewEx displaysummarytasks:=True
+      OptionsViewEx DisplaySummaryTasks:=True
       lngSettings = lngSettings - 4
     Else
-      OptionsViewEx displaysummarytasks:=False
+      OptionsViewEx DisplaySummaryTasks:=False
     End If
     If lngSettings >= 2 Then 'clear group
       GroupClear
@@ -1241,7 +1241,7 @@ Dim lngLevel As Long
   Application.OpenUndoTransaction "WrapItUp"
   'FilterClear 'do not reset, keep autofilters
   'GroupClear 'do not reset, applies to groups to
-  OptionsViewEx displaysummarytasks:=True
+  OptionsViewEx DisplaySummaryTasks:=True
   SelectAll
   On Error Resume Next
   If Not OutlineShowAllTasks Then
@@ -1289,7 +1289,7 @@ Sub cptWrapItUpAll()
     ActiveProject.Application.ActiveWindow.TopPane.Activate
   End If
   '===
-  OptionsViewEx displaysummarytasks:=True
+  OptionsViewEx DisplaySummaryTasks:=True
   On Error Resume Next
   If ActiveProject.Subprojects.Count > 0 Then
     FilterClear
@@ -2010,7 +2010,6 @@ Sub cptGetSums(ByRef oTasks As MSProject.Tasks, lngFieldID As Long)
       If strFieldName = "Actual Cost" Then dblCost = dblCost + oTask.ActualCost
       If strFieldName = "Cost" Then dblCost = dblCost + oTask.Cost
       If strFieldName = "Remaining Cost" Then dblCost = dblCost + oTask.RemainingCost
-      If strFieldName = "Cost" Then dblCost = dblCost + oTask.Cost
       If strFieldName = "Cost1" Then dblCost = dblCost + oTask.Cost1
       If strFieldName = "Cost2" Then dblCost = dblCost + oTask.Cost2
       If strFieldName = "Cost3" Then dblCost = dblCost + oTask.Cost3
