@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFiscal_bas"
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.0.1</cpt_version>
 Option Explicit
 
 Sub cptShowFiscal_frm()
@@ -93,7 +93,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFiscal_bas", "cptShowCptFiscalFrm", Err, Erl)
+  Call cptHandleErr("cptFiscal_bas", "cptShowCptFiscal_frm", Err, Erl)
   Resume exit_here
 End Sub
 

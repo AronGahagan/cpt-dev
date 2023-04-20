@@ -59,14 +59,14 @@
 	<Module>
 		<Name>cptCalendarExceptions_bas</Name>
 		<FileName>cptCalendarExceptions_bas.bas</FileName>
-		<Version>v1.0.6</Version>
+		<Version>v1.0.7</Version>
 		<Type>1</Type>
 		<Directory>Calendar</Directory>
 	</Module>
 	<Module>
 		<Name>cptCalendarExceptions_frm</Name>
 		<FileName>cptCalendarExceptions_frm.frm</FileName>
-		<Version>v1.0.6</Version>
+		<Version>v1.0.7</Version>
 		<Type>3</Type>
 		<Directory>Calendar</Directory>
 	</Module>
@@ -192,14 +192,14 @@
 	<Module>
 		<Name>cptFiscal_bas</Name>
 		<FileName>cptFiscal_bas.bas</FileName>
-		<Version>v1.0.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>1</Type>
 		<Directory>Calendar</Directory>
 	</Module>
 	<Module>
 		<Name>cptFiscal_frm</Name>
 		<FileName>cptFiscal_frm.frm</FileName>
-		<Version>v1.0.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>3</Type>
 		<Directory>Calendar</Directory>
 	</Module>
@@ -325,7 +325,7 @@
 	<Module>
 		<Name>cptSetup_bas</Name>
 		<FileName>cptSetup_bas.bas</FileName>
-		<Version>v1.8.0</Version>
+		<Version>v1.8.1</Version>
 		<Type>1</Type>
 		<Directory></Directory>
 	</Module>
@@ -374,14 +374,14 @@
 	<Module>
 		<Name>cptTaskHistory_bas</Name>
 		<FileName>cptTaskHistory_bas.bas</FileName>
-		<Version>v1.0.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>1</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptTaskHistory_frm</Name>
 		<FileName>cptTaskHistory_frm.frm</FileName>
-		<Version>v1.0.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
