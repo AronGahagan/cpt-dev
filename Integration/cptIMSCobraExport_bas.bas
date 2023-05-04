@@ -6122,7 +6122,7 @@ Private Function Find_BCRs(ByVal curProj As Project, ByVal fWP As String, ByVal 
 
                 If Not t Is Nothing Then
                 
-                    If t.Active = True And t.Summary = False Then
+                    If t.Active = True And t.ExternalTask = False Then
                     '3.3.12: ignore summary and inactive tasks
                     
                         tempBCRstr = t.GetField(FieldNameToFieldConstant(fBCR))
@@ -6172,7 +6172,7 @@ Next_SubProj_WPtask:
 
             If Not t Is Nothing Then
             
-                If t.Active = True And t.Summary = False Then
+                If t.Active = True And t.ExternalTask = False Then
                 '3.3.12: ignore summary and inactive tasks
                 
                     tempBCRstr = t.GetField(FieldNameToFieldConstant(fBCR))
