@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDynamicFilter_bas"
-'<cpt_version>v1.6.1</cpt_version>
+'<cpt_version>v1.6.2</cpt_version>
 Option Explicit
 Private pCachedRegexes As Scripting.Dictionary
 
@@ -53,11 +53,15 @@ Dim vArray As Variant
       Next lngItem
       
       'remove terminal comma, reducing array size by one
-      strCustomFields = Left(strCustomFields, Len(strCustomFields) - 1)
-      vArray = Split(strCustomFields, ",")
-      Call cptQuickSort(vArray, 0, UBound(vArray))
-      'join vArray into string, prepend 'Task Name', split into array
-      .List = Split("Task Name," & Join(vArray, ","), ",")
+      If Len(strCustomFields) > 0 Then
+        strCustomFields = Left(strCustomFields, Len(strCustomFields) - 1)
+        vArray = Split(strCustomFields, ",")
+        Call cptQuickSort(vArray, 0, UBound(vArray))
+        'join vArray into string, prepend 'Task Name', split into array
+        .List = Split("Task Name," & Join(vArray, ","), ",")
+      Else
+        .List = Array("Task Name")
+      End If
     End With
     With .cboOperator
       .Clear
@@ -214,7 +218,7 @@ Public Function cptRxTest( _
     ByVal Pattern As String, _
     Optional ByVal IgnoreCase As Boolean = True, _
     Optional ByVal MultiLine As Boolean = True) As Boolean
- 
+    
     ' Wow, that was easy:
     cptRxTest = cptGetRegex(Pattern, IgnoreCase, MultiLine, False).Test(SourceString)
     
