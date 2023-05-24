@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.4.0</cpt_version>
+'<cpt_version>v1.4.1</cpt_version>
 Option Explicit
 
 Sub cptGetBAC()
@@ -226,7 +226,7 @@ Dim dtConstraintDate As Date
       FilterClear
       GroupClear
       Application.Sort "ID", , , , , , , True
-      OptionsViewEx DisplaySummaryTasks:=True, displaynameindent:=True, displayoutlinesymbols:=True
+      OptionsViewEx DisplaySummaryTasks:=True, DisplayNameIndent:=True, displayoutlinesymbols:=True
       OutlineShowAllTasks
       EditGoTo oTask.ID
     Else
@@ -560,7 +560,7 @@ Dim dtStatus As Date
   ActiveWindow.TopPane.Activate
   FilterClear
   GroupClear
-  OptionsViewEx DisplaySummaryTasks:=True, displaynameindent:=True
+  OptionsViewEx DisplaySummaryTasks:=True, DisplayNameIndent:=True
   On Error Resume Next
   If Not OutlineShowAllTasks Then
     Sort "ID", , , , , , False, True
@@ -789,17 +789,30 @@ Sub cptCaptureWeek()
   Dim strFile As String
   Dim strDir As String
   'longs
+  Dim lngSelectedUID As Long
+  Dim lngLeft As Long
+  Dim lngTop As Long
+  Dim lngResponse As Long
   Dim lngEVT As Long
   Dim lngTasks As Long
   Dim lngTask As Long
   'integers
   'doubles
   'booleans
+  Dim blnReopenTaskHistory As Boolean
   'variants
   'dates
   Dim dtStatus As Date
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If Not cptGetUserForm("cptTaskHistory_frm") Is Nothing Then
+    blnReopenTaskHistory = True
+    lngTop = cptTaskHistory_frm.Top
+    lngLeft = cptTaskHistory_frm.Left
+    lngSelectedUID = cptTaskHistory_frm.lngTaskHistoryUID
+    Unload cptTaskHistory_frm
+  End If
   
   'ensure status date
   If Not IsDate(ActiveProject.StatusDate) Then
@@ -933,6 +946,15 @@ next_task:
 do_not_overwrite:
   rst.Close
   Application.StatusBar = "Complete."
+  
+  If blnReopenTaskHistory Then
+    Application.ScreenUpdating = False
+    Call cptShowTaskHistory_frm
+    cptTaskHistory_frm.Top = lngTop
+    cptTaskHistory_frm.Left = lngLeft
+    EditGoTo ActiveProject.Tasks.UniqueID(lngSelectedUID).ID
+    Application.ScreenUpdating = True
+  End If
   
 exit_here:
   On Error Resume Next
