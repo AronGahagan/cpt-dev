@@ -388,7 +388,6 @@ Sub cptTargetToCost()
   
   'todo: if work resource has no cost, then ignore it
   'todo: rounding is causing problems
-  'todo: you can figure out AccrueAt=pjEnd don't be lazy
   
   For Each oTask In oTasks
     If oTask Is Nothing Then GoTo next_task

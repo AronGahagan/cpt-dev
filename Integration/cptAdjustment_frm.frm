@@ -91,11 +91,14 @@ Private Sub tglScope_Click()
     Me.tglScope.BackColor = &H8000&
     Me.cboResources.Value = 0
     Me.cboResources.Enabled = False
+    Me.chkIgnoreTaskType.Value = True
+    Me.chkIgnoreTaskType.Enabled = False
   Else
     Me.tglScope.Caption = "HOURS"
     Me.tglScope.ControlTipText = "Adjust Remaining Work"
     Me.tglScope.BackColor = &H8000000F
     Me.cboResources.Enabled = True
+    Me.chkIgnoreTaskType.Enabled = True
   End If
   If Me.Visible Then cptRefreshAdjustment
 End Sub
