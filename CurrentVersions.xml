@@ -10,14 +10,14 @@
 	<Module>
 		<Name>cptAdjustment_bas</Name>
 		<FileName>cptAdjustment_bas.bas</FileName>
-		<Version>v0.0.2</Version>
+		<Version>v0.0.3</Version>
 		<Type>1</Type>
 		<Directory>Integration</Directory>
 	</Module>
 	<Module>
 		<Name>cptAdjustment_frm</Name>
 		<FileName>cptAdjustment_frm.frm</FileName>
-		<Version>v0.0.2</Version>
+		<Version>v0.0.3</Version>
 		<Type>3</Type>
 		<Directory>Integration</Directory>
 	</Module>

@@ -4,7 +4,7 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptAdjustment_frm
    ClientHeight    =   4335
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   6330
+   ClientWidth     =   7725
    OleObjectBlob   =   "cptAdjustment_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -14,7 +14,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-'<cpt_version>v0.0.2</cpt_version>
+'<cpt_version>v0.0.3</cpt_version>
 Option Explicit
 
 Private Sub cboResources_Change()
@@ -32,9 +32,17 @@ Private Sub cmdApply_Click()
     Exit Sub
   End If
   
-  Call cptApplyAdjustment
+  If Not Me.tglScope Then 'hours
+    Call cptApplyAdjustment
+  Else 'dollars
+    Call cptTargetToCost
+  End If
   Call cptRefreshAdjustment
     
+End Sub
+
+Private Sub cmdCancel_Click()
+  Unload Me
 End Sub
 
 Private Sub cmdUndo_Click()
@@ -42,14 +50,30 @@ Private Sub cmdUndo_Click()
   cptRefreshAdjustment
 End Sub
 
+Private Sub lblURL_Click()
+
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  If cptInternetIsConnected Then Application.FollowHyperlink ("http://" & Me.lblURL.Caption)
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptAdjustment_frm", "lblURL", Err, Erl)
+  Resume exit_here
+
+End Sub
+
 Private Sub optDelta_Click()
-  Me.txtAmount.ControlTipText = "Add/Reduce by set number of hours"
+  Me.txtAmount.ControlTipText = "Add/Reduce by set number of " & IIf(Me.tglScope, "hours", "dollars")
   'stick to apportioning by remaining work
   cptRefreshAdjustment
 End Sub
 
 Private Sub optPercent_Click()
-  Me.txtAmount.ControlTipText = "Please use decimal format"
+  Me.txtAmount.ControlTipText = "Please use decimal format (50% = '.5')"
   'stick to apportioning by remaining work
   cptRefreshAdjustment
 End Sub
@@ -57,6 +81,22 @@ End Sub
 Private Sub optTarget_Click()
   Me.txtAmount.ControlTipText = "Apportion to hit Target"
   'stick to apportioning by remaining work
+  If Me.Visible Then cptRefreshAdjustment
+End Sub
+
+Private Sub tglScope_Click()
+  If Me.tglScope Then
+    Me.tglScope.Caption = "DOLLARS"
+    Me.tglScope.ControlTipText = "Adjust Remaining Cost"
+    Me.tglScope.BackColor = &H8000&
+    Me.cboResources.Value = 0
+    Me.cboResources.Enabled = False
+  Else
+    Me.tglScope.Caption = "HOURS"
+    Me.tglScope.ControlTipText = "Adjust Remaining Work"
+    Me.tglScope.BackColor = &H8000000F
+    Me.cboResources.Enabled = True
+  End If
   If Me.Visible Then cptRefreshAdjustment
 End Sub
 
