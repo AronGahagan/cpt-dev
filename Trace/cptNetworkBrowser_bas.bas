@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
-'<cpt_version>v1.1.0</cpt_version>
+'<cpt_version>v1.1.1</cpt_version>
 Option Explicit
 Public oSubMap As Scripting.Dictionary
 
@@ -493,8 +493,8 @@ End Sub
 
 Sub cptSortNetworkBrowserLinks(strWhich As String, Optional blnDescending = False)
   'objects
-  Dim oComboBox As ComboBox
-  Dim oListBox As ListBox
+  Dim oComboBox As Object 'MSForms.ComboBox
+  Dim oListBox As Object 'MSForms.ListBox
   Dim oRecordset As ADODB.Recordset
   'strings
   Dim strSortBy As String
