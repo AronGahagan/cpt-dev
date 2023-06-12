@@ -1,10 +1,10 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.13.2</cpt_version>
+'<cpt_version>v1.13.3</cpt_version>
 Option Explicit
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
-  Private Declare PtrSafe Function GetPrivateProfileString Lib "Kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
-  Private Declare PtrSafe Function SetPrivateProfileString Lib "Kernel32" Alias "WritePrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpString As Any, ByVal lpFileName As String) As Long
+  Private Declare PtrSafe Function GetPrivateProfileString Lib "kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
+  Private Declare PtrSafe Function SetPrivateProfileString Lib "kernel32" Alias "WritePrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpString As Any, ByVal lpFileName As String) As Long
 #Else
   Private Declare Function GetPrivateProfileString lib "kernel32" Alias "GetPrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
   Private Declare Function SetPrivateProfileString lib "kernel32" Alias "WritePrivateProfileStringA" (ByVal lpApplicationName As String, ByVal lpKeyName As Any, ByVal lpString As Any, ByVal lpFileName As String) As Long
@@ -1032,38 +1032,35 @@ Dim vPath As Variant
 
   'office applications
   'strDir = cptRegEx(Environ("PATH"), "C:\\[^;]*Office[0-9]{1,}\\")
-  strDir = ""
-  For Each vPath In Split(Environ("PATH"), ";")
-    If InStr(vPath, "Office") > 0 Then
-      If Dir(CStr(vPath) & "EXCEL.EXE") <> vbNullString Then
-        strDir = vPath
-        Exit For
-      End If
-    End If
-  Next vPath
-
-  If Len(strDir) = 0 Then 'weird installation or Excel not installed
-    MsgBox "Microsoft Office installation is not detetcted. Some features may not operate as expected." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for specialized assistance.", vbCritical + vbOKOnly, "Microsoft Office Compatibility"
-    GoTo windows_common
-  End If
   
   If Not cptReferenceExists("Excel") Then
+    strDir = cptGetOfficeDir
+    If strDir = "" Then GoTo windows_common
     ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
   End If
   If Not cptReferenceExists("Outlook") Then
+    strDir = cptGetOfficeDir
+    If strDir = "" Then GoTo windows_common
     ThisProject.VBProject.References.AddFromFile strDir & "\MSOUTL.OLB"
   End If
   If Not cptReferenceExists("PowerPoint") Then
+    strDir = cptGetOfficeDir
+    If strDir = "" Then GoTo windows_common
     ThisProject.VBProject.References.AddFromFile strDir & "\MSPPT.OLB"
   End If
   If Not cptReferenceExists("MSProject") Then
+    strDir = cptGetOfficeDir
+    If strDir = "" Then GoTo windows_common
     ThisProject.VBProject.References.AddFromFile strDir & "\MSPRJ.OLB"
   End If
   If Not cptReferenceExists("Word") Then
+    strDir = cptGetOfficeDir
+    If strDir = "" Then GoTo windows_common
     ThisProject.VBProject.References.AddFromFile strDir & "\MSWORD.OLB"
   End If
 
   'Windows Common
+  'odd other path: C:\Program Files\Microsoft Office\root\vfs\System
 windows_common:
   If Not cptReferenceExists("MSForms") Then
     ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\SysWOW64\FM20.DLL"
@@ -1099,6 +1096,29 @@ err_here:
   Resume exit_here
 
 End Sub
+
+Function cptGetOfficeDir() As String
+  Dim strDir As String
+  Dim vPath As Variant
+  
+  strDir = ""
+  For Each vPath In Split(Environ("PATH"), ";")
+    If InStr(vPath, "Office") > 0 Then
+      If Dir(CStr(vPath) & "EXCEL.EXE") <> vbNullString Then
+        strDir = vPath
+        Exit For
+      End If
+    End If
+  Next vPath
+
+  If Len(strDir) > 0 Then
+    cptGetOfficeDir = strDir
+  ElseIf Len(strDir) = 0 Then 'weird installation or Excel not installed
+    cptGetOfficeDir = strDir
+    MsgBox "Microsoft Office installation is not detetcted. Some features may not operate as expected." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for specialized assistance.", vbCritical + vbOKOnly, "Microsoft Office Compatibility"
+  End If
+  
+End Function
 
 Sub cptSubmitIssue()
   If Not Application.FollowHyperlink("https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUQ0VSV1JBRU4xQ1E5VUkyQjE5RDcwQllWRSQlQCN0PWcu", , , True) Then
