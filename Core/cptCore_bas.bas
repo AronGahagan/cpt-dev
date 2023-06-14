@@ -2027,94 +2027,179 @@ Sub cptGetSums(ByRef oTasks As MSProject.Tasks, lngFieldID As Long)
       If oTask.GetField(lngFieldID) = "#ERROR" Then GoTo next_task
       'do not ignore external tasks
       'do not ignore summary tasks
-      If strFieldName = "Actual Cost" Then dblCost = dblCost + oTask.ActualCost
-      If strFieldName = "Cost" Then dblCost = dblCost + oTask.Cost
-      If strFieldName = "Remaining Cost" Then dblCost = dblCost + oTask.RemainingCost
-      If strFieldName = "Cost1" Then dblCost = dblCost + oTask.Cost1
-      If strFieldName = "Cost2" Then dblCost = dblCost + oTask.Cost2
-      If strFieldName = "Cost3" Then dblCost = dblCost + oTask.Cost3
-      If strFieldName = "Cost4" Then dblCost = dblCost + oTask.Cost4
-      If strFieldName = "Cost5" Then dblCost = dblCost + oTask.Cost5
-      If strFieldName = "Cost6" Then dblCost = dblCost + oTask.Cost6
-      If strFieldName = "Cost7" Then dblCost = dblCost + oTask.Cost7
-      If strFieldName = "Cost8" Then dblCost = dblCost + oTask.Cost8
-      If strFieldName = "Cost9" Then dblCost = dblCost + oTask.Cost9
-      If strFieldName = "Cost10" Then dblCost = dblCost + oTask.Cost10
-      
-      If strFieldName = "Baseline Cost" Then dblCost = dblCost + oTask.BaselineCost
-      If strFieldName = "Baseline1 Cost" Then dblCost = dblCost + oTask.Baseline1Cost
-      If strFieldName = "Baseline2 Cost" Then dblCost = dblCost + oTask.Baseline2Cost
-      If strFieldName = "Baseline3 Cost" Then dblCost = dblCost + oTask.Baseline3Cost
-      If strFieldName = "Baseline4 Cost" Then dblCost = dblCost + oTask.Baseline4Cost
-      If strFieldName = "Baseline5 Cost" Then dblCost = dblCost + oTask.Baseline5Cost
-      If strFieldName = "Baseline6 Cost" Then dblCost = dblCost + oTask.Baseline6Cost
-      If strFieldName = "Baseline7 Cost" Then dblCost = dblCost + oTask.Baseline7Cost
-      If strFieldName = "Baseline8 Cost" Then dblCost = dblCost + oTask.Baseline8Cost
-      If strFieldName = "Baseline9 Cost" Then dblCost = dblCost + oTask.Baseline9Cost
-      If strFieldName = "Baseline10 Cost" Then dblCost = dblCost + oTask.Baseline10Cost
-      
-      If strFieldName = "Actual Duration" Then lngDuration = lngDuration + oTask.ActualDuration
-      If strFieldName = "Duration" Then lngDuration = lngDuration + oTask.Duration
-      If strFieldName = "Remaining Duration" Then lngDuration = lngDuration + oTask.RemainingDuration
-      If strFieldName = "Duration1" Then lngDuration = lngDuration + oTask.Duration1
-      If strFieldName = "Duration2" Then lngDuration = lngDuration + oTask.Duration2
-      If strFieldName = "Duration3" Then lngDuration = lngDuration + oTask.Duration3
-      If strFieldName = "Duration4" Then lngDuration = lngDuration + oTask.Duration4
-      If strFieldName = "Duration5" Then lngDuration = lngDuration + oTask.Duration5
-      If strFieldName = "Duration6" Then lngDuration = lngDuration + oTask.Duration6
-      If strFieldName = "Duration7" Then lngDuration = lngDuration + oTask.Duration7
-      If strFieldName = "Duration8" Then lngDuration = lngDuration + oTask.Duration8
-      If strFieldName = "Duration9" Then lngDuration = lngDuration + oTask.Duration9
-      If strFieldName = "Duration10" Then lngDuration = lngDuration + oTask.Duration10
-      
-      If strFieldName = "Baseline Duration" Then lngDuration = lngDuration + oTask.BaselineDuration
-      If strFieldName = "Baseline1 Duration" Then lngDuration = lngDuration + oTask.Baseline1Duration
-      If strFieldName = "Baseline2 Duration" Then lngDuration = lngDuration + oTask.Baseline2Duration
-      If strFieldName = "Baseline3 Duration" Then lngDuration = lngDuration + oTask.Baseline3Duration
-      If strFieldName = "Baseline4 Duration" Then lngDuration = lngDuration + oTask.Baseline4Duration
-      If strFieldName = "Baseline5 Duration" Then lngDuration = lngDuration + oTask.Baseline5Duration
-      If strFieldName = "Baseline6 Duration" Then lngDuration = lngDuration + oTask.Baseline6Duration
-      If strFieldName = "Baseline7 Duration" Then lngDuration = lngDuration + oTask.Baseline7Duration
-      If strFieldName = "Baseline8 Duration" Then lngDuration = lngDuration + oTask.Baseline8Duration
-      If strFieldName = "Baseline9 Duration" Then lngDuration = lngDuration + oTask.Baseline9Duration
-      If strFieldName = "Baseline10 Duration" Then lngDuration = lngDuration + oTask.Baseline10Duration
-                  
-      If strFieldName = "Number" Then dblNumber = dblNumber + oTask.Number
-      If strFieldName = "Number1" Then dblNumber = dblNumber + oTask.Number1
-      If strFieldName = "Number2" Then dblNumber = dblNumber + oTask.Number2
-      If strFieldName = "Number3" Then dblNumber = dblNumber + oTask.Number3
-      If strFieldName = "Number4" Then dblNumber = dblNumber + oTask.Number4
-      If strFieldName = "Number5" Then dblNumber = dblNumber + oTask.Number5
-      If strFieldName = "Number6" Then dblNumber = dblNumber + oTask.Number6
-      If strFieldName = "Number7" Then dblNumber = dblNumber + oTask.Number7
-      If strFieldName = "Number8" Then dblNumber = dblNumber + oTask.Number8
-      If strFieldName = "Number9" Then dblNumber = dblNumber + oTask.Number9
-      If strFieldName = "Number10" Then dblNumber = dblNumber + oTask.Number10
-      If strFieldName = "Number11" Then dblNumber = dblNumber + oTask.Number11
-      If strFieldName = "Number12" Then dblNumber = dblNumber + oTask.Number12
-      If strFieldName = "Number13" Then dblNumber = dblNumber + oTask.Number13
-      If strFieldName = "Number14" Then dblNumber = dblNumber + oTask.Number14
-      If strFieldName = "Number15" Then dblNumber = dblNumber + oTask.Number15
-      If strFieldName = "Number16" Then dblNumber = dblNumber + oTask.Number16
-      If strFieldName = "Number17" Then dblNumber = dblNumber + oTask.Number17
-      If strFieldName = "Number18" Then dblNumber = dblNumber + oTask.Number18
-      If strFieldName = "Number19" Then dblNumber = dblNumber + oTask.Number19
-      If strFieldName = "Number20" Then dblNumber = dblNumber + oTask.Number20
-      
-      If strFieldName = "Actual Work" Then dblWork = dblWork + oTask.ActualWork
-      If strFieldName = "Work" Then dblWork = dblWork + oTask.Work
-      If strFieldName = "Remaining Work" Then dblWork = dblWork + oTask.RemainingWork
-      If strFieldName = "Baseline Work" Then dblWork = dblWork + oTask.BaselineWork
-      If strFieldName = "Baseline1 Work" Then dblWork = dblWork + oTask.Baseline1Work
-      If strFieldName = "Baseline2 Work" Then dblWork = dblWork + oTask.Baseline2Work
-      If strFieldName = "Baseline3 Work" Then dblWork = dblWork + oTask.Baseline3Work
-      If strFieldName = "Baseline4 Work" Then dblWork = dblWork + oTask.Baseline4Work
-      If strFieldName = "Baseline5 Work" Then dblWork = dblWork + oTask.Baseline5Work
-      If strFieldName = "Baseline6 Work" Then dblWork = dblWork + oTask.Baseline6Work
-      If strFieldName = "Baseline7 Work" Then dblWork = dblWork + oTask.Baseline7Work
-      If strFieldName = "Baseline8 Work" Then dblWork = dblWork + oTask.Baseline8Work
-      If strFieldName = "Baseline9 Work" Then dblWork = dblWork + oTask.Baseline9Work
-      If strFieldName = "Baseline10 Work" Then dblWork = dblWork + oTask.Baseline10Work
+      Select Case strFieldName
+        Case "Actual Cost"
+          dblCost = dblCost + oTask.ActualCost
+        Case "Cost"
+          dblCost = dblCost + oTask.Cost
+        Case "Remaining Cost"
+          dblCost = dblCost + oTask.RemainingCost
+        Case "Cost1"
+          dblCost = dblCost + oTask.Cost1
+        Case "Cost2"
+          dblCost = dblCost + oTask.Cost2
+        Case "Cost3"
+          dblCost = dblCost + oTask.Cost3
+        Case "Cost4"
+          dblCost = dblCost + oTask.Cost4
+        Case "Cost5"
+          dblCost = dblCost + oTask.Cost5
+        Case "Cost6"
+          dblCost = dblCost + oTask.Cost6
+        Case "Cost7"
+          dblCost = dblCost + oTask.Cost7
+        Case "Cost8"
+          dblCost = dblCost + oTask.Cost8
+        Case "Cost9"
+          dblCost = dblCost + oTask.Cost9
+        Case "Cost10"
+          dblCost = dblCost + oTask.Cost10
+          
+        Case "Baseline Cost"
+          dblCost = dblCost + Val(oTask.BaselineCost)
+        Case "Baseline1 Cost"
+          dblCost = dblCost + Val(oTask.Baseline1Cost)
+        Case "Baseline2 Cost"
+          dblCost = dblCost + Val(oTask.Baseline2Cost)
+        Case "Baseline3 Cost"
+          dblCost = dblCost + Val(oTask.Baseline3Cost)
+        Case "Baseline4 Cost"
+          dblCost = dblCost + Val(oTask.Baseline4Cost)
+        Case "Baseline5 Cost"
+          dblCost = dblCost + Val(oTask.Baseline5Cost)
+        Case "Baseline6 Cost"
+          dblCost = dblCost + Val(oTask.Baseline6Cost)
+        Case "Baseline7 Cost"
+          dblCost = dblCost + Val(oTask.Baseline7Cost)
+        Case "Baseline8 Cost"
+          dblCost = dblCost + Val(oTask.Baseline8Cost)
+        Case "Baseline9 Cost"
+          dblCost = dblCost + Val(oTask.Baseline9Cost)
+        Case "Baseline10 Cost"
+          dblCost = dblCost + Val(oTask.Baseline10Cost)
+          
+        Case "Actual Duration"
+          lngDuration = lngDuration + oTask.ActualDuration
+        Case "Duration"
+          lngDuration = lngDuration + oTask.Duration
+        Case "Remaining Duration"
+          lngDuration = lngDuration + oTask.RemainingDuration
+        Case "Duration1"
+          lngDuration = lngDuration + oTask.Duration1
+        Case "Duration2"
+          lngDuration = lngDuration + oTask.Duration2
+        Case "Duration3"
+          lngDuration = lngDuration + oTask.Duration3
+        Case "Duration4"
+          lngDuration = lngDuration + oTask.Duration4
+        Case "Duration5"
+          lngDuration = lngDuration + oTask.Duration5
+        Case "Duration6"
+          lngDuration = lngDuration + oTask.Duration6
+        Case "Duration7"
+          lngDuration = lngDuration + oTask.Duration7
+        Case "Duration8"
+          lngDuration = lngDuration + oTask.Duration8
+        Case "Duration9"
+          lngDuration = lngDuration + oTask.Duration9
+        Case "Duration10"
+          lngDuration = lngDuration + oTask.Duration10
+          
+        Case "Baseline Duration"
+          lngDuration = lngDuration + oTask.BaselineDuration
+        Case "Baseline1 Duration"
+          lngDuration = lngDuration + oTask.Baseline1Duration
+        Case "Baseline2 Duration"
+          lngDuration = lngDuration + oTask.Baseline2Duration
+        Case "Baseline3 Duration"
+          lngDuration = lngDuration + oTask.Baseline3Duration
+        Case "Baseline4 Duration"
+          lngDuration = lngDuration + oTask.Baseline4Duration
+        Case "Baseline5 Duration"
+          lngDuration = lngDuration + oTask.Baseline5Duration
+        Case "Baseline6 Duration"
+          lngDuration = lngDuration + oTask.Baseline6Duration
+        Case "Baseline7 Duration"
+          lngDuration = lngDuration + oTask.Baseline7Duration
+        Case "Baseline8 Duration"
+          lngDuration = lngDuration + oTask.Baseline8Duration
+        Case "Baseline9 Duration"
+          lngDuration = lngDuration + oTask.Baseline9Duration
+        Case "Baseline10 Duration"
+          lngDuration = lngDuration + oTask.Baseline10Duration
+                    
+        Case "Number"
+          dblNumber = dblNumber + oTask.Number
+        Case "Number1"
+          dblNumber = dblNumber + oTask.Number1
+        Case "Number2"
+          dblNumber = dblNumber + oTask.Number2
+        Case "Number3"
+          dblNumber = dblNumber + oTask.Number3
+        Case "Number4"
+          dblNumber = dblNumber + oTask.Number4
+        Case "Number5"
+          dblNumber = dblNumber + oTask.Number5
+        Case "Number6"
+          dblNumber = dblNumber + oTask.Number6
+        Case "Number7"
+          dblNumber = dblNumber + oTask.Number7
+        Case "Number8"
+          dblNumber = dblNumber + oTask.Number8
+        Case "Number9"
+          dblNumber = dblNumber + oTask.Number9
+        Case "Number10"
+          dblNumber = dblNumber + oTask.Number10
+        Case "Number11"
+          dblNumber = dblNumber + oTask.Number11
+        Case "Number12"
+          dblNumber = dblNumber + oTask.Number12
+        Case "Number13"
+          dblNumber = dblNumber + oTask.Number13
+        Case "Number14"
+          dblNumber = dblNumber + oTask.Number14
+        Case "Number15"
+          dblNumber = dblNumber + oTask.Number15
+        Case "Number16"
+          dblNumber = dblNumber + oTask.Number16
+        Case "Number17"
+          dblNumber = dblNumber + oTask.Number17
+        Case "Number18"
+          dblNumber = dblNumber + oTask.Number18
+        Case "Number19"
+          dblNumber = dblNumber + oTask.Number19
+        Case "Number20"
+          dblNumber = dblNumber + oTask.Number20
+          
+        Case "Actual Work"
+          dblWork = dblWork + oTask.ActualWork
+        Case "Work"
+          dblWork = dblWork + oTask.Work
+        Case "Remaining Work"
+          dblWork = dblWork + oTask.RemainingWork
+        Case "Baseline Work"
+          dblWork = dblWork + oTask.BaselineWork
+        Case "Baseline1 Work"
+          dblWork = dblWork + oTask.Baseline1Work
+        Case "Baseline2 Work"
+          dblWork = dblWork + oTask.Baseline2Work
+        Case "Baseline3 Work"
+          dblWork = dblWork + oTask.Baseline3Work
+        Case "Baseline4 Work"
+          dblWork = dblWork + oTask.Baseline4Work
+        Case "Baseline5 Work"
+          dblWork = dblWork + oTask.Baseline5Work
+        Case "Baseline6 Work"
+          dblWork = dblWork + oTask.Baseline6Work
+        Case "Baseline7 Work"
+          dblWork = dblWork + oTask.Baseline7Work
+        Case "Baseline8 Work"
+          dblWork = dblWork + oTask.Baseline8Work
+        Case "Baseline9 Work"
+          dblWork = dblWork + oTask.Baseline9Work
+        Case "Baseline10 Work"
+          dblWork = dblWork + oTask.Baseline10Work
+      End Select
 
 next_task:
       lngTask = lngTask + 1
