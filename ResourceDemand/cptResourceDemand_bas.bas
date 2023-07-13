@@ -876,7 +876,6 @@ Dim strFields As String
 Dim strWeeks As String
 Dim strMonths As String
 Dim strWeekday As String
-Dim strWeek As String
 Dim strMissing As String
 Dim strActiveView As String
 Dim strFieldName As String, strFileName As String
@@ -1128,7 +1127,7 @@ next_export_field:
       End If
       'week
       strWeeks = cptGetSetting("ResourceDemand", "cboWeeks")
-      If Len(strWeek) > 0 Then
+      If Len(strWeeks) > 0 Then
         .cboWeeks.Value = strWeeks
       End If
       'weekday
