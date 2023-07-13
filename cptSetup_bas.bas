@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.8.3</cpt_version>
+'<cpt_version>v1.8.8</cpt_version>
 Option Explicit
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
@@ -14,6 +14,7 @@ Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/
                                                                         ByVal dwNameLen As Integer, _
                                                                         ByVal dwReserved As Long) As Long
 #End If
+
 Sub cptSetup()
 'setup only needs to be run once
 'objects
@@ -790,7 +791,7 @@ Dim strPath As String
 
 End Function
 
-Function cptModuleExists(strModule As String)
+Function cptModuleExists(strModule As String) As Boolean
 'objects
 Dim vbComponent As Object
 'booleans
@@ -1009,3 +1010,33 @@ err_here:
   Call cptHandleErr("cptSetup_bas", "cptValidateXML", Err, Erl)
   Resume exit_here
 End Sub
+
+Function cptErrorTrapping() As Boolean
+  'objects
+  'strings
+  Dim strErrorTrapping As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  On Error GoTo err_here 'some users experiencing error on recursive call
+
+  strErrorTrapping = cptGetSetting("General", "ErrorTrapping")
+  If Len(strErrorTrapping) > 0 Then
+    cptErrorTrapping = CBool(strErrorTrapping)
+  Else
+    cptSaveSetting "General", "ErrorTrapping", "1"
+    cptErrorTrapping = True
+  End If
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptSetup_bas", "cptErrorTrapping", Err, Erl)
+  Resume exit_here
+End Function
