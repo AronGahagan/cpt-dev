@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.4.1</cpt_version>
+'<cpt_version>v1.4.2</cpt_version>
 Option Explicit
 
 Sub cptExportResourceDemand(Optional lngTaskCount As Long)
@@ -1196,6 +1196,8 @@ End Sub
 
 Function cptCalendarExists(strCalendar As String) As Boolean
   Dim oCalendar As MSProject.Calendar
+  Dim strMsg As String
+  
   On Error Resume Next
   Set oCalendar = ActiveProject.BaseCalendars(strCalendar)
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -1203,7 +1205,15 @@ Function cptCalendarExists(strCalendar As String) As Boolean
   If oCalendar Is Nothing Then
     cptCalendarExists = False
   Else
-    cptCalendarExists = True
+    If oCalendar.Exceptions.Count = 0 Then
+      strMsg = "cptFiscalCalendar exists but has no exceptions." & vbCrLf & vbCrLf
+      strMsg = strMsg & "Please rebuild it (ClearPlan > Calendars > Fiscal)."
+      MsgBox strMsg, vbCritical + vbOKOnly, "No Exceptions"
+      oCalendar.Delete
+      cptCalendarExists = False
+    Else
+      cptCalendarExists = True
+    End If
   End If
   
 exit_here:
