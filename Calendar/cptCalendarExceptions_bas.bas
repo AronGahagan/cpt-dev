@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCalendarExceptions_bas"
-'<cpt_version>v1.0.6</cpt_version>
+'<cpt_version>v1.0.7</cpt_version>
 Option Explicit
 
 Sub cptShowCalendarExceptions_frm()
@@ -67,7 +67,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCalendarExceptions_bas", "cptShowCalendarExceptionsFrm", Err, Erl)
+  Call cptHandleErr("cptCalendarExceptions_bas", "cptShowCalendarExceptions_frm", Err, Erl)
   Resume exit_here
 End Sub
 

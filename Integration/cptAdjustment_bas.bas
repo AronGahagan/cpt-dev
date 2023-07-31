@@ -1,10 +1,10 @@
 Attribute VB_Name = "cptAdjustment_bas"
-'<cpt_version>v0.0.1</cpt_version>
+'<cpt_version>v0.0.2</cpt_version>
 Option Explicit
 
 Sub cptShowAdjustment_frm()
   'objects
-  Dim oResources As Object  'Scripting.Dictionary
+  Dim oResources As Object 'Scripting.Dictionary
   Dim oResource As MSProject.Resource
   'strings
   Dim strIgnoreTaskType As String
@@ -15,6 +15,10 @@ Sub cptShowAdjustment_frm()
  
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
+  If ActiveProject.ResourceCount = 0 Then
+    MsgBox "This project has no resources.", vbExclamation + vbOKOnly, "No Resources"
+    GoTo exit_here
+  End If
   Set oResources = CreateObject("Scripting.Dictionary")
   For Each oResource In ActiveProject.Resources
     If oResource.Type = pjResourceTypeWork Then
@@ -22,6 +26,10 @@ Sub cptShowAdjustment_frm()
       oResources.Add oResource.Name, oResource.UniqueID
     End If
   Next
+  If Len(strResources) = 0 Then
+    MsgBox "No Labor [Resource Type=Work] resources found.", vbExclamation + vbOKOnly, "Adjustments"
+    GoTo exit_here
+  End If
   strResources = Left(strResources, Len(strResources) - 1)
   vResources = Split(strResources, ",")
   

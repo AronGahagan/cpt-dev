@@ -1,9 +1,9 @@
 Attribute VB_Name = "cptTaskHistory_bas"
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.0.1</cpt_version>
 Option Explicit
 Public oTaskHistory As ADODB.Recordset
 
-Sub cptShowTaskHistoryFrm()
+Sub cptShowTaskHistory_frm()
   'objects
   'strings
   Dim strProgramAcronym As String
@@ -53,7 +53,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptTaskHistory_bas", "cptShowTaskHistoryFrm", Err, Erl)
+  Call cptHandleErr("cptTaskHistory_bas", "cptShowTaskHistory_frm", Err, Erl)
   Resume exit_here
 
 End Sub

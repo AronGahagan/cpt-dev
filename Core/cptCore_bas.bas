@@ -302,20 +302,42 @@ err_here:
   Resume exit_here
 End Function
 
-Function cptGetReferences(Optional blnVerbose As Boolean = False)
-'prints the current uesr's selected references
-'this would be used to troubleshoot with users real-time
-'although simply runing setreferences would fix it
-Dim oRef As Object 'Reference
-
-  For Each oRef In ThisProject.VBProject.References
-    Debug.Print oRef.Name & " (" & oRef.Description & ") " & oRef.FullPath
-    If blnVerbose Then
-      Debug.Print "-- " & oRef.Guid & " | " & oRef.Major & " | " & oRef.Minor
-    End If
-  Next oRef
+Sub cptGetReferences()
+  'prints the current uesr's selected references
+  'this would be used to troubleshoot with users real-time
+  'although simply runing cptSetReferences should fix it
+  Dim oRef As Reference
+  Dim lngFile As Long
+  Dim strFile As String
+  Dim strRef As String
+  Dim lngRefs As Long
+  Dim lngRef As Long
   
-End Function
+  lngFile = FreeFile
+  strFile = Environ("tmp") & "\cpt-references.csv"
+  Open strFile For Output As #lngFile
+  
+  Print #lngFile, "NAME,DESCRIPTION,FULL_PATH,GUID,MAJOR,MINOR,BUILT_IN,IS_BROKEN,TYPE,"
+  lngRefs = ThisProject.VBProject.References.Count
+  lngRef = 0
+  For Each oRef In ThisProject.VBProject.References
+    lngRef = lngRef + 1
+    Debug.Print lngRef & "/" & lngRefs & " " & String(25, "=")
+    Debug.Print oRef.Name
+    Debug.Print "-- " & oRef.Description
+    Debug.Print "-- " & oRef.FullPath
+    Debug.Print "-- " & oRef.Guid & " | " & oRef.Major & " | " & oRef.Minor
+    Debug.Print "-- BuiltIn: " & oRef.BuiltIn
+    Debug.Print "-- IsBroken: " & oRef.IsBroken
+    Debug.Print "-- Type: " & oRef.Type
+    strRef = Join(Array(oRef.Name, oRef.Description, oRef.FullPath, oRef.Guid, oRef.Major, oRef.Minor, oRef.BuiltIn, oRef.IsBroken, oRef.Type), ",")
+    Print #lngFile, strRef & ","
+  Next oRef
+  Close #lngFile
+  
+  Shell "C:\Windows\notepad.exe '" & strFile & "'", vbNormalFocus
+  
+End Sub
 
 Function cptGetDirectory(strModule As String) As String
 'this function retrieves the directory of the module from CurrentVersions.xml on gitHub

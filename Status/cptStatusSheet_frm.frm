@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.4.8</cpt_version>
+'<cpt_version>v1.4.9</cpt_version>
 Option Explicit
 Private Const adVarChar As Long = 200
 Private Const adInteger As Long = 3
@@ -747,7 +747,7 @@ Dim blnIncluded As Boolean
     'save settings
     Call cptSaveStatusSheetSettings
     'create the sheet
-    Application.DefaultDateFormat = pjDate_mm_dd_yy
+    Application.DefaultDateFormat = pjDate_mm_dd_yyyy
     Call cptCreateStatusSheet
   End If
 

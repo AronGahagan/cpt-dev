@@ -3,21 +3,21 @@
 	<Module>
 		<Name>cptAbout_frm</Name>
 		<FileName>cptAbout_frm.frm</FileName>
-		<Version>v1.8.8</Version>
+		<Version>v1.8.9</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>
 	<Module>
 		<Name>cptAdjustment_bas</Name>
 		<FileName>cptAdjustment_bas.bas</FileName>
-		<Version>v0.0.1</Version>
+		<Version>v0.0.2</Version>
 		<Type>1</Type>
 		<Directory>Integration</Directory>
 	</Module>
 	<Module>
 		<Name>cptAdjustment_frm</Name>
 		<FileName>cptAdjustment_frm.frm</FileName>
-		<Version>v0.0.1</Version>
+		<Version>v0.0.2</Version>
 		<Type>3</Type>
 		<Directory>Integration</Directory>
 	</Module>
@@ -59,14 +59,14 @@
 	<Module>
 		<Name>cptCalendarExceptions_bas</Name>
 		<FileName>cptCalendarExceptions_bas.bas</FileName>
-		<Version>v1.0.6</Version>
+		<Version>v1.0.7</Version>
 		<Type>1</Type>
 		<Directory>Calendar</Directory>
 	</Module>
 	<Module>
 		<Name>cptCalendarExceptions_frm</Name>
 		<FileName>cptCalendarExceptions_frm.frm</FileName>
-		<Version>v1.0.6</Version>
+		<Version>v1.0.7</Version>
 		<Type>3</Type>
 		<Directory>Calendar</Directory>
 	</Module>
@@ -192,14 +192,14 @@
 	<Module>
 		<Name>cptFiscal_bas</Name>
 		<FileName>cptFiscal_bas.bas</FileName>
-		<Version>v1.0.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>1</Type>
 		<Directory>Calendar</Directory>
 	</Module>
 	<Module>
 		<Name>cptFiscal_frm</Name>
 		<FileName>cptFiscal_frm.frm</FileName>
-		<Version>v1.0.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>3</Type>
 		<Directory>Calendar</Directory>
 	</Module>
@@ -227,7 +227,7 @@
 	<Module>
 		<Name>cptMetrics_bas</Name>
 		<FileName>cptMetrics_bas.bas</FileName>
-		<Version>v1.4.0</Version>
+		<Version>v1.4.1</Version>
 		<Type>1</Type>
 		<Directory>Metrics</Directory>
 	</Module>
@@ -276,14 +276,14 @@
 	<Module>
 		<Name>cptResourceDemand_bas</Name>
 		<FileName>cptResourceDemand_bas.bas</FileName>
-		<Version>v1.4.1</Version>
+		<Version>v1.4.2</Version>
 		<Type>1</Type>
 		<Directory>ResourceDemand</Directory>
 	</Module>
 	<Module>
 		<Name>cptResourceDemand_frm</Name>
 		<FileName>cptResourceDemand_frm.frm</FileName>
-		<Version>v1.4.1</Version>
+		<Version>v1.4.2</Version>
 		<Type>3</Type>
 		<Directory>ResourceDemand</Directory>
 	</Module>
@@ -346,14 +346,14 @@
 	<Module>
 		<Name>cptStatusSheet_bas</Name>
 		<FileName>cptStatusSheet_bas.bas</FileName>
-		<Version>v1.4.8</Version>
+		<Version>v1.4.9</Version>
 		<Type>1</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptStatusSheet_frm</Name>
 		<FileName>cptStatusSheet_frm.frm</FileName>
-		<Version>v1.4.8</Version>
+		<Version>v1.4.9</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
@@ -374,14 +374,14 @@
 	<Module>
 		<Name>cptTaskHistory_bas</Name>
 		<FileName>cptTaskHistory_bas.bas</FileName>
-		<Version>v1.0.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>1</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptTaskHistory_frm</Name>
 		<FileName>cptTaskHistory_frm.frm</FileName>
-		<Version>v1.0.0</Version>
+		<Version>v1.0.1</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
