@@ -1,4 +1,4 @@
-## Problem
+## Problem:
     title-hint:= cpt[ModuleName_(bas|frm)] - 'object not set'
     description-hint:= be detailed
     bonus-points: include screenshot(s)
@@ -7,7 +7,7 @@
 'even-more-bonus-points: offending code snippet here
 ```
 
-## Solution
+## Solution:
     how should this issue be addressed?
 
 ## Todo:
