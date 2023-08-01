@@ -305,8 +305,8 @@ End Function
 Sub cptGetReferences()
   'prints the current uesr's selected references
   'this would be used to troubleshoot with users real-time
-  'although simply runing cptSetReferences should fix it
-  Dim oRef As Reference
+  'although simply running cptSetReferences should fix it
+  Dim oRef As Object 'Reference
   Dim lngFile As Long
   Dim strFile As String
   Dim strRef As String
