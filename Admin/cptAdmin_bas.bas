@@ -132,7 +132,7 @@ End Sub
 Sub cptDocument()
 'objects
 Dim vbComponent As vbComponent
-Dim xlApp As Object, Workbook As Object, Worksheet As Object
+Dim oExcel As Object, oWorkbook As Object, oWorksheet As Object
 'strings
 Dim strModule As String
 Dim strProcName As String
@@ -151,19 +151,19 @@ Dim arrHeader As Variant
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'get excel
-  Set xlApp = CreateObject("Excel.Application")
-  xlApp.Visible = True
-  Set Workbook = xlApp.Workbooks.Add
-  Set Worksheet = Workbook.Sheets(1)
+  Set oExcel = CreateObject("Excel.Application")
+  oExcel.Visible = True
+  Set oWorkbook = oExcel.Workbooks.Add
+  Set oWorksheet = oWorkbook.Sheets(1)
 
-  xlApp.ActiveWindow.Zoom = 85
-  Worksheet.[A2].Select
-  xlApp.ActiveWindow.FreezePanes = True
+  oExcel.ActiveWindow.Zoom = 85
+  oWorksheet.[A2].Select
+  oExcel.ActiveWindow.FreezePanes = True
 
   'set the header
   arrHeader = Array("Ribbon Group", "Module", "SLOC", "Procedure", "SLOC", "Directory", "HelpDoc", "Author")
-  Worksheet.Range(Worksheet.[A1], Worksheet.[A1].Offset(0, UBound(arrHeader))) = arrHeader
-  Worksheet.Columns.AutoFit
+  oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].Offset(0, UBound(arrHeader))) = arrHeader
+  oWorksheet.Columns.AutoFit
 
   lngRow = 2
 
@@ -174,42 +174,42 @@ Dim arrHeader As Variant
       With vbComponent.CodeModule
         lngCountDecl = .CountOfDeclarationLines
         lngLines = .CountOfLines
-        Worksheet.Cells(lngRow, 2) = .Name
-        Worksheet.Cells(lngRow, 3) = .CountOfLines
+        oWorksheet.Cells(lngRow, 2) = .Name
+        oWorksheet.Cells(lngRow, 3) = .CountOfLines
         strProcName = .ProcOfLine(lngCountDecl + 1, 0) '0 = vbext_pk_Proc
-        Worksheet.Cells(lngRow, 4) = strProcName
-        Worksheet.Cells(lngRow, 5) = .ProcCountLines(strProcName, 0) '0 = vbext_pk_Proc
+        oWorksheet.Cells(lngRow, 4) = strProcName
+        oWorksheet.Cells(lngRow, 5) = .ProcCountLines(strProcName, 0) '0 = vbext_pk_Proc
         lngSLOC = lngSLOC + .ProcCountLines(strProcName, 0) '0 = vbext_pk_Proc
-        Worksheet.Columns.AutoFit
+        oWorksheet.Columns.AutoFit
         For lngLine = lngCountDecl + 1 To lngLines
           If .ProcOfLine(lngLine, 0) <> strProcName Then '0 = vbext_pk_Proc
             strProcName = .ProcOfLine(lngLine, 0) '0 = vbext_pk_Proc
             lngRow = lngRow + 1
-            Worksheet.Cells(lngRow, 2) = strModule
-            Worksheet.Cells(lngRow, 4) = strProcName
-            Worksheet.Cells(lngRow, 5) = .ProcCountLines(strProcName, 0) '0 = vbext_pk_Proc
+            oWorksheet.Cells(lngRow, 2) = strModule
+            oWorksheet.Cells(lngRow, 4) = strProcName
+            oWorksheet.Cells(lngRow, 5) = .ProcCountLines(strProcName, 0) '0 = vbext_pk_Proc
             lngSLOC = lngSLOC + .ProcCountLines(strProcName, 0) '0 = vbext_pk_Proc
-            Worksheet.Columns.AutoFit
-            If lngRow > 10 Then xlApp.ActiveWindow.ScrollRow = lngRow - 10
+            oWorksheet.Columns.AutoFit
+            If lngRow > 10 Then oExcel.ActiveWindow.ScrollRow = lngRow - 10
           End If
         Next
       End With
       lngRow = lngRow + 1
-      If lngRow > 10 Then xlApp.ActiveWindow.ScrollRow = lngRow - 10
+      If lngRow > 10 Then oExcel.ActiveWindow.ScrollRow = lngRow - 10
     End If
   Next vbComponent
 
-  xlApp.ActiveWindow.ScrollRow = 2
+  oExcel.ActiveWindow.ScrollRow = 2
 
   MsgBox "Documented." & vbCrLf & vbCrLf & "(" & Format(lngSLOC, "#,##0") & " SLOC)", vbInformation + vbOKOnly, "Documenter"
 
 exit_here:
   On Error Resume Next
   Set vbComponent = Nothing
-  Set xlApp = Nothing
-  Set Workbook = Nothing
-  Set Worksheet = Nothing
-  Set xlApp = Nothing
+  Set oExcel = Nothing
+  Set oWorkbook = Nothing
+  Set oWorksheet = Nothing
+  Set oExcel = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptAdmin_bas", "Document", Err)
@@ -221,7 +221,7 @@ Dim vbComponent As vbComponent
 
   For Each vbComponent In ThisProject.VBProject.VBComponents
     If Left(vbComponent.Name, 3) = "cpt" Then
-      Debug.Print vbComponent.Name & ": " & vbComponent.CodeModule.Lines(1, 1)
+      Debug.Print vbComponent.Name & ": " & Replace(Replace(cptRegEx(vbComponent.CodeModule.Lines(1, 10), "<cpt_version>.*</cpt_version>"), "<cpt_version>", ""), "</cpt_version>", "")
     End If
   Next vbComponent
   Set vbComponent = Nothing
@@ -263,10 +263,14 @@ Dim strDirectory As String
       strDirectory = "Core"
     Case "DataDictionary"
       strDirectory = "CustomFields"
+    Case "DECM"
+      strDirectory = "Metrics"
     Case "DynamicFilter"
       strDirectory = "Text"
     Case "Events"
       strDirectory = "Core"
+    Case "ExIm"
+      strDirectory = "Text"
     Case "FieldBuilder"
       strDirectory = "CustomFields"
     Case "FilterByClipboard"
@@ -360,7 +364,7 @@ Dim lngField As Long
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  strFile = Environ("USERPROFILE") & "\cpt-backup\" & strFile
+  strFile = cptDir & strFile
 
   If Dir(strFile) = vbNullString Then
     Debug.Print "Invalid file: " & strFile
@@ -455,9 +459,10 @@ Sub cptLoadModulesFromPath()
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
+  On Error GoTo 0
+  
   'update this before running - NOT THE GLOBAL!
-  Set oVBProject = VBE.VBProjects(3)
+  Set oVBProject = VBE.VBProjects(VBE.VBProjects.Count)
 
   If MsgBox("Load Modules into '" & Dir(oVBProject.FileName) & "'?", vbQuestion + vbYesNo, "Confirm") = vbNo Then GoTo exit_here
 
@@ -486,6 +491,7 @@ next_subfolder:
   
   'todo: should we go ahead and include any views/tables/filters/groups?
   MsgBox "Run cptSetReferences in newly created file.", vbExclamation + vbOKOnly, "Don't Forget:"
+  MsgBox "Compile it!", vbExclamation + vbOKOnly, "Don't Forget:"
   
 exit_here:
   On Error Resume Next
@@ -524,3 +530,65 @@ Function cptGetLongestLine() As Long
   cptGetLongestLine = lngMax
   Set vbComponent = Nothing
 End Function
+
+Sub ImportKEODataToCPT()
+  'objects
+  Dim oCPT As ADODB.Recordset
+  Dim oKEO As ADODB.Recordset
+  'strings
+  Dim strCPTFile As String
+  Dim strKEOFile As String
+  'longs
+  Dim lngItem As Long
+  Dim lngImported As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  Set oKEO = CreateObject("ADODB.Recordset")
+  Set oCPT = CreateObject("ADODB.Recordset")
+
+  strKEOFile = Environ("USERPROFILE") & "\OneDrive - ClearPlan LLC\Clients\L3H\KEO\BrightLights\Metrics\keo-tasks.adtg"
+  strCPTFile = cptDir & "\settings\cpt-cei.adtg"
+  
+  oKEO.Open strKEOFile
+  oCPT.Open strCPTFile
+  
+  oKEO.MoveFirst
+  oCPT.MoveFirst
+  
+  Do While Not oKEO.EOF
+    oCPT.Filter = "PROJECT='" & oKEO("PROJECT") & "' AND TASK_UID=" & oKEO("TASK_UID") & " AND STATUS_DATE=#" & FormatDateTime(oKEO("STATUS_DATE"), vbGeneralDate) & "#"
+    If oCPT.EOF Then 'import it
+      oCPT.AddNew
+      For lngItem = 0 To oKEO.Fields.Count - 1
+        oCPT(oKEO.Fields(lngItem).Name) = oKEO(lngItem)
+      Next lngItem
+      oCPT.Update
+      lngImported = lngImported + 1
+    End If
+    oCPT.Filter = 0
+    Debug.Print oKEO.AbsolutePosition & " / " & oKEO.RecordCount & "...(" & Format(oKEO.AbsolutePosition / oKEO.RecordCount, "0%") & ")"
+    oKEO.MoveNext
+  Loop
+  
+  Debug.Print Format(lngImported, "#,##0") & " records imported."
+  
+  oKEO.Close
+  oCPT.Save strCPTFile, adPersistADTG
+  oCPT.Close
+  
+exit_here:
+  On Error Resume Next
+  Set oCPT = Nothing
+  Set oKEO = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptAdmin_bas", "ImportKEODataToCPT", Err, Erl)
+  Resume exit_here
+End Sub
