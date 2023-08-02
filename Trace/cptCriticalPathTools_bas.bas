@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCriticalPathTools_bas"
-'<cpt_version>v1.0.5</cpt_version>
+'<cpt_version>v1.0.6</cpt_version>
 Option Explicit
 
 Sub cptExportCriticalPath(ByRef oProject As MSProject.Project, Optional blnSendEmail As Boolean = False, Optional blnKeepOpen As Boolean = False, Optional ByRef oTargetTask As MSProject.Task)
@@ -54,7 +54,10 @@ Dim vPath As Variant
   strDir = oShell.SpecialFolders("Desktop") & "\"
   If Dir(strDir, vbDirectory) = vbNullString Then MkDir strDir
   'build filename
-  strFileName = strDir & Replace(Replace(oProject.Name, " ", "-"), ".mpp", "") & "-CriticalPathAnalysis-" & Format(Now, "yyyy-mm-dd") & ".pptx"
+  strFileName = cptRegEx(ActiveProject.Name, "[^\\/]{1,}$")
+  strFileName = Replace(strFileName, ".mpp", "")
+  strFileName = Replace(strFileName, " ", "_")
+  strFileName = strDir & "-CriticalPathAnalysis-" & Format(Now, "yyyy-mm-dd") & ".pptx"
   On Error Resume Next
   Set pptExists = oPowerPoint.Presentations(strFileName)
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -77,7 +80,7 @@ Dim vPath As Variant
   'make a title slide
   Set oSlide = oPresentation.Slides.Add(1, ppLayoutCustom)
   oSlide.Layout = ppLayoutTitle
-  strProjectName = Replace(ActiveProject.Name, ".mpp", "")
+  strProjectName = Replace(cptRegEx(ActiveProject.Name, "[^\\/]{1,}$"), ".mpp", "")
   oSlide.Shapes(1).TextFrame.TextRange.Text = strProjectName & vbCrLf & "Critical Path Analysis"
   oSlide.Shapes(2).TextFrame.TextRange.Text = cptGetUserFullName & vbCrLf & Format(Now, "mm/dd/yyyy")
   
@@ -87,7 +90,7 @@ Dim vPath As Variant
     'SetAutoFilter FieldName:="CP Driving Paths", FilterType:=pjAutoFilterCustom, Test1:="contains", Criteria1:=CStr(vPath)
     SetAutoFilter FieldName:="CP Driving Path Group ID", FilterType:=pjAutoFilterIn, Criteria1:=CStr(vPath)
 
-    Sort Key1:="Finish", Key2:="Duration", Ascending2:=False, Renumber:=False
+    Sort key1:="Finish", Key2:="Duration", Ascending2:=False, Renumber:=False
     TimescaleEdit MajorUnits:=0, MinorUnits:=2, MajorLabel:=0, MinorLabel:=10, MinorTicks:=True, Separator:=True, TierCount:=2
     SelectBeginning
     Debug.Print vPath & ": " & FormatDateTime(dtFrom, vbShortDate) & " - " & FormatDateTime(dtTo, vbShortDate)
