@@ -7,6 +7,8 @@ Sub cptShowAdjustment_frm()
   Dim oResources As Object 'Scripting.Dictionary
   Dim oResource As MSProject.Resource
   'strings
+  Dim strMsg As String
+  Dim strDuplicateResourceList As String
   Dim strIgnoreTaskType As String
   Dim strResources As String
   'variants
@@ -22,8 +24,12 @@ Sub cptShowAdjustment_frm()
   Set oResources = CreateObject("Scripting.Dictionary")
   For Each oResource In ActiveProject.Resources
     If oResource.Type = pjResourceTypeWork Then
-      strResources = strResources & oResource.Name & ","
-      oResources.Add oResource.Name, oResource.UniqueID
+      If Not oResources.Exists(oResource.Name) Then
+        strResources = strResources & oResource.Name & ","
+        oResources.Add oResource.Name, oResource.UniqueID
+      Else
+        strDuplicateResourceList = strDuplicateResourceList & oResource.Name & ","
+      End If
     End If
   Next
   If Len(strResources) = 0 Then
@@ -32,6 +38,16 @@ Sub cptShowAdjustment_frm()
   End If
   strResources = Left(strResources, Len(strResources) - 1)
   vResources = Split(strResources, ",")
+  
+  If Len(strDuplicateResourceList) > 0 Then
+    strDuplicateResourceList = Left(strDuplicateResourceList, Len(strDuplicateResourceList) - 1)
+    For Each vResource In Split(strDuplicateResourceList, ",")
+      strMsg = strMsg & "- " & vResource & vbCrLf
+    Next vResource
+    strMsg = strMsg & vbCrLf & "Resource Names must be unique to proceed."
+    MsgBox strMsg, vbExclamation + vbOKOnly, "Duplicate Resource Names found:"
+    GoTo exit_here
+  End If
   
   Call cptQuickSort(vResources, 0, UBound(vResources))
   
