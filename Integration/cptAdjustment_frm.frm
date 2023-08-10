@@ -46,8 +46,12 @@ Private Sub cmdCancel_Click()
 End Sub
 
 Private Sub cmdUndo_Click()
-  Application.Undo
-  cptRefreshAdjustment
+  If Application.GetUndoListCount > 1 Then
+    If Application.GetUndoListItem(1) = "Target to Cost" Or Application.GetUndoListItem(1) = "cptAdjustment" Then
+      Application.Undo
+      cptRefreshAdjustment
+    End If
+  End If
 End Sub
 
 Private Sub lblURL_Click()
@@ -149,4 +153,10 @@ exit_here:
 err_here:
   Call cptHandleErr("cptAdjustment_frm", "txtAmount_Change", Err, Erl)
   Resume exit_here
+End Sub
+
+Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
+  If Application.GetUndoListCount > 0 Then
+    Me.cmdUndo.Enabled = Application.GetUndoListItem(1) = "cptAdjustment" Or Application.GetUndoListItem(1) = "Target to Cost"
+  End If
 End Sub
