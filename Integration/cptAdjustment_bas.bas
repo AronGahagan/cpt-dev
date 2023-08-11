@@ -217,7 +217,7 @@ Sub cptRefreshAdjustment()
           If Not .tglScope Then 'hours
             .lboAdjustmentPreview.List(.lboAdjustmentPreview.ListCount - 1, 3) = Format(Round((oAssignment.RemainingWork / 60), 2), "#,###,##0.00")
             dblETC = dblETC + oAssignment.RemainingWork
-          Else
+          Else 'dollars
             .lboAdjustmentPreview.List(.lboAdjustmentPreview.ListCount - 1, 3) = Format(Round((oAssignment.RemainingCost), 2), "currency")
             dblETC = dblETC + CDbl(oAssignment.RemainingCost)
           End If
@@ -330,13 +330,14 @@ Sub cptTargetToCost()
   Dim strMsg As String
   Dim strProrated As String
   'longs
+  Dim lngItem As Long
   Dim lngItems As Long
-  Dim lngTSV As Long
-  Dim lngTSVS As Long
-  Dim lngAssignment As Long
-  Dim lngTask As Long
-  Dim lngAssignments As Long
-  Dim lngTasks As Long
+  'Dim lngTSV As Long
+  'Dim lngTSVS As Long
+  'Dim lngAssignment As Long
+  'Dim lngTask As Long
+  'Dim lngAssignments As Long
+  'Dim lngTasks As Long
   'integers
   'doubles
   Dim dblTotalCostPerUse As Double
@@ -411,25 +412,30 @@ Sub cptTargetToCost()
   'todo: if work resource has no cost, then ignore it
   'todo: rounding is causing problems
   
-  lngTasks = oTasks.Count
-  lngTask = 0
-  lngAssignments = 0
-  lngAssignment = 0
-  lngTSVS = 0
-  lngTSV = 0
-  lngItems = 0
+  'get number of items to process for the progress bar
+  For Each oTask In oTasks
+    If oTask Is Nothing Then GoTo skip
+    If oTask.ExternalTask Then GoTo skip
+    If Not oTask.Active Then GoTo skip
+    For Each oAssignment In oTask.Assignments
+      If oAssignment.ResourceType <> pjResourceTypeCost Then
+        lngItems = lngItems + oAssignment.TimeScaleData(oAssignment.Start, oAssignment.Finish, pjAssignmentTimescaledWork, pjTimescaleDays, 1).Count
+      Else
+        lngItems = lngItems + 1
+      End If
+    Next oAssignment
+skip:
+  Next oTask
+  
+  'process the adjustment
   For Each oTask In oTasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.ExternalTask Then GoTo next_task
     If Not oTask.Active Then GoTo next_task
-    lngAssignment = 0
-    lngAssignments = oTask.Assignments.Count
     For Each oAssignment In oTask.Assignments
       If oAssignment.RemainingCost = 0 Then GoTo next_assignment
       If oAssignment.ResourceType <> pjResourceTypeCost Then
         Set oTSVS = oAssignment.TimeScaleData(oAssignment.Start, oAssignment.Finish, pjAssignmentTimescaledWork, pjTimescaleDays, 1)
-        lngTSV = 0
-        lngTSVS = oTSVS.Count
         For Each oTSV In oTSVS
           'limit to remaining work by skipping actual work
           If oAssignment.TimeScaleData(oTSV.StartDate, oTSV.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleDays)(1) = "" Then
@@ -438,26 +444,27 @@ Sub cptTargetToCost()
               'get item rate
               dblRate = cptGetPayRate(oAssignment, oTSV.StartDate, "StandardRate")
               dblCost = oTSV.Value * dblRate
-              oTSV.Value = Round(((dblCost / dblTotalRemainingCost) * dblTargetCost) / dblRate, 6)
+              'oTSV.Value = Round(((dblCost / dblTotalRemainingCost) * dblTargetCost) / dblRate, 6)
+              oTSV.Value = ((dblCost / dblTotalRemainingCost) * dblTargetCost) / dblRate
               'Application.CalculateProject
             End If
           End If
-          lngTSV = lngTSV + 1
-          lngItems = lngItems + 1
-          Debug.Print "Tasks " & Format(lngTask / lngTasks, "0%") & " | Assignments " & Format(lngAssignment / lngAssignments, "0%") & " | TSVs " & Format(lngTSV / lngTSVS, "0%")
+          lngItem = lngItem + 1
+          cptAdjustment_frm.lblProgress.Width = (lngItem / lngItems) * cptAdjustment_frm.lblBackground.Width
+          'If (lngItem / lngItems) > 0.25 Then cptAdjustment_frm.lblProgress.Caption = Format(lngItem / lngItems, "0%") Else cptAdjustment_frm.lblProgress.Caption = ""
+          cptAdjustment_frm.lblProgress.Caption = Format(lngItem / lngItems, "0%")
+          If cptAdjustment_frm.lblProgress.Visible = False Then cptAdjustment_frm.lblProgress.Visible = True
+          DoEvents
         Next oTSV
       ElseIf oAssignment.ResourceType = pjResourceTypeCost Then
         oAssignment.Cost = oAssignment.ActualCost + ((oAssignment.RemainingCost / dblTotalRemainingCost) * dblTargetCost)
       End If 'oAssignment.ResourceType
 next_assignment:
-      lngAssignment = lngAssignment + 1
     Next oAssignment
 next_task:
-    lngTask = lngTask + 1
   Next oTask
-  Debug.Print "Tasks " & Format(lngTask / lngTasks, "0%") & " | Assignments " & Format(lngAssignment / lngAssignments, "0%") & " | TSVs " & Format(lngTSV / lngTSVS, "0%")
-  Debug.Print lngItems & " items processed."
-  
+  cptAdjustment_frm.lblProgress.Visible = False
+    
   'optionally refresh the status bar sums
   If cptGetShowStatusBarCountFirstRun Then
     If ActiveSelection.FieldIDList.Count = 1 Then
@@ -467,9 +474,9 @@ next_task:
   
 exit_here:
   On Error Resume Next
-  Application.CloseUndoTransaction
   Application.CalculateProject
   Application.Calculation = pjAutomatic
+  Application.CloseUndoTransaction
   Application.ScreenUpdating = True
   Set oTSV = Nothing
   Set oTSVS = Nothing

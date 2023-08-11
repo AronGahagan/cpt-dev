@@ -104,7 +104,10 @@ Private Sub tglScope_Click()
     Me.cboResources.Enabled = True
     Me.chkIgnoreTaskType.Enabled = True
   End If
-  If Me.Visible Then cptRefreshAdjustment
+  If Me.Visible Then
+    cptRefreshAdjustment
+    Me.txtAmount.SetFocus
+  End If
 End Sub
 
 Private Sub txtAmount_Change()
@@ -159,4 +162,5 @@ Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, 
   If Application.GetUndoListCount > 0 Then
     Me.cmdUndo.Enabled = Application.GetUndoListItem(1) = "cptAdjustment" Or Application.GetUndoListItem(1) = "Target to Cost"
   End If
+  cptRefreshAdjustment
 End Sub
