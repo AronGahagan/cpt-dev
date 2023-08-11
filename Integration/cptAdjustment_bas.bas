@@ -450,16 +450,19 @@ skip:
             End If
           End If
           lngItem = lngItem + 1
-          cptAdjustment_frm.lblProgress.Width = (lngItem / lngItems) * cptAdjustment_frm.lblBackground.Width
-          'If (lngItem / lngItems) > 0.25 Then cptAdjustment_frm.lblProgress.Caption = Format(lngItem / lngItems, "0%") Else cptAdjustment_frm.lblProgress.Caption = ""
-          cptAdjustment_frm.lblProgress.Caption = Format(lngItem / lngItems, "0%")
-          If cptAdjustment_frm.lblProgress.Visible = False Then cptAdjustment_frm.lblProgress.Visible = True
-          DoEvents
+'          cptAdjustment_frm.lblProgress.Width = (lngItem / lngItems) * cptAdjustment_frm.lblBackground.Width
+'          cptAdjustment_frm.lblProgress.Caption = Format(lngItem / lngItems, "0%")
+'          If cptAdjustment_frm.lblProgress.Visible = False Then cptAdjustment_frm.lblProgress.Visible = True
+'          DoEvents
         Next oTSV
       ElseIf oAssignment.ResourceType = pjResourceTypeCost Then
         oAssignment.Cost = oAssignment.ActualCost + ((oAssignment.RemainingCost / dblTotalRemainingCost) * dblTargetCost)
       End If 'oAssignment.ResourceType
 next_assignment:
+      cptAdjustment_frm.lblProgress.Width = (lngItem / lngItems) * cptAdjustment_frm.lblBackground.Width
+      cptAdjustment_frm.lblProgress.Caption = Format(lngItem / lngItems, "0%")
+      If cptAdjustment_frm.lblProgress.Visible = False Then cptAdjustment_frm.lblProgress.Visible = True
+      DoEvents
     Next oAssignment
 next_task:
   Next oTask
