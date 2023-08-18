@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.13.4</cpt_version>
+'<cpt_version>v1.13.5</cpt_version>
 Option Explicit
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
@@ -2317,3 +2317,34 @@ Sub cptGetValidMap()
     'do nothing
   End If
 End Sub
+
+Function cptErrorTrapping() As Boolean
+  'objects
+  'strings
+  Dim strErrorTrapping As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  On Error GoTo err_here 'some users experiencing error on recursive call
+
+  strErrorTrapping = cptGetSetting("General", "ErrorTrapping")
+  If Len(strErrorTrapping) > 0 Then
+    cptErrorTrapping = CBool(strErrorTrapping)
+  Else
+    cptSaveSetting "General", "ErrorTrapping", "1"
+    cptErrorTrapping = True
+  End If
+
+exit_here:
+  On Error Resume Next
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptErrorTrapping", Err, Erl)
+  Resume exit_here
+End Function
+
