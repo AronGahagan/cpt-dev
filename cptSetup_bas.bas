@@ -1,8 +1,9 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.8.8</cpt_version>
+'<cpt_version>v1.8.11</cpt_version>
 Option Explicit
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
+Private Const BLN_TRAP_ERRORS As Boolean = True
 #If Win64 And VBA7 Then
   Private Declare PtrSafe Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As LongPtr, _
                                                                         ByVal lpszConnectionName As String, _
@@ -47,7 +48,7 @@ Dim blnExists As Boolean
 Dim vEvent As Variant
 'dates
 
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   '<issue61> ensure proper installation
   If InStr(ThisProject.FullName, "Global") = 0 Then
@@ -799,7 +800,7 @@ Dim blnExists As Boolean
 'strings
 Dim strError As String
 
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   blnExists = False
   For Each vbComponent In ThisProject.VBProject.VBComponents
@@ -837,7 +838,7 @@ Dim lngLine As Long
 'variants
 'dates
 
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   If MsgBox("Are you sure?", vbCritical + vbYesNo, "Uninstall CPT") = vbNo Then GoTo exit_here
 
@@ -981,7 +982,7 @@ Sub cptValidateXML(strXML As String)
   'variants
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   strFile = Environ("tmp") & "\cpt-validate.xml"
   lngFile = FreeFile
@@ -1010,33 +1011,3 @@ err_here:
   Call cptHandleErr("cptSetup_bas", "cptValidateXML", Err, Erl)
   Resume exit_here
 End Sub
-
-Function cptErrorTrapping() As Boolean
-  'objects
-  'strings
-  Dim strErrorTrapping As String
-  'longs
-  'integers
-  'doubles
-  'booleans
-  'variants
-  'dates
-  
-  On Error GoTo err_here 'some users experiencing error on recursive call
-
-  strErrorTrapping = cptGetSetting("General", "ErrorTrapping")
-  If Len(strErrorTrapping) > 0 Then
-    cptErrorTrapping = CBool(strErrorTrapping)
-  Else
-    cptSaveSetting "General", "ErrorTrapping", "1"
-    cptErrorTrapping = True
-  End If
-
-exit_here:
-  On Error Resume Next
-
-  Exit Function
-err_here:
-  Call cptHandleErr("cptSetup_bas", "cptErrorTrapping", Err, Erl)
-  Resume exit_here
-End Function
