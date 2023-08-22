@@ -13,10 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.4.9</cpt_version>
+'<cpt_version>v1.4.10</cpt_version>
 Option Explicit
-Private Const adVarChar As Long = 200
-Private Const adInteger As Long = 3
 
 Private Sub cboCostTool_Change()
   'objects
@@ -80,15 +78,15 @@ err_here:
 End Sub
 
 Private Sub cboCreate_Change()
-'objects
-'strings
-'longs
-Dim lngField As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  'strings
+  'longs
+  Dim lngField As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -139,19 +137,19 @@ err_here:
 End Sub
 
 Private Sub cboEach_Change()
-'objects
-Dim rstItems As Object 'ADODB.Recordset
-Dim oTask As MSProject.Task
-'strings
-Dim strFieldName As String
-'longs
-Dim lngItem As Long
-Dim lngField As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim rstItems As Object 'ADODB.Recordset
+  Dim oTask As MSProject.Task
+  'strings
+  Dim strFieldName As String
+  'longs
+  Dim lngItem As Long
+  Dim lngField As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -169,7 +167,7 @@ Dim lngField As Long
   If lngField > 0 Then
     Set rstItems = CreateObject("ADODB.Recordset")
     With rstItems
-      .Fields.Append Me.cboEach.Value, adVarChar, 255
+      .Fields.Append Me.cboEach.Value, 200, 255 '200=adVarChar
       .Open
       For Each oTask In ActiveProject.Tasks
         If oTask Is Nothing Then GoTo next_task
@@ -351,9 +349,9 @@ Private Sub chkKeepOpen_Click()
 End Sub
 
 Private Sub chkSendEmails_Click()
-Dim strQuickPart As String
-Dim blnExists As Boolean
-Dim lngItem As Long
+  Dim strQuickPart As String
+  Dim blnExists As Boolean
+  Dim lngItem As Long
 
   Me.txtSubject.Enabled = Me.chkSendEmails
   Me.txtCC.Enabled = Me.chkSendEmails
@@ -385,28 +383,28 @@ Dim lngItem As Long
 End Sub
 
 Sub cmdAdd_Click()
-Dim lgField As Long, lgExport As Long, lgExists As Long
-Dim blnExists As Boolean
+  Dim lngField As Long, lngExport As Long, lngExists As Long
+  Dim blnExists As Boolean
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  For lgField = 0 To Me.lboFields.ListCount - 1
-    If Me.lboFields.Selected(lgField) Then
+  For lngField = 0 To Me.lboFields.ListCount - 1
+    If Me.lboFields.Selected(lngField) Then
       'ensure doesn't already exist
       blnExists = False
-      For lgExists = 0 To Me.lboExport.ListCount - 1
-        If Me.lboExport.List(lgExists, 0) = Me.lboFields.List(lgField) Then
+      For lngExists = 0 To Me.lboExport.ListCount - 1
+        If Me.lboExport.List(lngExists, 0) = Me.lboFields.List(lngField) Then
           GoTo next_item
         End If
-      Next lgExists
+      Next lngExists
       Me.lboExport.AddItem
-      lgExport = Me.lboExport.ListCount - 1
-      Me.lboExport.List(lgExport, 0) = Me.lboFields.List(lgField, 0)
-      Me.lboExport.List(lgExport, 1) = Me.lboFields.List(lgField, 1)
-      Me.lboExport.List(lgExport, 2) = Me.lboFields.List(lgField, 2)
+      lngExport = Me.lboExport.ListCount - 1
+      Me.lboExport.List(lngExport, 0) = Me.lboFields.List(lngField, 0)
+      Me.lboExport.List(lngExport, 1) = Me.lboFields.List(lngField, 1)
+      Me.lboExport.List(lngExport, 2) = Me.lboFields.List(lngField, 2)
     End If
 next_item:
-  Next lgField
+  Next lngField
 
   Call cptRefreshStatusTable
 
@@ -421,26 +419,26 @@ err_here:
 End Sub
 
 Private Sub cmdAddAll_Click()
-Dim lgField As Long, lgExport As Long, lgExists As Long
-Dim blnExists As Boolean
+  Dim lngField As Long, lngExport As Long, lngExists As Long
+  Dim blnExists As Boolean
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  For lgField = 0 To Me.lboFields.ListCount - 1
+  For lngField = 0 To Me.lboFields.ListCount - 1
     'ensure doesn't already exist
     blnExists = False
-    For lgExists = 0 To Me.lboExport.ListCount - 1
-      If Me.lboExport.List(lgExists, 0) = Me.lboFields.List(lgField) Then
+    For lngExists = 0 To Me.lboExport.ListCount - 1
+      If Me.lboExport.List(lngExists, 0) = Me.lboFields.List(lngField) Then
         GoTo next_item
       End If
-    Next lgExists
+    Next lngExists
     Me.lboExport.AddItem
-    lgExport = Me.lboExport.ListCount - 1
-    Me.lboExport.List(lgExport, 0) = Me.lboFields.List(lgField, 0)
-    Me.lboExport.List(lgExport, 1) = Me.lboFields.List(lgField, 1)
-    Me.lboExport.List(lgExport, 2) = Me.lboFields.List(lgField, 2)
+    lngExport = Me.lboExport.ListCount - 1
+    Me.lboExport.List(lngExport, 0) = Me.lboFields.List(lngField, 0)
+    Me.lboExport.List(lngExport, 1) = Me.lboFields.List(lngField, 1)
+    Me.lboExport.List(lngExport, 2) = Me.lboFields.List(lngField, 2)
 next_item:
-  Next lgField
+  Next lngField
 
   Call cptRefreshStatusTable
 
@@ -455,7 +453,7 @@ err_here:
 End Sub
 
 Private Sub cmdCancel_Click()
-Dim strFileName As String
+  Dim strFileName As String
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -494,11 +492,11 @@ Private Sub cmdDir_Click()
   Set oFileDialog = oExcel.FileDialog(msoFileDialogFolderPicker)
   With oFileDialog
     .AllowMultiSelect = False
-    If InStr(ActiveProject.Path, "<>\") = 0 Then 'not a server project
-      .InitialFileName = ActiveProject.Path
-    Else 'server project: default to Desktop
+    If Left(ActiveProject.Path, 3) = "<>\" Or Left(ActiveProject.Path, 4) = "http" Then 'server project: default to Desktop
       Set oShell = CreateObject("WScript.Shell")
       .InitialFileName = oShell.SpecialFolders("Desktop")
+    Else 'not a server project
+      .InitialFileName = ActiveProject.Path
     End If
     If .Show Then
       Me.txtDir = .SelectedItems(1) & "\" & IIf(Me.chkAppendStatusDate, Format(ActiveProject.StatusDate, "yyyy-mm-dd") & "\", "")
@@ -518,9 +516,9 @@ err_here:
 End Sub
 
 Private Sub cmdDown_Click()
-Dim lngExport As Long
-Dim lgField As Long, strField As String, strField2 As String
-Dim blnSelected As Boolean
+  Dim lngExport As Long
+  Dim lngField As Long, strField As String, strField2 As String
+  Dim blnSelected As Boolean
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -530,7 +528,7 @@ Dim blnSelected As Boolean
       If Me.lboExport.Selected(lngExport) Then
         blnSelected = True
         'capture values
-        lgField = Me.lboExport.List(lngExport + 1, 0)
+        lngField = Me.lboExport.List(lngExport + 1, 0)
         strField = Me.lboExport.List(lngExport + 1, 1)
         strField2 = Me.lboExport.List(lngExport + 1, 2)
         'move selected values
@@ -538,7 +536,7 @@ Dim blnSelected As Boolean
         Me.lboExport.List(lngExport + 1, 1) = Me.lboExport.List(lngExport, 1)
         Me.lboExport.List(lngExport + 1, 2) = Me.lboExport.List(lngExport, 2)
         Me.lboExport.Selected(lngExport + 1) = True
-        Me.lboExport.List(lngExport, 0) = lgField
+        Me.lboExport.List(lngExport, 0) = lngField
         Me.lboExport.List(lngExport, 1) = strField
         Me.lboExport.List(lngExport, 2) = strField2
         Me.lboExport.Selected(lngExport) = False
@@ -559,15 +557,15 @@ err_here:
 End Sub
 
 Private Sub cmdRemove_Click()
-Dim lgExport As Long
+  Dim lngExport As Long
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  For lgExport = Me.lboExport.ListCount - 1 To 0 Step -1
-    If Me.lboExport.Selected(lgExport) Then
-      Me.lboExport.RemoveItem lgExport
+  For lngExport = Me.lboExport.ListCount - 1 To 0 Step -1
+    If Me.lboExport.Selected(lngExport) Then
+      Me.lboExport.RemoveItem lngExport
     End If
-  Next lgExport
+  Next lngExport
 
   Call cptRefreshStatusTable
 
@@ -582,13 +580,13 @@ err_here:
 End Sub
 
 Private Sub cmdRemoveAll_Click()
-Dim lgExport As Long
+  Dim lngExport As Long
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  For lgExport = Me.lboExport.ListCount - 1 To 0 Step -1
-    Me.lboExport.RemoveItem lgExport
-  Next lgExport
+  For lngExport = Me.lboExport.ListCount - 1 To 0 Step -1
+    Me.lboExport.RemoveItem lngExport
+  Next lngExport
 
   Call cptRefreshStatusTable
 
@@ -603,19 +601,19 @@ err_here:
 End Sub
 
 Private Sub cmdRun_Click()
-'objects
-'strings
-'longs
-Dim lngDateFormat As Long
-Dim lngSelectedItems As Long
-Dim lngItem As Long
-'integers
-'doubles
-'booleans
-Dim blnError As Boolean
-Dim blnIncluded As Boolean
-'variants
-'dates
+  'objects
+  'strings
+  'longs
+  Dim lngDateFormat As Long
+  Dim lngSelectedItems As Long
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnError As Boolean
+  Dim blnIncluded As Boolean
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -763,7 +761,7 @@ End Sub
 
 Private Sub cmdUp_Click()
   Dim lngExport As Long
-  Dim lgField As Long, strField As String, strField2 As String
+  Dim lngField As Long, strField As String, strField2 As String
   Dim blnSelected As Boolean
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -774,7 +772,7 @@ Private Sub cmdUp_Click()
       If Me.lboExport.Selected(lngExport) Then
         blnSelected = True
         'capture values
-        lgField = Me.lboExport.List(lngExport - 1, 0)
+        lngField = Me.lboExport.List(lngExport - 1, 0)
         strField = Me.lboExport.List(lngExport - 1, 1)
         strField2 = Me.lboExport.List(lngExport - 1, 2)
         'move selected values
@@ -782,7 +780,7 @@ Private Sub cmdUp_Click()
         Me.lboExport.List(lngExport - 1, 1) = Me.lboExport.List(lngExport, 1)
         Me.lboExport.List(lngExport - 1, 2) = Me.lboExport.List(lngExport, 2)
         Me.lboExport.Selected(lngExport - 1) = True
-        Me.lboExport.List(lngExport, 0) = lgField
+        Me.lboExport.List(lngExport, 0) = lngField
         Me.lboExport.List(lngExport, 1) = strField
         Me.lboExport.List(lngExport, 2) = strField2
         Me.lboExport.Selected(lngExport) = False
@@ -803,11 +801,11 @@ err_here:
 End Sub
 
 Private Sub lblEmailHints_Click()
-Dim strHints As String
+  Dim strHints As String
 
   strHints = "The following fields are available for auto replacement in the subject line and your Email Template (a.k.a., 'Quick Part'):" & vbCrLf & vbCrLf
   strHints = strHints & "[STATUS_DATE] > Status Date in MM/DD/YYYY format" & vbCrLf
-  strHints = strHints & "[YYYYMM] > Status Date in MM/DD/YYYY format" & vbCrLf
+  'strHints = strHints & "[YYYYMM] > Status Date in MM/DD/YYYY format" & vbCrLf
   strHints = strHints & "[PROGRAM] > Program Acronym" & vbCrLf
   strHints = strHints & vbCrLf & "Send other suggestions to cpt@ClearPlanConsulting.com"
   MsgBox strHints, vbInformation + vbOKOnly, "Email Hints"
@@ -830,17 +828,17 @@ err_here:
 End Sub
 
 Private Sub lboItems_Change()
-'strings
-Dim strCriteria As String
-Dim strFieldName As String
-'longs
-Dim lngSelectedItems As Long
-Dim lngItem As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'strings
+  Dim strCriteria As String
+  Dim strFieldName As String
+  'longs
+  Dim lngSelectedItems As Long
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -887,7 +885,7 @@ err_here:
 End Sub
 
 Private Sub stxtSearch_Change()
-Dim lgItem As Long
+  Dim lngItem As Long
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -901,14 +899,14 @@ Dim lgItem As Long
       .Filter = 0
     End If
     If .RecordCount > 0 Then .MoveFirst
-    lgItem = 0
+    lngItem = 0
     Do While Not .EOF
       Me.lboFields.AddItem
-      Me.lboFields.List(lgItem, 0) = .Fields(0)
-      Me.lboFields.List(lgItem, 1) = .Fields(1)
-      Me.lboFields.List(lgItem, 2) = .Fields(2)
+      Me.lboFields.List(lngItem, 0) = .Fields(0)
+      Me.lboFields.List(lngItem, 1) = .Fields(1)
+      Me.lboFields.List(lngItem, 2) = .Fields(2)
       .MoveNext
-      lgItem = lgItem + 1
+      lngItem = lngItem + 1
     Loop
     .Close
   End With
@@ -923,20 +921,20 @@ err_here:
 End Sub
 
 Private Sub stxtSearch_Enter()
-Dim lgField As Long, strFileName As String
+  Dim lngField As Long, strFileName As String
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   strFileName = cptDir & "\settings\cpt-status-sheet-search.adtg"
   If Dir(strFileName) <> vbNullString Then Exit Sub
   With CreateObject("ADODB.Recordset")
-    .Fields.Append "Field Constant", adVarChar, 100
-    .Fields.Append "Custom Field Name", adVarChar, 100
-    .Fields.Append "Local Field Name", adVarChar, 100
+    .Fields.Append "Field Constant", 200, 100 '200=adVarChar
+    .Fields.Append "Custom Field Name", 200, 100 '200=adVarChar
+    .Fields.Append "Local Field Name", 200, 100 '200=adVarChar
     .Open
-    For lgField = 0 To cptStatusSheet_frm.lboFields.ListCount - 1
-      .AddNew Array(0, 1, 2), Array(Me.lboFields.List(lgField, 0), cptStatusSheet_frm.lboFields.List(lgField, 1), cptStatusSheet_frm.lboFields.List(lgField, 2))
-    Next lgField
+    For lngField = 0 To cptStatusSheet_frm.lboFields.ListCount - 1
+      .AddNew Array(0, 1, 2), Array(Me.lboFields.List(lngField, 0), cptStatusSheet_frm.lboFields.List(lngField, 1), cptStatusSheet_frm.lboFields.List(lngField, 2))
+    Next lngField
     .Update
     .Save strFileName
     .Close
@@ -996,7 +994,7 @@ Sub txtFileName_Change()
 End Sub
 
 Private Sub txtHideCompleteBefore_Change()
-Dim stxt As String
+  Dim stxt As String
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not Me.Visible Then GoTo exit_here
@@ -1024,7 +1022,7 @@ err_here:
 End Sub
 
 Private Sub txtStatusDate_Change()
-Dim stxt As String
+  Dim stxt As String
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not Me.Visible Then GoTo exit_here
@@ -1052,7 +1050,7 @@ err_here:
 End Sub
 
 Private Sub txtSubject_Change()
-Dim strSubject As String
+  Dim strSubject As String
   strSubject = Me.txtSubject.Text
   strSubject = Replace(strSubject, "[yyyy-mm-dd]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
   strSubject = Replace(strSubject, "[Program]", cptGetProgramAcronym)

@@ -1,8 +1,8 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.4.9</cpt_version>
+'<cpt_version>v1.4.10</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
-  Declare PtrSafe Function GetTickCount Lib "Kernel32" () As LongPtr '<issue53>
+  Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
 #Else '<issue53>
   Declare Function GetTickCount Lib "kernel32" () As Long
 #End If '<issue53>
@@ -21,49 +21,49 @@ Private oEntryHeaderRange As Excel.Range
 Public oEVTs As Scripting.Dictionary
 
 Sub cptShowStatusSheet_frm()
-'populate all outline codes, text, and number fields
-'populate UID,[user selections],Task Name,Duration,Forecast Start,Forecast Finish,Total Slack,[EVT],EV%,New EV%,BLW,Remaining Work,Revised ETC,BLS,BLF,Reason/Impact/Action
-'add pick list for EV% or default to Physical % Complete
-'objects
-Dim oShell As Object
-Dim oTasks As MSProject.Tasks
-Dim rstFields As ADODB.Recordset 'Object
-Dim rstEVT As ADODB.Recordset 'Object
-Dim rstEVP As ADODB.Recordset 'Object
-'longs
-Dim lngField As Long
-Dim lngItem As Long
-Dim lngSelectedItems As Long
-'integers
-Dim intField As Integer
-'strings
-Dim strKeepOpen As String
-Dim strExportNotes As String
-Dim strAllowAssignmentNotes As String
-Dim strNotesColTitle As String
-Dim strFileNamingConvention As String
-Dim strDir As String
-Dim strAllItems As String
-Dim strAppendStatusDate As String
-Dim strQuickPart As String
-Dim strCC As String
-Dim strSubject As String
-Dim strLocked As String
-Dim strDataValidation As String
-Dim strConditionalFormats As String
-Dim strEmail As String
-Dim strEach As String
-Dim strCostTool As String
-Dim strHide As String
-Dim strCreate As String
-Dim strEVP As String
-Dim strEVT As String
-Dim strFieldNamesChanged As String
-Dim strFieldName As String, strFileName As String
-'dates
-Dim dtStatus As Date
-'variants
-Dim vFieldType As Variant
+  'populate all outline codes, text, and number fields
+  'populate UID,[user selections],Task Name,Duration,Forecast Start,Forecast Finish,Total Slack,[EVT],EV%,New EV%,BLW,Remaining Work,Revised ETC,BLS,BLF,Reason/Impact/Action
+  'add pick list for EV% or default to Physical % Complete
+  'objects
+  Dim oShell As Object
+  Dim oTasks As MSProject.Tasks
+  Dim rstFields As ADODB.Recordset 'Object
+  Dim rstEVT As ADODB.Recordset 'Object
+  Dim rstEVP As ADODB.Recordset 'Object
+  'longs
+  Dim lngField As Long
+  Dim lngItem As Long
+  Dim lngSelectedItems As Long
+  'integers
+  Dim intField As Integer
+  'strings
+  Dim strKeepOpen As String
+  Dim strExportNotes As String
+  Dim strAllowAssignmentNotes As String
+  Dim strNotesColTitle As String
+  Dim strFileNamingConvention As String
+  Dim strDir As String
+  Dim strAllItems As String
+  Dim strAppendStatusDate As String
+  Dim strQuickPart As String
+  Dim strCC As String
+  Dim strSubject As String
+  Dim strLocked As String
+  Dim strDataValidation As String
+  Dim strConditionalFormats As String
+  Dim strEmail As String
+  Dim strEach As String
+  Dim strCostTool As String
+  Dim strHide As String
+  Dim strCreate As String
+  Dim strEVP As String
+  Dim strEVT As String
+  Dim strFieldNamesChanged As String
+  Dim strFieldName As String, strFileName As String
+  'dates
+  Dim dtStatus As Date
+  'variants
+  Dim vFieldType As Variant
 
   'confirm existence of tasks to export
   On Error Resume Next
@@ -131,11 +131,11 @@ Dim vFieldType As Variant
     .chkValidation = True
     .chkLocked = True
     .chkAllItems = False
-    If InStr(ActiveProject.Path, "<>") = 0 Then 'not a server project: use ActiveProject.Path
-      .txtDir = ActiveProject.Path & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
-    Else 'it is a server project: default to Desktop
+    If Left(ActiveProject.Path, 3) = "<>\" Or Left(ActiveProject.Path, 4) = "http" Then 'it is a server project: default to Desktop
       Set oShell = CreateObject("WScript.Shell")
       .txtDir = oShell.SpecialFolders("Desktop") & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
+    Else  'not a server project: use ActiveProject.Path
+      .txtDir = ActiveProject.Path & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
     End If
     .txtFileName = "StatusRequest_[yyyy-mm-dd]"
   End With
@@ -496,7 +496,7 @@ next_item:
   End If
   DoEvents
   
-  OptionsViewEx displaysummarytasks:=True, displaynameindent:=True
+  OptionsViewEx DisplaySummaryTasks:=True, DisplayNameIndent:=True
   If strStartingGroup = "No Group" Then
     Sort "ID", , , , , , False, True 'OutlineShowAllTasks won't work without this
   Else
@@ -759,7 +759,7 @@ Sub cptCreateStatusSheet()
       oWorksheet.Calculate
       
       If blnLocked Then 'protect the sheet
-        oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, userinterfaceonly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
+        oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
         oWorksheet.EnableSelection = xlNoRestrictions
       End If
       
@@ -831,7 +831,7 @@ Sub cptCreateStatusSheet()
           oWorksheet.Calculate
           
           If blnLocked Then 'protect the sheet
-            oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, userinterfaceonly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
+            oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
             oWorksheet.EnableSelection = xlNoRestrictions
           End If
           
@@ -921,7 +921,7 @@ next_worksheet:
           oWorksheet.Calculate
           
           If blnLocked Then 'protect the sheet
-            oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, userinterfaceonly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
+            oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
             oWorksheet.EnableSelection = xlNoRestrictions
           End If
           
@@ -1550,15 +1550,15 @@ err_here:
 End Sub
 
 Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False)
-'objects
-'strings
-'longs
-Dim lngItem As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  'strings
+  'longs
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not cptStatusSheet_frm.Visible And blnOverride = False Then GoTo exit_here
@@ -1572,35 +1572,35 @@ Dim lngItem As Long
     GroupApply "No Group"
   End If
   
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   lngItem = 0
   If cptStatusSheet_frm.lboExport.ListCount > 0 Then
     For lngItem = 0 To cptStatusSheet_frm.lboExport.ListCount - 1
       If Not IsNull(cptStatusSheet_frm.lboExport.List(lngItem, 0)) Then
-        TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=FieldConstantToFieldName(cptStatusSheet_frm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+        TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=FieldConstantToFieldName(cptStatusSheet_frm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
       End If
     Next lngItem
   End If
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Name", Title:="Task Name / Scope", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Duration", Title:="", Width:=12, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Total Slack", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False, ShowAddNewColumn:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Start", Title:="Forecast Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Finish", Title:="Forecast Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Actual Start", Title:="New Forecast/ Actual Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Actual Finish", Title:="New Forecast/ Actual Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Name", Title:="Task Name / Scope", Width:=60, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Duration", Title:="", Width:=12, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Total Slack", Title:="", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Start", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Finish", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False, ShowAddNewColumn:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Start", Title:="Forecast Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Finish", Title:="Forecast Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Actual Start", Title:="New Forecast/ Actual Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Actual Finish", Title:="New Forecast/ Actual Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   If cptStatusSheet_frm.cboEVT <> 0 Then
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVT.Value, Title:="EVT", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVT.Value, Title:="EVT", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   End If
   If cptStatusSheet_frm.cboEVP <> 0 Then
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVP.Value, Title:="EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVP.Value, Title:="New EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVP.Value, Title:="EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVP.Value, Title:="New EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   End If
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="Previous ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="Revised ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, headerautorowheightadjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="Previous ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="Revised ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableApply Name:="cptStatusSheet Table"
 
   'reset the filter
@@ -2077,6 +2077,7 @@ next_task:
       .ShowInput = True
       .ShowError = True
     End With
+    
   End If
   If blnValidation And Not oETCValidationRange Is Nothing Then
     'ETC validation range (contains ETC only)
@@ -2310,8 +2311,9 @@ err_here:
 End Sub
 
 Sub cptFinalFormats(ByRef oWorksheet As Excel.Worksheet)
-Dim lngHeaderRow As Long
-Dim vBorder As Variant
+  Dim lngHeaderRow As Long
+  Dim vBorder As Variant
+  
   lngHeaderRow = 8
   oWorksheet.Cells(lngHeaderRow, 1).AutoFilter
   oWorksheet.Columns(1).AutoFit
@@ -2337,7 +2339,7 @@ Dim vBorder As Variant
   oWorksheet.Application.WindowState = xlNormal 'cannot apply certain settings below if window is minimized...like data validation
   oWorksheet.Application.Calculation = xlCalculationAutomatic
   oWorksheet.Application.ScreenUpdating = True
-  oWorksheet.Application.ActiveWindow.DisplayGridLines = False
+  oWorksheet.Application.ActiveWindow.DisplayGridlines = False
   oWorksheet.[B2].Select
   oWorksheet.Application.ActiveWindow.SplitRow = 8
   oWorksheet.Application.ActiveWindow.SplitColumn = 0
@@ -2349,18 +2351,22 @@ Dim vBorder As Variant
 End Sub
 
 Sub cptListQuickParts(Optional blnRefreshOutlook As Boolean = False)
-'objects
-Dim oOutlook As Outlook.Application
-Dim oMailItem As MailItem
-Dim oDocument As Word.Document
-Dim oWord As Word.Application
-Dim oTemplate As Word.Template
-Dim oBuildingBlockEntries As Word.BuildingBlockEntries
-Dim oBuildingBlock As Word.BuildingBlock
-'longs
-Dim lngItem As Long
-'strings
-Dim strSQL As String
+  'objects
+  Dim oOutlook As Outlook.Application
+  Dim oMailItem As MailItem
+  Dim oDocument As Word.Document
+  Dim oWord As Word.Application
+  Dim oTemplate As Word.Template
+  Dim oBuildingBlockEntries As Word.BuildingBlockEntries
+  Dim oBuildingBlock As Word.BuildingBlock
+  'longs
+  Dim lngItem As Long
+  'strings
+  Dim strQuickPartList As String
+  Dim strSQL As String
+  'variants
+  Dim vQuickPart As Variant
+  Dim vQuickParts As Variant
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -2402,9 +2408,18 @@ Dim strSQL As String
     For lngItem = 1 To oBuildingBlockEntries.Count
       Set oBuildingBlock = oBuildingBlockEntries(lngItem)
       If oBuildingBlock.Type.Name = "Quick Parts" Then
-        cptStatusSheet_frm.cboQuickParts.AddItem oBuildingBlock.Name
+        strQuickPartList = strQuickPartList & oBuildingBlock.Name & ","
       End If
-    Next
+    Next lngItem
+    'sort them
+    If Len(strQuickPartList) > 0 Then
+      strQuickPartList = Left(strQuickPartList, Len(strQuickPartList) - 1)
+      vQuickParts = Split(strQuickPartList, ",")
+      cptQuickSort vQuickParts, 0, UBound(vQuickParts)
+      For Each vQuickPart In vQuickParts
+        cptStatusSheet_frm.cboQuickParts.AddItem vQuickPart
+      Next vQuickPart
+    End If
     oMailItem.Close olDiscard
   End If
     
@@ -2646,6 +2661,7 @@ Sub cptSaveStatusSheetSettings()
     cptSaveSetting "StatusSheet", "chkExportNotes", IIf(.chkExportNotes, 1, 0)
     cptSaveSetting "StatusSheet", "chkAllowAssignmentNotes", IIf(.chkAllowAssignmentNotes, 1, 0)
     cptSaveSetting "StatusSheet", "chkKeepOpen", IIf(.chkKeepOpen, 1, 0)
+    cptSaveSetting "StatusSheet", "chkConditionalFormatting", IIf(.chkAddConditionalFormats, 1, 0)
     'save user fields - overwrite
     strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
     Set oRecordset = CreateObject("ADODB.Recordset")

@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCostRateTables_bas"
-'<cpt_version>v1.0.0</cpt_version>
+'<cpt_version>v1.0.1</cpt_version>
 Option Explicit
 
 Sub cptShowCostRateTables_frm()
@@ -297,12 +297,13 @@ cost_rate_tables:
     vOvtRate = oWorksheet.Cells(lngRow, 6).Value
     vCostPerUse = oWorksheet.Cells(lngRow, 7).Value
     If CDate(vEffectiveDate) > #1/1/1984# Then
-      oCostRateTable.PayRates.Add vEffectiveDate, vStdRate, vOvtRate, vCostPerUse
+      Set oPayRate = oCostRateTable.PayRates.Add(vEffectiveDate, vStdRate)
     Else
-      oCostRateTable.PayRates(1).StandardRate = vStdRate
-      If Not IsEmpty(vOvtRate) Then oCostRateTable.PayRates(1).OvertimeRate = vOvtRate
-      If Not IsEmpty(vCostPerUse) Then oCostRateTable.PayRates(1).CostPerUse = vCostPerUse
+      Set oPayRate = oCostRateTable.PayRates(1)
+      oPayRate.StandardRate = vStdRate
     End If
+    If Not IsEmpty(vOvtRate) Then oPayRate.OvertimeRate = vOvtRate
+    If Not IsEmpty(vCostPerUse) Then oPayRate.CostPerUse = vCostPerUse
     Application.StatusBar = Format(lngRow, "#,##0") & "/" & Format(lngLastRow, "#,##0") & "...(" & Format(lngRow / lngLastRow, "0%") & ")"
     cptCostRateTables_frm.lblStatus.Caption = Format(lngRow, "#,##0") & "/" & Format(lngLastRow, "#,##0") & "...(" & Format(lngRow / lngLastRow, "0%") & ")"
     cptCostRateTables_frm.lblProgress.Width = (lngRow / lngLastRow) * cptCostRateTables_frm.lblStatus.Width

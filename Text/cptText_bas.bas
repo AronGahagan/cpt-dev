@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.5.0</cpt_version>
+'<cpt_version>v1.5.1</cpt_version>
 Option Explicit
 
 Sub cptReplicateProcess()
@@ -292,9 +292,9 @@ Sub cptFindDuplicateTaskNames()
     If Not cptFilterExists("Active Tasks") Then
       FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, OverwriteExisting:=False, FieldName:="Active", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
     End If
-    MapEdit Name:="ExportTaskNames", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="Active Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
+    MapEdit Name:="ExportTaskNames", Create:=True, OverwriteExisting:=True, DataCategory:=0, categoryenabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="Active Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
   ElseIf Edition = pjEditionStandard Then
-    MapEdit Name:="ExportTaskNames", Create:=True, OverwriteExisting:=True, DataCategory:=0, CategoryEnabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
+    MapEdit Name:="ExportTaskNames", Create:=True, OverwriteExisting:=True, DataCategory:=0, categoryenabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
   End If
   If blnMaster Then
     MapEdit Name:="ExportTaskNames", DataCategory:=0, FieldName:="Project", ExternalFieldName:="Project"
@@ -334,11 +334,11 @@ Sub cptFindDuplicateTaskNames()
   End With
   oRange.FormatConditions(1).StopIfTrue = False
   'filter for duplicates
-  lgNameCol = oWorksheet.Rows(1).Find("Name", LookAt:=xlWhole).Column
+  lgNameCol = oWorksheet.Rows(1).Find("Name", lookat:=xlWhole).Column
   oListObject.Range.AutoFilter Field:=lgNameCol, Criteria1:=RGB(255, 199, 206), Operator:=xlFilterCellColor
   'sort by task name (to put duplicates together)
   oListObject.Sort.SortFields.Clear
-  oListObject.Sort.SortFields.Add key:=oWorksheet.Range("Table1[[#All],[Name]]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortTextAsNumbers
+  oListObject.Sort.SortFields.Add Key:=oWorksheet.Range("Table1[[#All],[Name]]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortTextAsNumbers
   With oListObject.Sort
     .Header = xlYes
     .MatchCase = False
@@ -618,7 +618,7 @@ Sub cptResetRowHeight()
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-    '===
+  '===
   'Validate users selected view type
   If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
     MsgBox "Please select a View with a Task Table.", vbInformation + vbOKOnly, "ResetRowHeight"
@@ -640,3 +640,116 @@ err_here:
   Call cptHandleErr("cptText_bas", "cptResetRowHeight", Err, Erl)
   Resume exit_here
 End Sub
+
+Sub cptCheckAnnoyances()
+  'objects
+  Dim oTasks As MSProject.Tasks
+  Dim oTask As MSProject.Task
+  'strings
+  Dim strElapsed As String
+  Dim strElapsedList As String
+  Dim strFile As String
+  Dim strTimes As String
+  Dim strTimesList As String
+  Dim strDurations As String
+  Dim strDurationsList As String
+  Dim strFilter As String
+  'longs
+  Dim lngFile As Long
+  Dim lngCount As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  For Each oTask In ActiveProject.Tasks
+    If oTask Is Nothing Then GoTo next_task
+    If oTask.Summary Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If IsDate(oTask.ActualFinish) Then GoTo next_task
+    If oTask.Duration = 0 Then GoTo next_task 'todo: skip milestones or not?
+    If TimeValue(oTask.Finish) <> "5:00:00 PM" Or TimeValue(oTask.Start) <> "8:00:00 AM" Then
+      strTimesList = strTimesList & oTask.UniqueID & vbTab
+      strTimes = strTimes & oTask.UniqueID & "," & TimeValue(oTask.Start) & "," & TimeValue(oTask.Finish) & vbCrLf
+    End If
+    If InStr(oTask.DurationText, ".") > 0 Then
+      strDurationsList = strDurationsList & oTask.UniqueID & vbTab
+      strDurations = strDurations & oTask.UniqueID & "," & oTask.DurationText & vbCrLf
+    End If
+    If Left(cptRegEx(oTask.DurationText, "[A-z]{1,}"), 1) = "e" Then
+      strElapsedList = strElapsedList & oTask.UniqueID & vbTab
+      strElapsed = strElapsed & oTask.UniqueID & "," & oTask.DurationText & vbCrLf
+    End If
+next_task:
+  Next oTask
+  
+  strFilter = strTimesList & strDurationsList & strElapsedList
+  If Len(strFilter) = 0 Then
+    MsgBox "No annoyances!", vbInformation + vbOKOnly, "Well Done"
+  Else
+    strFilter = Left(strFilter, Len(strFilter) - 1) 'hack off last tab
+    ActiveWindow.TopPane.Activate
+    GroupClear
+    FilterClear
+    OptionsViewEx displaysummarytasks:=True
+    OutlineShowAllTasks
+    SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strFilter
+    SelectBeginning
+    SelectAll
+    On Error Resume Next
+    Set oTasks = ActiveSelection.Tasks
+    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If oTasks.Count = 0 Then
+      MsgBox "No annoyances.", vbInformation + vbOKOnly, "Well Done"
+    Else
+      For Each oTask In oTasks
+        If Not oTask.Summary Then lngCount = lngCount + 1
+      Next oTask
+    End If
+    MsgBox Format(lngCount, "#,##0") & " annoyance" & IIf(lngCount > 1, "s", "") & " found!", vbInformation + vbOKOnly, "Annoyances"
+    If MsgBox("View report?", vbQuestion + vbYesNo, "Annoyances") = vbYes Then
+      lngFile = FreeFile
+      strFile = Environ("tmp") & "\annoyances.txt"
+      Open strFile For Output As #1
+      If Len(strTimes) > 0 Then
+        Print #1, "===== ODD TIMES ARE ANNOYING ====="
+        Print #1, "UID,START,FINISH"
+        Print #1, strTimes
+        Print #1, "UID LIST: " & Replace(strTimesList, vbTab, ",")
+        Print #1, vbCrLf
+      End If
+      If Len(strDurations) > 0 Then
+        Print #1, "===== FRACTIONAL DURATIONS ARE ANNOYING ====="
+        Print #1, "UID,DURATION"
+        Print #1, strDurations
+        Print #1, "UID LIST: " & Replace(strDurationsList, vbTab, ",")
+        Print #1, vbCrLf
+      End If
+      If Len(strElapsed) > 0 Then
+        Print #1, "===== ELAPSED DURATIONS ARE ANNOYING ====="
+        Print #1, "UID,DURATION"
+        Print #1, strElapsed
+        Print #1, "UID LIST: " & Replace(strElapsedList, vbTab, ",")
+        Print #1, vbCrLf
+      End If
+  '    If Len(strTimes) > 0 And Len(strDurations) > 0 Then
+        Print #1, "COMBINED UID LIST: " & Replace(strFilter, vbTab, ",")
+  '    End If
+      Close #1
+      Shell "notepad.exe '" & strFile & "'", vbNormalFocus
+    End If
+  End If
+  
+exit_here:
+  On Error Resume Next
+  Set oTasks = Nothing
+  Set oTask = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("foo", "bar", Err, Erl)
+  Resume exit_here
+End Sub
+

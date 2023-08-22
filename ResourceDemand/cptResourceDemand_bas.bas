@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptResourceDemand_bas"
-'<cpt_version>v1.4.2</cpt_version>
+'<cpt_version>v1.4.3</cpt_version>
 Option Explicit
 
 Sub cptExportResourceDemand(Optional lngTaskCount As Long)
@@ -134,7 +134,11 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
   
   lngFile = FreeFile
   Set oShell = CreateObject("WScript.Shell")
-  strFile = oShell.SpecialFolders("Desktop") & "\" & Replace(Replace(ActiveProject.Name, ".mpp", ""), " ", "_") & "_ResourceDemand" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".csv"
+  strFile = cptRegEx(ActiveProject.Name, "[^\\/]{1,}$") 'works with local, server, and sharepoint
+  strFile = Replace(strFile, ".mpp", "") 'remove .mpp if local
+  strFile = Replace(strFile, " ", "_") 'replace spaces with '_'
+  strFile = oShell.SpecialFolders("Desktop") & "\" & strFile
+  strFile = strFile & "_ResourceDemand_" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".csv"
   
   If Dir(strFile) <> vbNullString Then Kill strFile
   
