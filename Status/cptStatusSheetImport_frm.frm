@@ -14,7 +14,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 
 Private Sub cboAF_Change()
@@ -170,11 +170,11 @@ Private Sub cmdSelectFiles_Click()
     .AllowMultiSelect = True
     .ButtonName = "Import"
     .InitialView = 2 'msoFileDialogViewDetails
-    If InStr(ActiveProject.Path, "<>\") = 0 Then 'not a server project: use ActiveProject.Path
-      .InitialFileName = ActiveProject.Path & "\"
-    Else 'default to Desktop
+    If Left(ActiveProject.Path, 3) = "<>\" Or Left(ActiveProject.Path, 4) = "http" Then 'server: default to Desktop
       Set oShell = CreateObject("WScript.Shell")
       .InitialFileName = oShell.SpecialFolders("Desktop") & "\"
+    Else 'not a server project: use ActiveProject.Path
+      .InitialFileName = ActiveProject.Path & "\"
     End If
     .Title = "Select Returned Status Sheet(s):"
     .Filters.Add "Microsoft Excel Workbook (xlsx)", "*.xlsx"

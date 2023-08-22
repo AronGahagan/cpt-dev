@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 
 Sub cptShowStatusSheetImport_frm()
@@ -331,14 +331,13 @@ Sub cptStatusSheetImport()
   strLOE = cptGetSetting("Metrics", "txtLOE")
     
   'set up import log file
-  If InStr(ActiveProject.Path, "<>\") = 0 Then 'not a server project: use ActiveProject.Path
-    strImportLog = ActiveProject.Path & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
-  Else 'default to Desktop
+  If Left(ActiveProject.Path, 3) = "<>\" Or Left(ActiveProject.Path, 4) = "http" Then 'server project: default to Desktop
     Set oShell = CreateObject("WScript.Shell")
     strImportLog = oShell.SpecialFolders("Desktop") & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
+  Else  'not a server project: use ActiveProject.Path
+    strImportLog = ActiveProject.Path & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
   End If
   
-  strImportLog = ActiveProject.Path & "\cpt-import-log-" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".txt"
   lngFile = FreeFile
   Open strImportLog For Output As #lngFile
   'log action
