@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.4.10</cpt_version>
+'<cpt_version>v1.5.0</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -2996,4 +2996,105 @@ err_here:
   Resume exit_here
 End Sub
 
+
+Sub cptFindUnstatusedTasks()
+  'objects
+  Dim oTasks As MSProject.Tasks
+  Dim oTask As MSProject.Task
+  'strings
+  Dim strMsg As String
+  Dim strUnstatused As String
+  'longs
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  Dim lngUnstatused As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  Dim dtStatus As Date
+  
+  On Error Resume Next
+  Set oTasks = ActiveProject.Tasks
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If oTasks Is Nothing Then
+    MsgBox "This project has no tasks.", vbCritical + vbOKOnly, "No tasks"
+    GoTo exit_here
+  End If
+  
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "Status Date is required.", vbCritical + vbOKOnly, "No Status Date"
+    If Not Application.ChangeStatusDate Then
+      GoTo exit_here
+    Else
+      dtStatus = ActiveProject.StatusDate
+    End If
+  Else
+    dtStatus = ActiveProject.StatusDate
+  End If
+  If Not IsDate(dtStatus) Then GoTo exit_here
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  cptSpeed True
+  FilterClear
+  OptionsViewEx DisplaySummaryTasks:=True
+  OutlineShowAllTasks
+  
+  lngTasks = oTasks.Count
+  
+  For Each oTask In oTasks
+    If oTask Is Nothing Then GoTo next_task 'skip blank lines
+    If oTask.Summary Then GoTo next_task 'skip summary tasks
+    If oTask.ExternalTask Then GoTo next_task 'skip external tasks
+    If Not oTask.Active Then GoTo next_task 'skip inactive tasks
+    If oTask.Start < dtStatus And Not IsDate(oTask.ActualStart) Then 'unstarted
+      strUnstatused = strUnstatused & oTask.UniqueID & vbTab
+    ElseIf oTask.Finish <= dtStatus And Not IsDate(oTask.ActualFinish) Then 'unfinished
+      strUnstatused = strUnstatused & oTask.UniqueID & vbTab
+    ElseIf IsDate(oTask.ActualStart) And Not IsDate(oTask.ActualFinish) Then
+      If oTask.Stop <> dtStatus Then  'unstatused
+        strUnstatused = strUnstatused & oTask.UniqueID & vbTab
+      End If
+    End If
+next_task:
+    lngTask = lngTask + 1
+    Application.StatusBar = "Processing..." & Format(lngTask, "#,##0") & " of " & Format(lngTasks, "#,##0") & " (" & Format(lngTask / lngTasks, "0%") & ")"
+    DoEvents
+  Next oTask
+  'report results
+  lngUnstatused = UBound(Split(strUnstatused, vbTab))
+  If lngUnstatused > 0 Then
+    strMsg = Format(lngUnstatused, "#,##0") & " unstatused task" & IIf(lngUnstatused = 1, ".", "s.") & vbCrLf & vbCrLf
+    strMsg = strMsg & "Unstatused means:" & vbCrLf
+    strMsg = strMsg & "> Forecast Start prior to Status Date" & vbCrLf
+    strMsg = strMsg & "> Forecast Finish prior to Status Date" & vbCrLf
+    strMsg = strMsg & "> In progress but not statused through Status Date"
+    MsgBox strMsg, vbExclamation + vbOKCancel, "Unstatused Tasks"
+    strUnstatused = Left(strUnstatused, Len(strUnstatused) - 1) 'hack off trailing tab
+    OptionsViewEx DisplaySummaryTasks:=False
+    SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strUnstatused
+    SelectAll
+    SetRowHeight "1"
+    SelectBeginning
+  Else
+    MsgBox "No unstatused tasks.", vbInformation + vbOKOnly, "Well Done"
+  End If
+
+  Application.StatusBar = "Complete."
+
+exit_here:
+  On Error Resume Next
+  Application.StatusBar = ""
+  Set oTasks = Nothing
+  Set oTask = Nothing
+  cptSpeed False
+  
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptFindUnstatusedTasks", Err, Erl)
+  Resume exit_here
+End Sub
 
