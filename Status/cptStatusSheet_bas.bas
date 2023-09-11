@@ -3024,6 +3024,11 @@ Sub cptFindUnstatusedTasks()
     GoTo exit_here
   End If
   
+  If oTasks.Count = 0 Then
+    MsgBox "This project has no tasks.", vbCritical + vbOKOnly, "No tasks"
+    GoTo exit_here
+  End If
+  
   If Not IsDate(ActiveProject.StatusDate) Then
     MsgBox "Status Date is required.", vbCritical + vbOKOnly, "No Status Date"
     If Not Application.ChangeStatusDate Then
