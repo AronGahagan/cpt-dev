@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDECM_bas"
-'<cpt_version>v0.0.2</cpt_version>
+'<cpt_version>v0.0.3</cpt_version>
 Option Explicit
 
 Private strWBS As String
@@ -57,15 +57,29 @@ Function ValidMap() As Boolean
       strSetting = cptGetSetting("Integration", CStr(vControl))
       If Len(strSetting) = 0 Then
         If vControl = "EVP" Then
-          strSetting = cptGetSetting("Metrics", "cboEVP") & "|" & FieldConstantToFieldName(strSetting)
-          cptSaveSetting "Integration", "EVP", strSetting
+          strSetting = cptGetSetting("Metrics", "cboEVP")
+          If Len(strSetting) = 0 Then
+            blnValid = False
+          Else
+            strSetting = strSetting & "|" & FieldConstantToFieldName(strSetting)
+            cptSaveSetting "Integration", "EVP", strSetting
+          End If
         ElseIf vControl = "EVT" Then
-          strSetting = cptGetSetting("Metrics", "cboLOEField") & "|" & FieldConstantToFieldName(strSetting)
-          cptSaveSetting "Integration", "EVT", strSetting
+          strSetting = cptGetSetting("Metrics", "cboLOEField")
+          If Len(strSetting) = 0 Then
+            blnValid = False
+          Else
+            strSetting = strSetting & "|" & FieldConstantToFieldName(strSetting)
+            cptSaveSetting "Integration", "EVT", strSetting
+          End If
         ElseIf vControl = "LOE" Then
           strSetting = cptGetSetting("Metrics", "txtLOE")
-          cptSaveSetting "Integration", "LOE", strSetting
-          .cboLOE.Value = strSetting
+          If Len(strSetting) = 0 Then
+            blnValid = False
+          Else
+            cptSaveSetting "Integration", "LOE", strSetting
+            .cboLOE.Value = strSetting
+          End If
         End If
       End If
       If vControl = "CWBS" Then vControl = "WBS"  'todo: fix saved setting name
@@ -157,7 +171,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptDECM", "ValidMap", Err, Erl)
+  Call cptHandleErr("cptDECM_bas", "ValidMap", Err, Erl)
   Resume exit_here
     
 End Function
