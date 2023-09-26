@@ -143,14 +143,14 @@
 	<Module>
 		<Name>cptDECM_bas</Name>
 		<FileName>cptDECM_bas.bas</FileName>
-		<Version>v0.0.2</Version>
+		<Version>v0.0.3</Version>
 		<Type>1</Type>
 		<Directory>Metrics</Directory>
 	</Module>
 	<Module>
 		<Name>cptDECM_frm</Name>
 		<FileName>cptDECM_frm.frm</FileName>
-		<Version>v0.0.2</Version>
+		<Version>v0.0.3</Version>
 		<Type>3</Type>
 		<Directory>Metrics</Directory>
 	</Module>
