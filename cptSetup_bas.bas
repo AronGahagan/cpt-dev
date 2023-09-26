@@ -16,6 +16,12 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
                                                                         ByVal dwReserved As Long) As Long
 #End If
 
+#If VBA7 Then
+    Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As LongPtr)
+#Else
+    Private Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+#End If
+
 Sub cptSetup()
 'setup only needs to be run once
 'objects
@@ -546,6 +552,7 @@ Dim lngCleanUp As Long
   If cptModuleExists("cptSmartDuration_frm") And cptModuleExists("cptSmartDuration_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSmartDuration"" label=""Smart Duration"" imageMso=""CalendarToolSelectDate"" onAction=""cptShowSmartDuration_frm"" visible=""true"" supertip=""We've all been there: how many days between Time Now and the finish date the CAM just gave me? No more guess work: click here and improve your life."" />"
   End If
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUnstatused"" label=""Find Unstatused"" imageMso=""UpdateAsScheduled"" onAction=""cptFindUnstatusedTasks"" visible=""true"" supertip=""Find tasks not statused through 'Time Now'."" />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""After Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBlameReport"" label=""The Blame Report"" imageMso=""ContactProperties"" onAction=""cptBlameReport"" visible=""true"" supertip=""Find out which tasks slipped from last period."" />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCaptureWeek2"" label=""Capture Week"" imageMso=""RefreshWebView"" onAction=""cptCaptureWeek"" visible=""true"" supertip=""Capture the Current Schedule after updates to compare against past and future weeks during execution. This is required for certain metrics (e.g., CEI, all Trending) to run properly."" />"
@@ -720,7 +727,7 @@ Dim strMsg As String
     If lngErl > 0 Then
       strMsg = strMsg & ":" & lngErl
     End If
-    MsgBox strMsg, vbExclamation + vbOKOnly, "Unknown Error"
+    MsgBox strMsg, vbExclamation + vbOKOnly, Err.Description
 
 End Sub
 
