@@ -78,7 +78,6 @@ Function ValidMap() As Boolean
             blnValid = False
           Else
             cptSaveSetting "Integration", "LOE", strSetting
-            .cboLOE.Value = strSetting
           End If
         End If
       End If
@@ -422,6 +421,8 @@ Sub cptDECM_GET_DATA()
         strRecord = strRecord & Choose(oTask.ConstraintType + 1, "ASAP", "ALAP", "MSO", "MFO", "SNET", "SNLT", "FNET", "FNLT") & ","
       ElseIf vField = lngTS Then
         strRecord = strRecord & oTask.TotalSlack & "," 'todo: convert to days?
+      ElseIf Len(cptRegEx(FieldConstantToFieldName(vField), "Start|Finish")) > 0 And IsDate(oTask.GetField(vField)) Then 'convert text to date if field name as 'start' or 'finish')
+        strRecord = strRecord & FormatDateTime(oTask.GetField(CLng(vField)), vbShortDate) & ","
       Else
         strRecord = strRecord & oTask.GetField(CLng(vField)) & ","
       End If
@@ -713,7 +714,7 @@ next_task:
   Application.StatusBar = "Getting EVMS Metric: 10A109b..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A109b"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs With Budgets"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs w/o Budgets"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = Count of WPs/PPs/SLPPs with BAC = 0
@@ -2474,29 +2475,29 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
     Case "05A101a" '1 CA : 1 OBS
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
-        SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0)), pjAutoFilterIn, "equals", strList
+        'todo: group by CA,OBS
       Else
-        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
-      'todo: group by CA,OBS
     
     Case "05A102a" '1 CA : 1 CAM
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
-        SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0)), pjAutoFilterIn, "equals", strList
+        'todo: group by CA,CAM
       Else
-        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
-      'todo: group by CA,CAM
     
     Case "05A103a" '1 CA : 1 WBS
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
-        SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0)), pjAutoFilterIn, "equals", strList
+        'todo: group by CA,WBS
       Else
-        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
-      'todo: group by CA,WBS
     
     Case "06A101a" 'WP mismatches
       'todo: do what?
@@ -2505,32 +2506,32 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       If Len(strList) > 0 Then
         SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
       Else
-        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
     
     Case "10A102a" '1 WP : 1 EVT
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
-        SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WPCN"), "|")(0)), pjAutoFilterIn, "equals", strList
+        'todo: group by WP,EVT
       Else
-        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
-      'todo: group by WP,EVT
     
     Case "10A103a" '0/100 >1 fiscal periods
       If Len(strList) > 0 Then
         strList = Left(strList, Len(strList) - 1) 'remove last tab
-        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WPCN"), "|")(0)), pjAutoFilterIn, "contains", strList 'todo: "WPCN" > "WP"
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WPCN"), "|")(0)), pjAutoFilterIn, "equals", strList 'todo: "WPCN" > "WP"
       Else
-        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
       
     Case "10A109b" 'WP with no budget
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
-        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WPCN"), "|")(0)), pjAutoFilterIn, "contains", strList 'todo: "WPCN" > "WP"
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WPCN"), "|")(0)), pjAutoFilterIn, "equals", strList 'todo: "WPCN" > "WP"
       Else
-        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
     
     Case "10A202a" 'WP with Mixed EOCs
@@ -2538,7 +2539,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
         SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WPCN"), "|")(0)), pjAutoFilterIn, "contains", strList 'todo: "WPCN" > "WP"
       Else
-        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
     
     Case Else
@@ -2546,7 +2547,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
         SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
       Else
-        SetAutoFilter "Name", pjAutoFilterIn, "contains", "<< zero results >>"
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
       
   End Select
