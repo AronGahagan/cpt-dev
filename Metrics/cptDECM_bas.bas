@@ -761,50 +761,51 @@ next_task:
   DoEvents
   
   '10A202a - mixed EOC
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS Metric: 10A202a..."
-  Application.StatusBar = "Getting EVMS Metric: 10A109b..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A202a"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs w/mixed EOCs"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%?"
-  DoEvents
-  'todo: there is no defined criteria for this metric...
-  'X = WPs with multiple EOCs
-  'Y = total count of WPs
-  'we already have lngY
-  strSQL = "SELECT WP,COUNT(EOC) FROM ("
-  strSQL = strSQL & "SELECT DISTINCT t.WP,a.EOC "
-  strSQL = strSQL & "FROM [tasks.csv] as t "
-  strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TASK_UID,EOC FROM [assignments.csv]) AS a ON a.TASK_UID = t.UID) "
-  strSQL = strSQL & "GROUP BY WP "
-  strSQL = strSQL & "HAVING Count(EOC) > 1"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = .RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("WP") & ","
-        .MoveNext
-      Loop
-    End If
-    .Close
-  End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore < 0.05 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A202a...done."
-  Application.StatusBar = "Getting EVMS: 10A202a...done."
-  DoEvents
+'  REMOVED: NOT FOUND IN DECM v5.0 or DECM v6.0
+'  cptDECM_frm.lblStatus.Caption = "Getting EVMS Metric: 10A202a..."
+'  Application.StatusBar = "Getting EVMS Metric: 10A109b..."
+'  cptDECM_frm.lboMetrics.AddItem
+'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A202a"
+'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs w/mixed EOCs"
+'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%?"
+'  DoEvents
+'  'todo: there is no defined criteria for this metric...
+'  'X = WPs with multiple EOCs
+'  'Y = total count of WPs
+'  'we already have lngY
+'  strSQL = "SELECT WP,COUNT(EOC) FROM ("
+'  strSQL = strSQL & "SELECT DISTINCT t.WP,a.EOC "
+'  strSQL = strSQL & "FROM [tasks.csv] as t "
+'  strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TASK_UID,EOC FROM [assignments.csv]) AS a ON a.TASK_UID = t.UID) "
+'  strSQL = strSQL & "GROUP BY WP "
+'  strSQL = strSQL & "HAVING Count(EOC) > 1"
+'  With oRecordset
+'    .Open strSQL, strCon, adOpenKeyset
+'    lngX = .RecordCount
+'    strList = ""
+'    If lngX > 0 Then
+'      .MoveFirst
+'      Do While Not .EOF
+'        strList = strList & .Fields("WP") & ","
+'        .MoveNext
+'      Loop
+'    End If
+'    .Close
+'  End With
+'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+'  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+'  If dblScore < 0.05 Then
+'    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+'  Else
+'    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+'  End If
+'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+'  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A202a...done."
+'  Application.StatusBar = "Getting EVMS: 10A202a...done."
+'  DoEvents
   
   '10A302b - PPs with progress
   Set oFSO = CreateObject("Scripting.FileSystemObject")
