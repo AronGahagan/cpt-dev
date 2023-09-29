@@ -61,7 +61,7 @@ Function ValidMap() As Boolean
       cptSaveSetting "Integration", "WPCN", "xxxDELETExxx"
     End If
     
-    For Each vControl In Split("WBS,OBS,CA,CAM,WP,WPM,EVT,LOE,EVP,EOC", ",")
+    For Each vControl In Split("WBS,OBS,CA,CAM,WP,WPM,EVT,EVT_MS,LOE,EVP", ",")
       strSetting = cptGetSetting("Integration", CStr(vControl))
       If Len(strSetting) = 0 Then
         If vControl = "EVP" Then
@@ -72,13 +72,13 @@ Function ValidMap() As Boolean
             strSetting = strSetting & "|" & FieldConstantToFieldName(strSetting)
             cptSaveSetting "Integration", "EVP", strSetting
           End If
-        ElseIf vControl = "EVT" Then
+        ElseIf vControl = "EVT" Or vControl = "EVT_MS" Then
           strSetting = cptGetSetting("Metrics", "cboLOEField")
           If Len(strSetting) = 0 Then
             blnValid = False
           Else
             strSetting = strSetting & "|" & FieldConstantToFieldName(strSetting)
-            cptSaveSetting "Integration", "EVT", strSetting
+            cptSaveSetting "Integration", CStr(vControl), strSetting
           End If
         ElseIf vControl = "LOE" Then
           strSetting = cptGetSetting("Metrics", "txtLOE")
@@ -163,10 +163,9 @@ next_control:
     'todo: rolling wave date
     
     .Show
-    'todo: validate selections
-    'todo: save setting and update cbo border after selection
+    
     ValidMap = .blnValidIntegrationMap
-    'todo: save/overwrite new settings
+    
   End With
 
 exit_here:
@@ -394,7 +393,7 @@ Sub cptDECM_GET_DATA()
   Print #lngLinkFile, "FROM,TO,TYPE,LAG,"
   Print #lngAssignmentFile, "TASK_UID,RESOURCE_UID,BLW,BLC,RW,RC,EOC,"
   
-  cptDECM_frm.Caption = "DECM v5.0 (cpt " & cptGetVersion("cptDECM_bas") & ")"
+  cptDECM_frm.Caption = "DECM v6.0 (cpt " & cptGetVersion("cptDECM_bas") & ")"
   lngItem = 0
   cptDECM_frm.lboHeader.Clear
   cptDECM_frm.lboHeader.AddItem
@@ -714,6 +713,11 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A103a...done."
   Application.StatusBar = "Getting EVMS: 10A103a...done."
   DoEvents
+  
+  'bonus metrics if EVT_MS is used:
+  'todo: EVT = "B" AND (EVT_MS MISSING OR EVT_MS NOT IN ({discrete})
+  'todo: EVT = "B" AND EVT_MS = 0/100 AND FiscalPeriods > 1
+  'todo: EVT = "B" AND EVT_MS = 50/50 AND FiscalPeriods > 2
   
   '10A109b - all WPs have budget
   cptDECM_frm.lblStatus.Caption = "Getting EVMS Metric: 10A109b..."

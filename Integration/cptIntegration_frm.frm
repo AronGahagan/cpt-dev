@@ -27,7 +27,7 @@ Private Sub cboCAM_Change()
   UpdateIntegrationSettings
 End Sub
 
-Private Sub cboEOC_Change()
+Private Sub cboEVT_MS_Change()
   If Not Me.Visible Then Exit Sub
   UpdateIntegrationSettings
 End Sub
