@@ -1935,8 +1935,10 @@ skip_fiscal:
   'X = Count of incomplete tasks/activities and milestones that are not properly identified and controlled as SVTs in the IMS
   'X = 0
         
-  Application.OpenUndoTransaction "cpt DECM 06I201a"
   ActiveWindow.TopPane.Activate
+  DoEvents
+  OpenUndoTransaction "cpt DECM 06I201a"
+  DoEvents
   FilterClear
   GroupClear
   OptionsViewEx DisplaySummaryTasks:=True
@@ -1947,6 +1949,8 @@ skip_fiscal:
   FilterEdit "cpt DECM Filter - 06I201a", True, , , , , , "Name", "contains", "SVT", , , False
   FilterApply "cpt DECM Filter - 06I201a"
   SelectAll
+  CloseUndoTransaction
+  DoEvents
   Set oTasks = Nothing
   On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
@@ -1960,8 +1964,11 @@ skip_fiscal:
   Else
     lngX = 0
   End If
-  Application.CloseUndoTransaction
-  If Application.GetUndoListItem(1) = "cpt DECM 06I201a" Then Application.Undo
+  FilterClear
+
+  If GetUndoListCount > 0 Then
+    If GetUndoListItem(1) = "cpt DECM 06I201a" Then Undo 'todo: why isn't label 'taking'?
+  End If
   
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
   'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY there is no Y
