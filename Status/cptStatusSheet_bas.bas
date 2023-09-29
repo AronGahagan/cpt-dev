@@ -2924,10 +2924,10 @@ Sub cptExportCompletedWork()
   Dim strEVT As String
   Dim strLC As String
   Dim strWPM As String
-  Dim strWPCN As String
+  Dim strWP As String
   Dim strCAM As String
   Dim strOBS As String
-  Dim strCWBS As String
+  Dim strWBS As String
   Dim strProgram As String
   Dim strRecord As String
   Dim strCon As String
@@ -2940,10 +2940,10 @@ Sub cptExportCompletedWork()
   Dim lngEVT As Long
   Dim lngItem As Long
   Dim lngWPM As Long
-  Dim lngWPCN As Long
+  Dim lngWP As Long
   Dim lngCAM As Long
   Dim lngOBS As Long
-  Dim lngCWBS As Long
+  Dim lngWBS As Long
   Dim lngTask As Long
   Dim lngTasks As Long
   Dim lngFile As Long
@@ -2957,10 +2957,11 @@ Sub cptExportCompletedWork()
   Dim dtAF As Date
   
   On Error Resume Next
-  strCWBS = ActiveProject.CustomDocumentProperties("fCAID1")
+  strWBS = ActiveProject.CustomDocumentProperties("fCAID1")
   strOBS = ActiveProject.CustomDocumentProperties("fCAID2")
+  'strCA?
   strCAM = ActiveProject.CustomDocumentProperties("fCAM")
-  strWPCN = ActiveProject.CustomDocumentProperties("fWP")
+  strWP = ActiveProject.CustomDocumentProperties("fWP")
   'strWPM = "WPM" 'ActiveProject.CustomDocumentProperties("fWPM") 'todo: where to get WPM?
   strLC = ActiveProject.CustomDocumentProperties("fResID")
   strEVT = ActiveProject.CustomDocumentProperties("fEVT")
@@ -2969,10 +2970,10 @@ Sub cptExportCompletedWork()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   blnMissing = False
-  If strCWBS = "" Then blnMissing = True
+  If strWBS = "" Then blnMissing = True
   If strOBS = "" Then blnMissing = True
   If strCAM = "" Then blnMissing = True
-  If strWPCN = "" Then blnMissing = True
+  If strWP = "" Then blnMissing = True
   If strLC = "" Then blnMissing = True
   If strEVT = "" Then blnMissing = True
   If strEVP = "" Then blnMissing = True
@@ -2982,19 +2983,19 @@ Sub cptExportCompletedWork()
     GoTo exit_here
   End If
   
-  lngCWBS = FieldNameToFieldConstant(strCWBS)
+  lngWBS = FieldNameToFieldConstant(strWBS)
   lngOBS = FieldNameToFieldConstant(strOBS)
   lngCAM = FieldNameToFieldConstant(strCAM)
-  lngWPCN = FieldNameToFieldConstant(strWPCN)
+  lngWP = FieldNameToFieldConstant(strWP)
   'lngWPM = FieldNameToFieldConstant(strWPM)
   lngLC = FieldNameToFieldConstant(strLC, pjResource)
   lngEVT = FieldNameToFieldConstant(strEVT)
   lngEVP = FieldNameToFieldConstant(strEVP)
-  
-  cptSaveSetting "Integration", "CWBS", lngCWBS & "|" & strCWBS '& " (" & FieldConstantToFieldName(lngCWBS) & ")"
+  'todo: !WARNING! this overwrites cptIntegration_frm settings with COBRA EXPORT settings !WARNING!
+  cptSaveSetting "Integration", "WBS", lngWBS & "|" & strWBS '& " (" & FieldConstantToFieldName(lngWBS) & ")"
   cptSaveSetting "Integration", "OBS", lngOBS & "|" & strOBS '& " (" & FieldConstantToFieldName(lngOBS) & ")"
   cptSaveSetting "Integration", "CAM", lngCAM & "|" & strCAM '& " (" & FieldConstantToFieldName(lngCAM) & ")"
-  cptSaveSetting "Integration", "WPCN", lngWPCN & "|" & strWPCN '& " (" & FieldConstantToFieldName(lngWPCN) & ")"
+  cptSaveSetting "Integration", "WP", lngWP & "|" & strWP '& " (" & FieldConstantToFieldName(lngWP) & ")"
   'cptSaveSetting "Integration", "WPM", lngWPM & "|" & strWPM '& " (" & FieldConstantToFieldName(lngWPM) & ")"
   cptSaveSetting "Integration", "LC", lngLC & "|" & strLC '& " (" & FieldConstantToFieldName(lngLC) & ")"
   cptSaveSetting "Integration", "EVT", lngEVT & "|" & strEVT '& " (" & FieldConstantToFieldName(lngEVT) & ")"
@@ -3004,24 +3005,24 @@ Sub cptExportCompletedWork()
   strFile = Environ("tmp") & "\Schema.ini"
   lngFile = FreeFile
   Open strFile For Output As #lngFile
-  Print #lngFile, "[wpcn.csv]"
+  Print #lngFile, "[wp.csv]"
   Print #lngFile, "Format=CSVDelimited"
   Print #lngFile, "ColNameHeader=True"
   Print #lngFile, "Col1=UID Long"
-  Print #lngFile, "Col2=CWBS Text"
+  Print #lngFile, "Col2=WBS Text"
   Print #lngFile, "Col3=OBS Text"
   Print #lngFile, "Col4=CAM Text"
-  Print #lngFile, "Col5=WPCN Text"
+  Print #lngFile, "Col5=WP Text"
   'Print #lngFile, "Col6=WPM Text"
   Print #lngFile, "Col6=LC Text"
   Print #lngFile, "Col7=AF DateTime"
   Print #lngFile, "Col8=PercentComplete Long"
   Close #lngFile
   
-  strFile = Environ("tmp") & "\wpcn.csv"
+  strFile = Environ("tmp") & "\wp.csv"
   lngFile = FreeFile
   Open strFile For Output As #lngFile
-  Print #lngFile, "UID,CWBS,OBS,CAM,WPCN,LC,AF,PercentComplete," 'WPM, after WPCN
+  Print #lngFile, "UID,WBS,OBS,CAM,WP,LC,AF,PercentComplete," 'WPM, after WP
   
   lngTasks = ActiveProject.Tasks.Count
     
@@ -3031,10 +3032,10 @@ Sub cptExportCompletedWork()
     If oTask.ExternalTask Then GoTo next_task
     For Each oAssignment In oTask.Assignments
       strRecord = oTask.UniqueID & ","
-      strRecord = strRecord & oTask.GetField(lngCWBS) & ","
+      strRecord = strRecord & oTask.GetField(lngWBS) & ","
       strRecord = strRecord & oTask.GetField(lngOBS) & ","
       strRecord = strRecord & oTask.GetField(lngCAM) & ","
-      strRecord = strRecord & oTask.GetField(lngWPCN) & ","
+      strRecord = strRecord & oTask.GetField(lngWP) & ","
       'strRecord = strRecord & oTask.GetField(lngWPM) & ","
       strRecord = strRecord & oAssignment.Resource.GetField(lngLC) & ","
       If IsDate(oTask.ActualFinish) Then
@@ -3055,12 +3056,12 @@ next_task:
   Close #lngFile
   
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & Environ("tmp") & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
-  strSQL = "SELECT WPCN,MAX(AF),AVG(PercentComplete) AS EV "
-  strSQL = strSQL & "FROM wpcn.csv "
-  strSQL = strSQL & "GROUP BY WPCN "
+  strSQL = "SELECT WP,MAX(AF),AVG(PercentComplete) AS EV "
+  strSQL = strSQL & "FROM wp.csv "
+  strSQL = strSQL & "GROUP BY WP "
   strSQL = strSQL & "HAVING AVG(PercentComplete)=100 "
   strSQL = strSQL & "ORDER BY MAX(AF) Desc "
-  'strSQL = "SELECT * FROM wpcn.csv"
+  'strSQL = "SELECT * FROM wp.csv"
   Set oRecordset = CreateObject("ADODB.Recordset")
   oRecordset.Open strSQL, strCon, 1, 1 '1=adOpenKeyset, 1=adLockReadOnly
   If oRecordset.RecordCount > 0 Then
@@ -3072,8 +3073,8 @@ next_task:
     End If
     Set oWorkbook = oExcel.Workbooks.Add
     Set oWorksheet = oWorkbook.Sheets(1)
-    oWorksheet.Name = "COMPLETED WPCNs"
-    oWorksheet.[A1:C1] = Array("WPCN", "AF", "EV")
+    oWorksheet.Name = "COMPLETED WPs"
+    oWorksheet.[A1:C1] = Array("WP", "AF", "EV")
     oWorksheet.[A1:C1].Font.Bold = True
     oWorksheet.[A2].CopyFromRecordset oRecordset
     oRecordset.Close
@@ -3092,7 +3093,7 @@ next_task:
       Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
     End If
     oWorksheet.Name = "DETAILS"
-    strSQL = "SELECT * FROM wpcn.csv ORDER BY WPCN,PercentComplete"
+    strSQL = "SELECT * FROM wp.csv ORDER BY WP,PercentComplete"
     oRecordset.Open strSQL, strCon, 1, 1 '1=adOpenKeyset, 1=adLockReadOnly
     For lngItem = 0 To oRecordset.Fields.Count - 1
       oWorksheet.Cells(1, lngItem + 1) = oRecordset.Fields(lngItem).Name
@@ -3110,7 +3111,7 @@ next_task:
     oExcel.ActiveWindow.FreezePanes = True
     oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)).AutoFilter Field:=8, Criteria1:="100" 'Field:=9
     oRecordset.Close
-    oWorkbook.Sheets("COMPLETED WPCNs").Activate
+    oWorkbook.Sheets("COMPLETED WPs").Activate
     oExcel.Visible = True
     oExcel.ActiveWindow.WindowState = -4143 'xlNormal
     Application.ActivateMicrosoftApp pjMicrosoftExcel
@@ -3128,7 +3129,7 @@ exit_here:
   If oRecordset.State = 1 Then oRecordset.Close
   Set oRecordset = Nothing
   Kill Environ("tmp") & "\Schema.ini"
-  Kill Environ("tmp") & "\wpcn.csv"
+  Kill Environ("tmp") & "\wp.csv"
   Set oTask = Nothing
 
   Exit Sub
@@ -3136,7 +3137,6 @@ err_here:
   Call cptHandleErr("cptStatusSheet_bas", "cptCompletedWork", Err, Erl)
   Resume exit_here
 End Sub
-
 
 Sub cptFindUnstatusedTasks()
   'objects

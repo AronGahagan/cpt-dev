@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.13.5</cpt_version>
+'<cpt_version>v1.13.6</cpt_version>
 Option Explicit
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
@@ -2368,7 +2368,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptSetup_bas", "cptErrorTrapping", Err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptErrorTrapping", Err, Erl)
   Resume exit_here
 End Function
 
