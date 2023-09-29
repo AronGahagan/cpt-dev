@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v0.0.1</cpt_version>
+'<cpt_version>v0.0.2</cpt_version>
 Option Explicit
 Public blnValidIntegrationMap As Boolean
 
@@ -127,8 +127,6 @@ Private Sub UpdateIntegrationSettings()
   strControl = Replace(strControl, "cbo", "")
   strField = CustomFieldGetName(lngField)
   If Len(strField) = 0 Then strField = FieldConstantToFieldName(lngField)
-  If strControl = "WBS" Then strControl = "CWBS" 'todo: fix this
-  If strControl = "WP" Then strControl = "WPCN" 'todo: fix this
   cptSaveSetting "Integration", strControl, lngField & "|" & strField
 End Sub
 
