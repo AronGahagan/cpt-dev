@@ -38,11 +38,7 @@ Function ValidMap() As Boolean
   Dim vFields As Variant
   Dim vControl As Variant
   'dates
-  
-  'todo: validate cptIntegration_frm.cboEVP
-  'todo: validate cptIntegration_frm.cboEOC
-  'todo: validate cptIntegration_frm.txtRollingWaveDate
-  
+    
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   blnValid = True
@@ -51,9 +47,21 @@ Function ValidMap() As Boolean
     
     .Caption = "Integration (" & cptGetVersion("cptIntegration_frm") & ")"
     
+    'convert saved settings
+    strSetting = cptGetSetting("Integration", "CWBS")
+    If Len(strSetting) > 0 Then
+      cptSaveSetting "Integration", "WBS", strSetting
+      'delete setting CWBS
+      cptSaveSetting "Integration", "CWBS", "xxxDELETExxx"
+    End If
+    strSetting = cptGetSetting("Integration", "WPCN")
+    If Len(strSetting) > 0 Then
+      cptSaveSetting "Integration", "WP", strSetting
+      'delete setting WPCN
+      cptSaveSetting "Integration", "WPCN", "xxxDELETExxx"
+    End If
+    
     For Each vControl In Split("WBS,OBS,CA,CAM,WP,WPM,EVT,LOE,EVP,EOC", ",")
-      If vControl = "WBS" Then vControl = "CWBS" 'todo: fix saved setting name
-      If vControl = "WP" Then vControl = "WPCN"  'todo: fix saved setting name
       strSetting = cptGetSetting("Integration", CStr(vControl))
       If Len(strSetting) = 0 Then
         If vControl = "EVP" Then
@@ -81,8 +89,6 @@ Function ValidMap() As Boolean
           End If
         End If
       End If
-      If vControl = "CWBS" Then vControl = "WBS"  'todo: fix saved setting name
-      If vControl = "WPCN" Then vControl = "WP"   'todo: fix saved setting name
       Set oComboBox = .Controls("cbo" & vControl)
       oComboBox.BorderColor = -2147483642
       If Len(strSetting) = 0 Then
@@ -361,11 +367,11 @@ Sub cptDECM_GET_DATA()
   
   'get settings
   lngUID = FieldNameToFieldConstant("Unique ID")
-  lngWBS = CLng(Split(cptGetSetting("Integration", "CWBS"), "|")(0))
+  lngWBS = CLng(Split(cptGetSetting("Integration", "WBS"), "|")(0))
   lngOBS = CLng(Split(cptGetSetting("Integration", "OBS"), "|")(0))
   lngCA = CLng(Split(cptGetSetting("Integration", "CA"), "|")(0))
   lngCAM = CLng(Split(cptGetSetting("Integration", "CAM"), "|")(0))
-  lngWP = CLng(Split(cptGetSetting("Integration", "WPCN"), "|")(0))
+  lngWP = CLng(Split(cptGetSetting("Integration", "WP"), "|")(0))
   lngWPM = CLng(Split(cptGetSetting("Integration", "WPM"), "|")(0))
   lngEVT = CLng(Split(cptGetSetting("Integration", "EVT"), "|")(0))
   strLOE = cptGetSetting("Integration", "LOE")
@@ -2513,7 +2519,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
     Case "10A102a" '1 WP : 1 EVT
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
-        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WPCN"), "|")(0)), pjAutoFilterIn, "equals", strList
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "equals", strList
         'todo: group by WP,EVT
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
@@ -2522,7 +2528,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
     Case "10A103a" '0/100 >1 fiscal periods
       If Len(strList) > 0 Then
         strList = Left(strList, Len(strList) - 1) 'remove last tab
-        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WPCN"), "|")(0)), pjAutoFilterIn, "equals", strList 'todo: "WPCN" > "WP"
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "equals", strList 'todo: "WPCN" > "WP"
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
@@ -2530,7 +2536,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
     Case "10A109b" 'WP with no budget
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
-        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WPCN"), "|")(0)), pjAutoFilterIn, "equals", strList 'todo: "WPCN" > "WP"
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "equals", strList 'todo: "WPCN" > "WP"
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
@@ -2538,7 +2544,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
     Case "10A202a" 'WP with Mixed EOCs
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
-        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WPCN"), "|")(0)), pjAutoFilterIn, "contains", strList 'todo: "WPCN" > "WP"
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "contains", strList 'todo: "WPCN" > "WP"
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If

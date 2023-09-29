@@ -26,16 +26,16 @@ Sub cptSpeed(blnOn As Boolean)
 End Sub
 
 Function cptGetUserForm(strModuleName As String) As MSForms.UserForm
-'NOTE: this only works if the form is loaded
-'objects
-Dim UserForm As Object
-'strings
-'longs
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'NOTE: this only works if the form is loaded
+  'objects
+  Dim UserForm As Object
+  'strings
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -57,15 +57,15 @@ err_here:
 End Function
 
 Function cptGetControl(ByRef cptForm_frm As MSForms.UserForm, strControlName As String) As MSForms.Control
-'NOTE: this only works for loaded forms
+  'NOTE: this only works for loaded forms
 
   Set cptGetControl = cptForm_frm.Controls(strControlName)
 
 End Function
 
 Function cptGetUserFullName()
-'used to add user's name to PowerPoint title slide
-Dim objAllNames As Object, objIndName As Object
+  'used to add user's name to PowerPoint title slide
+  Dim objAllNames As Object, objIndName As Object
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -105,8 +105,8 @@ Function cptGetVersion(strModule As String) As String
 End Function
 
 Function cptGetVersions() As String
-'requires reference: Microsoft Scripting Runtime
-Dim vbComponent As Object, strVersion As String
+  'requires reference: Microsoft Scripting Runtime
+  Dim vbComponent As Object, strVersion As String
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -131,22 +131,22 @@ End Function
 
 '<issue31>
 Sub cptUpgrade(Optional strFileName As String)
-'objects
-Dim oStream As Object
-Dim xmlHttpDoc As Object
-'strings
-Dim strNewFileName As String
-Dim strModule As String
-Dim strError As String
-Dim strURL As String
-'longs
-Dim lngLine As Long
-'integers
-'doubles
-'booleans
-Dim blnExists As Boolean
-'variants
-'dates
+  'objects
+  Dim oStream As Object
+  Dim xmlHttpDoc As Object
+  'strings
+  Dim strNewFileName As String
+  Dim strModule As String
+  Dim strError As String
+  Dim strURL As String
+  'longs
+  Dim lngLine As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnExists As Boolean
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -222,14 +222,14 @@ err_here:
 End Sub '<issue31>
 
 Sub cptShowAbout_frm()
-'objects
-'strings
-Dim strAbout As String
-'longs
-'integers
-'booleans
-'variants
-'dates
+  'objects
+  'strings
+  Dim strAbout As String
+  'longs
+  'integers
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -277,8 +277,8 @@ err_here:
 End Sub
 
 Function cptReferenceExists(strReference As String) As Boolean
-'used to ensure a reference exists, returns boolean
-Dim Ref As Object, blnExists As Boolean
+  'used to ensure a reference exists, returns boolean
+  Dim Ref As Object, blnExists As Boolean
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -340,18 +340,18 @@ Sub cptGetReferences()
 End Sub
 
 Function cptGetDirectory(strModule As String) As String
-'this function retrieves the directory of the module from CurrentVersions.xml on gitHub
-'objects
-Dim xmlDoc As Object
-Dim xmlNode As Object
-'strings
-Dim strDirectory As String
-Dim strURL As String
-'longs
-'integers
-'booleans
-'variants
-'dates
+  'this function retrieves the directory of the module from CurrentVersions.xml on gitHub
+  'objects
+  Dim xmlDoc As Object
+  Dim xmlNode As Object
+  'strings
+  Dim strDirectory As String
+  Dim strURL As String
+  'longs
+  'integers
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -384,8 +384,8 @@ err_here:
 End Function
 
 Sub cptGetEnviron()
-'list the environment variables and their associated values
-Dim lgIndex As Long
+  'list the environment variables and their associated values
+  Dim lgIndex As Long
 
   For lgIndex = 1 To 200
     Debug.Print lgIndex & ": " & Environ(lgIndex)
@@ -393,10 +393,10 @@ Dim lgIndex As Long
 
 End Sub
 Function cptCheckReference(strReference As String) As Boolean
-'this routine will be called ahead of any subroutine requiring a reference
-'returns boolean and subroutine only proceeds if true
-Dim strDir As String
-Dim strRegEx As String
+  'this routine will be called ahead of any subroutine requiring a reference
+  'returns boolean and subroutine only proceeds if true
+  Dim strDir As String
+  Dim strRegEx As String
 
   On Error GoTo err_here
 
@@ -800,30 +800,30 @@ err_here:
 End Sub
 
 Sub cptShowUpgrades_frm()
-'objects
-Dim REMatch As Object
-Dim REMatches As Object
-Dim RE As Object
-Dim oStream As Object
-Dim xmlHttpDoc As Object
-Dim rstStatus As Object 'ADODB.Recordset
-Dim vbComponent As Object
-Dim xmlDoc As Object
-Dim xmlNode As Object
-Dim FindRecord As Object
-'long
-Dim lngItem As Long
-'strings
-Dim strBranch As String
-Dim strFileName As String
-Dim strInstVer As String
-Dim strCurVer As String
-Dim strURL As String
-Dim strVersion As String
-'booleans
-Dim blnUpdatesAreAvailable As Boolean
-'variants
-Dim vCol As Variant
+  'objects
+  Dim REMatch As Object
+  Dim REMatches As Object
+  Dim RE As Object
+  Dim oStream As Object
+  Dim xmlHttpDoc As Object
+  Dim rstStatus As Object 'ADODB.Recordset
+  Dim vbComponent As Object
+  Dim xmlDoc As Object
+  Dim xmlNode As Object
+  Dim FindRecord As Object
+  'long
+  Dim lngItem As Long
+  'strings
+  Dim strBranch As String
+  Dim strFileName As String
+  Dim strInstVer As String
+  Dim strCurVer As String
+  Dim strURL As String
+  Dim strVersion As String
+  'booleans
+  Dim blnUpdatesAreAvailable As Boolean
+  'variants
+  Dim vCol As Variant
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -1025,11 +1025,11 @@ err_here:
 End Sub
 
 Sub cptSetReferences()
-'this is a one-time shot to set all references currently required by the cp toolbar
-Dim oExcel As Object
-Dim strDir As String
-Dim strRegEx As String
-Dim vPath As Variant
+  'this is a one-time shot to set all references currently required by the cp toolbar
+  Dim oExcel As Object
+  Dim strDir As String
+  Dim strRegEx As String
+  Dim vPath As Variant
 
   On Error Resume Next
 
@@ -1174,18 +1174,18 @@ Sub cptSubmitFeedback()
 End Sub
 
 Sub cptSendMail(strCategory As String)
-'objects
-Dim objOutlook As Object 'Outlook.Application
-Dim MailItem As Object 'MailItem
-'strings
-Dim strHTML As String
-Dim strURL As String
-'longs
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim objOutlook As Object 'Outlook.Application
+  Dim MailItem As Object 'MailItem
+  'strings
+  Dim strHTML As String
+  Dim strURL As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   'get outlook
   On Error Resume Next
@@ -1239,7 +1239,7 @@ err_here:
 End Sub
 
 Function cptRemoveIllegalCharacters(strText As String) As String
-'written by Ryan Beard (RyanBeard@ClearPlanConsulting.com)
+  'written by Ryan Beard (RyanBeard@ClearPlanConsulting.com)
     Const cstrIllegals As String = "\,/,:,*,?,"",<,>,|"
 
     Dim lngCounter As Long
@@ -1256,13 +1256,13 @@ Function cptRemoveIllegalCharacters(strText As String) As String
 End Function
 
 Sub cptWrapItUp(Optional lngOutlineLevel As Long)
-'objects
-'strings
-'longs
-Dim lngLevel As Long
-'booleans
-'variants
-'dates
+  'objects
+  'strings
+  'longs
+  Dim lngLevel As Long
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -1389,18 +1389,18 @@ Sub cptWrapItUp9()
 End Sub
 
 Function cptVersionStatus(strInstalled As String, strCurrent As String) As String
-'objects
-'strings
-'longs
-Dim lngVersion As Long
-'integers
-'booleans
-'variants
-Dim aCurrent As Variant
-Dim aInstalled As Variant
-Dim vVersion As Variant
-Dim vLevel As Variant
-'dates
+  'objects
+  'strings
+  'longs
+  Dim lngVersion As Long
+  'integers
+  'booleans
+  'variants
+  Dim aCurrent As Variant
+  Dim aInstalled As Variant
+  Dim vVersion As Variant
+  Dim vLevel As Variant
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -1480,10 +1480,14 @@ Sub cptGroupReapply()
   If lngUID > 0 Then Find "Unique ID", "equals", lngUID
 End Sub
 
-Function cptSaveSetting(strFeature As String, strSetting As String, strValue As String) As Boolean
+Function cptSaveSetting(strFeature As String, strSetting As String, strValue As Variant) As Boolean
   Dim strSettingsFile As String, lngWorked As Long
   strSettingsFile = cptDir & "\settings\cpt-settings.ini"
-  lngWorked = SetPrivateProfileString(strFeature, strSetting, strValue, strSettingsFile)
+  If strValue = "xxxDELETExxx" Then
+    lngWorked = SetPrivateProfileString(strFeature, strSetting, CLng(0), strSettingsFile)
+  Else
+    lngWorked = SetPrivateProfileString(strFeature, strSetting, CStr(strValue), strSettingsFile)
+  End If
   If lngWorked Then
     cptSaveSetting = True
   Else
@@ -1651,8 +1655,13 @@ Sub cptShowSettings_frm()
         'todo: If [Metrics] Then remove cboLOEField > Integration.EVT
         'todo: If [Metrics] Then remove txtLOE > Integration.LOE
         'todo: If [Driving Path Group] OR [Driving Path] Then skip
-        'todo: If [Integration] Then rename CWBS as WBS
-        'todo: If [Integration] Then rename WPCN as WP
+        If strFeature = "Integration" Then
+          If Left(strLine, 5) = "CWBS=" Then
+            strLine = Replace(strLine, "CWBS=", "WBS=")
+          ElseIf Left(strLine, 5) = "WPCN=" Then
+            strLine = Replace(strLine, "WPCN=", "WP=")
+          End If
+        End If
         oRecordset.AddNew Array(0, 1), Array(strFeature, strLine)
       End If
     Loop
@@ -2312,6 +2321,8 @@ Function cptGetCustomFields(strFieldTypes As String, strDataTypes As String, str
     Next lngInclude
   Next lngField
   
+  'todo: alphabetize the results
+  
   cptGetCustomFields = vResult
   
 exit_here:
@@ -2357,7 +2368,7 @@ exit_here:
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptCore_bas", "cptErrorTrapping", Err, Erl)
+  Call cptHandleErr("cptSetup_bas", "cptErrorTrapping", Err, Erl)
   Resume exit_here
 End Function
 
