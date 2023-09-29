@@ -1961,7 +1961,7 @@ skip_fiscal:
     lngX = 0
   End If
   Application.CloseUndoTransaction
-  If Application.GetUndoListCount > 0 Then Application.Undo 'todo: why is this triggering a fail?
+  If Application.GetUndoListItem(1) = "cpt DECM 06I201a" Then Application.Undo
   
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
   'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY there is no Y
