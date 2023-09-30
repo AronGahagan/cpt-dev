@@ -467,8 +467,8 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting EVMS: 05A101a..."
   Application.StatusBar = "Getting EVMS: 05A101a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "05A101a"
-  'cptDECM_frm.lboMetrics.Value = "05A101a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 OBS"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
@@ -519,8 +519,8 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting EVMS: 05A102a..."
   Application.StatusBar = "Getting EVMS: 05A102a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "05A102a"
-  'cptDECM_frm.lboMetrics.Value = "05A102a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 CAM"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
@@ -566,8 +566,8 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting EVMS: 05A103a..."
   Application.StatusBar = "Getting EVMS: 05A103a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "05A103a"
-  'cptDECM_frm.lboMetrics.Value = "05A103a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 WBS"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
@@ -613,8 +613,8 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A102a..."
   Application.StatusBar = "Getting EVMS: 05A103a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A102a"
-  'cptDECM_frm.lboMetrics.Value = "10A102a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 WP : 1 EVT"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
@@ -667,6 +667,7 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting EVMS Metric: 10A103a..."
   Application.StatusBar = "Getting EVMS Metric: 10A109b..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A103a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "0/100 EVTs in >1 period"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
@@ -723,6 +724,7 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting EVMS Metric: 10A109b..."
   Application.StatusBar = "Getting EVMS Metric: 10A109b..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A109b"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs w/o Budgets"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
@@ -822,6 +824,7 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 10A302b..."
   Application.StatusBar = "Getting Schedule Metric: 10A302b..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A302b"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs w/EVP > 0"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 2%"
@@ -879,6 +882,7 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 10A303a..."
   Application.StatusBar = "Getting Schedule Metric: 06A101a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A303a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs duration = 0"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
@@ -932,6 +936,7 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A101a..."
   Application.StatusBar = "Getting Schedule Metric: 06A101a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A101a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs IMS vs EV Tool"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
@@ -966,6 +971,7 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A204b..."
   Application.StatusBar = "Getting Schedule Metric: 06A204b..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A204b"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Dangling Logic"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
@@ -1073,6 +1079,7 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A205a..."
   Application.StatusBar = "Getting Schedule Metric: 06A205a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A205a"
   'cptDECM_frm.lboMetrics.Value = "06A205a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Lags"
@@ -1119,6 +1126,7 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A208a..."
   Application.StatusBar = "Getting Schedule Metric: 06A208a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A208a"
   'cptDECM_frm.lboMetrics.Value = "06A208a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Summary Logic"
@@ -1159,6 +1167,7 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A209a..."
   Application.StatusBar = "Getting Schedule Metric: 06A209a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A209a"
   'cptDECM_frm.lboMetrics.Value = "06A209a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Hard Constraints"
@@ -1204,6 +1213,7 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A210a..."
   Application.StatusBar = "Getting Schedule Metric: 06A210a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A210a"
   'cptDECM_frm.lboMetrics.Value = "06A210a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "LOE Driving Discrete"
@@ -1262,6 +1272,7 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A211a..."
   Application.StatusBar = "Getting Schedule Metric: 06A211a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A211a"
   'cptDECM_frm.lboMetrics.Value = "06A211a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "High Float"
@@ -1309,6 +1320,7 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A212a..."
   Application.StatusBar = "Getting Schedule Metric: 06A212a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A212a"
   'cptDECM_frm.lboMetrics.Value = "06A501a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Out of Sequence"
@@ -1340,6 +1352,7 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A501a..."
   Application.StatusBar = "Getting Schedule Metric: 06A501a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A501a"
   'cptDECM_frm.lboMetrics.Value = "06A501a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Baselines"
@@ -1486,6 +1499,7 @@ next_task:
     cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504a..."
     Application.StatusBar = "Getting Schedule Metric: 06A504a..."
     cptDECM_frm.lboMetrics.AddItem
+    cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A504a"
     'cptDECM_frm.lboMetrics.Value = "06A505a"
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Start"
@@ -1557,6 +1571,7 @@ next_task:
     cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504b..."
     Application.StatusBar = "Getting Schedule Metric: 06A504b..."
     cptDECM_frm.lboMetrics.AddItem
+    cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A504b"
     'cptDECM_frm.lboMetrics.Value = "06A505a"
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Finish"
@@ -1630,6 +1645,7 @@ skip_fiscal:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A505a..."
   Application.StatusBar = "Getting Schedule Metric: 06A505a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A505a"
   'cptDECM_frm.lboMetrics.Value = "06A505a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "In-Progress Tasks w/o Actual Start"
@@ -1682,6 +1698,7 @@ skip_fiscal:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A505b..."
   Application.StatusBar = "Getting Schedule Metric: 06A505a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A505b"
   'cptDECM_frm.lboMetrics.Value = "06A505b"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Complete Tasks w/o Actual Finish"
@@ -1733,6 +1750,7 @@ skip_fiscal:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506a..."
   Application.StatusBar = "Getting Schedule Metric: 06A506a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A506a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Bogus Actuals"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
@@ -1784,6 +1802,7 @@ skip_fiscal:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506b..."
   Application.StatusBar = "Getting Schedule Metric: 06A506b..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A506b"
   'cptDECM_frm.lboMetrics.Value = "06A506b"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Invalid Forecast"
@@ -1829,6 +1848,7 @@ skip_fiscal:
     cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506c..."
     Application.StatusBar = "Getting Schedule Metric: 06A506c..."
     cptDECM_frm.lboMetrics.AddItem
+    cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A506c"
     'cptDECM_frm.lboMetrics.Value = "06A506b"
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Riding the Status Date"
@@ -1927,6 +1947,7 @@ skip_fiscal:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06I201a..."
   Application.StatusBar = "Getting Schedule Metric: 06I201a..."
   cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06I201a"
   'cptDECM_frm.lboMetrics.Value = "06I201a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Schedule Visibility Tasks (SVTs)"
@@ -1983,6 +2004,8 @@ skip_fiscal:
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06I201a...done."
   Application.StatusBar = "Getting Schedule Metric: 06I201a...done."
   DoEvents
+  
+  cptDECM_frm.lboMetrics.ListIndex = 0
   
   Application.StatusBar = "DECM Scoring Complete"
   cptDECM_frm.lblStatus.Caption = "DECM Scoring Complete"
@@ -2187,6 +2210,7 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
   Dim strSQL As String
   'longs
   Dim lngItem As Long
+  Dim lngField As Long
   'integers
   'doubles
   'booleans
@@ -2256,7 +2280,7 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
     End With
   End With
   
-  blnDetail = True 'todo: make this an option on the form
+  blnDetail = MsgBox("Include Details?", vbQuestion + vbYesNo, "Detailed Results") = vbYes
   
   strDir = Environ("tmp")
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
@@ -2266,6 +2290,7 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
       For lngItem = 0 To .lboMetrics.ListCount - 1
         .lboMetrics.Value = .lboMetrics.List(lngItem)
         .lboMetrics.Selected(lngItem) = True
+        .lboMetrics.ListIndex = lngItem
         Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
         oWorksheet.Activate
         oWorksheet.Name = .lboMetrics.List(lngItem)
@@ -2307,8 +2332,10 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
             If Dir(strDir & "\06A504a.csv") <> vbNullString Then
               Set oRecordset = CreateObject("ADODB.Recordset")
               strSQL = "SELECT * FROM [06A504a.csv]"
-              oRecordset.Open strSQL, strCon, adOpenKeyset
-              oWorksheet.[A3].CopyFromRecordset oRecordset
+              For lngField = 0 To oRecordset.Fields.Count - 1
+                oWorksheet.Cells(4, lngField + 1).Value = oRecordset.Fields(lngField).Name
+              Next lngField
+              oWorksheet.[A5].CopyFromRecordset oRecordset
               oRecordset.Close
             End If
             oWorksheet.Cells.Font.Name = "Calibri"
@@ -2327,8 +2354,10 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
             If Dir(strDir & "\06A504b.csv") <> vbNullString Then
               Set oRecordset = CreateObject("ADODB.Recordset")
               strSQL = "SELECT * FROM [06A504b.csv]"
-              oRecordset.Open strSQL, strCon, adOpenKeyset
-              oWorksheet.[A3].CopyFromRecordset oRecordset
+              For lngField = 0 To oRecordset.Fields.Count - 1
+                oWorksheet.Cells(4, lngField + 1).Value = oRecordset.Fields(lngField).Name
+              Next lngField
+              oWorksheet.[A5].CopyFromRecordset oRecordset
               oRecordset.Close
             End If
             oWorksheet.Cells.Font.Name = "Calibri"
@@ -2348,13 +2377,16 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
               Set oRecordset = CreateObject("ADODB.Recordset")
               strSQL = "SELECT * FROM [06A506c-x.csv]"
               oRecordset.Open strSQL, strCon, adOpenKeyset
-              oWorksheet.[A3].CopyFromRecordset oRecordset
+              For lngField = 0 To oRecordset.Fields.Count - 1
+                oWorksheet.Cells(4, lngField + 1).Value = oRecordset.Fields(lngField).Name
+              Next lngField
+              oWorksheet.[A5].CopyFromRecordset oRecordset
               oRecordset.Close
             End If
             oWorksheet.Cells.Font.Name = "Calibri"
             oWorksheet.Cells.Font.Size = 11
             oWorksheet.Cells.WrapText = False
-            oWorksheet.[B4].Select
+            oWorksheet.[B5].Select
             oExcel.ActiveWindow.FreezePanes = True
             oWorksheet.Columns.AutoFit
             oWorksheet.Tab.Color = 192
@@ -2449,6 +2481,9 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
 next_item:
         Set oTasks = Nothing
       Next lngItem
+      .lboMetrics.Value = .lboMetrics.List(0)
+      .lboMetrics.Selected(0) = True
+      .lboMetrics.ListIndex = 0
     End With
     'create hyperlinks
     Set oWorksheet = oWorkbook.Sheets("DECM Dashboard")
