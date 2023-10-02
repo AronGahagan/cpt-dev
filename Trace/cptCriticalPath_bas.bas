@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCriticalPath_bas"
-'<cpt_version>v3.0.0</cpt_version>
+'<cpt_version>v3.1.0</cpt_version>
 Option Explicit
 Private CritField As String 'Stores comma seperated values for each task showing which paths they are a part of
 Private GroupField As String 'Stores a single value - used to group/sort tasks in final CP view
@@ -11,12 +11,20 @@ Type DrivingPaths
     FindSecondary As Boolean 'Tracks evluation progress by noting Secondary Found
     TertiaryFloat As Double 'Stores True Float vlaue for Secondary Driving Path
     FindTertiary As Boolean 'Tracks evluation progress by noting Tertiar Found
+    FourthFloat As Double 'Stores True Float Value for fourth Driving Path
+    FindFourth As Boolean 'Tracks evaluation progress by noting fourth found
+    FifthFloat As Double 'Stores True Float Value for fourth Driving Path
+    FindFifth As Boolean 'Tracks evaluation progress by noting fourth found
 End Type
 Private tDrivingPaths As DrivingPaths 'var to store DrivingPaths type
 Private SecondaryDrivers() As String 'Array of Secondary Drivers to be analyzed
 Private SecondaryDriverCount As Integer 'Count of secondary Drivers
 Private TertiaryDrivers() As String 'Array of tertiary drivers to be analyzed
 Private TertiaryDriverCount As Integer 'Count of tertiary drivers
+Private FourthDrivers() As String 'Array of fourth drivers to be analyzed
+Private FourthDriverCount As Integer 'Count of fourth drivers
+Private FifthDrivers() As String 'Array of fifth drivers to be analyzed
+Private FifthDriverCount As Integer 'Count of fifth drivers
 Private AnalyzedTasks As Collection 'Collection of task relationships analyzied (From UID - To UID); unique to each path analysis
 'Custom type used to store Driving Task data
 Type DrivingTask
@@ -29,7 +37,7 @@ Public singlePath As Boolean 'cpt controlled var for limited results to a single
 Public export_to_PPT As Boolean 'cpt controlled var for controlling user notification of completed analysis
 Private CustTextFields() As String 'v2.9.0 Array of custTextFields
 Private CustNumFields() As String 'v2.9.0 Array of custNumFields
-Private curproj As Project 'Stores active user project - not compatible with Master/Sub Architecture v2.9.0 - set as module var for cust field mapping
+Private curProj As Project 'Stores active user project - not compatible with Master/Sub Architecture v2.9.0 - set as module var for cust field mapping
 Private masterProj As Boolean 'v3.0.0 stores master project status of active project based on subproject count
 Private subP As SubProject 'v3.0.0 used to iterate through subprojects collection
 Private subPID As Integer 'v3.0.0 used to temporarily store subproject ID
@@ -48,10 +56,10 @@ Sub DrivingPaths()
     Dim analysisTaskUID As String 'Stores user selected task for recall and selection after setting final view
     
     'Store users active project
-    Set curproj = ActiveProject 'v2.9.0 get active project before displaying field selection form
+    Set curProj = ActiveProject 'v2.9.0 get active project before displaying field selection form
     
     'v3.0.0 - check for subprojects
-    If curproj.Subprojects.Count > 1 Then
+    If curProj.Subprojects.Count > 1 Then
         masterProj = True
     Else
         masterProj = False
@@ -61,45 +69,45 @@ Sub DrivingPaths()
     On Error Resume Next
     
     'Validate users selected view type
-    If curproj.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
+    If curProj.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
         MsgBox "Please select a View with a Task Table."
-        curproj = Nothing
+        curProj = Nothing
         Exit Sub
     End If
     
     'Validate users selected window pane - select the task table if not active
-    If curproj.Application.ActiveWindow.ActivePane.Index <> 1 Then
-        curproj.Application.ActiveWindow.TopPane.Activate
+    If curProj.Application.ActiveWindow.ActivePane.Index <> 1 Then
+        curProj.Application.ActiveWindow.TopPane.Activate
     End If
     
     'Exit if multiple tasks are selected
-    If curproj.Application.ActiveSelection.Tasks.Count > 1 Then
+    If curProj.Application.ActiveSelection.Tasks.Count > 1 Then
         MsgBox "Select a single activity only."
-        curproj = Nothing
+        curProj = Nothing
         Exit Sub
     End If
     
     'store task of activeselection
-    Set t = curproj.Application.ActiveCell.Task
+    Set t = curProj.Application.ActiveCell.Task
     
     'Check for null task rows
     If t Is Nothing Then
         MsgBox "Select a task"
-        curproj = Nothing
+        curProj = Nothing
         Exit Sub
     End If
     
     'Avoid analyzing completed tasks
     If t.PercentComplete = 100 Then
         MsgBox "Select an incomplete task"
-        curproj = Nothing
+        curProj = Nothing
         Exit Sub
     End If
     
     'Avoid analysis on summary rows
     If t.Summary = True Then
         MsgBox "Select a non-summary task"
-        curproj = Nothing
+        curProj = Nothing
         Exit Sub
     End If
     
@@ -109,7 +117,7 @@ Sub DrivingPaths()
     
     With critPathFieldMapForm
     
-        ReadCustomFields curproj
+        ReadCustomFields curProj
     
         For i = 1 To UBound(CustNumFields)
             .GroupField_Combobox.AddItem CustNumFields(i)
@@ -123,7 +131,7 @@ Sub DrivingPaths()
         
         If .Tag = "cancel" Then
             Set critPathFieldMapForm = Nothing
-            Set curproj = Nothing
+            Set curProj = Nothing
             Exit Sub
         End If
         
@@ -135,8 +143,8 @@ Sub DrivingPaths()
     End With
     
     'Suspend calculations and screen updating
-    curproj.Application.Calculation = pjManual
-    curproj.Application.ScreenUpdating = False
+    curProj.Application.Calculation = pjManual
+    curProj.Application.ScreenUpdating = False
     
     On Error GoTo CleanUp
     
@@ -146,24 +154,24 @@ Sub DrivingPaths()
     
     'v3.0.0 Assign Custom Field names and create lookup table for each subproject
     If masterProj = True Then
-        For Each subP In curproj.Subprojects
+        For Each subP In curProj.Subprojects
             FileOpenEx subP.Path, True
             Set tempproj = ActiveProject
             SetGroupCPFieldLookupTable GroupField, CritField, tempproj
         Next subP
-        curproj.Activate
+        curProj.Activate
     End If
     
     'v3.0.0 run no matter what the masterProj condition is
     'still need to update fields in Master Project file
     'in case tasks exist at top level
-    SetGroupCPFieldLookupTable GroupField, CritField, curproj
+    SetGroupCPFieldLookupTable GroupField, CritField, curProj
     
     'Erase previous Crit and Group field values
-    CleanCritFlag curproj
+    CleanCritFlag curProj
     
     'Erase any previously created/modified view elements
-    CleanViews curproj
+    CleanViews curProj
     
     'Initialize Analyzed Tasks Collection
     Set AnalyzedTasks = New Collection
@@ -177,16 +185,22 @@ Sub DrivingPaths()
     tDrivingPaths.PrimaryFloat = 0
     tDrivingPaths.SecondaryFloat = 0
     tDrivingPaths.TertiaryFloat = 0
+    tDrivingPaths.FourthFloat = 0
+    tDrivingPaths.FifthFloat = 0
     
     'Now finding Primary Path
     tDrivingPaths.FindPrimary = True
     tDrivingPaths.FindSecondary = False
     tDrivingPaths.FindTertiary = False
+    tDrivingPaths.FindFourth = False
+    tDrivingPaths.FindFifth = False
     
     'Set default driver counts
     SecondaryDriverCount = 0
     TertiaryDriverCount = 0
     drivingTasksCount = 0
+    FourthDriverCount = 0
+    FifthDriverCount = 0
     
     '********************************
     '***Find Primary Driving Paths***
@@ -206,7 +220,7 @@ Sub DrivingPaths()
         firstTask = True
     
         'evaluate task dependencies, add to analyzed tasks collection as needed, and review for criticality
-        evaluateTaskDependencies tdp, t, curproj, AnalyzedTasks
+        evaluateTaskDependencies tdp, t, curProj, AnalyzedTasks
         
     Next tdp 'Next user selected analysis task dependency
     
@@ -219,7 +233,7 @@ Sub DrivingPaths()
     Set t = Nothing
     Set AnalyzedTasks = New Collection
     
-    'Iterate through drivingtasks array to find sendary path driver
+    'Iterate through drivingtasks array to find next path driver
     FindNextDriver
     
     '**********************************
@@ -239,7 +253,7 @@ Sub DrivingPaths()
             If i > SecondaryDriverCount Then Exit For
             
             'store the current driving task
-            Set t = curproj.Tasks.UniqueID(SecondaryDrivers(i))
+            Set t = curProj.Tasks.UniqueID(SecondaryDrivers(i))
             
             'add the driving task to the analyzed tasks collection
             AnalyzedTasks.Add t.UniqueID & "-" & t.UniqueID
@@ -268,7 +282,7 @@ Sub DrivingPaths()
             For Each tdp In tdps
             
                 'evaluate task dependencies, add to analyzed tasks collection as needed, and review for criticality
-                evaluateTaskDependencies tdp, t, curproj, AnalyzedTasks
+                evaluateTaskDependencies tdp, t, curProj, AnalyzedTasks
                 
             Next tdp 'Next secondary driver dependency
             
@@ -282,7 +296,7 @@ Sub DrivingPaths()
     Set t = Nothing
     Set AnalyzedTasks = New Collection
     
-    'Iterate through drivingtasks array to find sendary path driver
+    'Iterate through drivingtasks array to find next path driver
     FindNextDriver
     
     '*********************************
@@ -302,7 +316,7 @@ Sub DrivingPaths()
             If i > TertiaryDriverCount Then Exit For
             
             'store the current driving task
-            Set t = curproj.Tasks.UniqueID(TertiaryDrivers(i))
+            Set t = curProj.Tasks.UniqueID(TertiaryDrivers(i))
             
             'add the driving task to the analyzed tasks collection
             AnalyzedTasks.Add t.UniqueID & "-" & t.UniqueID
@@ -331,7 +345,7 @@ Sub DrivingPaths()
             For Each tdp In tdps
             
                 'evaluate task dependencies, add to analyzed tasks collection as needed, and review for criticality
-                evaluateTaskDependencies tdp, t, curproj, AnalyzedTasks
+                evaluateTaskDependencies tdp, t, curProj, AnalyzedTasks
                 
             Next tdp 'Next tertiary driver dependency
             
@@ -339,10 +353,137 @@ Sub DrivingPaths()
         
     End If
     
+    'Clear variables for re-use in evaluating secondary driver
+    Set tdps = Nothing
+    Set tdp = Nothing
+    Set t = Nothing
+    Set AnalyzedTasks = New Collection
+    
+    'Iterate through drivingtasks array to find next path driver
+    FindNextDriver
+    
+    '*********************************
+    '***Find Fourth Driving Paths***
+    '*********************************
+    
+    'Find fourth path if one exists (driver count is greater than 0)
+    If FourthDriverCount > 0 Then
+    
+        'Note that we are now evaluating the fourth driving path
+        tDrivingPaths.FindFourth = True
+        
+        'iterate through list of drivers
+        For i = 1 To FourthDriverCount
+        
+            'avoid evaluating outside of the array bounds
+            If i > FourthDriverCount Then Exit For
+            
+            'store the current driving task
+            Set t = curProj.Tasks.UniqueID(FourthDrivers(i))
+            
+            'add the driving task to the analyzed tasks collection
+            AnalyzedTasks.Add t.UniqueID & "-" & t.UniqueID
+            
+            'If the task has not already been analyzed during previous path analysis,
+            'set the Crit and Group Field values
+            If t.GetField(FieldNameToFieldConstant(CritField)) = vbNullString Then
+                With t
+                    .SetField FieldNameToFieldConstant(CritField), "4"
+                    .SetField FieldNameToFieldConstant(GroupField), "4"
+                End With
+            Else
+            
+                'If the task has already been analyzed during the previous path analysis,
+                'append path value to the Crit and Group Fields
+                If InStr(t.GetField(FieldNameToFieldConstant(CritField)), "4") = 0 Then
+                    t.SetField FieldNameToFieldConstant(CritField), t.GetField(FieldNameToFieldConstant(CritField)) & ",4"
+                End If
+                
+            End If
+            
+            'Store fourth driving task dependencies
+            Set tdps = t.TaskDependencies
+            
+            'Evlauate list of dependencies on fourth driving task
+            For Each tdp In tdps
+            
+                'evaluate task dependencies, add to analyzed tasks collection as needed, and review for criticality
+                evaluateTaskDependencies tdp, t, curProj, AnalyzedTasks
+                
+            Next tdp 'Next fourth driver dependency
+            
+        Next i 'next fourth Path Driver
+        
+    End If
+    
+    '*********************************
+    '***Find Fourth Driving Paths***
+    '*********************************
+    
+    'Clear variables for re-use in evaluating next driver
+    Set tdps = Nothing
+    Set tdp = Nothing
+    Set t = Nothing
+    Set AnalyzedTasks = New Collection
+    
+    'Iterate through drivingtasks array to find next path driver
+    FindNextDriver
+    
+    'Find fifth driver if one exists (driver count is greater than 0)
+    If FifthDriverCount > 0 Then
+    
+        'Note that we are now evaluating the fifth driving path
+        tDrivingPaths.FindFifth = True
+        
+        'iterate through list of fifth drivers
+        For i = 1 To FifthDriverCount
+        
+            'avoid evaluating outside of the array bounds
+            If i > FifthDriverCount Then Exit For
+            
+            'store the current driving task
+            Set t = curProj.Tasks.UniqueID(FifthDrivers(i))
+            
+            'add the driving task to the analyzed tasks collection
+            AnalyzedTasks.Add t.UniqueID & "-" & t.UniqueID
+            
+            'If the task has not already been analyzed during previous path analysis,
+            'set the Crit and Group Field values
+            If t.GetField(FieldNameToFieldConstant(CritField)) = vbNullString Then
+                With t
+                    .SetField FieldNameToFieldConstant(CritField), "5"
+                    .SetField FieldNameToFieldConstant(GroupField), "5"
+                End With
+            Else
+            
+                'If the task has already been analyzed during the previous path analysis,
+                'append path value to the Crit and Group Fields
+                If InStr(t.GetField(FieldNameToFieldConstant(CritField)), "5") = 0 Then
+                    t.SetField FieldNameToFieldConstant(CritField), t.GetField(FieldNameToFieldConstant(CritField)) & ",5"
+                End If
+                
+            End If
+            
+            'Store fifth driving task dependencies
+            Set tdps = t.TaskDependencies
+            
+            'Evlauate list of dependencies on fifth driving task
+            For Each tdp In tdps
+            
+                'evaluate task dependencies, add to analyzed tasks collection as needed, and review for criticality
+                evaluateTaskDependencies tdp, t, curProj, AnalyzedTasks
+                
+            Next tdp 'Next fifth driver dependency
+            
+        Next i 'next fifth Path Driver
+        
+    End If
+    
+    
 ShowAndTell:
     
     'Create and Apply the "ClearPlan Driving Path" Table, View, Group, and Filter
-    SetupCPView GroupField, curproj, analysisTaskUID
+    SetupCPView GroupField, curProj, analysisTaskUID
     
 CleanUp:
 
@@ -365,15 +506,15 @@ CleanUp:
     Set AnalyzedTasks = Nothing
     
     'Enable calculations and screenupdating
-    curproj.Application.Calculation = pjAutomatic
-    curproj.Application.ScreenUpdating = True
+    curProj.Application.Calculation = pjAutomatic
+    curProj.Application.ScreenUpdating = True
     
     'release project variable
-    Set curproj = Nothing
+    Set curProj = Nothing
 
 End Sub
 
-Private Sub evaluateTaskDependencies(ByVal tdp As TaskDependency, ByVal t As Task, ByVal curproj As Project, ByRef curAnalyzedTasks As Collection)
+Private Sub evaluateTaskDependencies(ByVal tdp As TaskDependency, ByVal t As Task, ByVal curProj As Project, ByRef curAnalyzedTasks As Collection)
 'Evaluate each task dependency, ignoring complete preds, then store as an analyzed relationship and evaluate criticality
 
     'v3.0.0 new variables
@@ -385,10 +526,10 @@ Private Sub evaluateTaskDependencies(ByVal tdp As TaskDependency, ByVal t As Tas
     If firstTask = True And masterProj = True Then
         firstTask = False
         If tdp.To.ExternalTask = True Then
-            subIndex = get_subProj_index(curproj, tdp.To.Project)
+            subIndex = get_subProj_index(curProj, tdp.To.Project)
             real_ToUID = get_tdp_MasterUID(tdp.To.UniqueID, subIndex)
         Else
-            subIndex = get_subProj_index(curproj, curproj.Subprojects(tdp.To.Project).Path)
+            subIndex = get_subProj_index(curProj, curProj.Subprojects(tdp.To.Project).Path)
             real_ToUID = get_tdp_MasterUID(tdp.To.UniqueID, subIndex)
         End If
     Else
@@ -401,18 +542,18 @@ Private Sub evaluateTaskDependencies(ByVal tdp As TaskDependency, ByVal t As Tas
         If masterProj Then
         
             If tdp.To.ExternalTask = True Then
-                subIndex = get_subProj_index(curproj, tdp.To.Project)
+                subIndex = get_subProj_index(curProj, tdp.To.Project)
                 real_ToUID = get_tdp_MasterUID(tdp.To.UniqueID, subIndex)
             Else
-                subIndex = get_subProj_index(curproj, curproj.Subprojects(tdp.To.Project).Path)
+                subIndex = get_subProj_index(curProj, curProj.Subprojects(tdp.To.Project).Path)
                 real_ToUID = get_tdp_MasterUID(tdp.To.UniqueID, subIndex)
             End If
             
             If tdp.From.ExternalTask = True Then
-                subIndex = get_subProj_index(curproj, tdp.From.Project)
+                subIndex = get_subProj_index(curProj, tdp.From.Project)
                 real_FromUID = get_tdp_MasterUID(tdp.From.UniqueID, subIndex)
             Else
-                subIndex = get_subProj_index(curproj, curproj.Subprojects(tdp.From.Project).Path)
+                subIndex = get_subProj_index(curProj, curProj.Subprojects(tdp.From.Project).Path)
                 real_FromUID = get_tdp_MasterUID(tdp.From.UniqueID, subIndex)
             End If
             
@@ -428,7 +569,7 @@ Private Sub evaluateTaskDependencies(ByVal tdp As TaskDependency, ByVal t As Tas
             'If dependency has not been analyzed, add to analyzed tasks collection
             curAnalyzedTasks.Add real_FromUID, real_FromUID & "-" & real_ToUID 'v3.0.0 updated with real uid for master projects
             'Calculate True Float value and evaluate against list of driving tasks
-            CheckCritTask curproj, tdp
+            CheckCritTask curProj, tdp
         End If
     End If
     
@@ -451,49 +592,51 @@ Private Sub SetGroupCPFieldLookupTable(ByVal GroupField As String, ByVal CritFie
     currentProject.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "1", "Primary"
     currentProject.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "2", "Secondary"
     currentProject.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "3", "Tertiary"
+    currentProject.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "4", "Quaternary"
+    currentProject.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "5", "Quinary"
     currentProject.Application.CustomFieldValueListAdd FieldNameToFieldConstant(GroupField), "0", "Noncritical"
 
 
 End Sub
-Private Sub SetupCPView(ByVal GroupField As String, ByVal curproj As Project, ByVal tUID As String)
+Private Sub SetupCPView(ByVal GroupField As String, ByVal curProj As Project, ByVal tUID As String)
 'Setup CP View with Table & Grouping by Path Value
 
     Dim t As Task 'used to store user selected anlaysis task
     
     'Create CP Driving Path Table
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, Create:=True, ShowAddNewColumn:=True, overwriteexisting:=True, FieldName:="ID", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, LockFirstColumn:=True, ColumnPosition:=0
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, Create:=True, ShowAddNewColumn:=True, OverwriteExisting:=True, FieldName:="ID", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, LockFirstColumn:=True, ColumnPosition:=0
     
     'Add fields to CP Driving Path Table
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Unique ID", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1, LockFirstColumn:=True
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:=GroupField, Title:="Driving Path", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Name", Width:=45, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=2
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Duration", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=3
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Start", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=4
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Finish", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=5
-    curproj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, newfieldname:="Total Slack", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=6
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Unique ID", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1, LockFirstColumn:=True
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:=GroupField, Title:="Driving Path", Width:=5, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=1
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Name", Width:=45, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=2
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Duration", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=3
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Start", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=4
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Finish", Width:=15, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=5
+    curProj.Application.TableEditEx Name:="*ClearPlan Driving Path Table", TaskTable:=True, NewFieldName:="Total Slack", Width:=10, ShowInMenu:=False, DateFormat:=pjDate_mm_dd_yy, ColumnPosition:=6
 
     'Create CP Driving Path Filter
-    curproj.Application.FilterEdit Name:="*ClearPlan Driving Path Filter", TaskFilter:=True, Create:=True, overwriteexisting:=True, FieldName:=GroupField, test:="is greater than", Value:="0", ShowInMenu:=False, ShowSummaryTasks:=False
+    curProj.Application.FilterEdit Name:="*ClearPlan Driving Path Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=GroupField, test:="is greater than", Value:="0", ShowInMenu:=False, ShowSummaryTasks:=False
     
     'On Error Resume Next
     
     'Create CP Driving Path Group
-    curproj.TaskGroups.Add Name:="*ClearPlan Driving Path Group", FieldName:=GroupField
+    curProj.TaskGroups.Add Name:="*ClearPlan Driving Path Group", FieldName:=GroupField
     
     'Create CP Driving Path view if necessary
-    curproj.Application.ViewEditSingle Name:="*ClearPlan Driving Path View", Create:=True, ShowInMenu:=True, Table:="*ClearPlan Driving Path Table", Filter:="*ClearPlan Driving Path Filter", Group:="*ClearPlan Driving Path Group"
+    curProj.Application.ViewEditSingle Name:="*ClearPlan Driving Path View", Create:=True, ShowInMenu:=True, Table:="*ClearPlan Driving Path Table", Filter:="*ClearPlan Driving Path Filter", Group:="*ClearPlan Driving Path Group"
     
     'Apply the CP Driving Path view
-    curproj.Application.ViewApply Name:="*ClearPlan Driving Path View"
+    curProj.Application.ViewApply Name:="*ClearPlan Driving Path View"
     
     'Sort the View by Finish, then by Duration to produce Waterfall Gantt
-    curproj.Application.Sort Key1:="Finish", Ascending1:=True, Key2:="Duration", Ascending2:=False, Outline:=False
+    curProj.Application.Sort key1:="Finish", Ascending1:=True, Key2:="Duration", Ascending2:=False, Outline:=False
     
     'Select all tasks and zoom the Gantt to display all tasks in view
-    curproj.Application.SelectAll
-    curproj.Application.ZoomTimescale Selection:=True
+    curProj.Application.SelectAll
+    curProj.Application.ZoomTimescale Selection:=True
     
-    curproj.Application.SelectRow 1
+    curProj.Application.SelectRow 1
     
     'Iterate through each task in view and color the Gantt bars based on CP Group Code
     For Each t In ActiveProject.Tasks
@@ -503,23 +646,37 @@ Private Sub SetupCPView(ByVal GroupField As String, ByVal curproj As Project, By
                 'v3.0.0 added consideration for master projects, which require targeted subproject edits via "ProjectName" variable
                 Case "1"
                     If masterProj Then
-                        t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=192, MiddleColor:=192, EndColor:=192, ProjectName:=curproj.Subprojects(t.Project).Path
+                        t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=192, MiddleColor:=192, EndColor:=192, projectName:=curProj.Subprojects(t.Project).Path
                     Else
                         t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=192, MiddleColor:=192, EndColor:=192
                     End If
         
                 Case "2"
                     If masterProj Then
-                        t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=3243501, MiddleColor:=3243501, EndColor:=3243501, ProjectName:=curproj.Subprojects(t.Project).Path
+                        t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=3243501, MiddleColor:=3243501, EndColor:=3243501, projectName:=curProj.Subprojects(t.Project).Path
                     Else
                         t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=3243501, MiddleColor:=3243501, EndColor:=3243501
                     End If
                     
                 Case "3"
                     If masterProj Then
-                        t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=65535, MiddleColor:=65535, EndColor:=65535, ProjectName:=curproj.Subprojects(t.Project).Path
+                        t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=65535, MiddleColor:=65535, EndColor:=65535, projectName:=curProj.Subprojects(t.Project).Path
                     Else
                         t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=65535, MiddleColor:=65535, EndColor:=65535
+                    End If
+                    
+                Case "4"
+                    If masterProj Then
+                        t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=11788485, MiddleColor:=11788485, EndColor:=11788485, projectName:=curProj.Subprojects(t.Project).Path
+                    Else
+                        t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=11788485, MiddleColor:=11788485, EndColor:=11788485
+                    End If
+                    
+                Case "5"
+                    If masterProj Then
+                        t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=15189684, MiddleColor:=15189684, EndColor:=15189684, projectName:=curProj.Subprojects(t.Project).Path
+                    Else
+                        t.Application.GanttBarFormatEx TaskID:=t.ID, GanttStyle:=1, StartColor:=15189684, MiddleColor:=15189684, EndColor:=15189684
                     End If
                 
                 Case Else
@@ -530,16 +687,16 @@ Private Sub SetupCPView(ByVal GroupField As String, ByVal curproj As Project, By
     Next t
     
     'select the users original analysis task
-    curproj.Application.FindEx "UniqueID", "equals", tUID
+    curProj.Application.FindEx "UniqueID", "equals", tUID
 
 End Sub
-Private Sub CleanCritFlag(ByVal curproj As Project)
+Private Sub CleanCritFlag(ByVal curProj As Project)
 'Remove previous analysis values from the Crit and Group fields
 
     Dim t As Task 'store task var
     
     'iterate through every task in the project
-    For Each t In curproj.Tasks
+    For Each t In curProj.Tasks
     
         If Not t Is Nothing Then 'Fix issue #44 for v2.8
         
@@ -553,7 +710,7 @@ Private Sub CleanCritFlag(ByVal curproj As Project)
 
 End Sub
 
-Private Sub CleanViews(ByVal curproj As Project)
+Private Sub CleanViews(ByVal curProj As Project)
 'Iterate through all Views, Tables, Filters, and Groups
 'Delete previously created CP View Elements to avoid user modification errors
 
@@ -567,13 +724,13 @@ Private Sub CleanViews(ByVal curproj As Project)
     Dim allGroups As Groups
     
     'Set vars
-    Set allViews = curproj.Views
-    Set allTables = curproj.TaskTables
-    Set allFilters = curproj.TaskFilters
-    Set allGroups = curproj.TaskGroups
+    Set allViews = curProj.Views
+    Set allTables = curProj.TaskTables
+    Set allFilters = curProj.TaskFilters
+    Set allGroups = curProj.TaskGroups
     
     'If the CPCritPathView is active, choose a different view
-    curproj.Application.ViewApply Name:="Gantt Chart"
+    curProj.Application.ViewApply Name:="Gantt Chart"
 
     'Clean up Views
     For Each cpView In allViews
@@ -672,7 +829,7 @@ Private Sub FindNextDriver()
         'set secondary driver count
         SecondaryDriverCount = driverCount
         
-    Else 'If FindSecondary = True, indicates secondary path has been evaluated, so find the Tertiary Driving Task
+    ElseIf tDrivingPaths.FindTertiary = False Then
     
         'Store default float and count values
         driverFloat = 0
@@ -709,6 +866,82 @@ Private Sub FindNextDriver()
         
         'set secondary driver count
         TertiaryDriverCount = driverCount
+        
+    ElseIf tDrivingPaths.FindFourth = False Then
+    
+        'Store default float and count values
+        driverFloat = 0
+        driverCount = 0
+    
+        'Iterate through Driving Tasks array and find the least float value
+        For i = 1 To UBound(DrivingTasks)
+        
+            'store first float value, otherwise evaluate current float value against previously stored value
+            If DrivingTasks(i).tFloat > tDrivingPaths.FourthFloat And driverFloat = 0 Then
+                driverFloat = DrivingTasks(i).tFloat
+            Else
+                If DrivingTasks(i).tFloat > tDrivingPaths.FourthFloat And DrivingTasks(i).tFloat < driverFloat Then
+                    driverFloat = DrivingTasks(i).tFloat
+                End If
+            End If
+        Next i 'Next driving task
+        
+        'Find all drivers with similar float and store as parallel driving tasks
+        If driverFloat <> 0 Then
+            For i = 1 To UBound(DrivingTasks)
+                With DrivingTasks(i)
+                    If .tFloat = driverFloat Then
+                        driverCount = driverCount + 1
+                        ReDim Preserve FourthDrivers(1 To driverCount)
+                        FourthDrivers(driverCount) = .UID
+                    End If
+                End With
+            Next i 'Next Driving Task
+        End If
+        
+        'Set Secondary Float value equal to the evaluated driving task float
+        tDrivingPaths.FourthFloat = driverFloat
+        
+        'set secondary driver count
+        FourthDriverCount = driverCount
+        
+    ElseIf tDrivingPaths.FindFifth = False Then
+    
+        'Store default float and count values
+        driverFloat = 0
+        driverCount = 0
+    
+        'Iterate through Driving Tasks array and find the least float value
+        For i = 1 To UBound(DrivingTasks)
+        
+            'store first float value, otherwise evaluate current float value against previously stored value
+            If DrivingTasks(i).tFloat > tDrivingPaths.FifthFloat And driverFloat = 0 Then
+                driverFloat = DrivingTasks(i).tFloat
+            Else
+                If DrivingTasks(i).tFloat > tDrivingPaths.FifthFloat And DrivingTasks(i).tFloat < driverFloat Then
+                    driverFloat = DrivingTasks(i).tFloat
+                End If
+            End If
+        Next i 'Next driving task
+        
+        'Find all drivers with similar float and store as parallel driving tasks
+        If driverFloat <> 0 Then
+            For i = 1 To UBound(DrivingTasks)
+                With DrivingTasks(i)
+                    If .tFloat = driverFloat Then
+                        driverCount = driverCount + 1
+                        ReDim Preserve FifthDrivers(1 To driverCount)
+                        FifthDrivers(driverCount) = .UID
+                    End If
+                End With
+            Next i 'Next Driving Task
+        End If
+        
+        'Set Secondary Float value equal to the evaluated driving task float
+        tDrivingPaths.FifthFloat = driverFloat
+        
+        'set secondary driver count
+        FifthDriverCount = driverCount
     
     End If
 
@@ -730,7 +963,7 @@ Private Function FindInArray(UID As String) As Variant
 
 End Function
 
-Private Sub CheckCritTask(ByVal curproj As Project, ByVal tdp As TaskDependency)
+Private Sub CheckCritTask(ByVal curProj As Project, ByVal tdp As TaskDependency)
 'Compare current task dependency against full list of Driving Tasks and
 'add-to/create/replace list of Path Drivers if critical
 
@@ -749,22 +982,22 @@ Private Sub CheckCritTask(ByVal curproj As Project, ByVal tdp As TaskDependency)
     'v3.0.0 consider mast project condition
     If masterProj Then
         If tdp.From.ExternalTask = True Then
-            subpIndex = get_subProj_index(curproj, tdp.From.Project)
+            subpIndex = get_subProj_index(curProj, tdp.From.Project)
             If subpIndex = 0 Then 'subproject is not present
                 Exit Sub
             Else
                 realPredUID = get_external_MasterUID(tdp.From, subpIndex)
-                Set predT = curproj.Tasks.UniqueID(realPredUID)
+                Set predT = curProj.Tasks.UniqueID(realPredUID)
             End If
                 
         Else
-            subpIndex = get_subProj_index(curproj, curproj.Subprojects(tdp.From.Project).Path)
+            subpIndex = get_subProj_index(curProj, curProj.Subprojects(tdp.From.Project).Path)
             realPredUID = get_tdp_MasterUID(tdp.From.UniqueID, subpIndex)
-            Set predT = curproj.Tasks.UniqueID(realPredUID)
+            Set predT = curProj.Tasks.UniqueID(realPredUID)
         End If
     Else
         realPredUID = tdp.From.UniqueID
-        Set predT = curproj.Tasks.UniqueID(tdp.From.UniqueID)
+        Set predT = curProj.Tasks.UniqueID(tdp.From.UniqueID)
     End If
     
     
@@ -774,20 +1007,20 @@ Private Sub CheckCritTask(ByVal curproj As Project, ByVal tdp As TaskDependency)
     'Assign the dependency successor task to the succT var
     'v3.0.0 consider master project condition - succ T will never be an external task
     If masterProj Then
-        subpIndex = get_subProj_index(curproj, curproj.Subprojects(tdp.To.Project).Path)
+        subpIndex = get_subProj_index(curProj, curProj.Subprojects(tdp.To.Project).Path)
         realSuccUID = get_tdp_MasterUID(tdp.To.UniqueID, subpIndex)
-        Set succT = curproj.Tasks.UniqueID(realSuccUID)
+        Set succT = curProj.Tasks.UniqueID(realSuccUID)
     Else
         realSuccUID = tdp.To.UniqueID
-        Set succT = curproj.Tasks.UniqueID(tdp.To.UniqueID)
+        Set succT = curProj.Tasks.UniqueID(tdp.To.UniqueID)
     End If
     
     'get the TrueFloat of Dependency relationship
     tempFloat = TrueFloat(predT, succT, tdp.Type, tdp.Lag, tdp.LagType)
 
-    'If Evaluating Primary or Secondary Driving Tasks, and the TrueFloat value is not 0
+    'If not evaluating the last path, and the TrueFloat value is not 0
     'Evaluate total network float and store in Driving Tasks array
-    If tDrivingPaths.FindTertiary = False And tempFloat <> 0 Then
+    If tDrivingPaths.FindFifth = False And tempFloat <> 0 Then
     
         'If other Driving Tasks have been found, Evaluate further
         If drivingTasksCount > 0 Then
@@ -808,10 +1041,14 @@ Private Sub CheckCritTask(ByVal curproj As Project, ByVal tdp As TaskDependency)
                     End If
                 Else 'if evaluating secondary path
                 
-                    'if the dependency float value + the sendary path float is less then the
+                    'if the dependency float value + the previous path float is less then the
                     'previously stored float vlaue, then store the lower float value
-                    If tempFloat + tDrivingPaths.SecondaryFloat < DrivingTasks(i).tFloat Then
+                    If tDrivingPaths.FindTertiary = False And tempFloat + tDrivingPaths.SecondaryFloat < DrivingTasks(i).tFloat Then
                         DrivingTasks(i).tFloat = tempFloat + tDrivingPaths.SecondaryFloat
+                    ElseIf tDrivingPaths.FindFourth = False And tempFloat + tDrivingPaths.TertiaryFloat < DrivingTasks(i).tFloat Then
+                        DrivingTasks(i).tFloat = tempFloat + tDrivingPaths.TertiaryFloat
+                    ElseIf tDrivingPaths.FindFifth = False And tempFloat + tDrivingPaths.FourthFloat < DrivingTasks(i).tFloat Then
+                        DrivingTasks(i).tFloat = tempFloat + tDrivingPaths.FourthFloat
                     End If
                 End If
             Else 'If the task does not exist in the Driving Tasks array
@@ -867,8 +1104,8 @@ Private Sub CheckCritTask(ByVal curproj As Project, ByVal tdp As TaskDependency)
                 End With
             End If
             
-        Else 'If no other driving tasks exists and not evaluating the tertiary path
-            If tDrivingPaths.FindTertiary = False Then
+        Else 'If no other driving tasks exists and not evaluating the last path
+            If tDrivingPaths.FindFifth = False Then
 
                 'Store the new driving task
                 drivingTasksCount = drivingTasksCount + 1
@@ -901,8 +1138,7 @@ Private Sub CheckCritTask(ByVal curproj As Project, ByVal tdp As TaskDependency)
                 End If
             End If
             
-        Else
-            'If evaluating the tertiary path, code the Crit and Group field values
+        ElseIf tDrivingPaths.FindTertiary = True And tDrivingPaths.FindFourth = False Then
             
             'If no existing code, then no need to concatenate
             If predCritCoding = vbNullString Then
@@ -915,6 +1151,35 @@ Private Sub CheckCritTask(ByVal curproj As Project, ByVal tdp As TaskDependency)
                     predT.SetField FieldNameToFieldConstant(CritField), predCritCoding & ",3"
                 End If
             End If
+            
+        ElseIf tDrivingPaths.FindFourth = True And tDrivingPaths.FindFifth = False Then
+            
+            'If no existing code, then no need to concatenate
+            If predCritCoding = vbNullString Then
+                With predT
+                    .SetField FieldNameToFieldConstant(CritField), "4"
+                    .SetField FieldNameToFieldConstant(GroupField), "4"
+                End With
+            Else 'if existing code, then concatenate string
+                If InStr(predCritCoding, "4") = 0 Then
+                    predT.SetField FieldNameToFieldConstant(CritField), predCritCoding & ",4"
+                End If
+            End If
+            
+        Else
+        
+            'If no existing code, then no need to concatenate
+            If predCritCoding = vbNullString Then
+                With predT
+                    .SetField FieldNameToFieldConstant(CritField), "5"
+                    .SetField FieldNameToFieldConstant(GroupField), "5"
+                End With
+            Else 'if existing code, then concatenate string
+                If InStr(predCritCoding, "5") = 0 Then
+                    predT.SetField FieldNameToFieldConstant(CritField), predCritCoding & ",5"
+                End If
+            End If
+            
         End If
     
         'store dependecies of the currently evaluted dependency
@@ -924,7 +1189,7 @@ Private Sub CheckCritTask(ByVal curproj As Project, ByVal tdp As TaskDependency)
         For Each tdpI In tdps
         
             'evaluate task dependencies, add to analyzed tasks collection as needed, and review for criticality
-            evaluateTaskDependencies tdpI, predT, curproj, AnalyzedTasks
+            evaluateTaskDependencies tdpI, predT, curProj, AnalyzedTasks
 
         Next tdpI 'Next dependency of the currently evaluated dependency
     End If
@@ -950,10 +1215,10 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
     Else 'If no task calendar, store project cal
         'v3.0.0 consider master project condition
         If masterProj = True Then
-            If tPred.Project = curproj.Tasks.UniqueID(0).Project Then 'task is in master project
-                Set pCalObj = curproj.Calendar
+            If tPred.Project = curProj.Tasks.UniqueID(0).Project Then 'task is in master project
+                Set pCalObj = curProj.Calendar
             Else
-                Set pCalObj = curproj.Subprojects(tPred.Project).SourceProject.Calendar
+                Set pCalObj = curProj.Subprojects(tPred.Project).SourceProject.Calendar
             End If
         Else
             Set pCalObj = ActiveProject.Calendar
@@ -966,10 +1231,10 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
     Else 'If no task calendar, store project cal
         'v3.0.0 consider master project condition
         If masterProj = True Then
-            If tSucc.Project = curproj.Tasks.UniqueID(0).Project Then 'task is in master project
-                Set sCalObj = curproj.Calendar
+            If tSucc.Project = curProj.Tasks.UniqueID(0).Project Then 'task is in master project
+                Set sCalObj = curProj.Calendar
             Else
-                Set sCalObj = curproj.Subprojects(tSucc.Project).SourceProject.Calendar
+                Set sCalObj = curProj.Subprojects(tSucc.Project).SourceProject.Calendar
             End If
         Else
             Set sCalObj = ActiveProject.Calendar
@@ -1156,7 +1421,7 @@ Private Function TrueFloat(ByVal tPred As Task, ByVal tSucc As Task, ByVal dType
     Else
     
         'using edays; calculate date diff in minutes
-        tempFloat = VBA.DateDiff("n", pDate, sDate)
+        tempFloat = DateDiff("n", pDate, sDate)
     
     End If
     
@@ -1198,7 +1463,7 @@ Function GetLettersOnly(str As String) As String
     GetLettersOnly = letters
 End Function
 
-Private Sub ReadCustomFields(ByVal curproj As Project)
+Private Sub ReadCustomFields(ByVal curProj As Project)
 'v2.9.0 - added to allow user selection of custom fields
 
     Dim i As Integer
@@ -1206,9 +1471,9 @@ Private Sub ReadCustomFields(ByVal curproj As Project)
     'Read local Custom Text Fields
     For i = 1 To 30
 
-        If Len(curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Text" & i))) > 0 Then
+        If Len(curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("Text" & i))) > 0 Then
             ReDim Preserve CustTextFields(1 To i)
-            CustTextFields(i) = curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Text" & i))
+            CustTextFields(i) = curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("Text" & i))
         Else
             ReDim Preserve CustTextFields(1 To i)
             CustTextFields(i) = "Text" & i
@@ -1219,9 +1484,9 @@ Private Sub ReadCustomFields(ByVal curproj As Project)
     'Read local Custom Number Fields
     For i = 1 To 20
 
-        If Len(curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Number" & i))) > 0 Then
+        If Len(curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("Number" & i))) > 0 Then
             ReDim Preserve CustNumFields(1 To i)
-            CustNumFields(i) = curproj.Application.CustomFieldGetName(FieldNameToFieldConstant("Number" & i))
+            CustNumFields(i) = curProj.Application.CustomFieldGetName(FieldNameToFieldConstant("Number" & i))
         Else
             ReDim Preserve CustNumFields(1 To i)
             CustNumFields(i) = "Number" & i
@@ -1272,4 +1537,3 @@ Function get_external_MasterUID(ByVal subP_Task As Task, ByVal subP_Index As Int
     Exit Function
 
 End Function
-
