@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.5.0</cpt_version>
+'<cpt_version>v1.5.1</cpt_version>
 Option Explicit
 
 Private Sub cboCostTool_Change()
@@ -492,7 +492,7 @@ Private Sub cmdDir_Click()
   Set oFileDialog = oExcel.FileDialog(msoFileDialogFolderPicker)
   With oFileDialog
     .AllowMultiSelect = False
-    If Left(ActiveProject.Path, 3) = "<>\" Or Left(ActiveProject.Path, 4) = "http" Then 'server project: default to Desktop
+    If Left(ActiveProject.Path, 2) = "<>" Or Left(ActiveProject.Path, 4) = "http" Then 'server project: default to Desktop
       Set oShell = CreateObject("WScript.Shell")
       .InitialFileName = oShell.SpecialFolders("Desktop")
     Else 'not a server project

@@ -14,7 +14,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-'<cpt_version>v1.2.2</cpt_version>
+'<cpt_version>v1.2.3</cpt_version>
 Option Explicit
 
 Private Sub cboAF_Change()
@@ -170,7 +170,7 @@ Private Sub cmdSelectFiles_Click()
     .AllowMultiSelect = True
     .ButtonName = "Import"
     .InitialView = 2 'msoFileDialogViewDetails
-    If Left(ActiveProject.Path, 3) = "<>\" Or Left(ActiveProject.Path, 4) = "http" Then 'server: default to Desktop
+    If Left(ActiveProject.Path, 2) = "<>" Or Left(ActiveProject.Path, 4) = "http" Then 'server: default to Desktop
       Set oShell = CreateObject("WScript.Shell")
       .InitialFileName = oShell.SpecialFolders("Desktop") & "\"
     Else 'not a server project: use ActiveProject.Path

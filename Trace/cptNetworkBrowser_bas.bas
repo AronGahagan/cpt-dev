@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
-'<cpt_version>v1.1.2</cpt_version>
+'<cpt_version>v1.1.3</cpt_version>
 Option Explicit
 Public oSubMap As Scripting.Dictionary
 
@@ -114,7 +114,7 @@ Dim vControl As Variant
     For Each oSubproject In ActiveProject.Subprojects
       If InStr(oSubproject.Path, "<>") = 0 Then 'offline
         oSubMap.Add Replace(Dir(oSubproject.Path), ".mpp", ""), 0
-      ElseIf InStr(oSubproject.Path, "<>") > 0 Then 'online
+      ElseIf Left(oSubproject.Path, 2) = "<>" Then 'online
         oSubMap.Add oSubproject.Path, 0
       End If
     Next oSubproject
