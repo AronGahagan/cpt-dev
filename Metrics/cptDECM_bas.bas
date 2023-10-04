@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDECM_bas"
-'<cpt_version>v0.0.3</cpt_version>
+'<cpt_version>v0.0.4</cpt_version>
 Option Explicit
 
 Private strWBS As String
@@ -2616,7 +2616,7 @@ Function cptGetOutOfSequence() As String
     For Each oSubproject In ActiveProject.Subprojects
       If InStr(oSubproject.Path, "<>") = 0 Then 'offline
         oSubMap.Add Replace(Dir(oSubproject.Path), ".mpp", ""), 0
-      ElseIf InStr(oSubproject.Path, "<>") > 0 Then 'online
+      ElseIf Left(oSubproject.Path, 2) = "<>" Then 'online
         oSubMap.Add oSubproject.Path, 0
       End If
       lngTasks = lngTasks + oSubproject.SourceProject.Tasks.Count
