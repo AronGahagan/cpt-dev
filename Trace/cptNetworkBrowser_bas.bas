@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
-'<cpt_version>v1.1.3</cpt_version>
+'<cpt_version>v1.1.4</cpt_version>
 Option Explicit
 Public oSubMap As Scripting.Dictionary
 
@@ -115,15 +115,26 @@ Dim vControl As Variant
       If InStr(oSubproject.Path, "<>") = 0 Then 'offline
         oSubMap.Add Replace(Dir(oSubproject.Path), ".mpp", ""), 0
       ElseIf Left(oSubproject.Path, 2) = "<>" Then 'online
-        oSubMap.Add oSubproject.Path, 0
+        oSubMap.Add Replace(oSubproject.Path, "<>\", ""), 0
+      End If
+      If oSubproject.IsLoaded = False Then
+        Application.OpenUndoTransaction "cpt - load subproject"
+        FilterClear
+        GroupClear
+        SelectAll
+        OutlineShowAllTasks
+        Application.CloseUndoTransaction
+        If Application.GetUndoListCount > 0 Then
+          If Application.GetUndoListItem(1) = "cpt - load subproject" Then
+            Application.Undo
+          End If
+        End If
       End If
     Next oSubproject
     For Each oTask In ActiveProject.Tasks
       If oSubMap.Exists(oTask.Project) Then
         If oSubMap(oTask.Project) > 0 Then GoTo next_mapping_task
-        If Not oTask.Summary Then
-          oSubMap.Item(oTask.Project) = CLng(oTask.UniqueID / 4194304)
-        End If
+        oSubMap.Item(oTask.Project) = CLng(oTask.UniqueID / 4194304)
       End If
 next_mapping_task:
     Next oTask
@@ -237,11 +248,10 @@ next_mapping_task:
       With cptNetworkBrowser_frm.lboPredecessors
         .AddItem
         .Column(0, .ListCount - 1) = lngLinkUID
-        .Column(1, .ListCount - 1) = lngLinkUID Mod 4194304 & IIf(oLink.From.ExternalTask, "x", "")
-        'todo: sort this out - what do you want to show for external links in a standalone project file?
+        .Column(1, .ListCount - 1) = lngLinkUID Mod 4194304
         If blnSubprojects And oLink.From.ExternalTask Then
           .Column(2, .ListCount - 1) = ActiveProject.Tasks.UniqueID(lngLinkUID).ID
-          .Column(7, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
+          .Column(7, .ListCount - 1) = "<>\" & IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
         ElseIf Not blnSubprojects And oLink.From.ExternalTask Then
           .Column(2, .ListCount - 1) = oLink.From.ID
           .Column(7, .ListCount - 1) = IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
@@ -299,10 +309,10 @@ next_mapping_task:
       With cptNetworkBrowser_frm.lboSuccessors
         .AddItem
         .Column(0, .ListCount - 1) = lngLinkUID
-        .Column(1, .ListCount - 1) = lngLinkUID Mod 4194304 & IIf(oLink.To.ExternalTask, "x", "")
+        .Column(1, .ListCount - 1) = lngLinkUID Mod 4194304
         If blnSubprojects And oLink.To.ExternalTask Then
           .Column(2, .ListCount - 1) = ActiveProject.Tasks.UniqueID(lngLinkUID).ID
-          .Column(7, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.To.Name) > 65, Left(oLink.To.Name, 65) & "... ", oLink.To.Name)
+          .Column(7, .ListCount - 1) = "<>\" & IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.To.Name) > 65, Left(oLink.To.Name, 65) & "... ", oLink.To.Name)
         ElseIf Not blnSubprojects And oLink.To.ExternalTask Then
           .Column(2, .ListCount - 1) = oLink.To.ID
           .Column(7, .ListCount - 1) = IIf(Len(oLink.To.Name) > 65, Left(oLink.To.Name, 65) & "... ", oLink.To.Name)
@@ -497,8 +507,11 @@ Sub cptSortNetworkBrowserLinks(strWhich As String, Optional blnDescending = Fals
   Dim oListBox As Object 'MSForms.ListBox
   Dim oRecordset As ADODB.Recordset
   'strings
+  Dim strIndicator As String
+  Dim strUID As String
   Dim strSortBy As String
   'longs
+  Dim lngUID As Long
   Dim lngCol As Long
   Dim lngItem As Long
   'integers
@@ -546,8 +559,11 @@ Sub cptSortNetworkBrowserLinks(strWhich As String, Optional blnDescending = Fals
           End If
         ElseIf .Fields(lngCol).Name = "Date" Then
           If Len(cptRegEx(oListBox.List(lngItem, lngCol), "<|>|=")) > 0 Then
-            Dim strIndicator As String
             strIndicator = Left(oListBox.List(lngItem, lngCol), 1)
+            'indicates a constraint on the date
+            '< = SNET
+            '> = FNLT
+            '= = MSO/MFO
             .Fields(lngCol) = Replace(oListBox.List(lngItem, lngCol), strIndicator, "")
             .Fields("indicator") = strIndicator
           Else
