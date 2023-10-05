@@ -254,7 +254,7 @@ next_mapping_task:
           .Column(7, .ListCount - 1) = "<>\" & IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
         ElseIf Not blnSubprojects And oLink.From.ExternalTask Then
           .Column(2, .ListCount - 1) = oLink.From.ID
-          .Column(7, .ListCount - 1) = IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
+          .Column(7, .ListCount - 1) = "<>\" & IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
         Else
           .Column(2, .ListCount - 1) = oLink.From.ID
           .Column(7, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.From.Name) > 65, Left(oLink.From.Name, 65) & "... ", oLink.From.Name)
@@ -315,7 +315,7 @@ next_mapping_task:
           .Column(7, .ListCount - 1) = "<>\" & IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.To.Name) > 65, Left(oLink.To.Name, 65) & "... ", oLink.To.Name)
         ElseIf Not blnSubprojects And oLink.To.ExternalTask Then
           .Column(2, .ListCount - 1) = oLink.To.ID
-          .Column(7, .ListCount - 1) = IIf(Len(oLink.To.Name) > 65, Left(oLink.To.Name, 65) & "... ", oLink.To.Name)
+          .Column(7, .ListCount - 1) = "<>\" & IIf(Len(oLink.To.Name) > 65, Left(oLink.To.Name, 65) & "... ", oLink.To.Name)
         Else
           .Column(2, .ListCount - 1) = oLink.To.ID
           .Column(7, .ListCount - 1) = IIf(ActiveProject.Tasks.UniqueID(lngLinkUID).Marked, "[m] ", "") & IIf(Len(oLink.To.Name) > 65, Left(oLink.To.Name, 65) & "... ", oLink.To.Name)
