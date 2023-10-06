@@ -14,7 +14,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.4</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 
 Private Sub cboSortPredecessorsBy_Change()
@@ -25,6 +25,11 @@ End Sub
 Private Sub cboSortSuccessorsBy_Change()
   cptSaveSetting "NetworkBrowser", "cboSortSuccessorsBy", Me.cboSortSuccessorsBy.Value
   cptSortNetworkBrowserLinks "s", Me.chkSortSuccDescending.Value
+End Sub
+
+Private Sub chkHideInactive_Click()
+  cptSaveSetting "NetworkBrowser", "chkHideInactive", IIf(Me.chkHideInactive, 1, 0)
+  Call cptShowPreds
 End Sub
 
 Private Sub chkSortPredDescending_Click()
@@ -166,11 +171,6 @@ err_here:
   On Error Resume Next
   Call cptHandleErr("cptNetworkBrowser_frm", "cmdMark_Click", Err, Erl)
   Resume exit_here
-End Sub
-
-Private Sub cmdRefresh_Click()
-  Call cptStartEvents
-  Call cptShowPreds
 End Sub
 
 Private Sub cmdUnmark_Click()

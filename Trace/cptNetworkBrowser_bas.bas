@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
-'<cpt_version>v1.1.4</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 Public oSubMap As Scripting.Dictionary
 
@@ -81,6 +81,7 @@ Dim oTaskDependencies As TaskDependencies
 Dim oSubproject As Subproject
 Dim oLink As TaskDependency, oTask As MSProject.Task
 'strings
+Dim strHideInactive As String
 Dim strProject As String
 'longs
 Dim lngLinkUID As Long
@@ -90,6 +91,7 @@ Dim lngTasks As Long
 'integers
 'doubles
 'booleans
+Dim blnHideInactive As Boolean
 Dim blnSubprojects As Boolean
 'variants
 Dim vControl As Variant
@@ -186,6 +188,13 @@ next_mapping_task:
       .Column(2, .ListCount - 1) = oTask.ID
       .Column(3, .ListCount - 1) = IIf(oTask.Marked, "[m] ", "") & oTask.Name
     End With
+    strHideInactive = cptGetSetting("NetworkBrowser", "chkHideInactive")
+    If Len(strHideInactive) > 0 Then
+      .chkHideInactive.Value = CBool(strHideInactive)
+    Else
+      .chkHideInactive.Value = True 'defaults to true
+    End If
+    blnHideInactive = .chkHideInactive.Value
   End With
     
   'only 1 is selected
@@ -226,6 +235,7 @@ next_mapping_task:
   For Each oLink In oTask.TaskDependencies
     'limit to only predecessors
     If oLink.To.Guid = oTask.Guid Then 'it's a predecessor to selected task
+      If blnHideInactive And Not oLink.From.Active Then GoTo next_link
       'handle external tasks
       If blnSubprojects And oLink.From.ExternalTask Then
         'fix the returned UID
@@ -287,6 +297,7 @@ next_mapping_task:
         .Column(8, .ListCount - 1) = IIf(oLink.From.Critical, "X", "")
       End With
     ElseIf oLink.To.Guid <> oTask.Guid Then 'it's a successor
+      If blnHideInactive And Not oLink.From.Active Then GoTo next_link
       'handle external tasks
       If blnSubprojects And oLink.To.ExternalTask Then
         'fix the returned UID
@@ -344,6 +355,7 @@ next_mapping_task:
         .Column(8, .ListCount - 1) = IIf(oLink.To.Critical, "X", "")
       End With
     End If
+next_link:
   Next oLink
   
   With cptNetworkBrowser_frm
@@ -443,7 +455,7 @@ next_task:
     cptSpeed True
     If Edition = pjEditionProfessional Then
       If Not cptFilterExists("Active Tasks") Then
-        FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, OverwriteExisting:=False, FieldName:="Active", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
+        FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, OverwriteExisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
       End If
       FilterApply "Active Tasks"
     ElseIf Edition = pjEditionStandard Then
