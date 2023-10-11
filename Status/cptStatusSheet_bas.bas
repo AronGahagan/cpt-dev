@@ -2566,6 +2566,7 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
     oMailItem.CC = .txtCC
     If oMailItem.BodyFormat <> 2 Then oMailItem.BodyFormat = 2 '2=olFormatHTML
     If Not IsNull(.cboQuickParts.Value) And .cboQuickParts.Enabled Then
+      If Len(.cboQuickParts.Value) = 0 Then GoTo skip_QuickPart
       Set oDocument = oMailItem.GetInspector.WordEditor
       Set oWord = oDocument.Application
       Set oSelection = oDocument.Windows(1).Selection
@@ -2600,6 +2601,7 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
         oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, strTempItem, strItem)
       End If
     End If
+skip_QuickPart:
     On Error Resume Next
     Set oInspector = oMailItem.GetInspector
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0

@@ -635,6 +635,8 @@ Private Sub cmdRun_Click()
   Me.lblDirectory.ForeColor = -2147483630
   Me.txtDir.BorderColor = -2147483642
   Me.lblNamingConvention.ForeColor = -2147483630
+  Me.lboItems.BorderColor = -2147483630
+  Me.lblIncludeItems.ForeColor = -2147483630
 
   'validation
   If Not IsDate(Me.txtStatusDate.Value) Then
@@ -709,7 +711,8 @@ Private Sub cmdRun_Click()
     Next lngItem
     If lngSelectedItems = 0 Then
       Me.lboItems.Selected(0) = True
-      'Me.lboItems.ForeColor = 92
+      Me.lboItems.BorderColor = 192
+      Me.lblIncludeItems.ForeColor = 192
       blnError = True
     End If
     'the limiting field should be included in the export list
@@ -729,7 +732,6 @@ Private Sub cmdRun_Click()
   If Dir(Me.txtDir, vbDirectory) = vbNullString Then
     For Each vDir In Split(Me.txtDir, "\")
       strTempDir = strTempDir & "\" & vDir
-      Debug.Print strTempDir
       If vDir = "C:" Then GoTo next_dir
       If Dir(strTempDir, vbDirectory) = vbNullString Then
         vResponse = MsgBox("The directory at:" & vbCrLf & vbCrLf & strTempDir & vbCrLf & vbCrLf & "...does not exit. Create it now?", vbExclamation + vbYesNoCancel)
