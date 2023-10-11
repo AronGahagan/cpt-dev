@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.5.1</cpt_version>
+'<cpt_version>v1.5.2</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -1605,12 +1605,12 @@ Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False)
 
   'reset the filter
   Application.StatusBar = "Resetting the cptStatusSheet Filter..."
-  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
+  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", Test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
   If cptStatusSheet_frm.chkHide And IsDate(cptStatusSheet_frm.txtHideCompleteBefore) Then
-    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Actual Finish", Test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
   End If
   If Edition = pjEditionProfessional Then
-    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Active", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True, Parenthesis:=True
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True, Parenthesis:=True
   End If
   FilterApply "cptStatusSheet Filter"
   
@@ -2489,7 +2489,7 @@ Function cptSaveStatusSheet(ByRef oWorkbook As Excel.Workbook, Optional strItem 
     End If
     strFileName = .txtFileName.Value & ".xlsx"
     strFileName = Replace(strFileName, "[yyyy-mm-dd]", Format(dtStatus, "yyyy-mm-dd"))
-    strFileName = Replace(strFileName, "[Program]", cptGetProgramAcronym)
+    strFileName = Replace(strFileName, "[program]", cptGetProgramAcronym)
     If Len(strItem) > 0 Then
       strFileName = Replace(strFileName, "[item]", strItem)
     End If
@@ -2537,6 +2537,7 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
   Dim oSelection As Word.Selection
   Dim oEmailTemplate As Word.Template
   'strings
+  Dim strTempItem As String
   Dim strSubject As String
   'longs
   'integers
@@ -2557,10 +2558,10 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
   oMailItem.Attachments.Add strFullName
   With cptStatusSheet_frm
     strSubject = .txtSubject
-    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[STATUS\_DATE\]"), Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
-    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[YYYY\-MM\-DD\]"), Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
-    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[ITEM\]"), strItem)
-    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[PROGRAM\]"), cptGetProgramAcronym)
+    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[status\_date\]"), Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[yyyy\-mm\-dd\]"), Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
+    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[item\]"), strItem)
+    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[program\]"), cptGetProgramAcronym)
     oMailItem.Subject = strSubject
     oMailItem.CC = .txtCC
     If oMailItem.BodyFormat <> 2 Then oMailItem.BodyFormat = 2 '2=olFormatHTML
@@ -2578,9 +2579,26 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
         oBuildingBlock.Insert oSelection.Range, True
       End If
       'only do replacements if QuickPart is used
-      oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, cptRegEx(oMailItem.HTMLBody, "\[STATUS\_DATE\]"), Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
-      oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, cptRegEx(oMailItem.HTMLBody, "\[YYYY\-MM\-DD\]"), Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
-      oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, cptRegEx(oMailItem.HTMLBody, "\[PROGRAM\]"), cptGetProgramAcronym)
+      'clean date format
+      strTempItem = cptRegEx(oMailItem.HTMLBody, "\[(Y|y){1,}-(M|m){1,}-(D|d){1,}\]")
+      If Len(strTempItem) > 0 Then
+        oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, strTempItem, Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
+      End If
+      'clean status date
+      strTempItem = cptRegEx(oMailItem.HTMLBody, "\[(S|s)(T|t)(A|a)(T|t)(U|u)(S|s).(D|d)(A|a)(T|t)(E|e)\]")
+      If Len(strTempItem) > 0 Then
+        oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, strTempItem, Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+      End If
+      'clean program
+      strTempItem = cptRegEx(oMailItem.HTMLBody, "\[(P|p)(R|r)(O|o)(G|g)(R|r)(A|a)(M|m)\]")
+      If Len(strTempItem) > 0 Then
+        oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, strTempItem, cptGetProgramAcronym)
+      End If
+      'clean item
+      strTempItem = cptRegEx(oMailItem.HTMLBody, "\[(I|i)(T|t)(E|e)(M|m)\]")
+      If Len(strTempItem) > 0 Then
+        oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, strTempItem, strItem)
+      End If
     End If
     On Error Resume Next
     Set oInspector = oMailItem.GetInspector

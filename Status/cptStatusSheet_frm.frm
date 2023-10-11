@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.5.1</cpt_version>
+'<cpt_version>v1.5.2</cpt_version>
 Option Explicit
 
 Private Sub cboCostTool_Change()
@@ -603,6 +603,7 @@ End Sub
 Private Sub cmdRun_Click()
   'objects
   'strings
+  Dim strTempDir As String
   'longs
   Dim lngDateFormat As Long
   Dim lngSelectedItems As Long
@@ -613,6 +614,8 @@ Private Sub cmdRun_Click()
   Dim blnError As Boolean
   Dim blnIncluded As Boolean
   'variants
+  Dim vResponse As Variant
+  Dim vDir As Variant
   'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -724,9 +727,22 @@ Private Sub cmdRun_Click()
     End If
   End If
   If Dir(Me.txtDir, vbDirectory) = vbNullString Then
-    Me.lblDirectory.ForeColor = 192
-    Me.txtDir.BorderColor = 192
-    blnError = True
+    For Each vDir In Split(Me.txtDir, "\")
+      strTempDir = strTempDir & "\" & vDir
+      Debug.Print strTempDir
+      If vDir = "C:" Then GoTo next_dir
+      If Dir(strTempDir, vbDirectory) = vbNullString Then
+        vResponse = MsgBox("The directory at:" & vbCrLf & vbCrLf & strTempDir & vbCrLf & vbCrLf & "...does not exit. Create it now?", vbExclamation + vbYesNoCancel)
+        If vResponse = vbYes Then
+          MkDir strTempDir
+        Else
+          Me.lblDirectory.ForeColor = 192
+          Me.txtDir.BorderColor = 192
+          blnError = True
+        End If
+      End If
+next_dir:
+    Next vDir
   End If
   'prevent duplication of EVT and EV%
   If Me.lboExport.ListCount > 0 Then
@@ -803,10 +819,10 @@ End Sub
 Private Sub lblEmailHints_Click()
   Dim strHints As String
 
-  strHints = "The following fields are available for auto replacement in the subject line and your Email Template (a.k.a., 'Quick Part'):" & vbCrLf & vbCrLf
-  strHints = strHints & "[STATUS_DATE] > Status Date in MM/DD/YYYY format" & vbCrLf
-  'strHints = strHints & "[YYYYMM] > Status Date in MM/DD/YYYY format" & vbCrLf
-  strHints = strHints & "[PROGRAM] > Program Acronym" & vbCrLf
+  strHints = "The following fields are available for auto replacement in the subject line and in your Email Template (a.k.a., 'Quick Part'):" & vbCrLf & vbCrLf
+  strHints = strHints & "[status_date] > Status Date in MM/DD/YYYY format" & vbCrLf
+  strHints = strHints & "[yyyy-mm-dd] > Status Date in yyyy-mm-dd format" & vbCrLf
+  strHints = strHints & "[program] > Program Acronym" & vbCrLf
   strHints = strHints & vbCrLf & "Send other suggestions to cpt@ClearPlanConsulting.com"
   MsgBox strHints, vbInformation + vbOKOnly, "Email Hints"
 
@@ -951,6 +967,7 @@ End Sub
 
 Private Sub txtDir_Change()
   Dim strDir As String
+  Dim strNamingConvention As String
   
   strDir = Me.txtDir.Text
   If InStr(strDir, "[yyyy-mm-dd]") > 0 Then
@@ -960,7 +977,7 @@ Private Sub txtDir_Change()
     strDir = strDir & "\"
   End If
   Me.lblDirSample.Caption = strDir
-
+  
   If Dir(strDir, vbDirectory) = vbNullString Then
     Me.lblDirectory.ForeColor = 192
   Else
@@ -971,13 +988,32 @@ End Sub
 
 Sub txtFileName_Change()
   Dim strFileName As String
+  Dim strNamingConvention As String
+  Dim strTempItem As String
+  
   strFileName = Me.txtFileName.Text
-  If InStr(strFileName, "[yyyy-mm-dd]") > 0 Then
+  strNamingConvention = strFileName
+  
+  'clean date format
+  strTempItem = cptRegEx(strFileName, "\[(Y|y){1,}-(M|m){1,}-(D|d){1,}\]")
+  If Len(strTempItem) > 0 Then
+    strNamingConvention = Replace(strFileName, strTempItem, "[yyyy-mm-dd]")
     strFileName = Replace(strFileName, "[yyyy-mm-dd]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
   End If
-  If InStr(strFileName, "[Program]") > 0 Then
-    strFileName = Replace(strFileName, "[Program]", cptGetProgramAcronym)
+  
+  'clean program
+  strTempItem = cptRegEx(strFileName, "\[(P|p)(R|r)(O|o)(G|g)(R|r)(A|a)(M|m)\]")
+  If Len(strTempItem) > 0 Then
+    strFileName = Replace(strFileName, strTempItem, cptGetProgramAcronym)
+    strNamingConvention = Replace(strNamingConvention, strTempItem, "[program]")
   End If
+  
+  'make [item] case insensitive
+  strTempItem = cptRegEx(strNamingConvention, "\[(I|i)(T|t)(E|e)(M|m)\]")
+  If Len(strTempItem) > 0 And strTempItem <> "[item]" Then
+    strNamingConvention = Replace(strNamingConvention, strTempItem, "[item]")
+  End If
+
   If Me.cboCreate.Value > 0 Then 'for each
     If InStr(strFileName, "[item]") > 0 Then
       If Me.lboItems.ListCount > 0 Then
@@ -990,6 +1026,9 @@ Sub txtFileName_Change()
     End If
   Else
     Me.lblFileNameSample.Caption = strFileName & ".xlsx"
+  End If
+  If Me.txtFileName.Text <> strNamingConvention Then
+    Me.txtFileName.Text = strNamingConvention
   End If
 End Sub
 
@@ -1050,14 +1089,49 @@ err_here:
 End Sub
 
 Private Sub txtSubject_Change()
-  Dim strSubject As String
-  strSubject = Me.txtSubject.Text
-  strSubject = Replace(strSubject, "[yyyy-mm-dd]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
-  strSubject = Replace(strSubject, "[Program]", cptGetProgramAcronym)
-  If Me.cboCreate > 0 And Me.lboItems.ListCount > 0 Then
-    strSubject = Replace(strSubject, "[item]", Me.lboItems.List(0, 0))
+  Dim strSubjectPattern As String
+  Dim strSubjectHint As String
+  Dim strTempItem As String
+  
+  strSubjectPattern = Me.txtSubject.Text
+  strSubjectHint = strSubjectPattern
+    
+  'clean date format
+  strTempItem = cptRegEx(strSubjectPattern, "\[(Y|y){1,}-(M|m){1,}-(D|d){1,}\]")
+  If Len(strTempItem) > 0 Then
+    strSubjectPattern = Replace(strSubjectPattern, strTempItem, "[yyyy-mm-dd]")
+    strSubjectHint = Replace(strSubjectPattern, "[yyyy-mm-dd]", Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
   End If
-  Me.lblSubjectPreview.Caption = strSubject
+  
+  'clean status date
+  strTempItem = cptRegEx(strSubjectPattern, "\[(S|s)(T|t)(A|a)(T|t)(U|u)(S|s).(D|d)(A|a)(T|t)(E|e)\]")
+  If Len(strTempItem) > 0 Then
+    strSubjectPattern = Replace(strSubjectPattern, strTempItem, "[status_date]")
+    strSubjectHint = Replace(strSubjectHint, strTempItem, Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+  End If
+  
+  'clean program
+  strTempItem = cptRegEx(strSubjectPattern, "\[(P|p)(R|r)(O|o)(G|g)(R|r)(A|a)(M|m)\]")
+  If Len(strTempItem) > 0 Then
+    strSubjectPattern = Replace(strSubjectPattern, strTempItem, "[program]")
+    strSubjectHint = Replace(strSubjectHint, strTempItem, cptGetProgramAcronym)
+  End If
+
+  'clean item
+  strTempItem = cptRegEx(strSubjectPattern, "\[(I|i)(T|t)(E|e)(M|m)\]")
+  If Len(strTempItem) > 0 And strTempItem <> "[item]" Then
+    strSubjectPattern = Replace(strSubjectPattern, strTempItem, "[item]")
+  End If
+
+  If Me.cboCreate > 0 And Me.lboItems.ListCount > 0 Then
+    strSubjectHint = Replace(strSubjectHint, "[item]", Me.lboItems.List(0, 0))
+  Else
+    strSubjectHint = Trim(Replace(strSubjectHint, "[item]", ""))
+  End If
+  Me.lblSubjectPreview.Caption = strSubjectHint
+  If Me.txtSubject.Text <> strSubjectPattern Then
+    Me.txtSubject.Text = strSubjectPattern
+  End If
   
 End Sub
 
