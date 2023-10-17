@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.2.3</cpt_version>
+'<cpt_version>v1.2.4</cpt_version>
 Option Explicit
 
 Sub cptShowStatusSheetImport_frm()
@@ -554,9 +554,13 @@ next_task:
               If FormatDateTime(oTask.ActualFinish, vbShortDate) = FormatDateTime(oWorksheet.Cells(lngRow, lngAFCol).Value, vbShortDate) Then GoTo next_row
             End If
 
-            'todo: do we really need to separate AS/FS on the form?
             'new start date
-            If oWorksheet.Cells(lngRow, lngASCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngASCol).Locked Then
+            oWorksheet.Cells(lngRow, lngASCol).NumberFormat = "0.00" 'work around overflow issue
+            If Not IsDate(oWorksheet.Cells(lngRow, lngASCol).Value) Then
+              MsgBox oWorkbook.Name & " - UID " & oTask.UniqueID & " has an invalid New Start Date.", vbExclamation + vbOKOnly
+              oWorksheet.Cells(lngRow, lngASCol).Style = "Bad"
+              Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Start Date <<<<<"""
+            ElseIf oWorksheet.Cells(lngRow, lngASCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngASCol).Locked Then
               dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngASCol).Value), vbShortDate)
               'determine actual or forecast
               If dtNewDate <= FormatDateTime(dtStatus, vbShortDate) Then 'actual start
@@ -576,8 +580,15 @@ next_task:
                 Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "START", "", CStr(FormatDateTime(oTask.Start, vbShortDate)), CStr(FormatDateTime(dtNewDate, vbShortDate))), ",")
               End If
             End If
+            oWorksheet.Cells(lngRow, lngASCol).NumberFormat = "m/d/yyyy" 'restore date format
+            
             'new finish date
-            If oWorksheet.Cells(lngRow, lngAFCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngAFCol).Locked Then
+            oWorksheet.Cells(lngRow, lngAFCol).NumberFormat = "0.00" 'work around overflow issue
+            If Not IsDate(oWorksheet.Cells(lngRow, lngAFCol)) Then
+              MsgBox oWorkbook.Name & " - UID " & oTask.UniqueID & " has an invalid New Finish Date.", vbExclamation + vbOKOnly
+              oWorksheet.Cells(lngRow, lngAFCol).Style = "Bad"
+              Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Finish Date <<<<<"
+            ElseIf oWorksheet.Cells(lngRow, lngAFCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngAFCol).Locked Then
               dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngAFCol)), vbShortDate)
               If dtNewDate <= dtStatus Then 'actual finish
                 If IsDate(oTask.ActualFinish) Then
@@ -603,6 +614,7 @@ next_task:
                 Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "FINISH", "", CStr(FormatDateTime(oTask.Finish, vbShortDate)), CStr(FormatDateTime(dtNewDate, vbShortDate))), ",")
               End If
             End If
+            oWorksheet.Cells(lngRow, lngAFCol).NumberFormat = "m/d/yyyy" 'restore date format
             
             'evp
             'skip LOE
