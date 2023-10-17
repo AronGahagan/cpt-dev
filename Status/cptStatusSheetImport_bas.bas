@@ -555,66 +555,82 @@ next_task:
             End If
 
             'new start date
-            oWorksheet.Cells(lngRow, lngASCol).NumberFormat = "0.00" 'work around overflow issue
-            If Not IsDate(oWorksheet.Cells(lngRow, lngASCol).Value) Then
-              MsgBox oWorkbook.Name & " - UID " & oTask.UniqueID & " has an invalid New Start Date.", vbExclamation + vbOKOnly
-              oWorksheet.Cells(lngRow, lngASCol).Style = "Bad"
-              Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Start Date <<<<<"""
-            ElseIf oWorksheet.Cells(lngRow, lngASCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngASCol).Locked Then
-              dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngASCol).Value), vbShortDate)
-              'determine actual or forecast
-              If dtNewDate <= FormatDateTime(dtStatus, vbShortDate) Then 'actual start
-                If IsDate(oTask.ActualStart) Then
-                  If FormatDateTime(oTask.ActualStart, vbShortDate) <> dtNewDate Then oTask.SetField lngAS, CDate(dtNewDate & " 08:00 AM")
-                Else
-                  oTask.SetField lngAS, CDate(dtNewDate & " 08:00 AM")
-                End If
-                Print #lngFile, "UID " & oTask.UniqueID & " AS > " & FormatDateTime(dtNewDate, vbShortDate)
-                If Not oDict.Exists(oTask.UniqueID) Then oDict.Add oTask.UniqueID, oTask.UniqueID
-              ElseIf dtNewDate > dtStatus Then 'forecast start
-                If FormatDateTime(oTask.Start, vbShortDate) <> dtNewDate Then oTask.SetField lngFS, CDate(dtNewDate & " 08:00 AM")
-                Print #lngFile, "UID " & oTask.UniqueID & " FS > " & FormatDateTime(dtNewDate, vbShortDate)
-                If Not oDict.Exists(oTask.UniqueID) Then oDict.Add oTask.UniqueID, oTask.UniqueID
-              End If
-              If FormatDateTime(dtNewDate, vbShortDate) <> FormatDateTime(oTask.Start, vbShortDate) Then
-                Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "START", "", CStr(FormatDateTime(oTask.Start, vbShortDate)), CStr(FormatDateTime(dtNewDate, vbShortDate))), ",")
-              End If
-            End If
-            oWorksheet.Cells(lngRow, lngASCol).NumberFormat = "m/d/yyyy" 'restore date format
-            
-            'new finish date
-            oWorksheet.Cells(lngRow, lngAFCol).NumberFormat = "0.00" 'work around overflow issue
-            If Not IsDate(oWorksheet.Cells(lngRow, lngAFCol)) Then
-              MsgBox oWorkbook.Name & " - UID " & oTask.UniqueID & " has an invalid New Finish Date.", vbExclamation + vbOKOnly
-              oWorksheet.Cells(lngRow, lngAFCol).Style = "Bad"
-              Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Finish Date <<<<<"
-            ElseIf oWorksheet.Cells(lngRow, lngAFCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngAFCol).Locked Then
-              dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngAFCol)), vbShortDate)
-              If dtNewDate <= dtStatus Then 'actual finish
-                If IsDate(oTask.ActualFinish) Then
-                  If FormatDateTime(oTask.ActualFinish, vbShortDate) <> dtNewDate Then oTask.SetField lngAF, CDate(dtNewDate & " 05:00 PM")
-                Else
-                  oTask.SetField lngAF, CDate(dtNewDate & " 05:00 PM")
-                End If
-                Print #lngFile, "UID " & oTask.UniqueID & " AF > " & FormatDateTime(dtNewDate, vbShortDate)
-                If Not oDict.Exists(oTask.UniqueID) Then oDict.Add oTask.UniqueID, oTask.UniqueID
-              ElseIf dtNewDate > dtStatus Then 'forecast finish
-                If FormatDateTime(oTask.Finish, vbShortDate) <> FormatDateTime(dtNewDate, vbShortDate) Then
-                  If dtNewDate > #12/31/2149# Then
-                    MsgBox "Workbook: " & oWorkbook.Name & vbCrLf & "UID: " & oTask.UniqueID & vbCrLf & "Forecast Finish: " & FormatDateTime(dtNewDate, vbShortDate) & vbCrLf & vbCrLf & "...skipped.", vbCritical + vbOKOnly, "Invalid Date"
-                    Print #lngFile, "UID " & oTask.UniqueID & " FF > ERROR (" & FormatDateTime(dtNewDate, vbShortDate) & " is outside allowable range)"
-                  Else
-                    oTask.SetField lngFF, CDate(dtNewDate & " 05:00 PM")
-                    Print #lngFile, "UID " & oTask.UniqueID & " FF > " & FormatDateTime(dtNewDate, vbShortDate)
+            If Not oWorksheet.Cells(lngRow, lngASCol).Locked Then
+              oWorksheet.Cells(lngRow, lngASCol).NumberFormat = "0.00" 'work around overflow issue
+              If oWorksheet.Cells(lngRow, lngASCol).Value > 91312 Then 'invalid
+                Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Start Date <<<<<"
+              Else
+                oWorksheet.Cells(lngRow, lngASCol).NumberFormat = "m/d/yyyy" 'restore date format
+                If Len(oWorksheet.Cells(lngRow, lngASCol).Value) > 0 And Not IsDate(oWorksheet.Cells(lngRow, lngASCol).Value) Then
+                  Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Start Date <<<<<"
+                ElseIf oWorksheet.Cells(lngRow, lngASCol).Value > 0 Then
+                  dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngASCol).Value), vbShortDate)
+                  'determine actual or forecast
+                  If dtNewDate <= FormatDateTime(dtStatus, vbShortDate) Then 'actual start
+                    If IsDate(oTask.ActualStart) Then
+                      If FormatDateTime(oTask.ActualStart, vbShortDate) <> dtNewDate Then oTask.SetField lngAS, CDate(dtNewDate & " 08:00 AM")
+                    Else
+                      oTask.SetField lngAS, CDate(dtNewDate & " 08:00 AM")
+                    End If
+                    Print #lngFile, "UID " & oTask.UniqueID & " AS > " & FormatDateTime(dtNewDate, vbShortDate)
                     If Not oDict.Exists(oTask.UniqueID) Then oDict.Add oTask.UniqueID, oTask.UniqueID
+                  ElseIf dtNewDate > dtStatus Then 'forecast start
+                    If FormatDateTime(oTask.Start, vbShortDate) <> dtNewDate Then
+                      If dtNewDate > #12/31/2149# Then
+                        Print #lngFile, "UID " & oTask.UniqueID & " FS > ERROR (" & FormatDateTime(dtNewDate, vbShortDate) & " is outside allowable range)"
+                      Else
+                        oTask.SetField lngFS, CDate(dtNewDate & " 08:00 AM")
+                        Print #lngFile, "UID " & oTask.UniqueID & " FS > " & FormatDateTime(dtNewDate, vbShortDate)
+                        If Not oDict.Exists(oTask.UniqueID) Then oDict.Add oTask.UniqueID, oTask.UniqueID
+                      End If
+                    End If
+                  End If
+                  If FormatDateTime(dtNewDate, vbShortDate) <> FormatDateTime(oTask.Start, vbShortDate) Then
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "START", "", CStr(FormatDateTime(oTask.Start, vbShortDate)), CStr(FormatDateTime(dtNewDate, vbShortDate))), ",")
                   End If
                 End If
               End If
-              If FormatDateTime(dtNewDate, vbShortDate) <> FormatDateTime(oTask.Finish, vbShortDate) Then
-                Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "FINISH", "", CStr(FormatDateTime(oTask.Finish, vbShortDate)), CStr(FormatDateTime(dtNewDate, vbShortDate))), ",")
-              End If
+              oWorksheet.Cells(lngRow, lngASCol).NumberFormat = "m/d/yyyy" 'restore date format
             End If
-            oWorksheet.Cells(lngRow, lngAFCol).NumberFormat = "m/d/yyyy" 'restore date format
+            
+            'new finish date
+            If Not oWorksheet.Cells(lngRow, lngAFCol).Locked Then
+              oWorksheet.Cells(lngRow, lngAFCol).NumberFormat = "0.00" 'work around overflow issue
+              If oWorksheet.Cells(lngRow, lngAFCol).Value > 91312 Then 'invalid
+                Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Finish Date <<<<<"
+              Else
+                oWorksheet.Cells(lngRow, lngAFCol).NumberFormat = "m/d/yyyy" 'restore date format
+                If Len(oWorksheet.Cells(lngRow, lngAFCol).Value) > 0 And Not IsDate(oWorksheet.Cells(lngRow, lngAFCol).Value) Then
+                  Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Finish Date <<<<<"
+                ElseIf oWorksheet.Cells(lngRow, lngAFCol).Value > 0 Then
+                  dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngAFCol)), vbShortDate)
+                  'determine actual or forecast
+                  If dtNewDate <= dtStatus Then 'actual finish
+                    If IsDate(oTask.ActualFinish) Then
+                      If FormatDateTime(oTask.ActualFinish, vbShortDate) <> dtNewDate Then oTask.SetField lngAF, CDate(dtNewDate & " 05:00 PM")
+                    Else
+                      oTask.SetField lngAF, CDate(dtNewDate & " 05:00 PM")
+                    End If
+                    Print #lngFile, "UID " & oTask.UniqueID & " AF > " & FormatDateTime(dtNewDate, vbShortDate)
+                    If Not oDict.Exists(oTask.UniqueID) Then oDict.Add oTask.UniqueID, oTask.UniqueID
+                  ElseIf dtNewDate > dtStatus Then 'forecast finish
+                    If FormatDateTime(oTask.Finish, vbShortDate) <> FormatDateTime(dtNewDate, vbShortDate) Then
+                      If dtNewDate > #12/31/2149# Then
+                        Print #lngFile, "UID " & oTask.UniqueID & " FF > ERROR (" & FormatDateTime(dtNewDate, vbShortDate) & " is outside allowable range)"
+                      Else
+                        oTask.SetField lngFF, CDate(dtNewDate & " 05:00 PM")
+                        Print #lngFile, "UID " & oTask.UniqueID & " FF > " & FormatDateTime(dtNewDate, vbShortDate)
+                        If Not oDict.Exists(oTask.UniqueID) Then oDict.Add oTask.UniqueID, oTask.UniqueID
+                      End If
+                    End If
+                  End If
+                  If FormatDateTime(dtNewDate, vbShortDate) <> FormatDateTime(oTask.Finish, vbShortDate) Then
+                    Print #lngDeconflictionFile, Join(Array(strFile, oTask.UniqueID, "FINISH", "", CStr(FormatDateTime(oTask.Finish, vbShortDate)), CStr(FormatDateTime(dtNewDate, vbShortDate))), ",")
+                  End If
+                End If
+              End If
+              oWorksheet.Cells(lngRow, lngAFCol).NumberFormat = "m/d/yyyy"
+            End If
             
             'evp
             'skip LOE
