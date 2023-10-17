@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.13.6</cpt_version>
+'<cpt_version>v1.13.5</cpt_version>
 Option Explicit
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
@@ -1590,7 +1590,7 @@ Sub cptCreateFilter(strFilter As String)
 
   Select Case strFilter
     Case "Marked"
-      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
+      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
       
   End Select
   
@@ -2337,8 +2337,18 @@ err_here:
 End Function
 
 Sub cptGetValidMap()
-  If ValidMap Then
-    'do nothing
+  Dim blnValidMap As Boolean
+  Dim strMsg As String
+  Dim lngResponse As Long
+  
+  If cptModuleExists("cptDECM_bas") And cptModuleExists("cptIntegration_frm") Then
+    blnValidMap = ValidMap
+  Else
+    strMsg = "Please install the modules 'cptDECM_bas' and 'cptIntegration_frm' from the latest release."
+    strMsg = strMsg & "Go to GitHub now?"
+    If MsgBox(strMsg, vbExclamation + vbYesNo, "Missing Modules") = vbYes Then
+      Application.FollowHyperlink "https://www.GitHub.com/AronGahagan/cpt-dev/releases/latest"
+    End If
   End If
 End Sub
 
