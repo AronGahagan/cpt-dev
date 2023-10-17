@@ -508,7 +508,14 @@ next_task:
         lngASCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Start", lookat:=xlPart).Column
         lngAFCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Finish", lookat:=xlPart).Column
         lngEVCol = oWorksheet.Rows(lngHeaderRow).Find(what:="New EV%", lookat:=xlWhole).Column
-        lngETCCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Revised ETC", lookat:=xlWhole).Column
+        On Error Resume Next
+        Set oCell = oWorksheet.Rows(lngHeaderRow).Find(what:="New ETC", lookat:=xlWhole)
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If oCell Is Nothing Then
+          lngETCCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Revised ETC", lookat:=xlWhole).Column 'for backwards compatibility
+        Else
+          lngETCCol = oWorksheet.Rows(lngHeaderRow).Find(what:="New ETC", lookat:=xlWhole).Column
+        End If
         strNotesColTitle = cptGetSetting("StatusSheet", "txtNotesColTitle")
         On Error Resume Next
         If Len(strNotesColTitle) > 0 Then
@@ -876,6 +883,7 @@ exit_here:
   If Dir(Environ("tmp") & "\Schema.ini") <> vbNullString Then Kill Environ("tmp") & "\Schema.ini"
   If Dir(Environ("tmp") & "\imported.csv") <> vbNullString Then Kill Environ("tmp") & "\imported.csv"
   Set oRange = Nothing
+  Set oCell = Nothing
   Set oListObject = Nothing
   Set oWorksheet = Nothing
   'If Not oWorkbook Is Nothing Then oWorkbook.Close False
