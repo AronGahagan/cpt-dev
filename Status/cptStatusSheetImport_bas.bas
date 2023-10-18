@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.2.4</cpt_version>
+'<cpt_version>v1.3.0</cpt_version>
 Option Explicit
 
 Sub cptShowStatusSheetImport_frm()

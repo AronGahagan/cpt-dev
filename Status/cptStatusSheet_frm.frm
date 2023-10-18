@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.5.2</cpt_version>
+'<cpt_version>v1.6.0</cpt_version>
 Option Explicit
 
 Private Sub cboCostTool_Change()
@@ -94,7 +94,7 @@ Private Sub cboCreate_Change()
     Case 0 'A single workbook
       Me.lboItems.ForeColor = -2147483630
       Me.chkSendEmails.Caption = "Create Email"
-      Me.chkLocked.Caption = "Protect Workbook"
+      'Me.chkLocked.Caption = "Protect Workbook"
       'Me.lblForEach.Visible = False
       Me.cboEach.Enabled = False
       Me.lboItems.Enabled = False
@@ -108,7 +108,7 @@ Private Sub cboCreate_Change()
     Case 1 'A worksheet for each
       Me.lboItems.ForeColor = -2147483630
       Me.chkSendEmails.Caption = "Create Email"
-      Me.chkLocked.Caption = "Protect Workheets"
+      'Me.chkLocked.Caption = "Protect Workheets"
       'Me.lblForEach.Visible = True
       Me.cboEach.Enabled = True
       Me.lboItems.Enabled = True
@@ -118,7 +118,7 @@ Private Sub cboCreate_Change()
     Case 2 'A workbook for each
       Me.lboItems.ForeColor = -2147483630
       Me.chkSendEmails.Caption = "Create Emails"
-      Me.chkLocked.Caption = "Protect Workbooks"
+      'Me.chkLocked.Caption = "Protect Workbooks"
       'Me.lblForEach.Visible = True
       Me.cboEach.Enabled = True
       Me.lboItems.Enabled = True
@@ -317,8 +317,35 @@ Private Sub chkAppendStatusDate_Click()
   End If
 End Sub
 
-Private Sub chkContour_Click()
-  cptRefreshStatusTable
+Private Sub chkAssignments_Click()
+  Dim strAllowAssignmentNotes As String
+  
+  If Not Me.Visible Then GoTo exit_here
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If Me.chkAssignments Then
+    Me.chkAllowAssignmentNotes.Enabled = True
+    strAllowAssignmentNotes = cptGetSetting("StatusSheet", "chkAllowAssignmentNotes")
+    If strAllowAssignmentNotes <> "" Then
+      Me.chkAllowAssignmentNotes.Value = CBool(strAllowAssignmentNotes)
+    Else
+      Me.chkAllowAssignmentNotes.Value = False
+    End If
+  Else
+    Me.chkAllowAssignmentNotes.Value = False
+    Me.chkAllowAssignmentNotes.Enabled = False
+  End If
+  
+  Call cptRefreshStatusTable(True)
+  
+exit_here:
+  On Error Resume Next
+  
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_frm", "chkAssignments_Click", Err, Erl)
+  Resume exit_here
+  
 End Sub
 
 Private Sub chkHide_Click()
@@ -327,14 +354,14 @@ Private Sub chkHide_Click()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Me.txtHideCompleteBefore.Enabled = Me.chkHide
-  If Me.Visible Then Call cptRefreshStatusTable
+  Call cptRefreshStatusTable
   
 exit_here:
   On Error Resume Next
 
   Exit Sub
 err_here:
-  Call cptHandleErr("chkHide_Click", "chkHide_Click", Err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "chkHide_Click", Err, Erl)
   Resume exit_here
   
 End Sub

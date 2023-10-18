@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.5.2</cpt_version>
+'<cpt_version>v1.6.0</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -22,7 +22,7 @@ Public oEVTs As Scripting.Dictionary
 
 Sub cptShowStatusSheet_frm()
   'populate all outline codes, text, and number fields
-  'populate UID,[user selections],Task Name,Duration,Forecast Start,Forecast Finish,Total Slack,[EVT],EV%,New EV%,BLW,Remaining Work,Revised ETC,BLS,BLF,Reason/Impact/Action
+  'populate UID,[user selections],Task Name,Duration,Forecast Start,Forecast Finish,Total Slack,[EVT],EV%,New EV%,BLW,Remaining Work,New ETC,BLS,BLF,Reason/Impact/Action
   'add pick list for EV% or default to Physical % Complete
   'objects
   Dim oShell As Object
@@ -37,6 +37,7 @@ Sub cptShowStatusSheet_frm()
   'integers
   Dim intField As Integer
   'strings
+  Dim strAssignments As String
   Dim strKeepOpen As String
   Dim strExportNotes As String
   Dim strAllowAssignmentNotes As String
@@ -330,13 +331,13 @@ skip_fields:
     
     strEmail = cptGetSetting("StatusSheet", "chkEmail")
     If strEmail <> "" Then
-      .chkSendEmails = CBool(strEmail) 'this refreshes the quickparts list
+      .chkSendEmails.Value = CBool(strEmail)  'this refreshes the quickparts list
       If .chkSendEmails Then
-        .chkKeepOpen = False
+        .chkKeepOpen.Value = False
         .chkKeepOpen.Enabled = False
       End If
     Else
-      .chkSendEmails = False
+      .chkSendEmails.Value = False
       .chkKeepOpen.Enabled = True
     End If
     If .chkSendEmails Then
@@ -350,53 +351,73 @@ skip_fields:
       If strCC <> "" Then .txtCC.Value = strCC
       'cboQuickParts updated when .chkSendEmails = true
     End If
+    
     strConditionalFormats = cptGetSetting("StatusSheet", "chkConditionalFormatting")
     If strConditionalFormats <> "" Then
-      .chkAddConditionalFormats = CBool(strConditionalFormats)
+      .chkAddConditionalFormats.Value = CBool(strConditionalFormats)
     Else
-      .chkAddConditionalFormats = False
+      .chkAddConditionalFormats.Value = False
     End If
+    
     strDataValidation = cptGetSetting("StatusSheet", "chkDataValidation")
     If strDataValidation <> "" Then
       .chkValidation = CBool(strDataValidation)
     Else
       .chkValidation = True
     End If
+    
     strLocked = cptGetSetting("StatusSheet", "chkLocked")
     If strLocked <> "" Then
-      .chkLocked = CBool(strLocked)
+      .chkLocked.Value = CBool(strLocked)
     Else
-      .chkLocked = True
+      .chkLocked.Value = True
     End If
+    
     strNotesColTitle = cptGetSetting("StatusSheet", "txtNotesColTitle")
     If Len(strNotesColTitle) > 0 Then
       .txtNotesColTitle.Value = strNotesColTitle
     Else
       .txtNotesColTitle = "Reason / Action / Impact"
     End If
+    
     strExportNotes = cptGetSetting("StatusSheet", "chkExportNotes")
     If strExportNotes <> "" Then
-      .chkExportNotes = CBool(strExportNotes)
+      .chkExportNotes.Value = CBool(strExportNotes)
     Else
-      .chkExportNotes = False
+      .chkExportNotes.Value = False
     End If
-    strAllowAssignmentNotes = cptGetSetting("StatusSheet", "chkAllowAssignmentNotes")
-    If strAllowAssignmentNotes <> "" Then
-      .chkAllowAssignmentNotes = CBool(strAllowAssignmentNotes)
-    Else
-      .chkAllowAssignmentNotes = False
-    End If
+        
     strKeepOpen = cptGetSetting("StatusSheet", "chkKeepOpen")
     If strKeepOpen <> "" Then
-      .chkKeepOpen = CBool(strKeepOpen)
+      .chkKeepOpen.Value = CBool(strKeepOpen)
       If .chkKeepOpen Then
-        .chkSendEmails = False
+        .chkSendEmails.Value = False
         .chkSendEmails.Enabled = False
       Else
         .chkSendEmails.Enabled = True
       End If
     Else
-      .chkKeepOpen = False
+      .chkKeepOpen.Value = False
+    End If
+    
+    strAssignments = cptGetSetting("StatusSheet", "chkAssignments")
+    If strAssignments <> "" Then
+      .chkAssignments.Value = CBool(strAssignments)
+    Else
+      .chkAssignments.Value = True 'default
+    End If
+    
+    If .chkAssignments Then
+      .chkAllowAssignmentNotes.Enabled = True
+      strAllowAssignmentNotes = cptGetSetting("StatusSheet", "chkAllowAssignmentNotes")
+      If strAllowAssignmentNotes <> "" Then
+        .chkAllowAssignmentNotes.Value = CBool(strAllowAssignmentNotes)
+      Else
+        .chkAllowAssignmentNotes.Value = False 'default
+      End If
+    Else
+      .chkAllowAssignmentNotes.Value = False
+      .chkAllowAssignmentNotes.Enabled = False
     End If
   End With
 
@@ -489,7 +510,11 @@ next_item:
     If strStartingGroup = "No Group" Then
       'no fake Group Summary UIDs will be used
     Else
-      If Not strStartingViewTopPane = "Task Usage" Then ViewApply "Task Usage"
+      If CBool(cptGetSetting("StatusSheet", "chkAssignments")) Then
+        If Not strStartingViewTopPane = "Task Usage" Then ViewApply "Task Usage"
+      Else
+        If Not strStartingViewTopPane = "Gantt Chart" Then ViewApply "Gantt Chart"
+      End If
       'task usage view avoids fake Group Summary UIDs
       If ActiveProject.CurrentGroup <> strStartingGroup Then GroupApply strStartingGroup
     End If
@@ -977,7 +1002,7 @@ next_workbook:
     DoEvents
   End With
     
-  GoTo exit_here
+  GoTo exit_here 'todo: remove skip conditional formatting
   
   'apply conditional formatting
   'update required formatting ("input"): - update required
@@ -1565,13 +1590,24 @@ Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False)
 
   If Not blnOverride Then cptSpeed True
     
-  'reset the table
-  Application.StatusBar = "Resetting the cptStatusSheet Table..."
+  'reset the view
+  Application.StatusBar = "Resetting the cptStatusSheet View..."
+  Application.ActiveWindow.TopPane.Activate
+  If cptStatusSheet_frm.chkAssignments Then
+    ViewApply "Task Usage"
+  Else
+    ViewApply "Gantt Chart"
+  End If
+  
+  'reset the group
+  Application.StatusBar = "Resetting the cptStatusSheet Group..."
   If ActiveProject.CurrentGroup <> "No Group" Then
     strStartingGroup = ActiveProject.CurrentGroup
     GroupApply "No Group"
   End If
   
+  'reset the table
+  Application.StatusBar = "Resetting the cptStatusSheet Table..."
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   lngItem = 0
@@ -1599,8 +1635,8 @@ Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False)
     TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVP.Value, Title:="New EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   End If
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="Previous ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="Revised ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="New ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableApply Name:="cptStatusSheet Table"
 
   'reset the filter
@@ -1615,15 +1651,17 @@ Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False)
   FilterApply "cptStatusSheet Filter"
   
   If Len(strStartingGroup) > 0 Then
+    Application.StatusBar = "Restoring the cptStatusSheet Group..."
     GroupApply strStartingGroup
   End If
   
 exit_here:
   On Error Resume Next
+  Application.StatusBar = ""
   If Not blnOverride Then cptSpeed False
   Exit Sub
 err_here:
-  Call cptHandleErr("cptStatusSheet_bas", "cptRefreshStatusView", Err, Erl)
+  Call cptHandleErr("cptStatusSheet_bas", "cptRefreshStatusTable", Err, Erl)
   Err.Clear
   Resume exit_here
 End Sub
@@ -1711,6 +1749,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Lon
   'integers
   'doubles
   'booleans
+  Dim blnAssignments As Boolean
   Dim blnAlerts As Boolean
   Dim blnLOE As Boolean
   Dim blnLocked As Boolean
@@ -1801,7 +1840,7 @@ try_again:
   lngAFCol = oWorksheet.Rows(lngHeaderRow).Find("Actual Finish", lookat:=xlPart).Column
   lngEVPCol = oWorksheet.Rows(lngHeaderRow).Find("New EV%", lookat:=xlWhole).Column
   lngEVTCol = oWorksheet.Rows(lngHeaderRow).Find("EVT", lookat:=xlWhole).Column
-  lngETCCol = oWorksheet.Rows(lngHeaderRow).Find("Revised ETC", lookat:=xlWhole).Column
+  lngETCCol = oWorksheet.Rows(lngHeaderRow).Find("New ETC", lookat:=xlWhole).Column
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
   lngTasks = ActiveSelection.Tasks.Count
   lngTask = 0
@@ -1831,7 +1870,7 @@ try_again:
         If oTask.GetField(FieldNameToFieldConstant(.cboEVT.Value)) = strLOE Then blnLOE = True
       End With
     End If
-    If oTask.Summary Then 'todo: handle group by summary and clear it too
+    If oTask.Summary Then
       If oSummaryRange Is Nothing Then
         Set oSummaryRange = oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol))
       Else
@@ -1927,7 +1966,7 @@ try_again:
       End If
       Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngAFCol))
       If Not blnLOE Then Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngEVPCol))
-      Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngETCCol))
+      'Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngETCCol))
     End If
     
     'capture data validation
@@ -1987,22 +2026,25 @@ try_again:
     oWorksheet.Cells(lngRow, lngLastCol).WrapText = True
     
 get_assignments:
-    If oTask.Assignments.Count > 0 And Not IsDate(oTask.ActualFinish) Then
-      cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
-    ElseIf IsDate(oTask.ActualFinish) Then
-      Dim oAssignment As Assignment
-      For Each oAssignment In oTask.Assignments
+    blnAssignments = CBool(cptGetSetting("StatusSheet", "chkAssignments"))
+    If blnAssignments Then
+      If oTask.Assignments.Count > 0 And Not IsDate(oTask.ActualFinish) Then
+        cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
+      ElseIf IsDate(oTask.ActualFinish) Then
+        Dim oAssignment As Assignment
+        For Each oAssignment In oTask.Assignments
+          Set oAssignment = Nothing
+          On Error Resume Next
+          Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow + 1, 1).Value)
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If Not oAssignment Is Nothing Then
+            oWorksheet.Rows(lngRow + 1).EntireRow.Delete
+          End If
+        Next oAssignment
         Set oAssignment = Nothing
-        On Error Resume Next
-        Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow + 1, 1).Value)
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-        If Not oAssignment Is Nothing Then
-          oWorksheet.Rows(lngRow + 1).EntireRow.Delete
-        End If
-      Next oAssignment
-      Set oAssignment = Nothing
+      End If
     End If
-        
+    
     'todo: capture conditional formatting range(s)
     
     oWorksheet.Columns(1).AutoFit
@@ -2018,6 +2060,19 @@ next_task:
     Dim lngLastRow As Long
     lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row
     For lngRow = lngHeaderRow + 1 To lngLastRow
+      If Not blnAssignments Then
+        'remove UID on Group Summaries
+        Set oTask = Nothing
+        On Error Resume Next
+        Set oTask = ActiveProject.Tasks.UniqueID(oWorksheet.Cells(lngRow, 1))
+        If oTask Is Nothing Then
+          oWorksheet.Cells(lngRow, 1).ClearContents
+        Else
+          If Trim(oTask.Name) <> Trim(oWorksheet.Cells(lngRow, lngNameCol).Value) Then
+            oWorksheet.Cells(lngRow, 1).ClearContents
+          End If
+        End If
+      End If
       If Len(oWorksheet.Cells(lngRow, 1)) = 0 Then
         If oSummaryRange Is Nothing Then
           Set oSummaryRange = oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol))
@@ -2052,13 +2107,13 @@ next_task:
     With oDateValidationRange.Validation
       .Delete
       oWorksheet.Application.WindowState = xlNormal
-      .Add Type:=xlValidateDate, AlertStyle:=xlValidAlertStop, Operator:=xlGreaterEqual, Formula1:=FormatDateTime(ActiveProject.ProjectStart, vbShortDate)
+      .Add Type:=xlValidateDate, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:=FormatDateTime(ActiveProject.ProjectStart, vbShortDate), Formula2:="12/31/2149"
       .IgnoreBlank = True
       .InCellDropdown = True
       .InputTitle = "Date Only"
       .ErrorTitle = "Date Only"
-      .InputMessage = "Please enter a date in format mm/dd/yyyy."
-      .ErrorMessage = "Please enter a date in format mm/dd/yyyy."
+      .InputMessage = "Please enter a date between " & FormatDateTime(ActiveProject.ProjectStart, vbShortDate) & " and 12/31/2149 in 'm/d/yyyy' format."
+      .ErrorMessage = "Please enter a date between " & FormatDateTime(ActiveProject.ProjectStart, vbShortDate) & " and 12/31/2149 in 'm/d/yyyy' format."
       .ShowInput = True
       .ShowError = True
     End With
@@ -2664,6 +2719,7 @@ Sub cptSaveStatusSheetSettings()
     cptSaveSetting "StatusSheet", "chkAllItems", IIf(.chkAllItems, 1, 0)
     cptSaveSetting "StatusSheet", "chkDataValidation", IIf(.chkValidation, 1, 0)
     cptSaveSetting "StatusSheet", "chkLocked", IIf(.chkLocked, 1, 0)
+    cptSaveSetting "StatusSheet", "chkAssignments", IIf(.chkAssignments, 1, 0)
     cptSaveSetting "StatusSheet", "chkConditionalFormatting", IIf(.chkAddConditionalFormats, 1, 0)
     cptSaveSetting "StatusSheet", "chkEmail", IIf(.chkSendEmails, 1, 0)
     If .chkSendEmails Then
