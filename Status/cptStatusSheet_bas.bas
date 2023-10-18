@@ -2107,13 +2107,13 @@ next_task:
     With oDateValidationRange.Validation
       .Delete
       oWorksheet.Application.WindowState = xlNormal
-      .Add Type:=xlValidateDate, AlertStyle:=xlValidAlertStop, Operator:=xlGreaterEqual, Formula1:=FormatDateTime(ActiveProject.ProjectStart, vbShortDate)
+      .Add Type:=xlValidateDate, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:=FormatDateTime(ActiveProject.ProjectStart, vbShortDate), Formula2:="12/31/2149"
       .IgnoreBlank = True
       .InCellDropdown = True
       .InputTitle = "Date Only"
       .ErrorTitle = "Date Only"
-      .InputMessage = "Please enter a date in format mm/dd/yyyy."
-      .ErrorMessage = "Please enter a date in format mm/dd/yyyy."
+      .InputMessage = "Please enter a date between " & FormatDateTime(ActiveProject.ProjectStart, vbShortDate) & " and 12/31/2149 in 'm/d/yyyy' format."
+      .ErrorMessage = "Please enter a date between " & FormatDateTime(ActiveProject.ProjectStart, vbShortDate) & " and 12/31/2149 in 'm/d/yyyy' format."
       .ShowInput = True
       .ShowError = True
     End With
