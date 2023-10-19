@@ -37,6 +37,8 @@ Sub cptShowStatusSheet_frm()
   'integers
   Dim intField As Integer
   'strings
+  Dim strLookahead As String
+  Dim strLookaheadDays As String
   Dim strAssignments As String
   Dim strKeepOpen As String
   Dim strExportNotes As String
@@ -418,6 +420,24 @@ skip_fields:
     Else
       .chkAllowAssignmentNotes.Value = False
       .chkAllowAssignmentNotes.Enabled = False
+    End If
+    
+    .txtLookaheadDays.Enabled = False
+    .txtLookaheadDate.Enabled = False
+    strLookahead = cptGetSetting("StatusSheet", "chkLookahead")
+    If Len(strLookahead) > 0 Then
+      .chkLookahead = CBool(strLookahead)
+    Else
+      .chkLookahead = False
+    End If
+    
+    If .chkLookahead Then
+      .txtLookaheadDays.Enabled = True
+      strLookaheadDays = cptGetSetting("StatusSheet", "txtLookaheadDays")
+      If Len(strLookaheadDays) > 0 Then
+        .txtLookaheadDays = CLng(strLookaheadDays)
+      End If
+      .txtLookaheadDate.Enabled = True
     End If
   End With
 
@@ -1574,7 +1594,7 @@ err_here:
 
 End Sub
 
-Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False)
+Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False, Optional blnFilterOnly As Boolean = False)
   'objects
   'strings
   'longs
@@ -1589,7 +1609,8 @@ Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False)
   If Not cptStatusSheet_frm.Visible And blnOverride = False Then GoTo exit_here
 
   If Not blnOverride Then cptSpeed True
-    
+  If blnFilterOnly Then GoTo filter_only
+  
   'reset the view
   Application.StatusBar = "Resetting the cptStatusSheet View..."
   Application.ActiveWindow.TopPane.Activate
@@ -1639,6 +1660,7 @@ Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False)
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="New ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableApply Name:="cptStatusSheet Table"
 
+filter_only:
   'reset the filter
   Application.StatusBar = "Resetting the cptStatusSheet Filter..."
   FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", Test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
@@ -1648,6 +1670,14 @@ Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False)
   If Edition = pjEditionProfessional Then
     FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True, Parenthesis:=True
   End If
+  With cptStatusSheet_frm
+    If .chkLookahead And .txtLookaheadDate.BorderColor <> 192 Then
+      Dim dtLookahead As Date
+      dtLookahead = CDate(.txtLookaheadDate) & " 5:00 PM"
+      FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Start", Test:="is less than or equal to", Value:=dtLookahead, Operation:="And", Parenthesis:=False
+      'FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Finish", Test:="is less than or equal to", Value:=dtLookahead, Operation:="Or", Parenthesis:=False
+    End If
+  End With
   FilterApply "cptStatusSheet Filter"
   
   If Len(strStartingGroup) > 0 Then
@@ -2738,6 +2768,10 @@ Sub cptSaveStatusSheetSettings()
     cptSaveSetting "StatusSheet", "chkAllowAssignmentNotes", IIf(.chkAllowAssignmentNotes, 1, 0)
     cptSaveSetting "StatusSheet", "chkKeepOpen", IIf(.chkKeepOpen, 1, 0)
     cptSaveSetting "StatusSheet", "chkConditionalFormatting", IIf(.chkAddConditionalFormats, 1, 0)
+    cptSaveSetting "StatusSheet", "chkLookahead", IIf(.chkLookahead, 1, 0)
+    If .chkLookahead And Len(.txtLookaheadDays) > 0 Then
+      cptSaveSetting "StatusSheet", "txtLookaheadDays", CLng(.txtLookaheadDays.Value)
+    End If
     'save user fields - overwrite
     strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
     Set oRecordset = CreateObject("ADODB.Recordset")
