@@ -2574,7 +2574,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
     Case "10A103a" '0/100 >1 fiscal periods
       If Len(strList) > 0 Then
         strList = Left(strList, Len(strList) - 1) 'remove last tab
-        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "equals", strList 'todo: "WPCN" > "WP"
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "equals", strList
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
@@ -2582,7 +2582,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
     Case "10A109b" 'WP with no budget
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
-        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "equals", strList 'todo: "WPCN" > "WP"
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "equals", strList
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
@@ -2590,7 +2590,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
     Case "10A202a" 'WP with Mixed EOCs
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
-        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "contains", strList 'todo: "WPCN" > "WP"
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "contains", strList
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
