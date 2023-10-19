@@ -37,6 +37,8 @@ Sub cptShowStatusSheet_frm()
   'integers
   Dim intField As Integer
   'strings
+  Dim strLOE As String
+  Dim strIgnoreLOE As String
   Dim strLookahead As String
   Dim strLookaheadDays As String
   Dim strAssignments As String
@@ -424,6 +426,7 @@ skip_fields:
     
     .txtLookaheadDays.Enabled = False
     .txtLookaheadDate.Enabled = False
+    .lblLookaheadWeekday.Visible = False
     strLookahead = cptGetSetting("StatusSheet", "chkLookahead")
     If Len(strLookahead) > 0 Then
       .chkLookahead = CBool(strLookahead)
@@ -436,9 +439,30 @@ skip_fields:
       strLookaheadDays = cptGetSetting("StatusSheet", "txtLookaheadDays")
       If Len(strLookaheadDays) > 0 Then
         .txtLookaheadDays = CLng(strLookaheadDays)
+        .lblLookaheadWeekday.Visible = True
       End If
       .txtLookaheadDate.Enabled = True
     End If
+    
+    .chkIgnoreLOE.Enabled = False
+    'todo: source of settings?
+    'todo: user can confirm settings
+    'todo: does user need all the EVM fields to use this? NO
+    'todo: ValidMap(Optional strRequired As String) if Len(strRequired)=0 then ALL required
+    'todo: problem is that ValidMap lives in DECM_bas...so maybe make a new cptValidMap...put it in cptCore_bas then switch all...
+    'todo: sync Metrics and Integration settings
+    strLOE = cptGetSetting("Integration", "LOE")
+    If Len(strEVT) > 0 And Len(strLOE) > 0 Then
+      .chkIgnoreLOE.Enabled = True
+      .chkIgnoreLOE.ControlTipText = "Limit to tasks where " & strEVT & " <> " & strLOE
+      strIgnoreLOE = cptGetSetting("StatusSheet", "chkIgnoreLOE")
+      If Len(strIgnoreLOE) > 0 Then
+        .chkIgnoreLOE = CBool(strIgnoreLOE)
+      Else
+        .chkIgnoreLOE = False
+      End If
+    End If
+    
   End With
 
   'add saved export fields if they exist
@@ -1597,6 +1621,8 @@ End Sub
 Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False, Optional blnFilterOnly As Boolean = False)
   'objects
   'strings
+  Dim strLOE As String
+  Dim strEVT As String
   'longs
   Dim lngItem As Long
   'integers
@@ -1604,6 +1630,7 @@ Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False, Optional blnF
   'booleans
   'variants
   'dates
+  Dim dtLookahead As Date
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not cptStatusSheet_frm.Visible And blnOverride = False Then GoTo exit_here
@@ -1672,10 +1699,13 @@ filter_only:
   End If
   With cptStatusSheet_frm
     If .chkLookahead And .txtLookaheadDate.BorderColor <> 192 Then
-      Dim dtLookahead As Date
       dtLookahead = CDate(.txtLookaheadDate) & " 5:00 PM"
       FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Start", Test:="is less than or equal to", Value:=dtLookahead, Operation:="And", Parenthesis:=False
-      'FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Finish", Test:="is less than or equal to", Value:=dtLookahead, Operation:="Or", Parenthesis:=False
+    End If
+    If .chkIgnoreLOE Then
+      strEVT = Split(cptGetSetting("Integration", "EVT"), "|")(1)
+      strLOE = cptGetSetting("Integration", "LOE")
+      FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:=strEVT, Test:="does not equal", Value:=strLOE, Operation:="And", Parenthesis:=False
     End If
   End With
   FilterApply "cptStatusSheet Filter"
@@ -1759,7 +1789,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Lon
   'strings
   Dim strNotesColTitle As String
   Dim strLOE As String
-  Dim strLOEField As String
+  Dim strEVT As String
   Dim strEVTList As String
   'longs
   Dim lngLOEField As Long
@@ -1889,9 +1919,9 @@ try_again:
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     'capture if task is LOE
     blnLOE = False
-    strLOEField = cptGetSetting("Metrics", "cboLOEField")
-    If Len(strLOEField) > 0 Then
-      lngLOEField = CLng(strLOEField)
+    strEVT = cptGetSetting("Metrics", "cboLOEField")
+    If Len(strEVT) > 0 Then
+      lngLOEField = CLng(strEVT)
     End If
     strLOE = cptGetSetting("Metrics", "txtLOE")
     'todo: ensure sync between metrics and status sheet
@@ -2772,6 +2802,7 @@ Sub cptSaveStatusSheetSettings()
     If .chkLookahead And Len(.txtLookaheadDays) > 0 Then
       cptSaveSetting "StatusSheet", "txtLookaheadDays", CLng(.txtLookaheadDays.Value)
     End If
+    cptSaveSetting "StatusSheet", "chkIgnoreLOE", IIf(.chkIgnoreLOE, 1, 0)
     'save user fields - overwrite
     strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
     Set oRecordset = CreateObject("ADODB.Recordset")

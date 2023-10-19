@@ -354,7 +354,7 @@ Private Sub chkHide_Click()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Me.txtHideCompleteBefore.Enabled = Me.chkHide
-  Call cptRefreshStatusTable
+  Call cptRefreshStatusTable(False, True)
   
 exit_here:
   On Error Resume Next
@@ -364,6 +364,10 @@ err_here:
   Call cptHandleErr("cptStatusSheet_frm", "chkHide_Click", Err, Erl)
   Resume exit_here
   
+End Sub
+
+Private Sub chkIgnoreLOE_Click()
+  Call cptRefreshStatusTable(False, True)
 End Sub
 
 Private Sub chkKeepOpen_Click()
@@ -385,6 +389,7 @@ Private Sub chkLookahead_Click()
     Me.txtLookaheadDays.Enabled = False
     Me.txtLookaheadDate = ""
     Me.txtLookaheadDate.Enabled = False
+    Call cptRefreshStatusTable(False, True)
   End If
 End Sub
 
@@ -1113,28 +1118,29 @@ Private Sub txtLookaheadDate_Change()
   
   If Not Me.Visible Then Exit Sub
   If Not IsDate(ActiveProject.StatusDate) Then Exit Sub
-  If Not Me.ActiveControl = Me.txtLookaheadDate Then Exit Sub
+  If Not Me.ActiveControl.Name = Me.txtLookaheadDate.Name Then Exit Sub
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Len(Me.txtLookaheadDate.Text) > 0 Then
     Me.txtLookaheadDate.Text = cptRegEx(Me.txtLookaheadDate.Text, "[0-9\/]{1,}")
     'limit to a dates only
     If Not IsDate(Me.txtLookaheadDate.Text) Then
+      Me.txtLookaheadDays = ""
       Me.txtLookaheadDate.BorderColor = 192
-      'todo Me.lblWeekday.Caption = "-"
+      Me.lblLookaheadWeekday.Visible = False
       Me.Repaint
     Else
       'limit to dates after the start date
       dtDate = CDate(Format(Me.txtLookaheadDate.Text, "mm/dd/yyyy") & " 5:00 PM")
-      'Me.txtLookaheadDate.Text = FormatDateTime(dtDate, vbShortDate)
       If dtDate < ActiveProject.StatusDate Then
         Me.txtLookaheadDate.BorderColor = 192
-        'Me.lblWeekday.Caption = "-"
+        Me.lblLookaheadWeekday.Visible = False
         Me.Repaint
       Else
         Me.txtLookaheadDays = CLng(Application.DateDifference(ActiveProject.StatusDate, dtDate) / 480)
         Me.txtLookaheadDate.BorderColor = -2147483642
-        'Me.lblWeekday.Caption = Format(CDate(Me.txtLookaheadDate.Text), "dddd")
+        Me.lblLookaheadWeekday.Visible = True
+        Me.lblLookaheadWeekday.Caption = Format(CDate(Me.txtLookaheadDate.Text), "dddd")
         Me.Repaint
         Call cptRefreshStatusTable(False, True)
       End If
@@ -1155,7 +1161,7 @@ End Sub
 Private Sub txtLookaheadDays_Change()
   Dim lngDays As Long
   
-  If Not Me.Visible Then Exit Sub
+  'If Not Me.Visible Then Exit Sub
   If Not IsDate(ActiveProject.StatusDate) Then Exit Sub
   If Not Me.ActiveControl = Me.txtLookaheadDays Then Exit Sub
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -1164,10 +1170,13 @@ Private Sub txtLookaheadDays_Change()
     lngDays = CLng(cptRegEx(Me.txtLookaheadDays, "[0-9]{1,}"))
     Me.txtLookaheadDays.Text = lngDays
     Me.txtLookaheadDate.Value = FormatDateTime(Application.DateAdd(ActiveProject.StatusDate, lngDays * 480), vbShortDate)
+    Me.lblLookaheadWeekday.Visible = True
+    Me.lblLookaheadWeekday.Caption = Format(Me.txtLookaheadDate, "dddd")
     Call cptRefreshStatusTable(False, True)
   Else
     Me.txtLookaheadDate = ""
     Me.txtLookaheadDate.BorderColor = -2147483642
+    Me.lblLookaheadWeekday.Visible = False
   End If
 
 exit_here:
