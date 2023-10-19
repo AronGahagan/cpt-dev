@@ -128,6 +128,9 @@ Private Sub UpdateIntegrationSettings()
   strField = CustomFieldGetName(lngField)
   If Len(strField) = 0 Then strField = FieldConstantToFieldName(lngField)
   cptSaveSetting "Integration", strControl, lngField & "|" & strField
+  If strControl = "EVT" Then
+    cptSaveSetting "Metrics", "cboLOEField", lngField
+  End If
 End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
