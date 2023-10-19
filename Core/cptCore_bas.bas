@@ -1780,7 +1780,7 @@ Function cptGetMyHeaders(strTitle As String, Optional blnRequired As Boolean = F
 try_again:
   'get other fields
   strMyHeaders = cptGetSetting("Metrics", "txtMyHeaders")
-  If Len(strMyHeaders) = 0 Then strMyHeaders = "CAM,WPCN,WPM,"
+  If Len(strMyHeaders) = 0 Then strMyHeaders = "CAM,WP,WPM,"
   If blnRequired Then
     vResponse = InputBox("At least one custom field is required." & vbCrLf & vbCrLf & "Enter a comma-separated list:", strTitle, strMyHeaders)
   Else
