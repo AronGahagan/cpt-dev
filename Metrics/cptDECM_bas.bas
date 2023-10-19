@@ -3007,7 +3007,6 @@ Private Function cptGetEVTAnalysis() As Excel.Workbook
   'strings
   Dim strMissingBaselines As String
   Dim strLOE As String
-  Dim strLOEField As String
   Dim strCon As String
   Dim strDir As String
   Dim strSQL As String

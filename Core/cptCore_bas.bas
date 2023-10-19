@@ -1480,13 +1480,13 @@ Sub cptGroupReapply()
   If lngUID > 0 Then Find "Unique ID", "equals", lngUID
 End Sub
 
-Function cptSaveSetting(strFeature As String, strSetting As String, strValue As Variant) As Boolean
+Function cptSaveSetting(strFeature As String, strKey As String, strValue As Variant) As Boolean
   Dim strSettingsFile As String, lngWorked As Long
   strSettingsFile = cptDir & "\settings\cpt-settings.ini"
   If strValue = "xxxDELETExxx" Then
-    lngWorked = SetPrivateProfileString(strFeature, strSetting, CLng(0), strSettingsFile)
+    lngWorked = SetPrivateProfileString(strFeature, strKey, CLng(0), strSettingsFile)
   Else
-    lngWorked = SetPrivateProfileString(strFeature, strSetting, CStr(strValue), strSettingsFile)
+    lngWorked = SetPrivateProfileString(strFeature, strKey, CStr(strValue), strSettingsFile)
   End If
   If lngWorked Then
     cptSaveSetting = True
@@ -1495,16 +1495,28 @@ Function cptSaveSetting(strFeature As String, strSetting As String, strValue As 
   End If
 End Function
 
-Function cptGetSetting(strFeature As String, strSetting As String) As String
+Function cptGetSetting(strFeature As String, strKey As String) As String
   Dim strSettingsFile As String, strReturned As String, lngSize As Long, lngWorked As Long
   strSettingsFile = cptDir & "\settings\cpt-settings.ini"
   strReturned = Space(255) 'this determines the length of the returned value, not the length of the stored value
   lngSize = Len(strReturned)
-  lngWorked = GetPrivateProfileString(strFeature, strSetting, "", strReturned, lngSize, strSettingsFile)
+  lngWorked = GetPrivateProfileString(strFeature, strKey, "", strReturned, lngSize, strSettingsFile)
   If lngWorked Then
     cptGetSetting = Left$(strReturned, lngWorked)
   Else
     cptGetSetting = ""
+  End If
+End Function
+
+Function cptRenameSetting(strFeature As String, strOldKey As String, strNewKey As String) As Boolean
+  Dim strValue As String
+  strValue = cptGetSetting(strFeature, strOldKey)
+  If Len(strValue) > 0 Then
+    cptSaveSetting strFeature, strNewKey, strValue
+    cptSaveSetting strFeature, strOldKey, "xxxDELETExxx"
+    cptRenameSetting = True
+  Else
+    cptRenameSetting = False
   End If
 End Function
 
