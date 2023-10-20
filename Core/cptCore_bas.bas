@@ -1483,11 +1483,7 @@ End Sub
 Function cptSaveSetting(strFeature As String, strKey As String, strValue As Variant) As Boolean
   Dim strSettingsFile As String, lngWorked As Long
   strSettingsFile = cptDir & "\settings\cpt-settings.ini"
-  If strValue = "xxxDELETExxx" Then
-    lngWorked = SetPrivateProfileString(strFeature, strKey, CLng(0), strSettingsFile)
-  Else
-    lngWorked = SetPrivateProfileString(strFeature, strKey, CStr(strValue), strSettingsFile)
-  End If
+  lngWorked = SetPrivateProfileString(strFeature, strKey, CStr(strValue), strSettingsFile)
   If lngWorked Then
     cptSaveSetting = True
   Else
@@ -1513,10 +1509,21 @@ Function cptRenameSetting(strFeature As String, strOldKey As String, strNewKey A
   strValue = cptGetSetting(strFeature, strOldKey)
   If Len(strValue) > 0 Then
     cptSaveSetting strFeature, strNewKey, strValue
-    cptSaveSetting strFeature, strOldKey, "xxxDELETExxx"
+    cptDeleteSetting strFeature, strOldKey
     cptRenameSetting = True
   Else
     cptRenameSetting = False
+  End If
+End Function
+
+Function cptDeleteSetting(strFeature As String, strKey As String) As Boolean
+  Dim strSettingsFile As String, lngWorked As Long
+  strSettingsFile = cptDir & "\settings\cpt-settings.ini"
+  lngWorked = SetPrivateProfileString(strFeature, strKey, CLng(0), strSettingsFile)
+  If lngWorked Then
+    cptDeleteSetting = True
+  Else
+    cptDeleteSetting = False
   End If
 End Function
 
@@ -2348,13 +2355,13 @@ err_here:
   
 End Function
 
-Sub cptGetValidMap()
+Sub cptGetValidMap(Optional strRequiredFields As String)
   Dim blnValidMap As Boolean
   Dim strMsg As String
   Dim lngResponse As Long
-  
+
   If cptModuleExists("cptDECM_bas") And cptModuleExists("cptIntegration_frm") Then
-    blnValidMap = ValidMap
+    blnValidMap = cptValidMap
   Else
     strMsg = "Please install the modules 'cptDECM_bas' and 'cptIntegration_frm' from the latest release."
     strMsg = strMsg & "Go to GitHub now?"
@@ -2363,6 +2370,208 @@ Sub cptGetValidMap()
     End If
   End If
 End Sub
+
+Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalRequired As Boolean = False, Optional blnRollingWaveDateRequired As Boolean = False) As Boolean
+  'objects
+  Dim oRequired As Scripting.Dictionary
+  Dim oComboBox As MSForms.ComboBox
+  'strings
+  Dim strDefaultFields As String
+  Dim strLOE As String
+  Dim strSetting As String
+  'longs
+  Dim lngItem  As Long
+  Dim lngField As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnValid As Boolean
+  'variants
+  Dim vRequired As Variant
+  Dim vAddField  As Variant
+  Dim vFields As Variant
+  Dim vControl As Variant
+  'dates
+    
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnValid = True
+  'todo: LOE
+  strDefaultFields = "WBS,OBS,CA,CAM,WP,WPM,EVT,EVT_MS,LOE,EVP"
+  
+  Set oRequired = CreateObject("Scripting.Dictionary")
+  If Len(strRequiredFields) > 0 Then
+    For Each vRequired In Split(strDefaultFields, ",")
+      oRequired.Add vRequired, False
+    Next vRequired
+    For Each vRequired In Split(strRequiredFields, ",")
+      oRequired(vRequired) = True
+    Next
+  Else
+    For Each vRequired In Split(strDefaultFields, ",")
+      oRequired.Add vRequired, True
+    Next
+  End If
+  
+  With New cptIntegration_frm
+    
+    .Caption = "Integration (" & cptGetVersion("cptIntegration_frm") & ")"
+    
+    'convert saved settings
+    strSetting = cptGetSetting("Integration", "CWBS")
+    If Len(strSetting) > 0 Then
+      cptSaveSetting "Integration", "WBS", strSetting
+      'delete setting CWBS
+      cptDeleteSetting "Integration", "CWBS"
+    End If
+    strSetting = cptGetSetting("Integration", "WPCN")
+    If Len(strSetting) > 0 Then
+      cptSaveSetting "Integration", "WP", strSetting
+      'delete setting WPCN
+      cptDeleteSetting "Integration", "WPCN"
+    End If
+    
+    For Each vControl In Split(strDefaultFields, ",")
+      strSetting = cptGetSetting("Integration", CStr(vControl))
+      If Len(strSetting) = 0 Then
+        If vControl = "EVP" Then
+          strSetting = cptGetSetting("Metrics", "cboEVP")
+          If Len(strSetting) = 0 Then
+            If oRequired(vControl) Then blnValid = False
+          Else
+            strSetting = strSetting & "|" & FieldConstantToFieldName(strSetting)
+            cptSaveSetting "Integration", "EVP", strSetting
+          End If
+        ElseIf vControl = "EVT" Or vControl = "EVT_MS" Then
+          strSetting = cptGetSetting("Metrics", "cboLOEField")
+          If Len(strSetting) = 0 Then
+            If oRequired(vControl) Then blnValid = False
+          Else
+            strSetting = strSetting & "|" & FieldConstantToFieldName(strSetting)
+            cptSaveSetting "Integration", CStr(vControl), strSetting
+          End If
+        ElseIf vControl = "LOE" Then
+          strSetting = cptGetSetting("Metrics", "txtLOE")
+          If Len(strSetting) = 0 Then
+            If oRequired(vControl) Then blnValid = False
+          Else
+            cptSaveSetting "Integration", "LOE", strSetting
+          End If
+        End If
+      End If
+      Set oComboBox = .Controls("cbo" & vControl)
+      oComboBox.BorderColor = -2147483642
+      If Len(strSetting) = 0 Then
+        If oRequired(vControl) Then blnValid = False
+        lngField = 0
+        If oRequired(vControl) Then oComboBox.BorderColor = 192
+      Else
+        If vControl <> "LOE" Then
+          lngField = CLng(Split(strSetting, "|")(0))
+        Else
+          strLOE = strSetting
+        End If
+      End If
+      If vControl = "WBS" Then
+        oComboBox.List = cptGetCustomFields("t", "Outline Code,Text", "c,cfn", False)
+        If IsEmpty(oComboBox.List(oComboBox.ListCount - 1, 0)) Then oComboBox.RemoveItem (oComboBox.ListCount - 1)
+      ElseIf vControl = "CAM" Or vControl = "WPM" Then
+        For Each vAddField In Split("Contact", ",")
+          oComboBox.AddItem
+          oComboBox.List(oComboBox.ListCount - 1, 0) = FieldNameToFieldConstant(vAddField)
+          oComboBox.List(oComboBox.ListCount - 1, 1) = vAddField
+        Next vAddField
+        vFields = cptGetCustomFields("t", "Text,Outline Code", "c,cfn", False)
+        For lngItem = 0 To UBound(vFields) - 1
+          oComboBox.AddItem
+          oComboBox.List(oComboBox.ListCount - 1, 0) = vFields(lngItem, 0)
+          oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
+        Next lngItem
+      ElseIf vControl = "EVP" Then
+        For Each vAddField In Split("Physical % Complete,% Complete", ",")
+          oComboBox.AddItem
+          oComboBox.List(oComboBox.ListCount - 1, 0) = FieldNameToFieldConstant(vAddField)
+          oComboBox.List(oComboBox.ListCount - 1, 1) = vAddField
+        Next vAddField
+        vFields = cptGetCustomFields("t", "Number", "c,cfn", False)
+        For lngItem = 0 To UBound(vFields) - 1
+          oComboBox.AddItem
+          oComboBox.List(oComboBox.ListCount - 1, 0) = vFields(lngItem, 0)
+          oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
+        Next lngItem
+      ElseIf vControl = "EOC" Then
+        For Each vAddField In Split("Code,Group,Initials,Type", ",")
+          oComboBox.AddItem
+          oComboBox.List(oComboBox.ListCount - 1, 0) = FieldNameToFieldConstant(vAddField, pjResource)
+          oComboBox.List(oComboBox.ListCount - 1, 1) = vAddField
+        Next vAddField
+        vFields = cptGetCustomFields("r", "Text", "c,cfn", False)
+        For lngItem = 0 To UBound(vFields) - 1
+          oComboBox.AddItem
+          oComboBox.List(oComboBox.ListCount - 1, 0) = vFields(lngItem, 0)
+          oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
+        Next lngItem
+      ElseIf vControl = "LOE" Then
+        On Error Resume Next
+        .cboLOE.Value = strLOE
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        GoTo next_control
+      Else 'WP
+        oComboBox.List = cptGetCustomFields("t", "Text,Outline Code", "c,cfn", False)
+        If IsEmpty(oComboBox.List(oComboBox.ListCount - 1, 0)) Then oComboBox.RemoveItem (oComboBox.ListCount - 1)
+      End If
+      If lngField > 0 Then oComboBox.Value = lngField
+next_control:
+      If Not oRequired(vControl) Then oComboBox.Enabled = False
+    Next vControl
+    
+    .txtFiscalCalendar.Enabled = False
+    .txtFiscalCalendar.Locked = True
+    If cptCalendarExists("cptFiscalCalendar") Then
+      .txtFiscalCalendar = "cptFiscalCalendar"
+    Else
+      If blnFiscalRequired Then
+        .txtFiscalCalendar.BorderColor = 192
+        blnValid = False
+      End If
+    End If
+    
+    strSetting = cptGetSetting("Integration", "RollingWaveDate")
+    If Len(strSetting) > 0 Then
+      .txtRollingWave = FormatDateTime(strSetting, vbShortDate)
+    End If
+    
+    If blnRollingWaveDateRequired Then
+      .txtRollingWave.Enabled = True
+      .txtRollingWave.BorderColor = 192
+      If IsDate(.txtRollingWave) Then
+        .txtRollingWave.BorderColor = -2147483642
+      Else
+        blnValid = False
+      End If
+    Else
+      .txtRollingWave.Enabled = False
+    End If
+    
+    .Show
+    
+    cptValidMap = .blnValidIntegrationMap
+    
+  End With
+
+exit_here:
+  On Error Resume Next
+  Set oRequired = Nothing
+  Set oComboBox = Nothing
+  Unload cptDECM_frm
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptDECM_bas", "ValidMap", Err, Erl)
+  Resume exit_here
+    
+End Function
+
 
 Function cptErrorTrapping() As Boolean
   'objects

@@ -52,13 +52,13 @@ Function ValidMap() As Boolean
     If Len(strSetting) > 0 Then
       cptSaveSetting "Integration", "WBS", strSetting
       'delete setting CWBS
-      cptSaveSetting "Integration", "CWBS", "xxxDELETExxx"
+      cptDeleteSetting "Integration", "CWBS"
     End If
     strSetting = cptGetSetting("Integration", "WPCN")
     If Len(strSetting) > 0 Then
       cptSaveSetting "Integration", "WP", strSetting
       'delete setting WPCN
-      cptSaveSetting "Integration", "WPCN", "xxxDELETExxx"
+      cptDeleteSetting "Integration", "WPCN"
     End If
     
     For Each vControl In Split("WBS,OBS,CA,CAM,WP,WPM,EVT,EVT_MS,LOE,EVP", ",")
@@ -2668,7 +2668,7 @@ Function cptGetOutOfSequence() As String
       oSubMap.RemoveAll
     End If
     For Each oSubproject In ActiveProject.Subprojects
-      If InStr(oSubproject.Path, "<>") = 0 Then 'offline
+      If Left(oSubproject.Path, 2) <> "<>" Then 'offline
         oSubMap.Add Replace(Dir(oSubproject.Path), ".mpp", ""), 0
       ElseIf Left(oSubproject.Path, 2) = "<>" Then 'online
         oSubMap.Add oSubproject.Path, 0
