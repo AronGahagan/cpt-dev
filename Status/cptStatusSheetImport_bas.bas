@@ -203,7 +203,7 @@ Sub cptStatusSheetImport()
   'strings
   Dim strUIDList As String
   Dim strLOE As String
-  Dim strLOEField As String
+  Dim strEVT As String
   Dim strHeader As String
   Dim strCon As String
   Dim strSQL As String
@@ -318,17 +318,22 @@ Sub cptStatusSheetImport()
   cptSaveSetting "StatusSheetImport", "cboAppendTo", strAppendTo
   
   'ensure metrics settings exist
-  If Not cptMetricsSettingsExist Then
-    Call cptShowMetricsSettings_frm(True)
-    If Not cptMetricsSettingsExist Then
-      MsgBox "Settings not saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
-      GoTo exit_here
-    End If
+'  If Not cptMetricsSettingsExist Then
+'    Call cptShowMetricsSettings_frm(True)
+'    If Not cptMetricsSettingsExist Then
+'      MsgBox "Settings not saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
+'      GoTo exit_here
+'    End If
+'  End If
+  
+  If Not cptValidMap("EVP,EVT,LOE") Then
+    MsgBox "Settings not saved; cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
+    GoTo exit_here
   End If
   
   'get LOE settings
-  strLOEField = cptGetSetting("Metrics", "cboLOEField")
-  strLOE = cptGetSetting("Metrics", "txtLOE")
+  strEVT = cptGetSetting("Integration", "EVT")
+  strLOE = cptGetSetting("Integration", "LOE")
     
   'set up import log file
   If Left(ActiveProject.Path, 2) = "<>" Or Left(ActiveProject.Path, 4) = "http" Then 'server project: default to Desktop
@@ -641,14 +646,14 @@ next_task:
             
             'evp
             'skip LOE
-            If Len(strLOEField) > 0 And Len(strLOE) > 0 Then
-              lngEVT = CLng(strLOEField)
+            If Len(strEVT) > 0 And Len(strLOE) > 0 Then
+              lngEVT = CLng(strEVT)
               If oTask.GetField(lngEVT) = strLOE Then GoTo evp_skipped
             End If
             'secondary catch to skip LOE
             If oWorksheet.Cells(lngRow, lngEVCol).Value <> "-" Then
               lngEVP = Round(oWorksheet.Cells(lngRow, lngEVCol).Value * 100, 0)
-              strEVP = cptGetSetting("StatusSheet", "cboEVP")
+              strEVP = cptGetSetting("StatusSheet", "cboEVP") 'todo: delete and change to Integration
               If Len(strEVP) > 0 Then 'compare
                 If CLng(cptRegEx(oTask.GetField(FieldNameToFieldConstant(strEVP)), "[0-9]{1,}")) <> lngEVP Then
                   oTask.SetField lngEV, lngEVP
@@ -948,8 +953,8 @@ Sub cptRefreshStatusImportTable(Optional blnUsageBelow As Boolean = False)
     'todo: don't kill the file here, kill it on Status Sheet Creation
   End If
   
-  strEVP = cptGetSetting("StatusSheet", "cboEVP")
-  strEVT = cptGetSetting("StatusSheet", "cboEVT")
+  strEVP = cptGetSetting("StatusSheet", "cboEVP") 'todo: delete and get from Integration
+  strEVT = cptGetSetting("StatusSheet", "cboEVT") 'todo: delete and get from Integration
   
   'reset the table
   TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
@@ -967,6 +972,8 @@ Sub cptRefreshStatusImportTable(Optional blnUsageBelow As Boolean = False)
         'does field name still match?
         If CustomFieldGetName(rst(0)) = rst(1) Then
           TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:=rst(1), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+        Else
+          'todo: notify that name has changed
         End If
         rst.MoveNext
       Loop
