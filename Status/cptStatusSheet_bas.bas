@@ -85,17 +85,23 @@ Sub cptShowStatusSheet_frm()
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
     MsgBox "Please enter a Status Date.", vbExclamation + vbOKOnly, "No Status Date"
-    Application.ChangeStatusDate
+    Application.ChangeStatusDate 'todo: this returns a boolean, why not just use this? if not ChangeStatusDate then ...
     If Not IsDate(ActiveProject.StatusDate) Then GoTo exit_here
   End If
   
+'  'requires metrics settings
+'  If Not cptMetricsSettingsExist Then
+'    Call cptShowMetricsSettings_frm(True)
+'    If Not cptMetricsSettingsExist Then
+'      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
+'      GoTo exit_here
+'    End If
+'  End If
+  
   'requires metrics settings
-  If Not cptMetricsSettingsExist Then
-    Call cptShowMetricsSettings_frm(True)
-    If Not cptMetricsSettingsExist Then
-      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
-      GoTo exit_here
-    End If
+  If Not cptValidMap("EVP,EVT,LOE") Then
+    MsgBox "No settings saved; cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
+    GoTo exit_here
   End If
   
   'requires ms excel
@@ -431,7 +437,7 @@ skip_fields:
     If Len(strLookahead) > 0 Then
       .chkLookahead = CBool(strLookahead)
     Else
-      .chkLookahead = False
+      .chkLookahead = False 'default
     End If
     
     If .chkLookahead Then
@@ -452,6 +458,7 @@ skip_fields:
     'todo: problem is that ValidMap lives in DECM_bas...so maybe make a new cptValidMap...put it in cptCore_bas then switch all...
     'todo: sync Metrics and Integration settings
     strLOE = cptGetSetting("Integration", "LOE")
+    If Len(strLOE) = 0 Then strLOE = cptGetSetting("Metrics", "txtLOE")
     If Len(strEVT) > 0 And Len(strLOE) > 0 Then
       .chkIgnoreLOE.Enabled = True
       .chkIgnoreLOE.ControlTipText = "Limit to tasks where " & strEVT & " <> " & strLOE
