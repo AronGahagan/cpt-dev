@@ -2371,7 +2371,7 @@ Sub cptGetValidMap(Optional strRequiredFields As String)
   End If
 End Sub
 
-Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalRequired As Boolean = False, Optional blnRollingWaveDateRequired As Boolean = False) As Boolean
+Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalRequired As Boolean = False, Optional blnRollingWaveDateRequired As Boolean = False, Optional blnRequireConfirmation As Boolean = False) As Boolean
   'objects
   Dim oRequired As Scripting.Dictionary
   Dim oComboBox As MSForms.ComboBox
@@ -2553,9 +2553,16 @@ next_control:
       .txtRollingWave.Enabled = False
     End If
     
-    .Show
+    'only show form if something required is missing
+    'DECM should require confirmation
+    'Status Sheet/Import can skip
     
-    cptValidMap = .blnValidIntegrationMap
+    If Not blnValid Or blnRequireConfirmation Then
+      .Show
+      cptValidMap = .blnValidIntegrationMap
+    Else
+      cptValidMap = blnValid
+    End If
     
   End With
 
@@ -2571,7 +2578,6 @@ err_here:
   Resume exit_here
     
 End Function
-
 
 Function cptErrorTrapping() As Boolean
   'objects

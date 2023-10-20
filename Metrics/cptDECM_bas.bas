@@ -181,7 +181,7 @@ err_here:
 End Function
 
 Sub cptDECM_GET_DATA()
-'Optional blnIncompleteOnly As Boolean = True, Optional blnDiscreteOnly As Boolean = True
+  'Optional blnIncompleteOnly As Boolean = True, Optional blnDiscreteOnly As Boolean = True
   'objects
   Dim oException As MSProject.Exception
   Dim oTasks As MSProject.Tasks
@@ -268,7 +268,7 @@ Sub cptDECM_GET_DATA()
   
   dtStatus = ActiveProject.StatusDate 'todo: what dates does GetField return? times?
   
-  If Not ValidMap Then GoTo exit_here
+  If Not cptValidMap(blnRequireConfirmation:=True) Then GoTo exit_here 'default required fields, cptFiscal not required to proceed, will prompt
   
   strProgramAcronym = cptGetProgramAcronym
   
