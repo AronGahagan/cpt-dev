@@ -453,9 +453,6 @@ skip_fields:
     .chkIgnoreLOE.Enabled = False
     'todo: source of settings?
     'todo: user can confirm settings
-    'todo: does user need all the EVM fields to use this? NO
-    'todo: ValidMap(Optional strRequired As String) if Len(strRequired)=0 then ALL required
-    'todo: problem is that ValidMap lives in DECM_bas...so maybe make a new cptValidMap...put it in cptCore_bas then switch all...
     'todo: sync Metrics and Integration settings
     strLOE = cptGetSetting("Integration", "LOE")
     If Len(strLOE) = 0 Then strLOE = cptGetSetting("Metrics", "txtLOE")
