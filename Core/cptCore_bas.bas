@@ -2373,7 +2373,7 @@ End Sub
 
 Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalRequired As Boolean = False, Optional blnRollingWaveDateRequired As Boolean = False, Optional blnRequireConfirmation As Boolean = False) As Boolean
   'objects
-  Dim oRequired As Scripting.Dictionary
+  Dim oRequiredFields As Scripting.Dictionary
   Dim oComboBox As MSForms.ComboBox
   'strings
   Dim strDefaultFields As String
@@ -2385,6 +2385,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
   'integers
   'doubles
   'booleans
+  Dim blnUseDefault As Boolean
   Dim blnValid As Boolean
   'variants
   Dim vRequired As Variant
@@ -2396,22 +2397,16 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   blnValid = True
-  'todo: LOE
-  strDefaultFields = "WBS,OBS,CA,CAM,WP,WPM,EVT,EVT_MS,LOE,EVP"
   
-  Set oRequired = CreateObject("Scripting.Dictionary")
-  If Len(strRequiredFields) > 0 Then
-    For Each vRequired In Split(strDefaultFields, ",")
-      oRequired.Add vRequired, False
-    Next vRequired
-    For Each vRequired In Split(strRequiredFields, ",")
-      oRequired(vRequired) = True
-    Next
-  Else
-    For Each vRequired In Split(strDefaultFields, ",")
-      oRequired.Add vRequired, True
-    Next
-  End If
+  strDefaultFields = "WBS,OBS,CA,CAM,WP,WPM,EVT,EVT_MS,LOE,EVP"
+  blnUseDefault = Len(strRequiredFields) = 0
+  Set oRequiredFields = CreateObject("Scripting.Dictionary")
+  For Each vRequired In Split(strDefaultFields, ",")
+    oRequiredFields.Add vRequired, blnUseDefault
+  Next vRequired
+  For Each vRequired In Split(strRequiredFields, ",")
+    oRequiredFields(vRequired) = True
+  Next
   
   With New cptIntegration_frm
     
@@ -2437,7 +2432,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
         If vControl = "EVP" Then
           strSetting = cptGetSetting("Metrics", "cboEVP")
           If Len(strSetting) = 0 Then
-            If oRequired(vControl) Then blnValid = False
+            If oRequiredFields(vControl) Then blnValid = False
           Else
             strSetting = strSetting & "|" & FieldConstantToFieldName(strSetting)
             cptSaveSetting "Integration", "EVP", strSetting
@@ -2445,7 +2440,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
         ElseIf vControl = "EVT" Or vControl = "EVT_MS" Then
           strSetting = cptGetSetting("Metrics", "cboLOEField")
           If Len(strSetting) = 0 Then
-            If oRequired(vControl) Then blnValid = False
+            If oRequiredFields(vControl) Then blnValid = False
           Else
             strSetting = strSetting & "|" & FieldConstantToFieldName(strSetting)
             cptSaveSetting "Integration", CStr(vControl), strSetting
@@ -2453,7 +2448,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
         ElseIf vControl = "LOE" Then
           strSetting = cptGetSetting("Metrics", "txtLOE")
           If Len(strSetting) = 0 Then
-            If oRequired(vControl) Then blnValid = False
+            If oRequiredFields(vControl) Then blnValid = False
           Else
             cptSaveSetting "Integration", "LOE", strSetting
           End If
@@ -2462,9 +2457,9 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
       Set oComboBox = .Controls("cbo" & vControl)
       oComboBox.BorderColor = -2147483642
       If Len(strSetting) = 0 Then
-        If oRequired(vControl) Then blnValid = False
+        If oRequiredFields(vControl) Then blnValid = False
         lngField = 0
-        If oRequired(vControl) Then oComboBox.BorderColor = 192
+        If oRequiredFields(vControl) Then oComboBox.BorderColor = 192
       Else
         If vControl <> "LOE" Then
           lngField = CLng(Split(strSetting, "|")(0))
@@ -2499,30 +2494,18 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
           oComboBox.List(oComboBox.ListCount - 1, 0) = vFields(lngItem, 0)
           oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
         Next lngItem
-      ElseIf vControl = "EOC" Then
-        For Each vAddField In Split("Code,Group,Initials,Type", ",")
-          oComboBox.AddItem
-          oComboBox.List(oComboBox.ListCount - 1, 0) = FieldNameToFieldConstant(vAddField, pjResource)
-          oComboBox.List(oComboBox.ListCount - 1, 1) = vAddField
-        Next vAddField
-        vFields = cptGetCustomFields("r", "Text", "c,cfn", False)
-        For lngItem = 0 To UBound(vFields) - 1
-          oComboBox.AddItem
-          oComboBox.List(oComboBox.ListCount - 1, 0) = vFields(lngItem, 0)
-          oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
-        Next lngItem
       ElseIf vControl = "LOE" Then
         On Error Resume Next
         .cboLOE.Value = strLOE
         If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         GoTo next_control
-      Else 'WP
+      Else 'WP,EVT_MS
         oComboBox.List = cptGetCustomFields("t", "Text,Outline Code", "c,cfn", False)
         If IsEmpty(oComboBox.List(oComboBox.ListCount - 1, 0)) Then oComboBox.RemoveItem (oComboBox.ListCount - 1)
       End If
       If lngField > 0 Then oComboBox.Value = lngField
 next_control:
-      If Not oRequired(vControl) Then oComboBox.Enabled = False
+      If Not oRequiredFields(vControl) Then oComboBox.Enabled = False
     Next vControl
     
     .txtFiscalCalendar.Enabled = False
@@ -2568,13 +2551,13 @@ next_control:
 
 exit_here:
   On Error Resume Next
-  Set oRequired = Nothing
+  Set oRequiredFields = Nothing
   Set oComboBox = Nothing
   Unload cptDECM_frm
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptDECM_bas", "ValidMap", Err, Erl)
+  Call cptHandleErr("cptDECM_bas", "cptValidMap", Err, Erl)
   Resume exit_here
     
 End Function
