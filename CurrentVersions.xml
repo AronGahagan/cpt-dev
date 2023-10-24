@@ -155,6 +155,13 @@
 		<Directory>Metrics</Directory>
 	</Module>
 	<Module>
+		<Name>cptDECMTargetUID_frm</Name>
+		<FileName>cptDECMTargetUID_frm.frm</FileName>
+		<Version>v0.0.1</Version>
+		<Type>3</Type>
+		<Directory>Metrics</Directory>
+	</Module>
+	<Module>
 		<Name>cptDynamicFilter_bas</Name>
 		<FileName>cptDynamicFilter_bas.bas</FileName>
 		<Version>v1.6.2</Version>

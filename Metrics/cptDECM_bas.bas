@@ -52,6 +52,9 @@ Sub cptDECM_GET_DATA()
   Dim strLOE As String
   Dim strList As String
   'longs
+  Dim lngTargetFile As Long
+  Dim lngTaskName As Long
+  Dim lngTargetUID As Long
   Dim lngAssignmentFile As Long
   Dim lngTS As Long
   Dim lngConst As Long
@@ -143,6 +146,7 @@ Sub cptDECM_GET_DATA()
   Print #lngFile, "Col18=SUMMARY text" 'Yes/No
   Print #lngFile, "Col19=CONST text"
   Print #lngFile, "Col20=TS integer"
+  Print #lngFile, "Col21=TASK_NAME text"
   Print #lngFile, "[links.csv]"
   Print #lngFile, "Format=CSVDelimited"
   Print #lngFile, "ColNameHeader=True"
@@ -182,6 +186,11 @@ Sub cptDECM_GET_DATA()
   Print #1, "Format=CSVDelimited"
   Print #1, "Col1=FISCAL_END date"
   Print #1, "Col2=LABEL text"
+  Print #1, "[targets.csv]"
+  Print #1, "ColNameHeader=True"
+  Print #1, "Format=CSVDelimited"
+  Print #1, "Col1=UID integer"
+  Print #1, "Col2=TASK_NAME text"
   
   Close #lngFile
   
@@ -200,6 +209,11 @@ Sub cptDECM_GET_DATA()
   strFile = strDir & "\assignments.csv"
   If Dir(strFile) <> vbNullString Then Kill strFile
   Open strFile For Output As #lngAssignmentFile
+  
+  lngTargetFile = FreeFile
+  strFile = strDir & "\targets.csv"
+  If Dir(strFile) <> vbNullString Then Kill strFile
+  Open strFile For Output As #lngTargetFile
   
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
   
@@ -228,11 +242,13 @@ Sub cptDECM_GET_DATA()
   lngSummary = FieldNameToFieldConstant("Summary")
   lngConst = FieldNameToFieldConstant("Constraint Type")
   lngTS = FieldNameToFieldConstant("Total Slack")
+  lngTaskName = FieldNameToFieldConstant("Name", pjTask)
   
   'headers
-  Print #lngTaskFile, "UID,WBS,OBS,CA,CAM,WP,WPM,EVT,EVP,FS,FF,BLS,BLF,AS,AF,BDUR,DUR,SUMMARY,CONST,TS,"
+  Print #lngTaskFile, "UID,WBS,OBS,CA,CAM,WP,WPM,EVT,EVP,FS,FF,BLS,BLF,AS,AF,BDUR,DUR,SUMMARY,CONST,TS,TASK_NAME,"
   Print #lngLinkFile, "FROM,TO,TYPE,LAG,"
   Print #lngAssignmentFile, "TASK_UID,RESOURCE_UID,BLW,BLC,RW,RC,EOC,"
+  Print #lngTargetFile, "UID,TASK_NAME,"
   
   With cptDECM_frm
     .Caption = "DECM v6.0 (cpt " & cptGetVersion("cptDECM_bas") & ")"
@@ -253,7 +269,7 @@ Sub cptDECM_GET_DATA()
     .Show False
   End With
   
-  blnDumpToExcel = False 'todo: if DumpToExcel then single Workbook, do better with tab names
+  blnDumpToExcel = False 'for debug
   
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
@@ -262,7 +278,7 @@ Sub cptDECM_GET_DATA()
     'todo: skip external tasks?
 '    If blnIncompleteOnly Then If IsDate(oTask.ActualFinish) Then GoTo next_task 'todo: what was this for?
 '    If blnDiscreteOnly Then If oTask.GetField(lngEVT) = "A" Then GoTo next_task 'todo: what else is non-discrete? apportioned?
-    For Each vField In Array(lngUID, lngWBS, lngOBS, lngCA, lngCAM, lngWP, lngWPM, lngEVT, lngEVP, lngFS, lngFF, lngBLS, lngBLF, lngAS, lngAF, lngBDur, lngDur, lngSummary, lngConst, lngTS)
+    For Each vField In Array(lngUID, lngWBS, lngOBS, lngCA, lngCAM, lngWP, lngWPM, lngEVT, lngEVP, lngFS, lngFF, lngBLS, lngBLF, lngAS, lngAF, lngBDur, lngDur, lngSummary, lngConst, lngTS, lngTaskName)
       If vField = FieldNameToFieldConstant("Physical % Complete") Then
         strRecord = strRecord & cptRegEx(oTask.GetField(vField), "[0-9]{1,}") & ","
       ElseIf vField = FieldNameToFieldConstant("% Complete") Then
@@ -277,6 +293,8 @@ Sub cptDECM_GET_DATA()
         strRecord = strRecord & oTask.TotalSlack & "," 'todo: convert to days?
       ElseIf Len(cptRegEx(FieldConstantToFieldName(vField), "Start|Finish")) > 0 And IsDate(oTask.GetField(vField)) Then 'convert text to date if field name as 'start' or 'finish')
         strRecord = strRecord & FormatDateTime(oTask.GetField(CLng(vField)), vbShortDate) & ","
+      ElseIf vField = lngTaskName Then
+        strRecord = strRecord & Replace(Replace(oTask.Name, Chr(34), "'"), ",", "-")
       Else
         strRecord = strRecord & oTask.GetField(CLng(vField)) & ","
       End If
@@ -289,6 +307,9 @@ Sub cptDECM_GET_DATA()
     For Each oAssignment In oTask.Assignments
       Print #lngAssignmentFile, Join(Array(oTask.UniqueID, oAssignment.ResourceUniqueID, oAssignment.BaselineWork, oAssignment.BaselineCost, oAssignment.RemainingWork, oAssignment.RemainingCost, oAssignment.Resource.GetField(Split(cptGetSetting("Integration", "EOC"), "|")(0))), ",")
     Next
+    If oTask.Duration = 0 Or oTask.Milestone Then
+      Print #lngTargetFile, Join(Array(oTask.UniqueID, Replace(Replace(oTask.Name, ",", ""), Chr(34), "'")), ",")
+    End If
 next_task:
     strRecord = ""
     lngTask = lngTask + 1
@@ -301,6 +322,7 @@ next_task:
   Close #lngTaskFile
   Close #lngLinkFile
   Close #lngAssignmentFile
+  Close #lngTargetFile
   
   cptDECM_frm.lblStatus.Caption = "Loading...done."
   Application.StatusBar = "Loading...done."
@@ -564,7 +586,7 @@ next_task:
   Application.StatusBar = "Getting EVMS: 10A103a...done."
   DoEvents
   
-  'bonus metrics if EVT_MS is used:
+  'todo: bonus metrics if EVT_MS is used:
   'todo: EVT = "B" AND (EVT_MS MISSING OR EVT_MS NOT IN ({discrete})
   'todo: EVT = "B" AND EVT_MS = 0/100 AND FiscalPeriods > 1
   'todo: EVT = "B" AND EVT_MS = 50/50 AND FiscalPeriods > 2
@@ -877,7 +899,7 @@ next_task:
   Application.StatusBar = "Getting Schedule Metric: 06A204b...done."
   DoEvents
   
-  '06A205a - Lags (todo: what about leads?)
+  '06A205a - Lags (what about leads?)
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A205a..."
   Application.StatusBar = "Getting Schedule Metric: 06A205a..."
   cptDECM_frm.lboMetrics.AddItem
@@ -1011,7 +1033,6 @@ next_task:
   DoEvents
   
   '06A210a - LOE Driving Discrete
-  'todo: add note: filter shows both LOE pred and Non-LOE successor
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A210a..."
   Application.StatusBar = "Getting Schedule Metric: 06A210a..."
   cptDECM_frm.lboMetrics.AddItem
@@ -1083,7 +1104,7 @@ next_task:
 '  X = count of high total float Non-LOE tasks/activities & milestones sampled with inadequate rationale
 '  Y = count of high total float Non-LOE tasks/activities & milestones sampled
 '  X/Y <= 20%
-  strSQL = "SELECT UID,ROUND(TS/480,2) AS HTF " 'todo: replace 480 with user settings?
+  strSQL = "SELECT UID,ROUND(TS/" & CLng(60 * ActiveProject.HoursPerDay) & ",2) AS HTF "
   strSQL = strSQL & "FROM [tasks.csv] "
   strSQL = strSQL & "WHERE EVT<>'" & strLOE & "' "
   strSQL = strSQL & "GROUP BY UID,ROUND(TS/480,2) "
@@ -1148,8 +1169,74 @@ next_task:
   
   '6A301a - vertical integration todo: lower level baselines rollup...refers to supplemental schedules...too complicated
   
-  '6A401a - critical path todo: can our tool satisfy?
+  '6A401a - critical path (constraint method)
+  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A401a..."
+  Application.StatusBar = "Getting Schedule Metric: 06A401a..."
+  cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A401a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Critical Path"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  DoEvents
+
+  'create function form with type-ahead-find for user to select target milestone
+  lngTargetUID = cptDECMGetTargetUID()
+  If lngTargetUID = 0 Then
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Critical Path - SKIPPED"
+    'todo: remove it? give a bad score?
+    GoTo skip_6A401a
+  Else
+    Set oTask = ActiveProject.Tasks.UniqueID(lngTargetUID)
+    Dim dtConstraint As Date
+    Dim lngConstraintType As Long
+    'save existing constraint
+    If IsDate(oTask.ConstraintDate) Then dtConstraint = oTask.ConstraintDate
+    lngConstraintType = oTask.ConstraintType
+    'replace with DateSubtract("yyyy",-10,finish)
+    oTask.ConstraintType = pjMFO
+    oTask.ConstraintDate = DateAdd("yyyy", -10, dtConstraint)
+    Dim lngTargetTotalSlack As Long
+    'get total slack
+    lngTargetTotalSlack = oTask.TotalSlack
+    'get list of primary driving path UIDs
+    strList = ""
+    For Each oTask In ActiveProject.Tasks
+      If oTask Is Nothing Then GoTo next_critical_task
+      If Not oTask.Active Then GoTo next_critical_task
+      If oTask.TotalSlack = lngTargetTotalSlack Then
+        strList = strList & oTask.UniqueID & ","
+      End If
+next_critical_task:
+    Next oTask
+    'restore constraint
+    If IsDate(dtConstraint) Then
+      ActiveProject.Tasks.UniqueID(lngTargetUID).ConstraintDate = dtConstraint
+    Else
+      ActiveProject.Tasks.UniqueID(lngTargetUID).ConstraintDate = "NA"
+    End If
+    ActiveProject.Tasks.UniqueID(lngTargetUID).ConstraintType = lngConstraintType
+    If Len(strList) > 0 Then
+      lngX = UBound(Split(strList, ","))
+    Else
+      lngX = 0
+    End If
+  End If
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = lngX
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
+  If dblScore = 0 Then
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A401a...done."
+  Application.StatusBar = "Getting Schedule Metric: 06A401a...done."
+  DoEvents
   
+skip_6A401a:
   '6A501a - baselines
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A501a..."
   Application.StatusBar = "Getting Schedule Metric: 06A501a..."
@@ -2322,6 +2409,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
   ActiveWindow.TopPane.Activate
   FilterClear
   GroupClear
+  Sort "ID", renumber:=False, Outline:=True
   OptionsViewEx DisplaySummaryTasks:=True
   OutlineShowAllTasks
   OptionsViewEx DisplaySummaryTasks:=False
@@ -2360,6 +2448,17 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
     Case "06A212a" 'out of sequence
       If Len(strList) > 0 Then
         SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
+      End If
+    
+    Case "06A401a" 'critical path
+      If Len(strList) > 0 Then
+        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+        Sort "Finish", renumber:=False, Outline:=False
+        SelectBeginning
+        EditGoTo Date:=ActiveSelection.Tasks(1).Finish
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
@@ -2931,5 +3030,58 @@ exit_here:
   Exit Function
 err_here:
   Call cptHandleErr("cptDECM_bas", "cptGetEVTAnalysis", Err, Erl)
+  Resume exit_here
+End Function
+
+Function cptDECMGetTargetUID() As Long
+  'objects
+  Dim oRecordset As ADODB.Recordset
+  'strings
+  Dim strDir As String
+  Dim strCon As String
+  Dim strSQL As String
+  'longs
+  Dim lngTargetUID As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  strDir = Environ("tmp")
+  strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
+  strSQL = "SELECT * FROM [targets.csv] "
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  If oRecordset.RecordCount = 0 Then 'user has no zero-day duration tasks nor milestones
+    cptDECMTargetUID_frm.lngTargetTaskUID = 0
+    GoTo exit_here
+  End If
+  oRecordset.MoveFirst
+  With cptDECMTargetUID_frm
+    .lboTasks.Clear
+    Do While Not oRecordset.EOF
+      .lboTasks.AddItem
+      .lboTasks.List(.lboTasks.ListCount - 1, 0) = oRecordset("UID")
+      .lboTasks.List(.lboTasks.ListCount - 1, 1) = oRecordset("TASK_NAME")
+      oRecordset.MoveNext
+    Loop
+    oRecordset.Close
+    .Show
+    lngTargetUID = cptDECMTargetUID_frm.lngTargetTaskUID
+    Unload cptDECMTargetUID_frm
+  End With
+  
+  cptDECMGetTargetUID = lngTargetUID
+  
+exit_here:
+  On Error Resume Next
+  Set oRecordset = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptDECM_bas", "cptDECMGetTargetUID", Err, Erl)
   Resume exit_here
 End Function

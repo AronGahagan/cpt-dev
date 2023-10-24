@@ -156,6 +156,16 @@ Public Sub lboMetrics_AfterUpdate()
       strDescription = strDescription & vbCrLf & vbCrLf & "NOTE: metric does not address leads (negative lags)." & vbCrLf
     Case "06A208a"
       strDescription = strDescription & "SCORE: " & strScore
+    Case "06A210a"
+      strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
+      strDescription = strDescription & vbCrLf & vbCrLf & "NOTE: filter shows both LOE pred and Non-LOE successor."
+    Case "06A401a" 'critical path
+      strDescription = strMetric & vbCrLf
+      strDescription = strDescription & strTitle & vbCrLf & vbCrLf
+      strDescription = strDescription & "TARGET: " & strTarget & vbCrLf
+      strDescription = strDescription & "X: " & lngX & vbCrLf
+      strDescription = strDescription & "SCORE: " & lngX & vbCrLf & vbCrLf
+      strDescription = strDescription & "NOTE: subtract # of tasks that *are* on the Contractor's critical path."
     Case "06A504a"
       strDescription = strDescription & "SCORE: " & strScore
       strDescription = strDescription & vbCrLf & vbCrLf & "...requires CPT > Status > Capture Week, two periods"

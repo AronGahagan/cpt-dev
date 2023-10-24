@@ -265,6 +265,8 @@ Dim strDirectory As String
       strDirectory = "CustomFields"
     Case "DECM"
       strDirectory = "Metrics"
+    Case "DECMTargetUID"
+      strDirectory = "Metrics"
     Case "DynamicFilter"
       strDirectory = "Text"
     Case "Events"
