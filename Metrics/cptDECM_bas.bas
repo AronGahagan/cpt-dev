@@ -259,8 +259,8 @@ Sub cptDECM_GET_DATA()
     If oTask Is Nothing Then GoTo next_task
     If Not oTask.Active Then GoTo next_task
     'If oTask.Summary Then GoTo next_task
-    'todo: external?
-'    If blnIncompleteOnly Then If IsDate(oTask.ActualFinish) Then GoTo next_task
+    'todo: skip external tasks?
+'    If blnIncompleteOnly Then If IsDate(oTask.ActualFinish) Then GoTo next_task 'todo: what was this for?
 '    If blnDiscreteOnly Then If oTask.GetField(lngEVT) = "A" Then GoTo next_task 'todo: what else is non-discrete? apportioned?
     For Each vField In Array(lngUID, lngWBS, lngOBS, lngCA, lngCAM, lngWP, lngWPM, lngEVT, lngEVP, lngFS, lngFF, lngBLS, lngBLF, lngAS, lngAF, lngBDur, lngDur, lngSummary, lngConst, lngTS)
       If vField = FieldNameToFieldConstant("Physical % Complete") Then
@@ -283,7 +283,7 @@ Sub cptDECM_GET_DATA()
     Next vField
     Print #lngTaskFile, strRecord
     For Each oLink In oTask.TaskDependencies
-      'todo: convert lag to effective days
+      'todo: convert lag to effective days?
       Print #lngLinkFile, oLink.From & "," & oLink.To & "," & Choose(oLink.Type + 1, "FF", "FS", "SF", "SS") & "," & oLink.Lag & ","
     Next oLink
     For Each oAssignment In oTask.Assignments
@@ -342,7 +342,7 @@ next_task:
     If lngX > 0 Then
       .MoveFirst
       Do While Not .EOF
-        strList = strList & .Fields("CA") & "," 'todo: UID is not in the query
+        strList = strList & .Fields("CA") & ","
         .MoveNext
       Loop
     End If
@@ -389,7 +389,7 @@ next_task:
     If lngX > 0 Then
       .MoveFirst
       Do While Not .EOF
-        strList = strList & .Fields("CA") & "," 'todo: fix this - UID is not in the query
+        strList = strList & .Fields("CA") & ","
         .MoveNext
       Loop
     End If
@@ -436,7 +436,7 @@ next_task:
     If lngX > 0 Then
       .MoveFirst
       Do While Not .EOF
-        strList = strList & .Fields("CA") & "," 'todo: fix this - UID is not in the query
+        strList = strList & .Fields("CA") & ","
         .MoveNext
       Loop
     End If
@@ -481,7 +481,7 @@ next_task:
     If lngX > 0 Then
       .MoveFirst
       Do While Not .EOF
-        strList = strList & .Fields("WP") & "," 'todo: fix this - UID is not in the query
+        strList = strList & .Fields("WP") & ","
         .MoveNext
       Loop
     End If
@@ -620,53 +620,6 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A109b...done."
   Application.StatusBar = "Getting EVMS: 10A109b...done."
   DoEvents
-  
-  '10A202a - mixed EOC
-'  REMOVED: NOT FOUND IN DECM v5.0 or DECM v6.0
-'  cptDECM_frm.lblStatus.Caption = "Getting EVMS Metric: 10A202a..."
-'  Application.StatusBar = "Getting EVMS Metric: 10A109b..."
-'  cptDECM_frm.lboMetrics.AddItem
-'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A202a"
-'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs w/mixed EOCs"
-'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%?"
-'  DoEvents
-'  'todo: there is no defined criteria for this metric...
-'  'X = WPs with multiple EOCs
-'  'Y = total count of WPs
-'  'we already have lngY
-'  strSQL = "SELECT WP,COUNT(EOC) FROM ("
-'  strSQL = strSQL & "SELECT DISTINCT t.WP,a.EOC "
-'  strSQL = strSQL & "FROM [tasks.csv] as t "
-'  strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TASK_UID,EOC FROM [assignments.csv]) AS a ON a.TASK_UID = t.UID) "
-'  strSQL = strSQL & "GROUP BY WP "
-'  strSQL = strSQL & "HAVING Count(EOC) > 1"
-'  With oRecordset
-'    .Open strSQL, strCon, adOpenKeyset
-'    lngX = .RecordCount
-'    strList = ""
-'    If lngX > 0 Then
-'      .MoveFirst
-'      Do While Not .EOF
-'        strList = strList & .Fields("WP") & ","
-'        .MoveNext
-'      Loop
-'    End If
-'    .Close
-'  End With
-'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-'  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-'  If dblScore < 0.05 Then
-'    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-'  Else
-'    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-'  End If
-'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
-'  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-'  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A202a...done."
-'  Application.StatusBar = "Getting EVMS: 10A202a...done."
-'  DoEvents
   
   '10A302b - PPs with progress
   Set oFSO = CreateObject("Scripting.FileSystemObject")
@@ -2403,7 +2356,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
     
     Case "06A101a" 'WP mismatches
       'todo: do what?
-    
+      
     Case "06A212a" 'out of sequence
       If Len(strList) > 0 Then
         SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
