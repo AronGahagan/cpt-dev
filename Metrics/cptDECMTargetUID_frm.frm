@@ -17,6 +17,10 @@ Attribute VB_Exposed = False
 Option Explicit
 Public lngTargetTaskUID As Long
 
+Private Sub cmdCancel_Click()
+  Me.Hide
+End Sub
+
 Private Sub cmdSubmit_Click()
   If IsNull(Me.lboTasks.Value) Then
     Me.lngTargetTaskUID = 0

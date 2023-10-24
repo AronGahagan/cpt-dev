@@ -3078,6 +3078,10 @@ Function cptDECMGetTargetUID() As Long
   End If
   oRecordset.MoveFirst
   With cptDECMTargetUID_frm
+    .lboHeader.Clear
+    .lboHeader.AddItem
+    .lboHeader.List(0, 0) = "UID"
+    .lboHeader.List(0, 1) = "TASK NAME"
     .lboTasks.Clear
     Do While Not oRecordset.EOF
       .lboTasks.AddItem

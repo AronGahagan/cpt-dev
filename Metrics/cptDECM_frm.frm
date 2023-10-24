@@ -31,7 +31,7 @@ Private Sub cmdDone_Click()
   'then clean up after yourself
   Dim vFile As Variant
   Dim strFile As String
-  For Each vFile In Split("Schema.ini,tasks.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv,06A504a.csv", ",")
+  For Each vFile In Split("Schema.ini,tasks.csv,targets.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv,06A504a.csv,06A504b.csv", ",")
     strFile = Environ("tmp") & "\" & vFile
     If Dir(strFile) <> vbNullString Then Kill strFile
   Next vFile
