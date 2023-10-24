@@ -38,6 +38,7 @@ Sub cptDECM_GET_DATA()
   Dim oLink As MSProject.TaskDependency
   Dim oTask As MSProject.Task
   'strings
+  Dim strUpdateView As String
   Dim strProgramAcroymn As String
   Dim strProgramAcronym As String
   Dim strLinks  As String
@@ -106,7 +107,7 @@ Sub cptDECM_GET_DATA()
     End If
   End If
   
-  dtStatus = ActiveProject.StatusDate 'todo: what dates does GetField return? times?
+  dtStatus = ActiveProject.StatusDate 'GetField returns mm/dd/yyyy hh:nn AMPM
   
   If Not cptValidMap(blnRequireConfirmation:=True) Then GoTo exit_here 'default required fields, cptFiscal not required to proceed, will prompt
   
@@ -233,16 +234,24 @@ Sub cptDECM_GET_DATA()
   Print #lngLinkFile, "FROM,TO,TYPE,LAG,"
   Print #lngAssignmentFile, "TASK_UID,RESOURCE_UID,BLW,BLC,RW,RC,EOC,"
   
-  cptDECM_frm.Caption = "DECM v6.0 (cpt " & cptGetVersion("cptDECM_bas") & ")"
-  lngItem = 0
-  cptDECM_frm.lboHeader.Clear
-  cptDECM_frm.lboHeader.AddItem
-  For Each vHeader In Split("METRIC,TITLE,TARGET,X,Y,SCORE,ICON,DESCRIPTION,TBD", ",")
-    cptDECM_frm.lboHeader.List(0, lngItem) = vHeader
-    lngItem = lngItem + 1
-  Next vHeader
-  cptDECM_frm.lboMetrics.Clear
-  cptDECM_frm.Show False
+  With cptDECM_frm
+    .Caption = "DECM v6.0 (cpt " & cptGetVersion("cptDECM_bas") & ")"
+    lngItem = 0
+    .lboHeader.Clear
+    .lboHeader.AddItem
+    For Each vHeader In Split("METRIC,TITLE,TARGET,X,Y,SCORE,ICON,DESCRIPTION,TBD", ",")
+      .lboHeader.List(0, lngItem) = vHeader
+      lngItem = lngItem + 1
+    Next vHeader
+    .lboMetrics.Clear
+    strUpdateView = cptGetSetting("Integration", "chkUpdateView")
+    If Len(strUpdateView) > 0 Then
+      .chkUpdateView = CBool(strUpdateView)
+    Else
+      .chkUpdateView = True 'default
+    End If
+    .Show False
+  End With
   
   blnDumpToExcel = False 'todo: if DumpToExcel then single Workbook, do better with tab names
   
@@ -2121,7 +2130,7 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
   End With
   
   blnDetail = MsgBox("Include Details?", vbQuestion + vbYesNo, "Detailed Results") = vbYes
-  
+  If blnDetail And Not cptDECM_frm.chkUpdateView Then cptDECM_frm.chkUpdateView = True
   strDir = Environ("tmp")
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
   
