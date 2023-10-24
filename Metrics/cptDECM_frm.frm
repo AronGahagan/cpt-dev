@@ -151,6 +151,9 @@ Public Sub lboMetrics_AfterUpdate()
         GoTo exit_here
       End If
     
+    Case "06A205a"
+      strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
+      strDescription = strDescription & vbCrLf & vbCrLf & "NOTE: metric does not address leads (negative lags)." & vbCrLf
     Case "06A208a"
       strDescription = strDescription & "SCORE: " & strScore
     Case "06A504a"
