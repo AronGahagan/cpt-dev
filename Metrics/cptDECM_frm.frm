@@ -63,6 +63,7 @@ Public Sub lboMetrics_AfterUpdate()
   Dim oFile As Scripting.TextStream  'Object
   Dim oFSO As Scripting.FileSystemObject  'Object
   'strings
+  Dim strRollingWaveDate As String
   Dim strMsg As String
   Dim strDir As String
   Dim strDescription As String
@@ -150,6 +151,9 @@ Public Sub lboMetrics_AfterUpdate()
         
         GoTo exit_here
       End If
+    Case "06I201a"
+      strDescription = strDescription & "SCORE: " & strScore
+      strDescription = strDescription & vbCrLf & vbCrLf & "Task Name contains 'SVT' and has resource assignments"
     
     Case "06A205a"
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
@@ -182,9 +186,12 @@ Public Sub lboMetrics_AfterUpdate()
     Case "10A103a"
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
       If lngX > 0 Then strDescription = strDescription & vbCrLf & vbCrLf & "...details exported to Excel"
-    Case "06I201a"
-      strDescription = strDescription & "SCORE: " & strScore
-      strDescription = strDescription & vbCrLf & vbCrLf & "Task Name contains 'SVT' and has resource assignments"
+    Case "29A601a"
+      strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
+      strRollingWaveDate = cptGetSetting("Integration", "RollingWaveDate")
+      If Len(strRollingWaveDate) > 0 Then
+        strDescription = strDescription & vbCrLf & vbCrLf & "Rolling Wave Date: " & Format(CDate(strRollingWaveDate), "mm/dd/yyyy hh:nn AMPM")
+      End If
     Case Else
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
   End Select

@@ -38,6 +38,7 @@ Sub cptDECM_GET_DATA()
   Dim oLink As MSProject.TaskDependency
   Dim oTask As MSProject.Task
   'strings
+  Dim strRollingWaveDate As String
   Dim strUpdateView As String
   Dim strProgramAcroymn As String
   Dim strProgramAcronym As String
@@ -95,6 +96,7 @@ Sub cptDECM_GET_DATA()
   Dim vHeader As Variant
   Dim vField As Variant
   'dates
+  Dim dtRollingWaveDate As Date
   Dim dtPrevious As Date
   Dim dtCurrent As Date
   Dim dtStatus As Date
@@ -677,15 +679,18 @@ next_task:
     dblScore = Round(lngX / lngY, 2)
     strList = ""
     With oRecordset
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & oRecordset(0) & ","
-        .MoveNext
-      Loop
+      If oRecordset.RecordCount > 0 Then
+        .MoveFirst
+        Do While Not .EOF
+          strList = strList & oRecordset(0) & ","
+          .MoveNext
+        Loop
+        Set oFile = oFSO.CreateTextFile(strDir & "\10A302b-x.csv", True)
+        oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+        oFile.Close
+      End If
     End With
-    Set oFile = oFSO.CreateTextFile(strDir & "\10A302b-x.csv", True)
-    oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
-    oFile.Close
+    
   End If
   oRecordset.Close
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -1894,6 +1899,75 @@ skip_fiscal:
   Application.StatusBar = "Getting Schedule Metric: 06I201a...done."
   DoEvents
   
+  '29A601a - rolling wave period is detail planned
+  strRollingWaveDate = cptGetSetting("Integration", "RollingWaveDate")
+  If Len(strRollingWaveDate) > 0 Then
+    dtRollingWaveDate = CDate(strRollingWaveDate)
+    
+    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 29A601a..."
+    Application.StatusBar = "Getting Schedule Metric: 29A601a..."
+    cptDECM_frm.lboMetrics.AddItem
+    cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "29A601a"
+    'cptDECM_frm.lboMetrics.Value = "29A601a"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Rolling Wave Planning"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+    DoEvents
+    'X = Count of PPs/SLPPs where baseline start precedes the next rolling wave cycle
+    'Y = Total count of PPs/SLPPs
+    
+    strSQL = "SELECT DISTINCT WP "
+    strSQL = strSQL & "FROM [tasks.csv] "
+    strSQL = strSQL & "WHERE EVT='K'" 'todo: SLPP
+    Set oRecordset = CreateObject("ADODB.Recordset")
+    strList = ""
+    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    If oRecordset.EOF Then
+      lngY = 0
+    Else
+      If oRecordset.RecordCount > 0 Then
+        lngY = oRecordset.RecordCount
+      Else
+        lngY = 0
+      End If
+    End If
+    oRecordset.Close
+    
+    strSQL = "SELECT DISTINCT WP FROM [tasks.csv] WHERE EVT='K' AND BLS <= #" & FormatDateTime(dtRollingWaveDate, vbGeneralDate) & "#"
+    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    If oRecordset.EOF Then
+      lngX = 0
+    Else
+      If oRecordset.RecordCount > 0 Then
+        lngX = oRecordset.RecordCount
+        oRecordset.MoveFirst
+        Do While Not oRecordset.EOF
+          strList = strList & oRecordset("WP") & ","
+          oRecordset.MoveNext
+        Loop
+      Else
+        lngX = 0
+      End If
+    End If
+    oRecordset.Close
+    'todo: SELECT DISTINCT WP WHERE BLW or BLC > 0 AND EVT=K and BLS<=RWD = lngX
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+    dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+    If (lngX / lngY) <= 0.1 Then
+      cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    Else
+      cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    End If
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 29A601a...done."
+    Application.StatusBar = "Getting Schedule Metric: 29A601a...done."
+    DoEvents
+    
+  End If
+  
   cptDECM_frm.lboMetrics.ListIndex = 0
   
   Application.StatusBar = "DECM Scoring Complete"
@@ -2506,6 +2580,14 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       End If
     
     Case "10A202a" 'WP with Mixed EOCs
+      If Len(strList) > 0 Then
+        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "contains", strList
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
+      End If
+    
+    Case "29A601a" 'PPs within Rolling Wave Period
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
         SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "contains", strList
