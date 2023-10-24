@@ -2404,7 +2404,7 @@ err_here:
 End Sub
 
 Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
-
+  Dim strGroup As String
   ScreenUpdating = False
   ActiveWindow.TopPane.Activate
   FilterClear
@@ -2419,7 +2419,11 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
         SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0)), pjAutoFilterIn, "equals", strList
-        'todo: group by CA,OBS
+        'group by CA,OBS
+        strGroup = "cpt 05A101a 1 CA : 1 OBS"
+        ActiveProject.TaskGroups.Add strGroup, FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0))
+        ActiveProject.TaskGroups(strGroup).GroupCriteria.Add FieldConstantToFieldName(Split(cptGetSetting("Integration", "OBS"), "|")(0))
+        GroupApply Name:=strGroup
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
@@ -2428,7 +2432,11 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
         SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0)), pjAutoFilterIn, "equals", strList
-        'todo: group by CA,CAM
+        'group by CA,CAM
+        strGroup = "cpt 05A102a 1 CA : 1 CAM"
+        ActiveProject.TaskGroups.Add strGroup, FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0))
+        ActiveProject.TaskGroups(strGroup).GroupCriteria.Add FieldConstantToFieldName(Split(cptGetSetting("Integration", "CAM"), "|")(0))
+        GroupApply Name:=strGroup
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
@@ -2437,7 +2445,12 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
         SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0)), pjAutoFilterIn, "equals", strList
-        'todo: group by CA,WBS
+        'group by CA,WBS
+        strGroup = "cpt 05A103a 1 CA : 1 WBS"
+        ActiveProject.TaskGroups.Add strGroup, FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0))
+        ActiveProject.TaskGroups(strGroup).GroupCriteria.Add FieldConstantToFieldName(Split(cptGetSetting("Integration", "WBS"), "|")(0))
+        GroupApply Name:=strGroup
+        
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
@@ -2467,7 +2480,11 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
         SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "equals", strList
-        'todo: group by WP,EVT
+        'group by WP,EVT
+        strGroup = "cpt 10A102a 1 WP : 1 EVT"
+        ActiveProject.TaskGroups.Add strGroup, FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0))
+        ActiveProject.TaskGroups(strGroup).GroupCriteria.Add FieldConstantToFieldName(Split(cptGetSetting("Integration", "EVT"), "|")(0))
+        GroupApply Name:=strGroup
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
