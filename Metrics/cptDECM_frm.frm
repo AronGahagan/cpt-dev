@@ -16,6 +16,16 @@ Attribute VB_Exposed = False
 '<cpt_version>v0.0.5</cpt_version>
 Option Explicit
 
+Private Sub chkUpdateView_Click()
+  Dim blnUpdateView As Boolean
+  If Not Me.Visible Then Exit Sub
+  blnUpdateView = Me.chkUpdateView
+  cptSaveSetting "Integration", "chkUpdateView", IIf(blnUpdateView, "1", "0")
+  If blnUpdateView And Not IsNull(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)) Then
+    cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)
+  End If
+End Sub
+
 Private Sub cmdDone_Click()
   Unload Me
   'then clean up after yourself
@@ -167,7 +177,7 @@ Public Sub lboMetrics_AfterUpdate()
   End Select
   
   Me.txtTitle.Value = strDescription
-  blnUpdateView = True 'todo: make this a checkbox on the DECM form
+  blnUpdateView = Me.chkUpdateView
   If blnUpdateView And Not IsNull(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)) Then
     cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)
   End If
