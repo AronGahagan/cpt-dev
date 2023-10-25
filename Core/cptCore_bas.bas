@@ -2371,7 +2371,7 @@ Sub cptGetValidMap(Optional strRequiredFields As String)
   End If
 End Sub
 
-Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalRequired As Boolean = False, Optional blnRollingWaveDateRequired As Boolean = False, Optional blnRequireConfirmation As Boolean = False) As Boolean
+Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalRequired As Boolean = False, Optional blnRollingWaveDateRequired As Boolean = False, Optional blnConfirmationRequired As Boolean = False) As Boolean
   'objects
   Dim oRequiredFields As Scripting.Dictionary
   Dim oComboBox As MSForms.ComboBox
@@ -2429,7 +2429,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
     
     For Each vControl In Split(strDefaultFields, ",")
       strSetting = cptGetSetting("Integration", CStr(vControl))
-      If Len(strSetting) = 0 Then
+      If Len(strSetting) = 0 Then 'pull from Metrics
         If vControl = "EVP" Then
           strSetting = cptGetSetting("Metrics", "cboEVP")
           If Len(strSetting) = 0 Then

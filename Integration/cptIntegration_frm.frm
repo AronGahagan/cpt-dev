@@ -285,6 +285,7 @@ Private Sub chkSyncSettings_Click()
   If Me.chkSyncSettings Then
     For Each vControl In Split(strFields, ",")
       Set oComboBox = Me.Controls("cbo" & vControl)
+      If Not oComboBox.Enabled Then GoTo next_control
       On Error Resume Next
       Set oCDP = ActiveProject.CustomDocumentProperties(oDict(vControl))
       If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -294,11 +295,12 @@ Private Sub chkSyncSettings_Click()
           cptSaveSetting "Integration", CStr(vControl), oComboBox.Value & "|" & CustomFieldGetName(oComboBox.Value)
           oComboBox.BorderColor = -2147483642
         Else 'notify discrepancy
-          If oCDP.Value <> FieldConstantToFieldName(oComboBox.Value) Then
+          If FieldNameToFieldConstant(oCDP.Value) <> oComboBox.Value Then
             oComboBox.BorderColor = 192
           End If
         End If
       End If
+next_control:
     Next vControl
   End If
   
