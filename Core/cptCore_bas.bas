@@ -2361,7 +2361,7 @@ Sub cptGetValidMap(Optional strRequiredFields As String)
   Dim lngResponse As Long
 
   If cptModuleExists("cptDECM_bas") And cptModuleExists("cptIntegration_frm") Then
-    blnValidMap = cptValidMap
+    blnValidMap = cptValidMap(strRequiredFields, False, False, True)
   Else
     strMsg = "Please install the modules 'cptDECM_bas' and 'cptIntegration_frm' from the latest release."
     strMsg = strMsg & "Go to GitHub now?"
@@ -2522,6 +2522,8 @@ next_control:
     strSetting = cptGetSetting("Integration", "RollingWaveDate")
     If Len(strSetting) > 0 Then
       .txtRollingWave = FormatDateTime(strSetting, vbShortDate)
+      .lblWeekday.Caption = Format(CDate(.txtRollingWave), "dddd")
+      .lblWeekday.Visible = True
     End If
     
     If blnRollingWaveDateRequired Then
@@ -2533,7 +2535,7 @@ next_control:
         blnValid = False
       End If
     Else
-      .txtRollingWave.Enabled = False
+      .txtRollingWave.Enabled = True
     End If
     
     'only show form if something required is missing

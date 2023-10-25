@@ -133,6 +133,72 @@ Private Sub UpdateIntegrationSettings()
   End If
 End Sub
 
+Private Sub txtRollingWave_AfterUpdate()
+  Dim dtRollingWave As Date
+  If Len(Me.txtRollingWave) > 0 Then
+    If IsDate(Me.txtRollingWave) Then
+      dtRollingWave = CDate(Me.txtRollingWave.Value)
+      Me.txtRollingWave = FormatDateTime(dtRollingWave, vbShortDate)
+      cptSaveSetting "Integration", "RollingWaveDate", dtRollingWave
+    Else
+      Me.txtRollingWave = ""
+    End If
+  Else
+    cptDeleteSetting "Integration", "RollingWaveDate"
+  End If
+  Me.lblWeekday.Visible = False
+End Sub
+
+Private Sub txtRollingWave_Change()
+  Dim dtDate As Date
+  
+  If Not Me.Visible Then Exit Sub
+  If Not Me.ActiveControl.Name = Me.txtRollingWave.Name Then Exit Sub
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  Me.lblWeekday.Visible = False
+  If Len(Me.txtRollingWave.Text) > 0 Then
+    Me.txtRollingWave.Text = cptRegEx(Me.txtRollingWave.Text, "[0-9\/]{1,}")
+    'limit to a date only
+    If Not IsDate(Me.txtRollingWave.Text) Then
+      Me.txtRollingWave.BorderColor = 192
+      Me.Repaint
+    Else
+      'limit to dates after the start date
+      dtDate = CDate(Format(Me.txtRollingWave.Text, "mm/dd/yyyy") & " 5:00 PM")
+      If dtDate < ActiveProject.StatusDate Then
+        Me.txtRollingWave.BorderColor = 192
+        Me.Repaint
+      Else
+        Me.txtRollingWave.BorderColor = -2147483642
+        Me.lblWeekday.Caption = Format(dtDate, "dddd")
+        Me.lblWeekday.Visible = True
+        Me.Repaint
+      End If
+    End If
+  End If
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptIntegration_frm", "txtRollingWave_Change", Err, Erl)
+  Resume exit_here
+
+End Sub
+
+Private Sub txtRollingWave_Enter()
+  If IsDate(Me.txtRollingWave) Then
+    Me.lblWeekday.Caption = Format(CDate(Me.txtRollingWave), "dddd")
+    Me.lblWeekday.Visible = True
+  End If
+End Sub
+
+Private Sub txtRollingWave_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+  Me.lblWeekday.Visible = False
+End Sub
+
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
   If CloseMode = 1 Then Me.blnValidIntegrationMap = False
   If Cancel = 1 Then Me.blnValidIntegrationMap = False
