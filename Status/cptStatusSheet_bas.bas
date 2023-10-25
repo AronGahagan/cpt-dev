@@ -2917,6 +2917,7 @@ End Sub
 
 Sub cptExportCompletedWork()
   'objects
+  Dim oCDP As DocumentProperty
   Dim oAssignment As Assignment
   Dim oWorksheet As Object 'Excel.Worksheet
   Dim oWorkbook As Object 'Excel.Workbook
@@ -2924,6 +2925,7 @@ Sub cptExportCompletedWork()
   Dim oRecordset As Object 'ADODB.Recordset
   Dim oTask As MSProject.Task
   'strings
+  Dim strCA As String
   Dim strEVP As String
   Dim strEVT As String
   Dim strLC As String
@@ -2939,6 +2941,8 @@ Sub cptExportCompletedWork()
   Dim strSQL As String
   Dim strFile As String
   'longs
+  Dim lngEVPCol As Long
+  Dim lngCA As Long
   Dim lngLC As Long
   Dim lngEVP As Long
   Dim lngEVT As Long
@@ -2960,50 +2964,36 @@ Sub cptExportCompletedWork()
   Dim dtStatus As Date
   Dim dtAF As Date
   
-  On Error Resume Next
-  strWBS = ActiveProject.CustomDocumentProperties("fCAID1")
-  strOBS = ActiveProject.CustomDocumentProperties("fCAID2")
-  'strCA?
-  strCAM = ActiveProject.CustomDocumentProperties("fCAM")
-  strWP = ActiveProject.CustomDocumentProperties("fWP")
-  'strWPM = "WPM" 'ActiveProject.CustomDocumentProperties("fWPM") 'todo: where to get WPM?
-  strLC = ActiveProject.CustomDocumentProperties("fResID")
-  strEVT = ActiveProject.CustomDocumentProperties("fEVT")
-  strEVP = ActiveProject.CustomDocumentProperties("fPCNT")
-  
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  
-  blnMissing = False
-  If strWBS = "" Then blnMissing = True
-  If strOBS = "" Then blnMissing = True
-  If strCAM = "" Then blnMissing = True
-  If strWP = "" Then blnMissing = True
-  If strLC = "" Then blnMissing = True
-  If strEVT = "" Then blnMissing = True
-  If strEVP = "" Then blnMissing = True
-  
-  If blnMissing Then
-    MsgBox "Please fill out all required fields in the COBRA Export Tool's Config tab, then try again.", vbExclamation + vbOKOnly, "Fields Unmapped"
+  If Not cptValidMap("WBS,OBS,CAM,CAM,WP,WPM,EVT,EVP", False, False, True) Then
+    MsgBox "Settings required. Exiting.", vbExclamation + vbOKOnly, "Invalid Settings"
     GoTo exit_here
   End If
   
-  lngWBS = FieldNameToFieldConstant(strWBS)
-  lngOBS = FieldNameToFieldConstant(strOBS)
-  lngCAM = FieldNameToFieldConstant(strCAM)
-  lngWP = FieldNameToFieldConstant(strWP)
-  'lngWPM = FieldNameToFieldConstant(strWPM)
-  lngLC = FieldNameToFieldConstant(strLC, pjResource)
-  lngEVT = FieldNameToFieldConstant(strEVT)
-  lngEVP = FieldNameToFieldConstant(strEVP)
-  'todo: !WARNING! this overwrites cptIntegration_frm settings with COBRA EXPORT settings !WARNING!
-  cptSaveSetting "Integration", "WBS", lngWBS & "|" & strWBS '& " (" & FieldConstantToFieldName(lngWBS) & ")"
-  cptSaveSetting "Integration", "OBS", lngOBS & "|" & strOBS '& " (" & FieldConstantToFieldName(lngOBS) & ")"
-  cptSaveSetting "Integration", "CAM", lngCAM & "|" & strCAM '& " (" & FieldConstantToFieldName(lngCAM) & ")"
-  cptSaveSetting "Integration", "WP", lngWP & "|" & strWP '& " (" & FieldConstantToFieldName(lngWP) & ")"
-  'cptSaveSetting "Integration", "WPM", lngWPM & "|" & strWPM '& " (" & FieldConstantToFieldName(lngWPM) & ")"
-  cptSaveSetting "Integration", "LC", lngLC & "|" & strLC '& " (" & FieldConstantToFieldName(lngLC) & ")"
-  cptSaveSetting "Integration", "EVT", lngEVT & "|" & strEVT '& " (" & FieldConstantToFieldName(lngEVT) & ")"
-  cptSaveSetting "Integration", "EVP", lngEVP & "|" & strEVP '& " (" & FieldConstantToFieldName(lngEVP) & ")"
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  lngWBS = Split(cptGetSetting("Integration", "WBS"), "|")(0)
+  strWBS = CustomFieldGetName(lngWBS)
+  lngOBS = Split(cptGetSetting("Integration", "OBS"), "|")(0)
+  strOBS = CustomFieldGetName(lngOBS)
+  lngCA = Split(cptGetSetting("Integration", "CA"), "|")(0)
+  strCA = CustomFieldGetName(lngCA)
+  lngCAM = Split(cptGetSetting("Integration", "CAM"), "|")(0)
+  strCAM = CustomFieldGetName(lngCAM)
+  lngWP = Split(cptGetSetting("Integration", "WP"), "|")(0)
+  strWP = CustomFieldGetName(lngWP)
+  lngWPM = Split(cptGetSetting("Integration", "WPM"), "|")(0)
+  strWPM = CustomFieldGetName(lngWPM)
+  On Error Resume Next
+  Set oCDP = ActiveProject.CustomDocumentProperties("fResID")
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If Not oCDP Is Nothing Then
+    strLC = ActiveProject.CustomDocumentProperties("fResID")
+    lngLC = FieldNameToFieldConstant(strLC, pjResource)
+  End If
+  lngEVT = Split(cptGetSetting("Integration", "EVT"), "|")(0)
+  strEVT = CustomFieldGetName(lngEVT)
+  lngEVP = Split(cptGetSetting("Integration", "EVP"), "|")(0)
+  strEVP = CustomFieldGetName(lngEVP)
   
   'create Schema
   strFile = Environ("tmp") & "\Schema.ini"
@@ -3015,18 +3005,19 @@ Sub cptExportCompletedWork()
   Print #lngFile, "Col1=UID Long"
   Print #lngFile, "Col2=WBS Text"
   Print #lngFile, "Col3=OBS Text"
-  Print #lngFile, "Col4=CAM Text"
-  Print #lngFile, "Col5=WP Text"
-  'Print #lngFile, "Col6=WPM Text"
-  Print #lngFile, "Col6=LC Text"
-  Print #lngFile, "Col7=AF DateTime"
-  Print #lngFile, "Col8=PercentComplete Long"
+  Print #lngFile, "Col4=CA Text"
+  Print #lngFile, "Col5=CAM Text"
+  Print #lngFile, "Col6=WP Text"
+  Print #lngFile, "Col7=WPM Text"
+  Print #lngFile, "Col8=LC Text"
+  Print #lngFile, "Col9=AF DateTime"
+  Print #lngFile, "Col10=PercentComplete Long"
   Close #lngFile
   
   strFile = Environ("tmp") & "\wp.csv"
   lngFile = FreeFile
   Open strFile For Output As #lngFile
-  Print #lngFile, "UID,WBS,OBS,CAM,WP,LC,AF,PercentComplete," 'WPM, after WP
+  Print #lngFile, "UID,WBS,OBS,CA,CAM,WP,WPM,LC,AF,PercentComplete,"
   
   lngTasks = ActiveProject.Tasks.Count
     
@@ -3038,10 +3029,15 @@ Sub cptExportCompletedWork()
       strRecord = oTask.UniqueID & ","
       strRecord = strRecord & oTask.GetField(lngWBS) & ","
       strRecord = strRecord & oTask.GetField(lngOBS) & ","
+      strRecord = strRecord & oTask.GetField(lngCA) & ","
       strRecord = strRecord & oTask.GetField(lngCAM) & ","
       strRecord = strRecord & oTask.GetField(lngWP) & ","
-      'strRecord = strRecord & oTask.GetField(lngWPM) & ","
-      strRecord = strRecord & oAssignment.Resource.GetField(lngLC) & ","
+      strRecord = strRecord & oTask.GetField(lngWPM) & ","
+      If lngLC > 0 Then
+        strRecord = strRecord & oAssignment.Resource.GetField(lngLC) & ","
+      Else
+        strRecord = strRecord & oAssignment.ResourceName & ","
+      End If
       If IsDate(oTask.ActualFinish) Then
         dtAF = FormatDateTime(oTask.ActualFinish, vbShortDate)
       Else
@@ -3061,7 +3057,7 @@ next_task:
   
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & Environ("tmp") & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
   strSQL = "SELECT WP,MAX(AF),AVG(PercentComplete) AS EV "
-  strSQL = strSQL & "FROM wp.csv "
+  strSQL = strSQL & "FROM [wp.csv] "
   strSQL = strSQL & "GROUP BY WP "
   strSQL = strSQL & "HAVING AVG(PercentComplete)=100 "
   strSQL = strSQL & "ORDER BY MAX(AF) Desc "
@@ -3097,7 +3093,7 @@ next_task:
       Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
     End If
     oWorksheet.Name = "DETAILS"
-    strSQL = "SELECT * FROM wp.csv ORDER BY WP,PercentComplete"
+    strSQL = "SELECT * FROM [wp.csv] ORDER BY WP,PercentComplete"
     oRecordset.Open strSQL, strCon, 1, 1 '1=adOpenKeyset, 1=adLockReadOnly
     For lngItem = 0 To oRecordset.Fields.Count - 1
       oWorksheet.Cells(1, lngItem + 1) = oRecordset.Fields(lngItem).Name
@@ -3113,7 +3109,8 @@ next_task:
     oExcel.ActiveWindow.SplitRow = 1
     oExcel.ActiveWindow.SplitColumn = 0
     oExcel.ActiveWindow.FreezePanes = True
-    oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)).AutoFilter Field:=8, Criteria1:="100" 'Field:=9
+    lngEVPCol = oWorksheet.Rows(1).Find("PercentComplete", lookat:=xlWhole).Column
+    oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)).AutoFilter Field:=lngEVPCol, Criteria1:="100"
     oRecordset.Close
     oWorkbook.Sheets("COMPLETED WPs").Activate
     oExcel.Visible = True
@@ -3125,6 +3122,7 @@ next_task:
     
 exit_here:
   On Error Resume Next
+  Set oCDP = Nothing
   Set oAssignment = Nothing
   Application.StatusBar = ""
   Set oWorksheet = Nothing
