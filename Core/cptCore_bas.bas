@@ -2538,6 +2538,18 @@ next_control:
       .txtRollingWave.Enabled = True
     End If
     
+    If cptModuleExists("cptIMSCobraExport_bas") And cptModuleExists("cptIMSCobraExport_frm") Then
+      .chkSyncSettings.Enabled = True
+      strSetting = cptGetSetting("Integration", "chkSyncSettings")
+      If Len(strSetting) > 0 Then
+        .chkSyncSettings = CBool(strSetting)
+      Else
+        .chkSyncSettings = True 'default
+      End If
+    Else
+      .chkSyncSettings.Enabled = False
+    End If
+    
     'only show form if something required is missing
     'DECM should require confirmation
     'Status Sheet/Import can skip
