@@ -442,15 +442,6 @@ Sub cptAnalyzeEVT(Optional lngImportField As Long)
     GoTo exit_here
   End If
   
-  'ensure metrics settings exist (need LOE settings)
-  If Not cptMetricsSettingsExist Then
-    Call cptShowMetricsSettings_frm(True)
-    If Not cptMetricsSettingsExist Then
-      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
-      GoTo exit_here
-    End If
-  End If
-  
   'either EVT or EVT_MS
   strEVT = cptFiscal_frm.cboUse.List(cptFiscal_frm.cboUse.ListIndex, 1)
   lngEVT = CLng(cptFiscal_frm.cboUse.List(cptFiscal_frm.cboUse.ListIndex, 0))

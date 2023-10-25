@@ -33,7 +33,13 @@ Sub cptShowStatusSheetImport_frm()
 
   'todo: start Excel in the background if not already open; close on form close
   'todo: new options: log{true|false}; verbose{true|false}
-
+  
+  'ensure settings
+  If Not cptValidMap("EVP,EVT,LOE") Then
+    MsgBox "Settings not saved; cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
+    GoTo exit_here
+  End If
+  
   'populate comboboxes
   With cptStatusSheetImport_frm
     .Caption = "Import Status Sheets (" & cptGetVersion("cptStatusSheetImport_frm") & ")"
@@ -316,20 +322,6 @@ Sub cptStatusSheetImport()
   cptSaveSetting "StatusSheetImport", "cboETC", CStr(lngETC)
   cptSaveSetting "StatusSheetImport", "chkAppend", IIf(blnAppend, 1, 0)
   cptSaveSetting "StatusSheetImport", "cboAppendTo", strAppendTo
-  
-  'ensure metrics settings exist
-'  If Not cptMetricsSettingsExist Then
-'    Call cptShowMetricsSettings_frm(True)
-'    If Not cptMetricsSettingsExist Then
-'      MsgBox "Settings not saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
-'      GoTo exit_here
-'    End If
-'  End If
-  
-  If Not cptValidMap("EVP,EVT,LOE") Then
-    MsgBox "Settings not saved; cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
-    GoTo exit_here
-  End If
   
   'get LOE settings
   strEVT = cptGetSetting("Integration", "EVT")
