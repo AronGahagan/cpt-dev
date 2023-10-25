@@ -2425,6 +2425,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
       'delete setting WPCN
       cptDeleteSetting "Integration", "WPCN"
     End If
+    cptDeleteSetting "Integration", "EOC"
     
     For Each vControl In Split(strDefaultFields, ",")
       strSetting = cptGetSetting("Integration", CStr(vControl))
