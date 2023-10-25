@@ -7,6 +7,7 @@ Sub cptShowFiscal_frm()
 Dim oException As MSProject.Exception
 Dim oCal As MSProject.Calendar
 'strings
+Dim strSetting As String
 Dim strExceptions As String
 'longs
 Dim lngItem As Long
@@ -81,7 +82,26 @@ Dim lngItem As Long
         MsgBox "The project's forecast finish date is after the latest fiscal period end date.", vbInformation + vbOKOnly, "Heads up"
       End If
     End If
-        
+    
+    .cmdAnalyzeEVT.Enabled = False
+    strSetting = cptGetSetting("Integration", "EVT")
+    If Len(strSetting) > 0 Then
+      .cboUse.AddItem
+      .cboUse.List(.cboUse.ListCount - 1, 0) = Split(strSetting, "|")(0)
+      .cboUse.List(.cboUse.ListCount - 1, 1) = "EVT"
+      .cboUse.List(.cboUse.ListCount - 1, 2) = Split(strSetting, "|")(1)
+      .cboUse.Value = Split(strSetting, "|")(0)
+      .cmdAnalyzeEVT.Enabled = True
+    End If
+    strSetting = cptGetSetting("Integration", "EVT_MS")
+    If Len(strSetting) > 0 Then
+      .cboUse.AddItem
+      .cboUse.List(.cboUse.ListCount - 1, 0) = Split(strSetting, "|")(0)
+      .cboUse.List(.cboUse.ListCount - 1, 1) = "EVT_MS"
+      .cboUse.List(.cboUse.ListCount - 1, 2) = Split(strSetting, "|")(1)
+      .cmdAnalyzeEVT.Enabled = True
+    End If
+    
     .Show 'Modal=True
     
   End With
@@ -93,7 +113,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptFiscal_bas", "cptShowCptFiscal_frm", Err, Erl)
+  Call cptHandleErr("cptFiscal_bas", "cptShowFiscal_frm", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -378,7 +398,7 @@ Sub cptAnalyzeEVT(Optional lngImportField As Long)
   'strings
   Dim strMissingBaselines As String
   Dim strLOE As String
-  Dim strLOEField As String
+  Dim strEVT As String
   Dim strCon As String
   Dim strDir As String
   Dim strSQL As String
@@ -400,6 +420,13 @@ Sub cptAnalyzeEVT(Optional lngImportField As Long)
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If IsNull(cptFiscal_frm.cboUse) Then
+    cptFiscal_frm.cboUse.BorderColor = 192
+    GoTo exit_here
+  Else
+    cptFiscal_frm.cboUse.BorderColor = -2147483642
+  End If
   
   Set oProject = ActiveProject
   
@@ -424,9 +451,10 @@ Sub cptAnalyzeEVT(Optional lngImportField As Long)
     End If
   End If
   
-  strLOEField = cptGetSetting("Metrics", "cboLOEField")
-  lngEVT = CLng(strLOEField)
-  strLOE = cptGetSetting("Metrics", "txtLOE")
+  'either EVT or EVT_MS
+  strEVT = cptFiscal_frm.cboUse.List(cptFiscal_frm.cboUse.ListIndex, 1)
+  lngEVT = CLng(cptFiscal_frm.cboUse.List(cptFiscal_frm.cboUse.ListIndex, 0))
+  strLOE = cptGetSetting("Integration", "LOE")
   
   'todo: allow user to add other fields?
   
@@ -445,7 +473,7 @@ Sub cptAnalyzeEVT(Optional lngImportField As Long)
   Print #1, "Col1=UID integer"
   Print #1, "Col2=BLS date"
   Print #1, "Col3=BLF date"
-  Print #1, "Col4=EVT text"
+  Print #1, "Col4=" & strEVT & " text"
   Close #1
   
   'export the calendar
@@ -463,7 +491,7 @@ Sub cptAnalyzeEVT(Optional lngImportField As Long)
   lngFile = FreeFile
   strFile = Environ("tmp") & "\tasks.csv"
   Open strFile For Output As #lngFile
-  Print #lngFile, "UID,BLS,BLF,EVT,"
+  Print #lngFile, "UID,BLS,BLF," & strEVT & ","
   For Each oTask In oProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.Summary Then GoTo next_task
@@ -471,6 +499,7 @@ Sub cptAnalyzeEVT(Optional lngImportField As Long)
     If oTask.Assignments.Count = 0 Then GoTo next_task
     If oTask.BaselineWork = 0 And oTask.BaselineCost = 0 Then GoTo next_task
     If oTask.GetField(lngEVT) = strLOE Then GoTo next_task
+    If Len(oTask.GetField(lngEVT)) = 0 And strEVT = "EVT_MS" Then GoTo next_task
     If Not IsDate(oTask.BaselineStart) Or Not IsDate(oTask.BaselineFinish) Then
       strMissingBaselines = strMissingBaselines = oTask.UniqueID & ","
     End If
@@ -493,7 +522,7 @@ next_task:
   Set oWorkbook = oExcel.Workbooks.Add
   Set oWorksheet = oWorkbook.Sheets(1)
   oWorksheet.Name = "EVT Analysis"
-  oWorksheet.[A1:E1] = Split("UID,BLS,BLF,EVT,FiscalPeriods", ",")
+  oWorksheet.[A1:E1] = Split("UID,BLS,BLF," & strEVT & ",FiscalPeriods", ",")
   
   Set rst = CreateObject("ADODB.Recordset")
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & Environ("tmp") & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
@@ -541,7 +570,7 @@ next_task:
     cptFiscal_frm.lblProgress.Width = cptFiscal_frm.lblStatus.Width
     cptSpeed False
   Else
-    MsgBox "Copy UIDs from Excel to 'Filter By Clipboard' to apply bulk EVT changes.", vbInformation + vbOKOnly, "Hint:"
+    MsgBox "Copy UIDs from Excel to 'Filter By Clipboard' to apply bulk " & strEVT & " changes.", vbInformation + vbOKOnly, "Hint:"
   End If
   Application.ActivateMicrosoftApp (pjMicrosoftExcel)
   
@@ -574,6 +603,5 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptFiscal", "cptAnalyzeEVT", Err, Erl)
-  MsgBox Err.Number & ": " & Err.Description, vbInformation + vbOKOnly, "Error"
   Resume exit_here
 End Sub
