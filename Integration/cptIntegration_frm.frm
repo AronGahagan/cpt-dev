@@ -253,38 +253,64 @@ Private Sub cboWPM_Change()
 End Sub
 
 Private Sub chkSyncSettings_Click()
+  'objects
+  Dim oCDP As DocumentProperty
+  Dim oComboBox As MSForms.ComboBox
+  Dim oDict As Scripting.Dictionary
+  'strings
+  Dim strFields As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vControl As Variant
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
   cptSaveSetting "Integration", "chkSyncSettings", IIf(Me.chkSyncSettings, "1", "0")
   
-  Dim strFields As String
   strFields = "CAM,WP,EVT,EVP"
-  
-  Dim oDict As Scripting.Dictionary
+  'map integration settings with COBRA Export Tool settings
   Set oDict = CreateObject("Scripting.Dictionary")
+  'do not sync WBS
+  'do not sync OBS
+  'do not sync CA
   oDict.Add "CAM", "fCAM"
   oDict.Add "WP", "fWP"
   oDict.Add "EVT", "fEVT"
   oDict.Add "EVP", "fPCNT"
   
   If Me.chkSyncSettings Then
-    Dim vControl As Variant
     For Each vControl In Split(strFields, ",")
-      Dim oComboBox As MSForms.ComboBox
       Set oComboBox = Me.Controls("cbo" & vControl)
-      If IsNull(oComboBox) Then 'import from COBRA Export Tool setting
-        oComboBox.Value = FieldNameToFieldConstant(ActiveProject.CustomDocumentProperties(oDict(vControl)))
-        cptSaveSetting "Integration", CStr(vControl), oComboBox.Value & "|" & CustomFieldGetName(oComboBox.Value)
-        oComboBox.BorderColor = -2147483642
-      Else 'notify discrepancy
-        If ActiveProject.CustomDocumentProperties(oDict(vControl)) <> FieldConstantToFieldName(oComboBox.Value) Then
-          oComboBox.BorderColor = 192
+      On Error Resume Next
+      Set oCDP = ActiveProject.CustomDocumentProperties(oDict(vControl))
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If Not oCDP Is Nothing Then
+        If IsNull(oComboBox) Then 'import from COBRA Export Tool setting
+          oComboBox.Value = FieldNameToFieldConstant(oCDP.Value)
+          cptSaveSetting "Integration", CStr(vControl), oComboBox.Value & "|" & CustomFieldGetName(oComboBox.Value)
+          oComboBox.BorderColor = -2147483642
+        Else 'notify discrepancy
+          If oCDP.Value <> FieldConstantToFieldName(oComboBox.Value) Then
+            oComboBox.BorderColor = 192
+          End If
         End If
       End If
     Next vControl
   End If
   
+exit_here:
+  Set oCDP = Nothing
   Set oComboBox = Nothing
   Set oDict = Nothing
   
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptIntegration_frm", "chkSyncSettings_Click", Err, Erl)
+  Resume exit_here
 End Sub
 
 Private Sub cmdCancel_Click()
