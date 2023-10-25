@@ -166,7 +166,6 @@ Sub cptDECM_GET_DATA()
   Print #lngFile, "Col4=BLC Double"
   Print #lngFile, "Col5=RW Double"
   Print #lngFile, "Col6=RC Double"
-  Print #lngFile, "Col7=EOC text"
   For Each vFile In Split("wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv", ",")
     Print #lngFile, "[" & vFile & "]"
     Print #lngFile, "Format=CSVDelimited"
@@ -249,7 +248,7 @@ Sub cptDECM_GET_DATA()
   'headers
   Print #lngTaskFile, "UID,WBS,OBS,CA,CAM,WP,WPM,EVT,EVP,FS,FF,BLS,BLF,AS,AF,BDUR,DUR,SUMMARY,CONST,TS,TASK_NAME,"
   Print #lngLinkFile, "FROM,TO,TYPE,LAG,"
-  Print #lngAssignmentFile, "TASK_UID,RESOURCE_UID,BLW,BLC,RW,RC,EOC,"
+  Print #lngAssignmentFile, "TASK_UID,RESOURCE_UID,BLW,BLC,RW,RC,"
   Print #lngTargetFile, "UID,TASK_NAME,"
   
   With cptDECM_frm
@@ -307,7 +306,7 @@ Sub cptDECM_GET_DATA()
       Print #lngLinkFile, oLink.From & "," & oLink.To & "," & Choose(oLink.Type + 1, "FF", "FS", "SF", "SS") & "," & oLink.Lag & ","
     Next oLink
     For Each oAssignment In oTask.Assignments
-      Print #lngAssignmentFile, Join(Array(oTask.UniqueID, oAssignment.ResourceUniqueID, oAssignment.BaselineWork, oAssignment.BaselineCost, oAssignment.RemainingWork, oAssignment.RemainingCost, oAssignment.Resource.GetField(Split(cptGetSetting("Integration", "EOC"), "|")(0))), ",")
+      Print #lngAssignmentFile, Join(Array(oTask.UniqueID, oAssignment.ResourceUniqueID, oAssignment.BaselineWork, oAssignment.BaselineCost, oAssignment.RemainingWork, oAssignment.RemainingCost), ",")
     Next
     If oTask.Duration = 0 Or oTask.Milestone Then
       Print #lngTargetFile, Join(Array(oTask.UniqueID, Replace(Replace(oTask.Name, ",", ""), Chr(34), "'")), ",")
@@ -2578,15 +2577,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
-    
-    Case "10A202a" 'WP with Mixed EOCs
-      If Len(strList) > 0 Then
-        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
-        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "contains", strList
-      Else
-        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
-      End If
-    
+        
     Case "29A601a" 'PPs within Rolling Wave Period
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
