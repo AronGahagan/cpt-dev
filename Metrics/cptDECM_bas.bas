@@ -114,7 +114,7 @@ Sub cptDECM_GET_DATA()
   
   dtStatus = ActiveProject.StatusDate 'GetField returns mm/dd/yyyy hh:nn AMPM
   
-  If Not cptValidMap(blnRequireConfirmation:=True) Then GoTo exit_here 'default required fields, cptFiscal not required to proceed, will prompt
+  If Not cptValidMap(blnConfirmationRequired:=True) Then GoTo exit_here 'default required fields, cptFiscal not required to proceed, will prompt
   
   strProgramAcronym = cptGetProgramAcronym
   
