@@ -85,21 +85,14 @@ Sub cptShowStatusSheet_frm()
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
     MsgBox "Please enter a Status Date.", vbExclamation + vbOKOnly, "No Status Date"
-    Application.ChangeStatusDate 'todo: this returns a boolean, why not just use this? if not ChangeStatusDate then ...
-    If Not IsDate(ActiveProject.StatusDate) Then GoTo exit_here
+    If Not Application.ChangeStatusDate Then
+      MsgBox "No Status Date. Exiting.", vbCritical + vbOKOnly, "No Status Date"
+      GoTo exit_here
+    End If
   End If
-  
-'  'requires metrics settings
-'  If Not cptMetricsSettingsExist Then
-'    Call cptShowMetricsSettings_frm(True)
-'    If Not cptMetricsSettingsExist Then
-'      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
-'      GoTo exit_here
-'    End If
-'  End If
-  
+    
   'requires metrics settings
-  If Not cptValidMap("EVP,EVT,LOE") Then
+  If Not cptValidMap("EVP,EVT,LOE", blnRequireConfirmation:=True) Then
     MsgBox "No settings saved; cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
     GoTo exit_here
   End If
@@ -451,11 +444,7 @@ skip_fields:
     End If
     
     .chkIgnoreLOE.Enabled = False
-    'todo: source of settings?
-    'todo: user can confirm settings
-    'todo: sync Metrics and Integration settings
     strLOE = cptGetSetting("Integration", "LOE")
-    If Len(strLOE) = 0 Then strLOE = cptGetSetting("Metrics", "txtLOE")
     If Len(strEVT) > 0 And Len(strLOE) > 0 Then
       .chkIgnoreLOE.Enabled = True
       .chkIgnoreLOE.ControlTipText = "Limit to tasks where " & strEVT & " <> " & strLOE
@@ -1796,7 +1785,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Lon
   Dim strEVT As String
   Dim strEVTList As String
   'longs
-  Dim lngLOEField As Long
+  Dim lngEVT As Long
   Dim lngEVTCol As Long
   Dim lngLastCol As Long
   Dim lngETCCol As Long
@@ -1898,6 +1887,14 @@ try_again:
     .WrapText = True
   End With
   
+  'get LOE settings
+  strEVT = cptGetSetting("Integration", "EVT")
+  If Len(strEVT) > 0 Then
+    lngEVT = CLng(Split(strEVT, "|")(0))
+  End If
+  strLOE = cptGetSetting("Integration", "LOE")
+  'todo: if user changes EVT or LOE on cptStatusSheet_frm then change the Integration setting
+  
   'format the data rows
   lngNameCol = oWorksheet.Rows(lngHeaderRow).Find("Task Name / Scope", lookat:=xlWhole).Column
   lngASCol = oWorksheet.Rows(lngHeaderRow).Find("Actual Start", lookat:=xlPart).Column
@@ -1922,18 +1919,7 @@ try_again:
     End If
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     'capture if task is LOE
-    blnLOE = False
-    strEVT = cptGetSetting("Metrics", "cboLOEField")
-    If Len(strEVT) > 0 Then
-      lngLOEField = CLng(strEVT)
-    End If
-    strLOE = cptGetSetting("Metrics", "txtLOE")
-    'todo: ensure sync between metrics and status sheet
-    If Len(strLOE) > 0 Then
-      With cptStatusSheet_frm
-        If oTask.GetField(FieldNameToFieldConstant(.cboEVT.Value)) = strLOE Then blnLOE = True
-      End With
-    End If
+    blnLOE = oTask.GetField(lngEVT) = strLOE
     If oTask.Summary Then
       If oSummaryRange Is Nothing Then
         Set oSummaryRange = oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol))
