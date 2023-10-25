@@ -525,7 +525,7 @@ Dim strVerbose As String
 Dim strLOE As String
 'longs
 Dim lngFile As Long
-Dim lngLOEField As Long
+Dim lngEVT As Long
 Dim lngEVP As Long
 Dim lngYears As Long
 'integers
@@ -614,13 +614,13 @@ Dim dtStatus As Date
             End If
           End If
                     
-          lngEVP = CLng(cptGetSetting("Metrics", "cboEVP"))
-          lngLOEField = CLng(cptGetSetting("Metrics", "cboLOEField"))
-          strLOE = cptGetSetting("Metrics", "txtLOE")
+          lngEVP = CLng(Split(cptGetSetting("Integration", "EVP"), "|")(0))
+          lngEVT = CLng(Split(cptGetSetting("Integration", "EVT"), "|")(0))
+          strLOE = cptGetSetting("Integration", "LOE")
           
           For Each oAssignment In oTask.Assignments
             If oAssignment.ResourceType = pjResourceTypeWork Then
-              If oTask.GetField(lngLOEField) = strLOE Then
+              If oTask.GetField(lngEVT) = strLOE Then
                 If oTask.BaselineStart < dtStatus Then
                   Set oTSVS = oAssignment.TimeScaleData(oTask.BaselineStart, dtStatus, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks, 1)
                   For Each oTSV In oTSVS
@@ -679,7 +679,7 @@ Sub cptShowMetricsSettings_frm(Optional blnModal As Boolean = False)
   Dim strMyHeaders As String
   Dim strCustomName As String
   Dim strLOE As String
-  Dim strLOEField As String
+  Dim strEVT As String
   Dim strEVP As String
   'longs
   Dim lngItem As Long
@@ -720,8 +720,8 @@ Sub cptShowMetricsSettings_frm(Optional blnModal As Boolean = False)
     
     strEVP = cptGetSetting("Metrics", "cboEVP")
     If Len(strEVP) > 0 Then .cboEVP.Value = CLng(strEVP)
-    strLOEField = cptGetSetting("Metrics", "cboLOEField")
-    If Len(strLOEField) > 0 Then .cboLOEField.Value = CLng(strLOEField)
+    strEVT = cptGetSetting("Metrics", "cboLOEField")
+    If Len(strEVT) > 0 Then .cboLOEField.Value = CLng(strEVT)
     strLOE = cptGetSetting("Metrics", "txtLOE")
     If Len(strLOE) > 0 Then .txtLOE = strLOE
     strMyHeaders = cptGetSetting("Metrics", "txtMyHeaders")
@@ -746,7 +746,7 @@ Function cptMetricsSettingsExist() As Boolean
   'objects
   'strings
   Dim strLOE As String
-  Dim strLOEField As String
+  Dim strEVT As String
   Dim strEVP As String
   'longs
   'integers
@@ -757,11 +757,11 @@ Function cptMetricsSettingsExist() As Boolean
     
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  strEVP = cptGetSetting("Metrics", "cboEVP")
-  strLOEField = cptGetSetting("Metrics", "cboLOEField")
-  strLOE = cptGetSetting("Metrics", "txtLOE")
+  strEVP = cptGetSetting("Integration", "EVP")
+  strEVT = cptGetSetting("Integration", "EVT")
+  strLOE = cptGetSetting("Integration", "LOE")
   
-  If Len(strEVP) = 0 Or Len(strLOEField) = 0 Or Len(strLOE) = 0 Then
+  If Len(strEVP) = 0 Or Len(strEVT) = 0 Or Len(strLOE) = 0 Then
     cptMetricsSettingsExist = False
   Else
     cptMetricsSettingsExist = True
@@ -784,7 +784,6 @@ Sub cptCaptureWeek()
   Dim rst As ADODB.Recordset
   'strings
   Dim strLOE As String
-  Dim strEVT As String
   Dim strProject As String
   Dim strFile As String
   Dim strDir As String
@@ -816,23 +815,24 @@ Sub cptCaptureWeek()
   
   'ensure status date
   If Not IsDate(ActiveProject.StatusDate) Then
-    MsgBox "Project has no Status Date.", vbCritical + vbOKOnly, "Cannot Proceed"
+    If Not ChangeStatusDate Then
+      MsgBox "Project has no Status Date. Exiting.", vbExclamation + vbOKOnly, "Status Date Required"
+      GoTo exit_here
+    End If
+  End If
+  
+  'ensure settings
+  If Not cptValidMap("EVT,LOE", False, False, True) Then
+    MsgBox "Settings not saved. Exiting.", vbExclamation + vbOKOnly, "Settins Required"
     GoTo exit_here
   End If
+  lngEVT = CLng(Split(cptGetSetting("Integration", "EVT"), "|")(0))
   
   'ensure program acronym
   strProject = cptGetProgramAcronym
   If Len(strProject) = 0 Then
     MsgBox "Program Acronym is required for this feature.", vbExclamation + vbOKOnly, "Program Acronym Needed"
     GoTo exit_here
-  End If
-    
-  If Not cptMetricsSettingsExist Then
-    Call cptShowMetricsSettings_frm(True)
-    If Not cptMetricsSettingsExist Then
-      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
-      Exit Sub
-    End If
   End If
     
   Set rst = CreateObject("ADODB.Recordset")
@@ -881,19 +881,6 @@ Sub cptCaptureWeek()
       End If
     End If
     rst.Filter = 0
-  End If
-  
-  strEVT = cptGetSetting("Metrics", "cboLOEField")
-  If Len(strEVT) > 0 Then
-    lngEVT = CLng(strEVT)
-  Else
-    MsgBox "Error retrieving setting for Metrics.cboLOEField. Cannot proceed.", vbExclamation + vbOKOnly, "Error"
-    GoTo exit_here
-  End If
-  strLOE = cptGetSetting("Metrics", "txtLOE")
-  If Len(strLOE) = 0 Then
-    MsgBox "Error retrieving setting for Metrics.txtLOE. Cannot proceed.", vbExclamation + vbOKOnly, "Error"
-    GoTo exit_here
   End If
   
   Set oTasks = ActiveProject.Tasks
@@ -995,7 +982,7 @@ Sub cptLateStartsFinishes()
   Dim strHeaders As String
   Dim strMyHeaders As String
   Dim strLOE As String
-  Dim strLOEField As String
+  Dim strEVT As String
   Dim strCC As String
   Dim strTo As String
   Dim strProject As String
@@ -1005,7 +992,7 @@ Sub cptLateStartsFinishes()
   Dim lngMyHeaders As Long
   Dim lngLastCol As Long
   Dim lngResponse As Long
-  Dim lngLOEField As Long
+  Dim lngEVT As Long
   Dim lngTask As Long
   Dim lngTasks As Long
   Dim lngForecastCount As Long
@@ -1028,20 +1015,27 @@ Sub cptLateStartsFinishes()
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
-  dtStatus = ActiveProject.StatusDate
-    
-  strProject = cptGetProgramAcronym
+  If Not cptValidMap("EVT,LOE", blnRequireConfirmation:=True) Then
+    MsgBox "Settings not saved. Exiting.", vbExclamation + vbOKOnly, "Settings Required"
+    GoTo exit_here
+  End If
+  strEVT = Split(cptGetSetting("Integration", "EVT"), "|")(0)
+  lngEVT = CLng(strEVT)
+  strLOE = cptGetSetting("Integration", "LOE")
   
-  If Not cptMetricsSettingsExist Then
-    Call cptShowMetricsSettings_frm(True)
-    If Not cptMetricsSettingsExist Then
-      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
+  If Not IsDate(ActiveProject.StatusDate) Then
+    If Not ChangeStatusDate Then
+      MsgBox "Status Date is required. Exiting.", vbExclamation + vbOKOnly, "Status Date Required"
       GoTo exit_here
     End If
   End If
   
+  dtStatus = ActiveProject.StatusDate
+    
+  strProject = cptGetProgramAcronym
+    
   'get other fields
-  strMyHeaders = cptGetMyHeaders("BEI Trend", True)
+  strMyHeaders = cptGetMyHeaders("BEI Trend", True) 'todo: get rid of this
   If strMyHeaders = "" Then GoTo exit_here
   
   'get excel
@@ -1056,20 +1050,7 @@ Sub cptLateStartsFinishes()
   Set oWorksheet = oWorkbook.Sheets(1)
   oWorksheet.Name = "DETAILS"
   cptSaveSetting "Metrics", "txtMyHeaders", strMyHeaders
-  
-  strLOEField = cptGetSetting("Metrics", "cboLOEField")
-  If Len(strLOEField) > 0 Then
-    lngLOEField = CLng(strLOEField)
-  Else
-    MsgBox "Error retrieving setting Metrics.cboLOEField. Cannot proceed.", vbExclamation + vbOKOnly, "Settings"
-    GoTo exit_here
-  End If
-  strLOE = cptGetSetting("Metrics", "txtLOE")
-  If Len(strLOE) = 0 Then
-    MsgBox "Error retrieving setting Metrics.strLOE. Cannot proceed.", vbExclamation + vbOKOnly, "Settings"
-    GoTo exit_here
-  End If
-  
+    
   strHeaders = "UID,"
   strHeaders = strHeaders & strMyHeaders
   strHeaders = strHeaders & "NAME,TOTAL SLACK,REMAINING DURATION,REMAINING WORK,BASELINE START,START VARIANCE,ACTUAL START,START,BASELINE FINISH,FINISH VARIANCE,ACTUAL FINISH,FINISH"
@@ -1088,7 +1069,7 @@ Sub cptLateStartsFinishes()
       'only check for tasks with assignments
       If oTask.Resources.Count = 0 Then GoTo next_task
       'only check for discrete tasks
-      If oTask.GetField(lngLOEField) = strLOE Then GoTo next_task
+      If oTask.GetField(lngEVT) = strLOE Then GoTo next_task
       'skip unassigned (currently material/odc/tvl)
       'If oTask.GetField(FieldNameToFieldConstant("WPM")) = "" Then GoTo next_task
       'only report early/late starts/finishes
@@ -1168,7 +1149,7 @@ next_task:
   oListObject.ListColumns(strSummary).Range.Copy oWorksheet.[A5]
   oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A1048576]).RemoveDuplicates Columns:=1, Header:=xlNo
   oWorksheet.Sort.SortFields.Clear
-  oWorksheet.Sort.SortFields.Add key:=oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A6].End(xlDown)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+  oWorksheet.Sort.SortFields.Add Key:=oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A6].End(xlDown)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
   With oWorksheet.Sort
     .SetRange oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A1048576].End(xlUp))
     .Header = xlNo
@@ -1487,13 +1468,18 @@ Sub cptGetSPIDetail(ByRef oWorkbook As Excel.Workbook)
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
+  If Not cptValidMap("EVP,EVT,LOE", False, False, True) Then
+    MsgBox "Settings not saved. Exiting.", vbExclamation + vbOKOnly, "Settings Required"
+    GoTo exit_here
+  End If
+  
   Application.StatusBar = "Exporting SPI Detail..."
   DoEvents
   
   Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
   oWorksheet.Name = "SPI Details"
   
-  strMyHeaders = cptGetMyHeaders("SPI Detail")
+  strMyHeaders = cptGetMyHeaders("SPI Detail") 'todo: get rid of this
   
   strHeader = "UID,"
   strHeader = strHeader & strMyHeaders
@@ -1502,9 +1488,9 @@ Sub cptGetSPIDetail(ByRef oWorkbook As Excel.Workbook)
   
   lngTasks = ActiveProject.Tasks.Count
   
-  lngEVP = CLng(cptGetSetting("Metrics", "cboEVP"))
-  lngEVT = CLng(cptGetSetting("Metrics", "cboLOEField"))
-  strLOE = cptGetSetting("Metrics", "strLOE")
+  lngEVP = CLng(Split(cptGetSetting("Integration", "EVP"), "|")(0))
+  lngEVT = CLng(Split(cptGetSetting("Integration", "EVT"), "|")(0))
+  strLOE = cptGetSetting("Integration", "LOE")
   
   For Each oTask In ActiveProject.Tasks
     If oTask.Summary Then GoTo next_task
@@ -1626,7 +1612,6 @@ Sub cptGetTrend_CEI()
   Dim oRecordset As ADODB.Recordset
   'strings
   Dim strLOE As String
-  Dim strLOEField As String
   Dim strHeaders As String
   Dim strMyHeaders As String
   Dim strProgram As String
@@ -1661,6 +1646,13 @@ Sub cptGetTrend_CEI()
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
+  If Not cptValidMap("EVT,LOE", False, False, True) Then
+    MsgBox "Settings not saved. Exiting.", vbExclamation + vbOKOnly, "Settings Required"
+    GoTo exit_here
+  End If
+  lngEVT = CLng(Split(cptGetSetting("Integration", "EVT"), "|")(0))
+  strLOE = cptGetSetting("Integration", "LOE")
+  
   'confirm program acronym
   Application.StatusBar = "Getting Program Acronym..."
   DoEvents
@@ -1679,15 +1671,6 @@ Sub cptGetTrend_CEI()
     If Not IsDate(ActiveProject.StatusDate) Then GoTo exit_here
   End If
   dtThisWeek = FormatDateTime(ActiveProject.StatusDate, vbGeneralDate)
-    
-  'ensure metrics settings exit
-  If Not cptMetricsSettingsExist Then
-    Call cptShowMetricsSettings_frm(True)
-    If Not cptMetricsSettingsExist Then
-      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
-      Exit Sub
-    End If
-  End If
   
   'ensure cei file exists
   Application.StatusBar = "Confirming cpt-cei.adtg exists..."
@@ -1916,13 +1899,7 @@ next_record:
   oListObject.Name = "NEXT_WEEK"
   oListObject.ShowTotals = True
   lngFF = 0
-  
-  strLOEField = cptGetSetting("Metrics", "cboLOEField")
-  If Len(strLOEField) > 0 Then
-    lngEVT = CLng(strLOEField)
-  End If
-  strLOE = cptGetSetting("Metrics", "txtLOE")
-  
+    
   dtThisWeek = ActiveProject.StatusDate
   dtNextWeek = DateAdd("d", 7, dtThisWeek)
   lngItems = ActiveProject.Tasks.Count
@@ -2034,9 +2011,9 @@ next_task:
     'sort by first custom field,FF or by only FF
     oListObject.Sort.SortFields.Clear
     If UBound(Split(strMyHeaders, ",")) > 0 Then
-      oListObject.Sort.SortFields.Add key:=oWorksheet.Range("THIS_WEEK[" & Split(strMyHeaders, ",")(0) & "]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add Key:=oWorksheet.Range("THIS_WEEK[" & Split(strMyHeaders, ",")(0) & "]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
     End If
-    oListObject.Sort.SortFields.Add key:=oWorksheet.Range("THIS_WEEK[FF]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+    oListObject.Sort.SortFields.Add Key:=oWorksheet.Range("THIS_WEEK[FF]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
     With oListObject.Sort
       .Header = xlYes
       .MatchCase = False
@@ -2649,8 +2626,6 @@ Sub cptGetEarnedSchedule()
   Dim oCell As Excel.Range
   'strings
   Dim strFormula As String
-  Dim strLOEField As String
-  Dim strEVP As String
   Dim strLOE As String
   Dim strProgram As String
   Dim strCon As String
@@ -2664,7 +2639,7 @@ Sub cptGetEarnedSchedule()
   Dim lngES As Long
   Dim lngLastRow As Long
   Dim lngEVP As Long
-  Dim lngLOEField As Long
+  Dim lngEVT As Long
   Dim lngFile As Long
   Dim lngTask As Long
   Dim lngTasks As Long
@@ -2689,11 +2664,21 @@ Sub cptGetEarnedSchedule()
   strProgram = cptGetProgramAcronym
   
   If Not IsDate(ActiveProject.StatusDate) Then
-    MsgBox "Status Date required.", vbExclamation + vbOKOnly, "Earned Schedule"
-    GoTo exit_here
+    If Not ChangeStatusDate Then
+      MsgBox "Status Date required. Exiting.", vbExclamation + vbOKOnly, "Earned Schedule"
+      GoTo exit_here
+    End If
   End If
   
   dtStatus = FormatDateTime(ActiveProject.StatusDate, vbShortDate) 'todo: format?
+  
+  If Not cptValidMap("EVP,EVT,LOE", False, False, True) Then
+    MsgBox "Settings not saved. Exiting.", vbExclamation + vbOKOnly, "Settings Required"
+    GoTo exit_here
+  End If
+  lngEVP = CLng(Split(cptGetSetting("Integration", "EVP"), "|")(0))
+  lngEVT = CLng(Split(cptGetSetting("Integration", "EVT"), "|")(0))
+  strLOE = cptGetSetting("Integration", "LOE")
   
   If ActiveProject.ResourceCount = 0 Then
     MsgBox "Project must have resources.", vbExclamation + vbOKOnly, "Earned Schedule"
@@ -2703,14 +2688,6 @@ Sub cptGetEarnedSchedule()
   If Not IsDate(ActiveProject.BaselineSavedDate(pjBaseline)) Then
     MsgBox "Project must be baselined.", vbExclamation + vbOKOnly, "Earned Schedule"
     GoTo exit_here
-  End If
-  
-  If Not cptMetricsSettingsExist Then
-    cptShowMetricsSettings_frm True
-    If Not cptMetricsSettingsExist Then
-      MsgBox "Metrics Settings required.", vbExclamation + vbOKOnly, "Earned Schedule"
-      GoTo exit_here
-    End If
   End If
   
   strFile = cptDir & "\Schema.ini"
@@ -2727,31 +2704,13 @@ Sub cptGetEarnedSchedule()
   strFile = cptDir & "\EarnedSchedule.csv"
   Open strFile For Output As #lngFile
   Print #lngFile, "WEEK_ENDING,BCWS,ETC,"
-  
-  strEVP = cptGetSetting("Metrics", "cboEVP")
-  If Len(strEVP) = 0 Then
-    MsgBox "Error obtaining setting Metrics.cboEVP", vbExclamation + vbOKOnly, "Earned Schedule"
-    GoTo exit_here
-  End If
-  lngEVP = CLng(strEVP)
-  strLOEField = cptGetSetting("Metrics", "cboLOEField")
-  If Len(strLOEField) > 0 Then
-    lngLOEField = CLng(strLOEField)
-  Else
-    MsgBox "Error obtaining setting Metrics.cboLOEField", vbExclamation + vbOKOnly, "Earned Schedule"
-    GoTo exit_here
-  End If
-  strLOE = cptGetSetting("Metrics", "txtLOE")
-  If Len(strLOE) = 0 Then
-    MsgBox "Error obtaining setting Metrics.txtLOE", vbExclamation + vbOKOnly, "Earned Schedule"
-  End If
-  
+    
   lngTasks = ActiveProject.Tasks.Count
   For Each oTask In oTasks
     If oTask Is Nothing Then GoTo next_task
     If Not oTask.Active Then GoTo next_task
     If oTask.ExternalTask Then GoTo next_task
-    If oTask.GetField(lngLOEField) = strLOE Then GoTo next_task
+    If oTask.GetField(lngEVT) = strLOE Then GoTo next_task
     If oTask.Assignments.Count = 0 Then GoTo next_task
     For Each oAssignment In oTask.Assignments
       If oAssignment.ResourceType <> pjResourceTypeWork Then GoTo next_assignment
@@ -2787,7 +2746,7 @@ next_task:
   Set oRecordset = CreateObject("ADODB.Recordset")
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & cptDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
   strSQL = "SELECT WEEK_ENDING,SUM(BCWS) AS BCWS,SUM(ETC) AS ETC "
-  strSQL = strSQL & "FROM EarnedSchedule.csv "
+  strSQL = strSQL & "FROM [EarnedSchedule].csv "
   strSQL = strSQL & "GROUP BY WEEK_ENDING "
   strSQL = strSQL & "ORDER BY WEEK_ENDING"
   With oRecordset
