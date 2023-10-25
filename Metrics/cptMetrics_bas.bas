@@ -2625,6 +2625,7 @@ Sub cptGetEarnedSchedule()
   Dim oRange As Excel.Range
   Dim oCell As Excel.Range
   'strings
+  Dim strMissingWeeks As String
   Dim strFormula As String
   Dim strLOE As String
   Dim strProgram As String
@@ -2650,8 +2651,12 @@ Sub cptGetEarnedSchedule()
   Dim dblBCWS As Double
   'booleans
   'variants
+  Dim vWeek As Variant
   Dim vBorder As Variant
   'dates
+  Dim dtWeek As Date
+  Dim dtMin As Date
+  Dim dtMax As Date
   Dim dtLatestFinish As Date
   Dim dtStart As Date
   Dim dtStatus As Date
@@ -2745,8 +2750,30 @@ next_task:
   
   Set oRecordset = CreateObject("ADODB.Recordset")
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & cptDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
+  'ensure continuity of weeks
+  strSQL = "SELECT MIN(WEEK_ENDING),MAX(WEEK_ENDING) FROM [EarnedSchedule.csv]"
+  With oRecordset
+    .Open strSQL, strCon, 1, 1
+    If .RecordCount > 0 Then
+      dtMin = oRecordset(0)
+      dtMax = oRecordset(1)
+      dtWeek = dtMin
+      Do While dtWeek <= dtMax
+        dtWeek = DateAdd("d", 7, dtWeek)
+        strMissingWeeks = strMissingWeeks & dtWeek & ","
+      Loop
+    End If
+    .Close
+  End With
+  Open strFile For Append As #lngFile
+  strMissingWeeks = Left(strMissingWeeks, Len(strMissingWeeks) - 1) 'remove trailing comma
+  For Each vWeek In Split(strMissingWeeks, ",")
+    Print #lngFile, vWeek & ",0,0,"
+  Next vWeek
+  Close #lngFile
+  
   strSQL = "SELECT WEEK_ENDING,SUM(BCWS) AS BCWS,SUM(ETC) AS ETC "
-  strSQL = strSQL & "FROM [EarnedSchedule].csv "
+  strSQL = strSQL & "FROM EarnedSchedule.csv "
   strSQL = strSQL & "GROUP BY WEEK_ENDING "
   strSQL = strSQL & "ORDER BY WEEK_ENDING"
   With oRecordset
