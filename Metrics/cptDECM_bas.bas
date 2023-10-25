@@ -1933,7 +1933,7 @@ skip_fiscal:
     End If
     oRecordset.Close
     
-    strSQL = "SELECT DISTINCT WP FROM [tasks.csv] WHERE EVT='K' AND BLS <= #" & FormatDateTime(dtRollingWaveDate, vbGeneralDate) & "#"
+    strSQL = "SELECT DISTINCT WP FROM [tasks.csv] WHERE EVT='K' AND BLS <= #" & FormatDateTime(dtRollingWaveDate, vbGeneralDate) & " 5:00 PM#"
     oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
     If oRecordset.EOF Then
       lngX = 0
