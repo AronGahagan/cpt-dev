@@ -2555,7 +2555,7 @@ next_control:
     'DECM should require confirmation
     'Status Sheet/Import can skip
     
-    If Not blnValid Or blnRequireConfirmation Then
+    If Not blnValid Or blnConfirmationRequired Then
       .Show
       cptValidMap = .blnValidIntegrationMap
     Else

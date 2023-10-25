@@ -92,7 +92,7 @@ Sub cptShowStatusSheet_frm()
   End If
     
   'requires metrics settings
-  If Not cptValidMap("EVP,EVT,LOE", blnRequireConfirmation:=True) Then
+  If Not cptValidMap("EVP,EVT,LOE", blnConfirmationRequired:=True) Then
     MsgBox "No settings saved; cannot proceed.", vbExclamation + vbOKOnly, "Settings Required"
     GoTo exit_here
   End If

@@ -1015,7 +1015,7 @@ Sub cptLateStartsFinishes()
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
-  If Not cptValidMap("EVT,LOE", blnRequireConfirmation:=True) Then
+  If Not cptValidMap("EVT,LOE", blnConfirmationRequired:=True) Then
     MsgBox "Settings not saved. Exiting.", vbExclamation + vbOKOnly, "Settings Required"
     GoTo exit_here
   End If
