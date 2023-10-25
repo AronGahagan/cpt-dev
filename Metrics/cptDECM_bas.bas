@@ -3132,7 +3132,7 @@ err_here:
   Resume exit_here
 End Function
 
-Function cptDECMGetTargetUID() As Long
+Private Function cptDECMGetTargetUID() As Long
   'objects
   Dim oRecordset As ADODB.Recordset
   'strings
@@ -3151,6 +3151,10 @@ Function cptDECMGetTargetUID() As Long
   
   Set oRecordset = CreateObject("ADODB.Recordset")
   strDir = Environ("tmp")
+  If Dir(strDir & "\targets.csv") = vbNullString Then
+    cptDECMGetTargetUID = 0
+    GoTo exit_here
+  End If
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
   strSQL = "SELECT * FROM [targets.csv] "
   oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
