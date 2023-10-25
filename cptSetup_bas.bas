@@ -744,7 +744,7 @@ Public Function cptInternetIsConnected() As Boolean
 
 End Function
 
-Function cptRegEx(strText As String, strRegEx As String, Optional blnMultiline As Boolean = False) As String
+Function cptRegEx(strText As String, strRegEx As String, Optional blnMultiline As Boolean = False, Optional blnIgnoreCase As Boolean = True) As String
 Dim RE As Object, REMatch As Variant, REMatches As Object
 Dim strMatch As String
 
@@ -754,7 +754,7 @@ Dim strMatch As String
     With RE
       .MultiLine = blnMultiline
       .Global = True
-      .IgnoreCase = True
+      .IgnoreCase = blnIgnoreCase
       .Pattern = strRegEx
     End With
 
