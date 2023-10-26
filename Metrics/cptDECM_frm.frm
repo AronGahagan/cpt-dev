@@ -31,7 +31,7 @@ Private Sub cmdDone_Click()
   'then clean up after yourself
   Dim vFile As Variant
   Dim strFile As String
-  For Each vFile In Split("Schema.ini,tasks.csv,targets.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv,06A504a.csv,06A504b.csv", ",")
+  For Each vFile In Split("Schema.ini,tasks.csv,targets.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv,06A504a.csv,06A504b.csv,segregated.csv,itemized.csv", ",")
     strFile = Environ("tmp") & "\" & vFile
     If Dir(strFile) <> vbNullString Then Kill strFile
   Next vFile
@@ -39,7 +39,7 @@ Private Sub cmdDone_Click()
   Dim vGroup As Variant
   'git grep 'strGroup =' | awk -F"strGroup = " '{ print $2}' | sed 's/"//g' | tr -s '\n' ','
   For Each vGroup In Split("cpt 05A101a 1 CA : 1 OBS,cpt 05A102a 1 CA : 1 CAM,cpt 05A103a 1 CA : 1 WBS,cpt 10A102a 1 WP : 1 EVT,cpt 11A101a CA BAC = SUM(WP BAC)", ",")
-    If cptGroupExists(vGroup) Then ActiveProject.TaskGroups2(vGroup).Delete
+    If cptGroupExists(CStr(vGroup)) Then ActiveProject.TaskGroups2(vGroup).Delete
   Next vGroup
 End Sub
 
@@ -191,6 +191,9 @@ Public Sub lboMetrics_AfterUpdate()
     Case "10A103a"
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
       If lngX > 0 Then strDescription = strDescription & vbCrLf & vbCrLf & "...details exported to Excel"
+    Case "11A101a"
+      strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
+      strDescription = strDescription & vbCrLf & vbCrLf & "NOTE: analysis done on Baseline Work only."
     Case "29A601a"
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
       strRollingWaveDate = cptGetSetting("Integration", "RollingWaveDate")

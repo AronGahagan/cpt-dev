@@ -190,6 +190,19 @@ Sub cptDECM_GET_DATA()
   Print #1, "Format=CSVDelimited"
   Print #1, "Col1=UID integer"
   Print #1, "Col2=TASK_NAME text"
+  Print #1, "[segregated.csv]"
+  Print #1, "ColNameHeader=True"
+  Print #1, "Format=CSVDelimited"
+  Print #1, "Col1=CA text"
+  Print #1, "Col2=WP text"
+  Print #1, "Col3=WP_BLW double"
+  Print #1, "[itemized.csv]"
+  Print #1, "ColNameHeader=True"
+  Print #1, "Format=CSVDelimited"
+  Print #1, "Col1=CA text"
+  Print #1, "Col2=CA_BAC double"
+  Print #1, "Col3=WP_BAC double"
+  Print #1, "Col4=discrepancy double"
   
   Close #lngFile
   
@@ -756,7 +769,173 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A303a...done."
   Application.StatusBar = "Getting EVMS: 10A303a...done."
   DoEvents
-
+  
+  '11A101a - CA BAC = SUM(WP BAC)?
+  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 11A101a..."
+  Application.StatusBar = "Getting Schedule Metric: 11A101a..."
+  cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "11A101a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "CA BAC = Sum(WP BAC)"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
+  DoEvents
+  'X = Sum of the absolute values of (CA BAC - the sum of its WP and PP budgets)
+  'Y = Total program BAC
+  'create segregated.csv
+  strSQL = "SELECT "
+  strSQL = strSQL & "    DISTINCT t1.ca, "
+  strSQL = strSQL & "    t1.wp, "
+  strSQL = strSQL & "    sum(t3.[wp blw]) AS [WP_BLW] "
+  strSQL = strSQL & "FROM "
+  strSQL = strSQL & "    ( "
+  strSQL = strSQL & "        tasks.csv t1 "
+  strSQL = strSQL & "        INNER JOIN assignments.csv t2 ON t2.task_uid = t1.uid "
+  strSQL = strSQL & "    ) "
+  strSQL = strSQL & "    INNER JOIN ( "
+  strSQL = strSQL & "        SELECT "
+  strSQL = strSQL & "            task_uid, "
+  strSQL = strSQL & "            sum(blw / 60) AS [wp blw] "
+  strSQL = strSQL & "        FROM "
+  strSQL = strSQL & "            assignments.csv "
+  strSQL = strSQL & "        GROUP BY "
+  strSQL = strSQL & "            task_uid "
+  strSQL = strSQL & "    ) AS t3 ON t3.task_uid = t1.uid "
+  strSQL = strSQL & "GROUP BY "
+  strSQL = strSQL & "    t1.ca, "
+  strSQL = strSQL & "    t1.wp "
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  lngFile = FreeFile
+  strFile = Environ("tmp") & "\segregated.csv"
+  If Dir(strFile) <> vbNullString Then Kill strFile
+  Open strFile For Output As #lngFile
+  Print #lngFile, "CA,WP,WP_BLW,"
+  Print #lngFile, oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+  Close #lngFile
+  oRecordset.Close
+  
+  'create itemized.csv
+  strSQL = "SELECT "
+  strSQL = strSQL & "    t1.ca, "
+  strSQL = strSQL & "    t2.[ca_bac], "
+  strSQL = strSQL & "    sum(t3.[wp_bac]) AS [WP_BAC], "
+  strSQL = strSQL & "    t2.[ca_bac] - sum(t3.[wp_bac]) AS [discrepancy] "
+  strSQL = strSQL & "FROM "
+  strSQL = strSQL & "    ( "
+  strSQL = strSQL & "        segregated.csv t1 "
+  strSQL = strSQL & "        LEFT JOIN ( "
+  strSQL = strSQL & "            SELECT "
+  strSQL = strSQL & "                ca, "
+  strSQL = strSQL & "                sum([wp_blw]) AS [ca_bac] "
+  strSQL = strSQL & "            FROM "
+  strSQL = strSQL & "                segregated.csv "
+  strSQL = strSQL & "            GROUP BY "
+  strSQL = strSQL & "                ca "
+  strSQL = strSQL & "        ) AS t2 ON t2.ca = t1.ca "
+  strSQL = strSQL & "    ) "
+  strSQL = strSQL & "    LEFT JOIN ( "
+  strSQL = strSQL & "        SELECT "
+  strSQL = strSQL & "            wp, "
+  strSQL = strSQL & "            sum([wp_blw]) AS [wp_bac] "
+  strSQL = strSQL & "        FROM "
+  strSQL = strSQL & "            segregated.csv "
+  strSQL = strSQL & "        GROUP BY "
+  strSQL = strSQL & "            wp "
+  strSQL = strSQL & "    ) AS t3 ON t3.wp = t1.wp "
+  strSQL = strSQL & "GROUP BY "
+  strSQL = strSQL & "    t1.ca, "
+  strSQL = strSQL & "    t2.[ca_bac] "
+  strSQL = strSQL & "HAVING "
+  strSQL = strSQL & "    t2.[ca_bac] - sum(t3.[wp_bac]) <> 0 "
+  
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  lngFile = FreeFile
+  strFile = Environ("tmp") & "\itemized.csv"
+  If Dir(strFile) <> vbNullString Then Kill strFile
+  Open strFile For Output As #lngFile
+  Print #lngFile, "CA,CA_BAC,WP_BAC,discrepancy,"
+  If oRecordset.RecordCount > 0 Then
+    Print #lngFile, oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+    Close #lngFile
+    oRecordset.Close
+    'get list of ca offenders
+    strSQL = "SELECT DISTINCT CA FROM itemized.csv"
+    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    oRecordset.MoveFirst
+    strList = ""
+    Do While Not oRecordset.EOF
+      If Not IsNull(oRecordset("CA")) Then
+        strList = strList & oRecordset("CA") & ","
+      End If
+      oRecordset.MoveNext
+    Loop
+    oRecordset.Close
+    strList = Left(strList, Len(strList) - 1) 'remove trailing comma
+    strList = strList & ";" 'add separator between CAs and WPs
+    'get list of wp offenders
+    strSQL = "SELECT "
+    strSQL = strSQL & "    wp, "
+    strSQL = strSQL & "    count(ca) "
+    strSQL = strSQL & "FROM "
+    strSQL = strSQL & "    ( "
+    strSQL = strSQL & "        SELECT "
+    strSQL = strSQL & "            DISTINCT wp, "
+    strSQL = strSQL & "            ca "
+    strSQL = strSQL & "        FROM "
+    strSQL = strSQL & "            tasks.csv "
+    strSQL = strSQL & "    ) "
+    strSQL = strSQL & "WHERE "
+    strSQL = strSQL & "    wp IS NOT NULL "
+    strSQL = strSQL & "GROUP BY "
+    strSQL = strSQL & "    wp "
+    strSQL = strSQL & "HAVING "
+    strSQL = strSQL & "    count(ca) > 1 "
+    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    If oRecordset.RecordCount > 0 Then
+      oRecordset.MoveFirst
+      Do While Not oRecordset.EOF
+        strList = strList & oRecordset("wp") & ","
+        oRecordset.MoveNext
+      Loop
+    End If
+  End If
+  Close #lngFile
+  oRecordset.Close
+  
+  'get delta as X
+  strSQL = "SELECT sum(abs([discrepancy])) as [DELTA] from itemized.csv"
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  If oRecordset.RecordCount > 0 Then
+    If Not IsNull(oRecordset("DELTA")) Then lngX = Round(oRecordset("DELTA"), 0) Else lngX = 0
+  Else
+    lngX = 0
+  End If
+  oRecordset.Close
+  
+  'get total as Y
+  strSQL = "SELECT SUM(BLW/60) FROM assignments.csv"
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  If oRecordset.RecordCount > 0 Then
+    lngY = Round(oRecordset(0), 0)
+  Else
+    lngX = 0
+  End If
+  oRecordset.Close
+  
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore <= 0.01 Then
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 11A101a...done."
+  Application.StatusBar = "Getting EVMS: 11A101a...done."
+  DoEvents
+  
   '===== SCHEDULE =====
   '06A101a - WPs Missing between IMS vs EV
   cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A101a..."
@@ -2580,6 +2759,33 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
         
+    Case "11A101a" 'CA BAC = Sum(WP BAC)
+      If Len(strList) > 0 Then
+        Dim strCAList As String
+        Dim strWPList As String
+        strList = Left(strList, Len(strList) - 1) 'remove last comma
+        strCAList = Split(strList, ";")(0)
+        strWPList = Split(strList, ";")(1)
+        
+        If Len(strCAList) > 0 Then
+          strCAList = Replace(strCAList, ",", vbTab)
+          SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0)), pjAutoFilterIn, "equals", strCAList
+        End If
+        If Len(strWPList) > 0 Then
+          strWPList = Replace(strWPList, ",", vbTab)
+          SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "equals", strWPList
+        End If
+        strGroup = "cpt 11A101a CA BAC = SUM(WP BAC)"
+        If cptGroupExists(strGroup) Then ActiveProject.TaskGroups2(strGroup).Delete
+        ActiveProject.TaskGroups.Add strGroup, FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0))
+        ActiveProject.TaskGroups(strGroup).GroupCriteria.Add FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0))
+        GroupApply Name:=strGroup
+        OptionsViewEx DisplaySummaryTasks:=True
+        OutlineShowTasks 2
+        'collapse to 2nd level
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
+      End If
     Case "29A601a" 'PPs within Rolling Wave Period
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
@@ -3169,6 +3375,7 @@ Private Function cptDECMGetTargetUID() As Long
       oRecordset.MoveNext
     Loop
     oRecordset.Close
+    .cmdSubmit.Enabled = False
     .Show
     lngTargetUID = cptDECMTargetUID_frm.lngTargetTaskUID
     Unload cptDECMTargetUID_frm
