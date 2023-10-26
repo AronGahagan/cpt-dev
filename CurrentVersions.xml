@@ -246,13 +246,6 @@
 		<Directory>Metrics</Directory>
 	</Module>
 	<Module>
-		<Name>cptMetricsSettings_frm</Name>
-		<FileName>cptMetricsSettings_frm.frm</FileName>
-		<Version>v1.1.1</Version>
-		<Type>3</Type>
-		<Directory>Metrics</Directory>
-	</Module>
-	<Module>
 		<Name>cptNetworkBrowser_bas</Name>
 		<FileName>cptNetworkBrowser_bas.bas</FileName>
 		<Version>v1.2.0</Version>
