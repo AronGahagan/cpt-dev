@@ -338,13 +338,15 @@ Dim dtStatus As Date, dtPrevious As Date
       oRecordset.Open cptDir & "\settings\cpt-cei.adtg"
       dtStatus = ActiveProject.StatusDate
       With oRecordset
+        .Sort = "STATUS_DATE desc"
         .MoveFirst
         'get most previous week_ending 'todo: why not filter and then sort?
         dtPrevious = .Fields("STATUS_DATE")
         Do While Not .EOF
           If .Fields("PROJECT") = strProgram Then
-            If .Fields("STATUS_DATE") > dtPrevious And .Fields("STATUS_DATE") < dtStatus Then
+            If .Fields("STATUS_DATE") < dtStatus Then
               dtPrevious = .Fields("STATUS_DATE")
+              Exit Do
             End If
           End If
           .MoveNext
@@ -540,7 +542,7 @@ Dim dtStatus As Date
   If Not IsDate(ActiveProject.StatusDate) Then
     If Not ChangeStatusDate Then
       MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Status Date Required"
-      Exit Sub
+      GoTo exit_here
     End If
   Else
     dtStatus = ActiveProject.StatusDate

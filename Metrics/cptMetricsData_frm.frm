@@ -13,6 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
 '<cpt_version>v0.0.2</cpt_version>
 Option Explicit
 
@@ -94,6 +95,10 @@ End Sub
 
 Private Sub cmdDone_Click()
   Unload Me
+End Sub
+
+Private Sub cmdExport_Click()
+  cptExportMetricsData
 End Sub
 
 Private Sub lblURL_Click()

@@ -104,10 +104,8 @@ Sub cptDECM_GET_DATA()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Not IsDate(ActiveProject.StatusDate) Then
-    MsgBox "Pleave provide a Status Date.", vbExclamation + vbOKOnly, "Status Date Required"
-    ChangeStatusDate
-    If Not IsDate(ActiveProject.StatusDate) Then
-      MsgBox "Status Date is required. Exiting.", vbCritical + vbOKOnly, "No Status Date"
+    If Not ChangeStatusDate Then
+      MsgBox "Status Date is required. Exiting.", vbCritical + vbOKOnly, "Status Date Required"
       GoTo exit_here
     End If
   End If
@@ -1198,7 +1196,7 @@ next_task:
     lngConstraintType = oTask.ConstraintType
     'replace with DateSubtract("yyyy",-10,finish)
     oTask.ConstraintType = pjMFO
-    oTask.ConstraintDate = DateAdd("yyyy", -10, dtConstraint)
+    oTask.ConstraintDate = DateAdd("yyyy", -10, oTask.Finish)
     Dim lngTargetTotalSlack As Long
     'get total slack
     lngTargetTotalSlack = oTask.TotalSlack
@@ -1213,7 +1211,7 @@ next_task:
 next_critical_task:
     Next oTask
     'restore constraint
-    If IsDate(dtConstraint) Then
+    If dtConstraint > 0 Then
       ActiveProject.Tasks.UniqueID(lngTargetUID).ConstraintDate = dtConstraint
     Else
       ActiveProject.Tasks.UniqueID(lngTargetUID).ConstraintDate = "NA"

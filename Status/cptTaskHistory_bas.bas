@@ -45,7 +45,6 @@ Sub cptShowTaskHistory_frm()
   With cptTaskHistory_frm
     .Caption = "Task History (" & cptGetVersion("cptTaskHistory_bas") & ")"
     .Show False
-    Debug.Print .lboTaskHistory.Height
   End With
   
 exit_here:
@@ -368,8 +367,12 @@ End Sub
 
 Function cptConvertFilteredRecordset(oRecordset As ADODB.Recordset) As ADODB.Recordset
   Dim oStream As ADODB.Stream
+  Dim oFiltered As ADODB.Recordset
   Set oStream = New ADODB.Stream
   oRecordset.Save oStream, adPersistXML
-  Set cptConvertFilteredRecordset = New ADODB.Recordset
-  cptConvertFilteredRecordset.Open oStream
+  Set oFiltered = New ADODB.Recordset
+  oFiltered.Open oStream
+  Set cptConvertFilteredRecordset = oFiltered
+  oStream.Close
+  Set oStream = Nothing
 End Function
