@@ -2492,6 +2492,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
         SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0)), pjAutoFilterIn, "equals", strList
         'group by CA,OBS
         strGroup = "cpt 05A101a 1 CA : 1 OBS"
+        If cptGroupExists(strGroup) Then ActiveProject.TaskGroups2(strGroup).Delete
         ActiveProject.TaskGroups.Add strGroup, FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0))
         ActiveProject.TaskGroups(strGroup).GroupCriteria.Add FieldConstantToFieldName(Split(cptGetSetting("Integration", "OBS"), "|")(0))
         GroupApply Name:=strGroup
@@ -2505,6 +2506,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
         SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0)), pjAutoFilterIn, "equals", strList
         'group by CA,CAM
         strGroup = "cpt 05A102a 1 CA : 1 CAM"
+        If cptGroupExists(strGroup) Then ActiveProject.TaskGroups2(strGroup).Delete
         ActiveProject.TaskGroups.Add strGroup, FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0))
         ActiveProject.TaskGroups(strGroup).GroupCriteria.Add FieldConstantToFieldName(Split(cptGetSetting("Integration", "CAM"), "|")(0))
         GroupApply Name:=strGroup
@@ -2518,6 +2520,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
         SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0)), pjAutoFilterIn, "equals", strList
         'group by CA,WBS
         strGroup = "cpt 05A103a 1 CA : 1 WBS"
+        If cptGroupExists(strGroup) Then ActiveProject.TaskGroups2(strGroup).Delete
         ActiveProject.TaskGroups.Add strGroup, FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0))
         ActiveProject.TaskGroups(strGroup).GroupCriteria.Add FieldConstantToFieldName(Split(cptGetSetting("Integration", "WBS"), "|")(0))
         GroupApply Name:=strGroup
@@ -2553,6 +2556,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
         SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "equals", strList
         'group by WP,EVT
         strGroup = "cpt 10A102a 1 WP : 1 EVT"
+        If cptGroupExists(strGroup) Then ActiveProject.TaskGroups2(strGroup).Delete
         ActiveProject.TaskGroups.Add strGroup, FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0))
         ActiveProject.TaskGroups(strGroup).GroupCriteria.Add FieldConstantToFieldName(Split(cptGetSetting("Integration", "EVT"), "|")(0))
         GroupApply Name:=strGroup
