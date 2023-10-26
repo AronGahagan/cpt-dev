@@ -13,15 +13,7 @@ End Sub
 Sub cptGetBCWR()
   Dim dblBAC As Double
   Dim dblBCWP As Double
-  
-  If Not cptMetricsSettingsExist Then
-    Call cptShowMetricsSettings_frm(True)
-    If Not cptMetricsSettingsExist Then
-      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
-      Exit Sub
-    End If
-  End If
-  
+    
   dblBAC = cptGetMetric("bac")
   dblBCWP = cptGetMetric("bcwp")
   Dim strMsg As String
@@ -36,8 +28,10 @@ Sub cptGetBCWS()
 
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
-    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
-    Exit Sub
+    If Not ChangeStatusDate Then
+      MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Status Date Required"
+      Exit Sub
+    End If
   Else
     MsgBox Format(cptGetMetric("bcws"), "#,##0.00"), vbInformation + vbOKOnly, "Budgeted Cost of Work Scheduled (BCWS) - hours"
   End If
@@ -46,18 +40,12 @@ End Sub
 
 Sub cptGetBCWP()
   
-  If Not cptMetricsSettingsExist Then
-    Call cptShowMetricsSettings_frm(True)
-    If Not cptMetricsSettingsExist Then
-      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
-      Exit Sub
-    End If
-  End If
-  
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
-    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
-    Exit Sub
+    If Not ChangeStatusDate Then
+      MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Status Date Required"
+      Exit Sub
+    End If
   Else
     MsgBox Format(cptGetMetric("bcwp"), "#,##0.00"), vbInformation + vbOKOnly, "Budgeted Cost of Work Performed (BCWP) - hours"
   End If
@@ -65,19 +53,13 @@ Sub cptGetBCWP()
 End Sub
 
 Sub cptGetSPI()
-  
-  If Not cptMetricsSettingsExist Then
-    Call cptShowMetricsSettings_frm(True)
-    If Not cptMetricsSettingsExist Then
-      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
-      Exit Sub
-    End If
-  End If
-  
+    
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
-    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
-    Exit Sub
+    If Not ChangeStatusDate Then
+      MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Status Date Required"
+      Exit Sub
+    End If
   Else
     Call cptGET("SPI")
   End If
@@ -88,8 +70,10 @@ Sub cptGetBEI()
 
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
-    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
-    Exit Sub
+    If Not ChangeStatusDate Then
+      MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Status Date Required"
+      Exit Sub
+    End If
   Else
     Call cptGET("BEI")
   End If
@@ -100,8 +84,10 @@ Sub cptGetCEI()
   
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
-    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
-    Exit Sub
+    If Not ChangeStatusDate Then
+      MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Status Date Required"
+      Exit Sub
+    End If
   Else
     Call cptGET("CEI")
   End If
@@ -110,18 +96,12 @@ End Sub
 
 Sub cptGetSV()
   
-  If Not cptMetricsSettingsExist Then
-    Call cptShowMetricsSettings_frm(True)
-    If Not cptMetricsSettingsExist Then
-      MsgBox "No settings saved. Cannot proceed.", vbExclamation + vbOKOnly, "Settings required."
-      Exit Sub
-    End If
-  End If
-  
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
-    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
-    Exit Sub
+    If Not ChangeStatusDate Then
+      MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Status Date Required"
+      Exit Sub
+    End If
   Else
     Call cptGET("SV")
   End If
@@ -313,11 +293,18 @@ Dim dtStatus As Date, dtPrevious As Date
     GoTo exit_here
   End If
   
+  If Not cptValidMap("EVP,EVT,LOE") Then
+    MsgBox "Settings not saved. Exiting.", vbExclamation + vbOKOnly, "Settings Required"
+    GoTo exit_here
+  End If
+  
   strProgram = cptGetProgramAcronym
   If Len(strProgram) = 0 Then GoTo exit_here
   If Not IsDate(ActiveProject.StatusDate) Then
-    MsgBox "This project requires a Status Date.", vbExclamation + vbOKOnly, "Invalid Status Date"
-    GoTo exit_here
+    If Not ChangeStatusDate Then
+     MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Status Date Required"
+     GoTo exit_here
+    End If
   Else
     dtStatus = ActiveProject.StatusDate
   End If
@@ -395,7 +382,7 @@ next_record:
         strMsg = strMsg & "- See NDIA Predictive Measures Guide for more information."
         Call cptCaptureMetric(strProgram, dtStatus, "CEI", Round(lngAF / IIf(lngFF = 0, 1, lngFF), 2))
         MsgBox strMsg, vbInformation + vbOKOnly, "Current Execution Index"
-        InputBox "The following UIDs were not found:", "Where did these go?", strNotFound
+        If Len(strNotFound) > 0 Then InputBox "The following UIDs were not found:", "Where did these go?", strNotFound
         .Close
       End With
       
@@ -468,8 +455,10 @@ Dim dtStatus As Date
   
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
-    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
-    GoTo exit_here
+    If Not ChangeStatusDate Then
+      MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Status Date Required"
+      Exit Sub
+    End If
   Else
     dtStatus = ActiveProject.StatusDate
   End If
@@ -541,10 +530,18 @@ Dim dtStatus As Date
   
   lngYears = Year(ActiveProject.ProjectFinish) - Year(ActiveProject.ProjectStart) + 1
   
+  'todo: what settings are required for cptGetMetric?
+  If Not cptValidMap("EVP,EVT,LOE") Then
+    MsgBox "Settings required. Exiting.", vbExclamation + vbOKOnly, "Settings Required"
+    GoTo exit_here
+  End If
+  
   'confirm status date
   If Not IsDate(ActiveProject.StatusDate) Then
-    MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Metrics"
-    GoTo exit_here
+    If Not ChangeStatusDate Then
+      MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Status Date Required"
+      Exit Sub
+    End If
   Else
     dtStatus = ActiveProject.StatusDate
   End If
@@ -605,15 +602,7 @@ Dim dtStatus As Date
           End If
           
         Case "bcwp"
-          
-          If Not cptMetricsSettingsExist Then
-            cptShowMetricsSettings_frm True
-            If Not cptMetricsSettingsExist Then
-              cptGetMetric = 0
-              GoTo exit_here
-            End If
-          End If
-                    
+                              
           lngEVP = CLng(Split(cptGetSetting("Integration", "EVP"), "|")(0))
           lngEVT = CLng(Split(cptGetSetting("Integration", "EVT"), "|")(0))
           strLOE = cptGetSetting("Integration", "LOE")
@@ -827,6 +816,7 @@ Sub cptCaptureWeek()
     GoTo exit_here
   End If
   lngEVT = CLng(Split(cptGetSetting("Integration", "EVT"), "|")(0))
+  strLOE = cptGetSetting("Integration", "LOE")
   
   'ensure program acronym
   strProject = cptGetProgramAcronym
@@ -1472,6 +1462,9 @@ Sub cptGetSPIDetail(ByRef oWorkbook As Excel.Workbook)
     MsgBox "Settings not saved. Exiting.", vbExclamation + vbOKOnly, "Settings Required"
     GoTo exit_here
   End If
+  lngEVP = CLng(Split(cptGetSetting("Integration", "EVP"), "|")(0))
+  lngEVT = CLng(Split(cptGetSetting("Integration", "EVT"), "|")(0))
+  strLOE = cptGetSetting("Integration", "LOE")
   
   Application.StatusBar = "Exporting SPI Detail..."
   DoEvents
@@ -1487,11 +1480,7 @@ Sub cptGetSPIDetail(ByRef oWorkbook As Excel.Workbook)
   oWorksheet.[A1:I1] = Split(strHeader, ",")
   
   lngTasks = ActiveProject.Tasks.Count
-  
-  lngEVP = CLng(Split(cptGetSetting("Integration", "EVP"), "|")(0))
-  lngEVT = CLng(Split(cptGetSetting("Integration", "EVT"), "|")(0))
-  strLOE = cptGetSetting("Integration", "LOE")
-  
+   
   For Each oTask In ActiveProject.Tasks
     If oTask.Summary Then GoTo next_task
     If oTask Is Nothing Then GoTo next_task
@@ -1666,9 +1655,10 @@ Sub cptGetTrend_CEI()
   Application.StatusBar = "Confirming Status Date..."
   DoEvents
   If Not IsDate(ActiveProject.StatusDate) Then
-    MsgBox "Status Date required...", vbExclamation + vbOKOnly, "Invalid Status Date"
-    Application.ChangeStatusDate
-    If Not IsDate(ActiveProject.StatusDate) Then GoTo exit_here
+    If Not ChangeStatusDate Then
+      MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Status Date Required"
+      GoTo exit_here
+    End If
   End If
   dtThisWeek = FormatDateTime(ActiveProject.StatusDate, vbGeneralDate)
   
@@ -2229,9 +2219,10 @@ Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
     'get status date
     If dtStatus = 0 Then
       If Not IsDate(ActiveProject.StatusDate) Then
-        MsgBox "This project requires a Status Date.", vbExclamation + vbOKOnly, "Invalid Status Date"
-        Application.ChangeStatusDate
-        If Not IsDate(ActiveProject.StatusDate) Then GoTo exit_here
+        If Not ChangeStatusDate Then
+          MsgBox "This project has no status date. Please update and try again.", vbExclamation + vbOKOnly, "Status Date Required"
+          GoTo exit_here
+        End If
       End If
       dtStatus = ActiveProject.StatusDate
     End If
