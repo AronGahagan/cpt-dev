@@ -36,6 +36,11 @@ Private Sub cmdDone_Click()
     If Dir(strFile) <> vbNullString Then Kill strFile
   Next vFile
   cptResetAll
+  Dim vGroup As Variant
+  'git grep 'strGroup =' | awk -F"strGroup = " '{ print $2}' | sed 's/"//g' | tr -s '\n' ','
+  For Each vGroup In Split("cpt 05A101a 1 CA : 1 OBS,cpt 05A102a 1 CA : 1 CAM,cpt 05A103a 1 CA : 1 WBS,cpt 10A102a 1 WP : 1 EVT,cpt 11A101a CA BAC = SUM(WP BAC)", ",")
+    If cptGroupExists(vGroup) Then ActiveProject.TaskGroups2(vGroup).Delete
+  Next vGroup
 End Sub
 
 Private Sub cmdExport_Click()
