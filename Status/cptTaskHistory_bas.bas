@@ -365,14 +365,3 @@ err_here:
   Resume exit_here
 End Sub
 
-Function cptConvertFilteredRecordset(oRecordset As ADODB.Recordset) As ADODB.Recordset
-  Dim oStream As ADODB.Stream
-  Dim oFiltered As ADODB.Recordset
-  Set oStream = New ADODB.Stream
-  oRecordset.Save oStream, adPersistXML
-  Set oFiltered = New ADODB.Recordset
-  oFiltered.Open oStream
-  Set cptConvertFilteredRecordset = oFiltered
-  oStream.Close
-  Set oStream = Nothing
-End Function
