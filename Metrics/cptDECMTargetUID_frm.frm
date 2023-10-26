@@ -30,6 +30,21 @@ Private Sub cmdSubmit_Click()
   Me.Hide
 End Sub
 
+Private Sub lboTasks_AfterUpdate()
+  If IsNull(Me.lboTasks.Value) Then Exit Sub
+  If Me.lboTasks.Value > 0 Then
+    Me.cmdSubmit.Caption = "Use " & Me.lboTasks.Value
+    Me.cmdSubmit.Enabled = True
+  Else
+    Me.cmdSubmit.Caption = "Use This"
+    Me.cmdSubmit.Enabled = False
+  End If
+End Sub
+
+Private Sub lboTasks_Click()
+
+End Sub
+
 Private Sub txtTaskName_Change()
   'objects
   Dim oRecordset As ADODB.Recordset
