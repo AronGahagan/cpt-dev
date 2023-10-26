@@ -612,8 +612,8 @@ Dim lngCleanUp As Long
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptEditMetricsData"" label=""View &amp;&amp; Edit Metrics Data"" imageMso=""DataValidation"" onAction=""cptShowMetricsData_frm"" visible=""true"" supertip=""Review and delete metrics records for this program."" />"
     End If
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptExportAllData"" label=""Export Metrics Data"" imageMso=""ExportExcel"" onAction=""cptExportMetricsData"" visible=""true"" supertip=""Export stored metrics data for this program to Excel."" />"
-    If cptModuleExists("cptMetricsSettings_frm") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptMetricsSettings"" label=""Metrics Settings"" imageMso=""Settings"" onAction=""cptShowMetricsSettings_frm"" visible=""true"" supertip=""Settings required for some EV-ish metrics."" />"
+    If cptModuleExists("cptIntegration_frm") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptMetricsSettings"" label=""Metrics Settings"" imageMso=""Settings"" onAction=""cptGetValidMap"" visible=""true"" supertip=""Settings required for some EV-ish metrics."" />"
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
 '    ribbonXML = ribbonXML + vbCrLf & "<mso:dialogBoxLauncher>"
