@@ -1609,7 +1609,7 @@ Sub cptCreateFilter(strFilter As String)
 
   Select Case strFilter
     Case "Marked"
-      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
+      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
       
   End Select
   
@@ -2333,7 +2333,7 @@ Function cptGetCustomFields(strFieldTypes As String, strDataTypes As String, str
     Next vField
   Next vFieldType
   
-  ReDim vResult(0 To UBound(Split(strResult, vbCrLf)), 0 To UBound(vInclude))
+  ReDim vResult(0 To UBound(Split(strResult, vbCrLf)) - 1, 0 To UBound(vInclude))
   For lngField = 0 To UBound(Split(strResult, vbCrLf)) - 1
     For lngInclude = 0 To UBound(vInclude)
       vResult(lngField, lngInclude) = Split(Split(strResult, vbCrLf)(lngField), ",")(lngInclude)
@@ -2437,6 +2437,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
           Else
             strSetting = strSetting & "|" & FieldConstantToFieldName(strSetting)
             cptSaveSetting "Integration", "EVP", strSetting
+            cptDeleteSetting "Metrics", "cboEVP"
           End If
         ElseIf vControl = "EVT" Or vControl = "EVT_MS" Then
           strSetting = cptGetSetting("Metrics", "cboLOEField")
@@ -2445,6 +2446,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
           Else
             strSetting = strSetting & "|" & FieldConstantToFieldName(strSetting)
             cptSaveSetting "Integration", CStr(vControl), strSetting
+            cptDeleteSetting "Metrics", "cboEVT"
           End If
         ElseIf vControl = "LOE" Then
           strSetting = cptGetSetting("Metrics", "txtLOE")
@@ -2452,6 +2454,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
             If oRequiredFields(vControl) Then blnValid = False
           Else
             cptSaveSetting "Integration", "LOE", strSetting
+            cptDeleteSetting "Metrics", "txtLOE"
           End If
         End If
       End If
@@ -2469,7 +2472,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
         End If
       End If
       If vControl = "WBS" Then
-        oComboBox.List = cptGetCustomFields("t", "Outline Code,Text", "c,cfn", False)
+        oComboBox.List = cptSortedArray(cptGetCustomFields("t", "Outline Code,Text", "c,cfn", False), 1)
         If IsEmpty(oComboBox.List(oComboBox.ListCount - 1, 0)) Then oComboBox.RemoveItem (oComboBox.ListCount - 1)
       ElseIf vControl = "CAM" Or vControl = "WPM" Then
         For Each vAddField In Split("Contact", ",")
@@ -2477,8 +2480,8 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
           oComboBox.List(oComboBox.ListCount - 1, 0) = FieldNameToFieldConstant(vAddField)
           oComboBox.List(oComboBox.ListCount - 1, 1) = vAddField
         Next vAddField
-        vFields = cptGetCustomFields("t", "Text,Outline Code", "c,cfn", False)
-        For lngItem = 0 To UBound(vFields) - 1
+        vFields = cptSortedArray(cptGetCustomFields("t", "Text,Outline Code", "c,cfn", False), 1)
+        For lngItem = 0 To UBound(vFields)
           oComboBox.AddItem
           oComboBox.List(oComboBox.ListCount - 1, 0) = vFields(lngItem, 0)
           oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
@@ -2489,8 +2492,8 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
           oComboBox.List(oComboBox.ListCount - 1, 0) = FieldNameToFieldConstant(vAddField)
           oComboBox.List(oComboBox.ListCount - 1, 1) = vAddField
         Next vAddField
-        vFields = cptGetCustomFields("t", "Number", "c,cfn", False)
-        For lngItem = 0 To UBound(vFields) - 1
+        vFields = cptSortedArray(cptGetCustomFields("t", "Number", "c,cfn", False), 1)
+        For lngItem = 0 To UBound(vFields)
           oComboBox.AddItem
           oComboBox.List(oComboBox.ListCount - 1, 0) = vFields(lngItem, 0)
           oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
@@ -2501,7 +2504,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
         If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         GoTo next_control
       Else 'WP,EVT_MS
-        oComboBox.List = cptGetCustomFields("t", "Text,Outline Code", "c,cfn", False)
+        oComboBox.List = cptSortedArray(cptGetCustomFields("t", "Text,Outline Code", "c,cfn", False), 1)
         If IsEmpty(oComboBox.List(oComboBox.ListCount - 1, 0)) Then oComboBox.RemoveItem (oComboBox.ListCount - 1)
       End If
       If lngField > 0 Then oComboBox.Value = lngField
@@ -2617,4 +2620,93 @@ Function cptConvertFilteredRecordset(oRecordset As ADODB.Recordset) As ADODB.Rec
   Set cptConvertFilteredRecordset = oFiltered
   oStream.Close
   Set oStream = Nothing
+End Function
+
+Function cptSortedArray(vArray As Variant, lngSortKey As Long) As Variant
+  'strFieldTypes  := comma-separated list of any of "p,t,r" [project,task,resource]
+  'strDataTypes   := comma-separated list of any of "Cost,Date,Duration,Flag,Finish,Number,Start,Text,Outline Code"
+  'strInclude     := comma-separated list of any of "c,fn,cfn" [constant,fieldname,customfieldname]
+  'blnIncludeEnterprise := self-explanatory
+
+  'read array into oDict using key as key, row as row
+  'sort the sort keys
+  'build sorted array off of keys using lookup
+  Dim oDict As Scripting.Dictionary
+  Dim rows As Long, cols As Long
+  Dim r As Long, c As Long
+  Dim strRow As String
+  Dim vTemp() As Variant
+  
+  Set oDict = CreateObject("Scripting.Dictionary")
+  rows = UBound(vArray)
+  cols = UBound(vArray, 2)
+  For r = 0 To rows
+    strRow = ""
+    For c = 0 To cols
+      strRow = strRow & vArray(r, c) & ","
+    Next c
+    strRow = Left(strRow, Len(strRow) - 1)
+    oDict.Add vArray(r, lngSortKey), Split(strRow, ",")
+  Next r
+    
+  cptQuickSort oDict.Keys, 0, oDict.Count - 1
+
+  ReDim vTemp(0 To UBound(oDict.Keys), 0 To UBound(oDict(oDict.Keys(0)), 1))
+  For r = 0 To rows
+    For c = 0 To cols
+      vTemp(r, c) = oDict.Items()(r)(c)
+    Next c
+  Next r
+  
+  cptSortedArray = vTemp
+  
+  Set oDict = Nothing
+End Function
+
+Function cptGetPosition(vList As Variant, vValue As Variant, Optional strDelimiter As String) As Long
+  'find position of a value in a list
+  'accepts comma-separated lists or arrays
+  'if vList is comma-separated then strDelimiter is required
+  'boolean type is not supported
+  Dim lngPosition As Long
+  Dim vPosition As Variant
+  
+  If IsArray(vList) Then
+    For lngPosition = 0 To UBound(vList)
+      Select Case TypeName(vValue)
+        Case "Date"
+          If vValue = CDate(vList(lngPosition)) Then
+            cptGetPosition = lngPosition
+          End If
+        Case "Double"
+          If vValue = CDbl(vList(lngPosition)) Then
+            cptGetPosition = lngPosition
+          End If
+        Case "Integer"
+          If vValue = CInt(vList(lngPosition)) Then
+            cptGetPosition = lngPosition
+          End If
+        Case "Long"
+          If vValue = CLng(vList(lngPosition)) Then
+            cptGetPosition = lngPosition
+          End If
+        Case "String"
+          If vValue = vList(lngPosition) Then
+            cptGetPosition = lngPosition
+          End If
+        Case "Null"
+          If vList(lngPosition) = "" Then
+            cptGetPosition = lngPosition
+          End If
+      End Select
+    Next lngPosition
+  Else 'delimited string
+    lngPosition = 0
+    For Each vPosition In Split(vList, strDelimiter)
+      If vValue = vPosition Then
+        cptGetPosition = lngPosition
+      End If
+      lngPosition = lngPosition + 1
+    Next vPosition
+  End If
 End Function
