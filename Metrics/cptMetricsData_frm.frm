@@ -14,7 +14,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-'<cpt_version>v0.0.2</cpt_version>
+'<cpt_version>v1.0.0</cpt_version>
 Option Explicit
 
 Private Sub cmdDelete_Click()

@@ -80,7 +80,7 @@
 	<Module>
 		<Name>cptCore_bas</Name>
 		<FileName>cptCore_bas.bas</FileName>
-		<Version>v1.13.6</Version>
+		<Version>v1.14.0</Version>
 		<Type>1</Type>
 		<Directory>Core</Directory>
 	</Module>
@@ -199,14 +199,14 @@
 	<Module>
 		<Name>cptFiscal_bas</Name>
 		<FileName>cptFiscal_bas.bas</FileName>
-		<Version>v1.0.1</Version>
+		<Version>v1.1.0</Version>
 		<Type>1</Type>
 		<Directory>Calendar</Directory>
 	</Module>
 	<Module>
 		<Name>cptFiscal_frm</Name>
 		<FileName>cptFiscal_frm.frm</FileName>
-		<Version>v1.0.1</Version>
+		<Version>v1.1.0</Version>
 		<Type>3</Type>
 		<Directory>Calendar</Directory>
 	</Module>
@@ -234,14 +234,14 @@
 	<Module>
 		<Name>cptMetrics_bas</Name>
 		<FileName>cptMetrics_bas.bas</FileName>
-		<Version>v1.4.2</Version>
+		<Version>v1.5.0</Version>
 		<Type>1</Type>
 		<Directory>Metrics</Directory>
 	</Module>
 	<Module>
 		<Name>cptMetricsData_frm</Name>
 		<FileName>cptMetricsData_frm.frm</FileName>
-		<Version>v0.0.2</Version>
+		<Version>v1.0.0</Version>
 		<Type>3</Type>
 		<Directory>Metrics</Directory>
 	</Module>
@@ -374,14 +374,14 @@
 	<Module>
 		<Name>cptTaskHistory_bas</Name>
 		<FileName>cptTaskHistory_bas.bas</FileName>
-		<Version>v1.0.1</Version>
+		<Version>v1.1.0</Version>
 		<Type>1</Type>
 		<Directory>Status</Directory>
 	</Module>
 	<Module>
 		<Name>cptTaskHistory_frm</Name>
 		<FileName>cptTaskHistory_frm.frm</FileName>
-		<Version>v1.0.1</Version>
+		<Version>v1.1.0</Version>
 		<Type>3</Type>
 		<Directory>Status</Directory>
 	</Module>
