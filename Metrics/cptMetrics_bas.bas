@@ -1278,7 +1278,8 @@ next_task:
   oListObject.Range.Columns.AutoFit
   oListObject.DataBodyRange.Copy
   oListObject.DataBodyRange.PasteSpecial xlPasteValuesAndNumberFormats
-  lngLastRow = oWorksheet.Columns(1).Find(dtStatus).Row
+  lngLastRow = oWorksheet.Columns(1).Find(dtStatus).Row 'requires matching date format
+  oListObject.ListColumns(1).DataBodyRange.NumberFormat = "m/d/yyyy"
   oWorksheet.Range(oWorksheet.Cells(2, 7), oWorksheet.Cells(lngLastRow - 1, 7)).ClearContents
   oWorksheet.Range(oWorksheet.Cells(lngLastRow + 1, 6), oWorksheet.Cells(1048576, 6)).ClearContents
   oWorksheet.[I1].Select
@@ -1297,7 +1298,7 @@ next_task:
   oChart.Chart.FullSeriesCollection(3).Values = "=Chart_Data!" & oListObject.ListColumns("FF_CUM").DataBodyRange.Address(True)
   oChart.Chart.SetElement (msoElementChartTitleAboveChart)
   oChart.Chart.SetElement (msoElementLegendBottom)
-  oChart.Chart.ChartTitle.Text = strProject & " IMS - Task Completion" & Chr(10) & Format(dtStatus, "mm/dd/yyyy")
+  oChart.Chart.ChartTitle.Text = strProject & " IMS - Task Completion" & Chr(10) & FormatDateTime(dtStatus, vbShortDate)
   oChart.Chart.ChartTitle.Characters(1, 25).Font.Bold = True
   oChart.Chart.Location WHERE:=xlLocationAsObject, Name:="SUMMARY"
   'must reset the object after move
@@ -2562,8 +2563,8 @@ Sub cptExportMetricsData()
     For lngField = 0 To oRecordset.Fields.Count - 1
       oWorksheet.Cells(1, lngField + 1) = oRecordset.Fields(lngField).Name
     Next lngField
-    oWorksheet.[A2].CopyFromRecordset oRecordset
-    oWorksheet.Columns(2).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.[A2].CopyFromRecordset cptConvertFilteredRecordset(oRecordset)
+    oWorksheet.Columns(2).NumberFormat = "m/d/yyyy" '"[$-en-US]m/d/yy h:mm AM/PM;@"
     oExcel.ActiveWindow.Zoom = 85
     oWorksheet.Columns.AutoFit
     oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
@@ -2589,17 +2590,17 @@ Sub cptExportMetricsData()
     For lngField = 0 To oRecordset.Fields.Count - 1
       oWorksheet.Cells(1, lngField + 1) = oRecordset.Fields(lngField).Name
     Next lngField
-    oWorksheet.[A2].CopyFromRecordset oRecordset
+    oWorksheet.[A2].CopyFromRecordset cptConvertFilteredRecordset(oRecordset)
     'todo: display alerts
     oWorksheet.Columns(4).Replace "0", False
     oWorksheet.Columns(4).Replace "1", True
-    oWorksheet.Columns(5).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
-    oWorksheet.Columns(7).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
-    oWorksheet.Columns(8).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
-    oWorksheet.Columns(10).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
-    oWorksheet.Columns(11).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
-    oWorksheet.Columns(13).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
-    oWorksheet.Columns(14).NumberFormat = "[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(5).NumberFormat = "m/d/yyyy" '"[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(7).NumberFormat = "m/d/yyyy" '"[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(8).NumberFormat = "m/d/yyyy" '"[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(10).NumberFormat = "m/d/yyyy" '"[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(11).NumberFormat = "m/d/yyyy" '"[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(13).NumberFormat = "m/d/yyyy" '"[$-en-US]m/d/yy h:mm AM/PM;@"
+    oWorksheet.Columns(14).NumberFormat = "m/d/yyyy" '"[$-en-US]m/d/yy h:mm AM/PM;@"
     
     oExcel.ActiveWindow.Zoom = 85
     oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True

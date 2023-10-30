@@ -311,7 +311,7 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
             Next lngExport
             
             'get day
-            strRecord = strRecord & Format(oTSV.StartDate, "mm/dd/yyyy") & ","
+            strRecord = strRecord & FormatDateTime(oTSV.StartDate, vbShortDate) & ","
             
             'apply user settings for week identification
             'todo: what if there's work on Sunday or Saturday?
@@ -330,7 +330,7 @@ Sub cptExportResourceDemand(Optional lngTaskCount As Long)
                 End If
               End If
             End With
-            strRecord = strRecord & Format(dtWeek, "mm/dd/yyyy") & "," 'week
+            strRecord = strRecord & FormatDateTime(dtWeek, vbShortDate) & "," 'week
             Print #lngFile, strRecord
 next_tsv_work:
           Next oTSV
@@ -388,7 +388,7 @@ next_tsv_work:
                   strRecord = strRecord & oTask.GetField(lngField) & ","
                 Next lngExport
                 'day
-                strRecord = strRecord & Format(oTSV.StartDate, "mm/dd/yyyy") & ","
+                strRecord = strRecord & FormatDateTime(oTSV.StartDate, vbShortDate) & ","
                 
                 'apply user settings for week identification
                 With cptResourceDemand_frm
@@ -406,7 +406,7 @@ next_tsv_work:
                     End If
                   End If
                 End With
-                strRecord = strRecord & Format(dtWeek, "mm/dd/yyyy") & "," 'week
+                strRecord = strRecord & FormatDateTime(dtWeek, vbShortDate) & "," 'week
                 Print #lngFile, strRecord
               Next oTSV
             End If
@@ -518,9 +518,9 @@ next_task:
   Set oWorksheet = oWorkbook.Sheets(1)
   'rename the oWorksheet
   oWorksheet.Name = "SourceData"
-  lngHoursCol = oWorksheet.Rows(1).Find("HOURS", lookat:=1).Column '1=xlWhole
-  lngDayCol = oWorksheet.Rows(1).Find("DAY", lookat:=1).Column '1=xlWhole
-  lngWeekCol = oWorksheet.Rows(1).Find("WEEK", lookat:=1).Column '1=xlWhole
+  lngHoursCol = oWorksheet.rows(1).Find("HOURS", lookat:=1).Column '1=xlWhole
+  lngDayCol = oWorksheet.rows(1).Find("DAY", lookat:=1).Column '1=xlWhole
+  lngWeekCol = oWorksheet.rows(1).Find("WEEK", lookat:=1).Column '1=xlWhole
   dtMin = oExcel.WorksheetFunction.Min(oWorksheet.Columns(lngWeekCol))
   dtMax = oExcel.WorksheetFunction.Max(oWorksheet.Columns(lngWeekCol))
   
@@ -531,7 +531,7 @@ next_task:
   
   'add note on CostRateTable column
   If blnIncludeCosts Then
-    lngCol = oWorksheet.Rows(1).Find("RATE_TABLE", lookat:=1).Column
+    lngCol = oWorksheet.rows(1).Find("RATE_TABLE", lookat:=1).Column
     oWorksheet.Cells(1, lngCol).AddComment "Rate Table Applied in the Project"
   End If
     
@@ -550,7 +550,7 @@ next_task:
   Set oRange = oWorksheet.Range(oRange, oWorksheet.[A1].End(xlToRight).Offset(1, 1))
   If cptResourceDemand_frm.cboMonths.Value = 1 Then 'fiscal
     'get fiscal_month column
-    lngFiscalMonthCol = oWorksheet.Rows(1).Find(what:="FISCAL_MONTH", lookat:=xlWhole).Column
+    lngFiscalMonthCol = oWorksheet.rows(1).Find(what:="FISCAL_MONTH", lookat:=xlWhole).Column
     oRange.FormulaR1C1 = "=RC" & lngHoursCol & "/NETWORKDAYS(RC" & lngWeekCol & "-7,RC" & lngWeekCol & ",EXCEPTIONS)"
   Else
     oRange.FormulaR1C1 = "=RC" & lngHoursCol & "/40"
@@ -560,7 +560,7 @@ next_task:
   'create FTE_MONTH column
   Set oRange = oWorksheet.[A1].End(xlToRight).End(xlDown).Offset(0, 1)
   Set oRange = oWorksheet.Range(oRange, oWorksheet.[A1].End(xlToRight).Offset(1, 1))
-  lngHoursCol = oWorksheet.Rows(1).Find("HOURS", lookat:=1).Column '1=xlWhole
+  lngHoursCol = oWorksheet.rows(1).Find("HOURS", lookat:=1).Column '1=xlWhole
   If cptResourceDemand_frm.cboMonths.Value = 1 Then 'fiscal
     oRange.FormulaR1C1 = "=RC" & lngHoursCol & "/LOOKUP(RC" & lngFiscalMonthCol & ",FISCAL[label],FISCAL[hpm])"
   Else
@@ -572,10 +572,10 @@ next_task:
     'include FTE_BL_WEEK
     Set oRange = oWorksheet.[A1].End(xlToRight).End(xlDown).Offset(0, 1)
     Set oRange = oWorksheet.Range(oRange, oWorksheet.[A1].End(xlToRight).Offset(1, 1))
-    lngCol = oWorksheet.Rows(1).Find("BL_HOURS", lookat:=1).Column '1=xlWhole
+    lngCol = oWorksheet.rows(1).Find("BL_HOURS", lookat:=1).Column '1=xlWhole
     If cptResourceDemand_frm.cboMonths.Value = 1 Then 'fiscal
       'get fiscal_month column
-      lngFiscalMonthCol = oWorksheet.Rows(1).Find(what:="FISCAL_MONTH", lookat:=xlWhole).Column
+      lngFiscalMonthCol = oWorksheet.rows(1).Find(what:="FISCAL_MONTH", lookat:=xlWhole).Column
       oRange.FormulaR1C1 = "=RC" & lngCol & "/NETWORKDAYS(RC" & lngWeekCol & "-7,RC" & lngWeekCol & ",EXCEPTIONS)"
     Else
       oRange.FormulaR1C1 = "=RC" & lngCol & "/40"
@@ -585,7 +585,7 @@ next_task:
     'include FTE_BL_MONTH
     Set oRange = oWorksheet.[A1].End(xlToRight).End(xlDown).Offset(0, 1)
     Set oRange = oWorksheet.Range(oRange, oWorksheet.[A1].End(xlToRight).Offset(1, 1))
-    lngCol = oWorksheet.Rows(1).Find("BL_HOURS", lookat:=1).Column '1=xlWhole
+    lngCol = oWorksheet.rows(1).Find("BL_HOURS", lookat:=1).Column '1=xlWhole
     If cptResourceDemand_frm.cboMonths.Value = 1 Then 'fiscal
       oRange.FormulaR1C1 = "=RC" & lngCol & "/LOOKUP(RC" & lngFiscalMonthCol & ",FISCAL[label],FISCAL[hpm])"
     Else
@@ -735,11 +735,11 @@ next_task:
               oWorksheet.Cells(lngRow, 3) = Choose(oResource.Type + 1, "Work", "Material", "Cost")
               oWorksheet.Cells(lngRow, 4) = oResource.Enterprise
               oWorksheet.Cells(lngRow, 5) = oCostRateTable.Name
-              oWorksheet.Cells(lngRow, 6) = Format(oPayRate.EffectiveDate, "mm/dd/yyyy")
+              oWorksheet.Cells(lngRow, 6) = FormatDateTime(oPayRate.EffectiveDate, vbShortDate)
               oWorksheet.Cells(lngRow, 7) = Replace(oPayRate.StandardRate, "/h", "")
               oWorksheet.Cells(lngRow, 8) = Replace(oPayRate.OvertimeRate, "/h", "")
               oWorksheet.Cells(lngRow, 9) = oPayRate.CostPerUse
-              lngRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(-4162).Row + 1
+              lngRow = oWorksheet.Cells(oWorksheet.rows.Count, 1).End(-4162).Row + 1
             Next oPayRate
           End If
         Next oCostRateTable
@@ -756,11 +756,11 @@ next_task:
                 oWorksheet.Cells(lngRow, 3) = Choose(oResource.Type + 1, "Work", "Material", "Cost")
                 oWorksheet.Cells(lngRow, 4) = oResource.Enterprise
                 oWorksheet.Cells(lngRow, 5) = oCostRateTable.Name
-                oWorksheet.Cells(lngRow, 6) = Format(oPayRate.EffectiveDate, "mm/dd/yyyy")
+                oWorksheet.Cells(lngRow, 6) = FormatDateTime(oPayRate.EffectiveDate, vbShortDate)
                 oWorksheet.Cells(lngRow, 7) = Replace(oPayRate.StandardRate, "/h", "")
                 oWorksheet.Cells(lngRow, 8) = Replace(oPayRate.OvertimeRate, "/h", "")
                 oWorksheet.Cells(lngRow, 9) = oPayRate.CostPerUse
-                lngRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(-4162).Row + 1
+                lngRow = oWorksheet.Cells(oWorksheet.rows.Count, 1).End(-4162).Row + 1
               Next oPayRate
             End If
           Next oCostRateTable

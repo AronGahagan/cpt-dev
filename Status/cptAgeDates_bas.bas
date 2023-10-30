@@ -118,13 +118,13 @@ Sub cptAgeDates()
 
   Application.Calculation = pjManual
   Application.OpenUndoTransaction "Age Dates"
-  dtStatus = Format(ActiveProject.StatusDate, "mm/dd/yy")
+  dtStatus = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
   
   On Error Resume Next
   lngTest = FieldNameToFieldConstant("Start (" & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & ")")
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If lngTest > 0 Then
-    MsgBox "Dates already aged for status date " & Format(dtStatus, "mm/dd/yyyy") & ".", vbExclamation + vbOKOnly, "Age Dates"
+    MsgBox "Dates already aged for status date " & FormatDateTime(dtStatus, vbShortDate) & ".", vbExclamation + vbOKOnly, "Age Dates"
     GoTo exit_here
   End If
 
@@ -290,7 +290,7 @@ Sub cptBlameReport()
     If oTask.Summary Then GoTo next_task
     If Not oTask.Active Then GoTo next_task
     If IsDate(oTask.ActualFinish) Then GoTo next_task
-    lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row + 1
+    lngLastRow = oWorksheet.Cells(oWorksheet.rows.Count, 1).End(xlUp).Row + 1
     vRow = oWorksheet.Range(oWorksheet.Cells(lngLastRow, 1), oWorksheet.Cells(lngLastRow, lngLastCol))
     vRow(1, 1) = oTask.UniqueID
     lngCol = 1
@@ -437,16 +437,16 @@ next_task:
   Application.StatusBar = "Creating Header..."
   DoEvents
   
-  oWorksheet.Rows(1).Insert
-  oWorksheet.Rows(1).Insert
-  oWorksheet.Rows(1).Insert
-  oWorksheet.Rows(1).Insert
+  oWorksheet.rows(1).Insert
+  oWorksheet.rows(1).Insert
+  oWorksheet.rows(1).Insert
+  oWorksheet.rows(1).Insert
   oWorksheet.[A1].Value = "The Blame Report"
   oWorksheet.[A1].Font.Bold = True
   oWorksheet.[A1].Font.Size = 24
   oWorksheet.[A2] = ActiveProject.Name
   oWorksheet.[A3] = "Status Date: " & FormatDateTime(ActiveProject.StatusDate, vbShortDate)
-  oExcel.ActiveWindow.DisplayGridLines = False
+  oExcel.ActiveWindow.DisplayGridlines = False
   oExcel.Calculation = xlCalculationAutomatic
   
   Application.StatusBar = "Determining worst offender..."
@@ -456,8 +456,8 @@ next_task:
   For Each vColumn In Array("START DELTA", "DURATION DELTA", "FINISH DELTA")
     If lngMin = oExcel.WorksheetFunction.Min(oListObject.ListColumns(vColumn).DataBodyRange) Then
       oListObject.Sort.SortFields.Clear
-      oListObject.Sort.SortFields.Add key:=oListObject.ListColumns(vColumn).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-      oListObject.Sort.SortFields.Add key:=oListObject.ListColumns("CURRENT " & Replace(vColumn, " DELTA", "")).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add Key:=oListObject.ListColumns(vColumn).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add Key:=oListObject.ListColumns("CURRENT " & Replace(vColumn, " DELTA", "")).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
       With oListObject.Sort
         .Header = xlYes
         .MatchCase = False

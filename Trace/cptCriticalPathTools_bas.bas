@@ -82,7 +82,7 @@ Dim vPath As Variant
   oSlide.Layout = ppLayoutTitle
   strProjectName = Replace(cptRegEx(ActiveProject.Name, "[^\\/]{1,}$"), ".mpp", "")
   oSlide.Shapes(1).TextFrame.TextRange.Text = strProjectName & vbCrLf & "Critical Path Analysis"
-  oSlide.Shapes(2).TextFrame.TextRange.Text = cptGetUserFullName & vbCrLf & Format(Now, "mm/dd/yyyy")
+  oSlide.Shapes(2).TextFrame.TextRange.Text = cptGetUserFullName & vbCrLf & FormatDateTime(Now, vbShortDate)
   
   'for each primary,secondary,tertiary > make a slide
   For Each vPath In Array("1", "2", "3")
@@ -90,7 +90,7 @@ Dim vPath As Variant
     'SetAutoFilter FieldName:="CP Driving Paths", FilterType:=pjAutoFilterCustom, Test1:="contains", Criteria1:=CStr(vPath)
     SetAutoFilter FieldName:="CP Driving Path Group ID", FilterType:=pjAutoFilterIn, Criteria1:=CStr(vPath)
 
-    Sort key1:="Finish", Key2:="Duration", Ascending2:=False, Renumber:=False
+    Sort key1:="Finish", Key2:="Duration", Ascending2:=False, renumber:=False
     TimescaleEdit MajorUnits:=0, MinorUnits:=2, MajorLabel:=0, MinorLabel:=10, MinorTicks:=True, Separator:=True, TierCount:=2
     SelectBeginning
     Debug.Print vPath & ": " & FormatDateTime(dtFrom, vbShortDate) & " - " & FormatDateTime(dtTo, vbShortDate)
@@ -110,7 +110,7 @@ Dim vPath As Variant
       lngSlide = lngSlide + 1
       SelectBeginning
       SelectTaskField Row:=lngTask - 20, Column:="Name", Height:=20, Extend:=False
-      EditCopyPicture Object:=False, ForPrinter:=0, SelectedRows:=1, FromDate:=Format(dtFrom, "mm/dd/yy hh:nn AMPM"), ToDate:=Format(dtTo, "m/d/yy hh:mm ampm"), ScaleOption:=pjCopyPictureTimescale, MaxImageHeight:=-1#, MaxImageWidth:=-1#, MeasurementUnits:=2  'pjCopyPictureShowOptions
+      EditCopyPicture Object:=False, ForPrinter:=0, SelectedRows:=1, FromDate:=Format(dtFrom, "m/d/yy hh:nn AMPM"), ToDate:=Format(dtTo, "m/d/yy hh:mm ampm"), ScaleOption:=pjCopyPictureTimescale, MaxImageHeight:=-1#, MaxImageWidth:=-1#, MeasurementUnits:=2  'pjCopyPictureShowOptions
       'paste the picture
       oPresentation.Slides.Add oPresentation.Slides.Count + 1, ppLayoutCustom
       Set oSlide = oPresentation.Slides(oPresentation.Slides.Count)

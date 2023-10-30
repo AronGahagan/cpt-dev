@@ -867,7 +867,7 @@ Private Sub lblEmailHints_Click()
   Dim strHints As String
 
   strHints = "The following fields are available for auto replacement in the subject line and in your Email Template (a.k.a., 'Quick Part'):" & vbCrLf & vbCrLf
-  strHints = strHints & "[status_date] > Status Date in MM/DD/YYYY format" & vbCrLf
+  strHints = strHints & "[status_date] > Status Date in Short Date format (e.g.," & FormatDateTime(Now, vbShortDate) & ")" & vbCrLf
   strHints = strHints & "[yyyy-mm-dd] > Status Date in yyyy-mm-dd format" & vbCrLf
   strHints = strHints & "[program] > Program Acronym" & vbCrLf
   strHints = strHints & vbCrLf & "Send other suggestions to cpt@ClearPlanConsulting.com"
@@ -1131,7 +1131,7 @@ Private Sub txtLookaheadDate_Change()
       Me.Repaint
     Else
       'limit to dates after the start date
-      dtDate = CDate(Format(Me.txtLookaheadDate.Text, "mm/dd/yyyy") & " 5:00 PM")
+      dtDate = CDate(FormatDateTime(Me.txtLookaheadDate.Text, vbShortDate) & " 5:00 PM")
       If dtDate < ActiveProject.StatusDate Then
         Me.txtLookaheadDate.BorderColor = 192
         Me.lblLookaheadWeekday.Visible = False
@@ -1235,7 +1235,7 @@ Private Sub txtSubject_Change()
   strTempItem = cptRegEx(strSubjectPattern, "\[(S|s)(T|t)(A|a)(T|t)(U|u)(S|s).(D|d)(A|a)(T|t)(E|e)\]")
   If Len(strTempItem) > 0 Then
     strSubjectPattern = Replace(strSubjectPattern, strTempItem, "[status_date]")
-    strSubjectHint = Replace(strSubjectHint, strTempItem, Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+    strSubjectHint = Replace(strSubjectHint, strTempItem, FormatDateTime(ActiveProject.StatusDate, "m/d/yyyy"))
   End If
   
   'clean program

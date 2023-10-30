@@ -1855,10 +1855,10 @@ try_again:
     oWorksheet.Cells(lngHeaderRow, lngCol).WrapText = True
     If InStr(oWorksheet.Cells(lngHeaderRow, lngCol), "Start") > 0 Then
       oWorksheet.Columns(lngCol).Replace "NA", ""
-      oWorksheet.Columns(lngCol).NumberFormat = "mm/dd/yyyy"
+      oWorksheet.Columns(lngCol).NumberFormat = "m/d/yyyy"
     ElseIf InStr(oWorksheet.Cells(lngHeaderRow, lngCol), "Finish") > 0 Then
       oWorksheet.Columns(lngCol).Replace "NA", ""
-      oWorksheet.Columns(lngCol).NumberFormat = "mm/dd/yyyy"
+      oWorksheet.Columns(lngCol).NumberFormat = "m/d/yyyy"
     ElseIf InStr(oWorksheet.Cells(lngHeaderRow, lngCol), "Work") > 0 Or InStr(oWorksheet.Cells(lngHeaderRow, lngCol), "ETC") > 0 Then
       oWorksheet.Columns(lngCol).Style = "Comma"
     End If
@@ -2673,7 +2673,7 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
   oMailItem.Attachments.Add strFullName
   With cptStatusSheet_frm
     strSubject = .txtSubject
-    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[status\_date\]"), Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+    strSubject = Replace(strSubject, cptRegEx(strSubject, "\[status\_date\]"), FormatDateTime(ActiveProject.StatusDate, vbShortDate))
     strSubject = Replace(strSubject, cptRegEx(strSubject, "\[yyyy\-mm\-dd\]"), Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
     strSubject = Replace(strSubject, cptRegEx(strSubject, "\[item\]"), strItem)
     strSubject = Replace(strSubject, cptRegEx(strSubject, "\[program\]"), cptGetProgramAcronym)
@@ -2703,7 +2703,7 @@ Sub cptSendStatusSheet(strFullName As String, Optional strItem As String)
       'clean status date
       strTempItem = cptRegEx(oMailItem.HTMLBody, "\[(S|s)(T|t)(A|a)(T|t)(U|u)(S|s).(D|d)(A|a)(T|t)(E|e)\]")
       If Len(strTempItem) > 0 Then
-        oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, strTempItem, Format(ActiveProject.StatusDate, "mm/dd/yyyy"))
+        oMailItem.HTMLBody = Replace(oMailItem.HTMLBody, strTempItem, FormatDateTime(ActiveProject.StatusDate, vbShortDate))
       End If
       'clean program
       strTempItem = cptRegEx(oMailItem.HTMLBody, "\[(P|p)(R|r)(O|o)(G|g)(R|r)(A|a)(M|m)\]")

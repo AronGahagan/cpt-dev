@@ -80,7 +80,7 @@ Private Sub txtTargetFinish_Change()
     Me.Repaint
   Else
     'limit to dates after the start date
-    If CDate(Format(Me.txtTargetFinish.Text, "mm/dd/yyyy") & " 5:00 PM") < ActiveProject.Tasks.UniqueID(Me.lngUID).Start Then
+    If CDate(FormatDateTime(Me.txtTargetFinish.Text, vbShortDate) & " 5:00 PM") < ActiveProject.Tasks.UniqueID(Me.lngUID).Start Then
       Me.txtTargetFinish.BorderColor = 192
       Me.lblWeekday.Caption = "-"
       Me.cmdApply.Enabled = False
