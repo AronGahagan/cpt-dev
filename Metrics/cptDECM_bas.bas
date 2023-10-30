@@ -492,6 +492,59 @@ next_task:
   Application.StatusBar = "Getting EVMS: 05A103a...done."
   DoEvents
   
+  'bonus - 1 WP : 1 CA
+  cptDECM_frm.lblStatus.Caption = "Getting bonus..."
+  Application.StatusBar = "Getting bonus..."
+  cptDECM_frm.lboMetrics.AddItem
+  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "1wp_1ca"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 WP : 1 CA"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  DoEvents
+  'X = count of incomplete WPs that have more than one CA or no CA assigned
+  'Y = count of incomplete WPs
+  strSQL = "SELECT WP,COUNT(CA) AS CountOfCA "
+  strSQL = strSQL & "FROM (SELECT DISTINCT WP,CA FROM [tasks.csv] WHERE WP IS NOT NULL AND AF IS NULL) "
+  strSQL = strSQL & "GROUP BY WP "
+  strSQL = strSQL & "HAVING COUNT(CA)>1"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("WP") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  strSQL = "SELECT DISTINCT WP "
+  strSQL = strSQL & "FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE WP IS NOT NULL AND AF IS NULL"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngY = .RecordCount
+    'DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore = 0 Then
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A102a...done."
+  Application.StatusBar = "Getting EVMS: 10A102a...done."
+  DoEvents
+  
   '10A102a - 1 WP : 1 EVT
   cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A102a..."
   Application.StatusBar = "Getting EVMS: 05A103a..."
@@ -571,9 +624,9 @@ next_task:
     Set oWorkbook = cptGetEVTAnalysis
     Set oWorksheet = oWorkbook.Sheets(1)
     Set oListObject = oWorksheet.ListObjects(1)
-    lngY = oListObject.DataBodyRange.Rows.Count
+    lngY = oListObject.DataBodyRange.rows.Count
     oListObject.Range.AutoFilter Field:=6, Criteria1:=">1", Operator:=xlAnd
-    lngX = oListObject.DataBodyRange.SpecialCells(xlCellTypeVisible).Rows.Count
+    lngX = oListObject.DataBodyRange.SpecialCells(xlCellTypeVisible).rows.Count
     strList = ""
     If lngX > 0 Then
       For Each oCell In oListObject.ListColumns("WP").DataBodyRange.SpecialCells(xlCellTypeVisible).Cells
@@ -2126,7 +2179,13 @@ skip_fiscal:
       End If
     End If
     oRecordset.Close
-    'todo: SELECT DISTINCT WP WHERE BLW or BLC > 0 AND EVT=K and BLS<=RWD = lngX
+    strSQL = "SELECT DISTINCT WP FROM [tasks.csv] WHERE EVT='K' and BLS <= #" & FormatDateTime(dtRollingWaveDate, vbGeneralDate) & " 5:00 PM#"
+    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    If Not oRecordset.EOF Then
+      lngY = oRecordset.RecordCount
+    Else
+      lngY = 1
+    End If
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
     dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
@@ -2549,7 +2608,7 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
               o10A103a.Sheets(1).Copy After:=oWorkbook.Sheets(oWorkbook.Sheets.Count)
               o10A103a.Close True
               Set oWorksheet = oWorkbook.Sheets("10A103a")
-              oWorksheet.Rows("1:2").Insert
+              oWorksheet.rows("1:2").Insert
               oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
               oWorksheet.[A2].Value = "0/100 WPs in more than 1 fiscal period"
               oWorksheet.Tab.Color = 192
@@ -3286,13 +3345,13 @@ Private Function cptGetEVTAnalysis() As Excel.Workbook
   rst.Close
   
   Set oRange = oWorksheet.Range(oWorksheet.[A1].End(xlToRight).Offset(1, 0), oWorksheet.[A1].End(xlDown).Offset(0, 5))
-  lngFiscalEndCol = oWorksheet.Rows(1).Find(what:="fisc_end").Column
+  lngFiscalEndCol = oWorksheet.rows(1).Find(what:="fisc_end").Column
   lngLastRow = oWorksheet.Cells(2, lngFiscalEndCol).End(xlDown).Row
   'Excel 2016 compatibility
   'oRange.FormulaR1C1 = "=COUNTIFS(R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & ","">=""&RC[-3],R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & ",""<""&RC[-2])+1"
   '=SUMPRODUCT(--($G$2:$G$109>=B15)*--($G$2:$G$109<C15)*1)+1
   oRange.FormulaR1C1 = "=SUMPRODUCT(--(R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & ">=RC[-3])*--(R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & "<RC[-2])*1)+1"
-  lngFiscalPeriodsCol = oWorksheet.Rows(1).Find(what:="FiscalPeriods").Column
+  lngFiscalPeriodsCol = oWorksheet.rows(1).Find(what:="FiscalPeriods").Column
   oWorksheet.Columns(lngFiscalPeriodsCol).NumberFormat = "#0"
   oExcel.ActiveWindow.Zoom = 85
   oExcel.ActiveWindow.SplitRow = 1
