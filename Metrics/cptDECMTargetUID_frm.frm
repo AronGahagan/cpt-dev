@@ -41,10 +41,6 @@ Private Sub lboTasks_AfterUpdate()
   End If
 End Sub
 
-Private Sub lboTasks_Click()
-
-End Sub
-
 Private Sub txtTaskName_Change()
   'objects
   Dim oRecordset As ADODB.Recordset
