@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptAgeDates_bas"
-'<cpt_version>v1.0.1</cpt_version>
+'<cpt_version>v1.1.0</cpt_version>
 Option Explicit
 
 Sub cptShowAgeDates_frm()
