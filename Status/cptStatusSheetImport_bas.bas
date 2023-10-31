@@ -341,7 +341,7 @@ Sub cptStatusSheetImport()
   lngFile = FreeFile
   Open strImportLog For Output As #lngFile
   'log action
-  Print #lngFile, "START STATUS SHEET IMPORT - " & Format(Now(), "mm/dd/yyyy hh:nn:ss")
+  Print #lngFile, "START STATUS SHEET IMPORT - " & FormatDateTime(Now(), vbGeneralDate)
   
   'set up deconfliction db
   strSchema = Environ("temp") & "\Schema.ini"
@@ -668,12 +668,12 @@ evp_skipped:
             'comments todo: only import if different
             If .chkAppend And oWorksheet.Cells(lngRow, lngCommentsCol).Value <> "" Then
               If .cboAppendTo = "Top of Task Note" Then
-                oTask.Notes = Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & vbCrLf & oTask.Notes
+                oTask.Notes = FormatDateTime(dtStatus, vbShortDate) & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & vbCrLf & oTask.Notes
               'todo: replace task note
               ElseIf .cboAppendTo = "Overwrite Note" Then
-                oTask.Notes = Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
+                oTask.Notes = FormatDateTime(dtStatus, vbShortDate) & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
               ElseIf .cboAppendTo = "Bottom of Task Note" Then
-                oTask.AppendNotes vbCrLf & String(25, "-") & vbCrLf & Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
+                oTask.AppendNotes vbCrLf & String(25, "-") & vbCrLf & FormatDateTime(dtStatus, vbShortDate) & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
               End If
             End If
           ElseIf Not blnTask Then 'it's an Assignment
@@ -779,12 +779,12 @@ evp_skipped:
                 End If
                 If .chkAppend And Len(oWorksheet.Cells(lngRow, lngCommentsCol)) > 0 Then
                   If .cboAppendTo = "Top of Task Note" Then
-                    oAssignment.Notes = Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & vbCrLf & oAssignment.Notes
+                    oAssignment.Notes = FormatDateTime(dtStatus, vbShortDate) & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & vbCrLf & oAssignment.Notes
                   'todo: replace assignment note
                   ElseIf .cboAppendTo = "Overwrite Note" Then
-                    oAssignment.Notes = Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
+                    oAssignment.Notes = FormatDateTime(dtStatus, vbShortDate) & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
                   ElseIf .cboAppendTo = "Bottom of Task Note" Then
-                    oAssignment.AppendNotes vbCrLf & String(25, "-") & vbCrLf & Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
+                    oAssignment.AppendNotes vbCrLf & String(25, "-") & vbCrLf & FormatDateTime(dtStatus, vbShortDate) & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
                   End If
                 End If
               End If

@@ -274,24 +274,24 @@ next_mapping_task:
         Select Case oLink.From.ConstraintType
           Case pjFNET
             If oLink.From.Finish > oLink.From.ConstraintDate Then
-              .Column(5, .ListCount - 1) = Format(oLink.From.Finish, "mm/dd/yy")
+              .Column(5, .ListCount - 1) = FormatDateTime(oLink.From.Finish, vbShortDate)
             Else
-              .Column(5, .ListCount - 1) = "<" & Format(oLink.From.Finish, "mm/dd/yy")
+              .Column(5, .ListCount - 1) = "<" & FormatDateTime(oLink.From.Finish, vbShortDate)
             End If
           Case pjFNLT
             If oLink.From.Finish < oLink.From.ConstraintDate Then
-              .Column(5, .ListCount - 1) = Format(oLink.From.Finish, "mm/dd/yy")
+              .Column(5, .ListCount - 1) = FormatDateTime(oLink.From.Finish, vbShortDate)
             Else
-              .Column(5, .ListCount - 1) = ">" & Format(oLink.From.Finish, "mm/dd/yy")
+              .Column(5, .ListCount - 1) = ">" & FormatDateTime(oLink.From.Finish, vbShortDate)
             End If
           Case pjMFO
             If oLink.From.Finish = oLink.From.ConstraintDate Then
-              .Column(5, .ListCount - 1) = "=" & Format(oLink.From.Finish, "mm/dd/yy")
+              .Column(5, .ListCount - 1) = "=" & FormatDateTime(oLink.From.Finish, vbShortDate)
             Else
-              .Column(5, .ListCount - 1) = Format(oLink.From.Finish, "mm/dd/yy")
+              .Column(5, .ListCount - 1) = FormatDateTime(oLink.From.Finish, vbShortDate)
             End If
           Case Else
-            .Column(5, .ListCount - 1) = Format(oLink.From.Finish, "mm/dd/yy")
+            .Column(5, .ListCount - 1) = FormatDateTime(oLink.From.Finish, vbShortDate)
         End Select
         .Column(6, .ListCount - 1) = Round(oLink.From.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
         .Column(8, .ListCount - 1) = IIf(oLink.From.Critical, "X", "")
@@ -336,20 +336,20 @@ next_mapping_task:
         Select Case oLink.To.ConstraintType
           Case pjSNET
             If oLink.To.ConstraintDate > oLink.To.Start Then
-              .Column(5, .ListCount - 1) = ">" & Format(oLink.To.Start, "mm/dd/yy")
+              .Column(5, .ListCount - 1) = ">" & FormatDateTime(oLink.To.Start, vbShortDate)
             Else
-              .Column(5, .ListCount - 1) = Format(oLink.To.Start, "mm/dd/yy")
+              .Column(5, .ListCount - 1) = FormatDateTime(oLink.To.Start, vbShortDate)
             End If
           Case pjSNLT
             If oLink.To.ConstraintDate = oLink.To.Start Then
-              .Column(5, .ListCount - 1) = "<" & Format(oLink.To.Start, "mm/dd/yy")
+              .Column(5, .ListCount - 1) = "<" & FormatDateTime(oLink.To.Start, vbShortDate)
             Else
-              .Column(5, .ListCount - 1) = Format(oLink.To.Start, "mm/dd/yy")
+              .Column(5, .ListCount - 1) = FormatDateTime(oLink.To.Start, vbShortDate)
             End If
           Case pjMSO
-            .Column(5, .ListCount - 1) = "=" & Format(oLink.To.Start, "mm/dd/yy")
+            .Column(5, .ListCount - 1) = "=" & FormatDateTime(oLink.To.Start, vbShortDate)
           Case Else
-            .Column(5, .ListCount - 1) = Format(oLink.To.Start, "mm/dd/yy")
+            .Column(5, .ListCount - 1) = FormatDateTime(oLink.To.Start, vbShortDate)
         End Select
         .Column(6, .ListCount - 1) = Round(oLink.To.TotalSlack / (ActiveProject.HoursPerDay * 60), 2) & "d"
         .Column(8, .ListCount - 1) = IIf(oLink.To.Critical, "X", "")
