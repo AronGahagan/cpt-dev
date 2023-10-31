@@ -1609,7 +1609,7 @@ Sub cptCreateFilter(strFilter As String)
 
   Select Case strFilter
     Case "Marked"
-      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
+      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
       
   End Select
   
@@ -1624,9 +1624,9 @@ End Sub
 
 Sub cptShowSettings_frm()
   'objects
-  Dim oRecordset As ADODB.Recordset
-  Dim oStream As Scripting.TextStream
-  Dim oFSO As Scripting.FileSystemObject
+  Dim oRecordset As Object 'ADODB.Recordset
+  Dim oStream As Object 'Scripting.TextStream
+  Dim oFSO As Object 'Scripting.FileSystemObject
   'strings
   Dim strErrorTrapping As String
   Dim strSettingsFileNew As String
@@ -1955,8 +1955,8 @@ End Function
 
 Sub cptAppendColumn(strFile As String, strColumn As String, lngType As Long, Optional lngLength As Long, Optional vDefault As Variant)
   'objects
-  Dim oRecordsetNew As ADODB.Recordset
-  Dim oRecordset As ADODB.Recordset
+  Dim oRecordsetNew As Object 'ADODB.Recordset
+  Dim oRecordset As Object 'ADODB.Recordset
   'strings
   'longs
   Dim lngField As Long
@@ -2339,9 +2339,8 @@ Function cptGetCustomFields(strFieldTypes As String, strDataTypes As String, str
       vResult(lngField, lngInclude) = Split(Split(strResult, vbCrLf)(lngField), ",")(lngInclude)
     Next lngInclude
   Next lngField
-  
-  'todo: alphabetize the results
-  
+    
+  'alphabetization is handled by cptSortedArray on a case-by-case
   cptGetCustomFields = vResult
   
 exit_here:
@@ -2610,12 +2609,12 @@ err_here:
   Resume exit_here
 End Function
 
-Function cptConvertFilteredRecordset(oRecordset As ADODB.Recordset) As ADODB.Recordset
-  Dim oStream As ADODB.Stream
-  Dim oFiltered As ADODB.Recordset
-  Set oStream = New ADODB.Stream
+Function cptConvertFilteredRecordset(oRecordset As Object) As Object 'ADODB.Recordset,ADODB.Recordset
+  Dim oStream As Object 'ADODB.Stream
+  Dim oFiltered As Object 'ADODB.Recordset
+  Set oStream = CreateObject("ADODB.Stream")
   oRecordset.Save oStream, adPersistXML
-  Set oFiltered = New ADODB.Recordset
+  Set oFiltered = CreateObject("ADODB.Recordset")
   oFiltered.Open oStream
   Set cptConvertFilteredRecordset = oFiltered
   oStream.Close
@@ -2709,4 +2708,11 @@ Function cptGetPosition(vList As Variant, vValue As Variant, Optional strDelimit
       lngPosition = lngPosition + 1
     Next vPosition
   End If
+End Function
+
+Function cptGetDate(dtDate As Date, Optional strFormat As String)
+  Dim vFormat As Variant
+  For Each vFormat In Array(vbGeneralDate, vbLongDate, vbShortDate, vbLongTime, vbShortTime)
+    Debug.Print vFormat & ": " & FormatDateTime(dtDate, vFormat)
+  Next vFormat
 End Function
