@@ -27,18 +27,22 @@ Private Sub chkUpdateView_Click()
 End Sub
 
 Private Sub cmdDone_Click()
-  Unload Me
-  'then clean up after yourself
   Dim vFile As Variant
   Dim strFile As String
+  Dim vGroup As Variant
+  Dim strGroups As String
+  
+  Unload Me
+  'then clean up after yourself
   For Each vFile In Split("Schema.ini,tasks.csv,targets.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv,06A504a.csv,06A504b.csv,segregated.csv,itemized.csv", ",")
     strFile = Environ("tmp") & "\" & vFile
     If Dir(strFile) <> vbNullString Then Kill strFile
   Next vFile
   cptResetAll
-  Dim vGroup As Variant
-  'git grep 'strGroup =' | awk -F"strGroup = " '{ print $2}' | sed 's/"//g' | tr -s '\n' ','
-  For Each vGroup In Split("cpt 05A101a 1 CA : 1 OBS,cpt 05A102a 1 CA : 1 CAM,cpt 05A103a 1 CA : 1 WBS,cpt 10A102a 1 WP : 1 EVT,cpt 11A101a CA BAC = SUM(WP BAC)", ",")
+
+  'git grep 'strGroup =' | grep -v "grep" | awk -F"strGroup = " '{ print $2}' | sed 's/"//g' | tr -s '\n' ','
+  strGroups = "cpt 05A101a 1 CA : 1 OBS,cpt 05A102a 1 CA : 1 CAM,cpt 05A103a 1 CA : 1 WBS,cpt 1wp_1ca,cpt 10A102a 1 WP : 1 EVT,cpt 11A101a CA BAC = SUM(WP BAC)"
+  For Each vGroup In Split(strGroups, ",")
     If cptGroupExists(CStr(vGroup)) Then ActiveProject.TaskGroups2(vGroup).Delete
   Next vGroup
 End Sub

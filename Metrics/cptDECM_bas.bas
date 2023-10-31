@@ -499,12 +499,12 @@ next_task:
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "1wp_1ca"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 WP : 1 CA"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
   'X = count of incomplete WPs that have more than one CA or no CA assigned
   'Y = count of incomplete WPs
   strSQL = "SELECT WP,COUNT(CA) AS CountOfCA "
-  strSQL = strSQL & "FROM (SELECT DISTINCT WP,CA FROM [tasks.csv] WHERE WP IS NOT NULL AND AF IS NULL) "
+  strSQL = strSQL & "FROM (SELECT DISTINCT WP,CA FROM [tasks.csv] WHERE AF IS NULL) "
   strSQL = strSQL & "GROUP BY WP "
   strSQL = strSQL & "HAVING COUNT(CA)>1"
   With oRecordset
@@ -532,8 +532,8 @@ next_task:
   End With
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  dblScore = lngX 'Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = lngX 'Format(dblScore, "0%")
   If dblScore = 0 Then
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
   Else
@@ -2769,7 +2769,20 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
     
     Case "06A101a" 'WP mismatches
       'todo: do what?
-      
+    
+    Case "1wp_1ca"
+      If Len(strList) > 0 Then
+        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "equals", strList
+        'group by WP, CA
+        strGroup = "cpt 1wp_1ca"
+        If cptGroupExists(strGroup) Then ActiveProject.TaskGroups2(strGroup).Delete
+        ActiveProject.TaskGroups.Add strGroup, FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0))
+        ActiveProject.TaskGroups(strGroup).GroupCriteria.Add FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0))
+        GroupApply Name:=strGroup
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
+      End If
     Case "06A212a" 'out of sequence
       If Len(strList) > 0 Then
         SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
@@ -2871,7 +2884,7 @@ Function cptGetOutOfSequence() As String
   Dim oAssignment As MSProject.Assignment
   Dim oOOS As Scripting.Dictionary
   Dim oCalendar As MSProject.Calendar
-  Dim oSubproject As MSProject.Subproject
+  Dim oSubproject As MSProject.SubProject
   Dim oSubMap As Scripting.Dictionary
   Dim oTask As MSProject.Task
   Dim oLink As MSProject.TaskDependency
