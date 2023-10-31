@@ -2271,7 +2271,7 @@ Function cptGetCustomFields(strFieldTypes As String, strDataTypes As String, str
   'strInclude     := comma-separated list of any of "c,fn,cfn" [constant,fieldname,customfieldname]
   'blnIncludeEnterprise := self-explanatory
   'objects
-  Dim oFieldTypes As Scripting.Dictionary
+  Dim oFieldTypes As Object 'Scripting.Dictionary
   'strings
   Dim strFieldName As String
   Dim strCustomFieldName As String
@@ -2372,7 +2372,7 @@ End Sub
 
 Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalRequired As Boolean = False, Optional blnRollingWaveDateRequired As Boolean = False, Optional blnConfirmationRequired As Boolean = False) As Boolean
   'objects
-  Dim oRequiredFields As Scripting.Dictionary
+  Dim oRequiredFields As Object 'Scripting.Dictionary
   Dim oComboBox As MSForms.ComboBox
   'strings
   Dim strDefaultFields As String
@@ -2630,7 +2630,7 @@ Function cptSortedArray(vArray As Variant, lngSortKey As Long) As Variant
   'read array into oDict using key as key, row as row
   'sort the sort keys
   'build sorted array off of keys using lookup
-  Dim oDict As Scripting.Dictionary
+  Dim oDict As Object 'Scripting.Dictionary
   Dim rows As Long, cols As Long
   Dim r As Long, c As Long
   Dim strRow As String
@@ -2650,7 +2650,7 @@ Function cptSortedArray(vArray As Variant, lngSortKey As Long) As Variant
     
   cptQuickSort oDict.Keys, 0, oDict.Count - 1
 
-  ReDim vTemp(0 To UBound(oDict.Keys), 0 To UBound(oDict(oDict.Keys(0)), 1))
+  ReDim vTemp(0 To rows, 0 To cols)
   For r = 0 To rows
     For c = 0 To cols
       vTemp(r, c) = oDict.Items()(r)(c)
