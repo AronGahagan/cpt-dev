@@ -224,14 +224,14 @@ Private Sub cboWP_Change()
     Set oCDP = ActiveProject.CustomDocumentProperties("fWP")
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oCDP Is Nothing Then
-      lngField = FieldNameToFieldConstant(ActiveProject.CustomDocumentProperties("fWP"))
+      lngField = FieldNameToFieldConstant(oCDP.Value)
       If Me.cboWP.Value <> lngField Then
         If MsgBox("COBRA Export Tool setting is '" & CustomFieldGetName(lngField) & "' - use this instead?", vbQuestion + vbYesNo, "Synchronize?") = vbYes Then
           Me.cboWP.Value = lngField
         End If
       End If
     Else
-      Set oCDP = ActiveProject.CustomDocumentProperties.Add("fWP", False, msoPropertyTypeString, FieldConstantToFieldName(Me.cboWP.Value))
+      Set oCDP = ActiveProject.CustomDocumentProperties.Add("fWP", False, msoPropertyTypeString, CustomFieldGetName(Me.cboWP.Value))
     End If
   End If
   UpdateIntegrationSettings
@@ -290,13 +290,31 @@ Private Sub chkSyncSettings_Click()
       Set oCDP = ActiveProject.CustomDocumentProperties(oDict(vControl))
       If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If Not oCDP Is Nothing Then
-        If IsNull(oComboBox) Then 'import from COBRA Export Tool setting
-          oComboBox.Value = FieldNameToFieldConstant(oCDP.Value)
-          cptSaveSetting "Integration", CStr(vControl), oComboBox.Value & "|" & CustomFieldGetName(oComboBox.Value)
-          oComboBox.BorderColor = -2147483642
-        Else 'notify discrepancy
-          If FieldNameToFieldConstant(oCDP.Value) <> oComboBox.Value Then
+        'does it still exist?
+        On Error Resume Next
+        Dim lngField As Long
+        lngField = 0
+        lngField = FieldNameToFieldConstant(oCDP.Value)
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If lngField = 0 Then
+          If MsgBox("The field '" & oCDP.Value & "' in the COBRA settings no longer exists in this file. Update with '" & CustomFieldGetName(oComboBox.Value) & "'?", vbCritical + vbYesNo, "Mapping Invalid") = vbYes Then
+            oCDP = CustomFieldGetName(oComboBox.Value)
+            oComboBox.BorderColor = -2147483642
+          Else
             oComboBox.BorderColor = 192
+            oCDP.Delete
+          End If
+        Else
+          If IsNull(oComboBox) Then 'import from COBRA Export Tool setting
+            oComboBox.Value = FieldNameToFieldConstant(oCDP.Value)
+            cptSaveSetting "Integration", CStr(vControl), oComboBox.Value & "|" & CustomFieldGetName(oComboBox.Value)
+            oComboBox.BorderColor = -2147483642
+          Else 'notify discrepancy
+            If FieldNameToFieldConstant(oCDP.Value) <> oComboBox.Value Then
+              oComboBox.BorderColor = 192
+            Else
+              oComboBox.BorderColor = -2147483642
+            End If
           End If
         End If
       End If
@@ -380,8 +398,12 @@ Private Sub UpdateIntegrationSettings()
     For Each vControl In Split("CAM,WP,EVT,EVP", ",")
       strControl = CStr(vControl)
       If strControl = "EVP" Then strControl = "PCNT"
-      If FieldConstantToFieldName(Me.Controls("cbo" & vControl).Value) <> ActiveProject.CustomDocumentProperties("f" & strControl) Then
-        If Me.Controls("cbo" & vControl).Enabled Then Me.Controls("cbo" & vControl).BorderColor = 192
+      If CustomFieldGetName(Me.Controls("cbo" & vControl).Value) <> ActiveProject.CustomDocumentProperties("f" & strControl) Then
+        If FieldConstantToFieldName(Me.Controls("cbo" & vControl).Value) <> ActiveProject.CustomDocumentProperties("f" & strControl) Then 'catch if not a custom field (e.g., Physical % Complete)
+          If Me.Controls("cbo" & vControl).Enabled Then Me.Controls("cbo" & vControl).BorderColor = 192
+        Else
+          If Me.Controls("cbo" & vControl).Enabled Then Me.Controls("cbo" & vControl).BorderColor = -2147483642
+        End If
       Else
         If Me.Controls("cbo" & vControl).Enabled Then Me.Controls("cbo" & vControl).BorderColor = -2147483642
       End If
