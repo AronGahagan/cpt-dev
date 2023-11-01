@@ -6,7 +6,7 @@ Sub cptCheckAssignments()
   'objects
   Dim oRecordset As ADODB.Recordset
   Dim oNewWorksheet As Excel.Worksheet
-  Dim oSubproject As Subproject
+  Dim oSubProject As SubProject
   Dim oComment As Excel.Comment
   Dim oListObject As ListObject
   Dim oWorksheet As Excel.Worksheet
@@ -43,6 +43,7 @@ Sub cptCheckAssignments()
   Dim dblARC_T As Double
   Dim dblABLC_T As Double
   'booleans
+  Dim blnMarked As Boolean
   Dim blnNewExcel As Boolean
   Dim blnBaselined As Boolean
   'variants
@@ -54,6 +55,8 @@ Sub cptCheckAssignments()
   'user input: significant digits
   Application.StatusBar = "Waiting for user input..."
   lngSigDig = Val(InputBox("How many significant digits:", "Precision?", 3))
+  
+  blnMarked = True 'todo: make Marking tasks optional
   
   Set oRecordset = CreateObject("ADODB.Recordset")
   'oTask.UniqueID, dblTRW, dblARW, dblTRW_T, dblARW_T, dblTRC, dblARC, dblTRC_T, dblARC_T, dblTBLW, dblABLW, dblTBLW_T, dblABLW_T, dblTBLC, dblABLC, dblTBLC_T, dblABLC_T, strMsg
@@ -75,7 +78,7 @@ Sub cptCheckAssignments()
     .Fields.Append "ABLC", adDouble
     .Fields.Append "TBLC_T", adDouble
     .Fields.Append "ABLC_T", adDouble
-    .Fields.Append "RESULT", adVarChar, 255
+    .Fields.Append "RESULT", adVarChar, 1500
     .Open
   End With
   
@@ -83,6 +86,27 @@ Sub cptCheckAssignments()
   For Each oTask In ActiveProject.Tasks
     lngTasks = lngTasks + 1
   Next
+  
+  'Updating Task status updates resource status
+  If Not ActiveProject.AutoTrack Then
+    strMsg = "> Updating Task status updates resource status = True" & vbCrLf
+  End If
+  
+  'Actual costs are always calculated by Project
+  If Not ActiveProject.AutoCalcCosts Then
+    strMsg = strMsg & "> Actual costs are always calculated by Project = True" & vbCrLf
+  End If
+  
+  'prompt user to apply recommended settings
+  If Len(strMsg) > 0 Then
+    strMsg = "File > Options > Schedule > Calculation options for this project:" & vbCrLf & vbCrLf & strMsg & vbCrLf & "Apply now?"
+    If MsgBox(strMsg, vbInformation + vbYesNo, "Recommended settings:") = vbYes Then
+      ActiveProject.AutoTrack = True
+      ActiveProject.AutoCalcCosts = True
+    End If
+  End If
+
+   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   'account for when no baseline
   blnBaselined = IsDate(ActiveProject.BaselineSavedDate(pjBaseline))
@@ -93,27 +117,25 @@ Sub cptCheckAssignments()
   
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
-    If oTask.Summary Then GoTo next_task 'todo: include summaries
+    If oTask.Summary Then GoTo next_task 'todo: include summaries?
     If Not oTask.Active Then GoTo next_task
-    oTask.Marked = False
+    If oTask.ExternalTask Then GoTo next_task
+    If oTask.Assignments.Count = 0 Then GoTo next_task 'todo: disable this and do dates/durations?
+    If IsDate(oTask.ActualFinish) Then GoTo next_task 'limit to incomplete
+    'oTask.Marked = False 'todo
+    strMsg = ""
     'capture task totals
     dblTRW = oTask.RemainingWork / 60
     dblTRC = Val(oTask.RemainingCost)
     dblTBLW = oTask.BaselineWork / 60
     dblTBLC = Val(oTask.BaselineCost)
-    'get task timephased work
+    'get task timephased remaining work
     dblTRW_T = 0
     Set oTSVS = oTask.TimeScaleData(oTask.Start, oTask.Finish, pjTaskTimescaledWork, pjTimescaleYears)
     For Each oTSV In oTSVS
       dblTRW_T = dblTRW_T + (Val(oTSV.Value) / 60)
       'subtract timephased actual work
       dblTRW_T = dblTRW_T - (Val(oTask.TimeScaleData(oTSV.StartDate, oTSV.EndDate, pjTaskTimescaledActualWork, pjTimescaleYears).Item(1)) / 60)
-    Next oTSV
-    'get task timephased baseline work
-    dblTBLW_T = 0
-    Set oTSVS = oTask.TimeScaleData(oTask.BaselineStart, oTask.BaselineFinish, pjTaskTimescaledBaselineWork, pjTimescaleYears)
-    For Each oTSV In oTSVS
-      dblTBLW_T = dblTBLW_T + (Val(oTSV.Value) / 60)
     Next oTSV
     'get task timephased remainig cost
     dblTRC_T = 0
@@ -123,12 +145,37 @@ Sub cptCheckAssignments()
       'subtract timephased actual cost
       dblTRC_T = dblTRC_T - Val(oTask.TimeScaleData(oTSV.StartDate, oTSV.EndDate, pjTaskTimescaledActualCost, pjTimescaleYears).Item(1))
     Next oTSV
-    'get task timephased baseline cost
-    dblTBLC_T = 0
-    Set oTSVS = oTask.TimeScaleData(oTask.BaselineStart, oTask.BaselineFinish, pjTaskTimescaledBaselineCost, pjTimescaleYears)
-    For Each oTSV In oTSVS
-      dblTBLC_T = dblTBLC_T + Val(oTSV.Value)
-    Next oTSV
+    If blnBaselined Then
+      If Not IsDate(oTask.BaselineStart) Then
+        lngCount = lngCount + 1
+        strMsg = strMsg & "Task BLS missing." & Chr(10)
+      End If
+      If Not IsDate(oTask.BaselineFinish) Then
+        lngCount = lngCount + 1
+        strMsg = strMsg & "Task BLF missing." & Chr(10)
+      End If
+      dblTBLW_T = 0
+      If IsDate(oTask.BaselineStart) And IsDate(oTask.BaselineFinish) Then
+        'todo: if BLS or BLF is missing then...
+        If oTask.BaselineFinish > oTask.BaselineStart Then
+          'get task timephased baseline work
+          Set oTSVS = oTask.TimeScaleData(oTask.BaselineStart, oTask.BaselineFinish, pjTaskTimescaledBaselineWork, pjTimescaleYears)
+          For Each oTSV In oTSVS
+            dblTBLW_T = dblTBLW_T + (Val(oTSV.Value) / 60)
+          Next oTSV
+          'get task timephased baseline cost
+          dblTBLC_T = 0
+          Set oTSVS = oTask.TimeScaleData(oTask.BaselineStart, oTask.BaselineFinish, pjTaskTimescaledBaselineCost, pjTimescaleYears)
+          For Each oTSV In oTSVS
+            dblTBLC_T = dblTBLC_T + Val(oTSV.Value)
+          Next oTSV
+        Else
+          lngCount = lngCount + 1
+          strMsg = strMsg & "Task baseline date error: BLF < BLS." & Chr(10)
+        End If
+      End If
+    End If
+
     'clear assignment total variables
     dblARW = 0
     dblABLW = 0
@@ -163,15 +210,6 @@ Sub cptCheckAssignments()
           dblARW_T = 0 'dblARW_T - (Val(oAssignment.TimeScaleData(oTSV.StartDate, oTSV.EndDate, pjAssignmentTimescaledActualWork, pjTimescaleYears).Item(1)))
         End If
       Next oTSV
-      'get timephased assignment baseline work
-      Set oTSVS = oAssignment.TimeScaleData(oAssignment.BaselineStart, oAssignment.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleYears)
-      For Each oTSV In oTSVS
-        If oAssignment.ResourceType = pjResourceTypeWork Then
-          dblABLW_T = dblABLW_T + (Val(oTSV.Value) / 60)
-        Else
-          dblABLW_T = 0 'dblABLW_T + (Val(oTSV.Value))
-        End If
-      Next oTSV
       'get timephased assignment remaining cost
       Set oTSVS = oAssignment.TimeScaleData(oAssignment.Start, oAssignment.Finish, pjAssignmentTimescaledCost, pjTimescaleYears)
       For Each oTSV In oTSVS
@@ -179,13 +217,41 @@ Sub cptCheckAssignments()
         'subtract actuals
         dblARC_T = dblARC_T - (Val(oAssignment.TimeScaleData(oTSV.StartDate, oTSV.EndDate, pjAssignmentTimescaledActualCost, pjTimescaleYears).Item(1)))
       Next oTSV
-      'get timephased assignment baseline cost
-      Set oTSVS = oAssignment.TimeScaleData(oAssignment.BaselineStart, oAssignment.BaselineFinish, pjAssignmentTimescaledBaselineCost, pjTimescaleYears)
-      For Each oTSV In oTSVS
-        dblABLC_T = dblABLC_T + Val(oTSV.Value)
-      Next oTSV
+      If blnBaselined Then
+        If Not IsDate(oAssignment.BaselineStart) And Not IsDate(oAssignment.BaselineStart) Then
+          strMsg = strMsg & "Assignment [" & oAssignment.ResourceName & "] - BLS missing; BLF missing." & Chr(10)
+          lngCount = lngCount + 1
+        ElseIf Not IsDate(oAssignment.BaselineStart) Then
+          strMsg = strMsg & "Assignment [" & oAssignment.ResourceName & "] - BLS missing." & Chr(10)
+          lngCount = lngCount + 1
+        ElseIf Not IsDate(oAssignment.BaselineFinish) Then
+          strMsg = strMsg & "Assignment [" & oAssignment.ResourceName & "] - BLF missing." & Chr(10)
+          lngCount = lngCount + 1
+        End If
+        If IsDate(oAssignment.BaselineStart) And IsDate(oAssignment.BaselineFinish) Then
+          If oAssignment.BaselineFinish > oAssignment.BaselineStart Then
+            'get timephased assignment baseline work
+            Set oTSVS = oAssignment.TimeScaleData(oAssignment.BaselineStart, oAssignment.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleYears)
+            For Each oTSV In oTSVS
+              If oAssignment.ResourceType = pjResourceTypeWork Then
+                dblABLW_T = dblABLW_T + (Val(oTSV.Value) / 60)
+              Else
+                dblABLW_T = 0 'dblABLW_T + (Val(oTSV.Value))
+              End If
+            Next oTSV
+            'get timephased assignment baseline cost
+            Set oTSVS = oAssignment.TimeScaleData(oAssignment.BaselineStart, oAssignment.BaselineFinish, pjAssignmentTimescaledBaselineCost, pjTimescaleYears)
+            For Each oTSV In oTSVS
+              dblABLC_T = dblABLC_T + Val(oTSV.Value)
+            Next oTSV
+          Else
+            lngCount = lngCount + 1
+            strMsg = strMsg & "Assignment baseline date error: BLF <= BLS." & Chr(10)
+          End If
+        End If
+      End If
+next_assignment:
     Next oAssignment
-    strMsg = ""
     
     'check for improperly baselined
     'todo: what about the assignment level
@@ -230,10 +296,12 @@ Sub cptCheckAssignments()
       lngCount = lngCount + 1
     End If
     If Len(strMsg) > 0 Then
-      oTask.Marked = True
+      'oTask.Marked = True 'todo
       'TRW,ARW,TRW_T,ARW_T,TRC,ARC,TRC_T,ARC_T,TBLW,ABLW,TBLW_T,ABLW_T,TBLC,ABLC,TBLC_T,ABLC_T
       'hack off the last crlf
       strMsg = Left(strMsg, Len(strMsg) - 1)
+      Dim lngMax As Long
+      If Len(strMsg) > lngMax Then lngMax = Len(strMsg)
       oRecordset.AddNew Array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17), Array(CLng(oTask.UniqueID), dblTRW, dblARW, dblTRW_T, dblARW_T, dblTRC, dblARC, dblTRC_T, dblARC_T, dblTBLW, dblABLW, dblTBLW_T, dblABLW_T, dblTBLC, dblABLC, dblTBLC_T, dblABLC_T, strMsg)
       'oWorksheet.Range(oWorksheet.Cells(lngLastRow, 1), oWorksheet.Cells(lngLastRow, 18)) = Array(oTask.UniqueID, dblTRW, dblARW, dblTRW_T, dblARW_T, dblTRC, dblARC, dblTRC_T, dblARC_T, dblTBLW, dblABLW, dblTBLW_T, dblABLW_T, dblTBLC, dblABLC, dblTBLC_T, dblABLC_T, strMsg)
     End If
@@ -242,12 +310,18 @@ next_task:
     lngTask = lngTask + 1
     Application.StatusBar = Format(lngTask, "#,##0") & " of " & Format(lngTasks, "#,##0") & " (" & Format(lngTask / lngTasks, "0%") & ")  |  " & Format(lngCount, "#,##0") & IIf(lngCount = 1, " discrepancy", " discrepancies")
   Next oTask
-
+  
+  Debug.Print "longest result is " & Format(lngMax, "#,##0")
+ 
   If lngCount > 0 And oRecordset.RecordCount > 0 Then
+    ActiveWindow.TopPane.Activate
     If ActiveWindow.ActivePane.View.Type <> pjTaskItem Then ViewApply "Gantt Chart"
+    OptionsViewEx DisplaySummaryTasks:=True
+    OutlineShowAllTasks
+    OptionsViewEx DisplaySummaryTasks:=False
     FilterClear
-    SetAutoFilter "Marked", pjAutoFilterFlagYes
-    MsgBox Format(lngCount, "#,##0") & IIf(lngCount = 1, " discrepancy", " discrepancies") & " found.", vbExclamation + vbOKOnly, "cptCheckAssignments"
+    'SetAutoFilter "Marked", pjAutoFilterFlagYes todo
+    SelectBeginning
     'create workbook
     Application.StatusBar = "Getting Excel..."
     On Error Resume Next
@@ -259,8 +333,8 @@ next_task:
       'note: hiding excel only works if newly created
     End If
     If Not cptErrorTrapping Then oExcel.Visible = True
-    oExcel.WindowState = xlMinimized
     Set oWorkbook = oExcel.Workbooks.Add
+    oExcel.WindowState = xlMinimized
     oExcel.ScreenUpdating = False
     oExcel.Calculation = xlCalculationManual
     'create sheet for estimates
@@ -280,14 +354,10 @@ next_task:
     
     oWorksheet.Activate
     oWorksheet.Name = "ESTIMATES"
-    oExcel.ActiveWindow.Zoom = 85
-    oExcel.ActiveWindow.DisplayGridLines = False
     Application.StatusBar = "Extracting records..."
     oWorksheet.[A2].CopyFromRecordset oRecordset
     oRecordset.Close
     lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
-    oWorksheet.[B2].Select
-    oExcel.ActiveWindow.FreezePanes = True
     Application.StatusBar = "Formatting..."
     oWorksheet.[B:Q].NumberFormat = "_(* #,##0." & String(lngSigDig, "0") & "_);_(* (#,##0." & String(lngSigDig, "0") & ");_(* ""-""??_);_(@_)"
     Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown)).Address(True, True), , xlYes)
@@ -347,41 +417,59 @@ next_task:
     oListObject.Range.Columns.AutoFit
     'add comments (or entry note) to headers
     Application.StatusBar = "Adding comments..."
+    oExcel.WindowState = xlNormal
     With oWorksheet
       Set oComment = .Cells(1, 1).AddComment("Task Unique ID")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False 'doesn't work with oExcel.WindowState = xlMinimized
       Set oComment = .Cells(1, 2).AddComment("Task Remaining Work")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 3).AddComment("Assignment Remaining Work")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 4).AddComment("Task Remaining Work (Timephased)")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 5).AddComment("Assignment Remaining Work (Timephased)")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 7).AddComment("Task Remaining Cost")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 8).AddComment("Assignment Remaining Cost")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 9).AddComment("Task Remaining Cost (Timephased)")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 10).AddComment("Assignment Remaining Cost (Timephased)")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 12).AddComment("Task Baseline Work")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 13).AddComment("Assignment Baseline Work")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 14).AddComment("Task Baseline Work (Timephased)")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 15).AddComment("Assignment Baseline Work (Timephased)")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 17).AddComment("Task Baseline Cost")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 18).AddComment("Assignment Baseline Cost")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 19).AddComment("Task Baseline Cost (Timephased)")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
       Set oComment = .Cells(1, 20).AddComment("Assignment Baseline Cost (Timephased)")
       oComment.Shape.Height = .Cells(1, 1).Height * 4
+      oComment.Shape.TextFrame.Characters.Font.Bold = False
     End With
     'pretty up the header and borders
     Application.StatusBar = "Formatting..."
@@ -422,15 +510,24 @@ next_task:
     '-- reapply autofit column
     'autofit rows
     oListObject.DataBodyRange.Rows.AutoFit
+    MsgBox Format(lngCount, "#,##0") & IIf(lngCount = 1, " discrepancy", " discrepancies") & " found.", vbExclamation + vbOKOnly, "cptCheckAssignments"
     oExcel.Calculation = xlCalculationAutomatic
     oExcel.ScreenUpdating = True
     oExcel.Visible = True
+    oExcel.WindowState = xlMaximized
+    oExcel.ActiveWindow.Zoom = 85
+    oExcel.ActiveWindow.DisplayGridlines = False
+    oExcel.ActiveWindow.SplitRow = 2
+    oExcel.ActiveWindow.SplitColumn = 1
+    oExcel.ActiveWindow.FreezePanes = True
+
   Else
     MsgBox "No discrepancies found.", vbInformation + vbOKOnly, "cptCheckAssignments"
   End If
 
   Application.StatusBar = "Report complete."
-
+  Application.ActivateMicrosoftApp pjMicrosoftExcel
+  
 exit_here:
   On Error Resume Next
   oExcel.Calculation = xlCalculationAutomatic
@@ -440,7 +537,7 @@ exit_here:
   Set oRecordset = Nothing
   Set oNewWorksheet = Nothing
   Application.StatusBar = ""
-  Set oSubproject = Nothing
+  Set oSubProject = Nothing
   Set oComment = Nothing
   Set oListObject = Nothing
   Set oWorksheet = Nothing
