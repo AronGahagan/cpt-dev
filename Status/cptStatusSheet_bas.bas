@@ -19,12 +19,15 @@ Private oInputRange As Excel.Range
 Private oUnlockedRange As Excel.Range
 Private oEntryHeaderRange As Excel.Range
 Public oEVTs As Scripting.Dictionary
+Private Const lngForeColorValid As Long = -2147483630
+Private Const lngBorderColorValid As Long = 8421504 '-2147483642
 
 Sub cptShowStatusSheet_frm()
   'populate all outline codes, text, and number fields
   'populate UID,[user selections],Task Name,Duration,Forecast Start,Forecast Finish,Total Slack,[EVT],EV%,New EV%,BLW,Remaining Work,New ETC,BLS,BLF,Reason/Impact/Action
   'add pick list for EV% or default to Physical % Complete
   'objects
+  Dim oRecordset As ADODB.Recordset 'Object
   Dim oShell As Object
   Dim oTasks As MSProject.Tasks
   Dim rstFields As ADODB.Recordset 'Object
@@ -37,6 +40,7 @@ Sub cptShowStatusSheet_frm()
   'integers
   Dim intField As Integer
   'strings
+  Dim strNewCustomFieldName As String
   Dim strLOE As String
   Dim strIgnoreLOE As String
   Dim strLookahead As String
@@ -63,8 +67,8 @@ Sub cptShowStatusSheet_frm()
   Dim strCreate As String
   Dim strEVP As String
   Dim strEVT As String
-  Dim strFieldNamesChanged As String
-  Dim strFieldName As String, strFileName As String
+  Dim strFieldName As String
+  Dim strFileName As String
   'dates
   Dim dtStatus As Date
   'variants
@@ -118,8 +122,6 @@ Sub cptShowStatusSheet_frm()
     .Caption = "Create Status Sheets (" & cptGetVersion("cptStatusSheet_frm") & ")"
     .lboFields.Clear
     .lboExport.Clear
-    .cboEVT.Clear
-    .cboEVP.Clear
     .cboCostTool.Clear
     .cboCostTool.AddItem "COBRA"
     .cboCostTool.AddItem "MPM"
@@ -209,14 +211,6 @@ Sub cptShowStatusSheet_frm()
 skip_fields:
         'add to Each
         If rstFields(1) <> "Physical % Complete" Then .cboEach.AddItem rstFields(1)
-        If rstFields(2) = "Text" Then 'add to EVT
-          .cboEVT.AddItem rstFields(1)
-        ElseIf rstFields(2) = "Number" Or rstFields(1) = "Physical % Complete" Then 'add to EVP
-          .cboEVP.AddItem rstFields(1)
-        Else 'todo: add to both?
-          .cboEVT.AddItem rstFields(1)
-          .cboEVP.AddItem rstFields(1)
-        End If
         rstFields.MoveNext
       Loop
     End With
@@ -254,38 +248,6 @@ skip_fields:
   With cptStatusSheet_frm
     Application.StatusBar = "Getting saved settings..."
     DoEvents
-    strEVT = cptGetSetting("StatusSheet", "cboEVT")
-    If strEVT <> "" Then
-      If rstFields.RecordCount > 0 Then
-        rstFields.MoveFirst
-        rstFields.Find "NAME='" & strEVT & "'"
-        If Not rstFields.EOF Then
-          On Error Resume Next
-          .cboEVT.Value = strEVT
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-          If Err.Number > 0 Then
-            MsgBox "Unable to set EVT Field to '" & rstFields(1) & "' - contact cpt@ClearPlanConsulting.com if you need assistance.", vbExclamation + vbOKOnly, "Cannot assign EVT"
-            Err.Clear
-          End If
-        End If
-      End If
-    End If
-    strEVP = cptGetSetting("StatusSheet", "cboEVP")
-    If strEVP <> "" Then
-      If rstFields.RecordCount > 0 Then
-        rstFields.MoveFirst
-        rstFields.Find "NAME='" & strEVP & "'"
-        If Not rstFields.EOF Then
-          On Error Resume Next
-          .cboEVP.Value = strEVP
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-          If Err.Number > 0 Then
-            MsgBox "Unable to set EV% Field to '" & rstFields(1) & "' - contact cpt@ClearPlanConsulting.com if you need assistance.", vbExclamation + vbOKOnly, "Cannot assign EVP"
-            Err.Clear
-          End If
-        End If
-      End If
-    End If
     strCreate = cptGetSetting("StatusSheet", "cboCreate")
     If strCreate <> "" Then .cboCreate.Value = CLng(strCreate)
     strHide = cptGetSetting("StatusSheet", "chkHide")
@@ -444,6 +406,7 @@ skip_fields:
     End If
     
     .chkIgnoreLOE.Enabled = False
+    strEVT = Split(cptGetSetting("Integration", "EVT"), "|")(1)
     strLOE = cptGetSetting("Integration", "LOE")
     If Len(strEVT) > 0 And Len(strLOE) > 0 Then
       .chkIgnoreLOE.Enabled = True
@@ -461,9 +424,10 @@ skip_fields:
   'add saved export fields if they exist
   strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
   If Dir(strFileName) <> vbNullString Then
-    With CreateObject("ADODB.Recordset")
+    Set oRecordset = CreateObject("ADODB.Recordset")
+    With oRecordset
       .Open strFileName
-      'todo: filter for program acronym
+      'todo: add program acronym field and filter for it?
       If .RecordCount > 0 Then
         .MoveFirst
         lngItem = 0
@@ -477,11 +441,25 @@ skip_fields:
           'If cptRegEx(FieldConstantToFieldName(.Fields(0)), "[0-9]{1,}$") = "" Then GoTo next_item
           'If InStr("Custom", FieldConstantToFieldName(FieldNameToFieldConstant(.Fields(2)))) = 0 Then GoTo next_item
           If CustomFieldGetName(.Fields(0)) <> CStr(.Fields(1)) Then
-            strFieldNamesChanged = strFieldNamesChanged & .Fields(2) & " '" & .Fields(1) & "' is now "
             If Len(CustomFieldGetName(.Fields(0))) > 0 Then
-              strFieldNamesChanged = strFieldNamesChanged & "'" & CustomFieldGetName(.Fields(0)) & "'" & vbCrLf
+              strNewCustomFieldName = CustomFieldGetName(.Fields(0))
             Else
-              strFieldNamesChanged = strFieldNamesChanged & "<unnamed>" & vbCrLf
+              strNewCustomFieldName = "<unnamed>"
+            End If
+            'prompt user to accept changed name or remove from list
+            If MsgBox("Saved field '" & .Fields(1) & "' has been renamed to '" & strNewCustomFieldName & "'." & vbCrLf & vbCrLf & "Click Yes to accept the name change." & vbCrLf & "Click No to remove from export list.", vbExclamation + vbYesNo, "Confirm Export Field") = vbYes Then
+              'update export list
+              cptStatusSheet_frm.lboExport.List(lngItem, 1) = CustomFieldGetName(.Fields(0))
+              'update the adtg
+              .Fields(1) = CustomFieldGetName(.Fields(0))
+              .Update
+            Else
+              'remove from export list
+              cptStatusSheet_frm.lboExport.RemoveItem (lngItem)
+              'remove from adtg
+              .Delete adAffectCurrent
+              .Update
+              lngItem = lngItem - 1
             End If
           End If
 next_item:
@@ -489,17 +467,13 @@ next_item:
           .MoveNext
         Loop
       End If
+      .Filter = 0
+      'overwrite in case of field name changes
+      .Save strFileName, adPersistADTG
       .Close
     End With
   End If
-  
-  'notify if a custom field name has changed
-  If Len(strFieldNamesChanged) > 0 Then
-    strFieldNamesChanged = "The following saved export field names have changed:" & vbCrLf & vbCrLf & strFieldNamesChanged
-    strFieldNamesChanged = strFieldNamesChanged & vbCrLf & vbCrLf & "You may wish to remove them from the export list."
-    MsgBox strFieldNamesChanged, vbInformation + vbOKOnly, "Saved Settings - Mismatches"
-  End If
-  
+    
   'set the status date / hide complete
   If ActiveProject.StatusDate = "NA" Then
     cptStatusSheet_frm.txtStatusDate.Value = FormatDateTime(DateAdd("d", 6 - Weekday(Now), Now), vbShortDate)
@@ -591,6 +565,7 @@ next_item:
   DoEvents
   Application.StatusBar = "Ready..."
   DoEvents
+  cptStatusSheet_frm.txtStatusDate.SetFocus
   cptSpeed True
   cptStatusSheet_frm.Show 'Modal = True! Keep!
   
@@ -615,6 +590,8 @@ next_item:
   
 exit_here:
   On Error Resume Next
+  Set cptStatusSheet_frm = Nothing
+  Set oRecordset = Nothing
   Set oShell = Nothing
   Application.StatusBar = ""
   cptSpeed False
@@ -1668,13 +1645,9 @@ Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False, Optional blnF
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Finish", Title:="Forecast Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Actual Start", Title:="New Forecast/ Actual Start", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Actual Finish", Title:="New Forecast/ Actual Finish", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  If cptStatusSheet_frm.cboEVT <> 0 Then
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVT.Value, Title:="EVT", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  End If
-  If cptStatusSheet_frm.cboEVP <> 0 Then
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVP.Value, Title:="EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-    TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=cptStatusSheet_frm.cboEVP.Value, Title:="New EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
-  End If
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=Split(cptGetSetting("Integration", "EVT"), "|")(1), Title:="EVT", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=Split(cptGetSetting("Integration", "EVP"), "|")(1), Title:="EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=Split(cptGetSetting("Integration", "EVP"), "|")(1), Title:="New EV%", Width:=8, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Baseline Work", Title:="", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="New ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
@@ -1893,7 +1866,6 @@ try_again:
     lngEVT = CLng(Split(strEVT, "|")(0))
   End If
   strLOE = cptGetSetting("Integration", "LOE")
-  'todo: if user changes EVT or LOE on cptStatusSheet_frm then change the Integration setting
   
   'format the data rows
   lngNameCol = oWorksheet.Rows(lngHeaderRow).Find("Task Name / Scope", lookat:=xlWhole).Column
@@ -2753,9 +2725,9 @@ Sub cptSaveStatusSheetSettings()
 
   With cptStatusSheet_frm
     'save settings
-    cptSaveSetting "StatusSheet", "cboEVP", .cboEVP.Value
+    cptDeleteSetting "StatusSheet", "cboEVP" 'moved to Integration
     cptSaveSetting "StatusSheet", "cboCostTool", .cboCostTool.Value
-    cptSaveSetting "StatusSheet", "cboEVT", .cboEVT.Value
+    cptDeleteSetting "StatusSheet", "cboEVT" 'moved to Integration
     cptSaveSetting "StatusSheet", "chkHide", IIf(.chkHide, 1, 0)
     cptSaveSetting "StatusSheet", "cboCreate", .cboCreate
     cptSaveSetting "StatusSheet", "txtDir", .txtDir
@@ -3169,6 +3141,25 @@ Sub cptFindUnstatusedTasks()
     dtStatus = ActiveProject.StatusDate
   End If
   If Not IsDate(dtStatus) Then GoTo exit_here
+  
+  'Updating Task status updates resource status
+  If Not ActiveProject.AutoTrack Then
+    strMsg = "> Updating Task status updates resource status = True" & vbCrLf
+  End If
+  
+  'Actual costs are always calculated by Project
+  If Not ActiveProject.AutoCalcCosts Then
+    strMsg = strMsg & "> Actual costs are always calculated by Project = True" & vbCrLf
+  End If
+  
+  'prompt user to apply recommended settings
+  If Len(strMsg) > 0 Then
+    strMsg = "File > Options > Schedule > Calculation options for this project:" & vbCrLf & vbCrLf & strMsg & vbCrLf & "Apply now?"
+    If MsgBox(strMsg, vbInformation + vbYesNo, "Recommended settings:") = vbYes Then
+      ActiveProject.AutoTrack = True
+      ActiveProject.AutoCalcCosts = True
+    End If
+  End If
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
