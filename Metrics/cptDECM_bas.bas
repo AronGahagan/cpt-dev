@@ -38,6 +38,7 @@ Sub cptDECM_GET_DATA()
   Dim oLink As MSProject.TaskDependency
   Dim oTask As MSProject.Task
   'strings
+  Dim strMetric As String
   Dim strRollingWaveDate As String
   Dim strUpdateView As String
   Dim strProgramAcroymn As String
@@ -347,11 +348,12 @@ next_task:
   
   '===== EVMS =====
   '05A101a - 1 CA : 1 OBS
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 05A101a..."
+  strMetric = "05A101a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting EVMS: 05A101a..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "05A101a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 OBS"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
@@ -392,18 +394,19 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 05A101a...done."
-  Application.StatusBar = "Getting EVMS: 05A101a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '05A102a - 1 CA : 1 CAM
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 05A102a..."
-  Application.StatusBar = "Getting EVMS: 05A102a..."
+  strMetric = "05A102a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "05A102a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 CAM"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
@@ -439,18 +442,19 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 05A102a...done."
-  Application.StatusBar = "Getting EVMS: 05A102a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '05A103a - 1 CA : 1 WBS
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 05A103a..."
+  strMetric = "05A103a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting EVMS: 05A103a..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "05A103a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 WBS"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
@@ -486,15 +490,15 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 05A103a...done."
-  Application.StatusBar = "Getting EVMS: 05A103a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   'bonus - 1 WP : 1 CA
-  cptDECM_frm.lblStatus.Caption = "Getting bonus..."
-  Application.StatusBar = "Getting bonus..."
+  cptDECM_frm.lblStatus.Caption = "Getting bonus metric 1wp_1ca..."
+  Application.StatusBar = "Getting bonus metric 1wp_1ca..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "1wp_1ca"
@@ -539,18 +543,19 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription("1wp_1ca")
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A102a...done."
-  Application.StatusBar = "Getting EVMS: 10A102a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting bonus metric 1wp_1ca...done."
+  Application.StatusBar = "Getting bonus metric 1wp_1ca...done."
   DoEvents
   
   '10A102a - 1 WP : 1 EVT
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A102a..."
+  strMetric = "10A102a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting EVMS: 05A103a..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A102a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 WP : 1 EVT"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
@@ -593,18 +598,19 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A102a...done."
-  Application.StatusBar = "Getting EVMS: 10A102a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '10A103a - 0/100 EVTs in one fiscal period
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS Metric: 10A103a..."
-  Application.StatusBar = "Getting EVMS Metric: 10A109b..."
+  strMetric = "10A103a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A103a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "0/100 EVTs in >1 period"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
@@ -624,9 +630,9 @@ next_task:
     Set oWorkbook = cptGetEVTAnalysis
     Set oWorksheet = oWorkbook.Sheets(1)
     Set oListObject = oWorksheet.ListObjects(1)
-    lngY = oListObject.DataBodyRange.rows.Count
+    lngY = oListObject.DataBodyRange.Rows.Count
     oListObject.Range.AutoFilter Field:=6, Criteria1:=">1", Operator:=xlAnd
-    lngX = oListObject.DataBodyRange.SpecialCells(xlCellTypeVisible).rows.Count
+    lngX = oListObject.DataBodyRange.SpecialCells(xlCellTypeVisible).Rows.Count
     strList = ""
     If lngX > 0 Then
       For Each oCell In oListObject.ListColumns("WP").DataBodyRange.SpecialCells(xlCellTypeVisible).Cells
@@ -645,10 +651,10 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A103a...done."
-  Application.StatusBar = "Getting EVMS: 10A103a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   'todo: bonus metrics if EVT_MS is used:
@@ -657,11 +663,12 @@ next_task:
   'todo: EVT = "B" AND EVT_MS = 50/50 AND FiscalPeriods > 2
   
   '10A109b - all WPs have budget
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS Metric: 10A109b..."
-  Application.StatusBar = "Getting EVMS Metric: 10A109b..."
+  strMetric = "10A109b"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A109b"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs w/o Budgets"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
@@ -702,19 +709,20 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A109b...done."
-  Application.StatusBar = "Getting EVMS: 10A109b...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '10A302b - PPs with progress
+  strMetric = "10A302b"
   Set oFSO = CreateObject("Scripting.FileSystemObject")
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 10A302b..."
-  Application.StatusBar = "Getting Schedule Metric: 10A302b..."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A302b"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs w/EVP > 0"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 2%"
   DoEvents
@@ -764,18 +772,19 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A302b...done."
-  Application.StatusBar = "Getting EVMS: 10A302b...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '10A303a - all PPs have duration?
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 10A303a..."
-  Application.StatusBar = "Getting Schedule Metric: 06A101a..."
+  strMetric = "10A303a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "10A303a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs duration = 0"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
   DoEvents
@@ -817,18 +826,19 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 10A303a...done."
-  Application.StatusBar = "Getting EVMS: 10A303a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '11A101a - CA BAC = SUM(WP BAC)?
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 11A101a..."
-  Application.StatusBar = "Getting Schedule Metric: 11A101a..."
+  strMetric = "11A101a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "11A101a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "CA BAC = Sum(WP BAC)"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
   DoEvents
@@ -983,19 +993,20 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 11A101a...done."
-  Application.StatusBar = "Getting EVMS: 11A101a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '===== SCHEDULE =====
   '06A101a - WPs Missing between IMS vs EV
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A101a..."
-  Application.StatusBar = "Getting Schedule Metric: 06A101a..."
+  strMetric = "06A101a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A101a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs IMS vs EV Tool"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
@@ -1018,19 +1029,20 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting EVMS: 06A101a...done."
-  Application.StatusBar = "Getting EVMS: 06A101a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
     
   '06A204b - Dangling Logic
   '06A204b - todo: ignore first/last milestone - how?
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A204b..."
-  Application.StatusBar = "Getting Schedule Metric: 06A204b..."
+  strMetric = "06A204b"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A204b"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Dangling Logic"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   'cptDECM_frm.lboMetrics.Value = "06A204b"
@@ -1127,18 +1139,19 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A204b...done."
-  Application.StatusBar = "Getting Schedule Metric: 06A204b...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A205a - Lags (what about leads?)
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A205a..."
-  Application.StatusBar = "Getting Schedule Metric: 06A205a..."
+  strMetric = "06A205a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A205a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   'cptDECM_frm.lboMetrics.Value = "06A205a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Lags"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
@@ -1174,18 +1187,19 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A205a...done."
-  Application.StatusBar = "Getting Schedule Metric: 06A205a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A208a - summary tasks with logic
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A208a..."
-  Application.StatusBar = "Getting Schedule Metric: 06A208a..."
+  strMetric = "06A208a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A208a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   'cptDECM_frm.lboMetrics.Value = "06A208a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Summary Logic"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
@@ -1215,18 +1229,19 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A208a...done."
-  Application.StatusBar = "Getting Schedule Metric: 06A208a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A209a - hard constraints
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A209a..."
-  Application.StatusBar = "Getting Schedule Metric: 06A209a..."
+  strMetric = "06A209a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A209a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   'cptDECM_frm.lboMetrics.Value = "06A209a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Hard Constraints"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
@@ -1260,18 +1275,19 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A209a...done."
-  Application.StatusBar = "Getting Schedule Metric: 06A209a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A210a - LOE Driving Discrete
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A210a..."
-  Application.StatusBar = "Getting Schedule Metric: 06A210a..."
+  strMetric = "06A210a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A210a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   'cptDECM_frm.lboMetrics.Value = "06A210a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "LOE Driving Discrete"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
@@ -1316,21 +1332,22 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList 'todo: need guilty link too
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A210a...done."
-  Application.StatusBar = "Getting Schedule Metric: 06A210a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A211a - High Float
   '06A211a - High Float todo: refine TS into effective days (elapsed, etc)
   '06A211a - High Float todo: need rationale; user can mark 'acceptable'
   '06A211a - High Float todo: allow user input for lngX
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A211a..."
-  Application.StatusBar = "Getting Schedule Metric: 06A211a..."
+  strMetric = "06A211a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A211a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   'cptDECM_frm.lboMetrics.Value = "06A211a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "High Float"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 20%"
@@ -1367,18 +1384,19 @@ next_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A211a...done."
-  Application.StatusBar = "Getting Schedule Metric: 06A211a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A212a - out of sequence
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A212a..."
-  Application.StatusBar = "Getting Schedule Metric: 06A212a..."
+  strMetric = "06A212a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A212a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   'cptDECM_frm.lboMetrics.Value = "06A501a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Out of Sequence"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
@@ -1395,20 +1413,21 @@ next_task:
   ElseIf lngX > 0 Then
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description; see workbook"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric) 'todo: see workbook
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A212a...done."
-  Application.StatusBar = "Getting Schedule Metric: 06A212a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '6A301a - vertical integration todo: lower level baselines rollup...refers to supplemental schedules...too complicated
   
   '6A401a - critical path (constraint method)
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A401a..."
-  Application.StatusBar = "Getting Schedule Metric: 06A401a..."
+  strMetric = "6A401a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A401a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Critical Path"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
@@ -1464,19 +1483,20 @@ next_critical_task:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A401a...done."
-  Application.StatusBar = "Getting Schedule Metric: 06A401a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
 skip_6A401a:
   '6A501a - baselines
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A501a..."
-  Application.StatusBar = "Getting Schedule Metric: 06A501a..."
+  strMetric = "6A501a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A501a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   'cptDECM_frm.lboMetrics.Value = "06A501a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Baselines"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
@@ -1515,10 +1535,10 @@ skip_6A401a:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A501a...done."
-  Application.StatusBar = "Getting Schedule Metric: 06A501a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   'confirm fiscal calendar exists and export it
@@ -1617,13 +1637,14 @@ skip_6A401a:
   End If
   
   '06A504a - AS changed - only if task history otherwise notify to 'use capture period'
+  strMetric = "06A504a"
   strFile = strDir & "\cpt-cei.csv"
   If Dir(strFile) <> vbNullString And blnFiscalExists Then
-    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504a..."
-    Application.StatusBar = "Getting Schedule Metric: 06A504a..."
+    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+    Application.StatusBar = "Getting " & strMetric & "..."
     cptDECM_frm.lboMetrics.AddItem
     cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A504a"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
     'cptDECM_frm.lboMetrics.Value = "06A505a"
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Start"
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
@@ -1682,20 +1703,21 @@ skip_6A401a:
     Else
       cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
     End If
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
     'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504a...done."
-    Application.StatusBar = "Getting Schedule Metric: 06A504a...done."
+    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+    Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
   End If
   
   '06A504b - AF changed - only if task history
+  strMetric = "06A504b"
   If Dir(strDir & "\cpt-cei.csv") <> vbNullString And blnFiscalExists Then
-    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504b..."
-    Application.StatusBar = "Getting Schedule Metric: 06A504b..."
+    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+    Application.StatusBar = "Getting " & strMetric & "..."
     cptDECM_frm.lboMetrics.AddItem
     cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A504b"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
     'cptDECM_frm.lboMetrics.Value = "06A505a"
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Finish"
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
@@ -1755,21 +1777,22 @@ skip_6A401a:
     Else
       cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
     End If
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
     'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A504b...done."
-    Application.StatusBar = "Getting Schedule Metric: 06A504b...done."
+    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+    Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
   End If
   
 skip_fiscal:
   
   '06A505a - In-Progress Tasks Have AS
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A505a..."
-  Application.StatusBar = "Getting Schedule Metric: 06A505a..."
+  strMetric = "06A505a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A505a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   'cptDECM_frm.lboMetrics.Value = "06A505a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "In-Progress Tasks w/o Actual Start"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
@@ -1811,18 +1834,19 @@ skip_fiscal:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A505a...done."
-  Application.StatusBar = "Getting Schedule Metric: 06A505a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A505b - Complete Tasks Have AF
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A505b..."
-  Application.StatusBar = "Getting Schedule Metric: 06A505a..."
+  strMetric = "06A505b"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A505b"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   'cptDECM_frm.lboMetrics.Value = "06A505b"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Complete Tasks w/o Actual Finish"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
@@ -1863,18 +1887,19 @@ skip_fiscal:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A505b...done."
-  Application.StatusBar = "Getting Schedule Metric: 06A505b...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A506a - bogus actuals
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506a..."
-  Application.StatusBar = "Getting Schedule Metric: 06A506a..."
+  strMetric = "06A506a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A506a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Bogus Actuals"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   'cptDECM_frm.lboMetrics.Value = "06A506a"
@@ -1915,18 +1940,19 @@ skip_fiscal:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506a...done."
-  Application.StatusBar = "Getting Schedule Metric: 06A506a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A506b - invalid forecast
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506b..."
-  Application.StatusBar = "Getting Schedule Metric: 06A506b..."
+  strMetric = "06A506b"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A506b"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   'cptDECM_frm.lboMetrics.Value = "06A506b"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Invalid Forecast"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
@@ -1958,21 +1984,22 @@ skip_fiscal:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506b...done."
-  Application.StatusBar = "Getting Schedule Metric: 06A506b...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   'todo: allow user to refresh analysis on a one-by-one basis?
   
   '06A506c - riding status date
+  strMetric = "06A506c"
   If Dir(strDir & "\cpt-cei.csv") <> vbNullString And blnFiscalExists Then
-    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506c..."
-    Application.StatusBar = "Getting Schedule Metric: 06A506c..."
+    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+    Application.StatusBar = "Getting " & strMetric & "..."
     cptDECM_frm.lboMetrics.AddItem
     cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06A506c"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
     'cptDECM_frm.lboMetrics.Value = "06A506b"
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Riding the Status Date"
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
@@ -2059,19 +2086,20 @@ skip_fiscal:
     Else
       cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
     End If
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06A506c...done."
-    Application.StatusBar = "Getting Schedule Metric: 06A506c...done."
+    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+    Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
   End If
   
   '06I201a - SVTs todo: capture task names with "^SVT" ; allow alternative
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06I201a..."
-  Application.StatusBar = "Getting Schedule Metric: 06I201a..."
+  strMetric = "06I201a"
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
   cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "06I201a"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
   'cptDECM_frm.lboMetrics.Value = "06I201a"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Schedule Visibility Tasks (SVTs)"
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
@@ -2122,22 +2150,23 @@ skip_fiscal:
   Else
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 06I201a...done."
-  Application.StatusBar = "Getting Schedule Metric: 06I201a...done."
+  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '29A601a - rolling wave period is detail planned
+  strMetric = "29A601a"
   strRollingWaveDate = cptGetSetting("Integration", "RollingWaveDate")
   If Len(strRollingWaveDate) > 0 Then
     dtRollingWaveDate = CDate(strRollingWaveDate)
     
-    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 29A601a..."
-    Application.StatusBar = "Getting Schedule Metric: 29A601a..."
+    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+    Application.StatusBar = "Getting " & strMetric & "..."
     cptDECM_frm.lboMetrics.AddItem
     cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "29A601a"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
     'cptDECM_frm.lboMetrics.Value = "29A601a"
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Rolling Wave Planning"
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
@@ -2195,10 +2224,10 @@ skip_fiscal:
     Else
       cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
     End If
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = "todo: description"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-    cptDECM_frm.lblStatus.Caption = "Getting Schedule Metric: 29A601a...done."
-    Application.StatusBar = "Getting Schedule Metric: 29A601a...done."
+    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+    Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
     
   End If
@@ -2417,16 +2446,21 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
   
   cptSpeed True
   
+  blnDetail = MsgBox("Include Details?", vbQuestion + vbYesNo, "Detailed Results") = vbYes
+
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
+    Application.StatusBar = "Opening Excel..."
     Set oExcel = CreateObject("Excel.Application")
+    Application.StatusBar = ""
   End If
   
-  oExcel.WindowState = xlMaximized
   Set oWorkbook = oExcel.Workbooks.Add
   Set oWorksheet = oWorkbook.Sheets(1)
+  oExcel.WindowState = xlMinimized 'xlMaximized
+  oExcel.Visible = True 'just in case
   oWorksheet.Name = "DECM Dashboard"
   oWorksheet.[A1:I1] = cptDECM_frm.lboHeader.List
   oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].Offset(cptDECM_frm.lboMetrics.ListCount - 1, cptDECM_frm.lboMetrics.ColumnCount - 1)) = cptDECM_frm.lboMetrics.List
@@ -2435,7 +2469,7 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
     .Zoom = 85
     .SplitRow = 1
     .SplitColumn = 0
-    .FreezePanes = True
+    
   End With
   oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
   oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).HorizontalAlignment = xlLeft
@@ -2478,7 +2512,6 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
     End With
   End With
   
-  blnDetail = MsgBox("Include Details?", vbQuestion + vbYesNo, "Detailed Results") = vbYes
   If blnDetail And Not cptDECM_frm.chkUpdateView Then cptDECM_frm.chkUpdateView = True
   strDir = Environ("tmp")
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
@@ -2608,7 +2641,7 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
               o10A103a.Sheets(1).Copy After:=oWorkbook.Sheets(oWorkbook.Sheets.Count)
               o10A103a.Close True
               Set oWorksheet = oWorkbook.Sheets("10A103a")
-              oWorksheet.rows("1:2").Insert
+              oWorksheet.Rows("1:2").Insert
               oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
               oWorksheet.[A2].Value = "0/100 WPs in more than 1 fiscal period"
               oWorksheet.Tab.Color = 192
@@ -2692,6 +2725,8 @@ next_item:
     Next oCell
   End If
   
+  oExcel.WindowState = xlMaximized
+  oExcel.ActiveWindow.FreezePanes = True
   Application.ActivateMicrosoftApp pjMicrosoftExcel
 
 exit_here:
@@ -2884,7 +2919,7 @@ Function cptGetOutOfSequence() As String
   Dim oAssignment As MSProject.Assignment
   Dim oOOS As Scripting.Dictionary
   Dim oCalendar As MSProject.Calendar
-  Dim oSubproject As MSProject.SubProject
+  Dim oSubProject As MSProject.SubProject
   Dim oSubMap As Scripting.Dictionary
   Dim oTask As MSProject.Task
   Dim oLink As MSProject.TaskDependency
@@ -2938,14 +2973,14 @@ Function cptGetOutOfSequence() As String
     Else
       oSubMap.RemoveAll
     End If
-    For Each oSubproject In ActiveProject.Subprojects
-      If Left(oSubproject.Path, 2) <> "<>" Then 'offline
-        oSubMap.Add Replace(Dir(oSubproject.Path), ".mpp", ""), 0
-      ElseIf Left(oSubproject.Path, 2) = "<>" Then 'online
-        oSubMap.Add oSubproject.Path, 0
+    For Each oSubProject In ActiveProject.Subprojects
+      If Left(oSubProject.Path, 2) <> "<>" Then 'offline
+        oSubMap.Add Replace(Dir(oSubProject.Path), ".mpp", ""), 0
+      ElseIf Left(oSubProject.Path, 2) = "<>" Then 'online
+        oSubMap.Add oSubProject.Path, 0
       End If
-      lngTasks = lngTasks + oSubproject.SourceProject.Tasks.Count
-    Next oSubproject
+      lngTasks = lngTasks + oSubProject.SourceProject.Tasks.Count
+    Next oSubProject
     For Each oTask In ActiveProject.Tasks
       If oTask Is Nothing Then GoTo next_mapping_task
       If oSubMap.Exists(oTask.Project) Then
@@ -3246,7 +3281,7 @@ exit_here:
   oOOS.RemoveAll
   Set oOOS = Nothing
   Set oCalendar = Nothing
-  Set oSubproject = Nothing
+  Set oSubProject = Nothing
   Set oSubMap = Nothing
   Application.StatusBar = ""
   oExcel.EnableEvents = True
@@ -3358,13 +3393,13 @@ Private Function cptGetEVTAnalysis() As Excel.Workbook
   rst.Close
   
   Set oRange = oWorksheet.Range(oWorksheet.[A1].End(xlToRight).Offset(1, 0), oWorksheet.[A1].End(xlDown).Offset(0, 5))
-  lngFiscalEndCol = oWorksheet.rows(1).Find(what:="fisc_end").Column
+  lngFiscalEndCol = oWorksheet.Rows(1).Find(what:="fisc_end").Column
   lngLastRow = oWorksheet.Cells(2, lngFiscalEndCol).End(xlDown).Row
   'Excel 2016 compatibility
   'oRange.FormulaR1C1 = "=COUNTIFS(R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & ","">=""&RC[-3],R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & ",""<""&RC[-2])+1"
   '=SUMPRODUCT(--($G$2:$G$109>=B15)*--($G$2:$G$109<C15)*1)+1
   oRange.FormulaR1C1 = "=SUMPRODUCT(--(R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & ">=RC[-3])*--(R2C" & lngFiscalEndCol & ":R" & lngLastRow & "C" & lngFiscalEndCol & "<RC[-2])*1)+1"
-  lngFiscalPeriodsCol = oWorksheet.rows(1).Find(what:="FiscalPeriods").Column
+  lngFiscalPeriodsCol = oWorksheet.Rows(1).Find(what:="FiscalPeriods").Column
   oWorksheet.Columns(lngFiscalPeriodsCol).NumberFormat = "#0"
   oExcel.ActiveWindow.Zoom = 85
   oExcel.ActiveWindow.SplitRow = 1
@@ -3464,3 +3499,166 @@ err_here:
   Call cptHandleErr("cptDECM_bas", "cptDECMGetTargetUID", Err, Erl)
   Resume exit_here
 End Function
+
+Function cptGetDECMDescription(strDECM As String) As String
+  'macro to create this macro is in "DCMA EVMS Compliance Metrics v6.0 20221205.xlsm"
+  Dim strDescription As String
+  
+  Select Case strDECM
+    Case "05A101a"
+      strDescription = "Does each control account have exactly one responsible organizational element assigned?" & vbCrLf
+      strDescription = strDescription & "X = Count of CAs with more than one OBS element or no OBS elements assigned" & vbCrLf
+      strDescription = strDescription & "Y = Total count of CAs"
+    
+    Case "05A102a"
+      strDescription = "Is each control account assigned to a single Control Account Manager (CAM)?" & vbCrLf
+      strDescription = strDescription & "X = Count of CAs that have more than one CAM or no CAM assigned" & vbCrLf
+      strDescription = strDescription & "Y = Total count of CAs"
+    
+    Case "05A103a"
+      strDescription = "Does each control account have exactly one WBS element assigned?" & vbCrLf
+      strDescription = strDescription & "X = Count of CAs with more than one WBS element or no WBS elements assigned" & vbCrLf
+      strDescription = strDescription & "Y = Total count of CAs"
+    
+    Case "06A101a"
+      strDescription = "Does each discrete WP, PP, SLPP have task(s) represented in the IMS and EV Cost Tool?" & vbCrLf
+      strDescription = strDescription & "X = Count of incomplete discrete WPs, PPs, SLPPs in the EV Cost Tool that are not in the IMS and count of incomplete discrete WPs, PPs, SLPPs in the IMS that are not in the EV Cost Tool" & vbCrLf
+      strDescription = strDescription & "Y = Total count of all incomplete discrete WPs, PPs, SLPPs in the EV Cost Tool"
+    
+    Case "06A204b"
+      strDescription = "Are there open starts or finishes (“dangling logic”) in the schedule?" & vbCrLf
+      strDescription = strDescription & "X = Count of incomplete Non-LOE tasks/activities & milestones with open starts or finishes" & vbCrLf
+      strDescription = strDescription & "Y = Total count of incomplete Non-LOE tasks/activities & milestones"
+    
+    Case "06A205a"
+      strDescription = "Are lags used in the schedule?" & vbCrLf
+      strDescription = strDescription & "X = Count of incomplete tasks/activities & milestones with at least one lag in the predecessor logic in the IMS" & vbCrLf
+      strDescription = strDescription & "Y = Total count of incomplete tasks/activities & milestones in the IMS"
+    
+    Case "06A208a"
+      strDescription = "Do summary tasks/activities in the schedule have logic applied?" & vbCrLf
+      strDescription = strDescription & "X = Count of summary tasks/activities with logic applied (# predecessors > 0 or # successors > 0)"
+    
+    Case "06A209a"
+      strDescription = "Are schedule network constraints limited?" & vbCrLf
+      strDescription = strDescription & "X = Count of incomplete tasks/activities & milestones with hard constraints" & vbCrLf
+      strDescription = strDescription & "Y = Total count of incomplete tasks/activities & milestones"
+    
+    Case "06A210a"
+      strDescription = "Do LOE tasks/activities have discrete successors?" & vbCrLf
+      strDescription = strDescription & "X = Count of incomplete LOE tasks/activities in the IMS with at least one Non-LOE successor" & vbCrLf
+      strDescription = strDescription & "Y = Total count of incomplete LOE tasks/activities in the IMS"
+    
+    Case "06A211a"
+      strDescription = "Is high total float rationale/justification acceptable?" & vbCrLf
+      strDescription = strDescription & "X = Count of high total float non-LOE tasks/activities & milestones sampled with inadequate rationale" & vbCrLf
+      strDescription = strDescription & "Y = Total count of high total float non-LOE tasks/activities & milestones sampled"
+    
+    Case "06A212a"
+      strDescription = "Are there out of sequence tasks/activities & milestones?" & vbCrLf
+      strDescription = strDescription & "X = Count of out of sequence conditions"
+    
+    Case "06A401a"
+      strDescription = "Does the schedule tool produce a critical path that represents the longest total duration with the least amount of total float?" & vbCrLf
+      strDescription = strDescription & "X = Count of tasks/activities & milestones on the constraint method critical path that are not on the contractor’s critical path"
+    
+    Case "06A501a"
+      strDescription = "In the IMS, do all of the tasks/activities & milestones have baseline start and baseline finish dates?" & vbCrLf
+      strDescription = strDescription & "X = Count of tasks/activities & milestones without baseline dates" & vbCrLf
+      strDescription = strDescription & "Y = Total count of tasks/activities & milestones"
+    
+    Case "06A504a"
+      strDescription = "Are actual start dates changed after first reported?" & vbCrLf
+      strDescription = strDescription & "X = Count of tasks/activities & milestones where actual start date does not equal previously reported actual start date" & vbCrLf
+      strDescription = strDescription & "Y = Total count of tasks/activities & milestones with actual start dates"
+    
+    Case "06A504b"
+      strDescription = "Are actual finish dates changed after first reported?" & vbCrLf
+      strDescription = strDescription & "X = Count of tasks/activities & milestones where actual finish date does not equal previously reported actual finish date" & vbCrLf
+      strDescription = strDescription & "Y = Total count of tasks/activities & milestones with actual finish dates"
+    
+    Case "06A505a"
+      strDescription = "Do all in progress tasks/activities & milestones have actual start dates?" & vbCrLf
+      strDescription = strDescription & "X = Count of in progress tasks/activities & milestones with no actual start date" & vbCrLf
+      strDescription = strDescription & "Y = Total count of in progress tasks/activities & milestones"
+    
+    Case "06A505b"
+      strDescription = "Do all complete tasks/activities & milestones have actual finish dates?" & vbCrLf
+      strDescription = strDescription & "X = Count of complete tasks/activities & milestones with no actual finish date" & vbCrLf
+      strDescription = strDescription & "Y = Total count of complete tasks/activities & milestones"
+    
+    Case "06A506a"
+      strDescription = "Are actual start and actual finish dates valid for all tasks/activities & milestones in the IMS?" & vbCrLf
+      strDescription = strDescription & "X = Count of tasks/activities & milestones with either actual start or actual finish after status date" & vbCrLf
+      strDescription = strDescription & "Y = Total count of tasks/activities & milestones with an actual start date"
+    
+    Case "06A506b"
+      strDescription = "Are forecast start and finish dates valid for all tasks/activities & milestones in the IMS?" & vbCrLf
+      strDescription = strDescription & "X = Count of incomplete tasks/activities & milestones with either forecast start or forecast finish before the status date"
+    
+    Case "06A506c"
+      strDescription = "Are forecast start/finish dates riding the status date of the IMS for two consecutive months?" & vbCrLf
+      strDescription = strDescription & "X = Count of incomplete tasks/activities & milestones with either forecast start or forecast finish date riding the status date" & vbCrLf
+      strDescription = strDescription & "Y = Total count of incomplete tasks/activities & milestones"
+    
+    Case "06I201a"
+      strDescription = "Are Schedule Visibility Tasks (SVTs) identified and controlled in the IMS?" & vbCrLf
+      strDescription = strDescription & "X = Count of incomplete tasks/activities and millstones that are not properly identified and controlled  as SVTs in the IMS"
+    
+    Case "10A102a"
+      strDescription = "Is each Work Package assigned a single EVT?" & vbCrLf
+      strDescription = strDescription & "X = Count of incomplete WPs that have more than one EVT or no EVT assigned" & vbCrLf
+      strDescription = strDescription & "Y = Total count of incomplete WPs"
+    
+    Case "10A103a"
+      strDescription = "Are 0-100 EVTs applied to incomplete WPs with one accounting period of budget?" & vbCrLf
+      strDescription = strDescription & "X = Count of 0-100 EVT incomplete WPs with more than one accounting period of budget" & vbCrLf
+      strDescription = strDescription & "Y = Total count of 0-100 EVT incomplete WPs"
+    
+    Case "10A109b"
+      strDescription = "Does each WP/PP/SLPPs have an assigned budget?" & vbCrLf
+      strDescription = strDescription & "X = Count of WPs/PPs/SLPPs with BAC = 0" & vbCrLf
+      strDescription = strDescription & "Y = Total count of WPs/PPs/SLPPs"
+    
+    Case "10A302b"
+      strDescription = "Have PPs earned performance?" & vbCrLf
+      strDescription = strDescription & "X = Count of PPs with BCWPCUM" & vbCrLf
+      strDescription = strDescription & "Y = Total count of PPs"
+    
+    Case "10A303a"
+      strDescription = "Do all PPs have duration?" & vbCrLf
+      strDescription = strDescription & "X = Count of PPs (tasks/activities & milestones level) with baseline duration less than or equal to one day" & vbCrLf
+      strDescription = strDescription & "Y = Total count of PPs (tasks/activities & milestones level)"
+    
+    Case "11A101a"
+      strDescription = "For all CAs, does the BAC value for the CA equate to the sum of the WP and PP budgets within the CA?" & vbCrLf
+      strDescription = strDescription & "X = Sum of the absolute values of (CA BAC – the sum of its WP and PP budgets)" & vbCrLf
+      strDescription = strDescription & "Y = Total program BAC"
+    
+    Case "29A601a"
+      strDescription = "Is all effort detailed planned within the current rolling wave/freeze period?" & vbCrLf
+      strDescription = strDescription & "X = Count of PPs/SLPPs where baseline start precedes the next rolling wave cycle" & vbCrLf
+      strDescription = strDescription & "Y = Total count of PPs/SLPPs"
+    
+    Case "1wp_1ca"
+      strDescription = "Is each Work Package assigned a single CA?" & vbCrLf
+      strDescription = strDescription & "X = Count of incomplete WPs that are assigned to more than one CA or no CA assigned" & vbCrLf
+      strDescription = strDescription & "Y = Total count incomplete WPs"
+    Case Else
+      strDescription = "No Description provided."
+  End Select
+  
+  cptGetDECMDescription = strDescription
+  
+End Function
+
+Function cptDECMDatabaseExists() 'todo: make private
+  cptDECMDatabaseExists = Dir(cptDir & "\decm\decm-v.6.0.csv") <> vbNullString
+End Function
+
+Sub cptWriteDECMDataBase()
+  'todo: confirm decm directory
+  'todo: write Schema
+  'todo: write csv
+  'todo: enable diff (added, removed, changed)
+End Sub

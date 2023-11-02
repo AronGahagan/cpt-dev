@@ -4,7 +4,7 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptStatusSheet_frm
    ClientHeight    =   7230
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   12375
+   ClientWidth     =   12435
    OleObjectBlob   =   "cptStatusSheet_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -15,6 +15,10 @@ Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 '<cpt_version>v1.6.0</cpt_version>
 Option Explicit
+Private Const lngForeColorValid As Long = -2147483630
+Private Const lngBorderColorValid As Long = 8421504 '-2147483642
+Private Const lngForeColorInvalid As Long = 192
+Private Const lngBorderColorInvalid As Long = 192
 
 Private Sub cboCostTool_Change()
   'objects
@@ -92,7 +96,7 @@ Private Sub cboCreate_Change()
   
   Select Case Me.cboCreate
     Case 0 'A single workbook
-      Me.lboItems.ForeColor = -2147483630
+      Me.lboItems.ForeColor = lngForeColorValid
       Me.chkSendEmails.Caption = "Create Email"
       'Me.chkLocked.Caption = "Protect Workbook"
       'Me.lblForEach.Visible = False
@@ -106,7 +110,7 @@ Private Sub cboCreate_Change()
       End If
       
     Case 1 'A worksheet for each
-      Me.lboItems.ForeColor = -2147483630
+      Me.lboItems.ForeColor = lngForeColorValid
       Me.chkSendEmails.Caption = "Create Email"
       'Me.chkLocked.Caption = "Protect Workheets"
       'Me.lblForEach.Visible = True
@@ -116,7 +120,7 @@ Private Sub cboCreate_Change()
       If Me.Visible Then Me.cboEach.DropDown
 
     Case 2 'A workbook for each
-      Me.lboItems.ForeColor = -2147483630
+      Me.lboItems.ForeColor = lngForeColorValid
       Me.chkSendEmails.Caption = "Create Emails"
       'Me.chkLocked.Caption = "Protect Workbooks"
       'Me.lblForEach.Visible = True
@@ -129,7 +133,8 @@ Private Sub cboCreate_Change()
         
 exit_here:
   On Error Resume Next
-
+  Me.Repaint
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptStatusSheet_frm", "cboCreate_Change", Err, Erl)
@@ -154,7 +159,7 @@ Private Sub cboEach_Change()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Me.lboItems.Clear
-  Me.lboItems.ForeColor = -2147483630
+  Me.lboItems.ForeColor = lngForeColorValid
   If Me.Visible Then
     ActiveWindow.TopPane.Activate
     FilterApply "cptStatusSheet Filter"
@@ -206,6 +211,7 @@ next_task:
   
 exit_here:
   On Error Resume Next
+  Me.Repaint
   If rstItems.State = 1 Then rstItems.Close
   Set rstItems = Nothing
   Set oTask = Nothing
@@ -213,73 +219,6 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cboEach_Change", "cboEach_Change", Err, Erl)
-  Resume exit_here
-End Sub
-
-Private Sub cboEVP_AfterUpdate()
-  
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  
-  If Len(Me.cboEVP.Value) > 0 Then
-    Me.lblEVP.ForeColor = -2147483630 '"Black"
-  Else
-    Me.lblEVP.ForeColor = 192
-  End If
-
-exit_here:
-  On Error Resume Next
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cboEVP_AfterUpdate", Err, Erl)
-  Resume exit_here
-End Sub
-
-Private Sub cboEVP_Change()
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
-  If cptStatusSheet_frm.Visible Then Call cptRefreshStatusTable
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cboEVP_Change", Err, Erl)
-  Resume exit_here
-End Sub
-
-Private Sub cboEVT_AfterUpdate()
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
-  If Len(Me.cboEVT.Value) > 0 Then
-    Me.lblEVT.ForeColor = -2147483630 '"Black"
-  Else
-    Me.lblEVT.ForeColor = 192
-  End If
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cboEVT_AfterUpdate", Err, Erl)
-  Resume exit_here
-End Sub
-
-Private Sub cboEVT_Change()
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
-  If cptStatusSheet_frm.Visible Then Call cptRefreshStatusTable
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cboEVT_Change", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -404,7 +343,6 @@ Private Sub chkSendEmails_Click()
   If Me.chkSendEmails Then
     Me.chkKeepOpen = False
     Me.chkKeepOpen.Enabled = False
-    Me.lblEmailHints.Visible = True
     Call cptListQuickParts(True)
     strQuickPart = cptGetSetting("StatusSheet", "cboQuickPart")
     If Len(strQuickPart) > 0 Then
@@ -422,19 +360,56 @@ Private Sub chkSendEmails_Click()
     End If
   Else
     Me.chkKeepOpen.Enabled = True
-    Me.lblEmailHints.Visible = False
   End If
 
 End Sub
 
 Sub cmdAdd_Click()
-  Dim lngField As Long, lngExport As Long, lngExists As Long
+  'objects
+  'strings
+  Dim strEVT As String
+  Dim strEVP As String
+  'longs
+  Dim lngField As Long
+  Dim lngExport As Long
+  Dim lngExists As Long
+  Dim lngEVT As Long
+  Dim lngEVP As Long
+  'integers
+  'doubles
+  'booleans
   Dim blnExists As Boolean
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
+  
+  'do not allow addition of EVT or EVP - get settings
+  lngEVT = CLng(Split(cptGetSetting("Integration", "EVT"), "|")(0))
+  If Len(CustomFieldGetName(lngEVT)) > 0 Then
+    strEVT = CustomFieldGetName(lngEVT)
+  Else
+    strEVT = FieldConstantToFieldName(lngEVT)
+  End If
+  lngEVP = CLng(Split(cptGetSetting("Integration", "EVP"), "|")(0))
+  If Len(CustomFieldGetName(lngEVP)) > 0 Then
+    strEVP = CustomFieldGetName(lngEVP)
+  Else
+    strEVP = FieldConstantToFieldName(lngEVP)
+  End If
+  
   For lngField = 0 To Me.lboFields.ListCount - 1
     If Me.lboFields.Selected(lngField) Then
+      'do not allow EVT
+      If CLng(Me.lboFields.List(lngField)) = lngEVT Then
+        MsgBox "The EVT Field ('" & strEVT & "') is automatically included.", vbInformation + vbOKOnly, "EVT Rejected"
+        GoTo next_item
+      End If
+      'do not allow EVP
+      If CLng(Me.lboFields.List(lngField)) = lngEVP Then
+        MsgBox "The EVP Field ('" & strEVP & "') is automatically included.", vbInformation + vbOKOnly, "EVP Rejected"
+        GoTo next_item
+      End If
       'ensure doesn't already exist
       blnExists = False
       For lngExists = 0 To Me.lboExport.ListCount - 1
@@ -518,48 +493,6 @@ err_here:
 
 End Sub
 
-Private Sub cmdDir_Click()
-  'objects
-  Dim oShell As Object
-  Dim oFileDialog As Object 'FileDialog
-  Dim oExcel As Excel.Application
-  'strings
-  'longs
-  'integers
-  'doubles
-  'booleans
-  'variants
-  'dates
-  
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  
-  Set oExcel = CreateObject("Excel.Application")
-  Set oFileDialog = oExcel.FileDialog(msoFileDialogFolderPicker)
-  With oFileDialog
-    .AllowMultiSelect = False
-    If Left(ActiveProject.Path, 2) = "<>" Or Left(ActiveProject.Path, 4) = "http" Then 'server project: default to Desktop
-      Set oShell = CreateObject("WScript.Shell")
-      .InitialFileName = oShell.SpecialFolders("Desktop")
-    Else 'not a server project
-      .InitialFileName = ActiveProject.Path
-    End If
-    If .Show Then
-      Me.txtDir = .SelectedItems(1) & "\" & IIf(Me.chkAppendStatusDate, Format(ActiveProject.StatusDate, "yyyy-mm-dd") & "\", "")
-    End If
-  End With
-  
-exit_here:
-  On Error Resume Next
-  Set oShell = Nothing
-  Set oFileDialog = Nothing
-  Set oExcel = Nothing
-  
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptStatusSheet_frm", "cmdDir_Click", Err, Erl)
-  Resume exit_here
-End Sub
-
 Private Sub cmdDown_Click()
   Dim lngExport As Long
   Dim lngField As Long, strField As String, strField2 As String
@@ -596,7 +529,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("frmStatusSeet", "cmdDown_Click", Err, Erl)
+  Call cptHandleErr("cptStatusSheet_frm", "cmdDown_Click", Err, Erl)
   Resume exit_here
 
 End Sub
@@ -650,6 +583,8 @@ Private Sub cmdRun_Click()
   'strings
   Dim strTempDir As String
   'longs
+  Dim lngEVP As Long
+  Dim lngEVT As Long
   Dim lngDateFormat As Long
   Dim lngSelectedItems As Long
   Dim lngItem As Long
@@ -668,78 +603,70 @@ Private Sub cmdRun_Click()
   lngDateFormat = Application.DefaultDateFormat
   blnError = False
 
-  '-2147483630 = Black
-  Me.lblStatusDate.ForeColor = -2147483630
-  Me.lblEVT.ForeColor = -2147483630
-  Me.lblEVP.ForeColor = -2147483630
-  Me.chkHide.ForeColor = -2147483630
-  Me.lblStatus.ForeColor = -2147483630
-  Me.cboCostTool.ForeColor = -2147483630
-  Me.cboCreate.ForeColor = -2147483630
-  Me.cboEach.BorderColor = -2147483642
-  Me.lblDirectory.ForeColor = -2147483630
-  Me.txtDir.BorderColor = -2147483642
-  Me.lblNamingConvention.ForeColor = -2147483630
-  Me.lboItems.BorderColor = -2147483630
-  Me.lblIncludeItems.ForeColor = -2147483630
-
+  Me.lblStatusDate.ForeColor = lngForeColorValid
+  Me.chkHide.ForeColor = lngForeColorValid
+  Me.lblStatus.ForeColor = lngForeColorValid
+  Me.cboCostTool.ForeColor = lngForeColorValid
+  Me.cboCreate.ForeColor = lngForeColorValid
+  Me.cboEach.BorderColor = lngBorderColorValid
+  Me.lblDirectory.ForeColor = lngForeColorValid
+  Me.txtDir.BorderColor = lngBorderColorValid
+  Me.lblNamingConvention.ForeColor = lngForeColorValid
+  Me.lboItems.BorderColor = lngBorderColorValid
+  Me.lblIncludeItems.ForeColor = lngForeColorValid
+  
+  lngEVT = CLng(Split(cptGetSetting("Integration", "EVT"), "|")(0))
+  lngEVP = CLng(Split(cptGetSetting("Integration", "EVP"), "|")(0))
+  
   'validation
   If Not IsDate(Me.txtStatusDate.Value) Then
-    Me.lblStatusDate.ForeColor = 192  'Red
+    Me.lblStatusDate.ForeColor = lngForeColorInvalid
     blnError = True
   ElseIf IsDate(Me.txtStatusDate.Value) Then
     If CDate(Me.txtStatusDate.Value) < #1/1/1984# Then
-      Me.lblStatusDate.ForeColor = 192  'Red
+      Me.lblStatusDate.ForeColor = lngForeColorInvalid
       blnError = True
     End If
   End If
   If Me.chkHide.Value = True Then
     If Not IsDate(Me.txtHideCompleteBefore.Value) Then
-      Me.chkHide.ForeColor = 192  'Red
+      Me.chkHide.ForeColor = lngForeColorInvalid
       blnError = True
     ElseIf IsDate(Me.txtHideCompleteBefore.Value) Then
       If CDate(Me.txtHideCompleteBefore.Value) < #1/1/1984# Then
-        Me.chkHide.ForeColor = 192
+        Me.chkHide.ForeColor = lngForeColorInvalid
         blnError = True
       End If
     End If
   End If
   If Len(Me.cboCostTool.Value) = 0 Then
-    Me.lblCostTool.ForeColor = 192 'Red
+    Me.lblCostTool.ForeColor = lngForeColorInvalid
     blnError = True
   End If
   'hide complete before must be prior to or equal to status date
   If IsDate(Me.txtStatusDate.Value) And IsDate(Me.txtHideCompleteBefore.Value) Then
     If CDate(Me.txtHideCompleteBefore.Value) > CDate(Me.txtStatusDate.Value) Then
       MsgBox "'Hide Complete Before' date must be prior to, or equal to, status date.", vbExclamation + vbOKOnly, "Invalid Hide Complete Before Date"
-      Me.chkHide.ForeColor = 192
+      Me.chkHide.ForeColor = lngForeColorInvalid
       blnError = True
     End If
-  End If
-  If Len(Me.cboEVT.Value) = 0 Then
-    Me.lblEVT.ForeColor = 192 'Red
-    blnError = True
-  End If
-  If Len(Me.cboEVP.Value) = 0 Then
-    Me.lblEVP.ForeColor = 192 'Red
-    blnError = True
   End If
   'ensure unique filenames
   If Me.cboCreate.Value = "0" Then 'one workbook
     If InStr(Me.txtFileName, "[item]") > 0 Then
-      Me.lblNamingConvention.ForeColor = 192 'red
+      Me.lblNamingConvention.ForeColor = lngForeColorInvalid
       MsgBox "Cannot use '[item]' in naming convention when creating a single workbook.", vbExclamation + vbOKOnly, "Invalid Naming Convention"
       blnError = True
     End If
   ElseIf Me.cboCreate.Value = "1" Then 'worksheet for each
     If InStr(Me.txtFileName, "[item]") > 0 Then
-      Me.lblNamingConvention.ForeColor = 192 'red
+      Me.lblNamingConvention.ForeColor = lngForeColorInvalid
       MsgBox "Cannot use '[item]' in naming convention when creating worksheet for each.", vbExclamation + vbOKOnly, "Invalid Naming Convention"
       blnError = True
     End If
   ElseIf Me.cboCreate.Value = "2" Then 'workbook for each
     If InStr(Me.txtFileName, "[item]") = 0 Then
-      Me.lblNamingConvention.ForeColor = 192 'red
+      Me.lblNamingConvention.ForeColor = lngForeColorInvalid
       MsgBox "Must include '[item]' in naming convention when creating workbook for each.", vbExclamation + vbOKOnly, "Invalid Naming Convention"
       blnError = True
     End If
@@ -747,7 +674,7 @@ Private Sub cmdRun_Click()
   If Me.cboCreate.Value <> "0" Then
     'a limiting field must be selected
     If Me.cboEach.Value = 0 Then
-      Me.cboEach.BorderColor = 192
+      Me.cboEach.BorderColor = lngBorderColorInvalid
       blnError = True
     End If
     'at least one item selected
@@ -755,9 +682,8 @@ Private Sub cmdRun_Click()
       If Me.lboItems.Selected(lngItem) Then lngSelectedItems = lngSelectedItems + 1
     Next lngItem
     If lngSelectedItems = 0 Then
-      Me.lboItems.Selected(0) = True
-      Me.lboItems.BorderColor = 192
-      Me.lblIncludeItems.ForeColor = 192
+      Me.lboItems.BorderColor = lngBorderColorInvalid
+      Me.lblIncludeItems.ForeColor = lngForeColorInvalid
       blnError = True
     End If
     'the limiting field should be included in the export list
@@ -783,8 +709,8 @@ Private Sub cmdRun_Click()
         If vResponse = vbYes Then
           MkDir strTempDir
         Else
-          Me.lblDirectory.ForeColor = 192
-          Me.txtDir.BorderColor = 192
+          Me.lblDirectory.ForeColor = lngForeColorInvalid
+          Me.txtDir.BorderColor = lngBorderColorInvalid
           blnError = True
         End If
       End If
@@ -794,7 +720,7 @@ next_dir:
   'prevent duplication of EVT and EV%
   If Me.lboExport.ListCount > 0 Then
     For lngItem = Me.lboExport.ListCount - 1 To 0 Step -1
-      If Me.lboExport.List(lngItem, 1) = Me.cboEVP.Value Or Me.lboExport.List(lngItem, 1) = Me.cboEVT.Value Then
+      If CLng(Me.lboExport.List(lngItem, 0)) = lngEVP Or CLng(Me.lboExport.List(lngItem, 0)) = lngEVT Then
         MsgBox "'" & Me.lboExport.List(lngItem, 1) & "' is included by default; removing from export list.", vbInformation + vbOKOnly, "Duplicate"
         Me.lboExport.RemoveItem lngItem
       End If
@@ -802,7 +728,7 @@ next_dir:
   End If
   'todo: ensure notes column title is unique in the columns
   If blnError Then
-    Me.lblStatus.ForeColor = 192 'red
+    Me.lblStatus.ForeColor = lngForeColorInvalid
     Me.lblStatus.Caption = " Please complete all required fields."
   Else
     'save settings
@@ -814,6 +740,7 @@ next_dir:
 
 exit_here:
   On Error Resume Next
+  Me.Repaint
   Application.DefaultDateFormat = lngDateFormat
   Exit Sub
 err_here:
@@ -861,18 +788,6 @@ err_here:
   Call cptHandleErr("cptStatusSheet_frm", "cmdUp_Click", Err, Erl)
   Resume exit_here
   
-End Sub
-
-Private Sub lblEmailHints_Click()
-  Dim strHints As String
-
-  strHints = "The following fields are available for auto replacement in the subject line and in your Email Template (a.k.a., 'Quick Part'):" & vbCrLf & vbCrLf
-  strHints = strHints & "[status_date] > Status Date in Short Date format (e.g.," & FormatDateTime(Now, vbShortDate) & ")" & vbCrLf
-  strHints = strHints & "[yyyy-mm-dd] > Status Date in yyyy-mm-dd format" & vbCrLf
-  strHints = strHints & "[program] > Program Acronym" & vbCrLf
-  strHints = strHints & vbCrLf & "Send other suggestions to cpt@ClearPlanConsulting.com"
-  MsgBox strHints, vbInformation + vbOKOnly, "Email Hints"
-
 End Sub
 
 Private Sub lblURL_Click()
@@ -935,6 +850,12 @@ Private Sub lboItems_Change()
     End If
   End If
   
+  If lngSelectedItems > 0 Then
+    Me.lboItems.BorderColor = lngBorderColorValid
+    Me.Repaint
+    Me.lblIncludeItems.ForeColor = lngForeColorValid
+  End If
+  
   ActiveWindow.TopPane.Activate
   SelectBeginning
   
@@ -945,6 +866,88 @@ exit_here:
 err_here:
   Call cptHandleErr("cptStatusSheet_frm", "lboItems_AfterUpdate", Err, Erl)
   Resume exit_here
+End Sub
+
+Private Sub SpinButton1_SpinDown()
+  Dim lngExport As Long
+  Dim lngField As Long, strField As String, strField2 As String
+  Dim blnSelected As Boolean
+
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnSelected = False
+  For lngExport = Me.lboExport.ListCount - 1 To 0 Step -1
+    If lngExport < Me.lboExport.ListCount - 1 Then
+      If Me.lboExport.Selected(lngExport) Then
+        blnSelected = True
+        'capture values
+        lngField = Me.lboExport.List(lngExport + 1, 0)
+        strField = Me.lboExport.List(lngExport + 1, 1)
+        strField2 = Me.lboExport.List(lngExport + 1, 2)
+        'move selected values
+        Me.lboExport.List(lngExport + 1, 0) = Me.lboExport.List(lngExport, 0)
+        Me.lboExport.List(lngExport + 1, 1) = Me.lboExport.List(lngExport, 1)
+        Me.lboExport.List(lngExport + 1, 2) = Me.lboExport.List(lngExport, 2)
+        Me.lboExport.Selected(lngExport + 1) = True
+        Me.lboExport.List(lngExport, 0) = lngField
+        Me.lboExport.List(lngExport, 1) = strField
+        Me.lboExport.List(lngExport, 2) = strField2
+        Me.lboExport.Selected(lngExport) = False
+      End If
+    End If
+  Next lngExport
+
+  If blnSelected Then Call cptRefreshStatusTable
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_frm", "cmdDown_Click", Err, Erl)
+  Resume exit_here
+
+End Sub
+
+Private Sub SpinButton1_SpinUp()
+  Dim lngExport As Long
+  Dim lngField As Long, strField As String, strField2 As String
+  Dim blnSelected As Boolean
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnSelected = False
+  For lngExport = 0 To Me.lboExport.ListCount - 1
+    If lngExport > 0 Then
+      If Me.lboExport.Selected(lngExport) Then
+        blnSelected = True
+        'capture values
+        lngField = Me.lboExport.List(lngExport - 1, 0)
+        strField = Me.lboExport.List(lngExport - 1, 1)
+        strField2 = Me.lboExport.List(lngExport - 1, 2)
+        'move selected values
+        Me.lboExport.List(lngExport - 1, 0) = Me.lboExport.List(lngExport, 0)
+        Me.lboExport.List(lngExport - 1, 1) = Me.lboExport.List(lngExport, 1)
+        Me.lboExport.List(lngExport - 1, 2) = Me.lboExport.List(lngExport, 2)
+        Me.lboExport.Selected(lngExport - 1) = True
+        Me.lboExport.List(lngExport, 0) = lngField
+        Me.lboExport.List(lngExport, 1) = strField
+        Me.lboExport.List(lngExport, 2) = strField2
+        Me.lboExport.Selected(lngExport) = False
+      End If
+    End If
+  Next lngExport
+  
+  If blnSelected Then Call cptRefreshStatusTable
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_frm", "SpinButton1_SpinUp", Err, Erl)
+  Resume exit_here
+
 End Sub
 
 Private Sub stxtSearch_Change()
@@ -1012,6 +1015,12 @@ err_here:
   
 End Sub
 
+Private Sub txtCC_DropButtonClick()
+  Dim strHint As String
+  strHint = "List of email addresses separated by a simi-colon (';')."
+  MsgBox strHint, vbInformation + vbOKOnly, "CC hint"
+End Sub
+
 Private Sub txtDir_Change()
   Dim strDir As String
   Dim strNamingConvention As String
@@ -1023,23 +1032,91 @@ Private Sub txtDir_Change()
   If Right(strDir, 1) <> "\" Then
     strDir = strDir & "\"
   End If
+  'todo: apply chkAppendStatusDate
   Me.lblDirSample.Caption = strDir
   
   If Dir(strDir, vbDirectory) = vbNullString Then
-    Me.lblDirectory.ForeColor = 192
+    Me.lblDirectory.ForeColor = lngForeColorInvalid
+    Me.lblDirSample.ForeColor = lngForeColorInvalid
+    Me.txtDir.BorderColor = lngBorderColorInvalid
   Else
-    Me.lblDirectory.ForeColor = -2147483630
+    Me.lblDirectory.ForeColor = lngForeColorValid
+    Me.lblDirSample.ForeColor = 8421504
+    Me.txtDir.BorderColor = lngBorderColorValid
   End If
+  Me.Repaint
 
+End Sub
+
+Private Sub txtDir_DropButtonClick()
+  'objects
+  Dim oShell As Object
+  Dim oFileDialog As Object 'FileDialog
+  Dim oExcel As Excel.Application
+  'strings
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  Set oExcel = CreateObject("Excel.Application")
+  Set oFileDialog = oExcel.FileDialog(msoFileDialogFolderPicker)
+  With oFileDialog
+    .AllowMultiSelect = False
+    If Left(ActiveProject.Path, 2) = "<>" Or Left(ActiveProject.Path, 4) = "http" Then 'server project: default to Desktop
+      Set oShell = CreateObject("WScript.Shell")
+      .InitialFileName = oShell.SpecialFolders("Desktop")
+    Else 'not a server project
+      .InitialFileName = ActiveProject.Path
+    End If
+    If .Show Then
+      Me.txtDir = .SelectedItems(1) & "\" & IIf(Me.chkAppendStatusDate, Format(ActiveProject.StatusDate, "yyyy-mm-dd") & "\", "")
+    End If
+  End With
+  
+exit_here:
+  On Error Resume Next
+  Set oShell = Nothing
+  Set oFileDialog = Nothing
+  Set oExcel = Nothing
+  
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_frm", "cmdDir_Click", Err, Erl)
+  Resume exit_here
+End Sub
+
+Private Sub txtDir_Enter()
+  Me.lblDirSample.BackStyle = fmBackStyleOpaque
+  Me.lblDirSample.Visible = True
+  Me.lblStatusDate.Visible = False
+  Me.lblCreate.Visible = False
+  Me.lblDirectory.Visible = False
+  Me.chkAppendStatusDate.Visible = False
+End Sub
+
+Private Sub txtDir_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+  Me.lblDirSample.BackStyle = fmBackStyleOpaque
+  Me.lblDirSample.Visible = False
+  Me.lblStatusDate.Visible = True
+  Me.lblCreate.Visible = True
+  Me.lblDirectory.Visible = True
+  Me.chkAppendStatusDate.Visible = True
 End Sub
 
 Sub txtFileName_Change()
   Dim strFileName As String
   Dim strNamingConvention As String
   Dim strTempItem As String
+  Dim blnValid As Boolean
   
   strFileName = Me.txtFileName.Text
   strNamingConvention = strFileName
+  blnValid = True
   
   'clean date format
   strTempItem = cptRegEx(strFileName, "\[(Y|y){1,}-(M|m){1,}-(D|d){1,}\]")
@@ -1069,7 +1146,9 @@ Sub txtFileName_Change()
         Me.lblFileNameSample.Caption = "< no item found >"
       End If
     Else
-      Me.lblFileNameSample.Caption = strFileName & ".xlsx"
+      blnValid = False
+      Me.lblFileNameSample.Caption = "'for each' requires use of '[item]'"
+      Me.lblFileNameSample.ForeColor = lngForeColorInvalid
     End If
   Else
     Me.lblFileNameSample.Caption = strFileName & ".xlsx"
@@ -1077,27 +1156,81 @@ Sub txtFileName_Change()
   If Me.txtFileName.Text <> strNamingConvention Then
     Me.txtFileName.Text = strNamingConvention
   End If
+  
+  If Not blnValid Then
+    Me.txtFileName.BorderColor = lngBorderColorInvalid
+    Me.lblNamingConvention.ForeColor = lngForeColorInvalid
+    Me.lblFileNameSample.ForeColor = lngForeColorInvalid
+  Else
+    Me.txtFileName.BorderColor = lngBorderColorValid
+    Me.lblNamingConvention.ForeColor = lngForeColorValid
+    Me.lblFileNameSample.ForeColor = 8421504
+  End If
+  Me.Repaint
+  
+End Sub
+
+Private Sub txtFileName_DropButtonClick()
+  Dim strHint As String
+  strHint = "Fields Available:" & vbCrLf
+  strHint = strHint & "> [status_date] = '" & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & "'" & vbCrLf
+  strHint = strHint & "> [yyyy-mm-dd] = '" & Format(ActiveProject.StatusDate, "yyyy-mm-dd") & "'" & vbCrLf
+  strHint = strHint & "> [program] = '" & cptGetProgramAcronym & "'" & vbCrLf
+  strHint = strHint & "> [item] = selected item in 'for each' list (required for both 'for each' options)"
+  MsgBox strHint, vbInformation + vbOKOnly, "File Naming Convention hints"
+  
+End Sub
+
+Private Sub txtFileName_Enter()
+  Me.lblFileNameSample.BackStyle = fmBackStyleOpaque
+  Me.lblFileNameSample.Visible = True
+  Me.lblNamingConvention.Visible = False
+End Sub
+
+Private Sub txtFileName_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+  Me.lblFileNameSample.Visible = False
+  Me.lblFileNameSample.BackStyle = fmBackStyleTransparent
+  Me.lblNamingConvention.Visible = True
+End Sub
+
+Private Sub txtHideCompleteBefore_AfterUpdate()
+  If IsDate(Me.txtHideCompleteBefore) Then
+    Me.txtHideCompleteBefore = FormatDateTime(Me.txtHideCompleteBefore, vbShortDate)
+  End If
 End Sub
 
 Private Sub txtHideCompleteBefore_Change()
   Dim stxt As String
+  Dim dtLookahead As Date
+  Dim dtStatus As Date
+  Dim blnValid As Boolean
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not Me.Visible Then GoTo exit_here
+  'If Me.ActiveControl.Name <> "txtHideCompleteBefore" Then GoTo exit_here
   stxt = cptRegEx(Me.txtHideCompleteBefore.Text, "[0-9\/]*")
   Me.txtHideCompleteBefore.Text = stxt
+  blnValid = False
   If Len(Me.txtHideCompleteBefore.Text) > 0 Then
     If IsDate(Me.txtHideCompleteBefore.Text) Then
-      If CDate(Me.txtHideCompleteBefore.Text) > #1/1/1984# Then
-        Me.chkHide.ForeColor = -2147483630 '"Black"
-      Else
-        Me.chkHide.ForeColor = 192 'red
+      dtLookahead = FormatDateTime(Me.txtHideCompleteBefore, vbShortDate)
+      dtStatus = FormatDateTime(ActiveProject.StatusDate)
+      If dtLookahead > #1/1/1984# And dtLookahead < dtStatus Then
+        blnValid = True
       End If
-    Else
-      Me.chkHide.ForeColor = 192 'red
     End If
   End If
-
+  If blnValid Then
+    Me.chkHide.ForeColor = lngForeColorValid
+    Me.txtHideCompleteBefore.ForeColor = lngForeColorValid
+    Me.txtHideCompleteBefore.BorderColor = lngBorderColorValid
+  Else
+    Me.chkHide.ForeColor = lngForeColorInvalid
+    Me.txtHideCompleteBefore.ForeColor = lngForeColorInvalid
+    Me.txtHideCompleteBefore.BorderColor = lngBorderColorInvalid
+  End If
+  Me.Repaint
+  
 exit_here:
   On Error Resume Next
   Exit Sub
@@ -1107,8 +1240,13 @@ err_here:
 
 End Sub
 
+Private Sub txtHideCompleteBefore_DropButtonClick()
+  Dim strMsg As String
+  MsgBox "Use this to include tasks that, e.g., were completed in the last status cycle.", vbInformation + vbOKOnly, "Show Completed After"
+End Sub
+
 Private Sub txtLookaheadDate_AfterUpdate()
-  If Len(Me.txtLookaheadDate) > 0 Then
+  If Len(Me.txtLookaheadDate) > 0 And IsDate(Me.txtLookaheadDate) Then
     Me.txtLookaheadDate = CDate(FormatDateTime(Me.txtLookaheadDate.Value, vbShortDate))
   End If
 End Sub
@@ -1118,7 +1256,7 @@ Private Sub txtLookaheadDate_Change()
   
   If Not Me.Visible Then Exit Sub
   If Not IsDate(ActiveProject.StatusDate) Then Exit Sub
-  If Not Me.ActiveControl.Name = Me.txtLookaheadDate.Name Then Exit Sub
+  'If Not Me.ActiveControl.Name = Me.txtLookaheadDate.Name Then Exit Sub
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Len(Me.txtLookaheadDate.Text) > 0 Then
@@ -1126,24 +1264,27 @@ Private Sub txtLookaheadDate_Change()
     'limit to a dates only
     If Not IsDate(Me.txtLookaheadDate.Text) Then
       Me.txtLookaheadDays = ""
-      Me.txtLookaheadDate.BorderColor = 192
+      Me.txtLookaheadDate.BorderColor = lngBorderColorInvalid
+      Me.txtLookaheadDate.ForeColor = lngForeColorInvalid
       Me.lblLookaheadWeekday.Visible = False
       Me.Repaint
     Else
       'limit to dates after the start date
       dtDate = CDate(FormatDateTime(Me.txtLookaheadDate.Text, vbShortDate) & " 5:00 PM")
       If dtDate < ActiveProject.StatusDate Then
-        Me.txtLookaheadDate.BorderColor = 192
+        Me.txtLookaheadDate.BorderColor = lngBorderColorInvalid
+        Me.txtLookaheadDate.ForeColor = lngForeColorInvalid
         Me.lblLookaheadWeekday.Visible = False
-        Me.Repaint
       Else
         Me.txtLookaheadDays = CLng(Application.DateDifference(ActiveProject.StatusDate, dtDate) / 480)
-        Me.txtLookaheadDate.BorderColor = -2147483642
+        Me.txtLookaheadDate.BorderColor = lngBorderColorValid
+        Me.txtLookaheadDate.ForeColor = lngForeColorValid
         Me.lblLookaheadWeekday.Visible = True
         Me.lblLookaheadWeekday.Caption = Format(CDate(Me.txtLookaheadDate.Text), "dddd")
         Me.Repaint
         Call cptRefreshStatusTable(False, True)
       End If
+      Me.Repaint
     End If
   Else
     Me.txtLookaheadDays = ""
@@ -1151,11 +1292,24 @@ Private Sub txtLookaheadDate_Change()
 
 exit_here:
   On Error Resume Next
-
+  Me.Repaint
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptStatusSheet_frm", "txtLookaheadDate_Change", Err, Erl)
   Resume exit_here
+End Sub
+
+Private Sub txtLookaheadDate_Enter()
+  Me.lblLookaheadWeekday.BackStyle = fmBackStyleOpaque
+  Me.lblLookaheadWeekday.Visible = True
+  Me.lblSearch.Visible = False
+End Sub
+
+Private Sub txtLookaheadDate_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+  Me.lblLookaheadWeekday.Visible = False
+  Me.lblLookaheadWeekday.BackStyle = fmBackStyleTransparent
+  Me.lblSearch.Visible = True
 End Sub
 
 Private Sub txtLookaheadDays_Change()
@@ -1163,56 +1317,120 @@ Private Sub txtLookaheadDays_Change()
   
   'If Not Me.Visible Then Exit Sub
   If Not IsDate(ActiveProject.StatusDate) Then Exit Sub
-  If Not Me.ActiveControl = Me.txtLookaheadDays Then Exit Sub
+  If Not Me.ActiveControl.Name = Me.txtLookaheadDays.Name Then Exit Sub
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  Me.txtLookaheadDate.BorderColor = -2147483642
   If Len(Me.txtLookaheadDays.Text) > 0 Then
     lngDays = CLng(cptRegEx(Me.txtLookaheadDays, "[0-9]{1,}"))
     Me.txtLookaheadDays.Text = lngDays
     Me.txtLookaheadDate.Value = FormatDateTime(Application.DateAdd(ActiveProject.StatusDate, lngDays * 480), vbShortDate)
+    Me.txtLookaheadDate.BorderColor = lngBorderColorValid
+    Me.txtLookaheadDate.ForeColor = lngForeColorValid
     Me.lblLookaheadWeekday.Visible = True
     Me.lblLookaheadWeekday.Caption = Format(Me.txtLookaheadDate, "dddd")
     Call cptRefreshStatusTable(False, True)
   Else
     Me.txtLookaheadDate = ""
-    Me.txtLookaheadDate.BorderColor = -2147483642
+    Me.txtLookaheadDate.BorderColor = lngBorderColorValid
+    Me.txtLookaheadDate.ForeColor = lngForeColorValid
     Me.lblLookaheadWeekday.Visible = False
   End If
 
 exit_here:
   On Error Resume Next
-
+  Me.Repaint
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptStatusSheet_frm", "txtLookaheadDays_Change", Err, Erl)
   Resume exit_here
 End Sub
 
-Private Sub txtStatusDate_Change()
-  Dim stxt As String
+Private Sub txtLookaheadDays_Enter()
+  Me.lblLookaheadWeekday.BackStyle = fmBackStyleOpaque
+  Me.lblLookaheadWeekday.Visible = True
+  Me.lblSearch.Visible = False
+End Sub
 
+Private Sub txtLookaheadDays_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+  Me.lblLookaheadWeekday.Visible = False
+  Me.lblLookaheadWeekday.BackStyle = fmBackStyleTransparent
+  Me.lblSearch.Visible = True
+End Sub
+
+Private Sub txtNotesColTitle_Change()
+  If Not Me.Visible Then Exit Sub
+  'todo: ensure column name uniqueness
+  Stop
+End Sub
+
+Private Sub txtNotesColTitle_DropButtonClick()
+  Dim strMsg As String
+  strMsg = "Define a custom name for the exported Task Notes column." & vbCrLf
+  strMsg = strMsg & "Default is 'Reason / Action / Impact'" & vbCrLf
+  strMsg = strMsg & "Suggestions include: 'Basis of Estimate'; 'Status Notes'; 'Duration Uncertainty (H,M,L)', etc." & vbCrLf & vbCrLf
+  strMsg = strMsg & "Task Notes can be exported (and imported) at the Task and/or the Assignment level."
+  MsgBox strMsg, vbInformation + vbOKOnly, "Note Column Hints"
+  
+End Sub
+
+Private Sub txtStatusDate_Change()
+  Dim dtStatus As Date
+  Dim lngDiff As Long
+  
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not Me.Visible Then GoTo exit_here
-  stxt = cptRegEx(Me.txtStatusDate.Text, "[0-9\/]*")
-  Me.txtStatusDate.Text = stxt
-  If Len(Me.txtStatusDate.Text) > 0 Then
-    If IsDate(Me.txtStatusDate.Text) Then
-      If CDate(Me.txtStatusDate.Text) > #1/1/1984# Then
-        Me.lblStatusDate.ForeColor = -2147483630 '"Black"
+  
+  'form won't open without a status date and is modal
+  dtStatus = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
+  Me.txtStatusDate.Text = dtStatus
+  If Me.chkHide Then
+    lngDiff = Application.DateDifference(CDate(Me.txtHideCompleteBefore), dtStatus)
+  End If
+  
+  'update hide complete before
+  If Me.chkHide Then
+    Me.txtHideCompleteBefore = FormatDateTime(Application.DateSubtract(dtStatus, lngDiff), vbShortDate)
+    If IsDate(CDate(Me.txtHideCompleteBefore)) Then
+      If CDate(Me.txtHideCompleteBefore) >= dtStatus Then
+        Me.chkHide.ForeColor = lngForeColorInvalid
+        Me.txtHideCompleteBefore.BorderColor = lngBorderColorInvalid
+        Me.txtHideCompleteBefore.ForeColor = lngForeColorInvalid
       Else
-        Me.lblStatusDate.ForeColor = 192 'red
+        Me.chkHide.ForeColor = lngForeColorValid
+        Me.txtHideCompleteBefore.BorderColor = lngBorderColorValid
+        Me.txtHideCompleteBefore.ForeColor = lngForeColorValid
       End If
     Else
-      Me.lblStatusDate.ForeColor = 192 'red
+      Me.txtHideCompleteBefore = FormatDateTime(Application.DateSubtract(dtStatus, 5 * 480), vbShortDate)
     End If
+  End If
+  
+  'update lookahead date based on lookahead days
+  If Me.chkLookahead Then
+    Me.txtLookaheadDate = FormatDateTime(Application.DateAdd(ActiveProject.StatusDate, CLng(Me.txtLookaheadDays) * 480), vbShortDate)
   End If
   
 exit_here:
   On Error Resume Next
+  Me.Repaint
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptStatusSheet_frm", "txtStatusDate_Change", Err, Erl)
   Resume exit_here
+  
+End Sub
+
+Private Sub txtStatusDate_DropButtonClick()
+  Dim lngDiff As Long
+  
+  If Me.chkHide Then lngDiff = VBA.DateDiff("d", CDate(Me.txtHideCompleteBefore), CDate(Me.txtStatusDate))
+  If lngDiff = 0 Then lngDiff = 5
+  
+  If ChangeStatusDate Then
+    Me.txtStatusDate = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
+    If Me.chkHide Then Me.txtHideCompleteBefore = FormatDateTime(VBA.DateAdd("d", -lngDiff, ActiveProject.StatusDate), vbShortDate)
+  End If
   
 End Sub
 
@@ -1263,17 +1481,48 @@ Private Sub txtSubject_Change()
   
 End Sub
 
-Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
-  Dim dtStatus As Date, lngDiff As Long
-  If Me.ActiveControl.Name = "txtHideCompleteBefore" Then Exit Sub
-  If IsDate(ActiveProject.StatusDate) Then
-    dtStatus = FormatDateTime(CDate(Me.txtStatusDate), vbShortDate)
-    If dtStatus <> CDate(ActiveProject.StatusDate) Then
-      lngDiff = VBA.DateDiff("d", CDate(Me.txtHideCompleteBefore), CDate(Me.txtStatusDate))
-      Me.txtStatusDate = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
-      Me.txtHideCompleteBefore = DateAdd("d", -lngDiff, ActiveProject.StatusDate)
-    End If
-  Else
-    cptStatusSheet_frm.txtStatusDate.Value = FormatDateTime(DateAdd("d", 6 - Weekday(Now), Now), vbShortDate)
-  End If
+Private Sub txtSubject_DropButtonClick()
+  Dim strHint As String
+
+  strHint = "The following fields are available for auto replacement in the subject line and in your Email Template (a.k.a., 'Quick Part'):" & vbCrLf & vbCrLf
+  strHint = strHint & "> [status_date] = '" & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & "'" & vbCrLf
+  strHint = strHint & "> [yyyy-mm-dd] = '" & Format(ActiveProject.StatusDate, "yyyy-mm-dd") & "'" & vbCrLf
+  strHint = strHint & "> [program] = '" & cptGetProgramAcronym & "'" & vbCrLf
+  strHint = strHint & "> [item] = selected item in 'for each' list (required for both 'for each' options)"
+  MsgBox strHint, vbInformation + vbOKOnly, "Email Subject hints"
+
+End Sub
+
+Private Sub txtSubject_Enter()
+  Me.chkKeepOpen.Visible = False
+  Me.chkSendEmails.Visible = False
+  Me.lblSubjectPreview.Visible = True
+End Sub
+
+Private Sub txtSubject_Exit(ByVal Cancel As MSForms.ReturnBoolean)
+  Me.chkKeepOpen.Visible = True
+  Me.chkSendEmails.Visible = True
+  Me.lblSubjectPreview.Visible = False
+End Sub
+
+Private Sub UserForm_Initialize()
+  Me.txtStatusDate.DropButtonStyle = fmDropButtonStyleEllipsis
+  Me.txtStatusDate.ShowDropButtonWhen = fmShowDropButtonWhenAlways
+  Me.txtDir.DropButtonStyle = fmDropButtonStyleEllipsis
+  Me.txtDir.ShowDropButtonWhen = fmShowDropButtonWhenAlways
+  Me.txtSubject.DropButtonStyle = fmDropButtonStyleEllipsis
+  Me.txtSubject.ShowDropButtonWhen = fmShowDropButtonWhenAlways
+  Me.txtCC.DropButtonStyle = fmDropButtonStyleEllipsis
+  Me.txtCC.ShowDropButtonWhen = fmShowDropButtonWhenAlways
+  Me.txtFileName.DropButtonStyle = fmDropButtonStyleEllipsis
+  Me.txtFileName.ShowDropButtonWhen = fmShowDropButtonWhenAlways
+  Me.txtNotesColTitle.DropButtonStyle = fmDropButtonStyleEllipsis
+  Me.txtNotesColTitle.ShowDropButtonWhen = fmShowDropButtonWhenAlways
+  Me.txtHideCompleteBefore.DropButtonStyle = fmDropButtonStyleEllipsis
+  Me.txtHideCompleteBefore.ShowDropButtonWhen = fmShowDropButtonWhenAlways
+  Me.lblDirSample.Visible = False
+  Me.lblFileNameSample.Visible = False
+  Me.lblSubjectPreview.Visible = False
+  Me.lblLookaheadWeekday.Visible = False
+  Me.txtStatusDate.SetFocus
 End Sub

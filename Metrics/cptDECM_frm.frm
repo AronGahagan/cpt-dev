@@ -162,7 +162,8 @@ Public Sub lboMetrics_AfterUpdate()
       End If
     Case "06I201a"
       strDescription = strDescription & "SCORE: " & strScore
-      strDescription = strDescription & vbCrLf & vbCrLf & "Task Name contains 'SVT' and has resource assignments"
+      strDescription = strDescription & vbCrLf & vbCrLf & "Task Name contains 'SVT' and has resource assignments" & vbCrLf
+      strDescription = strDescription & Me.lboMetrics.List(Me.lboMetrics.ListIndex, 7)
     
     Case "06A205a"
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
@@ -205,7 +206,8 @@ Public Sub lboMetrics_AfterUpdate()
         strDescription = strDescription & vbCrLf & vbCrLf & "Rolling Wave Date: " & Format(CDate(strRollingWaveDate), "mm/dd/yyyy hh:nn AMPM")
       End If
     Case Else
-      strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
+      strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore & vbCrLf & vbCrLf
+      strDescription = strDescription & cptGetDECMDescription(strMetric)
   End Select
   
   Me.txtTitle.Value = strDescription
@@ -254,6 +256,8 @@ Private Sub txtTitle_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, By
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If Me.lboMetrics.Value <> "06A101a" Then Exit Sub
   
   Me.txtTitle.Text = Me.txtTitle.Text & "validating..." & vbCrLf
   vData = Split(Data.GetText, vbCrLf)
