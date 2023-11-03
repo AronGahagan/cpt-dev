@@ -1036,13 +1036,15 @@ Private Sub txtDir_Change()
   Me.lblDirSample.Caption = strDir
   
   If Dir(strDir, vbDirectory) = vbNullString Then
+    Me.txtDir.BorderColor = lngBorderColorInvalid
+    Me.txtDir.ForeColor = lngForeColorInvalid
     Me.lblDirectory.ForeColor = lngForeColorInvalid
     Me.lblDirSample.ForeColor = lngForeColorInvalid
-    Me.txtDir.BorderColor = lngBorderColorInvalid
   Else
+    Me.txtDir.BorderColor = lngBorderColorValid
+    Me.txtDir.ForeColor = lngForeColorValid
     Me.lblDirectory.ForeColor = lngForeColorValid
     Me.lblDirSample.ForeColor = 8421504
-    Me.txtDir.BorderColor = lngBorderColorValid
   End If
   Me.Repaint
 
@@ -1159,10 +1161,12 @@ Sub txtFileName_Change()
   
   If Not blnValid Then
     Me.txtFileName.BorderColor = lngBorderColorInvalid
+    Me.txtFileName.ForeColor = lngForeColorInvalid
     Me.lblNamingConvention.ForeColor = lngForeColorInvalid
     Me.lblFileNameSample.ForeColor = lngForeColorInvalid
   Else
     Me.txtFileName.BorderColor = lngBorderColorValid
+    Me.txtFileName.ForeColor = lngForeColorValid
     Me.lblNamingConvention.ForeColor = lngForeColorValid
     Me.lblFileNameSample.ForeColor = 8421504
   End If
