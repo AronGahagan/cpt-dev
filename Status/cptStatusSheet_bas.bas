@@ -951,17 +951,29 @@ next_worksheet:
           
           'add legend
           If blnPerformanceTest Then t = GetTickCount
+          .lblStatus.Caption = "Building legend for " & strItem & "..."
+          Application.StatusBar = .lblStatus.Caption
           cptAddLegend oWorksheet, dtStatus
+          .lblStatus.Caption = "Building legend for " & strItem & "...done."
+          Application.StatusBar = .lblStatus.Caption
           If blnPerformanceTest Then Debug.Print "set up legend: " & (GetTickCount - t) / 1000
           
           'final formatting
+          .lblStatus.Caption = "Formatting " & strItem & "..."
+          Application.StatusBar = .lblStatus.Caption
           cptFinalFormats oWorksheet
+          .lblStatus.Caption = "Formatting " & strItem & "...done."
+          Application.StatusBar = .lblStatus.Caption
           
           oWorksheet.Calculate
           
           If blnLocked Then 'protect the sheet
+            .lblStatus.Caption = "Protecting " & strItem & "..."
+            Application.StatusBar = .lblStatus.Caption
             oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
             oWorksheet.EnableSelection = xlNoRestrictions
+            .lblStatus.Caption = "Protecting " & strItem & "...done."
+            Application.StatusBar = .lblStatus.Caption
           End If
           
           Set oInputRange = Nothing
@@ -971,9 +983,10 @@ next_worksheet:
           Set oAssignmentRange = Nothing
                     
           'save the workbook
-          strFileName = cptSaveStatusSheet(oWorkbook, strItem)
-          .lblStatus.Caption = "Creating Workbook for " & strItem & "...done"
+          .lblStatus.Caption = "Saving Workbook for " & strItem & "..."
           Application.StatusBar = .lblStatus.Caption
+          strFileName = cptSaveStatusSheet(oWorkbook, strItem)
+          .lblStatus.Caption = "Saving Workbook for " & strItem & "...done"
           DoEvents
           
           'send email
@@ -1743,6 +1756,13 @@ End Sub
 
 Private Sub cptCopyData(ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Long)
   'objects
+  Dim oDict As Scripting.Dictionary
+  Dim oRecordset As ADODB.Recordset
+  Dim oFirstCell As Excel.Range
+  Dim oETCRange As Excel.Range
+  Dim oEVPRange As Excel.Range
+  Dim oNFRange As Excel.Range
+  Dim oNSRange As Excel.Range
   Dim oComment As Excel.Comment
   Dim oEVTRange As Excel.Range
   Dim oCompleted As Excel.Range
@@ -1753,11 +1773,23 @@ Private Sub cptCopyData(ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Lon
   Dim oTwoWeekWindowRange As Excel.Range
   Dim oTask As MSProject.Task
   'strings
+  Dim strItem As String
+  Dim strFormula As String
+  Dim strETC As String
+  Dim strEVP As String
+  Dim strNF As String
+  Dim strAF As String
+  Dim strFF As String
+  Dim strNS As String
+  Dim strAS As String
+  Dim strFS As String
   Dim strNotesColTitle As String
   Dim strLOE As String
   Dim strEVT As String
   Dim strEVTList As String
   'longs
+  Dim lngFormatCondition As Long
+  Dim lngFormatConditions As Long
   Dim lngEVT As Long
   Dim lngEVTCol As Long
   Dim lngLastCol As Long
@@ -1815,6 +1847,7 @@ try_again:
   oWorksheet.Columns.AutoFit
   'format the colums
   blnAlerts = oWorksheet.Application.DisplayAlerts
+  strItem = cptStatusSheet_frm.lboItems.List(cptStatusSheet_frm.lboItems.ListIndex, 0)
   If blnAlerts Then oWorksheet.Application.DisplayAlerts = False
   For lngCol = 1 To ActiveSelection.FieldIDList.Count
     oWorksheet.Columns(lngCol).ColumnWidth = ActiveProject.TaskTables("cptStatusSheet Table").TableFields(lngCol + 1).Width + 2
@@ -2017,6 +2050,31 @@ try_again:
       End If
     End If 'blnValidation
     
+    'capture conditional formatting ranges
+    blnConditionalFormats = cptStatusSheet_frm.chkAddConditionalFormats
+    If Not blnLOE And blnConditionalFormats Then
+      If oNSRange Is Nothing Then
+        Set oNSRange = oWorksheet.Cells(lngRow, lngASCol)
+      Else
+        Set oNSRange = oWorksheet.Application.Union(oNSRange, oWorksheet.Cells(lngRow, lngASCol))
+      End If
+      If oNFRange Is Nothing Then
+        Set oNFRange = oWorksheet.Cells(lngRow, lngAFCol)
+      Else
+        Set oNFRange = oWorksheet.Application.Union(oNFRange, oWorksheet.Cells(lngRow, lngAFCol))
+      End If
+      If oEVPRange Is Nothing Then
+        Set oEVPRange = oWorksheet.Cells(lngRow, lngEVPCol)
+      Else
+        Set oEVPRange = oWorksheet.Application.Union(oEVPRange, oWorksheet.Cells(lngRow, lngEVPCol))
+      End If
+      If oETCRange Is Nothing Then
+        Set oETCRange = oWorksheet.Cells(lngRow, lngETCCol)
+      Else
+        Set oETCRange = oWorksheet.Application.Union(oETCRange, oWorksheet.Cells(lngRow, lngETCCol))
+      End If
+    End If
+    
     If oEVTRange Is Nothing Then 'todo: probably not needed
       Set oEVTRange = oWorksheet.Cells(lngRow, lngEVTCol)
     Else
@@ -2065,10 +2123,24 @@ get_assignments:
         Next oAssignment
         Set oAssignment = Nothing
       End If
+    Else
+      oWorksheet.Cells(lngRow, lngETCCol) = oTask.RemainingWork / 60
+      oWorksheet.Cells(lngRow, lngETCCol - 1) = oTask.RemainingWork / 60
+      'todo: oWorksheet.Cells(lngRow, lngBLWCol) = oTask.BaselineWork / 60
+      'add ETC to inputrange
+      If oInputRange Is Nothing Then
+        Set oInputRange = oWorksheet.Cells(lngRow, lngETCCol)
+      Else
+        Set oInputRange = oWorksheet.Application.Union(oInputRange, oWorksheet.Cells(lngRow, lngETCCol))
+      End If
+      'add to ETC Validation Range
+      If oETCValidationRange Is Nothing Then
+        Set oETCValidationRange = oWorksheet.Cells(lngRow, lngETCCol)
+      Else
+        Set oETCValidationRange = oWorksheet.Application.Union(oETCValidationRange, oWorksheet.Cells(lngRow, lngETCCol))
+      End If
     End If
-    
-    'todo: capture conditional formatting range(s)
-    
+        
     oWorksheet.Columns(1).AutoFit
     oWorksheet.Rows(lngRow).AutoFit
 
@@ -2154,7 +2226,6 @@ next_task:
       .ShowInput = True
       .ShowError = True
     End With
-    
   End If
   If blnValidation And Not oETCValidationRange Is Nothing Then
     'ETC validation range (contains ETC only)
@@ -2171,6 +2242,11 @@ next_task:
       .ShowError = True
     End With
   End If
+  If Not blnAssignments And Not oETCValidationRange Is Nothing Then
+    oETCValidationRange.Locked = False
+    oETCValidationRange.HorizontalAlignment = xlCenter
+  End If
+  
   'format the Assignment Rows
   If Not oAssignmentRange Is Nothing Then
     With oAssignmentRange.Interior
@@ -2213,8 +2289,8 @@ next_task:
       strEVTList = strEVTList & "0 - No EVM required,"
       strEVTList = strEVTList & "1 - 0/100,"
       strEVTList = strEVTList & "'2 - 25/75,"
-      strEVTList = strEVTList & "3 - 40/60,"
-      strEVTList = strEVTList & "4 - 50/50,"
+      strEVTList = strEVTList & "'3 - 40/60,"
+      strEVTList = strEVTList & "'4 - 50/50,"
       strEVTList = strEVTList & "5 - % Complete,"
       strEVTList = strEVTList & "6 - LOE,"
       strEVTList = strEVTList & "7 - Earned Standards,"
@@ -2235,11 +2311,161 @@ next_task:
   End If
   
   If blnConditionalFormats Then
-    'todo: conditional formats
+    
+    oNSRange.Select
+    Set oFirstCell = oWorksheet.Application.ActiveCell
+    oFirstCell.Select
+    strNS = oFirstCell.Address(False, True)
+    lngNFCol = lngAFCol
+    strNF = oWorksheet.Cells(oFirstCell.Row, lngNFCol).Address(False, True)
+    strEVP = oWorksheet.Cells(oFirstCell.Row, lngEVPCol).Address(False, True)
+    strETC = oWorksheet.Cells(oFirstCell.Row, lngETCCol).Address(False, True)
+    'set up derived addresses for ease of formula writing
+    'AS = (NS>0,NS<=SD)
+    strAS = strNS & ">0," & strNS & "<=STATUS_DATE"
+    'FS = (NS>0,NS>SD)
+    strFS = strNS & ">0," & strNS & ">STATUS_DATE"
+    'AF = (NF>0,NF<=SD)
+    strAF = strNF & ">0," & strNF & "<=STATUS_DATE"
+    'FF = (NF>0,NF>SD)
+    strFF = strNF & ">0," & strNF & ">STATUS_DATE"
+    
+    'create map of ranges
+    Set oDict = CreateObject("Scripting.Dictionary")
+    Set oDict.Item("NS") = oNSRange 'todo: try non-absolute?
+    oNSRange.FormatConditions.Delete
+    Set oDict.Item("NF") = oNFRange
+    oNFRange.FormatConditions.Delete
+    Set oDict.Item("EVP") = oEVPRange
+    oEVPRange.FormatConditions.Delete
+    Set oDict.Item("ETC") = oETCRange
+    oETCRange.FormatConditions.Delete
+    
+    'capture list of formulae
+    Set oRecordset = CreateObject("ADODB.Recordset")
+    oRecordset.Fields.Append "RANGE", adVarChar, 3
+    oRecordset.Fields.Append "FORMULA", adVarChar, 255
+    oRecordset.Open
+    'todo: GRAY
+    
+    'NS>0,>NF>0,NS>NF -> BAD
+    oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & ")")
+    'NS=0,AF>0
+    oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strNS & "=0," & strAF & ")")
+    'NF>0,NS>0,NF<NS -> BAD
+    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & ")")
+    
+    'FS>0,EVP>0
+    oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strFS & "," & strEVP & ">0)")
+    'FS=0,EVP>0
+    oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strNS & "=0," & strEVP & ">0)")
+    'FS>0,ETC=0
+    oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strFS & "," & strETC & "=0)")
+    
+    'AS=0,ETC=0
+    oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strNS & "=0," & strETC & "=0)")
+    'AS>0,EVT='E',EVP<>50
+    'oRecordset.AddNew Array(0,1),Array("NS", "=AND(" & strAS & "," & strEVT & "='E'," & strEVP & "<>.5)")
+    'todo: AS>0,EVT='F',EVP>0
+    'todo: oRecordset.AddNew Array(0,1),Array("NS", "=AND(" & strAS & "," & strEVT & "='F'," & strEVP & ">0)")
+    'todo: AS>0,EVT='G',EVP<>1
+    
+    'FF>0,EVP=1
+    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strFF & "," & strEVP & "=1)")
+    'FF>0,ETC=0
+    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strFF & "," & strETC & "=0)")
+    
+    'AF>0,EVP<1
+    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strAF & "," & strEVP & "<1)")
+    'AF=0,EVP=1
+    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strNF & "=0," & strEVP & "=1)")
+    'AF>0,ETC>0
+    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strAF & "," & strETC & ">0)")
+    'AF>0,NS=0
+    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strAF & "," & strNS & "=0)")
+    'AF=0,ETC=0
+    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strNF & "=0," & strETC & "=0)")
+    
+    'EVP>0,FS>0
+    oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & ">0," & strFS & ")")
+    'EVP<1,AS>0 -> caution
+    'oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & "<1," & strAS & ")")
+    'todo: EVP<>.5,EVT='E",AS>0
+    'todo: oRecordset.AddNew Array(0,1),Array("EVP", "=AND(" & strEVP & "<>.5," & strEVT & "='E'," & strAS & ">0)")
+    'todo: EVP>0,EVT='F',AS>0
+    'todo: oRecordset.AddNew Array(0,1),Array("EVP", "=AND(" & strEVP & ">0," & strEVT & "='F'," & strAS & ">0)")
+    'todo: EVP<1,EVT='G',AS>0
+    
+    'EVP=1,FF>0
+    oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & "=1," & strFF & ")")
+    'EVP<1,AF>0
+    oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & "<1," & strAF & ")")
+    'EVP=1,ETC>0
+    oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & "=1," & strETC & ">0)")
+    'EVP<10,ETC=0
+    oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & "<1," & strETC & "=0)")
+    'EVP>0,AS=0
+    oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & ">0," & strNS & "=0)")
+    
+    'ETC=0,FS>0
+    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strFS & ")")
+    'ETC=0,FF>0
+    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strFF & ")")
+    'ETC>0,AF>0
+    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & ">0," & strAF & ")")
+    'ETC>0,EVP=1
+    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & ">0," & strEVP & "=1)")
+    'ETC=0,EVP<1
+    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strEVP & "<1)")
+    'ETC=0,EVP=0
+    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strEVP & "=0)")
+    'ETC=0,AF=0
+    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strNF & "=0)")
+    'ETC=0,AS=0
+    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strNS & "=0)")
+    
+    lngFormatCondition = 0
+    With oRecordset
+      'for the progress bar
+      lngFormatConditions = .RecordCount
+      .MoveFirst
+      Do While Not .EOF
+        'race is on
+        lngFormatCondition = lngFormatCondition + 1
+        cptStatusSheet_frm.lblStatus.Caption = "Applying Conditional Formatting [" & strItem & "]...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
+        cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngFormatConditions) * cptStatusSheet_frm.lblStatus.Width
+        Application.StatusBar = "Applying Conditional Formatting [" & strItem & "]...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
+        oDict.Item(CStr(.Fields(0))).Select
+        oDict.Item(CStr(.Fields(0))).FormatConditions.Add Type:=xlExpression, Formula1:=CStr(.Fields(1))
+        oDict.Item(CStr(.Fields(0))).FormatConditions(oDict.Item(CStr(.Fields(0))).FormatConditions.Count).SetFirstPriority
+        oDict.Item(CStr(.Fields(0))).FormatConditions(1).Font.Color = -16383844
+        oDict.Item(CStr(.Fields(0))).FormatConditions(1).Font.TintAndShade = 0
+        oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.PatternColorIndex = xlAutomatic
+        oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.Color = 13551615
+        oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.TintAndShade = 0
+        oDict.Item(CStr(.Fields(0))).FormatConditions(1).StopIfTrue = False
+        .MoveNext
+      Loop
+      'race is over - notify
+      cptStatusSheet_frm.lblStatus.Caption = "Applying Conditional Formatting [" & strItem & "]...done."
+      cptStatusSheet_frm.lblProgress.Width = cptStatusSheet_frm.lblStatus.Width
+      Application.StatusBar = "Applying Conditional Formatting [" & strItem & "]...done."
+      oDict.RemoveAll
+      .Close
+    End With
+            
   End If
   
 exit_here:
   On Error Resume Next
+  Set oDict = Nothing
+  If oRecordset.State Then oRecordset.Close
+  Set oRecordset = Nothing
+  Set oFirstCell = Nothing
+  Set oETCRange = Nothing
+  Set oEVPRange = Nothing
+  Set oNFRange = Nothing
+  Set oNSRange = Nothing
   Set oComment = Nothing
   Set oUnlockedRange = Nothing
   Set oComment = Nothing
@@ -3222,4 +3448,3 @@ err_here:
   Call cptHandleErr("cptStatusSheet_bas", "cptFindUnstatusedTasks", Err, Erl)
   Resume exit_here
 End Sub
-
