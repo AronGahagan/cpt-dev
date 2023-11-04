@@ -1028,525 +1028,6 @@ next_workbook:
     Application.StatusBar = .lblStatus.Caption
     DoEvents
   End With
-    
-  GoTo exit_here 'todo: remove skip conditional formatting
-  
-  'apply conditional formatting
-  'update required formatting ("input"): - update required
-'  .Font.Color = 7749439
-'  .Font.TintAndShade = 0
-'  .Interior.PatternColorIndex = -4105
-'  .Interior.Color = 10079487
-'  .Interior.TintAndShade = 0
-'  .BorderAround xlContinuous, xlThin, , Color:=RGB(127, 127, 127)
-
-  'two week window ("neutral"): - review
-'  .Font.Color = -16754788
-'  .Font.TintAndShade = 0
-'  .Interior.PatternColorIndex = xlAutomatic
-'  .Interior.Color = 10284031
-'  .Interior.TintAndShade = 0
-'  .BorderAround xlContinuous, xlThin,,color:=RGB(127,127,127)
-
-  'invalid required formatting ("bad"): - invalid
-'  .Font.Color = -16383844
-'  .Font.TintAndShade = 0
-'  .Interior.PatternColorIndex = xlAutomatic
-'  .Interior.Color = 13551615
-'  .Interior.TintAndShade = 0
-
-  'updated ("good"): - user entered valid update
-'  .Font.Color = -16752384
-'  .Font.TintAndShade = 0
-'  .Interior.PatternColorIndex = xlAutomatic
-'  .Interior.Color = 13561798
-'  .Interior.TintAndShade = 0
-
-  If blnPerformanceTest Then t = GetTickCount
-  
-  blnAddConditionalFormats = cptStatusSheet_frm.chkAddConditionalFormats = True
-  If Not blnAddConditionalFormats Then GoTo conditional_formatting_skipped
-  
-  cptStatusSheet_frm.lblStatus.Caption = " Applying conditional formats..."
-  Application.StatusBar = "Applying conditional formats..."
-  DoEvents
-  cptStatusSheet_frm.lblProgress.Width = (1 / 100) * cptStatusSheet_frm.lblStatus.Width
-  lngConditionalFormats = 18 'bash: "grep -c 'lngFormatCondition = lngFormatCondition + 1' Status/cptStatusSheet_bas.bas"
-  'capture status date address
-  strStatusDate = oWorksheet.Range("STATUS_DATE").Address(True, True)
-
-  'attempt to speed up
-  oExcel.EnableEvents = False
-  oWorksheet.DisplayPageBreaks = False
-
-new_start:
-  'define range for new start
-  xlCells(lngHeaderRow, 1).AutoFilter
-  Set rngAll = oWorksheet.Range(xlCells(lngHeaderRow, 1).End(xlToRight), xlCells(lngHeaderRow, 1).End(xlDown))
-  'filter for task rows [blue font]
-  rngAll.AutoFilter Field:=lngNameCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
-  '...with blank Actual Start dates [blank AS]
-  rngAll.AutoFilter Field:=lngASCol, Criteria1:="="
-  'add conditions only to blank cells in the column
-  On Error Resume Next '<issue52-no cells found>
-  Set rng = oWorksheet.Range(xlCells(lngHeaderRow + 1, lngASCol), xlCells(lngRow, lngASCol)).SpecialCells(xlCellTypeVisible)
-  If Err.Number = 1004 Then 'no cells found
-    Err.Clear '<issue52>
-    GoTo new_finish '<issue52>
-  End If '<issue52>
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
-  strFirstCell = rng(1).Address(False, True)
-
-  '-->condition 1: blank and start is less than status date > update required
-  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, -2).Address(False, True) & "<=" & strStatusDate & "),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = 7749439
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = -4105
-    .Color = 10079487
-    .TintAndShade = 0
-  End With
-  rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Start (1/5)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New Start (1/5)"
-  DoEvents
-
-  '-->condition 2: two-week-window                      '=IF($E50<=(INDIRECT("STATUS_DATE")+14),TRUE,FALSE)
-  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, -2).Address(False, True) & "<=(" & strStatusDate & "+14)),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = -16754788
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 10284031
-    .TintAndShade = 0
-  End With
-  rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Start (2/5)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New Start (2/5)"
-  DoEvents
-  
-  '-->condition 3: blank and EV% > 0 > invalid
-  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lngEVPCol).Address(False, True) & ">0),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = -16383844
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 13551615
-    .TintAndShade = 0
-  End With
-  rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Start (3/5)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New Start (3/5)"
-  DoEvents
-
-  '-->condition 4: greater than actual finish > invalid
-  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & strFirstCell & ">" & xlCells(rng(1).Row, lngAFCol).Address(False, True) & "," & xlCells(rng(1).Row, lngAFCol).Address(False, True) & "<>""""),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = -16383844
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 13551615
-    .TintAndShade = 0
-  End With
-  rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Start (4/5)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New Start (4/5)"
-  DoEvents
-
-  'else: <> start > updated
-  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & strFirstCell & "<>" & xlCells(rng(1).Row, lngASCol - 2).Address(False, True) & "),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = -16752384
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 13561798
-    .TintAndShade = 0
-  End With
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Start (5/5)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New Start (5/5)"
-  DoEvents
-
-new_finish: '<issue52>
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
-  If oWorksheet.AutoFilterMode Then oWorksheet.ShowAllData
-  xlCells(lngHeaderRow, 1).AutoFilter
-  'filter for task rows [blue font]
-  rngAll.AutoFilter Field:=lngNameCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
-  '...with blank Actual Start dates [blank AF]
-  rngAll.AutoFilter Field:=lngAFCol, Criteria1:="="
-  'add conditions only to blank cells in the column
-  On Error Resume Next '<issue52>
-  Set rng = oWorksheet.Range(xlCells(lngHeaderRow + 1, lngAFCol), xlCells(lngRow, lngAFCol)).SpecialCells(xlCellTypeVisible)
-  If Err.Number = 1004 Then '<issue52>
-    Err.Clear '<issue52>
-    GoTo ev_percent '<issue52>
-  End If '<issue52>
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
-  strFirstCell = rng(1).Address(False, True)
-
-  '-->condition 1: blank and finish is less than status date > update required
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, 4).Address(False, True) & "<1," & rng(1).Offset(0, -3).Address(False, True) & "<" & strStatusDate & "),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = 7749439
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = -4105
-    .Color = 10079487
-    .TintAndShade = 0
-  End With
-  rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Finish (1/5)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New Finish (1/5)"
-  DoEvents
-
-  '-->condition 2: two-week-window
-  rng.FormatConditions.Add Type:=xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & rng(1).Offset(0, -2).Address(False, True) & "<=(" & strStatusDate & "+14)),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = -16754788
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 10284031
-    .TintAndShade = 0
-  End With
-  rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Finish (2/5)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New Finish (2/5)"
-  DoEvents
-
-  '-->condition 3: less than actual start -> invalid
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & xlCells(rng(1).Row, lngASCol).Address(False, True) & "<>""""," & strFirstCell & "<" & xlCells(rng(1).Row, lngASCol).Address(False, True) & "),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = -16383844
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 13551615
-    .TintAndShade = 0
-  End With
-  rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Finish (3/5)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New Finish (3/5)"
-  DoEvents
-
-  '-->condition 4: blank and EV% = 100 > invalid
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=""""," & xlCells(rng(1).Row, lngEVPCol).Address(False, True) & "=1),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = -16383844
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 13551615
-    .TintAndShade = 0
-  End With
-  rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Finish (4/5)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New Finish (4/5)"
-  DoEvents
-
-  'else: <> finish > updated
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "<>""""," & strFirstCell & "<>" & xlCells(rng(1).Row, lngAFCol - 2).Address(False, True) & "),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = -16752384
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 13561798
-    .TintAndShade = 0
-  End With
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New Finish (5/5)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New Finish (5/5)"
-  DoEvents
-
-ev_percent:
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  If oWorksheet.AutoFilterMode Then oWorksheet.ShowAllData
-  xlCells(lngHeaderRow, 1).AutoFilter
-  'filter for task rows [blue font]
-  rngAll.AutoFilter Field:=lngNameCol, Criteria1:=RGB(32, 55, 100), Operator:=xlFilterFontColor
-  'add conditions only to blank cells in the column
-  On Error Resume Next '<issue52-noCellsFound>
-  Set rng = oWorksheet.Range(xlCells(lngHeaderRow + 1, lngEVPCol), xlCells(lngRow, lngEVPCol)).SpecialCells(xlCellTypeVisible)
-  If Err.Number = 1004 Then '<issue52>
-    Err.Clear '<issue52>
-    GoTo revised_etc '<issue52>
-  End If '<issue52>
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
-  strFirstCell = rng(1).Address(False, True)
-
-  '-->condition 0: =IF(AND($H48>$B$1,$L48>$K48,$L48<1),TRUE,FALSE) 'green
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & rng(1).Offset(0, -4).Address(False, True) & ">" & strStatusDate & "," & strFirstCell & ">" & rng(1).Offset(0, -1).Address(False, True) & "," & strFirstCell & "<1),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = -16752384
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 13561798
-    .TintAndShade = 0
-  End With
-  rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (1/7)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New EV% (1/7)"
-  DoEvents
-
-  '-->condition 1: =IF(AND($H48>0,$H48<=$B$1,$L48=1),TRUE,FALSE) 'green
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & rng(1).Offset(0, -4).Address(False, True) & ">0," & rng(1).Offset(0, -4).Address(False, True) & "<=" & strStatusDate & "," & strFirstCell & "=1),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = -16752384
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 13561798
-    .TintAndShade = 0
-  End With
-  rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (2/7)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New EV% (2/7)"
-  DoEvents
-
-  '-->condition 2: New Finish < Status Date (complete) and EV%<100 > invalid '=IF(AND($G48>0,$H48<=$B$1,$L48<1),TRUE,FALSE)
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & rng(1).Offset(0, -4).Address(False, True) & ">0," & rng(1).Offset(0, -3).Address(False, True) & ">1," & rng(1).Offset(0, -3).Address(False, True) & "<=" & strStatusDate & "," & strFirstCell & "<1),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = -16383844
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 13551615
-    .TintAndShade = 0
-  End With
-  rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (3/7)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New EV% (3/7)"
-  DoEvents
-
-  '-->condition 3: Start < Status Date AND EV% < 100 > update required '  =IF(AND($L48<1,$E48<=$B$1),TRUE,FALSE) 'orange
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & rng(1).Address(False, True) & "<1," & rng(1).Offset(0, -7).Address(False, True) & "<=" & strStatusDate & "),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = 7749439
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = -4105
-    .Color = 10079487
-    .TintAndShade = 0
-  End With
-  rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (4/7)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New EV% (4/7)"
-  DoEvents
-
-  '-->condition 4: EV% > 0 and new start = "" (bogus actuals) > invalid '  =IF(AND($L48>0,$G48=0),TRUE,FALSE) 'red
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & ">0," & xlCells(rng(1).Row, lngASCol).Address(False, True) & "=0),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = -16383844
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 13551615
-    .TintAndShade = 0
-  End With
-  rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (5/7)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New EV% (5/7)"
-  DoEvents
-
-  '-->condition 5: EV% =100 and new finish = "" (update required) > invalid '  =IF(AND($L48=1,$H48=0),TRUE,FALSE) 'red
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=1," & xlCells(rng(1).Row, lngAFCol).Address(False, True) & "=0),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = -16383844
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 13551615
-    .TintAndShade = 0
-  End With
-  rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (6/7)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New EV% (6/7)"
-  DoEvents
-
-  '-->condition 6: =100 and new finish > status date > invalid '  =IF(AND($L48=1,$H48>$B$1),TRUE,FALSE) 'red
-  rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & strFirstCell & "=1," & xlCells(rng(1).Row, lngAFCol).Address(False, True) & ">" & strStatusDate & "),TRUE,FALSE)"
-  With rng.FormatConditions(rng.FormatConditions.Count).Font
-    .Color = -16383844
-    .TintAndShade = 0
-  End With
-  With rng.FormatConditions(rng.FormatConditions.Count).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 13551615
-    .TintAndShade = 0
-  End With
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New EV% (7/7)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New EV% (7/7)"
-  DoEvents
-
-revised_etc:
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
-  If oWorksheet.AutoFilterMode Then oWorksheet.ShowAllData
-  xlCells(lngHeaderRow, 1).AutoFilter
-  'filter for Task
-  rngAll.AutoFilter Field:=lngETCCol, Operator:=xlFilterAutomaticFontColor
-  '...with blank Actual Start dates [blank AF]
-  rngAll.AutoFilter Field:=lngRemainingWorkCol, Operator:=xlFilterNoFill
-  'add conditions only to blank cells in the column
-  On Error Resume Next '<issue52>
-  Set rng = oWorksheet.Range(xlCells(lngHeaderRow + 1, lngETCCol), xlCells(lngRow, lngETCCol)).SpecialCells(xlCellTypeVisible)
-  If Err.Number = 1004 Then '<issue52>
-    Err.Clear '<issue52>
-    GoTo evt_vs_evp '<issue52>
-  End If '<issue52>
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0 '<issue52>
-  rng.Cells.Locked = False
-  strFirstCell = rng(1).Address(False, True)
-
-  lngLastRow = lngRow
-
-  For lngRow = lngHeaderRow + 1 To lngLastRow
-    If xlCells(lngRow, lngETCCol).Font.Color = RGB(32, 55, 100) Then
-      lngTaskRow = lngRow
-    ElseIf xlCells(lngRow, lngETCCol).Font.Italic And xlCells(lngRow, lngETCCol).Font.Color = 0 Then '0 = xlAutomaticFontColor
-      Set rng = xlCells(lngRow, lngETCCol)
-
-      '-->condition 1: =IF(AND($H$48>0,$H$48<=$B$1,$O$49=0),TRUE,FALSE) 'green
-      rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & xlCells(lngTaskRow, lngAFCol).Address(True, True) & ">0," & xlCells(lngTaskRow, lngAFCol).Address(True, True) & "<=" & strStatusDate & "," & xlCells(lngRow, lngETCCol).Address(True, True) & "=0),TRUE,FALSE)"
-      With rng.FormatConditions(rng.FormatConditions.Count).Font
-        .Color = -16752384
-        .TintAndShade = 0
-      End With
-      With rng.FormatConditions(rng.FormatConditions.Count).Interior
-        .PatternColorIndex = xlAutomatic
-        .Color = 13561798
-        .TintAndShade = 0
-      End With
-      rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-
-      'todo: if in-progress and new etc <> prev etc
-
-      '-->condition 2: new actual start and ETC > 0 =IF(AND($H48>0,$H48<=$B$1,$O$49>0),TRUE,FALSE) 'red
-      rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & xlCells(lngTaskRow, lngAFCol).Address(True, True) & ">0," & xlCells(lngTaskRow, lngAFCol).Address(True, True) & "<=" & strStatusDate & "," & xlCells(lngRow, lngETCCol).Address(True, True) & ">0),TRUE,FALSE)"
-      With rng.FormatConditions(rng.FormatConditions.Count).Font
-        .Color = -16383844
-        .TintAndShade = 0
-      End With
-      With rng.FormatConditions(rng.FormatConditions.Count).Interior
-        .PatternColorIndex = xlAutomatic
-        .Color = 13551615
-        .TintAndShade = 0
-      End With
-      rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-
-      '-->condition 3: ev=100 and etc> 0 '=IF(AND($L48=1,$O49>0),TRUE,FALSE) 'red
-      rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & xlCells(lngTaskRow, lngEVPCol).Address(True, True) & "=1," & rng.Address(True, True) & ">0),TRUE,FALSE)"
-      With rng.FormatConditions(rng.FormatConditions.Count).Font
-        .Color = -16383844
-        .TintAndShade = 0
-      End With
-      With rng.FormatConditions(rng.FormatConditions.Count).Interior
-        .PatternColorIndex = xlAutomatic
-        .Color = 13551615
-        .TintAndShade = 0
-      End With
-      rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-
-      '-->condition 4: Start < Status Date AND EV% < 100 > update required =IF(AND($L$48<1,$E$48<=(INDIRECT("STATUS_DATE"))),TRUE,FALSE) 'orange
-      rng.FormatConditions.Add xlExpression, Formula1:="=IF(AND(" & xlCells(lngTaskRow, lngEVPCol).Address(True, True) & "<1," & xlCells(lngTaskRow, lngASCol - 2).Address(True, True) & "<=" & strStatusDate & "),TRUE,FALSE)"
-      With rng.FormatConditions(rng.FormatConditions.Count).Font
-        .Color = 7749439
-        .TintAndShade = 0
-      End With
-      With rng.FormatConditions(rng.FormatConditions.Count).Interior
-        .PatternColorIndex = -4105
-        .Color = 10079487
-        .TintAndShade = 0
-      End With
-      rng.FormatConditions(rng.FormatConditions.Count).StopIfTrue = True
-
-    End If
-    cptStatusSheet_frm.lblStatus.Caption = "Adding ETC conditional formats (" & Format(lngRow / lngLastRow, "0%") & ")"
-    Application.StatusBar = "Adding ETC conditional formats (" & Format(lngRow / lngLastRow, "0%") & ")"
-    DoEvents
-  Next lngRow
-  lngFormatCondition = lngFormatCondition + 1
-  cptStatusSheet_frm.lblStatus.Caption = "Adding conditionanl formats - New ETC (4/4)"
-  cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngConditionalFormats) * cptStatusSheet_frm.lblStatus.Width
-  Application.StatusBar = "Adding conditionanl formats - New ETC (4/4)"
-  DoEvents
-
-evt_vs_evp:
-  If cptStatusSheet_frm.cboCostTool <> "<none>" Then '<issue64>
-    'evt vs evp checks
-    If cptStatusSheet_frm.cboCostTool = "COBRA" Then
-      'EVT = E 50/50
-      'todo: just make EVP a formula in this case
-      'EVT = F 0/100
-      'todo: just make EVP a formula in this case
-    ElseIf cptStatusSheet_frm.cboCostTool.Value = "MPM" Then
-      'EVT =1 0/100
-      'todo: just make EVP a formula in this case
-      'EVT =4 50/50
-      'todo: just make EVP a formula in this case
-    'todo: what about forProject EVMS
-    End If
-  End If '</issue64>
-  If blnPerformanceTest Then Debug.Print "apply conditional formatting " & (GetTickCount - t) / 1000
-
-  Debug.Print lngFormatCondition & " format conditions applied."
-
-conditional_formatting_skipped:
 
 exit_here:
   On Error Resume Next
@@ -1906,6 +1387,7 @@ try_again:
   lngAFCol = oWorksheet.Rows(lngHeaderRow).Find("Actual Finish", lookat:=xlPart).Column
   lngEVPCol = oWorksheet.Rows(lngHeaderRow).Find("New EV%", lookat:=xlWhole).Column
   lngEVTCol = oWorksheet.Rows(lngHeaderRow).Find("EVT", lookat:=xlWhole).Column
+  'todo: add Milestones EVT
   lngETCCol = oWorksheet.Rows(lngHeaderRow).Find("New ETC", lookat:=xlWhole).Column
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
   lngTasks = ActiveSelection.Tasks.Count
@@ -2073,6 +1555,12 @@ try_again:
       Else
         Set oETCRange = oWorksheet.Application.Union(oETCRange, oWorksheet.Cells(lngRow, lngETCCol))
       End If
+      If oEVTRange Is Nothing Then
+        Set oEVTRange = oWorksheet.Cells(lngRow, lngEVTCol) 'todo: this shoule be lngMilestoneCol
+      Else
+        Set oEVTRange = oWorksheet.Application.Union(oEVTRange, oWorksheet.Cells(lngRow, lngEVTCol))
+      End If
+      
     End If
     
     If oEVTRange Is Nothing Then 'todo: probably not needed
@@ -2312,27 +1800,79 @@ next_task:
   
   If blnConditionalFormats Then
     
+'    "input" - update required:
+'    .Font.Color = 7749439
+'    .Font.TintAndShade = 0
+'    .Interior.PatternColorIndex = -4105
+'    .Interior.Color = 10079487
+'    .Interior.TintAndShade = 0
+'    .BorderAround xlContinuous, xlThin, , Color:=RGB(127, 127, 127)
+'
+'    "neutral" - two week window:
+'    .Font.Color = -16754788
+'    .Font.TintAndShade = 0
+'    .Interior.PatternColorIndex = xlAutomatic
+'    .Interior.Color = 10284031
+'    .Interior.TintAndShade = 0
+'    .BorderAround xlContinuous, xlThin, , Color:=RGB(127, 127, 127)
+'
+'    "bad" - invalid:
+'    .Font.Color = -16383844
+'    .Font.TintAndShade = 0
+'    .Interior.PatternColorIndex = xlAutomatic
+'    .Interior.Color = 13551615
+'    .Interior.TintAndShade = 0
+'
+'    "good":
+'    .Font.Color = -16752384
+'    .Font.TintAndShade = 0
+'    .Interior.PatternColorIndex = xlAutomatic
+'    .Interior.Color = 13561798
+'    .Interior.TintAndShade = 0
+'
+'    "calculation": - only with assignments, only on ETC, apply it first
+'    .Font.Color = 32250
+'    .Font.TintAndShade = 0
+'    .Interior.PatternColorIndex = -4105
+'    .Interior.Color =  15921906
+'    .Interior.TintAndShade = 0
+
+'    "complete":
+'    .Font.Color = 0
+'    .Font.TintAndShade = 0
+'    .Interior.PatternColorIndex = -4105
+'    .Interior.Color = 13224393
+'    .Interior.TintAndShade = 0.399975585192419
+    
+    'entry required cells:
+    'green by nature or green as last condition
+    'if empty then "input"
+    'if invalid then "red"
+    'if valid then "green"
+    
     oNSRange.Select
     Set oFirstCell = oWorksheet.Application.ActiveCell
     oFirstCell.Select
     strNS = oFirstCell.Address(False, True)
-    lngNFCol = lngAFCol
+    lngNSCol = lngASCol 'new start
+    lngNFCol = lngAFCol 'new finish
     strNF = oWorksheet.Cells(oFirstCell.Row, lngNFCol).Address(False, True)
     strEVP = oWorksheet.Cells(oFirstCell.Row, lngEVPCol).Address(False, True)
     strETC = oWorksheet.Cells(oFirstCell.Row, lngETCCol).Address(False, True)
+    strEVT = oWorksheet.Cells(oFirstCell.Row, lngEVTCol).Address(False, True)
     'set up derived addresses for ease of formula writing
     'AS = (NS>0,NS<=SD)
     strAS = strNS & ">0," & strNS & "<=STATUS_DATE"
-    'FS = (NS>0,NS>SD)
-    strFS = strNS & ">0," & strNS & ">STATUS_DATE"
     'AF = (NF>0,NF<=SD)
     strAF = strNF & ">0," & strNF & "<=STATUS_DATE"
+    'FS = (NS>0,NS>SD)
+    strFS = strNS & ">0," & strNS & ">STATUS_DATE"
     'FF = (NF>0,NF>SD)
     strFF = strNF & ">0," & strNF & ">STATUS_DATE"
     
     'create map of ranges
     Set oDict = CreateObject("Scripting.Dictionary")
-    Set oDict.Item("NS") = oNSRange 'todo: try non-absolute?
+    Set oDict.Item("NS") = oNSRange
     oNSRange.FormatConditions.Delete
     Set oDict.Item("NF") = oNFRange
     oNFRange.FormatConditions.Delete
@@ -2340,89 +1880,129 @@ next_task:
     oEVPRange.FormatConditions.Delete
     Set oDict.Item("ETC") = oETCRange
     oETCRange.FormatConditions.Delete
+    Set oDict.Item("EVT") = oEVTRange
+    oEVTRange.FormatConditions.Delete
     
     'capture list of formulae
     Set oRecordset = CreateObject("ADODB.Recordset")
     oRecordset.Fields.Append "RANGE", adVarChar, 3
     oRecordset.Fields.Append "FORMULA", adVarChar, 255
+    oRecordset.Fields.Append "FORMAT", adVarChar, 10
     oRecordset.Open
-    'todo: GRAY
+    'todo: AS,AF -> GRAY
+    'todo: formula = "=IF('{breadcrumb}','{format}',{formula}')
+    'todo: add third field for which formatting to apply
+    'todo: output list of format conditions to header comment or text file or something
     
-    'NS>0,>NF>0,NS>NF -> BAD
+    '<cpt-breadcrumbs:format-conditions>
+    'VARIABLES:
+    'SD = Status Date
+    'NS = New Start
+    'NF = New Finish
+    'EVT = Earned Value Technique
+    'EVP = Earned Value Percent
+    'ETC = Estimate to Complete
+    '
+    'DERIVED VARIABLES:
+    'AS = (NS>0,NS<=SD)
+    'AF = (NF>0,NF<=SD)
+    'FS = (NS>0,NS>SD)
+    'FF = (NF>0,NF>SD)
+    '
+    'FORMAT INPUT:
+    'FORMAT TWO WEEK:
+    'FORMAT GOOD (ONLY ON INPUT):
+    'NS>0 -> GOOD - ONLY APPLY TO INPUT CELLS - todo
+    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=" & strNS & ">0", "GOOD") 'must be last in the list, so apply it first
+    'NS>0 -> GOOD - ONLY APPLY TO INPUT CELLS - todo
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=" & strNF & ">0", "GOOD") 'must be last in the list, so apply it first
+    'FORMAT COMPLETE:
+    'NS>0,NS<=SD -> COMPLETE
+    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & ">0," & strNS & "<=STATUS_DATE)", "COMPLETE")
+    'NF>0,NF<=SD -> COMPLETE
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strNF & ">0," & strNF & "<=STATUS_DATE)", "COMPLETE")
+    'DATA VALIDATION CHECKS:
+    'NS>0,NF>0,NS>NF -> BAD
     oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & ")")
-    'NS=0,AF>0
+    'todo:oRecordset.AddNew Array(0, 1), Array("NS", "=IF(""NS>0,NF>0,NS>NF,"",""BAD"",AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & "))","BAD")
+    'NS=0,AF>0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strNS & "=0," & strAF & ")")
     'NF>0,NS>0,NF<NS -> BAD
     oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & ")")
     
-    'FS>0,EVP>0
+    'FS>0,EVP>0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strFS & "," & strEVP & ">0)")
-    'FS=0,EVP>0
+    'FS=0,EVP>0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strNS & "=0," & strEVP & ">0)")
-    'FS>0,ETC=0
+    'FS>0,ETC=0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strFS & "," & strETC & "=0)")
     
-    'AS=0,ETC=0
+    'AS=0,ETC=0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strNS & "=0," & strETC & "=0)")
-    'AS>0,EVT='E',EVP<>50
-    'oRecordset.AddNew Array(0,1),Array("NS", "=AND(" & strAS & "," & strEVT & "='E'," & strEVP & "<>.5)")
-    'todo: AS>0,EVT='F',EVP>0
-    'todo: oRecordset.AddNew Array(0,1),Array("NS", "=AND(" & strAS & "," & strEVT & "='F'," & strEVP & ">0)")
-    'todo: AS>0,EVT='G',EVP<>1
+    'AS=0,EVP>0 -> BAD
+    oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strNS & "=0," & strEVP & ">0)")
     
-    'FF>0,EVP=1
+    'FF>0,EVP=1 -> BAD
     oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strFF & "," & strEVP & "=1)")
-    'FF>0,ETC=0
+    'FF>0,ETC=0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strFF & "," & strETC & "=0)")
     
-    'AF>0,EVP<1
+    'AF>0,EVP<1 -> BAD
     oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strAF & "," & strEVP & "<1)")
-    'AF=0,EVP=1
-    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strNF & "=0," & strEVP & "=1)")
-    'AF>0,ETC>0
+    'AF=0,EVP>0 -> BAD
+    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strNF & "=0," & strEVP & ">0)")
+    'AF>0,ETC>0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strAF & "," & strETC & ">0)")
-    'AF>0,NS=0
+    'AF>0,NS=0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strAF & "," & strNS & "=0)")
-    'AF=0,ETC=0
+    'AF=0,ETC=0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strNF & "=0," & strETC & "=0)")
     
-    'EVP>0,FS>0
+    'EVP>0,FS>0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & ">0," & strFS & ")")
-    'EVP<1,AS>0 -> caution
-    'oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & "<1," & strAS & ")")
-    'todo: EVP<>.5,EVT='E",AS>0
-    'todo: oRecordset.AddNew Array(0,1),Array("EVP", "=AND(" & strEVP & "<>.5," & strEVT & "='E'," & strAS & ">0)")
-    'todo: EVP>0,EVT='F',AS>0
-    'todo: oRecordset.AddNew Array(0,1),Array("EVP", "=AND(" & strEVP & ">0," & strEVT & "='F'," & strAS & ">0)")
-    'todo: EVP<1,EVT='G',AS>0
     
-    'EVP=1,FF>0
+    'EVP=1,FF>0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & "=1," & strFF & ")")
-    'EVP<1,AF>0
+    'EVP<1,AF>0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & "<1," & strAF & ")")
-    'EVP=1,ETC>0
+    'EVP=1,ETC>0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & "=1," & strETC & ">0)")
-    'EVP<10,ETC=0
+    'EVP<10,ETC=0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & "<1," & strETC & "=0)")
-    'EVP>0,AS=0
+    'EVP>0,AS=0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & ">0," & strNS & "=0)")
     
-    'ETC=0,FS>0
+    'ETC=0,FS>0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strFS & ")")
-    'ETC=0,FF>0
+    'ETC=0,FF>0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strFF & ")")
-    'ETC>0,AF>0
+    'ETC>0,AF>0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & ">0," & strAF & ")")
-    'ETC>0,EVP=1
+    'ETC>0,EVP=1 -> BAD
     oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & ">0," & strEVP & "=1)")
-    'ETC=0,EVP<1
+    'ETC=0,EVP<1 -> BAD
     oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strEVP & "<1)")
-    'ETC=0,EVP=0
+    'ETC=0,EVP=0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strEVP & "=0)")
-    'ETC=0,AF=0
+    'ETC=0,AF=0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strNF & "=0)")
-    'ETC=0,AS=0
+    'ETC=0,AS=0 -> BAD
     oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strNS & "=0)")
+    
+    If blnMilestones Then 'assumes COBRA and field values = COBRA codes
+      'todo: AS>0,EVT='E',EVP<>50
+      'todo: oRecordset.AddNew Array(0,1),Array("NS", "=AND(" & strAS & "," & strEVT & "='E'," & strEVP & "<>.5)")
+      'todo: AS>0,EVT='F',EVP>0
+      'todo: oRecordset.AddNew Array(0,1),Array("NS", "=AND(" & strAS & "," & strEVT & "='F'," & strEVP & ">0)")
+      'todo: AS>0,EVT='G',EVP<>1
+      'todo: EVP<>.5,EVT='E",AS>0
+      'todo: oRecordset.AddNew Array(0,1),Array("EVP", "=AND(" & strEVP & "<>.5," & strEVT & "='E'," & strAS & ">0)")
+      'todo: EVP>0,EVT='F',AS>0
+      'todo: oRecordset.AddNew Array(0,1),Array("EVP", "=AND(" & strEVP & ">0," & strEVT & "='F'," & strAS & ">0)")
+      'todo: EVP<1,EVT='G',AS>0
+
+    End If
+    '</cpt-breadcrumbs:format-conditions>
     
     lngFormatCondition = 0
     With oRecordset
@@ -2438,12 +2018,21 @@ next_task:
         oDict.Item(CStr(.Fields(0))).Select
         oDict.Item(CStr(.Fields(0))).FormatConditions.Add Type:=xlExpression, Formula1:=CStr(.Fields(1))
         oDict.Item(CStr(.Fields(0))).FormatConditions(oDict.Item(CStr(.Fields(0))).FormatConditions.Count).SetFirstPriority
-        oDict.Item(CStr(.Fields(0))).FormatConditions(1).Font.Color = -16383844
-        oDict.Item(CStr(.Fields(0))).FormatConditions(1).Font.TintAndShade = 0
-        oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.PatternColorIndex = xlAutomatic
-        oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.Color = 13551615
-        oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.TintAndShade = 0
-        oDict.Item(CStr(.Fields(0))).FormatConditions(1).StopIfTrue = False
+        If .Fields(2) = "COMPLETE" Then
+          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Font.Color = 0
+          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Font.TintAndShade = 0
+          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.PatternColorIndex = -4105
+          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.Color = 13224393
+          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.TintAndShade = 0.399975585192419
+          oDict.Item(CStr(.Fields(0))).FormatConditions(1).StopIfTrue = False
+        Else 'If .Fields(2) = "BAD" Then
+          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Font.Color = -16383844
+          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Font.TintAndShade = 0
+          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.PatternColorIndex = xlAutomatic
+          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.Color = 13551615
+          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.TintAndShade = 0
+          oDict.Item(CStr(.Fields(0))).FormatConditions(1).StopIfTrue = False
+        End If
         .MoveNext
       Loop
       'race is over - notify
