@@ -1010,6 +1010,7 @@ next_worksheet:
               oExcel.Wait Now + TimeValue("00:00:002")
             Else
               oExcel.Visible = True
+              oWorkbook.Activate
             End If
           End If 'blnEmail
         End If '.lboItems.Selected(lngItem)
@@ -1042,11 +1043,12 @@ exit_here:
   If blnEmail Then oExcel.Quit
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
-  If Not oExcel Is Nothing Then
-    oExcel.Visible = True
-    oExcel.Quit
+  'todo: only quit if we had to create
+'  If Not oExcel Is Nothing Then
+'    oExcel.Visible = True
+'    oExcel.Quit
     Set oExcel = Nothing
-  End If
+'  End If
   Set rng = Nothing
   Set rSummaryTasks = Nothing
   Set rLockedCells = Nothing
@@ -1237,6 +1239,7 @@ End Sub
 
 Private Sub cptCopyData(ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Long)
   'objects
+  Dim oFormatRange As Object
   Dim oDict As Scripting.Dictionary
   Dim oRecordset As ADODB.Recordset
   Dim oFirstCell As Excel.Range
@@ -1556,19 +1559,12 @@ try_again:
         Set oETCRange = oWorksheet.Application.Union(oETCRange, oWorksheet.Cells(lngRow, lngETCCol))
       End If
       If oEVTRange Is Nothing Then
-        Set oEVTRange = oWorksheet.Cells(lngRow, lngEVTCol) 'todo: this shoule be lngMilestoneCol
+        Set oEVTRange = oWorksheet.Cells(lngRow, lngEVTCol)
       Else
         Set oEVTRange = oWorksheet.Application.Union(oEVTRange, oWorksheet.Cells(lngRow, lngEVTCol))
       End If
-      
     End If
-    
-    If oEVTRange Is Nothing Then 'todo: probably not needed
-      Set oEVTRange = oWorksheet.Cells(lngRow, lngEVTCol)
-    Else
-      Set oEVTRange = oWorksheet.Application.Union(oEVTRange, oWorksheet.Cells(lngRow, lngEVTCol))
-    End If
-    
+        
 ''    'add EVT comment - this is slow, and often fails
 '    oWorksheet.Application.ScreenUpdating = True
 '    Set oComment = oWorksheet.Cells(lngRow, lngEVTCol).AddComment(oEVTs.Item(oTask.GetField(FieldNameToFieldConstant(cptStatusSheet_frm.cboEVT.Value))))
@@ -1747,12 +1743,12 @@ next_task:
   End If
   'format the input rows
   If Not oInputRange Is Nothing Then
-    oInputRange.Style = "Input"
+    'oInputRange.Style = "Input" todo
     oInputRange.Locked = False
   End If
   If blnLocked And Not oUnlockedRange Is Nothing Then oUnlockedRange.Locked = False
   If Not oTwoWeekWindowRange Is Nothing Then
-    oTwoWeekWindowRange.Style = "Neutral"
+    'oTwoWeekWindowRange.Style = "Neutral" todo
     oTwoWeekWindowRange.Locked = False
   End If
   'add EVT gloassary - test comment
@@ -1800,50 +1796,6 @@ next_task:
   
   If blnConditionalFormats Then
     
-'    "input" - update required:
-'    .Font.Color = 7749439
-'    .Font.TintAndShade = 0
-'    .Interior.PatternColorIndex = -4105
-'    .Interior.Color = 10079487
-'    .Interior.TintAndShade = 0
-'    .BorderAround xlContinuous, xlThin, , Color:=RGB(127, 127, 127)
-'
-'    "neutral" - two week window:
-'    .Font.Color = -16754788
-'    .Font.TintAndShade = 0
-'    .Interior.PatternColorIndex = xlAutomatic
-'    .Interior.Color = 10284031
-'    .Interior.TintAndShade = 0
-'    .BorderAround xlContinuous, xlThin, , Color:=RGB(127, 127, 127)
-'
-'    "bad" - invalid:
-'    .Font.Color = -16383844
-'    .Font.TintAndShade = 0
-'    .Interior.PatternColorIndex = xlAutomatic
-'    .Interior.Color = 13551615
-'    .Interior.TintAndShade = 0
-'
-'    "good":
-'    .Font.Color = -16752384
-'    .Font.TintAndShade = 0
-'    .Interior.PatternColorIndex = xlAutomatic
-'    .Interior.Color = 13561798
-'    .Interior.TintAndShade = 0
-'
-'    "calculation": - only with assignments, only on ETC, apply it first
-'    .Font.Color = 32250
-'    .Font.TintAndShade = 0
-'    .Interior.PatternColorIndex = -4105
-'    .Interior.Color =  15921906
-'    .Interior.TintAndShade = 0
-
-'    "complete":
-'    .Font.Color = 0
-'    .Font.TintAndShade = 0
-'    .Interior.PatternColorIndex = -4105
-'    .Interior.Color = 13224393
-'    .Interior.TintAndShade = 0.399975585192419
-    
     'entry required cells:
     'green by nature or green as last condition
     'if empty then "input"
@@ -1856,9 +1808,17 @@ next_task:
     strNS = oFirstCell.Address(False, True)
     lngNSCol = lngASCol 'new start
     lngNFCol = lngAFCol 'new finish
+    lngCSCol = oWorksheet.Cells(lngHeaderRow).Find(what:="Forecast Start", lookat:=xlWhole).Column
+    lngCFCol = oWorksheet.Cells(lngHeaderRow).Find(what:="Forecast Finish", lookat:=xlWhole).Column
+    lngCEVPCol = oWorksheet.Cells(lngHeaderRow).Find(what:="EV%", lookat:=xlWhole).Column
+    lngCETCCol = oWorksheet.Cells(lngHeaderRow).Find(what:="ETC", lookat:=xlWhole).Column
+    strCS = oWorksheet.Cells(oFirstCell.Row, lngCSCol).Address(False, True)
+    strCF = oWorksheet.Cells(oFirstCell.Row, lngCFCol).Address(False, True)
     strNF = oWorksheet.Cells(oFirstCell.Row, lngNFCol).Address(False, True)
     strEVP = oWorksheet.Cells(oFirstCell.Row, lngEVPCol).Address(False, True)
+    strCEVP = oWorksheet.Cells(oFirstCell.Row, lngCEVPCol).Address(False, True)
     strETC = oWorksheet.Cells(oFirstCell.Row, lngETCCol).Address(False, True)
+    strCETC = oWorksheet.Cells(oFirstCell.Row, lngCETCCol).Address(False, True)
     strEVT = oWorksheet.Cells(oFirstCell.Row, lngEVTCol).Address(False, True)
     'set up derived addresses for ease of formula writing
     'AS = (NS>0,NS<=SD)
@@ -1888,15 +1848,16 @@ next_task:
     oRecordset.Fields.Append "RANGE", adVarChar, 3
     oRecordset.Fields.Append "FORMULA", adVarChar, 255
     oRecordset.Fields.Append "FORMAT", adVarChar, 10
+    oRecordset.Fields.Append "STOP", adInteger
     oRecordset.Open
-    'todo: AS,AF -> GRAY
     'todo: formula = "=IF('{breadcrumb}','{format}',{formula}')
-    'todo: add third field for which formatting to apply
     'todo: output list of format conditions to header comment or text file or something
     
     '<cpt-breadcrumbs:format-conditions>
     'VARIABLES:
     'SD = Status Date
+    'CS = Current Start
+    'CF = Current Finish
     'NS = New Start
     'NF = New Finish
     'EVT = Earned Value Technique
@@ -1909,86 +1870,109 @@ next_task:
     'FS = (NS>0,NS>SD)
     'FF = (NF>0,NF>SD)
     '
-    'FORMAT INPUT:
-    'FORMAT TWO WEEK:
-    'FORMAT GOOD (ONLY ON INPUT):
-    'NS>0 -> GOOD - ONLY APPLY TO INPUT CELLS - todo
-    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=" & strNS & ">0", "GOOD") 'must be last in the list, so apply it first
-    'NS>0 -> GOOD - ONLY APPLY TO INPUT CELLS - todo
-    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=" & strNF & ">0", "GOOD") 'must be last in the list, so apply it first
-    'FORMAT COMPLETE:
-    'NS>0,NS<=SD -> COMPLETE
-    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & ">0," & strNS & "<=STATUS_DATE)", "COMPLETE")
-    'NF>0,NF<=SD -> COMPLETE
-    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strNF & ">0," & strNF & "<=STATUS_DATE)", "COMPLETE")
-    'DATA VALIDATION CHECKS:
+    'todo: change COMPLETE to gray italics
+    'todo: reorder this section to control exact order of application and use STOP
+    'NS:AND(NS>0,NS<=SD) -> COMPLETE
+    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strAS & ")", "COMPLETE")
+    'NS:AND(NS>0,NS>SD) -> GOOD
+    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & ">0," & strNS & ">STATUS_DATE)", "GOOD")
+    'NS:AND(CS<=(SD+14),NS=0) -> NEUTRAL
+    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strCS & "<=(STATUS_DATE+14)," & strNS & "=0)", "NEUTRAL")
+    'NS:AND(CS<=SD,NS=0) -> INPUT
+    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strCS & "<=STATUS_DATE," & strNS & "=0)", "INPUT") 'should have started
     'NS>0,NF>0,NS>NF -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & ")")
-    'todo:oRecordset.AddNew Array(0, 1), Array("NS", "=IF(""NS>0,NF>0,NS>NF,"",""BAD"",AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & "))","BAD")
+    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & ")", "BAD")
+    'todo:oRecordset.AddNew Array(0, 1, 2), Array("NS", "=IF(""NS>0,NF>0,NS>NF,"",""BAD"",AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & "))","BAD")
     'NS=0,AF>0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strNS & "=0," & strAF & ")")
-    'NF>0,NS>0,NF<NS -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & ")")
-    
+    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & "=0," & strAF & ")", "BAD")
     'FS>0,EVP>0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strFS & "," & strEVP & ">0)")
-    'FS=0,EVP>0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strNS & "=0," & strEVP & ">0)")
+    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strFS & "," & strEVP & ">0)", "BAD")
+    'NS=0,EVP>0 -> BAD
+    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & "=0," & strEVP & ">0)", "BAD")
     'FS>0,ETC=0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strFS & "," & strETC & "=0)")
-    
+    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strFS & "," & strETC & "=0)", "BAD")
     'AS=0,ETC=0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strNS & "=0," & strETC & "=0)")
-    'AS=0,EVP>0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NS", "=AND(" & strNS & "=0," & strEVP & ">0)")
+    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & "=0," & strETC & "=0)", "BAD")
     
-    'FF>0,EVP=1 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strFF & "," & strEVP & "=1)")
-    'FF>0,ETC=0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strFF & "," & strETC & "=0)")
-    
-    'AF>0,EVP<1 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strAF & "," & strEVP & "<1)")
-    'AF=0,EVP>0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strNF & "=0," & strEVP & ">0)")
-    'AF>0,ETC>0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strAF & "," & strETC & ">0)")
+    'NF:AND(NF>0,NF<=SD) -> COMPLETE
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strAF & ")", "COMPLETE")
+    'NF:AND(NF>0,NF>SD) -> GOOD
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strNF & ">0," & strNF & ">STATUS_DATE)", "GOOD")
+    'NF:AND(CF<=(SD+14),NF=0) -> NEUTRAL
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strCF & "<=(STATUS_DATE+14)," & strNF & "=0)", "NEUTRAL")
+    'NF:AND(CF<=SD,NF=0) -> INPUT
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strCF & "<=STATUS_DATE," & strNF & "=0)", "INPUT") 'should have finished
+    'NF:AND(AS,NF=0) -> INPUT
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
+    'NF>0,NS>0,NF<NS -> BAD
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strNF & ">0," & strNS & ">0," & strNS & ">" & strNF & ")", "BAD")
     'AF>0,NS=0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strAF & "," & strNS & "=0)")
-    'AF=0,ETC=0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("NF", "=AND(" & strNF & "=0," & strETC & "=0)")
-    
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strAF & "," & strNS & "=0)", "BAD")
+    'FF>0,EVP=1 -> BAD
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strFF & "," & strEVP & "=1)", "BAD")
+    'AF>0,EVP<1 -> BAD
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strAF & "," & strEVP & "<1)", "BAD")
+    'NF=0,EVP>0 -> BAD ???
+    'oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strNF & "=0," & strEVP & ">0)", "BAD")
+    'FF>0,ETC=0 -> BAD
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strFF & "," & strETC & "=0)", "BAD")
+    'AF>0,ETC>0 -> BAD
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strAF & "," & strETC & ">0)", "BAD")
+    'NF=0,ETC=0 -> BAD
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strNF & "=0," & strETC & "=0)", "BAD")
+GoTo skip_working:
+        
+    'EVP:AND(FF,NEW EVP>EVP) -> GOOD
+    'todo: keeping FF forces FF before all good
+    'todo: remove FF; add last and add stop if true to isolate this good update
+    oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strFF & "," & strEVP & ">" & strCEVP & ")", "GOOD")
+    'EVP:AND(FF,EVP=PREVIOUS) -> NEUTRAL
+    oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strFF & "," & strEVP & "=" & strCEVP & ")", "NEUTRAL")
+    'EVP:AND(AS,NF=0) -> INPUT
+    oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
     'EVP>0,FS>0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & ">0," & strFS & ")")
-    
+    oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & ">0," & strFS & ")", "BAD")
     'EVP=1,FF>0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & "=1," & strFF & ")")
+    oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "=1," & strFF & ")", "BAD")
     'EVP<1,AF>0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & "<1," & strAF & ")")
+    oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "<1," & strAF & ")", "BAD")
     'EVP=1,ETC>0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & "=1," & strETC & ">0)")
+    oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "=1," & strETC & ">0)", "BAD")
     'EVP<10,ETC=0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & "<1," & strETC & "=0)")
+    oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "<1," & strETC & "=0)", "BAD")
     'EVP>0,AS=0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("EVP", "=AND(" & strEVP & ">0," & strNS & "=0)")
+    oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & ">0," & strNS & "=0)", "BAD")
+    'EVP:AND(EVP<PREVIOUS) -> BAD
+    oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "<" & strCEVP & ")", "BAD")
     
+    'ETC:AND(FF,NEW ETC<>ETC) -> GOOD
+    'todo: keeping FF forces FF before all good
+    'todo: remove FF; add last and add stop if true to isolate this good update
+    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strFF & "," & strETC & "<>" & strCETC & ")", "GOOD")
+    'ETC:AND(FF,ETC=PREVIOUS) -> NETURAL
+    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strFF & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
+    'ETC:AND(FS,NEW ETC=ETC) -> NEUTRAL
+    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strFS & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
+    'ETC:AND(AS,NF=0) -> INPUT
+    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
     'ETC=0,FS>0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strFS & ")")
+    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strFS & ")", "BAD")
     'ETC=0,FF>0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strFF & ")")
+    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strFF & ")", "BAD")
     'ETC>0,AF>0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & ">0," & strAF & ")")
+    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & ">0," & strAF & ")", "BAD")
     'ETC>0,EVP=1 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & ">0," & strEVP & "=1)")
+    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & ">0," & strEVP & "=1)", "BAD")
     'ETC=0,EVP<1 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strEVP & "<1)")
+    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strEVP & "<1)", "BAD")
     'ETC=0,EVP=0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strEVP & "=0)")
+    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strEVP & "=0)", "BAD")
     'ETC=0,AF=0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strNF & "=0)")
+    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strNF & "=0)", "BAD")
     'ETC=0,AS=0 -> BAD
-    oRecordset.AddNew Array(0, 1), Array("ETC", "=AND(" & strETC & "=0," & strNS & "=0)")
+    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strNS & "=0)", "BAD")
     
+    Dim blnMilestones As Boolean
     If blnMilestones Then 'assumes COBRA and field values = COBRA codes
       'todo: AS>0,EVT='E',EVP<>50
       'todo: oRecordset.AddNew Array(0,1),Array("NS", "=AND(" & strAS & "," & strEVT & "='E'," & strEVP & "<>.5)")
@@ -2003,7 +1987,7 @@ next_task:
 
     End If
     '</cpt-breadcrumbs:format-conditions>
-    
+skip_working:
     lngFormatCondition = 0
     With oRecordset
       'for the progress bar
@@ -2015,24 +1999,50 @@ next_task:
         cptStatusSheet_frm.lblStatus.Caption = "Applying Conditional Formatting [" & strItem & "]...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
         cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngFormatConditions) * cptStatusSheet_frm.lblStatus.Width
         Application.StatusBar = "Applying Conditional Formatting [" & strItem & "]...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
-        oDict.Item(CStr(.Fields(0))).Select
-        oDict.Item(CStr(.Fields(0))).FormatConditions.Add Type:=xlExpression, Formula1:=CStr(.Fields(1))
-        oDict.Item(CStr(.Fields(0))).FormatConditions(oDict.Item(CStr(.Fields(0))).FormatConditions.Count).SetFirstPriority
-        If .Fields(2) = "COMPLETE" Then
-          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Font.Color = 0
-          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Font.TintAndShade = 0
-          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.PatternColorIndex = -4105
-          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.Color = 13224393
-          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.TintAndShade = 0.399975585192419
-          oDict.Item(CStr(.Fields(0))).FormatConditions(1).StopIfTrue = False
-        Else 'If .Fields(2) = "BAD" Then
-          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Font.Color = -16383844
-          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Font.TintAndShade = 0
-          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.PatternColorIndex = xlAutomatic
-          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.Color = 13551615
-          oDict.Item(CStr(.Fields(0))).FormatConditions(1).Interior.TintAndShade = 0
-          oDict.Item(CStr(.Fields(0))).FormatConditions(1).StopIfTrue = False
+        Set oFormatRange = oDict.Item(CStr(.Fields(0)))
+        oFormatRange.Select
+        oFormatRange.FormatConditions.Add Type:=xlExpression, Formula1:=CStr(.Fields(1))
+        oFormatRange.FormatConditions(oFormatRange.FormatConditions.Count).SetFirstPriority
+        If .Fields(2) = "BAD" Then
+          oFormatRange.FormatConditions(1).Font.Color = -16383844
+          oFormatRange.FormatConditions(1).Font.TintAndShade = 0
+          oFormatRange.FormatConditions(1).Interior.PatternColorIndex = xlAutomatic
+          oFormatRange.FormatConditions(1).Interior.Color = 13551615
+          oFormatRange.FormatConditions(1).Interior.TintAndShade = 0
+        ElseIf .Fields(2) = "CALCULATION" Then
+          oFormatRange.FormatConditions(1).Font.Color = 32250
+          oFormatRange.FormatConditions(1).Font.TintAndShade = 0
+          oFormatRange.FormatConditions(1).Interior.PatternColorIndex = -4105
+          oFormatRange.FormatConditions(1).Interior.Color = 15921906
+          oFormatRange.FormatConditions(1).Interior.TintAndShade = 0
+        ElseIf .Fields(2) = "COMPLETE" Then
+          oFormatRange.FormatConditions(1).Font.Color = 8355711
+          oFormatRange.FormatConditions(1).Font.TintAndShade = 0
+          oFormatRange.FormatConditions(1).Interior.PatternColorIndex = -4105
+          oFormatRange.FormatConditions(1).Interior.Color = 15921906
+          oFormatRange.FormatConditions(1).Interior.TintAndShade = 0
+        ElseIf .Fields(2) = "GOOD" Then
+          oFormatRange.FormatConditions(1).Font.Color = -16752384
+          oFormatRange.FormatConditions(1).Font.TintAndShade = 0
+          oFormatRange.FormatConditions(1).Interior.PatternColorIndex = xlAutomatic
+          oFormatRange.FormatConditions(1).Interior.Color = 13561798
+          oFormatRange.FormatConditions(1).Interior.TintAndShade = 0
+        ElseIf .Fields(2) = "INPUT" Then 'todo
+          oFormatRange.FormatConditions(1).Font.Color = 7749439
+          oFormatRange.FormatConditions(1).Font.TintAndShade = 0
+          oFormatRange.FormatConditions(1).Interior.PatternColorIndex = -4105
+          oFormatRange.FormatConditions(1).Interior.Color = 10079487
+          oFormatRange.FormatConditions(1).Interior.TintAndShade = 0
+          'oFormatRange.FormatConditions(1).BorderAround xlContinuous, xlThin, , Color:=RGB(127, 127, 127)
+        ElseIf .Fields(2) = "NEUTRAL" Then 'todo
+          oFormatRange.FormatConditions(1).Font.Color = -16754788
+          oFormatRange.FormatConditions(1).Font.TintAndShade = 0
+          oFormatRange.FormatConditions(1).Interior.PatternColorIndex = xlAutomatic
+          oFormatRange.FormatConditions(1).Interior.Color = 10284031
+          oFormatRange.FormatConditions(1).Interior.TintAndShade = 0
+          'oFormatRange.FormatConditions(1).BorderAround xlContinuous, xlThin, , Color:=RGB(127, 127, 127)
         End If
+        oFormatRange.FormatConditions(1).StopIfTrue = False 'CBool(oRecordset(3))
         .MoveNext
       Loop
       'race is over - notify
@@ -2047,6 +2057,7 @@ next_task:
   
 exit_here:
   On Error Resume Next
+  Set oFormatRange = Nothing
   Set oDict = Nothing
   If oRecordset.State Then oRecordset.Close
   Set oRecordset = Nothing
@@ -2328,29 +2339,6 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptStatusSheet_bas", "cptListQuickParts", Err)
-  Resume exit_here
-End Sub
-
-Sub cptAddConditionalFormatting(ByRef oWorksheet As Excel.Worksheet)
-  'objects
-  'strings
-  'longs
-  'integers
-  'doubles
-  'booleans
-  'variants
-  'dates
-  
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
-  
-
-exit_here:
-  On Error Resume Next
-
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptStatusSheet_bas", "cptAddConditionalFormatting", Err, Erl)
   Resume exit_here
 End Sub
 
