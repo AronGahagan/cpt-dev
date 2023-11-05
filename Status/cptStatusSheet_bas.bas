@@ -1880,18 +1880,18 @@ next_task:
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strCS & "<=(STATUS_DATE+14)," & strNS & "=0)", "NEUTRAL")
     'NS:AND(CS<=SD,NS=0) -> INPUT
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strCS & "<=STATUS_DATE," & strNS & "=0)", "INPUT") 'should have started
-    'NS>0,NF>0,NS>NF -> BAD
+    'NS:NS>0,NF>0,NS>NF -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & ")", "BAD")
     'todo:oRecordset.AddNew Array(0, 1, 2), Array("NS", "=IF(""NS>0,NF>0,NS>NF,"",""BAD"",AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & "))","BAD")
-    'NS=0,AF>0 -> BAD
+    'NS:NS=0,AF>0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & "=0," & strAF & ")", "BAD")
-    'FS>0,EVP>0 -> BAD
+    'NS:FS>0,EVP>0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strFS & "," & strEVP & ">0)", "BAD")
-    'NS=0,EVP>0 -> BAD
+    'NS:NS=0,EVP>0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & "=0," & strEVP & ">0)", "BAD")
-    'FS>0,ETC=0 -> BAD
+    'NS:FS>0,ETC=0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strFS & "," & strETC & "=0)", "BAD")
-    'AS=0,ETC=0 -> BAD
+    'NS:AS=0,ETC=0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & "=0," & strETC & "=0)", "BAD")
     
     'NF:AND(NF>0,NF<=SD) -> COMPLETE
@@ -1904,43 +1904,46 @@ next_task:
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strCF & "<=STATUS_DATE," & strNF & "=0)", "INPUT") 'should have finished
     'NF:AND(AS,NF=0) -> INPUT
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
-    'NF>0,NS>0,NF<NS -> BAD
+    'NF:NF>0,NS>0,NF<NS -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strNF & ">0," & strNS & ">0," & strNS & ">" & strNF & ")", "BAD")
-    'AF>0,NS=0 -> BAD
+    'NF:AF>0,NS=0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strAF & "," & strNS & "=0)", "BAD")
-    'FF>0,EVP=1 -> BAD
+    'NF:FF>0,EVP=1 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strFF & "," & strEVP & "=1)", "BAD")
-    'AF>0,EVP<1 -> BAD
+    'NF:AF,EVP<1 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strAF & "," & strEVP & "<1)", "BAD")
-    'NF=0,EVP>0 -> BAD ???
-    'oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strNF & "=0," & strEVP & ">0)", "BAD")
-    'FF>0,ETC=0 -> BAD
+    'NF:NF=0,EVP=1 -> BAD
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strNF & "=0," & strEVP & "=1)", "BAD")
+    'NF:FF>0,ETC=0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strFF & "," & strETC & "=0)", "BAD")
-    'AF>0,ETC>0 -> BAD
+    'NF:AF>0,ETC>0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strAF & "," & strETC & ">0)", "BAD")
-    'NF=0,ETC=0 -> BAD
+    'NF:NF=0,ETC=0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strNF & "=0," & strETC & "=0)", "BAD")
-GoTo skip_working:
-        
+    
     'EVP:AND(FF,NEW EVP>EVP) -> GOOD
     'todo: keeping FF forces FF before all good
     'todo: remove FF; add last and add stop if true to isolate this good update
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strFF & "," & strEVP & ">" & strCEVP & ")", "GOOD")
+    'EVP:AND(AF,EVP=1) -> GOOD
+    oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strAF & "," & strEVP & "=1)", "GOOD")
     'EVP:AND(FF,EVP=PREVIOUS) -> NEUTRAL
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strFF & "," & strEVP & "=" & strCEVP & ")", "NEUTRAL")
     'EVP:AND(AS,NF=0) -> INPUT
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
-    'EVP>0,FS>0 -> BAD
+    'EVP:EVP>0,FS>0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & ">0," & strFS & ")", "BAD")
-    'EVP=1,FF>0 -> BAD
+    'EVP:EVP=1,FF>0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "=1," & strFF & ")", "BAD")
-    'EVP<1,AF>0 -> BAD
+    'EVP:EVP=1,NF=0 -> BAD
+    oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "=1," & strNF & "=0)", "BAD")
+    'EVP:EVP<1,AF>0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "<1," & strAF & ")", "BAD")
-    'EVP=1,ETC>0 -> BAD
+    'EVP:EVP=1,ETC>0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "=1," & strETC & ">0)", "BAD")
-    'EVP<10,ETC=0 -> BAD
+    'EVP:EVP<1,ETC=0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "<1," & strETC & "=0)", "BAD")
-    'EVP>0,AS=0 -> BAD
+    'EVP:EVP>0,AS=0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & ">0," & strNS & "=0)", "BAD")
     'EVP:AND(EVP<PREVIOUS) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "<" & strCEVP & ")", "BAD")
@@ -1949,27 +1952,29 @@ GoTo skip_working:
     'todo: keeping FF forces FF before all good
     'todo: remove FF; add last and add stop if true to isolate this good update
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strFF & "," & strETC & "<>" & strCETC & ")", "GOOD")
+    'ETC:AND(AF,ETC=0) -> GOOD
+    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "AND(" & strAF & "," & strETC & "=0)", "GOOD")
     'ETC:AND(FF,ETC=PREVIOUS) -> NETURAL
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strFF & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
     'ETC:AND(FS,NEW ETC=ETC) -> NEUTRAL
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strFS & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
     'ETC:AND(AS,NF=0) -> INPUT
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
-    'ETC=0,FS>0 -> BAD
+    'ETC:ETC=0,FS>0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strFS & ")", "BAD")
-    'ETC=0,FF>0 -> BAD
+    'ETC:ETC=0,FF>0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strFF & ")", "BAD")
-    'ETC>0,AF>0 -> BAD
+    'ETC:ETC>0,AF>0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & ">0," & strAF & ")", "BAD")
-    'ETC>0,EVP=1 -> BAD
+    'ETC:ETC>0,EVP=1 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & ">0," & strEVP & "=1)", "BAD")
-    'ETC=0,EVP<1 -> BAD
+    'ETC:ETC=0,EVP<1 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strEVP & "<1)", "BAD")
-    'ETC=0,EVP=0 -> BAD
+    'ETC:ETC=0,EVP=0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strEVP & "=0)", "BAD")
-    'ETC=0,AF=0 -> BAD
+    'ETC:ETC=0,AF=0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strNF & "=0)", "BAD")
-    'ETC=0,AS=0 -> BAD
+    'ETC:ETC=0,AS=0 -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strNS & "=0)", "BAD")
     
     Dim blnMilestones As Boolean
