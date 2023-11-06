@@ -1239,6 +1239,7 @@ End Sub
 
 Private Sub cptCopyData(ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Long)
   'objects
+  Dim oAssignment As MSProject.Assignment
   Dim oFormatRange As Object
   Dim oDict As Scripting.Dictionary
   Dim oRecordset As ADODB.Recordset
@@ -1272,6 +1273,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Lon
   Dim strEVT As String
   Dim strEVTList As String
   'longs
+  Dim lngLastRow As Long
   Dim lngFormatCondition As Long
   Dim lngFormatConditions As Long
   Dim lngEVT As Long
@@ -1364,7 +1366,7 @@ try_again:
   If Len(strNotesColTitle) > 0 Then
     oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Offset(0, 1).Value = strNotesColTitle
   Else
-    oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Offset(0, 1).Value = "Reason / Action / Impact"
+    oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Offset(0, 1).Value = "Reason / Action / Impact" 'default
   End If
   With oWorksheet.Cells(lngHeaderRow, 1).Resize(, ActiveProject.TaskTables(ActiveProject.CurrentTable).TableFields.Count)
     .Interior.ThemeColor = xlThemeColorLight2
@@ -1436,7 +1438,7 @@ try_again:
 '      End If
 '      GoTo next_task 'don't skip - need to unlock foreceast dates for milestones, too
     End If
-    'format completed
+    'format completed todo: still needed?
     If IsDate(oTask.ActualFinish) Then
       If oCompleted Is Nothing Then
         Set oCompleted = oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol))
@@ -1553,15 +1555,16 @@ try_again:
       Else
         Set oEVPRange = oWorksheet.Application.Union(oEVPRange, oWorksheet.Cells(lngRow, lngEVPCol))
       End If
-      If oETCRange Is Nothing Then
-        Set oETCRange = oWorksheet.Cells(lngRow, lngETCCol)
-      Else
-        Set oETCRange = oWorksheet.Application.Union(oETCRange, oWorksheet.Cells(lngRow, lngETCCol))
-      End If
       If oEVTRange Is Nothing Then
         Set oEVTRange = oWorksheet.Cells(lngRow, lngEVTCol)
       Else
         Set oEVTRange = oWorksheet.Application.Union(oEVTRange, oWorksheet.Cells(lngRow, lngEVTCol))
+      End If
+      'todo: assignments vs task
+      If oETCRange Is Nothing Then
+        Set oETCRange = oWorksheet.Cells(lngRow, lngETCCol)
+      Else
+        Set oETCRange = oWorksheet.Application.Union(oETCRange, oWorksheet.Cells(lngRow, lngETCCol))
       End If
     End If
         
@@ -1595,7 +1598,6 @@ get_assignments:
       If oTask.Assignments.Count > 0 And Not IsDate(oTask.ActualFinish) Then
         cptGetAssignmentData oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
       ElseIf IsDate(oTask.ActualFinish) Then
-        Dim oAssignment As Assignment
         For Each oAssignment In oTask.Assignments
           Set oAssignment = Nothing
           On Error Resume Next
@@ -1610,7 +1612,7 @@ get_assignments:
     Else
       oWorksheet.Cells(lngRow, lngETCCol) = oTask.RemainingWork / 60
       oWorksheet.Cells(lngRow, lngETCCol - 1) = oTask.RemainingWork / 60
-      'todo: oWorksheet.Cells(lngRow, lngBLWCol) = oTask.BaselineWork / 60
+      oWorksheet.Cells(lngRow, lngBLWCol) = oTask.BaselineWork / 60
       'add ETC to inputrange
       If oInputRange Is Nothing Then
         Set oInputRange = oWorksheet.Cells(lngRow, lngETCCol)
@@ -1635,7 +1637,6 @@ next_task:
   
   'clear out group summary stuff
   If ActiveProject.CurrentGroup <> "No Group" Then
-    Dim lngLastRow As Long
     lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row
     For lngRow = lngHeaderRow + 1 To lngLastRow
       If Not blnAssignments Then
@@ -1741,7 +1742,7 @@ next_task:
       .PatternTintAndShade = 0
     End With
   End If
-  'format the input rows
+  'unlock the input cells
   If Not oInputRange Is Nothing Then
     'oInputRange.Style = "Input" todo
     oInputRange.Locked = False
@@ -1838,14 +1839,18 @@ next_task:
     oNFRange.FormatConditions.Delete
     Set oDict.Item("EVP") = oEVPRange
     oEVPRange.FormatConditions.Delete
-    Set oDict.Item("ETC") = oETCRange
-    oETCRange.FormatConditions.Delete
     Set oDict.Item("EVT") = oEVTRange
     oEVTRange.FormatConditions.Delete
+    Set oDict.Item("ETC") = oETCRange
+    oETCRange.FormatConditions.Delete
+    Dim oAssignmentETCRange As Excel.Range
+    Set oAssignmentETCRange = oWorksheet.Application.Intersect(oAssignmentRange, oWorksheet.Columns(lngETCCol))
+    Set oDict.Item("AssignmentETC") = oAssignmentETCRange
+    oAssignmentETCRange.FormatConditions.Delete
     
     'capture list of formulae
     Set oRecordset = CreateObject("ADODB.Recordset")
-    oRecordset.Fields.Append "RANGE", adVarChar, 3
+    oRecordset.Fields.Append "RANGE", adVarChar, 13
     oRecordset.Fields.Append "FORMULA", adVarChar, 255
     oRecordset.Fields.Append "FORMAT", adVarChar, 10
     oRecordset.Fields.Append "STOP", adInteger
@@ -1953,28 +1958,48 @@ next_task:
     'todo: remove FF; add last and add stop if true to isolate this good update
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strFF & "," & strETC & "<>" & strCETC & ")", "GOOD")
     'ETC:AND(AF,ETC=0) -> GOOD
-    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "AND(" & strAF & "," & strETC & "=0)", "GOOD")
+    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strAF & "," & strETC & "=0," & strEVP & "=1)", "GOOD")
     'ETC:AND(FF,ETC=PREVIOUS) -> NETURAL
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strFF & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
-    'ETC:AND(FS,NEW ETC=ETC) -> NEUTRAL
+    'ETC:AND(FS,ETC=PREVIOUS) -> NEUTRAL
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strFS & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
-    'ETC:AND(AS,NF=0) -> INPUT
-    oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
-    'ETC:ETC=0,FS>0 -> BAD
+    'todo: what is oAssignmentRange
+    If Not blnAssignments Then
+      'ETC:AND(AS,NF=0) -> INPUT
+      oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
+    
+    Else
+      'ETC:AND(FF,ETC=PREVIOUS) -> NETURAL (ASSIGNMNET)
+      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFF & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
+      'ETC:AND(FS,ETC=PREVIOUS) -> NEUTRAL (ASSIGNMNET)
+      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFS & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
+      'ETC:AND(FF,ETC=0) -> NETURAL (ASSIGNMNET)
+      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFF & "," & strETC & "=0)", "NEUTRAL")
+      'ETC:AND(FS,ETC=0) -> NEUTRAL (ASSIGNMNET)
+      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFS & "," & strETC & "=0)", "NEUTRAL")
+      'ETC:AND(AS,NF=0) -> INPUT (ASSIGNMNET)
+      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
+      'ETC:AND(ETC>0,AF>0) -> BAD (ASSIGNMNET)
+      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strETC & ">0," & strAF & ")", "BAD")
+      'ETC:AND(ETC>0,EVP=1) -> BAD (ASSIGNMNET)
+      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strETC & ">0," & strEVP & "=1)", "BAD")
+    End If
+    
+    'ETC:AND(ETC=0,FS>0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strFS & ")", "BAD")
-    'ETC:ETC=0,FF>0 -> BAD
+    'ETC:AND(ETC=0,FF>0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strFF & ")", "BAD")
-    'ETC:ETC>0,AF>0 -> BAD
+    'ETC:AND(ETC>0,AF>0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & ">0," & strAF & ")", "BAD")
-    'ETC:ETC>0,EVP=1 -> BAD
+    'ETC:AND(ETC>0,EVP=1) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & ">0," & strEVP & "=1)", "BAD")
-    'ETC:ETC=0,EVP<1 -> BAD
+    'ETC:AND(ETC=0,EVP<1) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strEVP & "<1)", "BAD")
-    'ETC:ETC=0,EVP=0 -> BAD
+    'ETC:AND(ETC=0,EVP=0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strEVP & "=0)", "BAD")
-    'ETC:ETC=0,AF=0 -> BAD
+    'ETC:AND(ETC=0,AF=0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strNF & "=0)", "BAD")
-    'ETC:ETC=0,AS=0 -> BAD
+    'ETC:AND(ETC=0,AS=0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strNS & "=0)", "BAD")
     
     Dim blnMilestones As Boolean
@@ -2032,14 +2057,14 @@ skip_working:
           oFormatRange.FormatConditions(1).Interior.PatternColorIndex = xlAutomatic
           oFormatRange.FormatConditions(1).Interior.Color = 13561798
           oFormatRange.FormatConditions(1).Interior.TintAndShade = 0
-        ElseIf .Fields(2) = "INPUT" Then 'todo
+        ElseIf .Fields(2) = "INPUT" Then
           oFormatRange.FormatConditions(1).Font.Color = 7749439
           oFormatRange.FormatConditions(1).Font.TintAndShade = 0
           oFormatRange.FormatConditions(1).Interior.PatternColorIndex = -4105
           oFormatRange.FormatConditions(1).Interior.Color = 10079487
           oFormatRange.FormatConditions(1).Interior.TintAndShade = 0
           'oFormatRange.FormatConditions(1).BorderAround xlContinuous, xlThin, , Color:=RGB(127, 127, 127)
-        ElseIf .Fields(2) = "NEUTRAL" Then 'todo
+        ElseIf .Fields(2) = "NEUTRAL" Then
           oFormatRange.FormatConditions(1).Font.Color = -16754788
           oFormatRange.FormatConditions(1).Font.TintAndShade = 0
           oFormatRange.FormatConditions(1).Interior.PatternColorIndex = xlAutomatic
@@ -2047,7 +2072,7 @@ skip_working:
           oFormatRange.FormatConditions(1).Interior.TintAndShade = 0
           'oFormatRange.FormatConditions(1).BorderAround xlContinuous, xlThin, , Color:=RGB(127, 127, 127)
         End If
-        oFormatRange.FormatConditions(1).StopIfTrue = False 'CBool(oRecordset(3))
+        oFormatRange.FormatConditions(1).StopIfTrue = False 'CBool(oRecordset(3)) 'todo?
         .MoveNext
       Loop
       'race is over - notify
@@ -2062,6 +2087,7 @@ skip_working:
   
 exit_here:
   On Error Resume Next
+  Set oAssignment = Nothing
   Set oFormatRange = Nothing
   Set oDict = Nothing
   If oRecordset.State Then oRecordset.Close
@@ -2099,6 +2125,12 @@ Private Sub cptGetAssignmentData(ByRef oTask As MSProject.Task, ByRef oWorksheet
   Dim strProtect As String
   Dim strDataValidation As String
   'longs
+  Dim lngEVPCol As Long
+  Dim lngEVTCol  As Long
+  Dim lngNFCol As Long
+  Dim lngNSCol As Long
+  Dim lngFFCol As Long
+  Dim lngFSCol As Long
   Dim lngBaselineCostCol As Long
   Dim lngBaselineWorkCol As Long
   Dim lngIndent As Long
@@ -2111,6 +2143,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As MSProject.Task, ByRef oWorksheet
   'booleans
   Dim blnAllowAssignmentNotes As Boolean
   'variants
+  Dim vCol As Variant
   Dim vAssignment As Variant
   'dates
   
@@ -2118,6 +2151,15 @@ Private Sub cptGetAssignmentData(ByRef oTask As MSProject.Task, ByRef oWorksheet
   lngIndent = Len(cptRegEx(oWorksheet.Cells(lngRow, lngNameCol).Value, "^\s*"))
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
   lngLastRow = oWorksheet.Cells(1048576, 1).End(xlUp).Row
+  'get column for FS,FF,NS,NF,EVT,EVP
+  
+  lngFSCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Forecast Start", lookat:=xlWhole).Column
+  lngFFCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Forecast Finish", lookat:=xlWhole).Column
+  lngNSCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Start", lookat:=xlPart).Column
+  lngNFCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Finish", lookat:=xlPart).Column
+  'todo: lngEVTCol = oWorksheet.Rows(lngHeaderRow).Find(what:="EVT", lookat:=xlWhole).Column - Milestone EVT?
+  lngEVPCol = oWorksheet.Rows(lngHeaderRow).Find(what:="New EV%", lookat:=xlWhole).Column
+  
   lngItem = 0
   For Each oAssignment In oTask.Assignments
     lngItem = lngItem + 1
@@ -2135,6 +2177,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As MSProject.Task, ByRef oWorksheet
     For lngCol = 2 To lngNameCol
       If lngCol <> lngNameCol Then oWorksheet.Cells(lngRow + lngItem, lngCol) = oWorksheet.Cells(lngRow, lngCol)
     Next lngCol
+    
     oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.Italic = True 'todo: limit to columns
     vAssignment = oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Value
     vAssignment(1, 1) = oAssignment.UniqueID 'import assumes this is oAssignment.UniqueID
@@ -2150,6 +2193,15 @@ Private Sub cptGetAssignmentData(ByRef oTask As MSProject.Task, ByRef oWorksheet
       vAssignment(1, lngRemainingWorkCol) = oAssignment.RemainingCost
       vAssignment(1, lngRemainingWorkCol + 1) = oAssignment.RemainingCost
     End If
+
+    'fill down NS,NF,EVP todo: add lngETCCol also
+    For Each vCol In Array(lngFSCol, lngFFCol, lngNSCol, lngNFCol, lngEVPCol)
+      vAssignment(1, vCol) = "=" & oWorksheet.Cells(lngRow, vCol).AddressLocal(False, True)
+      oWorksheet.Cells(lngRow + lngItem, vCol).Font.ThemeColor = xlThemeColorDark1
+      oWorksheet.Cells(lngRow + lngItem, vCol).Font.TintAndShade = -4.99893185216834E-02
+      If vCol = lngEVPCol Then oWorksheet.Cells(lngRow + lngItem, lngEVPCol).NumberFormat = "0%"
+    Next vCol
+
     'add validation
     If oETCValidationRange Is Nothing Then
       Set oETCValidationRange = oWorksheet.Cells(lngRow + lngItem, lngRemainingWorkCol + 1)
@@ -2191,6 +2243,7 @@ Private Sub cptGetAssignmentData(ByRef oTask As MSProject.Task, ByRef oWorksheet
     
     'enter the values
     oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Value = vAssignment
+    
     If oAssignmentRange Is Nothing Then
       Set oAssignmentRange = oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol))
     Else
