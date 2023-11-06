@@ -1216,9 +1216,11 @@ Private Sub cptAddLegend(ByRef oWorksheet As Excel.Worksheet, dtStatus As Date)
   oWorksheet.Cells(4, 1).BorderAround xlContinuous, xlThin, , -8421505
   oWorksheet.Cells(4, 2) = "Task is within two week look-ahead. Please review forecast dates."
   'complete
-  oWorksheet.Cells(5, 1) = "AaBbCc"
-  oWorksheet.Cells(5, 1).Font.Italic = True
-  oWorksheet.Cells(5, 1).Font.ColorIndex = 16
+  oWorksheet.Cells(5, 1).Style = "Explanatory Text"
+'  oWorksheet.Cells(5, 1).Font.TintAndShade = 0
+'  oWorksheet.Cells(5, 1).Interior.PatternColorIndex = -4105
+'  oWorksheet.Cells(5, 1).Interior.Color = 15921906
+'  oWorksheet.Cells(5, 1).Interior.TintAndShade = 0
   oWorksheet.Cells(5, 2) = "Task is complete."
   'summary
   oWorksheet.Cells(6, 1) = "AaBbCc"
@@ -1883,20 +1885,20 @@ next_task:
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & ">0," & strNS & ">STATUS_DATE)", "GOOD")
     'NS:AND(CS<=(SD+14),NS=0) -> NEUTRAL
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strCS & "<=(STATUS_DATE+14)," & strNS & "=0)", "NEUTRAL")
-    'NS:AND(CS<=SD,NS=0) -> INPUT
-    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strCS & "<=STATUS_DATE," & strNS & "=0)", "INPUT") 'should have started
-    'NS:NS>0,NF>0,NS>NF -> BAD
+    'NS:AND(CS<=SD,NS=0) -> BAD
+    oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strCS & "<=STATUS_DATE," & strNS & "=0)", "BAD") 'should have started
+    'NS:AND(NS>0,NF>0,NS>NF) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & ")", "BAD")
     'todo:oRecordset.AddNew Array(0, 1, 2), Array("NS", "=IF(""NS>0,NF>0,NS>NF,"",""BAD"",AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & "))","BAD")
-    'NS:NS=0,AF>0 -> BAD
+    'NS:AND(NS=0,AF>0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & "=0," & strAF & ")", "BAD")
-    'NS:FS>0,EVP>0 -> BAD
+    'NS:AND(FS>0,EVP>0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strFS & "," & strEVP & ">0)", "BAD")
-    'NS:NS=0,EVP>0 -> BAD
+    'NS:AND(NS=0,EVP>0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & "=0," & strEVP & ">0)", "BAD")
-    'NS:FS>0,ETC=0 -> BAD
+    'NS:AND(FS>0,ETC=0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strFS & "," & strETC & "=0)", "BAD")
-    'NS:AS=0,ETC=0 -> BAD
+    'NS:AND(AS=0,ETC=0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & "=0," & strETC & "=0)", "BAD")
     
     'NF:AND(NF>0,NF<=SD) -> COMPLETE
@@ -1905,25 +1907,25 @@ next_task:
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strNF & ">0," & strNF & ">STATUS_DATE)", "GOOD")
     'NF:AND(CF<=(SD+14),NF=0) -> NEUTRAL
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strCF & "<=(STATUS_DATE+14)," & strNF & "=0)", "NEUTRAL")
-    'NF:AND(CF<=SD,NF=0) -> INPUT
-    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strCF & "<=STATUS_DATE," & strNF & "=0)", "INPUT") 'should have finished
+    'NF:AND(CF<=SD,NF=0) -> BAD
+    oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strCF & "<=STATUS_DATE," & strNF & "=0)", "BAD") 'should have finished
     'NF:AND(AS,NF=0) -> INPUT
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
-    'NF:NF>0,NS>0,NF<NS -> BAD
+    'NF:AND(NF>0,NS>0,NF<NS) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strNF & ">0," & strNS & ">0," & strNS & ">" & strNF & ")", "BAD")
-    'NF:AF>0,NS=0 -> BAD
+    'NF:AND(AF>0,NS=0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strAF & "," & strNS & "=0)", "BAD")
-    'NF:FF>0,EVP=1 -> BAD
+    'NF:AND(FF>0,EVP=1) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strFF & "," & strEVP & "=1)", "BAD")
-    'NF:AF,EVP<1 -> BAD
+    'NF:AND(AF,EVP<1) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strAF & "," & strEVP & "<1)", "BAD")
-    'NF:NF=0,EVP=1 -> BAD
+    'NF:AND(NF=0,EVP=1) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strNF & "=0," & strEVP & "=1)", "BAD")
-    'NF:FF>0,ETC=0 -> BAD
+    'NF:AND(FF>0,ETC=0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strFF & "," & strETC & "=0)", "BAD")
-    'NF:AF>0,ETC>0 -> BAD
+    'NF:AND(AF>0,ETC>0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strAF & "," & strETC & ">0)", "BAD")
-    'NF:NF=0,ETC=0 -> BAD
+    'NF:AND(NF=0,ETC=0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NF", "=AND(" & strNF & "=0," & strETC & "=0)", "BAD")
     
     'EVP:AND(FF,NEW EVP>EVP) -> GOOD
@@ -1936,19 +1938,19 @@ next_task:
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strFF & "," & strEVP & "=" & strCEVP & ")", "NEUTRAL")
     'EVP:AND(AS,NF=0) -> INPUT
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
-    'EVP:EVP>0,FS>0 -> BAD
+    'EVP:AND(EVP>0,FS>0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & ">0," & strFS & ")", "BAD")
-    'EVP:EVP=1,FF>0 -> BAD
+    'EVP:AND(EVP=1,FF>0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "=1," & strFF & ")", "BAD")
-    'EVP:EVP=1,NF=0 -> BAD
+    'EVP:AND(EVP=1,NF=0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "=1," & strNF & "=0)", "BAD")
-    'EVP:EVP<1,AF>0 -> BAD
+    'EVP:AND(EVP<1,AF>0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "<1," & strAF & ")", "BAD")
-    'EVP:EVP=1,ETC>0 -> BAD
+    'EVP:AND(EVP=1,ETC>0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "=1," & strETC & ">0)", "BAD")
-    'EVP:EVP<1,ETC=0 -> BAD
+    'EVP:AND(EVP<1,ETC=0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "<1," & strETC & "=0)", "BAD")
-    'EVP:EVP>0,AS=0 -> BAD
+    'EVP:AND(EVP>0,AS=0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & ">0," & strNS & "=0)", "BAD")
     'EVP:AND(EVP<PREVIOUS) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("EVP", "=AND(" & strEVP & "<" & strCEVP & ")", "BAD")
@@ -1959,7 +1961,7 @@ next_task:
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strFF & "," & strETC & "<>" & strCETC & ")", "GOOD")
     'ETC:AND(AF,ETC=0) -> GOOD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strAF & "," & strETC & "=0," & strEVP & "=1)", "GOOD")
-    'ETC:AND(FF,ETC=PREVIOUS) -> NETURAL
+    'ETC:AND(FF,ETC=PREVIOUS) -> NEUTRAL
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strFF & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
     'ETC:AND(FS,ETC=PREVIOUS) -> NEUTRAL
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strFS & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
@@ -1969,19 +1971,19 @@ next_task:
       oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
     
     Else
-      'ETC:AND(FF,ETC=PREVIOUS) -> NETURAL (ASSIGNMNET)
+      'ETC:AND(FF,ETC=PREVIOUS) -> NEUTRAL (ASSIGNMENT)
       oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFF & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
-      'ETC:AND(FS,ETC=PREVIOUS) -> NEUTRAL (ASSIGNMNET)
+      'ETC:AND(FS,ETC=PREVIOUS) -> NEUTRAL (ASSIGNMENT)
       oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFS & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
-      'ETC:AND(FF,ETC=0) -> NETURAL (ASSIGNMNET)
+      'ETC:AND(FF,ETC=0) -> NEUTRAL (ASSIGNMENT)
       oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFF & "," & strETC & "=0)", "NEUTRAL")
-      'ETC:AND(FS,ETC=0) -> NEUTRAL (ASSIGNMNET)
+      'ETC:AND(FS,ETC=0) -> NEUTRAL (ASSIGNMENT)
       oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFS & "," & strETC & "=0)", "NEUTRAL")
-      'ETC:AND(AS,NF=0) -> INPUT (ASSIGNMNET)
+      'ETC:AND(AS,NF=0) -> INPUT (ASSIGNMENT)
       oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
-      'ETC:AND(ETC>0,AF>0) -> BAD (ASSIGNMNET)
+      'ETC:AND(ETC>0,AF>0) -> BAD (ASSIGNMENT)
       oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strETC & ">0," & strAF & ")", "BAD")
-      'ETC:AND(ETC>0,EVP=1) -> BAD (ASSIGNMNET)
+      'ETC:AND(ETC>0,EVP=1) -> BAD (ASSIGNMENT)
       oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strETC & ">0," & strEVP & "=1)", "BAD")
     End If
     
