@@ -34,7 +34,6 @@ Sub cptShowStatusSheetImport_frm()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'todo: start Excel in the background if not already open; close on form close
-  'todo: new options: log{true|false}; verbose{true|false}
   
   'ensure settings
   If Not cptValidMap("EVP,EVT,LOE") Then
@@ -93,7 +92,7 @@ Sub cptShowStatusSheetImport_frm()
       Next intField
     Next vField
         
-    'todo: add enterprise custom fields?
+    'add enterprise custom fields? -> no
         
     'convert legacy user settings
     strSettings = cptDir & "\settings\cpt-status-sheet-import.adtg"
@@ -204,6 +203,7 @@ End Sub
 
 Sub cptStatusSheetImport()
   'objects
+  Dim oInspector As Object
   Dim oOutlook As Outlook.Application
   Dim oMailItem As Outlook.MailItem
   Dim oDocument As Word.Document
@@ -281,6 +281,7 @@ Sub cptStatusSheetImport()
   Dim vField As Variant
   Dim vControl As Variant
   'dates
+  Dim dtStart As Date
   Dim dtNewDate As Date
   Dim dtStatus As Date
 
@@ -359,8 +360,9 @@ Sub cptStatusSheetImport()
   lngFile = FreeFile
   Open strImportLog For Output As #lngFile
   'log action
-  Print #lngFile, "START STATUS SHEET IMPORT - " & FormatDateTime(Now(), vbGeneralDate)
-  
+  Print #lngFile, "STATUS SHEET IMPORT LOG"
+  dtStart = Now
+  Print #lngFile, "START: " & FormatDateTime(dtStart, vbGeneralDate)
   'set up deconfliction db
   strSchema = Environ("temp") & "\Schema.ini"
   lngDeconflictionFile = FreeFile
@@ -495,6 +497,10 @@ next_task:
       Print #lngFile, "IMPORTING Workbook: " & strFile & " (" & oWorkbook.Sheets.Count & " Worksheets)"
       Print #lngFile, String(25, "-")
       For Each oWorksheet In oWorkbook.Sheets
+        If oWorksheet.Name = "Conditional Formatting" Then
+          Print #lngFile, "SKIPPING Worksheet: " & oWorksheet.Name
+          GoTo next_worksheet
+        End If
         Print #lngFile, "IMPORTING Worksheet: " & oWorksheet.Name
 '        cptStatusSheetImport_frm.lblStatus.Caption = "Importing...(" & Format(oWorksheet.Index / oWorkbook.Sheets.Count, "0%") & ")"
 '        cptStatusSheetImport_frm.lblProgress.Width = (oWorksheet.Index / oWorkbook.Sheets.Count) * cptStatusSheetImport_frm.lblStatus.Width
@@ -586,12 +592,13 @@ next_task:
                 Print #lngFile, "UID " & oTask.UniqueID & " - Should Have Started <<<<<"
                 oWorksheet.Cells(lngRow, lngUIDCol).Style = "Bad"
                 blnValid = False
+                GoTo skip_ns
               End If
               
               oWorksheet.Cells(lngRow, lngASCol).NumberFormat = "0.00" 'work around overflow issue
               If oWorksheet.Cells(lngRow, lngASCol).Value > 91312 Then 'invalid
                 oWorksheet.Cells(lngRow, lngUIDCol).Style = "Bad"
-                Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Start Date <<<<<"
+                Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Start<<<<<"
               Else
                 oWorksheet.Cells(lngRow, lngASCol).NumberFormat = "m/d/yyyy" 'restore date format
                 If Len(oWorksheet.Cells(lngRow, lngASCol).Value) > 0 And Not IsDate(oWorksheet.Cells(lngRow, lngASCol).Value) Then
@@ -623,26 +630,28 @@ next_task:
                   End If
                 End If
               End If
+skip_ns:
               oWorksheet.Cells(lngRow, lngASCol).NumberFormat = "m/d/yyyy" 'restore date format
             End If
             
             'new finish date
             If Not oWorksheet.Cells(lngRow, lngAFCol).Locked Then
               If oWorksheet.Cells(lngRow, lngAFCol).DisplayFormat.Interior.Color = 13551615 Then 'invalid
-                Print #lngFile, "UID " & oTask.UniqueID & " = invalid New Finish Date <<<<<"
+                Print #lngFile, "UID " & oTask.UniqueID & " = invalid New Finish Date " & String(25, "<")
                 oWorksheet.Cells(lngRow, lngUIDCol).Style = "Bad"
                 blnValid = False
+                GoTo skip_nf
               End If
               
               oWorksheet.Cells(lngRow, lngAFCol).NumberFormat = "0.00" 'work around overflow issue
               If oWorksheet.Cells(lngRow, lngAFCol).Value > 91312 Then 'invalid
-                Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Finish Date <<<<<"
+                Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Finish Date " & String(25, "<")
                 oWorksheet.Cells(lngRow, lngUIDCol).Style = "Bad"
                 blnValid = False
               Else
                 oWorksheet.Cells(lngRow, lngAFCol).NumberFormat = "m/d/yyyy" 'restore date format
                 If Len(oWorksheet.Cells(lngRow, lngAFCol).Value) > 0 And Not IsDate(oWorksheet.Cells(lngRow, lngAFCol).Value) Then
-                  Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Finish Date <<<<<"
+                  Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Finish Date " & String(25, "<")
                 ElseIf oWorksheet.Cells(lngRow, lngAFCol).Value > 0 Then
                   dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngAFCol)), vbShortDate)
                   'determine actual or forecast
@@ -670,6 +679,7 @@ next_task:
                   End If
                 End If
               End If
+skip_nf:
               oWorksheet.Cells(lngRow, lngAFCol).NumberFormat = "m/d/yyyy"
             End If
             
@@ -677,14 +687,15 @@ next_task:
             'skip LOE
             If Len(strEVT) > 0 And Len(strLOE) > 0 Then
               lngEVT = CLng(Split(strEVT, "|")(0))
-              If oTask.GetField(lngEVT) = strLOE Then GoTo evp_skipped
+              If oTask.GetField(lngEVT) = strLOE Then GoTo skip_evp
             End If
             'secondary catch to skip LOE
             If oWorksheet.Cells(lngRow, lngEVCol).Value <> "-" Then
               If oWorksheet.Cells(lngRow, lngEVCol).DisplayFormat.Interior.Color = 13551615 Then 'invalid EV
-                Print #lngFile, "UID " & oTask.UniqueID & " - Invalid EV"
+                Print #lngFile, "UID " & oTask.UniqueID & " - Invalid EV " & String(25, "<")
                 oWorksheet.Cells(lngRow, lngUIDCol).Style = "Bad"
                 blnValid = False
+                GoTo skip_evp
               End If
               
               lngEVP = Round(oWorksheet.Cells(lngRow, lngEVCol).Value * 100, 0)
@@ -704,8 +715,8 @@ next_task:
               End If
             End If
             
-evp_skipped:
-            'comments todo: only import if different
+skip_evp:
+            'comments todo: only import if different (diff depends on vbCr and vbLf etc.)
             If .chkAppend And oWorksheet.Cells(lngRow, lngCommentsCol).Value <> "" Then
               If .cboAppendTo = "Top of Task Note" Then
                 oTask.Notes = FormatDateTime(dtStatus, vbShortDate) & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf & String(25, "-") & vbCrLf & vbCrLf & oTask.Notes
@@ -722,7 +733,7 @@ evp_skipped:
             Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
             If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
             If oAssignment Is Nothing Then
-              Print #lngFile, "ASSIGNMENT MISSING: TASK " & oTask.UniqueID & " ASSIGNMENT: " & oWorksheet.Cells(lngRow, lngUIDCol).Value
+              Print #lngFile, "MISSING: TASK UID: [" & oTask.UniqueID & "] ASSIGNMENT UID: [" & oWorksheet.Cells(lngRow, lngUIDCol).Value & "] - " & oWorksheet.Cells(lngRow, lngTaskNameCol).Value
             Else
               If Not oWorksheet.Cells(lngRow, lngETCCol).Locked Then
                 If oWorksheet.Cells(lngRow, lngETCCol).DisplayFormat.Interior.Color = 13551615 Then 'invalid ETC
@@ -730,6 +741,7 @@ evp_skipped:
                   oWorksheet.Cells(lngRow, lngUIDCol).Style = "Bad" 'assignment level
                   oWorksheet.Cells(oWorksheet.Columns(lngUIDCol).Find(oTask.UniqueID).Row, lngUIDCol).Style = "Bad" 'task level
                   blnValid = False
+                  GoTo next_row
                 End If
                 dblETC = oWorksheet.Cells(lngRow, lngETCCol).Value 'get the new value
                 dblWas = 0 'reset was
@@ -861,7 +873,7 @@ next_file:
         Set oMailItem = oOutlook.CreateItem(0) '0=olMailItem
         oMailItem.Display
         'add subject
-        oMailItem.Subject = "ACTION REQUIRED: " & cptGetProgramAcronym & " - Invalid Status - [STATUS DATE]"
+        oMailItem.Subject = "ACTION REQUIRED: " & cptGetProgramAcronym & " - Invalid Status - " & Format(ActiveProject.StatusDate, "yyyy-mm-dd")
         If oMailItem.BodyFormat <> olFormatHTML Then oMailItem.BodyFormat = olFormatHTML
         'add some words
         On Error Resume Next
@@ -875,8 +887,15 @@ next_file:
         Set oSelection = oDocument.Windows(1).Selection
         oSelection.Text = "[NAME]: " & vbCrLf & vbCrLf & "Please correct the following invalid status entries and return to me ASAP:" & vbCrLf & vbCrLf
         For Each oWorksheet In oWorkbook.Sheets
+          If oWorksheet.Name = "Conditional Formatting" Then GoTo next_worksheet1
+          'validate status request worksheet
+          Set oRange = Nothing
+          On Error Resume Next
+          Set oRange = oWorksheet.Range("STATUS_DATE")
+          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If oRange Is Nothing Then GoTo next_worksheet1
           oWorksheet.Activate
-          'show all rows and columns (if scheduler did not check protect)
+          'show all rows and columns (if scheduler did not 'protect')
           If Not oWorksheet.AutoFilterMode Then
             oWorksheet.Rows.Hidden = False
             oWorksheet.Columns.Hidden = False
@@ -884,7 +903,7 @@ next_file:
             oWorksheet.Range(oWorksheet.Cells(lngHeaderRow, lngUIDCol), oWorksheet.Cells(lngLastRow, lngCommentsCol)).AutoFilter
           End If
           'unprotect sheet
-          oWorksheet.UnProtect "NoTouching!"
+          oWorksheet.UnProtect "NoTouching!" 'keep it secret; keep it safe
           'filter the list
           oWorksheet.Range(oWorksheet.Cells(lngHeaderRow, lngUIDCol), oWorksheet.Cells(lngLastRow, lngCommentsCol)).AutoFilter Field:=lngUIDCol, Criteria1:=393372, Operator:=xlFilterFontColor
           'copy
@@ -900,6 +919,7 @@ next_file:
           oDocument.InlineShapes(1).Width = 1296
           're-protect sheet
           oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
+next_worksheet1:
         Next oWorksheet
         'save a copy
         strFile = Replace(strFile, ".xlsx", "_invalid.xlsx")
@@ -957,6 +977,7 @@ next_file:
   
 exit_here:
   On Error Resume Next
+  Set oInspector = Nothing
   Set oOutlook = Nothing
   Set oMailItem = Nothing
   Set oDocument = Nothing
@@ -974,7 +995,7 @@ exit_here:
   'If blnValid Then
     'close log for output
     Print #lngFile, String(25, "=")
-    Print #lngFile, "IMPORT COMPLETE." & vbCrLf
+    Print #lngFile, "COMPLETE: " & FormatDateTime(Now, vbGeneralDate) & " [" & Format(Now - dtStart, "hh:nn:ss") & "]" & vbCrLf
     Print #lngFile, "UPDATED UIDs:"
     If Len(strUIDList) = 0 Then
       Print #lngFile, "< no updates >"
@@ -1083,7 +1104,11 @@ Sub cptRefreshStatusImportTable(Optional blnUsageBelow As Boolean = False)
         If CustomFieldGetName(rst(0)) = rst(1) Then
           TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:=rst(1), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
         Else
-          'todo: notify that name has changed
+          If CustomFieldGetName(rst(0)) = "" Then
+            MsgBox "Saved field '" & rst(1) & "' has been renamed to '" & FieldNameToFieldConstant(rst(0)) & "' - you may want to remove it from your list.", vbInformation + vbOKOnly, "Saved Field Changed"
+          Else
+            MsgBox "Saved field '" & rst(1) & "' has been renamed to '" & CustomFieldGetName(rst(0)) & "' - you may want to remove it from your list.", vbInformation + vbOKOnly, "Saved Field Changed"
+          End If
         End If
         rst.MoveNext
       Loop
