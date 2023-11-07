@@ -287,6 +287,22 @@ err_here:
   
 End Sub
 
+Private Sub chkConditionalFormatting_Click()
+  Dim strConditionalFormattingLegend As String
+  If Me.chkConditionalFormatting Then
+    Me.chkConditionalFormattingLegend.Enabled = True
+    strConditionalFormattingLegend = cptGetSetting("StatusSheet", "chkConditionalFormattingLegend")
+    If Len(strConditionalFormattingLegend) > 0 Then
+      Me.chkConditionalFormattingLegend = CBool(strConditionalFormattingLegend)
+    Else
+      Me.chkConditionalFormattingLegend = True 'default
+    End If
+  Else
+    Me.chkConditionalFormattingLegend = False
+    Me.chkConditionalFormattingLegend.Enabled = False
+  End If
+End Sub
+
 Private Sub chkHide_Click()
 
   If Not Me.Visible Then GoTo exit_here
@@ -333,7 +349,7 @@ Private Sub chkLookahead_Click()
 End Sub
 
 Private Sub chkSendEmails_Click()
-  Dim strQuickPart As String
+  Dim strQuickPart As String, strSubject As String, strCC As String, strKeepOpen As String
   Dim blnExists As Boolean
   Dim lngItem As Long
 
@@ -343,6 +359,15 @@ Private Sub chkSendEmails_Click()
   If Me.chkSendEmails Then
     Me.chkKeepOpen = False
     Me.chkKeepOpen.Enabled = False
+    strSubject = cptGetSetting("StatusSheet", "txtSubject")
+    If Len(strSubject) > 0 Then
+      Me.txtSubject = strSubject
+    End If
+    strCC = cptGetSetting("StatusSheet", "txtCC")
+    If Len(strCC) > 0 Then
+      Me.txtCC = strCC
+    End If
+    
     Call cptListQuickParts(True)
     strQuickPart = cptGetSetting("StatusSheet", "cboQuickPart")
     If Len(strQuickPart) > 0 Then
@@ -360,6 +385,12 @@ Private Sub chkSendEmails_Click()
     End If
   Else
     Me.chkKeepOpen.Enabled = True
+    strKeepOpen = cptGetSetting("StatusSheet", "chkKeepOpen")
+    If Len(strKeepOpen) > 0 Then
+      Me.chkKeepOpen.Value = CBool(strKeepOpen)
+    Else
+      Me.chkKeepOpen.Value = 0 'default
+    End If
   End If
 
 End Sub
