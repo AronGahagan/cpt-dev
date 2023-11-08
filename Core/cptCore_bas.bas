@@ -548,6 +548,7 @@ Sub cptResetAll()
   If Len(strDefaultView) > 0 And cptViewExists(strDefaultView) Then
     ActiveWindow.TopPane.Activate
     ViewApply strDefaultView
+    SetSplitBar ShowColumns:=ActiveProject.TaskTables(ActiveProject.CurrentTable).TableFields.Count
   End If
   
   If lngSettings > 0 Then
