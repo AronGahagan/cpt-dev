@@ -1222,6 +1222,7 @@ Sub cptRefreshStatusImportTable(Optional blnUsageBelow As Boolean = False)
     ViewApply Name:="Gantt Chart"
     'If ActiveProject.CurrentTable <> "cptStatusSheetImport Table" Then TableApply Name:="cptStatusSheetImport Table"
     TableApply Name:="cptStatusSheetImport Table"
+    SetSplitBar ShowColumns:=ActiveProject.TaskTables(ActiveProject.CurrentTable).TableFields.Count
     'todo: reapply group?
     
     On Error Resume Next
@@ -1237,6 +1238,7 @@ Sub cptRefreshStatusImportTable(Optional blnUsageBelow As Boolean = False)
     ViewApply "Task Usage"
     'If ActiveProject.CurrentTable <> "cptStatusSheetImportDetails Table" Then TableApply "cptStatusSheetImportDetails Table"
     TableApply "cptStatusSheetImportDetails Table"
+    SetSplitBar ShowColumns:=ActiveProject.TaskTables(ActiveProject.CurrentTable).TableFields.Count
     ActiveWindow.TopPane.Activate
   Else
     ActiveWindow.TopPane.Activate
@@ -1245,6 +1247,7 @@ Sub cptRefreshStatusImportTable(Optional blnUsageBelow As Boolean = False)
     DoEvents
     'If ActiveProject.CurrentTable <> "cptStatusSheetImport Table" Then TableApply Name:="cptStatusSheetImport Table"
     TableApply Name:="cptStatusSheetImport Table"
+    SetSplitBar ShowColumns:=ActiveProject.TaskTables(ActiveProject.CurrentTable).TableFields.Count
     On Error Resume Next
     strBottomPaneViewName = ActiveWindow.BottomPane.View.Name
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0

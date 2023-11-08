@@ -587,6 +587,7 @@ next_item:
     End If
   End If
   If ActiveProject.CurrentTable <> strStartingTable Then TableApply strStartingTable
+  SetSplitBar ShowColumns:=ActiveProject.TaskTables(ActiveProject.CurrentTable).TableFields.Count
   If ActiveProject.CurrentFilter <> strStartingFilter Then FilterApply strStartingFilter
   If ActiveProject.CurrentGroup <> strStartingGroup Then GroupApply strStartingGroup
   
@@ -1300,6 +1301,7 @@ Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False, Optional blnF
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Remaining Work", Title:="New ETC", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableApply Name:="cptStatusSheet Table"
+  SetSplitBar ShowColumns:=ActiveProject.TaskTables(ActiveProject.CurrentTable).TableFields.Count
 
 filter_only:
   'reset the filter
