@@ -924,7 +924,7 @@ Sub cptLateStartsFinishes()
   strProject = cptGetProgramAcronym
     
   'get other fields
-  strMyHeaders = cptGetMyHeaders("BEI Trend", True) 'todo: get rid of this
+  strMyHeaders = cptGetMyHeaders("Late Starts and Finishes", True) 'todo: get rid of this
   If strMyHeaders = "" Then GoTo exit_here
   
   'get excel
@@ -1169,7 +1169,7 @@ next_task:
   oChart.Chart.SetElement (msoElementChartTitleAboveChart)
   oChart.Chart.SetElement (msoElementLegendBottom)
   oChart.Chart.ChartTitle.Text = strProject & " IMS - Task Completion" & Chr(10) & FormatDateTime(dtStatus, vbShortDate)
-  oChart.Chart.ChartTitle.Characters(1, 25).Font.Bold = True
+  oChart.Chart.ChartTitle.Characters(1, Len(strProject & " IMS - Task Completion")).Font.Bold = True
   oChart.Chart.Location WHERE:=xlLocationAsObject, Name:="SUMMARY"
   'must reset the object after move
   oWorksheet.Visible = xlSheetHidden
@@ -2691,7 +2691,7 @@ next_task:
       'make cumulative column
       oWorksheet.Columns(3).Insert Shift:=xlRight
       oWorksheet.[C1].Value = "BCWS_CUM"
-      oWorksheet.[C2].FormulaR1C1 = "=RC[-1]"
+      oWorksheet.[c2].FormulaR1C1 = "=RC[-1]"
       lngLastRow = oWorksheet.[A1].End(xlDown).Row
       oWorksheet.Range(oWorksheet.Cells(3, 3), oWorksheet.Cells(lngLastRow, 3)).FormulaR1C1 = "=R[-1]C+RC[-1]"
       'find the status date/AD
@@ -2719,7 +2719,7 @@ next_task:
       oWorksheet.Cells(lngES + 3, 6) = "Earned Schedule"
       '=MATCH(BCWP,C2:C160,1)
       strFormula = "=MATCH(BCWP,"
-      strFormula = strFormula & oWorksheet.Range(oWorksheet.[C2], oWorksheet.[C2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",1)"
+      strFormula = strFormula & oWorksheet.Range(oWorksheet.[c2], oWorksheet.[c2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",1)"
       oWorksheet.Cells(lngES + 3, 7).FormulaArray = strFormula
       oWorksheet.Names.Add "ES", oWorksheet.Cells(lngES + 3, 7)
       oWorksheet.Cells(lngES + 3, 8) = "weeks"
