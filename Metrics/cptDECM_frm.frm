@@ -203,7 +203,7 @@ Public Sub lboMetrics_AfterUpdate()
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
       strRollingWaveDate = cptGetSetting("Integration", "RollingWaveDate")
       If Len(strRollingWaveDate) > 0 Then
-        strDescription = strDescription & vbCrLf & vbCrLf & "Rolling Wave Date: " & Format(CDate(strRollingWaveDate), "mm/dd/yyyy hh:nn AMPM")
+        strDescription = strDescription & vbCrLf & vbCrLf & "Rolling Wave Date: " & FormatDateTime(CDate(strRollingWaveDate), vbShortDate)
       End If
     Case Else
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore & vbCrLf & vbCrLf
