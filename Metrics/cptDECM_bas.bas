@@ -1360,11 +1360,11 @@ next_task:
   strSQL = strSQL & "WHERE EVT<>'" & strLOE & "' "
   strSQL = strSQL & "GROUP BY UID,ROUND(TS/480,2) "
   strSQL = strSQL & "HAVING ROUND(TS/480,2)>44 "
+  strList = ""
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngX = oRecordset.RecordCount
     lngY = oRecordset.RecordCount
-    strList = ""
     If lngX > 0 Then
       .MoveFirst
       Do While Not .EOF
@@ -2115,8 +2115,10 @@ skip_fiscal:
   GroupClear
   OptionsViewEx DisplaySummaryTasks:=True
   OutlineShowAllTasks
-  FilterEdit "cpt DECM Filter - 06I201a", True, True, True, , , "Active", , "equals", "Yes"
-  FilterEdit "cpt DECM Filter - 06I201a", True, , , , , , "Actual Finish", "equals", "NA"
+  FilterEdit "cpt DECM Filter - 06I201a", True, True, True, , , , "Actual Finish", "equals", "NA"
+  If Application.Edition = pjEditionProfessional Then
+    FilterEdit "cpt DECM Filter - 06I201a", True, , , , , "Active", , "equals", "Yes"
+  End If
   FilterEdit "cpt DECM Filter - 06I201a", True, , , , , , "Resource Names", "does not equal", ""
   FilterEdit "cpt DECM Filter - 06I201a", True, , , , , , "Name", "contains", "SVT", , , False
   FilterApply "cpt DECM Filter - 06I201a"
@@ -2539,7 +2541,7 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
               oWorksheet.[A3].CopyFromRecordset oRecordset
               oRecordset.Close
             End If
-            oWorksheet.[C2].Value = "NOT IN EV TOOL:"
+            oWorksheet.[c2].Value = "NOT IN EV TOOL:"
             If Dir(strDir & "\wp-not-in-ev.csv") <> vbNullString Then
               Set oRecordset = CreateObject("ADODB.Recordset")
               strSQL = "SELECT * FROM [wp-not-in-ev.csv]"
@@ -3644,8 +3646,10 @@ Function cptGetDECMDescription(strDECM As String) As String
       strDescription = "Is each Work Package assigned a single CA?" & vbCrLf
       strDescription = strDescription & "X = Count of incomplete WPs that are assigned to more than one CA or no CA assigned" & vbCrLf
       strDescription = strDescription & "Y = Total count incomplete WPs"
+      
     Case Else
       strDescription = "No Description provided."
+      
   End Select
   
   cptGetDECMDescription = strDescription
@@ -3658,7 +3662,12 @@ End Function
 
 Sub cptWriteDECMDataBase()
   'todo: confirm decm directory
-  'todo: write Schema
+  'todo: write Schema:
+  'ID
+  'DEFINITION
+  'NUMERATOR
+  'DENOMINATOR
+  'THRESHOLD
   'todo: write csv
   'todo: enable diff (added, removed, changed)
 End Sub
