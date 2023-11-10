@@ -20,6 +20,8 @@ Private lngWP As Long
 Private lngEVT As Long
 Private lngEVP As Long
 
+Public oDECM As Scripting.Dictionary
+
 Sub cptDECM_GET_DATA()
   'Optional blnIncompleteOnly As Boolean = True, Optional blnDiscreteOnly As Boolean = True
   'objects
@@ -346,6 +348,9 @@ next_task:
   strPass = "[+]"
   strFail = "<!>"
   
+  'ad hoc todo: destroy on form close
+  Set oDECM = CreateObject("Scripting.Dictionary")
+  
   '===== EVMS =====
   '05A101a - 1 CA : 1 OBS
   strMetric = "05A101a"
@@ -395,7 +400,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -443,7 +449,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -491,7 +498,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -544,7 +552,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription("1wp_1ca")
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add "1wp_1ca", strList
   cptDECM_frm.lblStatus.Caption = "Getting bonus metric 1wp_1ca...done."
   Application.StatusBar = "Getting bonus metric 1wp_1ca...done."
   DoEvents
@@ -599,7 +608,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -652,7 +662,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -710,7 +721,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -773,7 +785,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -827,7 +840,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -994,7 +1008,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -1140,7 +1155,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -1188,7 +1204,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -1230,7 +1247,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -1276,7 +1294,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -1333,7 +1352,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList 'todo: need guilty link too
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList 'todo: need guilty link too
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -1385,7 +1405,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -1414,7 +1435,8 @@ next_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric) 'todo: see workbook
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -1484,7 +1506,8 @@ next_critical_task:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -1536,7 +1559,8 @@ skip_6A401a:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -1835,7 +1859,8 @@ skip_fiscal:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -1888,7 +1913,8 @@ skip_fiscal:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -1941,7 +1967,8 @@ skip_fiscal:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -1985,7 +2012,8 @@ skip_fiscal:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -2087,7 +2115,8 @@ skip_fiscal:
       cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
     End If
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+    'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+    oDECM.Add strMetric, strList
     cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
     Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
@@ -2115,9 +2144,9 @@ skip_fiscal:
   GroupClear
   OptionsViewEx DisplaySummaryTasks:=True
   OutlineShowAllTasks
-  FilterEdit "cpt DECM Filter - 06I201a", True, True, True, , , , "Actual Finish", "equals", "NA"
+  FilterEdit "cpt DECM Filter - 06I201a", True, True, True, , , "Actual Finish", , "equals", "NA"
   If Application.Edition = pjEditionProfessional Then
-    FilterEdit "cpt DECM Filter - 06I201a", True, , , , , "Active", , "equals", "Yes"
+    FilterEdit "cpt DECM Filter - 06I201a", True, , , , , , "Active", "equals", "Yes"
   End If
   FilterEdit "cpt DECM Filter - 06I201a", True, , , , , , "Resource Names", "does not equal", ""
   FilterEdit "cpt DECM Filter - 06I201a", True, , , , , , "Name", "contains", "SVT", , , False
@@ -2153,7 +2182,8 @@ skip_fiscal:
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
   cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
@@ -2227,7 +2257,8 @@ skip_fiscal:
       cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
     End If
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+    'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+    oDECM.Add strMetric, strList
     cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
     Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
@@ -2807,6 +2838,30 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
     Case "06A101a" 'WP mismatches
       'todo: do what?
     
+    Case "06A210a"
+      If Len(strList) > 0 Then
+        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        SetAutoFilter "Unique ID", pjAutoFilterIn, "equals", strList
+        strEVT = Split(cptGetSetting("Integration", "EVT"), "|")(1)
+        strGroup = "cpt 06A210a LOE driving Discrete"
+        If cptGroupExists(strGroup) Then ActiveProject.TaskGroups2(strGroup).Delete
+        ActiveProject.TaskGroups2.Add strGroup, strEVT
+        GroupApply Name:=strGroup
+        SelectAll
+        On Error Resume Next
+        ActiveWindow.BottomPane.Activate
+        If Err.Number > 0 Then
+          Application.WindowSplit
+          ActiveWindow.TopPane.Activate
+          SelectAll
+          Err.Clear
+        End If
+        ActiveWindow.BottomPane.Activate
+        ViewApply "Network Diagram"
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
+      End If
+        
     Case "1wp_1ca"
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
@@ -2820,6 +2875,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
+      
     Case "06A212a" 'out of sequence
       If Len(strList) > 0 Then
         SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
@@ -2895,6 +2951,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
+      
     Case "29A601a" 'PPs within Rolling Wave Period
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
@@ -2906,7 +2963,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
     Case Else
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
-        SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
+        SetAutoFilter "Unique ID", pjAutoFilterIn, "equals", strList
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If

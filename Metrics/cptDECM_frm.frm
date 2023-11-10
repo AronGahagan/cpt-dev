@@ -41,10 +41,13 @@ Private Sub cmdDone_Click()
   cptResetAll
 
   'git grep 'strGroup =' | grep -v "grep" | awk -F"strGroup = " '{ print $2}' | sed 's/"//g' | tr -s '\n' ','
-  strGroups = "cpt 05A101a 1 CA : 1 OBS,cpt 05A102a 1 CA : 1 CAM,cpt 05A103a 1 CA : 1 WBS,cpt 1wp_1ca,cpt 10A102a 1 WP : 1 EVT,cpt 11A101a CA BAC = SUM(WP BAC)"
+  strGroups = "cpt 05A101a 1 CA : 1 OBS,cpt 05A102a 1 CA : 1 CAM,cpt 05A103a 1 CA : 1 WBS,cpt 1wp_1ca,cpt 10A102a 1 WP : 1 EVT,cpt 11A101a CA BAC = SUM(WP BAC),cpt 06A210a LOE driving Discrete"
   For Each vGroup In Split(strGroups, ",")
     If cptGroupExists(CStr(vGroup)) Then ActiveProject.TaskGroups2(vGroup).Delete
   Next vGroup
+  
+  Set oDECM = Nothing
+  
 End Sub
 
 Private Sub cmdExport_Click()
@@ -212,8 +215,8 @@ Public Sub lboMetrics_AfterUpdate()
   
   Me.txtTitle.Value = strDescription
   blnUpdateView = Me.chkUpdateView
-  If blnUpdateView And Not IsNull(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)) Then
-    cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)
+  If blnUpdateView And Len(oDECM(strMetric)) > 0 Then
+    cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), oDECM(strMetric)
   End If
   
 exit_here:
@@ -361,4 +364,8 @@ exit_here:
 err_here:
   Call cptHandleErr("cptDECM_frm", "txtTitle_BeforeDropOrPaste", Err, Erl)
   Resume exit_here
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  Set oDECM = Nothing
 End Sub
