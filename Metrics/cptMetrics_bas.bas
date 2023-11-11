@@ -2590,7 +2590,7 @@ Sub cptGetEarnedSchedule()
   Open strFile For Output As #lngFile
   Print #lngFile, "[bcws.csv]"
   Print #lngFile, "Format=CSVDelimited"
-  Print #lngFile, "ColNameHeaders=True"
+  Print #lngFile, "ColNameHeader=True"
   Print #lngFile, "Col1=WEEK_ENDING DateTime"
   Print #lngFile, "Col2=BCWS Double"
   Print #lngFile, "Col3=ETC Double"
