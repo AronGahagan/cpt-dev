@@ -346,7 +346,7 @@ Sub cptStatusSheetImport()
   Open strSchema For Output As lngDeconflictionFile
   Print #lngDeconflictionFile, "[imported.csv]"
   Print #lngDeconflictionFile, "Format=CSVDelimited"
-  Print #lngDeconflictionFile, "ColNameHeaders=True"
+  Print #lngDeconflictionFile, "ColNameHeader=True"
   Print #lngDeconflictionFile, "Col1=FILE Text Width 255"
   Print #lngDeconflictionFile, "Col2=TASK_UID Integer"
   Print #lngDeconflictionFile, "Col3=FIELD Text Width 100"
