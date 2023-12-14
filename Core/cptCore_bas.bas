@@ -1053,36 +1053,14 @@ Dim vPath As Variant
   End If
 
   'office applications
-  'strDir = cptRegEx(Environ("PATH"), "C:\\[^;]*Office[0-9]{1,}\\")
-  
-  If Not cptReferenceExists("Excel") Then
-    strDir = cptGetOfficeDir
-    If strDir = "" Then GoTo windows_common
-    ThisProject.VBProject.References.AddFromFile strDir & "\EXCEL.EXE"
-  End If
-  If Not cptReferenceExists("Outlook") Then
-    strDir = cptGetOfficeDir
-    If strDir = "" Then GoTo windows_common
-    ThisProject.VBProject.References.AddFromFile strDir & "\MSOUTL.OLB"
-  End If
-  If Not cptReferenceExists("PowerPoint") Then
-    strDir = cptGetOfficeDir
-    If strDir = "" Then GoTo windows_common
-    ThisProject.VBProject.References.AddFromFile strDir & "\MSPPT.OLB"
-  End If
-  If Not cptReferenceExists("MSProject") Then
-    strDir = cptGetOfficeDir
-    If strDir = "" Then GoTo windows_common
-    ThisProject.VBProject.References.AddFromFile strDir & "\MSPRJ.OLB"
-  End If
-  If Not cptReferenceExists("Word") Then
-    strDir = cptGetOfficeDir
-    If strDir = "" Then GoTo windows_common
-    ThisProject.VBProject.References.AddFromFile strDir & "\MSWORD.OLB"
-  End If
+  Dim vApp As Variant
+  For Each vApp In Split("EXCEL.EXE,MSOUTL.OLB,MSPPT.OLB,MSWORD.OLB", ",")
+    strDir = cptGetOfficeDir2(CStr(vApp))
+    If Len(strDir) > 0 Then
+      ThisProject.VBProject.References.AddFromFile strDir & "\" & CStr(vApp)
+    End If
+  Next vApp
 
-  'Windows Common
-  'odd other path: C:\Program Files\Microsoft Office\root\vfs\System
 windows_common:
   If Not cptReferenceExists("MSForms") Then
     ThisProject.VBProject.References.AddFromFile "C:\WINDOWS\SysWOW64\FM20.DLL"
@@ -1119,14 +1097,14 @@ err_here:
 
 End Sub
 
-Function cptGetOfficeDir() As String
+Function cptGetOfficeDir(strApp As String) As String
   Dim strDir As String
   Dim vPath As Variant
   
   strDir = ""
   For Each vPath In Split(Environ("PATH"), ";")
     If InStr(vPath, "Office") > 0 Then
-      If Dir(CStr(vPath) & "EXCEL.EXE") <> vbNullString Then
+      If Dir(CStr(vPath) & strApp) <> vbNullString Then
         strDir = vPath
         Exit For
       End If
@@ -1140,6 +1118,41 @@ Function cptGetOfficeDir() As String
     MsgBox "Microsoft Office installation is not detetcted. Some features may not operate as expected." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for specialized assistance.", vbCritical + vbOKOnly, "Microsoft Office Compatibility"
   End If
   
+End Function
+
+Function cptGetOfficeDir2(strApp As String) As String
+  Dim strDir As String
+  Dim vPath As Variant
+  Dim oFSO As Scripting.FileSystemObject
+  Dim oFolder As Scripting.Folder
+  strDir = ""
+  For Each vPath In Split(Environ("PATH"), ";")
+    strDir = cptRegEx(CStr(vPath), ".*Microsoft Office\\")
+    If Len(strDir) > 0 Then
+      Set oFSO = CreateObject("Scripting.FileSystemObject")
+      Set oFolder = oFSO.GetFolder(strDir)
+      cptGetOfficeDir2 = cptGetAppDir(oFolder, strApp)
+    End If
+  Next vPath
+  
+  Set oFSO = Nothing
+  Set oFolder = Nothing
+End Function
+
+Function cptGetAppDir(oFolder As Scripting.Folder, strApp As String) As String
+  Dim f As Scripting.File
+  Dim sf As Scripting.Folder
+  
+  If Dir(oFolder.Path & "\" & strApp) <> vbNullString Then
+    cptGetAppDir = oFolder.Path
+  Else
+    For Each sf In oFolder.SubFolders
+      If Len(cptGetAppDir) > 0 Then Exit Function
+      cptGetAppDir = cptGetAppDir(sf, strApp)
+    Next sf
+  End If
+  Set f = Nothing
+  Set sf = Nothing
 End Function
 
 Sub cptSubmitIssue()
