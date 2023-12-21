@@ -57,7 +57,7 @@ Dim vPath As Variant
   strFileName = cptRegEx(ActiveProject.Name, "[^\\/]{1,}$")
   strFileName = Replace(strFileName, ".mpp", "")
   strFileName = Replace(strFileName, " ", "_")
-  strFileName = strDir & "-CriticalPathAnalysis-" & Format(Now, "yyyy-mm-dd") & ".pptx"
+  strFileName = strDir & cptGetProgramAcronym & "-CriticalPathAnalysis-" & Format(Now, "yyyy-mm-dd") & ".pptx"
   On Error Resume Next
   Set pptExists = oPowerPoint.Presentations(strFileName)
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -85,7 +85,7 @@ Dim vPath As Variant
   oSlide.Shapes(2).TextFrame.TextRange.Text = cptGetUserFullName & vbCrLf & FormatDateTime(Now, vbShortDate)
   
   'for each primary,secondary,tertiary > make a slide
-  For Each vPath In Array("1", "2", "3")
+  For Each vPath In Split("1,2,3,4,5", ",")
     'copy the picture
     'SetAutoFilter FieldName:="CP Driving Paths", FilterType:=pjAutoFilterCustom, Test1:="contains", Criteria1:=CStr(vPath)
     SetAutoFilter FieldName:="CP Driving Path Group ID", FilterType:=pjAutoFilterIn, Criteria1:=CStr(vPath)
@@ -99,10 +99,10 @@ Dim vPath As Variant
     On Error Resume Next
     Set oTasks = ActiveSelection.Tasks
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-    If Tasks Is Nothing Then GoTo next_path
+    If oTasks Is Nothing Then GoTo next_path
     'account for when task count exceeds easily visible range
     'on powerpoint slide
-    lngTasks = Tasks.Count
+    lngTasks = oTasks.Count
     lngSlide = 0
     lngTask = 0
     Do While lngTask <= lngTasks
@@ -115,7 +115,7 @@ Dim vPath As Variant
       oPresentation.Slides.Add oPresentation.Slides.Count + 1, ppLayoutCustom
       Set oSlide = oPresentation.Slides(oPresentation.Slides.Count)
       oSlide.Layout = ppLayoutChart
-      oSlide.Shapes(1).TextFrame.TextRange.Text = Choose(vPath, "Primary", "Secondary", "Tertiary") & " Critical Path" & IIf(lngSlide > 1, " (cont'd)", "")
+      oSlide.Shapes(1).TextFrame.TextRange.Text = Choose(vPath, "Primary", "Secondary", "Tertiary", "Quaternary", "Quinary") & " Critical Path" & IIf(lngSlide > 1, " (cont'd)", "")
       oSlide.Shapes(2).Delete
       oSlide.Shapes.Paste
       oSlide.Shapes(oSlide.Shapes.Count).Width = oSlide.Master.Width * 0.9
@@ -141,6 +141,7 @@ exit_here:
   Set pptExists = Nothing
   Set oTargetTask = Nothing
   Set oTask = Nothing
+  Set oTasks = Nothing
   Set oPowerPoint = Nothing
   Set oPresentation = Nothing
   Set oSlide = Nothing
