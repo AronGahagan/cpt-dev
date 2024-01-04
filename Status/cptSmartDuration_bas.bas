@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSmartDuration_bas"
-'<cpt_version>v2.1.0</cpt_version>
+'<cpt_version>v2.0.1</cpt_version>
 
 Sub cptShowSmartDuration_frm()
   'objects
@@ -61,6 +61,7 @@ Sub cptUpdateSmartDurationForm()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If oTasks Is Nothing Then GoTo exit_here
+  If oTasks(1) Is Nothing Then GoTo exit_here
   blnValid = True
   If oTasks.Count > 1 Then
     cptSmartDuration_frm.txtTargetFinish = ""
