@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDataDictionary_bas"
-'<cpt_version>v1.4.0</cpt_version>
+'<cpt_version>v1.4.1</cpt_version>
 Option Explicit
 
 Sub cptExportDataDictionary()
@@ -195,14 +195,14 @@ Dim vFieldScope As Variant
             
             If blnLookups Then 'use data validation
               'name the range
-              wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + intListItem, lngLookupCol)), xlListObjectHasHeaders:=1).Name = UCase(Replace(FieldConstantToFieldName(lngField), " ", "_"))
+              wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + intListItem, lngLookupCol)), xlListObjectHasHeaders:=1).Name = UCase(Replace(Replace(FieldConstantToFieldName(lngField), " ", "_"), "-", "_"))
               wsLookups.Columns(lngLookupCol).AutoFit
               wsLookups.Columns(lngLookupCol + 1).ColumnWidth = 2
               'todo: how to keep pick list with cell when ListObject gets sorted?
               With oWorksheet.Cells(lngRow, 6).Validation
                  .Delete
                  .Add Type:=3, AlertStyle:=1, Operator:= _
-                 1, Formula1:="=INDIRECT(""" & UCase(Replace(FieldConstantToFieldName(lngField), " ", "_")) & """)"
+                 1, Formula1:="=INDIRECT(""" & UCase(Replace(Replace(FieldConstantToFieldName(lngField), " ", "_"), "-", "_")) & """)"
                  .IgnoreBlank = True
                  .InCellDropdown = True
                  .InputTitle = ""
@@ -278,13 +278,13 @@ next_field:
         
         If blnLookups Then 'use validation
           'name the range
-          wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + oLookupTable.Count, lngLookupCol)), xlListObjectHasHeaders:=1).Name = UCase(Replace(FieldConstantToFieldName(lngField), " ", "_"))
+          wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + oLookupTable.Count, lngLookupCol)), xlListObjectHasHeaders:=1).Name = UCase(Replace(Replace(FieldConstantToFieldName(lngField), " ", "_"), "-", "_"))
           wsLookups.Columns(lngLookupCol).AutoFit
           wsLookups.Columns(lngLookupCol + 1).ColumnWidth = 2
           With oWorksheet.Cells(lngRow, 6).Validation
             .Delete
             .Add Type:=3, AlertStyle:=1, Operator:= _
-            1, Formula1:="=INDIRECT(""" & UCase(Replace(FieldConstantToFieldName(lngField), " ", "_")) & """)"
+            1, Formula1:="=INDIRECT(""" & UCase(Replace(Replace(FieldConstantToFieldName(lngField), " ", "_"), "-", "_")) & """)"
             .IgnoreBlank = True
             .InCellDropdown = True
             .InputTitle = ""

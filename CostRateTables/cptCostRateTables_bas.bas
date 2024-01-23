@@ -64,7 +64,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptCostRateTables_bas", "cptShowCostRateTablesForm", Err, Erl)
+  Call cptHandleErr("cptCostRateTables_bas", "cptShowCostRateTables_frm", Err, Erl)
   Resume exit_here
 End Sub
 
