@@ -287,6 +287,22 @@ err_here:
   
 End Sub
 
+Private Sub chkConditionalFormatting_Click()
+  Dim strConditionalFormattingLegend As String
+  If Me.chkConditionalFormatting Then
+    Me.chkConditionalFormattingLegend.Enabled = True
+    strConditionalFormattingLegend = cptGetSetting("StatusSheet", "chkConditionalFormattingLegend")
+    If Len(strConditionalFormattingLegend) > 0 Then
+      Me.chkConditionalFormattingLegend = CBool(strConditionalFormattingLegend)
+    Else
+      Me.chkConditionalFormattingLegend = True 'default
+    End If
+  Else
+    Me.chkConditionalFormattingLegend = False
+    Me.chkConditionalFormattingLegend.Enabled = False
+  End If
+End Sub
+
 Private Sub chkHide_Click()
 
   If Not Me.Visible Then GoTo exit_here
@@ -333,7 +349,7 @@ Private Sub chkLookahead_Click()
 End Sub
 
 Private Sub chkSendEmails_Click()
-  Dim strQuickPart As String
+  Dim strQuickPart As String, strSubject As String, strCC As String, strKeepOpen As String
   Dim blnExists As Boolean
   Dim lngItem As Long
 
@@ -343,6 +359,15 @@ Private Sub chkSendEmails_Click()
   If Me.chkSendEmails Then
     Me.chkKeepOpen = False
     Me.chkKeepOpen.Enabled = False
+    strSubject = cptGetSetting("StatusSheet", "txtSubject")
+    If Len(strSubject) > 0 Then
+      Me.txtSubject = strSubject
+    End If
+    strCC = cptGetSetting("StatusSheet", "txtCC")
+    If Len(strCC) > 0 Then
+      Me.txtCC = strCC
+    End If
+    
     Call cptListQuickParts(True)
     strQuickPart = cptGetSetting("StatusSheet", "cboQuickPart")
     If Len(strQuickPart) > 0 Then
@@ -360,6 +385,12 @@ Private Sub chkSendEmails_Click()
     End If
   Else
     Me.chkKeepOpen.Enabled = True
+    strKeepOpen = cptGetSetting("StatusSheet", "chkKeepOpen")
+    If Len(strKeepOpen) > 0 Then
+      Me.chkKeepOpen.Value = CBool(strKeepOpen)
+    Else
+      Me.chkKeepOpen.Value = 0 'default
+    End If
   End If
 
 End Sub
@@ -1036,13 +1067,15 @@ Private Sub txtDir_Change()
   Me.lblDirSample.Caption = strDir
   
   If Dir(strDir, vbDirectory) = vbNullString Then
+    Me.txtDir.BorderColor = lngBorderColorInvalid
+    Me.txtDir.ForeColor = lngForeColorInvalid
     Me.lblDirectory.ForeColor = lngForeColorInvalid
     Me.lblDirSample.ForeColor = lngForeColorInvalid
-    Me.txtDir.BorderColor = lngBorderColorInvalid
   Else
+    Me.txtDir.BorderColor = lngBorderColorValid
+    Me.txtDir.ForeColor = lngForeColorValid
     Me.lblDirectory.ForeColor = lngForeColorValid
     Me.lblDirSample.ForeColor = 8421504
-    Me.txtDir.BorderColor = lngBorderColorValid
   End If
   Me.Repaint
 
@@ -1138,7 +1171,7 @@ Sub txtFileName_Change()
     strNamingConvention = Replace(strNamingConvention, strTempItem, "[item]")
   End If
 
-  If Me.cboCreate.Value > 0 Then 'for each
+  If Me.cboCreate.Value = 2 Then 'for each
     If InStr(strFileName, "[item]") > 0 Then
       If Me.lboItems.ListCount > 0 Then
         Me.lblFileNameSample.Caption = Replace(strFileName, "[item]", Me.lboItems.List(0, 0)) & ".xlsx"
@@ -1159,10 +1192,12 @@ Sub txtFileName_Change()
   
   If Not blnValid Then
     Me.txtFileName.BorderColor = lngBorderColorInvalid
+    Me.txtFileName.ForeColor = lngForeColorInvalid
     Me.lblNamingConvention.ForeColor = lngForeColorInvalid
     Me.lblFileNameSample.ForeColor = lngForeColorInvalid
   Else
     Me.txtFileName.BorderColor = lngBorderColorValid
+    Me.txtFileName.ForeColor = lngForeColorValid
     Me.lblNamingConvention.ForeColor = lngForeColorValid
     Me.lblFileNameSample.ForeColor = 8421504
   End If

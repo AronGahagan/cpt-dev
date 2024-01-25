@@ -89,6 +89,50 @@ err_here:
 
 End Function
 
+Function cptGetBreadcrumbs(strModule As String, strProcedure As String, strBreadcrumb As String) As Variant
+  Dim vbComponent As Object 'vbComponent
+  Dim strResult As String
+  Dim vbCodeModule As Object 'CodeModule
+  Dim lngStart As Long
+  Dim lngCount As Long
+  Dim lngLine As Long
+  Dim blnResult As Boolean
+  Dim strLine As String
+  
+  If Not cptModuleExists(strModule) Then
+    cptGetBreadcrumbs = "...module '" & strModule & "' not found"
+    Exit Function
+  Else
+    Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
+    Set vbCodeModule = vbComponent.CodeModule
+    If Not vbCodeModule.Find(strProcedure, 1, 1, vbCodeModule.CountOfLines, 100, True) Then
+      cptGetBreadcrumbs = " ...procedure '" & strProcedure & "' not found"
+      Exit Function
+    End If
+    lngStart = vbCodeModule.ProcBodyLine(strProcedure, 0) '0=vbext_pk_Proc
+    lngCount = lngStart + vbCodeModule.ProcCountLines(strProcedure, 0) '0=vbext_pk_Proc
+    If vbCodeModule.Find("<cpt-breadcrumbs:" & strBreadcrumb & ">", lngStart, 1, lngStart + lngCount, 100) = True Then
+      For lngLine = lngStart To (lngStart + lngCount)
+        If vbCodeModule.Find("<cpt-breadcrumbs:" & strBreadcrumb & ">", lngLine, 1, lngLine, 100) = True Then
+          blnResult = True 'start capturing
+        ElseIf vbCodeModule.Find("</cpt-breadcrumbs:" & strBreadcrumb & ">", lngLine, 1, lngLine, 100) = True Then
+          Exit For 'stop capturing
+        Else
+          If blnResult Then
+            strLine = Trim(vbCodeModule.Lines(lngLine, 1))
+            If Left(strLine, 1) = "'" Then
+              If InStr(strLine, "todo") = 0 Then
+                strResult = strResult & Right(strLine, Len(strLine) - 1) & vbCrLf 'comments only, sans apostrophe
+              End If
+            End If
+          End If
+        End If
+      Next lngLine
+      cptGetBreadcrumbs = Left(strResult, Len(strResult) - 1) 'hack off trailing comma
+    End If
+  End If
+End Function
+
 Function cptGetVersion(strModule As String) As String
   Dim vbComponent As Object, strVersion As String
   If Not cptModuleExists(strModule) Then
@@ -548,6 +592,7 @@ Sub cptResetAll()
   If Len(strDefaultView) > 0 And cptViewExists(strDefaultView) Then
     ActiveWindow.TopPane.Activate
     ViewApply strDefaultView
+    SetSplitBar ShowColumns:=ActiveProject.TaskTables(ActiveProject.CurrentTable).TableFields.Count
   End If
   
   If lngSettings > 0 Then
@@ -1731,7 +1776,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Function cptGetProgramAcronym()
+Function cptGetProgramAcronym() As String
   'objects
   Dim oCustomDocumentProperty As DocumentProperty
   'strings
@@ -2631,31 +2676,31 @@ Function cptSortedArray(vArray As Variant, lngSortKey As Long) As Variant
   'sort the sort keys
   'build sorted array off of keys using lookup
   Dim oDict As Object 'Scripting.Dictionary
-  Dim rows As Long, cols As Long
-  Dim r As Long, c As Long
+  Dim lngRows As Long, lngCols As Long
+  Dim lngRow As Long, lngCol As Long
   Dim strRow As String
   Dim vTemp() As Variant
   
   Set oDict = CreateObject("Scripting.Dictionary")
-  rows = UBound(vArray)
-  cols = UBound(vArray, 2)
-  For r = 0 To rows
+  lngRows = UBound(vArray)
+  lngCols = UBound(vArray, 2)
+  For lngRow = 0 To lngRows
     strRow = ""
-    For c = 0 To cols
-      strRow = strRow & vArray(r, c) & ","
-    Next c
+    For lngCol = 0 To lngCols
+      strRow = strRow & vArray(lngRow, lngCol) & ","
+    Next lngCol
     strRow = Left(strRow, Len(strRow) - 1)
-    oDict.Add vArray(r, lngSortKey), Split(strRow, ",")
-  Next r
+    oDict.Add vArray(lngRow, lngSortKey), Split(strRow, ",")
+  Next lngRow
     
   cptQuickSort oDict.Keys, 0, oDict.Count - 1
 
-  ReDim vTemp(0 To rows, 0 To cols)
-  For r = 0 To rows
-    For c = 0 To cols
-      vTemp(r, c) = oDict.Items()(r)(c)
-    Next c
-  Next r
+  ReDim vTemp(0 To lngRows, 0 To lngCols)
+  For lngRow = 0 To lngRows
+    For lngCol = 0 To lngCols
+      vTemp(lngRow, lngCol) = oDict.Items()(lngRow)(lngCol)
+    Next lngCol
+  Next lngRow
   
   cptSortedArray = vTemp
   
@@ -2715,4 +2760,13 @@ Function cptGetDate(dtDate As Date, Optional strFormat As String)
   For Each vFormat In Array(vbGeneralDate, vbLongDate, vbShortDate, vbLongTime, vbShortTime)
     Debug.Print vFormat & ": " & FormatDateTime(dtDate, vFormat)
   Next vFormat
+End Function
+
+Function cptCustomFieldExists(strCustomFieldName As String) As Variant
+  Dim lngFC As Long
+  On Error Resume Next
+  lngFC = FieldNameToFieldConstant(strCustomFieldName)
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  cptCustomFieldExists = lngFC
+err_here:
 End Function
