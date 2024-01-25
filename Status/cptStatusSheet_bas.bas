@@ -777,6 +777,8 @@ Sub cptCreateStatusSheet()
         GoTo exit_here
       End If
       
+      'get excel
+      If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
       Set oWorkbook = oExcel.Workbooks.Add
       oExcel.Calculation = xlCalculationManual
       oExcel.ScreenUpdating = False
@@ -793,11 +795,30 @@ Sub cptCreateStatusSheet()
       
       'add legend
       If blnPerformanceTest Then t = GetTickCount
+      .lblStatus.Caption = "Building legend..."
+      Application.StatusBar = .lblStatus.Caption
       cptAddLegend oWorksheet, dtStatus
+      .lblStatus.Caption = "Building legend...done."
+      Application.StatusBar = .lblStatus.Caption
       If blnPerformanceTest Then Debug.Print "set up legend: " & (GetTickCount - t) / 1000
       
       'final formatting
+      .lblStatus.Caption = "Formatting..."
+      Application.StatusBar = .lblStatus.Caption
       cptFinalFormats oWorksheet
+      .lblStatus.Caption = "Formatting...done."
+      Application.StatusBar = .lblStatus.Caption
+            
+      oWorksheet.Calculate
+      
+      If blnProtect Then 'protect the sheet
+        .lblStatus.Caption = "Protecting..."
+        Application.StatusBar = .lblStatus.Caption
+        oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
+        oWorksheet.EnableSelection = xlNoRestrictions
+        .lblStatus.Caption = "Protecting...done."
+        Application.StatusBar = .lblStatus.Caption
+      End If
       
       Set oInputRange = Nothing
       Set oNumberValidationRange = Nothing
@@ -805,42 +826,51 @@ Sub cptCreateStatusSheet()
       Set oUnlockedRange = Nothing
       Set oAssignmentRange = Nothing
       
-      oWorksheet.Calculate
-      
-      If blnProtect Then 'protect the sheet
-        oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
-        oWorksheet.EnableSelection = xlNoRestrictions
+      If blnConditionalFormatting And blnConditionalFormattingLegend Then
+        .lblStatus.Caption = "Adding Conditional Formatting Legend..."
+        Application.StatusBar = .lblStatus.Caption
+        cptAddConditionalFormattingLegend oWorkbook
+        .lblStatus.Caption = "Adding Conditional Formatting Legend...done."
+        Application.StatusBar = .lblStatus.Caption
+        oWorkbook.Sheets(1).Activate
       End If
-      
-      .lblStatus.Caption = "Creating Workbook...done"
-      Application.StatusBar = .lblStatus.Caption
-      DoEvents
-      
+                  
       'save the workbook
       .lblStatus.Caption = "Saving Workbook..."
       Application.StatusBar = .lblStatus.Caption
-      DoEvents
       strFileName = cptSaveStatusSheet(oWorkbook)
+      .lblStatus.Caption = "Saving Workbook...done."
+      Application.StatusBar = .lblStatus.Caption
+      DoEvents
       
       oExcel.Calculation = xlCalculationAutomatic
       oExcel.ScreenUpdating = True
       
-      'send the workbook
-      If blnEmail Then
-        'close the workbook - must close before attaching
+      If blnEmail Then 'send workbook
+        .lblStatus.Caption = "Creating Email..."
+        Application.StatusBar = .lblStatus.Caption
+        DoEvents
+        'must close before attaching to email
         oWorkbook.Close True
         oExcel.Wait Now + TimeValue("00:00:02")
+        oExcel.Quit
+        Set oExcel = Nothing
         cptSendStatusSheet strFileName
+        .lblStatus.Caption = "Creating Email...done."
+        Application.StatusBar = .lblStatus.Caption
+        DoEvents
       Else
-        If Not blnKeepOpen Then
+        If blnKeepOpen Then
+          oExcel.Visible = True
+          oWorkbook.Activate
+        Else
           oWorkbook.Close True
           oExcel.Wait Now + TimeValue("00:00:002")
-        Else
-          oExcel.Visible = True
         End If
-      End If
+      End If 'blnEmail
       
     ElseIf .cboCreate.Value = "1" Then  'worksheet for each
+      
       Set oWorkbook = oExcel.Workbooks.Add
       oExcel.Calculation = xlCalculationManual
       oExcel.ScreenUpdating = False
@@ -862,6 +892,7 @@ Sub cptCreateStatusSheet()
           'create worksheet
           Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
           oWorksheet.Name = strItem
+
           'copy data
           If blnPerformanceTest Then t = GetTickCount
           .lblStatus.Caption = "Creating Worksheet for " & strItem & "..."
@@ -869,19 +900,32 @@ Sub cptCreateStatusSheet()
           DoEvents
           cptCopyData oWorksheet, lngHeaderRow
           If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
+
           'add legend
           If blnPerformanceTest Then t = GetTickCount
+          .lblStatus.Caption = "Building legend for " & strItem & "..."
+          Application.StatusBar = .lblStatus.Caption
           cptAddLegend oWorksheet, dtStatus
+          .lblStatus.Caption = "Building legend for " & strItem & "...done."
+          Application.StatusBar = .lblStatus.Caption
           If blnPerformanceTest Then Debug.Print "set up legend: " & (GetTickCount - t) / 1000
           
           'final formatting
+          .lblStatus.Caption = "Formatting " & strItem & "..."
+          Application.StatusBar = .lblStatus.Caption
           cptFinalFormats oWorksheet
+          .lblStatus.Caption = "Formatting " & strItem & "...done."
+          Application.StatusBar = .lblStatus.Caption
           
           oWorksheet.Calculate
           
           If blnProtect Then 'protect the sheet
+            .lblStatus.Caption = "Protecting " & strItem & "..."
+            Application.StatusBar = .lblStatus.Caption
             oWorksheet.Protect Password:="NoTouching!", DrawingObjects:=False, Contents:=True, Scenarios:=False, UserInterfaceOnly:=True, AllowFiltering:=True, AllowFormattingRows:=True, AllowFormattingColumns:=True, AllowFormattingCells:=True
             oWorksheet.EnableSelection = xlNoRestrictions
+            .lblStatus.Caption = "Protecting " & strItem & "...done."
+            Application.StatusBar = .lblStatus.Caption
           End If
           
           Set oInputRange = Nothing
@@ -903,31 +947,52 @@ next_worksheet:
       Set oWorksheet = oWorkbook.Sheets("Sheet1")
       If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If Not oWorksheet Is Nothing Then oWorksheet.Delete
+      
+      If blnConditionalFormatting And blnConditionalFormattingLegend Then
+        .lblStatus.Caption = "Adding Conditional Formatting Legend..."
+        Application.StatusBar = .lblStatus.Caption
+        cptAddConditionalFormattingLegend oWorkbook
+        .lblStatus.Caption = "Adding Conditional Formatting Legend...done."
+        Application.StatusBar = .lblStatus.Caption
+      End If
       oWorkbook.Sheets(1).Activate
-      
+
       'save the workbook
+      .lblStatus.Caption = "Saving Workbook..."
+      Application.StatusBar = .lblStatus.Caption
       strFileName = cptSaveStatusSheet(oWorkbook)
+      .lblStatus.Caption = "Saving Workbook...done."
+      Application.StatusBar = .lblStatus.Caption
+      DoEvents
       
-      'turn Excel back on
       oExcel.Calculation = xlCalculationAutomatic
       oExcel.ScreenUpdating = True
       
-      'send the workbook
-      If blnEmail Then
-        'close the workbook - must close before attaching
+      If blnEmail Then 'send workbook
+        .lblStatus.Caption = "Creating Email..."
+        Application.StatusBar = .lblStatus.Caption
+        DoEvents
+        'must close before attaching
         oWorkbook.Close True
         oExcel.Wait Now + TimeValue("00:00:02")
+        oExcel.Quit
+        Set oExcel = Nothing
         cptSendStatusSheet strFileName
+        .lblStatus.Caption = "Creating Email...done."
+        Application.StatusBar = .lblStatus.Caption
+        DoEvents
       Else
-        If Not blnKeepOpen Then
+        If blnKeepOpen Then
+          oExcel.Visible = True
+          oWorkbook.Activate
+        Else
           oWorkbook.Close True
           oExcel.Wait Now + TimeValue("00:00:002")
-        Else
-          oExcel.Visible = True
         End If
-      End If
+      End If 'blnEmail
       
     ElseIf .cboCreate.Value = "2" Then  'workbook for each
+      
       For lngItem = 0 To .lboItems.ListCount - 1
         If .lboItems.Selected(lngItem) Then
           strItem = .lboItems.List(lngItem, 0)
@@ -944,7 +1009,7 @@ next_worksheet:
           End If
           
           'get excel
-          If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application") 'todo: added
+          If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
           Set oWorkbook = oExcel.Workbooks.Add
           oExcel.Calculation = xlCalculationManual
           oExcel.ScreenUpdating = False
@@ -994,143 +1059,10 @@ next_worksheet:
                     
           If blnConditionalFormatting And blnConditionalFormattingLegend Then
             .lblStatus.Caption = "Adding Conditional Formatting Legend (" & strItem & ")..."
-            Application.StatusBar = "Adding Conditional Formatting Legend..."
-            Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
-            oWorksheet.Activate
-            oWorksheet.Name = "Conditional Formatting"
-            vArray = Split(cptGetBreadcrumbs("cptStatusSheet_bas", "cptCopyData", "format-conditions"), vbCrLf)
-            oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].Offset(UBound(vArray) - 1)) = oExcel.WorksheetFunction.Transpose(vArray)
-            oWorksheet.Range(oWorksheet.[A1048576].End(xlUp), oWorksheet.[A1048576].End(xlUp).End(xlUp)).Replace ":", ";", lookat:=xlPart
-            oWorksheet.Range(oWorksheet.[A1048576].End(xlUp), oWorksheet.[A1048576].End(xlUp).End(xlUp)).Replace " -> ", ";", lookat:=xlPart
-            oWorksheet.[C1:E1] = Split("COLUMN,CONDITION,FORMAT", ",")
-            oWorksheet.Range(oWorksheet.[A1048576].End(xlUp), oWorksheet.[A1048576].End(xlUp).End(xlUp)).Cut oWorksheet.[c2]
-            oWorksheet.Range(oWorksheet.[c2], oWorksheet.[c2].End(xlDown)).TextToColumns DataType:=xlDelimited, SemiColon:=True
-            oWorksheet.[A1].Font.Bold = True
-            oWorksheet.[A11].Font.Bold = True
-            oWorksheet.[C1:E1].Font.Bold = True
-            'make it a list
-            Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[C1].End(xlToRight), oWorksheet.[C1].End(xlDown)), , xlYes)
-            'borders and shading
-            oListObject.TableStyle = ""
-            oListObject.Range.Borders(xlDiagonalDown).LineStyle = xlNone
-            oListObject.Range.Borders(xlDiagonalUp).LineStyle = xlNone
-            For Each vBorder In Array(xlEdgeLeft, xlEdgeTop, xlEdgeBottom, xlEdgeRight)
-              With oListObject.HeaderRowRange.Borders(vBorder)
-                .LineStyle = xlContinuous
-                .ThemeColor = 1
-                .TintAndShade = -0.499984740745262
-                .Weight = xlThin
-              End With
-              With oListObject.DataBodyRange.Borders(vBorder)
-                .LineStyle = xlContinuous
-                .ThemeColor = 1
-                .TintAndShade = -0.499984740745262
-                .Weight = xlThin
-              End With
-            Next vBorder
-            'inside borders
-            For Each vBorder In Array(xlInsideVertical, xlInsideHorizontal)
-              With oListObject.HeaderRowRange.Borders(vBorder)
-                .LineStyle = xlContinuous
-                .ThemeColor = 1
-                .TintAndShade = -0.249946592608417
-                .Weight = xlThin
-              End With
-              With oListObject.DataBodyRange.Borders(vBorder)
-                .LineStyle = xlContinuous
-                .ThemeColor = 1
-                .TintAndShade = -0.249946592608417
-                .Weight = xlThin
-              End With
-            Next vBorder
-            oListObject.HeaderRowRange.Font.Bold = True
-            With oListObject.HeaderRowRange.Interior
-              .Pattern = xlSolid
-              .PatternColorIndex = xlAutomatic
-              .ThemeColor = xlThemeColorDark1
-              .TintAndShade = -0.149998474074526
-              .PatternTintAndShade = 0
-            End With
-            
-            'conditional formatting
-            With oListObject.ListColumns("FORMAT").DataBodyRange
-              .FormatConditions.Delete
-              
-              .FormatConditions.Add xlTextString, String:="=""BAD""", TextOperator:=xlContains
-              .FormatConditions(.FormatConditions.Count).SetFirstPriority
-              With .FormatConditions(1).Font
-                .Color = -16383844
-                .TintAndShade = 0
-              End With
-              With .FormatConditions(1).Interior
-                .PatternColorIndex = xlAutomatic
-                .Color = 13551615
-                .TintAndShade = 0
-              End With
-              .FormatConditions(1).StopIfTrue = False
-              
-              .FormatConditions.Add xlTextString, String:="=""NEUTRAL""", TextOperator:=xlContains
-              .FormatConditions(.FormatConditions.Count).SetFirstPriority
-              With .FormatConditions(1).Font
-                .Color = -16754788
-                .TintAndShade = 0
-              End With
-              With .FormatConditions(1).Interior
-                .PatternColorIndex = xlAutomatic
-                .Color = 10284031
-                .TintAndShade = 0
-              End With
-              .FormatConditions(1).StopIfTrue = False
-            
-              .FormatConditions.Add xlCellValue, xlEqual, Formula1:="=""GOOD"""
-              .FormatConditions(.FormatConditions.Count).SetFirstPriority
-              With .FormatConditions(1).Font
-                .Color = -16752384
-                .TintAndShade = 0
-              End With
-              With .FormatConditions(1).Interior
-                .PatternColorIndex = xlAutomatic
-                .Color = 13561798
-                .TintAndShade = 0
-              End With
-              .FormatConditions(1).StopIfTrue = False
-            
-              .FormatConditions.Add xlTextString, String:="=""COMPLETE""", TextOperator:=xlContains
-              .FormatConditions(.FormatConditions.Count).SetFirstPriority
-              With .FormatConditions(1).Font
-                .Color = 8355711
-                .TintAndShade = 0
-              End With
-              With .FormatConditions(1).Interior
-                .PatternColorIndex = -4105
-                .Color = 15921906
-                .TintAndShade = 0
-              End With
-              .FormatConditions(1).StopIfTrue = False
- 
-              .FormatConditions.Add xlTextString, String:="=""INPUT""", TextOperator:=xlContains
-              .FormatConditions(.FormatConditions.Count).SetFirstPriority
-              With .FormatConditions(1).Font
-                .Color = 7749439
-                .TintAndShade = 0
-              End With
-              With .FormatConditions(1).Interior
-                .PatternColorIndex = -4105
-                .Color = 10079487
-                .TintAndShade = 0
-              End With
-              .FormatConditions(1).StopIfTrue = False
-            End With
-            oWorksheet.Application.ActiveWindow.Zoom = 85
-            oWorksheet.[A1].Select
-            oWorksheet.Columns.AutoFit
-            oWorksheet.Columns(2).ColumnWidth = 1
-            oWorksheet.Application.ActiveWindow.SplitRow = 1
-            oWorksheet.Application.ActiveWindow.SplitColumn = 0
-            oWorksheet.Application.WindowState = xlNormal
-            oWorksheet.Application.ActiveWindow.FreezePanes = True
-            oWorksheet.Application.WindowState = xlMinimized
-            oWorksheet.Application.ActiveWindow.DisplayGridlines = False
+            Application.StatusBar = .lblStatus.Caption
+            cptAddConditionalFormattingLegend oWorkbook
+            .lblStatus.Caption = "Adding Conditional Formatting Legend (" & strItem & ")...done."
+            Application.StatusBar = .lblStatus.Caption
             oWorkbook.Sheets(1).Activate
           End If
                     
@@ -1138,12 +1070,14 @@ next_worksheet:
           .lblStatus.Caption = "Saving Workbook for " & strItem & "..."
           Application.StatusBar = .lblStatus.Caption
           strFileName = cptSaveStatusSheet(oWorkbook, strItem)
-          .lblStatus.Caption = "Saving Workbook for " & strItem & "...done"
+          .lblStatus.Caption = "Saving Workbook for " & strItem & "...done."
+          Application.StatusBar = .lblStatus.Caption
           DoEvents
           
-          'send email
           oExcel.Calculation = xlCalculationAutomatic
-          If blnEmail Then
+          'oExcel.ScreenUpdating = True 'not yet
+          
+          If blnEmail Then 'send workbook
             .lblStatus.Caption = "Creating Email for " & strItem & "..."
             Application.StatusBar = .lblStatus.Caption
             DoEvents
@@ -1157,12 +1091,12 @@ next_worksheet:
             Application.StatusBar = .lblStatus.Caption
             DoEvents
           Else
-            If Not blnKeepOpen Then
-              oWorkbook.Close True
-              oExcel.Wait Now + TimeValue("00:00:002")
-            Else
+            If blnKeepOpen Then
               oExcel.Visible = True
               oWorkbook.Activate
+            Else
+              oWorkbook.Close True
+              oExcel.Wait Now + TimeValue("00:00:002")
             End If
           End If 'blnEmail
         End If '.lboItems.Selected(lngItem)
@@ -1176,7 +1110,7 @@ next_workbook:
         oExcel.Visible = True
       End If
       
-    End If
+    End If 'cboCreate
     .lblStatus.Caption = Choose(.cboCreate + 1, "Workbook", "Workbook", "Workbooks") & " Complete"
     Application.StatusBar = .lblStatus.Caption
     DoEvents
@@ -1705,7 +1639,7 @@ try_again:
     
     'capture conditional formatting ranges
     blnConditionalFormats = cptStatusSheet_frm.chkConditionalFormatting
-    If Not blnLOE And blnConditionalFormats Then
+    If Not blnLOE And blnConditionalFormats Then 'todo: include LOE?
       If oNSRange Is Nothing Then
         Set oNSRange = oWorksheet.Cells(lngRow, lngASCol)
       Else
@@ -2236,7 +2170,7 @@ skip_working:
       'race is over - notify
       cptStatusSheet_frm.lblStatus.Caption = "Applying Conditional Formatting [" & strItem & "]...done."
       cptStatusSheet_frm.lblProgress.Width = cptStatusSheet_frm.lblStatus.Width
-      Application.StatusBar = "Applying Conditional Formatting [" & strItem & "]...done."
+      Application.StatusBar = cptStatusSheet_frm.lblStatus.Caption
       oDict.RemoveAll
       .Close
     End With
@@ -3239,5 +3173,173 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptStatusSheet_bas", "cptFindUnstatusedTasks", Err, Erl)
+  Resume exit_here
+End Sub
+
+Sub cptAddConditionalFormatting(ByRef oWorksheet As Excel.Worksheet)
+
+End Sub
+
+Sub cptAddConditionalFormattingLegend(ByRef oWorkbook As Excel.Workbook)
+  'objects
+  Dim oListObject As Object
+  Dim oWorksheet As Object
+  'strings
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vBorder As Variant
+  Dim vArray As Variant
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
+  oWorksheet.Activate
+  oWorksheet.Name = "Conditional Formatting"
+  vArray = Split(cptGetBreadcrumbs("cptStatusSheet_bas", "cptCopyData", "format-conditions"), vbCrLf)
+  oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].Offset(UBound(vArray) - 1)) = oWorkbook.Application.WorksheetFunction.Transpose(vArray)
+  oWorksheet.Range(oWorksheet.[A1048576].End(xlUp), oWorksheet.[A1048576].End(xlUp).End(xlUp)).Replace ":", ";", lookat:=xlPart
+  oWorksheet.Range(oWorksheet.[A1048576].End(xlUp), oWorksheet.[A1048576].End(xlUp).End(xlUp)).Replace " -> ", ";", lookat:=xlPart
+  oWorksheet.[C1:E1] = Split("COLUMN,CONDITION,FORMAT", ",")
+  oWorksheet.Range(oWorksheet.[A1048576].End(xlUp), oWorksheet.[A1048576].End(xlUp).End(xlUp)).Cut oWorksheet.[c2]
+  oWorksheet.Range(oWorksheet.[c2], oWorksheet.[c2].End(xlDown)).TextToColumns DataType:=xlDelimited, SemiColon:=True
+  oWorksheet.[A1].Font.Bold = True
+  oWorksheet.[A11].Font.Bold = True
+  oWorksheet.[C1:E1].Font.Bold = True
+  'make it a list
+  Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[C1].End(xlToRight), oWorksheet.[C1].End(xlDown)), , xlYes)
+  'borders and shading
+  oListObject.TableStyle = ""
+  oListObject.Range.Borders(xlDiagonalDown).LineStyle = xlNone
+  oListObject.Range.Borders(xlDiagonalUp).LineStyle = xlNone
+  For Each vBorder In Array(xlEdgeLeft, xlEdgeTop, xlEdgeBottom, xlEdgeRight)
+    With oListObject.HeaderRowRange.Borders(vBorder)
+      .LineStyle = xlContinuous
+      .ThemeColor = 1
+      .TintAndShade = -0.499984740745262
+      .Weight = xlThin
+    End With
+    With oListObject.DataBodyRange.Borders(vBorder)
+      .LineStyle = xlContinuous
+      .ThemeColor = 1
+      .TintAndShade = -0.499984740745262
+      .Weight = xlThin
+    End With
+  Next vBorder
+  'inside borders
+  For Each vBorder In Array(xlInsideVertical, xlInsideHorizontal)
+    With oListObject.HeaderRowRange.Borders(vBorder)
+      .LineStyle = xlContinuous
+      .ThemeColor = 1
+      .TintAndShade = -0.249946592608417
+      .Weight = xlThin
+    End With
+    With oListObject.DataBodyRange.Borders(vBorder)
+      .LineStyle = xlContinuous
+      .ThemeColor = 1
+      .TintAndShade = -0.249946592608417
+      .Weight = xlThin
+    End With
+  Next vBorder
+  oListObject.HeaderRowRange.Font.Bold = True
+  With oListObject.HeaderRowRange.Interior
+    .Pattern = xlSolid
+    .PatternColorIndex = xlAutomatic
+    .ThemeColor = xlThemeColorDark1
+    .TintAndShade = -0.149998474074526
+    .PatternTintAndShade = 0
+  End With
+  
+  'conditional formatting
+  With oListObject.ListColumns("FORMAT").DataBodyRange
+    .FormatConditions.Delete
+    
+    .FormatConditions.Add xlTextString, String:="=""BAD""", TextOperator:=xlContains
+    .FormatConditions(.FormatConditions.Count).SetFirstPriority
+    With .FormatConditions(1).Font
+      .Color = -16383844
+      .TintAndShade = 0
+    End With
+    With .FormatConditions(1).Interior
+      .PatternColorIndex = xlAutomatic
+      .Color = 13551615
+      .TintAndShade = 0
+    End With
+    .FormatConditions(1).StopIfTrue = False
+    
+    .FormatConditions.Add xlTextString, String:="=""NEUTRAL""", TextOperator:=xlContains
+    .FormatConditions(.FormatConditions.Count).SetFirstPriority
+    With .FormatConditions(1).Font
+      .Color = -16754788
+      .TintAndShade = 0
+    End With
+    With .FormatConditions(1).Interior
+      .PatternColorIndex = xlAutomatic
+      .Color = 10284031
+      .TintAndShade = 0
+    End With
+    .FormatConditions(1).StopIfTrue = False
+  
+    .FormatConditions.Add xlCellValue, xlEqual, Formula1:="=""GOOD"""
+    .FormatConditions(.FormatConditions.Count).SetFirstPriority
+    With .FormatConditions(1).Font
+      .Color = -16752384
+      .TintAndShade = 0
+    End With
+    With .FormatConditions(1).Interior
+      .PatternColorIndex = xlAutomatic
+      .Color = 13561798
+      .TintAndShade = 0
+    End With
+    .FormatConditions(1).StopIfTrue = False
+  
+    .FormatConditions.Add xlTextString, String:="=""COMPLETE""", TextOperator:=xlContains
+    .FormatConditions(.FormatConditions.Count).SetFirstPriority
+    With .FormatConditions(1).Font
+      .Color = 8355711
+      .TintAndShade = 0
+    End With
+    With .FormatConditions(1).Interior
+      .PatternColorIndex = -4105
+      .Color = 15921906
+      .TintAndShade = 0
+    End With
+    .FormatConditions(1).StopIfTrue = False
+
+    .FormatConditions.Add xlTextString, String:="=""INPUT""", TextOperator:=xlContains
+    .FormatConditions(.FormatConditions.Count).SetFirstPriority
+    With .FormatConditions(1).Font
+      .Color = 7749439
+      .TintAndShade = 0
+    End With
+    With .FormatConditions(1).Interior
+      .PatternColorIndex = -4105
+      .Color = 10079487
+      .TintAndShade = 0
+    End With
+    .FormatConditions(1).StopIfTrue = False
+  End With
+  oWorksheet.Application.ActiveWindow.Zoom = 85
+  oWorksheet.[A1].Select
+  oWorksheet.Columns.AutoFit
+  oWorksheet.Columns(2).ColumnWidth = 1
+  oWorksheet.Application.ActiveWindow.SplitRow = 1
+  oWorksheet.Application.ActiveWindow.SplitColumn = 0
+  oWorksheet.Application.WindowState = xlNormal
+  oWorksheet.Application.ActiveWindow.FreezePanes = True
+  oWorksheet.Application.WindowState = xlMinimized
+  oWorksheet.Application.ActiveWindow.DisplayGridlines = False
+        
+exit_here:
+  On Error Resume Next
+  Set oListObject = Nothing
+  Set oWorksheet = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptAddConditionalFormattingLegend", Err, Erl)
   Resume exit_here
 End Sub
