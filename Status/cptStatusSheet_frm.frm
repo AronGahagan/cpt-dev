@@ -1171,7 +1171,7 @@ Sub txtFileName_Change()
     strNamingConvention = Replace(strNamingConvention, strTempItem, "[item]")
   End If
 
-  If Me.cboCreate.Value > 0 Then 'for each
+  If Me.cboCreate.Value = 2 Then 'for each
     If InStr(strFileName, "[item]") > 0 Then
       If Me.lboItems.ListCount > 0 Then
         Me.lblFileNameSample.Caption = Replace(strFileName, "[item]", Me.lboItems.List(0, 0)) & ".xlsx"

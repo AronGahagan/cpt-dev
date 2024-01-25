@@ -90,8 +90,9 @@ err_here:
 End Function
 
 Function cptGetBreadcrumbs(strModule As String, strProcedure As String, strBreadcrumb As String) As Variant
-  Dim vbComponent As vbComponent, strResult As String
-  Dim vbCodeModule As CodeModule
+  Dim vbComponent As Object 'vbComponent
+  Dim strResult As String
+  Dim vbCodeModule As Object 'CodeModule
   Dim lngStart As Long
   Dim lngCount As Long
   Dim lngLine As Long
@@ -108,8 +109,8 @@ Function cptGetBreadcrumbs(strModule As String, strProcedure As String, strBread
       cptGetBreadcrumbs = " ...procedure '" & strProcedure & "' not found"
       Exit Function
     End If
-    lngStart = vbCodeModule.ProcBodyLine(strProcedure, vbext_pk_Proc)
-    lngCount = lngStart + vbCodeModule.ProcCountLines(strProcedure, vbext_pk_Proc)
+    lngStart = vbCodeModule.ProcBodyLine(strProcedure, 0) '0=vbext_pk_Proc
+    lngCount = lngStart + vbCodeModule.ProcCountLines(strProcedure, 0) '0=vbext_pk_Proc
     If vbCodeModule.Find("<cpt-breadcrumbs:" & strBreadcrumb & ">", lngStart, 1, lngStart + lngCount, 100) = True Then
       For lngLine = lngStart To (lngStart + lngCount)
         If vbCodeModule.Find("<cpt-breadcrumbs:" & strBreadcrumb & ">", lngLine, 1, lngLine, 100) = True Then

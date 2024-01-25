@@ -2393,7 +2393,7 @@ Sub cptFinalFormats(ByRef oWorksheet As Excel.Worksheet)
   oWorksheet.Application.Calculation = xlCalculationAutomatic
   oWorksheet.Application.ScreenUpdating = True
   oWorksheet.Application.ActiveWindow.DisplayGridlines = False
-  oWorksheet.[B2].Select
+  oWorksheet.[B1].Select
   oWorksheet.Application.ActiveWindow.SplitRow = 8
   oWorksheet.Application.ActiveWindow.SplitColumn = 0
   oWorksheet.Application.ActiveWindow.FreezePanes = True
