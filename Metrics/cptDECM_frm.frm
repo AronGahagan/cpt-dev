@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptDECM_frm 
-   Caption         =   "DECM v5.0"
+   Caption         =   "DECM v6.0"
    ClientHeight    =   4980
    ClientLeft      =   120
    ClientTop       =   465
@@ -13,19 +13,41 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v0.0.4</cpt_version>
+'<cpt_version>v0.0.5</cpt_version>
 Option Explicit
 
+Private Sub chkUpdateView_Click()
+  Dim blnUpdateView As Boolean
+  If Not Me.Visible Then Exit Sub
+  blnUpdateView = Me.chkUpdateView
+  cptSaveSetting "Integration", "chkUpdateView", IIf(blnUpdateView, "1", "0")
+  If blnUpdateView And Not IsNull(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)) Then
+    cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)
+  End If
+End Sub
+
 Private Sub cmdDone_Click()
-  Unload Me
-  'then clean up after yourself
   Dim vFile As Variant
   Dim strFile As String
-  For Each vFile In Split("Schema.ini,tasks.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv,06A504a.csv", ",")
+  Dim vGroup As Variant
+  Dim strGroups As String
+  
+  Unload Me
+  'then clean up after yourself
+  For Each vFile In Split("Schema.ini,tasks.csv,targets.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv,06A504a.csv,06A504b.csv,segregated.csv,itemized.csv", ",")
     strFile = Environ("tmp") & "\" & vFile
     If Dir(strFile) <> vbNullString Then Kill strFile
   Next vFile
   cptResetAll
+
+  'git grep 'strGroup =' | grep -v "grep" | awk -F"strGroup = " '{ print $2}' | sed 's/"//g' | tr -s '\n' ','
+  strGroups = "cpt 05A101a 1 CA : 1 OBS,cpt 05A102a 1 CA : 1 CAM,cpt 05A103a 1 CA : 1 WBS,cpt 1wp_1ca,cpt 10A102a 1 WP : 1 EVT,cpt 11A101a CA BAC = SUM(WP BAC),cpt 06A210a LOE driving Discrete"
+  For Each vGroup In Split(strGroups, ",")
+    If cptGroupExists(CStr(vGroup)) Then ActiveProject.TaskGroups2(vGroup).Delete
+  Next vGroup
+  
+  Set oDECM = Nothing
+  
 End Sub
 
 Private Sub cmdExport_Click()
@@ -53,6 +75,7 @@ Public Sub lboMetrics_AfterUpdate()
   Dim oFile As Scripting.TextStream  'Object
   Dim oFSO As Scripting.FileSystemObject  'Object
   'strings
+  Dim strRollingWaveDate As String
   Dim strMsg As String
   Dim strDir As String
   Dim strDescription As String
@@ -140,9 +163,26 @@ Public Sub lboMetrics_AfterUpdate()
         
         GoTo exit_here
       End If
+    Case "06I201a"
+      strDescription = strDescription & "SCORE: " & strScore
+      strDescription = strDescription & vbCrLf & vbCrLf & "Task Name contains 'SVT' and has resource assignments" & vbCrLf
+      strDescription = strDescription & Me.lboMetrics.List(Me.lboMetrics.ListIndex, 7)
     
+    Case "06A205a"
+      strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
+      strDescription = strDescription & vbCrLf & vbCrLf & "NOTE: metric does not address leads (negative lags)." & vbCrLf
     Case "06A208a"
       strDescription = strDescription & "SCORE: " & strScore
+    Case "06A210a"
+      strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
+      strDescription = strDescription & vbCrLf & vbCrLf & "NOTE: filter shows both LOE pred and Non-LOE successor."
+    Case "06A401a" 'critical path
+      strDescription = strMetric & vbCrLf
+      strDescription = strDescription & strTitle & vbCrLf & vbCrLf
+      strDescription = strDescription & "TARGET: " & strTarget & vbCrLf
+      strDescription = strDescription & "X: " & lngX & vbCrLf
+      strDescription = strDescription & "SCORE: " & lngX & vbCrLf & vbCrLf
+      strDescription = strDescription & "NOTE: subtract # of tasks that *are* on the Contractor's critical path."
     Case "06A504a"
       strDescription = strDescription & "SCORE: " & strScore
       strDescription = strDescription & vbCrLf & vbCrLf & "...requires CPT > Status > Capture Week, two periods"
@@ -159,17 +199,24 @@ Public Sub lboMetrics_AfterUpdate()
     Case "10A103a"
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
       If lngX > 0 Then strDescription = strDescription & vbCrLf & vbCrLf & "...details exported to Excel"
-    Case "06I201a"
-      strDescription = strDescription & "SCORE: " & strScore
-      strDescription = strDescription & vbCrLf & vbCrLf & "Task Name contains 'SVT' and has resource assignments"
-    Case Else
+    Case "11A101a"
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
+      strDescription = strDescription & vbCrLf & vbCrLf & "NOTE: analysis done on Baseline Work only."
+    Case "29A601a"
+      strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore
+      strRollingWaveDate = cptGetSetting("Integration", "RollingWaveDate")
+      If Len(strRollingWaveDate) > 0 Then
+        strDescription = strDescription & vbCrLf & vbCrLf & "Rolling Wave Date: " & FormatDateTime(CDate(strRollingWaveDate), vbShortDate)
+      End If
+    Case Else
+      strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore & vbCrLf & vbCrLf
+      strDescription = strDescription & cptGetDECMDescription(strMetric)
   End Select
   
   Me.txtTitle.Value = strDescription
-  blnUpdateView = True 'todo: make this a checkbox on the DECM form
-  If blnUpdateView And Not IsNull(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)) Then
-    cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)
+  blnUpdateView = Me.chkUpdateView
+  If blnUpdateView And Len(oDECM(strMetric)) > 0 Then
+    cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), oDECM(strMetric)
   End If
   
 exit_here:
@@ -212,6 +259,8 @@ Private Sub txtTitle_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, By
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If Me.lboMetrics.Value <> "06A101a" Then Exit Sub
   
   Me.txtTitle.Text = Me.txtTitle.Text & "validating..." & vbCrLf
   vData = Split(Data.GetText, vbCrLf)
@@ -315,4 +364,8 @@ exit_here:
 err_here:
   Call cptHandleErr("cptDECM_frm", "txtTitle_BeforeDropOrPaste", Err, Erl)
   Resume exit_here
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  Set oDECM = Nothing
 End Sub

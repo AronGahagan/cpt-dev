@@ -234,10 +234,7 @@ Dim strDirectory As String
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  'remove the prefix
-  strDirectory = Replace(strComponentName, "cpt", "")
-  'remove the suffix
-  If InStr(strDirectory, "_") > 0 Then strDirectory = Left(strDirectory, InStr(strDirectory, "_") - 1)
+  strDirectory = cptRegEx(strComponentName, "[^(cpt)](.*)(?=(_frm|_bas|_cls))")
   Select Case strDirectory
     Case "About"
       strDirectory = "Core"
@@ -264,6 +261,8 @@ Dim strDirectory As String
     Case "DataDictionary"
       strDirectory = "CustomFields"
     Case "DECM"
+      strDirectory = "Metrics"
+    Case "DECMTargetUID"
       strDirectory = "Metrics"
     Case "DynamicFilter"
       strDirectory = "Text"

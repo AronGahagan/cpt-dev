@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.8.16</cpt_version>
+'<cpt_version>v1.8.17</cpt_version>
 Option Explicit
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
@@ -527,8 +527,10 @@ Dim lngCleanUp As Long
   'schedule
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Schedule"" visible=""true"" >"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mHealth"" label=""Health"" imageMso=""CheckWorkflow"" visible=""true"" size=""large"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DECM (v5.0)"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDECM"" label=""DECM Dashboard"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DECM Dashboard (Aligned to DECM 06A212a v5.0)"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DCMA EVMS Compliance Metric (DECM)"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDECM"" label=""DECM Dashboard (v6.0)"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DECM Dashboard (v6.0)"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIntegrationSettings1"" label=""Integration Settings"" imageMso=""Settings"" onAction=""cptGetValidMap"" visible=""true"" supertip=""Set, edit, and confirm Integration Settings"" />"
 '  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DCMA 14"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
 '  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDCMA14"" label=""DCMA 01"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DCMA 14-pt Analysis"" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
@@ -556,7 +558,7 @@ Dim lngCleanUp As Long
   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""After Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBlameReport"" label=""The Blame Report"" imageMso=""ContactProperties"" onAction=""cptBlameReport"" visible=""true"" supertip=""Find out which tasks slipped from last period."" />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCaptureWeek2"" label=""Capture Week"" imageMso=""RefreshWebView"" onAction=""cptCaptureWeek"" visible=""true"" supertip=""Capture the Current Schedule after updates to compare against past and future weeks during execution. This is required for certain metrics (e.g., CEI, all Trending) to run properly."" />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCompletedWork"" label=""Export Completed WPCNs"" imageMso=""DisconnectFromServer"" onAction=""cptExportCompletedWork"" visible=""true"" supertip=""Export Completed WPCNs for closure in Time system (uses COBRA Export Tool field settings)."" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCompletedWork"" label=""Export Completed WPCNs"" imageMso=""DisconnectFromServer"" onAction=""cptExportCompletedWork"" visible=""true"" supertip=""Export Completed WPCNs for closure in the time card system."" />"
   If cptModuleExists("cptTaskHistory_bas") And cptModuleExists("cptTaskHistory_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTaskHistory"" label=""Task History"" imageMso=""Archive"" onAction=""cptShowTaskHistory_frm"" visible=""true"" supertip=""Explore selected task history, take notes, export history, etc. Requires consistent use of Capture Week."" />"
   End If
@@ -610,8 +612,8 @@ Dim lngCleanUp As Long
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptEditMetricsData"" label=""View &amp;&amp; Edit Metrics Data"" imageMso=""DataValidation"" onAction=""cptShowMetricsData_frm"" visible=""true"" supertip=""Review and delete metrics records for this program."" />"
     End If
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptExportAllData"" label=""Export Metrics Data"" imageMso=""ExportExcel"" onAction=""cptExportMetricsData"" visible=""true"" supertip=""Export stored metrics data for this program to Excel."" />"
-    If cptModuleExists("cptMetricsSettings_frm") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptMetricsSettings"" label=""Metrics Settings"" imageMso=""Settings"" onAction=""cptShowMetricsSettings_frm"" visible=""true"" supertip=""Settings required for some EV-ish metrics."" />"
+    If cptModuleExists("cptIntegration_frm") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptMetricsSettings"" label=""Metrics Settings"" imageMso=""Settings"" onAction=""cptGetValidMap"" visible=""true"" supertip=""Settings required for some EV-ish metrics."" />"
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
 '    ribbonXML = ribbonXML + vbCrLf & "<mso:dialogBoxLauncher>"
@@ -648,7 +650,7 @@ Dim lngCleanUp As Long
   'integration settings
   If cptModuleExists("cptIntegration_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:dialogBoxLauncher>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIntegrationSettings"" screentip=""Integration Settings"" onAction=""cptGetValidMap"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIntegrationSettings2"" screentip=""Integration Settings"" onAction=""cptGetValidMap"" />"
     ribbonXML = ribbonXML + vbCrLf & "</mso:dialogBoxLauncher>"
   End If
   
@@ -742,7 +744,7 @@ Public Function cptInternetIsConnected() As Boolean
 
 End Function
 
-Function cptRegEx(strText As String, strRegEx As String, Optional blnMultiline As Boolean = False) As String
+Function cptRegEx(strText As String, strRegEx As String, Optional blnMultiline As Boolean = False, Optional blnIgnoreCase As Boolean = True) As String
 Dim RE As Object, REMatch As Variant, REMatches As Object
 Dim strMatch As String
 
@@ -752,7 +754,7 @@ Dim strMatch As String
     With RE
       .MultiLine = blnMultiline
       .Global = True
-      .IgnoreCase = True
+      .IgnoreCase = blnIgnoreCase
       .Pattern = strRegEx
     End With
 
