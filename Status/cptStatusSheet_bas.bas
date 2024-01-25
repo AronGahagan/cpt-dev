@@ -155,8 +155,8 @@ Sub cptShowStatusSheet_frm()
   rstFields.Fields.Append "TYPE", adVarChar, 50
   rstFields.Open
   
-  'cycle through and add all custom fields
-  For Each vFieldType In Array("Text|30", "Outline Code|10", "Number|20") 'todo: start, finish, date, flag?
+  'cycle through and add custom fields (text, outline code, number only)
+  For Each vFieldType In Array("Text|30", "Outline Code|10", "Number|20")
     Dim strFieldType As String
     Dim lngFieldCount As Long
     strFieldType = Split(vFieldType, "|")(0)
@@ -1084,8 +1084,8 @@ next_worksheet:
             'must close before attaching to email
             oWorkbook.Close True
             oExcel.Wait Now + TimeValue("00:00:02")
-            oExcel.Quit 'todo: added
-            Set oExcel = Nothing 'todo: added
+            oExcel.Quit
+            Set oExcel = Nothing
             cptSendStatusSheet strFileName, strItem
             .lblStatus.Caption = "Creating Email for " & strItem & "...done"
             Application.StatusBar = .lblStatus.Caption
@@ -1130,12 +1130,7 @@ exit_here:
   If blnEmail Then oExcel.Quit
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
-  'todo: only quit if we had to create
-'  If Not oExcel Is Nothing Then
-'    oExcel.Visible = True
-'    oExcel.Quit
-    Set oExcel = Nothing
-'  End If
+  Set oExcel = Nothing
   Set rng = Nothing
   Set rSummaryTasks = Nothing
   Set rLockedCells = Nothing
@@ -1379,6 +1374,7 @@ Private Sub cptCopyData(ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Lon
   Dim lngEVT As Long
   Dim lngEVTCol As Long
   Dim lngLastCol As Long
+  Dim lngBLWCol As Long
   Dim lngETCCol As Long
   Dim lngTask As Long
   Dim lngRow As Long
@@ -1494,6 +1490,7 @@ try_again:
   lngEVTCol = oWorksheet.Rows(lngHeaderRow).Find("EVT", lookat:=xlWhole).Column
   'todo: add Milestones EVT
   lngETCCol = oWorksheet.Rows(lngHeaderRow).Find("New ETC", lookat:=xlWhole).Column
+  lngBLWCol = oWorksheet.Rows(lngHeaderRow).Find("Baseline Work", lookat:=xlWhole).Column
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
   lngTasks = ActiveSelection.Tasks.Count
   lngTask = 0
@@ -1538,7 +1535,7 @@ try_again:
 '      End If
 '      GoTo next_task 'don't skip - need to unlock foreceast dates for milestones, too
     End If
-    'format completed todo: still needed?
+    'format completed
     If IsDate(oTask.ActualFinish) Then
       If oCompleted Is Nothing Then
         Set oCompleted = oWorksheet.Range(oWorksheet.Cells(lngRow, 1), oWorksheet.Cells(lngRow, lngLastCol))
@@ -1711,7 +1708,7 @@ get_assignments:
     Else
       oWorksheet.Cells(lngRow, lngETCCol) = oTask.RemainingWork / 60
       oWorksheet.Cells(lngRow, lngETCCol - 1) = oTask.RemainingWork / 60
-      'todo: oWorksheet.Cells(lngRow, lngBLWCol) = oTask.BaselineWork / 60
+      oWorksheet.Cells(lngRow, lngBLWCol) = oTask.BaselineWork / 60
       'add ETC to inputrange
       If oInputRange Is Nothing Then
         Set oInputRange = oWorksheet.Cells(lngRow, lngETCCol)
@@ -1940,10 +1937,12 @@ next_task:
     oEVTRange.FormatConditions.Delete
     Set oDict.Item("ETC") = oETCRange
     oETCRange.FormatConditions.Delete
-    Dim oAssignmentETCRange As Excel.Range
-    Set oAssignmentETCRange = oWorksheet.Application.Intersect(oAssignmentRange, oWorksheet.Columns(lngETCCol))
-    Set oDict.Item("AssignmentETC") = oAssignmentETCRange
-    oAssignmentETCRange.FormatConditions.Delete
+    If blnAssignments Then
+      Dim oAssignmentETCRange As Excel.Range
+      Set oAssignmentETCRange = oWorksheet.Application.Intersect(oAssignmentRange, oWorksheet.Columns(lngETCCol))
+      Set oDict.Item("AssignmentETC") = oAssignmentETCRange
+      oAssignmentETCRange.FormatConditions.Delete
+    End If
     
     'capture list of formulae
     Set oRecordset = CreateObject("ADODB.Recordset")
