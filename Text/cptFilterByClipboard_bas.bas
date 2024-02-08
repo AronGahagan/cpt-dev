@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptFilterByClipboard_bas"
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 
 Sub cptShowFilterByClipboard_frm()
@@ -208,7 +208,7 @@ next_item:
       cptFilterByClipboard_frm.lboHeader.List(0, 0) = "ID"
       SetAutoFilter "Unique ID", FilterType:=pjAutoFilterIn, Criteria1:=strFilter
     End If
-    OptionsViewEx projectsummary:=False, displayoutlinenumber:=False, displaynameindent:=False, DisplaySummaryTasks:=False
+    OptionsViewEx ProjectSummary:=False, DisplayOutlineNumber:=False, DisplayNameIndent:=False, DisplaySummaryTasks:=False
     If lngFreeField > 0 Then Sort FieldConstantToFieldName(lngFreeField)
   End If
   
@@ -321,8 +321,8 @@ End Function
 
 Function cptGetFreeField(strDataType As String, Optional lngType As Long) As Long
 'objects
-Dim dTypes As Scripting.Dictionary 'Object
-Dim rstFree As Object 'ADODB.Recordset 'Object
+Dim dTypes As Object 'Scripting.Dictionary
+Dim rstFree As Object 'ADODB.Recordset
 Dim oTask As MSProject.Task
 'strings
 Dim strNum As String
@@ -368,7 +368,7 @@ Dim blnFree As Boolean
       strNum = ActiveProject.Tasks(1).GetField(lngField)
       On Error Resume Next
       ActiveProject.Tasks(1).SetField lngField, 3.14285714285714 'what are the odds?
-      If Err.Number = 1101 Then
+      If Err.Number > 0 Then
         Err.Clear
         If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         GoTo next_field
