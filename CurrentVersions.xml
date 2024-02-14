@@ -290,14 +290,14 @@
 	<Module>
 		<Name>cptSaveLocal_bas</Name>
 		<FileName>cptSaveLocal_bas.bas</FileName>
-		<Version>v1.1.6</Version>
+		<Version>v1.1.7</Version>
 		<Type>1</Type>
 		<Directory>CustomFields</Directory>
 	</Module>
 	<Module>
 		<Name>cptSaveLocal_frm</Name>
 		<FileName>cptSaveLocal_frm.frm</FileName>
-		<Version>v1.1.6</Version>
+		<Version>v1.1.7</Version>
 		<Type>3</Type>
 		<Directory>CustomFields</Directory>
 	</Module>

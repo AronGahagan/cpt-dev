@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveLocal_bas"
-'<cpt_version>v1.1.6</cpt_version>
+'<cpt_version>v1.1.7</cpt_version>
 Option Explicit
 Public strStartView As String
 Public strStartTable As String
@@ -11,8 +11,8 @@ Sub cptShowSaveLocal_frm()
 Dim oRange As Excel.Range
 Dim oListObject As ListObject
 Dim rstProjects As Object 'ADODB.Recordset
-Dim oSubproject As Subproject
-Dim oMasterProject As Project
+Dim oSubProject As MSProject.Subproject
+Dim oMasterProject As MSProject.Project
 Dim oWorksheet As Excel.Worksheet
 Dim oWorkbook As Excel.Workbook
 Dim oExcel As Excel.Application
@@ -97,10 +97,10 @@ Dim vType As Variant
     rstProjects.Fields.Append "PROJECT", adVarChar, 200
     rstProjects.Open
     rstProjects.AddNew Array(0), Array(oMasterProject.Name)
-    For Each oSubproject In oMasterProject.Subprojects
-      FileOpenEx oSubproject.SourceProject.FullName, True
+    For Each oSubProject In oMasterProject.Subprojects
+      FileOpenEx oSubProject.SourceProject.FullName, True
       rstProjects.AddNew Array(0), Array(ActiveProject.Name)
-    Next oSubproject
+    Next oSubProject
     rstProjects.MoveFirst
     Do While Not rstProjects.EOF
       Application.StatusBar = "Analyzing " & rstProjects(0) & "..."
@@ -318,7 +318,7 @@ next_type:
         cptUpdateSaveLocalView lngECF, lngLCF
       End If
     Next lngField
-    
+        
     If cptErrorTrapping Then
       .Hide
       cptSpeed False
@@ -334,7 +334,7 @@ exit_here:
   Set oRange = Nothing
   Set oListObject = Nothing
   Set rstProjects = Nothing
-  Set oSubproject = Nothing
+  Set oSubProject = Nothing
   Set oMasterProject = Nothing
   If rstProjects.State Then rstProjects.Close
   Set rstProjects = Nothing
@@ -1379,6 +1379,7 @@ Sub cptUpdateECF(Optional strFilter As String)
   End If
   
   'open the ecf recordset
+  If Dir(cptDir & "\settings\cpt-ecf.adtg") = vbNullString Then GoTo exit_here
   Set rstECF = CreateObject("ADODB.Recordset")
   rstECF.Open cptDir & "\settings\cpt-ecf.adtg"
     
@@ -1587,7 +1588,7 @@ Function cptLocalCustomFieldsMatch() As Boolean
   Dim oListObject As Excel.ListObject
   Dim dTypes As Scripting.Dictionary
   Dim oMasterProject As MSProject.Project
-  Dim oSubproject As MSProject.Subproject
+  Dim oSubProject As MSProject.Subproject
   Dim rstProjects As ADODB.Recordset
   Dim oWorksheet As Excel.Worksheet
   Dim oWorkbook As Excel.Workbook
@@ -1653,10 +1654,10 @@ Function cptLocalCustomFieldsMatch() As Boolean
   rstProjects.Fields.Append "PROJECT", adVarChar, 200
   rstProjects.Open
   rstProjects.AddNew Array(0), Array(oMasterProject.Name)
-  For Each oSubproject In oMasterProject.Subprojects
-    FileOpenEx oSubproject.SourceProject.FullName, True
+  For Each oSubProject In oMasterProject.Subprojects
+    FileOpenEx oSubProject.SourceProject.FullName, True
     rstProjects.AddNew Array(0), Array(ActiveProject.Name)
-  Next oSubproject
+  Next oSubProject
   rstProjects.MoveFirst
   Do While Not rstProjects.EOF
     Application.StatusBar = "Analyzing " & rstProjects(0) & "..."
@@ -1810,7 +1811,7 @@ exit_here:
   Set oListObject = Nothing
   Set dTypes = Nothing
   Set oMasterProject = Nothing
-  Set oSubproject = Nothing
+  Set oSubProject = Nothing
   If rstProjects.State Then rstProjects.Close
   Set rstProjects = Nothing
   Set oWorksheet = Nothing
