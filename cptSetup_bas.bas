@@ -642,7 +642,7 @@ Dim lngCleanUp As Long
   
   If cptModuleExists("cptCostRateTables_bas") And cptModuleExists("cptCostRateTables_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCostRateTables"" onAction=""cptShowCostRateTables_frm""  size=""large"" visible=""true""  label=""Cost Rate Tables"" imageMso=""DataTypeCurrency"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCostRateTables"" label=""Cost Rate Tables"" imageMso=""DataTypeCurrency"" onAction=""cptShowCostRateTables_frm""  size=""large"" visible=""true"" />"
   End If
   
   'mpm
@@ -701,7 +701,7 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUninstall"" label=""Uninstall ClearPlan Toolbar"" imageMso=""TasksUnlink"" onAction=""cptUninstall"" visible=""true"" />"
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   End If
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAbout"" onAction=""cptShowAbout_frm""  size=""large"" visible=""true""  label=""About"" imageMso=""Info"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAbout"" label=""About"" imageMso=""Info"" onAction=""cptShowAbout_frm""  size=""large"" visible=""true"" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
   ribbonXML = ribbonXML + vbCrLf & "</mso:tab>"
@@ -709,7 +709,7 @@ Dim lngCleanUp As Long
 '  If cptModuleExists("cptCostRateTables_bas") And cptModuleExists("cptCostRateTables_frm") Then
 '    ribbonXML = ribbonXML + vbCrLf & "<mso:tab idMso=""TabResource"">"
 '    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""ClearPlan"" label=""ClearPlan"" visible=""true"">"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCostRateTables2"" onAction=""cptShowCostRateTables_frm""  size=""large"" visible=""true""  label=""Cost Rate Tables"" imageMso=""DataTypeCurrency"" />"
+'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCostRateTables2"" label=""Cost Rate Tables"" imageMso=""DataTypeCurrency"" onAction=""cptShowCostRateTables_frm""  size=""large"" visible=""true"" />"
 '    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 '    ribbonXML = ribbonXML + vbCrLf & "</mso:tab>"
 '  End If
