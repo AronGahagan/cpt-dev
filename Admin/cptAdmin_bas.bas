@@ -132,7 +132,9 @@ End Sub
 Sub cptDocument()
 'objects
 Dim vbComponent As vbComponent
-Dim oExcel As Object, oWorkbook As Object, oWorksheet As Object
+Dim oExcel As Object
+Dim oWorkbook As Object
+Dim oWorksheet As Object
 'strings
 Dim strModule As String
 Dim strProcName As String
@@ -235,6 +237,7 @@ Dim strDirectory As String
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   strDirectory = cptRegEx(strComponentName, "[^(cpt)](.*)(?=(_frm|_bas|_cls))")
+  
   Select Case strDirectory
     Case "About"
       strDirectory = "Core"
@@ -458,11 +461,10 @@ Sub cptLoadModulesFromPath()
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  On Error GoTo 0
-  
+
   'update this before running - NOT THE GLOBAL!
   Set oVBProject = VBE.VBProjects(VBE.VBProjects.Count)
-
+  
   If MsgBox("Load Modules into '" & Dir(oVBProject.FileName) & "'?", vbQuestion + vbYesNo, "Confirm") = vbNo Then GoTo exit_here
 
   strDir = Environ("USERPROFILE") & "\GitHub\cpt-dev"
@@ -489,8 +491,7 @@ next_subfolder:
   Application.StatusBar = "Complete."
   
   'todo: should we go ahead and include any views/tables/filters/groups?
-  MsgBox "Run cptSetReferences in newly created file.", vbExclamation + vbOKOnly, "Don't Forget:"
-  MsgBox "Compile it!", vbExclamation + vbOKOnly, "Don't Forget:"
+  MsgBox "Run cptSetReferences in newly created file; and" & vbCrLf & vbCrLf & "...compile it!", vbExclamation + vbOKOnly, "Don't Forget:"
   
 exit_here:
   On Error Resume Next
