@@ -1,7 +1,6 @@
 Attribute VB_Name = "cptDECM_bas"
 '<cpt_version>v0.0.5</cpt_version>
 Option Explicit
-
 Private strWBS As String
 Private strOBS As String
 Private strCA As String
@@ -11,7 +10,6 @@ Private strEVT As String
 Private strEVP As String
 Private strPass As String
 Private strFail As String
-
 Private lngWBS As Long
 Private lngOBS As Long
 Private lngCA As Long
@@ -19,7 +17,6 @@ Private lngCAM As Long
 Private lngWP As Long
 Private lngEVT As Long
 Private lngEVP As Long
-
 Public oDECM As Scripting.Dictionary
 
 Sub cptDECM_GET_DATA()
@@ -847,15 +844,10 @@ next_task:
   DoEvents
   
   '11A101a - CA BAC = SUM(WP BAC)?
+  'this one is a bit different - need to skip if no assignments
   strMetric = "11A101a"
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "CA BAC = Sum(WP BAC)"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
-  DoEvents
   'X = Sum of the absolute values of (CA BAC - the sum of its WP and PP budgets)
   'Y = Total program BAC
   'create segregated.csv
@@ -881,6 +873,18 @@ next_task:
   strSQL = strSQL & "    t1.ca, "
   strSQL = strSQL & "    t1.wp "
   oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  If oRecordset.EOF Then
+    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...skipped."
+    Application.StatusBar = "Getting " & strMetric & "....skipped."
+    GoTo decm_schedule
+  Else
+    cptDECM_frm.lboMetrics.AddItem
+    cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "CA BAC = Sum(WP BAC)"
+    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
+    DoEvents
+  End If
   lngFile = FreeFile
   strFile = Environ("tmp") & "\segregated.csv"
   If Dir(strFile) <> vbNullString Then Kill strFile
@@ -1013,6 +1017,8 @@ next_task:
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
+  
+decm_schedule:
   
   '===== SCHEDULE =====
   '06A101a - WPs Missing between IMS vs EV
@@ -2722,25 +2728,26 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
         Else
           .lboMetrics_AfterUpdate
         End If
+        ActiveWindow.TopPane.Activate
         SelectAll
         EditCopy
         On Error Resume Next
         Set oTasks = ActiveSelection.Tasks
         If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-        If Not oTasks Is Nothing Then
-          oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
-          oWorksheet.[A2] = .lboMetrics.List(lngItem, 1)
-          oWorksheet.[A3].Select
-          oWorksheet.PasteSpecial Format:="HTML", Link:=False, DisplayAsIcon:=False
-          oWorksheet.Cells.Font.Name = "Calibri"
-          oWorksheet.Cells.Font.Size = 11
-          oWorksheet.Cells.WrapText = False
-          oWorksheet.[B4].Select
-          oExcel.ActiveWindow.FreezePanes = True
-          oWorksheet.Columns.AutoFit
-          If .lboMetrics.List(lngItem, 6) = strFail Then
-            oWorksheet.Tab.Color = 192
-          End If
+        If oTasks Is Nothing Then GoTo next_item
+        If oTasks.Count = 0 Then GoTo next_item
+        oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
+        oWorksheet.[A2] = .lboMetrics.List(lngItem, 1)
+        oWorksheet.[A3].Select
+        oWorksheet.PasteSpecial Format:="HTML", Link:=False, DisplayAsIcon:=False
+        oWorksheet.Cells.Font.Name = "Calibri"
+        oWorksheet.Cells.Font.Size = 11
+        oWorksheet.Cells.WrapText = False
+        oWorksheet.[B4].Select
+        oExcel.ActiveWindow.FreezePanes = True
+        oWorksheet.Columns.AutoFit
+        If .lboMetrics.List(lngItem, 6) = strFail Then
+          oWorksheet.Tab.Color = 192
         End If
 next_item:
         Set oTasks = Nothing
@@ -2869,8 +2876,8 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
         'group by WP, CA
         strGroup = "cpt 1wp_1ca"
         If cptGroupExists(strGroup) Then ActiveProject.TaskGroups2(strGroup).Delete
-        ActiveProject.TaskGroups.Add strGroup, FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0))
-        ActiveProject.TaskGroups(strGroup).GroupCriteria.Add FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0))
+        ActiveProject.TaskGroups.Add strGroup, FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0))
+        ActiveProject.TaskGroups(strGroup).GroupCriteria.Add FieldConstantToFieldName(Split(cptGetSetting("Integration", "CA"), "|")(0))
         GroupApply Name:=strGroup
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
@@ -2978,7 +2985,7 @@ Function cptGetOutOfSequence() As String
   Dim oAssignment As MSProject.Assignment
   Dim oOOS As Scripting.Dictionary
   Dim oCalendar As MSProject.Calendar
-  Dim oSubProject As MSProject.SubProject
+  Dim oSubProject As MSProject.Subproject
   Dim oSubMap As Scripting.Dictionary
   Dim oTask As MSProject.Task
   Dim oLink As MSProject.TaskDependency
