@@ -1168,8 +1168,8 @@ End Function
 Function cptGetOfficeDir2(strApp As String) As String
   Dim strDir As String
   Dim vPath As Variant
-  Dim oFSO As Scripting.FileSystemObject
-  Dim oFolder As Scripting.Folder
+  Dim oFSO As Object 'Scripting.FileSystemObject
+  Dim oFolder As Object 'Scripting.Folder
   strDir = ""
   For Each vPath In Split(Environ("PATH"), ";")
     strDir = cptRegEx(CStr(vPath), ".*Microsoft Office\\")
@@ -1184,9 +1184,9 @@ Function cptGetOfficeDir2(strApp As String) As String
   Set oFolder = Nothing
 End Function
 
-Function cptGetAppDir(oFolder As Scripting.Folder, strApp As String) As String
-  Dim f As Scripting.File
-  Dim sf As Scripting.Folder
+Function cptGetAppDir(oFolder As Object, strApp As String) As String
+  Dim f As Object 'Scripting.File
+  Dim sf As Object 'Scripting.Folder
   
   If Dir(oFolder.Path & "\" & strApp) <> vbNullString Then
     cptGetAppDir = oFolder.Path
@@ -2488,9 +2488,13 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
           If Len(strSetting) = 0 Then
             If oRequiredFields(vControl) Then blnValid = False
           Else
-            strSetting = strSetting & "|" & FieldConstantToFieldName(strSetting)
-            cptSaveSetting "Integration", CStr(vControl), strSetting
-            cptDeleteSetting "Metrics", "cboEVT"
+            If vControl = "EVT" Then
+              strSetting = strSetting & "|" & FieldConstantToFieldName(strSetting)
+              cptSaveSetting "Integration", CStr(vControl), strSetting
+              cptDeleteSetting "Metrics", "cboEVT"
+            Else
+              GoTo next_control
+            End If
           End If
         ElseIf vControl = "LOE" Then
           strSetting = cptGetSetting("Metrics", "txtLOE")
@@ -2680,6 +2684,7 @@ Function cptSortedArray(vArray As Variant, lngSortKey As Long) As Variant
   Dim lngRow As Long, lngCol As Long
   Dim strRow As String
   Dim vTemp() As Variant
+  Dim vSorted As Variant
   
   Set oDict = CreateObject("Scripting.Dictionary")
   lngRows = UBound(vArray)
@@ -2687,18 +2692,19 @@ Function cptSortedArray(vArray As Variant, lngSortKey As Long) As Variant
   For lngRow = 0 To lngRows
     strRow = ""
     For lngCol = 0 To lngCols
-      strRow = strRow & vArray(lngRow, lngCol) & ","
+      strRow = strRow & Replace(vArray(lngRow, lngCol), ",", "<cpt>") & "," 'replace commas with unique string
     Next lngCol
     strRow = Left(strRow, Len(strRow) - 1)
-    oDict.Add vArray(lngRow, lngSortKey), Split(strRow, ",")
+    oDict.Add vArray(lngRow, lngSortKey), strRow
   Next lngRow
     
-  cptQuickSort oDict.Keys, 0, oDict.Count - 1
+  vSorted = oDict.Keys()
+  cptQuickSort vSorted, 0, UBound(vSorted)
 
   ReDim vTemp(0 To lngRows, 0 To lngCols)
   For lngRow = 0 To lngRows
     For lngCol = 0 To lngCols
-      vTemp(lngRow, lngCol) = oDict.Items()(lngRow)(lngCol)
+      vTemp(lngRow, lngCol) = Replace(Split(oDict(vSorted(lngRow)), ",")(lngCol), "<cpt>", ",") 'replace unique strings with comma
     Next lngCol
   Next lngRow
   
