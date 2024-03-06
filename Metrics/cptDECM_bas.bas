@@ -1447,10 +1447,10 @@ decm_schedule:
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
-  '6A301a - vertical integration todo: lower level baselines rollup...refers to supplemental schedules...too complicated
+  '06A301a - vertical integration todo: lower level baselines rollup...refers to supplemental schedules...too complicated
   
-  '6A401a - critical path (constraint method)
-  strMetric = "6A401a"
+  '06A401a - critical path (constraint method)
+  strMetric = "06A401a"
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
@@ -1465,7 +1465,7 @@ decm_schedule:
   If lngTargetUID = 0 Then
     cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Critical Path - SKIPPED"
     'todo: remove it? give a bad score?
-    GoTo skip_6A401a
+    GoTo skip_06A401a
   Else
     Set oTask = ActiveProject.Tasks.UniqueID(lngTargetUID)
     Dim dtConstraint As Date
@@ -1518,9 +1518,9 @@ next_critical_task:
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
-skip_6A401a:
-  '6A501a - baselines
-  strMetric = "6A501a"
+skip_06A401a:
+  '06A501a - baselines
+  strMetric = "06A501a"
   cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
   cptDECM_frm.lboMetrics.AddItem
