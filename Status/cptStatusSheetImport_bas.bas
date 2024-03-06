@@ -213,7 +213,7 @@ Sub cptStatusSheetImport()
   Dim oDict As Scripting.Dictionary
   Dim oShell As Object
   Dim oRecordset As ADODB.Recordset
-  Dim oSubProject As SubProject
+  Dim oSubProject As Subproject
   Dim oTask As MSProject.Task
   Dim oResource As Resource
   Dim oAssignment As Assignment
@@ -1238,8 +1238,8 @@ Sub cptRefreshStatusImportTable(Optional blnUsageBelow As Boolean = False)
     ViewApply "Task Usage"
     'If ActiveProject.CurrentTable <> "cptStatusSheetImportDetails Table" Then TableApply "cptStatusSheetImportDetails Table"
     TableApply "cptStatusSheetImportDetails Table"
-    SetSplitBar ShowColumns:=ActiveProject.TaskTables(ActiveProject.CurrentTable).TableFields.Count
     ActiveWindow.TopPane.Activate
+    SetSplitBar ShowColumns:=ActiveProject.TaskTables(ActiveProject.CurrentTable).TableFields.Count
   Else
     ActiveWindow.TopPane.Activate
     'If ActiveProject.CurrentView <> "Task Usage" Then ViewApply "Task Usage"
