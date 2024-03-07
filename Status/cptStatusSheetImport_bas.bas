@@ -21,6 +21,12 @@ Sub cptShowStatusSheetImport_frm()
   Dim strSettings As String
   Dim strCustomFieldName As String
   'longs
+  Dim lngETC As Long
+  Dim lngEVP As Long
+  Dim lngFF As Long
+  Dim lngFS As Long
+  Dim lngAF As Long
+  Dim lngAS As Long
   Dim lngField As Long
   'integers
   Dim intField As Integer
@@ -121,30 +127,57 @@ Sub cptShowStatusSheetImport_frm()
     End If
 
     'import user settings
+    .cmdRename.Visible = False
     strAS = cptGetSetting("StatusSheetImport", "cboAS")
     If Len(strAS) > 0 Then
       If strAS = CStr(FieldNameToFieldConstant("Actual Start")) Then
         MsgBox "Direct import to Actual Start is no longer supported. Please select a different field.", vbExclamation + vbOKOnly, "Actual Start"
       Else
-        .cboAS.Value = CLng(strAS)
+        lngAS = CLng(strAS)
+        .cboAS.Value = lngAS
       End If
+      If CustomFieldGetName(lngAS) = "" Then .cmdRename.Visible = True
     End If
+    
     strAF = cptGetSetting("StatusSheetImport", "cboAF")
     If Len(strAF) > 0 Then
       If strAF = CStr(FieldNameToFieldConstant("Actual Finish")) Then
         MsgBox "Direct import to Actual Finish is no longer supported. Please select a different field.", vbExclamation + vbOKOnly, "Actual Finish"
       Else
-        .cboAF.Value = CLng(strAF)
+        lngAF = CLng(strAF)
+        .cboAF.Value = lngAF
       End If
+      If CustomFieldGetName(lngAF) = "" Then .cmdRename.Visible = True
     End If
+    
     strFS = cptGetSetting("StatusSheetImport", "cboFS")
-    If Len(strFS) > 0 Then .cboFS.Value = CLng(strFS)
+    If Len(strFS) > 0 Then
+      lngFS = CLng(strFS)
+      .cboFS.Value = lngFS
+      If CustomFieldGetName(lngFS) = "" Then .cmdRename.Visible = True
+    End If
+    
     strFF = cptGetSetting("StatusSheetImport", "cboFF")
-    If Len(strFF) > 0 Then .cboFF.Value = CLng(strFF)
+    If Len(strFF) > 0 Then
+      lngFF = CLng(strFF)
+      .cboFF.Value = lngFF
+      If CustomFieldGetName(lngFS) = "" Then .cmdRename.Visible = True
+    End If
+    
     strEVP = cptGetSetting("StatusSheetImport", "cboEV")
-    If Len(strEVP) > 0 Then .cboEV.Value = CLng(strEVP)
+    If Len(strEVP) > 0 Then
+      lngEVP = CLng(strEVP)
+      .cboEV.Value = lngEVP
+      If CustomFieldGetName(lngEVP) = "" Then .cmdRename.Visible = True
+    End If
+    
     strETC = cptGetSetting("StatusSheetImport", "cboETC")
-    If Len(strETC) > 0 Then .cboETC.Value = CLng(strETC)
+    If Len(strETC) > 0 Then
+      lngETC = CLng(strETC)
+      .cboETC.Value = lngETC
+      If CustomFieldGetName(lngEVP) = "" Then .cmdRename.Visible = True
+    End If
+    
     strAppend = cptGetSetting("StatusSheetImport", "chkAppend")
     If Len(strAppend) > 0 Then .chkAppend = CBool(strAppend)
     strAppendTo = cptGetSetting("StatusSheetImport", "cboAppendTo")
@@ -344,7 +377,7 @@ Sub cptStatusSheetImport()
   cptSaveSetting "StatusSheetImport", "cboETC", CStr(lngETC)
   cptSaveSetting "StatusSheetImport", "chkAppend", IIf(blnAppend, 1, 0)
   cptSaveSetting "StatusSheetImport", "cboAppendTo", strAppendTo
-  
+    
   'get LOE settings
   strEVT = cptGetSetting("Integration", "EVT")
   strLOE = cptGetSetting("Integration", "LOE")
