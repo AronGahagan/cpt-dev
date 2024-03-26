@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.12</cpt_version>
+'<cpt_version>v3.3.13</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -7,6 +7,7 @@ Private BCWPxport As Boolean
 Private ETCxport As Boolean
 Private WhatIfxport As Boolean 'v3.2
 Private ResourceLoaded As Boolean
+Private ExportMilestones As Boolean 'v3.3.13
 Private MasterProject As Boolean
 Private ACTfilename As String
 Private RESfilename As String
@@ -194,6 +195,7 @@ Sub Export_IMS()
             BCWPxport = .BCWP_Checkbox.Value
             ETCxport = .ETC_Checkbox.Value
             BCRxport = .BcrBtn.Value
+            ExportMilestones = .Milestone_CheckBox.Value
             WhatIfxport = .WhatIf_CheckBox.Value 'v3.2
             BCR_ID = .BCR_ID_TextBox
             ResourceLoaded = .ResExportCheckbox
@@ -1425,7 +1427,7 @@ Private Sub BCWP_Export(ByVal curProj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If EVT = "B" Or EVT = "N" Or EVT = "B Milestone" Or EVT = "N Earning Rules" Then
@@ -1760,7 +1762,7 @@ nrBCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earning Rules" Then
@@ -2140,7 +2142,7 @@ nrBCWP_WP_Match_B:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
                                 
 
@@ -2609,7 +2611,7 @@ BCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
@@ -4098,7 +4100,7 @@ Private Sub BCWS_Export(ByVal curProj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -4176,7 +4178,7 @@ Private Sub BCWS_Export(ByVal curProj As Project)
                                 'Milestone Data
 nrWP_Match:
 
-                                If EVT = "B" Or EVT = "B Milestone" Then
+                                If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
 
                                     If CAID3_Used = True And CAID2_Used = True Then
                                         Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
@@ -4241,7 +4243,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4324,7 +4326,7 @@ Next_nrSProj_Task:
                             'Milestone Data
 nrWP_Match_B:
 
-                            If EVT = "B" Or EVT = "B Milestone" Then
+                            If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
                                 If CAID3_Used = True And CAID2_Used = True Then
                                     Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                 End If
@@ -4436,7 +4438,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -4539,7 +4541,7 @@ Next_nrTask:
                                 'Milestone Data
 WP_Match:
 
-                                If EVT = "B" Or EVT = "B Milestone" Then
+                                If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
 
                                     If CAID3_Used = True And CAID2_Used = True Then
                                         Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
@@ -4638,7 +4640,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4740,7 +4742,7 @@ Next_SProj_Task:
                             'Milestone Data
 WP_Match_B:
 
-                            If EVT = "B" Or EVT = "B Milestone" Then
+                            If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
                                 If CAID3_Used = True And CAID2_Used = True Then
                                     Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
                                 End If
@@ -4921,7 +4923,7 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -5024,7 +5026,7 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
                                 'Milestone Data
 nrWP_Match:
 
-                                If EVT = "B" Or EVT = "B Milestone" Then
+                                If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
                                     If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
                                         If CAID3_Used = True And CAID2_Used = True Then
                                             Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
@@ -5099,7 +5101,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5207,7 +5209,7 @@ Next_nrSProj_Task:
                             'Milestone Data
 nrWP_Match_B:
 
-                            If EVT = "B" Or EVT = "B Milestone" Then
+                            If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
                                 If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
                                     If CAID3_Used = True And CAID2_Used = True Then
                                         Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
@@ -5335,7 +5337,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -5458,7 +5460,7 @@ Next_nrTask:
                                 'Milestone Data
 WP_Match:
 
-                                If EVT = "B" Or EVT = "B Milestone" Then
+                                If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
                                     If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
                                         
                                         If CAID3_Used = True And CAID2_Used = True Then
@@ -5606,7 +5608,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5728,7 +5730,7 @@ Next_SProj_Task:
                             'Milestone Data
 WP_Match_B:
 
-                            If EVT = "B" Or EVT = "B Milestone" Then
+                            If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
                                 If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
                                         
                                     If CAID3_Used = True And CAID2_Used = True Then
