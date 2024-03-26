@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.5.1</cpt_version>
+'<cpt_version>v1.5.2</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -178,8 +178,8 @@ Sub cptShowStatusSheet_frm()
   Application.StatusBar = "Getting Enterprise custom fields..."
   DoEvents
   For lngField = 188776000 To 188778000 '2000 should do it for now
-    If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
-      rstFields.AddNew Array(0, 1, 2), Array(lngField, Application.FieldConstantToFieldName(lngField), "Enterprise")
+    If Len(FieldConstantToFieldName(lngField)) > 0 And FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
+      rstFields.AddNew Array(0, 1, 2), Array(lngField, FieldConstantToFieldName(lngField), "Enterprise")
     End If
   Next lngField
 
