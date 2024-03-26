@@ -184,8 +184,8 @@ Sub cptShowStatusSheet_frm()
   Application.StatusBar = "Getting Enterprise custom fields..."
   DoEvents
   For lngField = 188776000 To 188778000 '2000 should do it for now
-    If Application.FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
-      rstFields.AddNew Array(0, 1, 2), Array(lngField, Application.FieldConstantToFieldName(lngField), "Enterprise")
+    If Len(FieldNameToFieldConstant(lngField)) > 0 And FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
+      rstFields.AddNew Array(0, 1, 2), Array(lngField, FieldConstantToFieldName(lngField), "Enterprise")
     End If
   Next lngField
 
