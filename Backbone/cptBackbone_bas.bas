@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 
 Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
@@ -66,7 +66,7 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
         Set oWorkbook = oExcel.Workbooks.Open(oFileDialog.SelectedItems(1))
         'find the sheet
         For Each oWorksheet In oWorkbook.Sheets
-          If oWorksheet.[A1].Value = "CODE" And oWorksheet.[B1].Value = "LEVEL" And oWorksheet.[C1].Value = "DESCRIPTION" Then
+          If UCase(oWorksheet.[A1].Value) = "CODE" And UCase(oWorksheet.[B1].Value) = "LEVEL" And UCase(oWorksheet.[C1].Value = "DESCRIPTION") Then
             strOutlineCode = CustomFieldGetName(lngOutlineCode)
             Set oRange = oWorksheet.Range(oWorksheet.[A2], oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(-4162)) '-4162 = xlUp
             lngItems = oRange.Cells.Count
@@ -74,6 +74,7 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
             For Each c In oRange.Cells
               lngItem = lngItem + 1
               Set oTask = ActiveProject.Tasks.Add(c.Offset(0, 2).Value)
+              oTask.OutlineLevel = 1
               oTask.SetField lngOutlineCode, c.Value
               If oOutlineCode Is Nothing Then Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
               If oLookupTable Is Nothing Then Set oLookupTable = oOutlineCode.LookupTable
@@ -96,10 +97,10 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
             'refresh the form
             cptBackbone_frm.cboOutlineCodes.List(cptBackbone_frm.cboOutlineCodes.ListIndex, 1) = FieldConstantToFieldName(lngOutlineCode) & " (" & strOutlineCode & ")"
             Exit For
+          Else
+            MsgBox "No worksheet found where [A1:C1] contains CODE, LEVEL, DESCRIPTION.", vbExclamation + vbOKOnly, "Invalid Workbook"
           End If
         Next oWorksheet
-      Else
-        MsgBox "No worksheet found where [A1:C1] contains CODE, LEVEL, DESCRIPTION.", vbExclamation + vbOKOnly, "Invalid Workbook"
       End If 'proper headers found
     End With
   End If 'proceed
