@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveLocal_bas"
-'<cpt_version>v1.1.7</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 Public strStartView As String
 Public strStartTable As String
@@ -11,7 +11,7 @@ Sub cptShowSaveLocal_frm()
 Dim oRange As Excel.Range
 Dim oListObject As ListObject
 Dim rstProjects As Object 'ADODB.Recordset
-Dim oSubProject As MSProject.Subproject
+Dim oSubProject As MSProject.SubProject
 Dim oMasterProject As MSProject.Project
 Dim oWorksheet As Excel.Worksheet
 Dim oWorkbook As Excel.Workbook
@@ -1065,7 +1065,7 @@ skip_rename:
 next_formula_field:
       Next vField
       If Not blnProceed Then
-        MsgBox "ECF relies on the following unmapped ECF fields:" & vbCrLf & strUnmapped & vbCrLf & "Please map source ECF fields first.", vbInformation + vbOKOnly, "Not yet..."
+        MsgBox "ECF '" & FieldConstantToFieldName(lngECF) & "' contains a formula:" & vbCrLf & vbCrLf & strCustomFormula & vbCrLf & vbCrLf & "Please map dependent ECFs first:" & vbCrLf & strUnmapped, vbInformation + vbOKOnly, "Not yet..."
         CustomFieldDelete lngLCF
         cptUpdateLCF
         GoTo exit_here
@@ -1588,7 +1588,7 @@ Function cptLocalCustomFieldsMatch() As Boolean
   Dim oListObject As Excel.ListObject
   Dim dTypes As Scripting.Dictionary
   Dim oMasterProject As MSProject.Project
-  Dim oSubProject As MSProject.Subproject
+  Dim oSubProject As MSProject.SubProject
   Dim rstProjects As ADODB.Recordset
   Dim oWorksheet As Excel.Worksheet
   Dim oWorkbook As Excel.Workbook
