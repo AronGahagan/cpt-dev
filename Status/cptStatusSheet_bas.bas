@@ -139,9 +139,9 @@ Sub cptShowStatusSheet_frm()
     .chkAllItems = False
     If Left(ActiveProject.Path, 2) = "<>" Or Left(ActiveProject.Path, 4) = "http" Then 'it is a server project: default to Desktop
       Set oShell = CreateObject("WScript.Shell")
-      .txtDir = oShell.SpecialFolders("Desktop") & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
+      .txtDir = oShell.SpecialFolders("Desktop") & "\" 'Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
     Else  'not a server project: use ActiveProject.Path
-      .txtDir = ActiveProject.Path & "\Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
+      .txtDir = ActiveProject.Path & "\" 'Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
     End If
     .txtFileName = "StatusRequest_[yyyy-mm-dd]"
   End With
@@ -184,7 +184,7 @@ Sub cptShowStatusSheet_frm()
   Application.StatusBar = "Getting Enterprise custom fields..."
   DoEvents
   For lngField = 188776000 To 188778000 '2000 should do it for now
-    If Len(FieldNameToFieldConstant(lngField)) > 0 And FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
+    If Len(FieldConstantToFieldName(lngField)) > 0 And FieldConstantToFieldName(lngField) <> "<Unavailable>" Then
       rstFields.AddNew Array(0, 1, 2), Array(lngField, FieldConstantToFieldName(lngField), "Enterprise")
     End If
   Next lngField
@@ -487,7 +487,11 @@ next_item:
   cptStatusSheet_frm.txtHideCompleteBefore.Value = DateAdd("d", -7, dtStatus)
 
   strAppendStatusDate = cptGetSetting("StatusSheet", "chkAppendStatusDate")
-  If strAppendStatusDate <> "" Then cptStatusSheet_frm.chkAppendStatusDate = CBool(strAppendStatusDate)
+  If strAppendStatusDate <> "" Then
+    cptStatusSheet_frm.chkAppendStatusDate = CBool(strAppendStatusDate)
+  Else
+    cptStatusSheet_frm.chkAppendStatusDate = False 'default
+  End If
 
   'delete pre-existing search file
   strFileName = cptDir & "\settings\cpt-status-sheet-search.adtg"
