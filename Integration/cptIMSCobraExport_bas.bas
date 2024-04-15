@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.13</cpt_version>
+'<cpt_version>v3.3.14</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -444,7 +444,7 @@ Private Sub DataChecks(ByVal curProj As Project)
                                 If .AssignmentFStart = "NA" Then 'v3.3.0
                                     .AssignmentFStart = tAss.Start
                                 Else
-                                    If tAss.FStart < .AssignmentFStart Then
+                                    If tAss.Start < .AssignmentFStart Then 'v3.3.14
                                         .AssignmentFStart = tAss.Start
                                     End If
                                 End If
