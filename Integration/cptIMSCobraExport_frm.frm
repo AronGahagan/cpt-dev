@@ -17,7 +17,8 @@ Attribute VB_Exposed = False
 
 
 
-'<cpt_version>v3.3.13</cpt_version>
+
+'<cpt_version>v3.3.14</cpt_version>
 Private Sub AsgnPcntBox_Change() 'v3.3.1
     
     If isIMSfield(AsgnPcntBox.Value) = False And AsgnPcntBox.Value <> "" And AsgnPcntBox.Value <> "<None>" Then
