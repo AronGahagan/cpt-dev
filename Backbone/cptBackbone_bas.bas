@@ -66,19 +66,25 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
         Set oWorkbook = oExcel.Workbooks.Open(oFileDialog.SelectedItems(1))
         'find the sheet
         For Each oWorksheet In oWorkbook.Sheets
-          If UCase(oWorksheet.[A1].Value) = "CODE" And UCase(oWorksheet.[B1].Value) = "LEVEL" And UCase(oWorksheet.[C1].Value = "DESCRIPTION") Then
+          If UCase(oWorksheet.[A1].Value) = "CODE" And UCase(oWorksheet.[B1].Value) = "LEVEL" And UCase(oWorksheet.[C1].Value) = "DESCRIPTION" Then
             strOutlineCode = CustomFieldGetName(lngOutlineCode)
             Set oRange = oWorksheet.Range(oWorksheet.[A2], oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(-4162)) '-4162 = xlUp
             lngItems = oRange.Cells.Count
             lngItem = 0
             For Each c In oRange.Cells
               lngItem = lngItem + 1
-              Set oTask = ActiveProject.Tasks.Add(c.Offset(0, 2).Value)
+              If Len(c.Offset(0, 2).Value) > 0 Then
+                Set oTask = ActiveProject.Tasks.Add(c.Offset(0, 2).Value)
+              Else
+                Set oTask = ActiveProject.Tasks.Add("DELETE - PLACEHOLDER")
+              End If
               oTask.OutlineLevel = 1
               oTask.SetField lngOutlineCode, c.Value
               If oOutlineCode Is Nothing Then Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
               If oLookupTable Is Nothing Then Set oLookupTable = oOutlineCode.LookupTable
-              oLookupTable.Item(lngItem).Description = c.Offset(0, 2)
+              If Len(c.Offset(0, 2).Value) > 0 Then
+                oLookupTable.Item(lngItem).Description = c.Offset(0, 2)
+              End If
               If cptBackbone_frm.chkAlsoCreateTasks Then
                 lngOutlineLevel = Len(c.Value) - Len(Replace(c.Value, ".", ""))
                 If lngOutlineLevel > 0 Then
