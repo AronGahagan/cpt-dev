@@ -3,46 +3,47 @@ Attribute VB_Name = "cptDataDictionary_bas"
 Option Explicit
 
 Sub cptExportDataDictionary()
-'objects
-Dim oListObject As Object 'ListObject
-Dim wsLookups As Object 'Worksheet
-Dim dFields As Scripting.Dictionary 'Object
-Dim oLookupTable As LookupTable
-Dim rstDictionary As Object 'ADODB.Recordset
-Dim oExcel As Object 'Excel.Application
-Dim oWorkbook As Object 'Workbook
-Dim oWorksheet As Object 'Worksheet
-Dim oRange As Object 'Excel.Range
-'strings
-Dim strProject As String
-Dim strDescription As String
-Dim strValue As String
-Dim strAttributes As String
-Dim strFieldName As String
-'longs
-Dim lngLookupCol As Long
-Dim lngItem As Long
-Dim lngItems As Long
-Dim lngCol As Long
-Dim lngHeaderRow As Long
-Dim lngRow  As Long
-Dim lngField As Long
-'integers
-Dim intListItem As Integer
-Dim intField As Integer
-'doubles
-'booleans
-Dim blnHasFormula As Boolean
-Dim blnHasPickList As Boolean
-Dim blnLookups As Boolean
-Dim blnExists As Boolean
-'variants
-Dim vColumns As Variant
-Dim vFieldType As Variant
-Dim vFieldScope As Variant
-'dates
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  'objects
+  Dim wsLookups As Object 'Worksheet
+  Dim dFields As Scripting.Dictionary 'Object
+  Dim oLookupTable As LookupTable
+  Dim rstDictionary As Object 'ADODB.Recordset
+  Dim oExcel As Object 'Excel.Application
+  Dim oWorkbook As Object 'Workbook
+  Dim oWorksheet As Object 'Worksheet
+  Dim oRange As Object 'Excel.Range
+  'strings
+  Dim strProject As String
+  Dim strDescription As String
+  Dim strValue As String
+  Dim strAttributes As String
+  Dim strFieldName As String
+  'longs
+  Dim lngLookupCol As Long
+  Dim lngItem As Long
+  Dim lngItems As Long
+  Dim lngListItem As Long
+  Dim lngCol As Long
+  Dim lngHeaderRow As Long
+  Dim lngRow  As Long
+  Dim lngField As Long
+  'integers
+  Dim intField As Integer
+  'doubles
+  'booleans
+  Dim blnHasFormula As Boolean
+  Dim blnHasPickList As Boolean
+  Dim blnLookups As Boolean
+  Dim blnExists As Boolean
+  Dim blnErrorTrapping As Boolean
+  'variants
+  Dim vColumns As Variant
+  Dim vFieldType As Variant
+  Dim vFieldScope As Variant
+  'dates
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'ensure project name
   strProject = cptGetProgramAcronym
@@ -127,15 +128,18 @@ Dim vFieldScope As Variant
             End If
           End If
         End If
+        Debug.Print FieldConstantToFieldName(lngField)
         strFieldName = CustomFieldGetName(lngField)
-        If Len(strFieldName) = 0 Then
-          blnHasFormula = Len(CustomFieldGetFormula(lngField)) > 0
-          blnHasPickList = False
+        blnHasFormula = Len(CustomFieldGetFormula(lngField)) > 0
+        blnHasPickList = False 'default/reset
+        If Not blnHasFormula Then 'does it have a picklist?
           On Error Resume Next
-          blnHasPickList = Len(CustomFieldValueListGetItem(lngField, pjValueListValue, 1)) > 0
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          blnHasPickList = Len(CStr(CustomFieldValueListGetItem(lngField, pjValueListValue, 1))) > 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         End If
+        'only export if has custom field name OR a formula OR a picklist
         If Len(strFieldName) > 0 Or blnHasFormula Or blnHasPickList Then
+          Debug.Print lngField, FieldConstantToFieldName(lngField), CustomFieldGetName(lngField), blnHasFormula, blnHasPickList
           lngRow = lngRow + 1
           oWorksheet.Cells(lngRow, 1).Value = False
           oWorksheet.Cells(lngRow, 2).Value = Choose(CInt(vFieldScope) + 1, "Task", "Resource", "Project")
@@ -143,59 +147,56 @@ Dim vFieldScope As Variant
           oWorksheet.Cells(lngRow, 4).Value = FieldConstantToFieldName(lngField)
           oWorksheet.Cells(lngRow, 5).Value = strFieldName
           'get attributes
-          If Len(CustomFieldGetFormula(lngField)) > 0 Then
-            oWorksheet.Cells(lngRow, 6).Value = CustomFieldGetFormula(lngField)
-          End If
-          
           strAttributes = ""
-          If blnHasPickList Then
-            
+          If blnHasFormula Then
+            oWorksheet.Cells(lngRow, 6).Value = CustomFieldGetFormula(lngField)
+          ElseIf blnHasPickList Then
             If blnLookups Then
               lngLookupCol = wsLookups.[XFD2].End(-4159).Column
               If wsLookups.Cells(1, lngLookupCol) <> "" Then lngLookupCol = lngLookupCol + 2
               wsLookups.Cells(1, lngLookupCol) = UCase(strFieldName)
               wsLookups.Cells(2, lngLookupCol) = UCase(strFieldName) & " LOOKUP:"
             End If
-
-            For intListItem = 1 To 1000
-              If vFieldType = "Outline Code" Then
-                Set oLookupTable = ActiveProject.OutlineCodes(CustomFieldGetName(lngField)).LookupTable
-                If Len(oLookupTable(intListItem).Description) > 0 Then
-                  If Left(oLookupTable(intListItem).Description, Len(oLookupTable(intListItem).FullName)) = oLookupTable(intListItem).FullName Then
-                    strAttributes = strAttributes & vbCrLf & oLookupTable(intListItem).Description
-                    If blnLookups Then wsLookups.Cells(2 + intListItem, lngLookupCol) = oLookupTable(intListItem).Description
+            'outline codes
+            If vFieldType = "Outline Code" Then
+              Set oLookupTable = ActiveProject.OutlineCodes(CustomFieldGetName(lngField)).LookupTable
+              For lngListItem = 1 To oLookupTable.Count
+                If Len(oLookupTable(lngListItem).Description) > 0 Then
+                  If Left(oLookupTable(lngListItem).Description, Len(oLookupTable(lngListItem).FullName)) = oLookupTable(lngListItem).FullName Then
+                    strAttributes = strAttributes & vbCrLf & oLookupTable(lngListItem).Description
+                    If blnLookups Then wsLookups.Cells(2 + lngListItem, lngLookupCol) = oLookupTable(lngListItem).Description
                   Else
-                    strAttributes = strAttributes & vbCrLf & oLookupTable(intListItem).FullName & " - " & oLookupTable(intListItem).Description
-                    If blnLookups Then wsLookups.Cells(2 + intListItem, lngLookupCol) = oLookupTable(intListItem).FullName & " - " & oLookupTable(intListItem).Description
+                    strAttributes = strAttributes & vbCrLf & oLookupTable(lngListItem).FullName & " - " & oLookupTable(lngListItem).Description
+                    If blnLookups Then wsLookups.Cells(2 + lngListItem, lngLookupCol) = oLookupTable(lngListItem).FullName & " - " & oLookupTable(lngListItem).Description
                   End If
                 Else
-                  strAttributes = strAttributes & vbCrLf & oLookupTable(intListItem).FullName
-                  If blnLookups Then wsLookups.Cells(2 + intListItem, lngLookupCol) = oLookupTable(intListItem).FullName
+                  strAttributes = strAttributes & vbCrLf & oLookupTable(lngListItem).FullName
+                  If blnLookups Then wsLookups.Cells(2 + lngListItem, lngLookupCol) = oLookupTable(lngListItem).FullName
                 End If
-              Else
+              Next lngListItem
+            Else
+              'pick lists
+              For lngListItem = 1 To 1000
                 strValue = ""
-                strValue = CustomFieldValueListGetItem(lngField, pjValueListValue, intListItem)
+                On Error Resume Next
+                strValue = CStr(CustomFieldValueListGetItem(lngField, pjValueListValue, lngListItem))
+                If Err.Number = 1101 Then Exit For
+                If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
                 strDescription = ""
-                strDescription = CustomFieldValueListGetItem(lngField, pjValueListDescription, intListItem)
+                strDescription = CustomFieldValueListGetItem(lngField, pjValueListDescription, lngListItem)
                 If Len(strDescription) > 0 Then
                   strAttributes = strAttributes & vbCrLf & strValue & " - " & strDescription
-                  If blnLookups Then wsLookups.Cells(2 + intListItem, lngLookupCol) = strValue & " - " & strDescription
+                  If blnLookups Then wsLookups.Cells(2 + lngListItem, lngLookupCol) = strValue & " - " & strDescription
                 Else
                   strAttributes = strAttributes & vbCrLf & strValue
-                  If blnLookups Then wsLookups.Cells(2 + intListItem, lngLookupCol) = strValue
+                  If blnLookups Then wsLookups.Cells(2 + lngListItem, lngLookupCol) = strValue
                 End If
-              End If
-              If Err > 0 Then
-                Err.Clear
-                Exit For
-              End If
-            Next intListItem
-            
-            If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+              Next lngListItem
+            End If
             
             If blnLookups Then 'use data validation
               'name the range
-              wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + intListItem, lngLookupCol)), xlListObjectHasHeaders:=1).Name = UCase(Replace(Replace(FieldConstantToFieldName(lngField), " ", "_"), "-", "_"))
+              wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(1 + lngListItem, lngLookupCol)), xlListObjectHasHeaders:=1).Name = UCase(Replace(Replace(FieldConstantToFieldName(lngField), " ", "_"), "-", "_"))
               wsLookups.Columns(lngLookupCol).AutoFit
               wsLookups.Columns(lngLookupCol + 1).ColumnWidth = 2
               'todo: how to keep pick list with cell when ListObject gets sorted?
@@ -224,7 +225,7 @@ Dim vFieldScope As Variant
         If blnExists Then
           rstDictionary.Filter = "PROJECT_NAME='" & strProject & "' AND FIELD_ID=" & lngField
           If Not rstDictionary.EOF Then oWorksheet.Cells(lngRow, 7).Value = rstDictionary("DESCRIPTION")
-          rstDictionary.Filter = ""
+          rstDictionary.Filter = 0
         End If
         
 next_field:
@@ -246,67 +247,69 @@ next_field:
       oWorksheet.Cells(lngRow, 3).Value = "Enterprise"
       oWorksheet.Cells(lngRow, 4).Value = FieldConstantToFieldName(lngField)
       oWorksheet.Cells(lngRow, 5).Value = FieldConstantToFieldName(lngField)
-      If Len(CustomFieldGetFormula(lngField)) > 0 Then
-        oWorksheet.Cells(lngRow, 6).Value = CustomFieldGetFormula(lngField)
-      End If
-      strAttributes = ""
-      Set oLookupTable = Nothing
-      On Error Resume Next
-      Set oLookupTable = GlobalOutlineCodes(FieldConstantToFieldName(lngField)).LookupTable
-      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-      If Not oLookupTable Is Nothing Then
-        If blnLookups Then
-          lngLookupCol = wsLookups.[XFD2].End(-4159).Column
-          If wsLookups.Cells(1, lngLookupCol) <> "" Then lngLookupCol = lngLookupCol + 2
-          wsLookups.Cells(1, lngLookupCol) = UCase(FieldConstantToFieldName(lngField))
-          wsLookups.Cells(2, lngLookupCol) = UCase(FieldConstantToFieldName(lngField)) & " LOOKUP:"
-        End If
-        For intListItem = 1 To oLookupTable.Count
-          If Len(oLookupTable(intListItem).Description) > 0 Then
-            If Left(oLookupTable(intListItem).Description, Len(oLookupTable(intListItem).FullName)) = oLookupTable(intListItem).FullName Then
-              strAttributes = strAttributes & vbCrLf & oLookupTable(intListItem).Description
-              If blnLookups Then wsLookups.Cells(2 + intListItem, lngLookupCol) = oLookupTable(intListItem).Description
-            Else
-              strAttributes = strAttributes & vbCrLf & oLookupTable(intListItem).FullName & " - " & oLookupTable(intListItem).Description
-              If blnLookups Then wsLookups.Cells(2 + intListItem, lngLookupCol) = oLookupTable(intListItem).FullName & " - " & oLookupTable(intListItem).Description
-            End If
-          Else
-            strAttributes = strAttributes & vbCrLf & oLookupTable(intListItem).FullName
-            If blnLookups Then wsLookups.Cells(2 + intListItem, lngLookupCol) = oLookupTable(intListItem).FullName
-          End If
-        Next intListItem
-        
-        If blnLookups Then 'use validation
-          'name the range
-          wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + oLookupTable.Count, lngLookupCol)), xlListObjectHasHeaders:=1).Name = UCase(Replace(Replace(FieldConstantToFieldName(lngField), " ", "_"), "-", "_"))
-          wsLookups.Columns(lngLookupCol).AutoFit
-          wsLookups.Columns(lngLookupCol + 1).ColumnWidth = 2
-          With oWorksheet.Cells(lngRow, 6).Validation
-            .Delete
-            .Add Type:=3, AlertStyle:=1, Operator:= _
-            1, Formula1:="=INDIRECT(""" & UCase(Replace(Replace(FieldConstantToFieldName(lngField), " ", "_"), "-", "_")) & """)"
-            .IgnoreBlank = True
-            .InCellDropdown = True
-            .InputTitle = ""
-            .ErrorTitle = ""
-            .InputMessage = ""
-            .ErrorMessage = ""
-            .ShowInput = True
-            .ShowError = True
-          End With
-          oWorksheet.Cells(lngRow, 6).Value = UCase(FieldConstantToFieldName(lngField)) & " LOOKUP:"
+      If Not Application.IsOffline Then
+        If Len(CustomFieldGetFormula(lngField)) > 0 Then
+          oWorksheet.Cells(lngRow, 6).Value = CustomFieldGetFormula(lngField)
         Else
-          If Len(strAttributes) > 0 Then oWorksheet.Cells(lngRow, 6).Value = "Lookup Values:" & strAttributes
-        End If 'blnLookups
-        
-      End If 'Not LookupTable Is Nothing Then
-      
+          strAttributes = ""
+          Set oLookupTable = Nothing
+          On Error Resume Next
+          Set oLookupTable = GlobalOutlineCodes(FieldConstantToFieldName(lngField)).LookupTable
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If Not oLookupTable Is Nothing Then
+            If blnLookups Then
+              lngLookupCol = wsLookups.[XFD2].End(-4159).Column
+              If wsLookups.Cells(1, lngLookupCol) <> "" Then lngLookupCol = lngLookupCol + 2
+              wsLookups.Cells(1, lngLookupCol) = UCase(FieldConstantToFieldName(lngField))
+              wsLookups.Cells(2, lngLookupCol) = UCase(FieldConstantToFieldName(lngField)) & " LOOKUP:"
+            End If
+            For lngListItem = 1 To oLookupTable.Count
+              If Len(oLookupTable(lngListItem).Description) > 0 Then
+                If Left(oLookupTable(lngListItem).Description, Len(oLookupTable(lngListItem).FullName)) = oLookupTable(lngListItem).FullName Then
+                  strAttributes = strAttributes & vbCrLf & oLookupTable(lngListItem).Description
+                  If blnLookups Then wsLookups.Cells(2 + lngListItem, lngLookupCol) = oLookupTable(lngListItem).Description
+                Else
+                  strAttributes = strAttributes & vbCrLf & oLookupTable(lngListItem).FullName & " - " & oLookupTable(lngListItem).Description
+                  If blnLookups Then wsLookups.Cells(2 + lngListItem, lngLookupCol) = oLookupTable(lngListItem).FullName & " - " & oLookupTable(lngListItem).Description
+                End If
+              Else
+                strAttributes = strAttributes & vbCrLf & oLookupTable(lngListItem).FullName
+                If blnLookups Then wsLookups.Cells(2 + lngListItem, lngLookupCol) = oLookupTable(lngListItem).FullName
+              End If
+            Next lngListItem
+
+            If blnLookups Then 'use validation
+              'name the range
+              wsLookups.ListObjects.Add(SourceType:=1, Source:=wsLookups.Range(wsLookups.Cells(1, lngLookupCol), wsLookups.Cells(2 + oLookupTable.Count, lngLookupCol)), xlListObjectHasHeaders:=1).Name = UCase(Replace(Replace(FieldConstantToFieldName(lngField), " ", "_"), "-", "_"))
+              wsLookups.Columns(lngLookupCol).AutoFit
+              wsLookups.Columns(lngLookupCol + 1).ColumnWidth = 2
+              With oWorksheet.Cells(lngRow, 6).Validation
+                .Delete
+                .Add Type:=3, AlertStyle:=1, Operator:= _
+                1, Formula1:="=INDIRECT(""" & UCase(Replace(Replace(FieldConstantToFieldName(lngField), " ", "_"), "-", "_")) & """)"
+                .IgnoreBlank = True
+                .InCellDropdown = True
+                .InputTitle = ""
+                .ErrorTitle = ""
+                .InputMessage = ""
+                .ErrorMessage = ""
+                .ShowInput = True
+                .ShowError = True
+              End With
+              oWorksheet.Cells(lngRow, 6).Value = UCase(FieldConstantToFieldName(lngField)) & " LOOKUP:"
+            Else
+              If Len(strAttributes) > 0 Then oWorksheet.Cells(lngRow, 6).Value = "Lookup Values:" & strAttributes
+            End If 'blnLookups
+          End If 'has formula
+        End If 'Not LookupTable Is Nothing Then
+      End If 'is offline
+
       If blnExists Then
         rstDictionary.Filter = "PROJECT_NAME='" & strProject & "' AND FIELD_ID=" & lngField
         If Not rstDictionary.EOF Then oWorksheet.Cells(lngRow, 7).Value = rstDictionary("DESCRIPTION")
         rstDictionary.Filter = ""
       End If
-      
+
     End If
     lngItem = lngItem + 1
     cptDataDictionary_frm.lblStatus.Caption = "Exporting Enterprise Custom Fields..." & lngItem & "/" & lngItems & " (" & Format(lngItem / lngItems, "0%") & ")"
@@ -346,7 +349,6 @@ next_field:
   
 exit_here:
   On Error Resume Next
-  Set oListObject = Nothing
   Set wsLookups = Nothing
   If rstDictionary.State Then rstDictionary.Close
   Set rstDictionary = Nothing
@@ -454,7 +456,11 @@ Sub cptShowDataDictionary_frm()
     .Caption = "IMS Data Dictionary (" & cptGetVersion("cptDataDictionary_frm") & ")"
     .txtDescription.Enabled = False
     .chkIgnore.Enabled = False
-    .Show
+    If cptErrorTrapping Then
+      .Show
+    Else
+      .Show (False)
+    End If
   End With
   
 exit_here:
@@ -473,30 +479,30 @@ err_here:
 End Sub
 
 Sub cptRefreshDictionary()
-'objects
-Dim dTypes As Object 'Scripting.Dictionary
-Dim rstSaved As Object 'ADODB.Recordset
-'strings
-Dim strProject As String
-Dim strFieldName As String
-Dim strCustomName As String
-Dim strGUID As String
-'longs
-Dim lngItem As Long
-Dim lngField As Long
-Dim lngMax As Long
-'integers
-Dim intField As Integer
-'doubles
-'booleans
-Dim blnHasPickList As Boolean
-Dim blnHasFormula As Boolean
-Dim blnCreate As Boolean
-Dim blnExists As Boolean
-'variants
-Dim vFieldType As Variant
-Dim vFieldScope As Variant
-'dates
+  'objects
+  Dim dTypes As Object 'Scripting.Dictionary
+  Dim rstSaved As Object 'ADODB.Recordset
+  'strings
+  Dim strProject As String
+  Dim strFieldName As String
+  Dim strCustomName As String
+  Dim strGUID As String
+  'longs
+  Dim lngItem As Long
+  Dim lngField As Long
+  Dim lngMax As Long
+  'integers
+  Dim intField As Integer
+  'doubles
+  'booleans
+  Dim blnHasPickList As Boolean
+  Dim blnHasFormula As Boolean
+  Dim blnCreate As Boolean
+  Dim blnExists As Boolean
+  'variants
+  Dim vFieldType As Variant
+  Dim vFieldScope As Variant
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -535,7 +541,7 @@ Dim vFieldScope As Variant
       .Filter = "PROJECT_NAME='" & strProject & "'"
       'has it been upgraded with IGNORE?
       On Error Resume Next
-      Debug.Print .Fields("IGNORE")
+      'Debug.Print .Fields("IGNORE")
       If Err.Number = 3265 Then 'it has not
         Err.Clear
         If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -676,43 +682,43 @@ err_here:
 End Sub
 
 Sub cptImportDataDictionary(Optional strFile As String)
-'objects
-Dim rstSaved As ADODB.Recordset
-Dim oExcel As Object
-Dim oWorkbook As Object
-Dim oWorksheet As Object
-Dim oRange As Object
-'strings
-Dim strGUID As String
-Dim strDescription As String
-Dim strFieldName As String
-Dim strProject As String
-Dim strMsg As String
-Dim strNewDescription As String
-Dim strCustomName As String
-Dim strFieldsNotFound As String
-Dim strSavedSettings As String
-'longs
-Dim lngSkipped As Long
-Dim lngFieldID As Long
-Dim lngNotFound As Long
-Dim lngNew As Long
-Dim lngTooLong As Long
-Dim lngLastCol As Long
-Dim lngRow As Long
-Dim lngField As Long
-Dim lngLastRow As Long
-Dim lngDescriptionCol As Long
-Dim lngNameCol As Long
-Dim lngHeaderRow As Long
-'integers
-'doubles
-'booleans
-Dim blnSkip As Boolean
-Dim blnClose As Boolean
-'variants
-Dim vFile As Variant
-'dates
+  'objects
+  Dim rstSaved As ADODB.Recordset
+  Dim oExcel As Object
+  Dim oWorkbook As Object
+  Dim oWorksheet As Object
+  Dim oRange As Object
+  'strings
+  Dim strGUID As String
+  Dim strDescription As String
+  Dim strFieldName As String
+  Dim strProject As String
+  Dim strMsg As String
+  Dim strNewDescription As String
+  Dim strCustomName As String
+  Dim strFieldsNotFound As String
+  Dim strSavedSettings As String
+  'longs
+  Dim lngSkipped As Long
+  Dim lngFieldID As Long
+  Dim lngNotFound As Long
+  Dim lngNew As Long
+  Dim lngTooLong As Long
+  Dim lngLastCol As Long
+  Dim lngRow As Long
+  Dim lngField As Long
+  Dim lngLastRow As Long
+  Dim lngDescriptionCol As Long
+  Dim lngNameCol As Long
+  Dim lngHeaderRow As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnSkip As Boolean
+  Dim blnClose As Boolean
+  'variants
+  Dim vFile As Variant
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -941,3 +947,44 @@ err_here:
   Call cptHandleErr("cptDataDictionary_bas", "cptImportDataDictionary", Err, Erl)
   Resume exit_here
 End Sub
+
+Function WhatTheActual() As String
+  Dim dFieldCounts As Scripting.Dictionary
+  Dim strResult As String
+  Dim blnHasFormula As Boolean
+  Dim blnHasPickList As Boolean
+  Dim lngItem As Long
+  Dim lngItems As Long
+  Dim lngField As Long
+  Dim vType As Variant
+  
+  Set dFieldCounts = CreateObject("Scripting.Dictionary")
+  dFieldCounts.Add "Text", 30
+  dFieldCounts.Add "Number", 20
+  dFieldCounts.Add "Flag", 20
+  
+  For Each vType In Array("Cost", "Date", "Duration", "Flag", "Finish", "Number", "Outline Code", "Start", "Text")
+    If dFieldCounts.Exists(vType) Then
+      lngItems = dFieldCounts(vType)
+    Else
+      lngItems = 10
+    End If
+    For lngItem = 1 To lngItems
+      lngField = FieldNameToFieldConstant(vType & lngItem)
+      blnHasFormula = False
+      blnHasPickList = False
+      On Error Resume Next
+      blnHasFormula = Len(CustomFieldGetFormula(lngField)) > 0
+      If Not blnHasFormula Then
+        blnHasPickList = Len(CustomFieldValueListGetItem(lngField, pjValueListValue, 1)) > 0
+      End If
+      On Error GoTo 0
+      strResult = strResult & lngField & "," & FieldConstantToFieldName(lngField) & "," & CustomFieldGetName(lngField) & "," & blnHasFormula & "," & blnHasPickList & vbCrLf
+    Next lngItem
+  Next vType
+  
+  WhatTheActual = strResult
+  
+  Set dFieldCounts = Nothing
+  
+End Function
