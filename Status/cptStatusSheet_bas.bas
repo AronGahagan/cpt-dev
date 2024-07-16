@@ -1239,22 +1239,22 @@ Sub cptRefreshStatusTable(Optional blnOverride As Boolean = False, Optional blnF
 filter_only:
   'reset the filter
   Application.StatusBar = "Resetting the cptStatusSheet Filter..."
-  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", Test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
+  FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
   If cptStatusSheet_frm.chkHide And IsDate(cptStatusSheet_frm.txtHideCompleteBefore) Then
-    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Actual Finish", Test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Actual Finish", test:="is greater than or equal to", Value:=cptStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
   End If
   If Edition = pjEditionProfessional Then
-    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True, Parenthesis:=True
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Active", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True, Parenthesis:=True
   End If
   With cptStatusSheet_frm
     If .chkLookahead And .txtLookaheadDate.BorderColor <> 192 Then
       dtLookahead = CDate(.txtLookaheadDate) & " 5:00 PM"
-      FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Start", Test:="is less than or equal to", Value:=dtLookahead, Operation:="And", Parenthesis:=False
+      FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Start", test:="is less than or equal to", Value:=dtLookahead, Operation:="And", Parenthesis:=False
     End If
     If .chkIgnoreLOE Then
       strEVT = Split(cptGetSetting("Integration", "EVT"), "|")(1)
       strLOE = cptGetSetting("Integration", "LOE")
-      FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:=strEVT, Test:="does not equal", Value:=strLOE, Operation:="And", Parenthesis:=False
+      FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:=strEVT, test:="does not equal", Value:=strLOE, Operation:="And", Parenthesis:=False
     End If
   End With
   FilterApply "cptStatusSheet Filter"
@@ -1433,7 +1433,11 @@ try_again:
   oWorksheet.Columns.AutoFit
   'format the colums
   blnAlerts = oWorksheet.Application.DisplayAlerts
-  strItem = cptStatusSheet_frm.lboItems.List(cptStatusSheet_frm.lboItems.ListIndex, 0)
+  If cptStatusSheet_frm.cboCreate <> 2 Then
+    strItem = ""
+  Else
+    strItem = cptStatusSheet_frm.lboItems.List(cptStatusSheet_frm.lboItems.ListIndex, 0)
+  End If
   If blnAlerts Then oWorksheet.Application.DisplayAlerts = False
   For lngCol = 1 To ActiveSelection.FieldIDList.Count
     oWorksheet.Columns(lngCol).ColumnWidth = ActiveProject.TaskTables("cptStatusSheet Table").TableFields(lngCol + 1).Width + 2
@@ -1745,10 +1749,10 @@ next_task:
         On Error Resume Next
         Set oTask = ActiveProject.Tasks.UniqueID(oWorksheet.Cells(lngRow, 1))
         If oTask Is Nothing Then
-          oWorksheet.Cells(lngRow, 1).ClearContents
+          oWorksheet.Cells(lngRow, 1).Value = ""
         Else
           If Trim(oTask.Name) <> Trim(oWorksheet.Cells(lngRow, lngNameCol).Value) Then
-            oWorksheet.Cells(lngRow, 1).ClearContents
+            oWorksheet.Cells(lngRow, 1).Value = ""
           End If
         End If
       End If
@@ -1767,7 +1771,7 @@ next_task:
     Next lngRow
   End If
   
-  If Not oClearRange Is Nothing Then oClearRange.ClearContents
+  If Not oClearRange Is Nothing Then oClearRange.Value = ""
   If Not oSummaryRange Is Nothing Then
     oSummaryRange.Interior.ThemeColor = xlThemeColorDark1
     oSummaryRange.Interior.TintAndShade = -0.149998474074526
@@ -2121,9 +2125,14 @@ skip_working:
       Do While Not .EOF
         'race is on
         lngFormatCondition = lngFormatCondition + 1
-        cptStatusSheet_frm.lblStatus.Caption = "Applying Conditional Formatting [" & strItem & "]...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
+        If strItem <> "" Then
+          cptStatusSheet_frm.lblStatus.Caption = "Applying Conditional Formatting [" & strItem & "]...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
+          Application.StatusBar = "Applying Conditional Formatting [" & strItem & "]...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
+        Else
+          cptStatusSheet_frm.lblStatus.Caption = "Applying Conditional Formatting...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
+          Application.StatusBar = "Applying Conditional Formatting...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
+        End If
         cptStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngFormatConditions) * cptStatusSheet_frm.lblStatus.Width
-        Application.StatusBar = "Applying Conditional Formatting [" & strItem & "]...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
         Set oFormatRange = oDict.Item(CStr(.Fields(0)))
         oFormatRange.Select
         oFormatRange.FormatConditions.Add Type:=xlExpression, Formula1:=CStr(.Fields(1))
@@ -2171,7 +2180,11 @@ skip_working:
         .MoveNext
       Loop
       'race is over - notify
-      cptStatusSheet_frm.lblStatus.Caption = "Applying Conditional Formatting [" & strItem & "]...done."
+      If strItem <> "" Then
+        cptStatusSheet_frm.lblStatus.Caption = "Applying Conditional Formatting [" & strItem & "]...done."
+      Else
+        cptStatusSheet_frm.lblStatus.Caption = "Applying Conditional Formatting...done."
+      End If
       cptStatusSheet_frm.lblProgress.Width = cptStatusSheet_frm.lblStatus.Width
       Application.StatusBar = cptStatusSheet_frm.lblStatus.Caption
       oDict.RemoveAll
@@ -2263,10 +2276,10 @@ Private Sub cptGetAssignmentData(ByRef oTask As MSProject.Task, ByRef oWorksheet
         oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
         oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.ColorIndex = xlAutomatic
       Else
-        oWorksheet.Rows(lngRow + lngItem).ClearContents
+        oWorksheet.Rows(lngRow + lngItem).Value = ""
       End If
     Else
-      oWorksheet.Rows(lngRow + lngItem).ClearContents
+      oWorksheet.Rows(lngRow + lngItem).Value = ""
     End If
     'this fills down task custom fields to assignments
     For lngCol = 2 To lngNameCol
