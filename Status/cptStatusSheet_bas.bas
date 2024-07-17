@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.5.2</cpt_version>
+'<cpt_version>v1.5.3</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -2033,7 +2033,7 @@ next_task:
     Next lngRow
   End If
   
-  If Not oClearRange Is Nothing Then oClearRange.ClearContents
+  If Not oClearRange Is Nothing Then oClearRange.Value = ""
   If Not oSummaryRange Is Nothing Then
     oSummaryRange.Interior.ThemeColor = xlThemeColorDark1
     oSummaryRange.Interior.TintAndShade = -0.149998474074526
@@ -2218,10 +2218,10 @@ Private Sub cptGetAssignmentData(ByRef oTask As MSProject.Task, ByRef oWorksheet
         oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
         oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.ColorIndex = xlAutomatic
       Else
-        oWorksheet.Rows(lngRow + lngItem).ClearContents
+        oWorksheet.Rows(lngRow + lngItem).Value = ""
       End If
     Else
-      oWorksheet.Rows(lngRow + lngItem).ClearContents
+      oWorksheet.Rows(lngRow + lngItem).Value = ""
     End If
     'this fills down task custom fields to assignments
     For lngCol = 2 To lngNameCol

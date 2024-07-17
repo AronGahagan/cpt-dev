@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.4.1</cpt_version>
+'<cpt_version>v1.4.2</cpt_version>
 Option Explicit
 
 Sub cptGetBAC()
@@ -1279,8 +1279,8 @@ next_task:
   oListObject.DataBodyRange.Copy
   oListObject.DataBodyRange.PasteSpecial xlPasteValuesAndNumberFormats
   lngLastRow = oWorksheet.Columns(1).Find(dtStatus).Row
-  oWorksheet.Range(oWorksheet.Cells(2, 7), oWorksheet.Cells(lngLastRow - 1, 7)).ClearContents
-  oWorksheet.Range(oWorksheet.Cells(lngLastRow + 1, 6), oWorksheet.Cells(1048576, 6)).ClearContents
+  oWorksheet.Range(oWorksheet.Cells(2, 7), oWorksheet.Cells(lngLastRow - 1, 7)).Value = ""
+  oWorksheet.Range(oWorksheet.Cells(lngLastRow + 1, 6), oWorksheet.Cells(1048576, 6)).Value = ""
   oWorksheet.[I1].Select
   oWorksheet.Shapes.AddChart2 227, xlLine
   Set oChart = oWorksheet.ChartObjects(oWorksheet.ChartObjects.Count)
