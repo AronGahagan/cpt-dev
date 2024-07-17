@@ -1038,7 +1038,7 @@ next_task:
   oListObject.ListColumns(strSummary).Range.Copy oWorksheet.[A5]
   oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A1048576]).RemoveDuplicates Columns:=1, Header:=xlNo
   oWorksheet.Sort.SortFields.Clear
-  oWorksheet.Sort.SortFields.Add Key:=oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A6].End(xlDown)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+  oWorksheet.Sort.SortFields.Add key:=oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A6].End(xlDown)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
   With oWorksheet.Sort
     .SetRange oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A1048576].End(xlUp))
     .Header = xlNo
@@ -1150,8 +1150,8 @@ next_task:
   oListObject.DataBodyRange.PasteSpecial xlPasteValuesAndNumberFormats
   lngLastRow = oWorksheet.Columns(1).Find(dtStatus).Row 'requires matching date format
   oListObject.ListColumns(1).DataBodyRange.NumberFormat = "m/d/yyyy"
-  oWorksheet.Range(oWorksheet.Cells(2, 7), oWorksheet.Cells(lngLastRow - 1, 7)).ClearContents
-  oWorksheet.Range(oWorksheet.Cells(lngLastRow + 1, 6), oWorksheet.Cells(1048576, 6)).ClearContents
+  oWorksheet.Range(oWorksheet.Cells(2, 7), oWorksheet.Cells(lngLastRow - 1, 7)).Value = ""
+  oWorksheet.Range(oWorksheet.Cells(lngLastRow + 1, 6), oWorksheet.Cells(1048576, 6)).Value = ""
   oWorksheet.[I1].Select
   oWorksheet.Shapes.AddChart2 227, xlLine
   Set oChart = oWorksheet.ChartObjects(oWorksheet.ChartObjects.Count)
@@ -1900,9 +1900,9 @@ next_task:
     'sort by first custom field,FF or by only FF
     oListObject.Sort.SortFields.Clear
     If UBound(Split(strMyHeaders, ",")) > 0 Then
-      oListObject.Sort.SortFields.Add Key:=oWorksheet.Range("THIS_WEEK[" & Split(strMyHeaders, ",")(0) & "]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add key:=oWorksheet.Range("THIS_WEEK[" & Split(strMyHeaders, ",")(0) & "]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
     End If
-    oListObject.Sort.SortFields.Add Key:=oWorksheet.Range("THIS_WEEK[FF]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+    oListObject.Sort.SortFields.Add key:=oWorksheet.Range("THIS_WEEK[FF]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
     With oListObject.Sort
       .Header = xlYes
       .MatchCase = False
