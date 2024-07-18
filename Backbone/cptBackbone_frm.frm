@@ -135,9 +135,17 @@ End Sub
 
 Private Sub cmdImport_Click()
 'objects
+Dim oTask As MSProject.Task
+Dim oOutlineCode As MSProject.OutlineCode
 'strings
+Dim strFile As String
+Dim strMsg As String
 Dim strOutlineCode As String
 'longs
+Dim lngItem As Long
+Dim lngItems As Long
+Dim lngFile As Long
+Dim lngResponse As Long
 Dim lngOutlineCode As Long
 'integers
 'doubles
@@ -155,6 +163,64 @@ Dim lngOutlineCode As Long
     strOutlineCode = Me.txtNameIt
   End If
   lngOutlineCode = Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0)
+  Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+  'does a lookuptable already exist?
+  If oOutlineCode.LookupTable.Count > 0 Then 'what does user want us to do? ask:
+    strMsg = "Outline Code '" & strOutlineCode & "' already has a lookup table." & vbCrLf & vbCrLf
+    strMsg = strMsg & "Would you like to OVERWRITE this Outline Code?" & vbCrLf & vbCrLf
+    strMsg = strMsg & "(If you click Yes, task-level selections may be lost!)" & vbCrLf
+    lngResponse = MsgBox(strMsg, vbExclamation + vbYesNo, "Warning...")
+    If lngResponse = vbNo Then 'NOPE THE HECK RIGHT OUTTA HERE
+      GoTo exit_here
+    ElseIf lngResponse = vbYes Then 'OVERWRITE
+      If MsgBox("Are you sure?", vbCritical + vbYesNo, "CONFIRM TASK DATA LOSS") = vbYes Then
+        'backup outline code
+        lngFile = FreeFile
+        strFile = Environ("tmp") & "\" & strOutlineCode & "-was.csv"
+        Open strFile For Output As #lngFile
+        Print #lngFile, "BACKUP OF CUSTOM FIELD '" & UCase(strOutlineCode) & "' (" & FieldConstantToFieldName(lngOutlineCode) & ")"
+        Print #lngFile, String(50, "-")
+        Print #lngFile, "CODE,LEVEL,DESCRIPTION"
+        lngItems = oOutlineCode.LookupTable.Count
+        For lngItem = 1 To lngItems
+          Print #lngFile, oOutlineCode.LookupTable(lngItem).FullName & "," & oOutlineCode.LookupTable(lngItem).Level & "," & oOutlineCode.LookupTable(lngItem).Description
+          Application.StatusBar = "Backing up " & strOutlineCode & " pick-list...(" & Format(lngItem / lngItems, "0%") & ")"
+        Next lngItem
+        Close #lngFile
+        Shell "notepad.exe '" & strFile & "'", vbMinimizedNoFocus
+        Application.StatusBar = ""
+        
+        'backup task data
+        lngFile = FreeFile
+        strFile = Environ("tmp") & "\" & strOutlineCode & "-task-data.csv"
+        Open strFile For Output As #lngFile
+        Print #lngFile, "BACKUP OF TASK DATA FOR CUSTOM FIELD '" & UCase(strOutlineCode) & "' (" & FieldConstantToFieldName(lngOutlineCode) & ")"
+        Print #lngFile, String(50, "-")
+        lngItems = ActiveProject.Tasks.Count
+        lngItem = 0
+        Print #lngFile, "Unique ID," & strOutlineCode
+        For Each oTask In ActiveProject.Tasks
+          If oTask Is Nothing Then GoTo next_task
+          If oTask.ExternalTask Then GoTo next_task
+          If Not oTask.Active Then GoTo next_task
+          If Len(oTask.GetField(lngOutlineCode)) > 0 Then
+            Print #lngFile, oTask.UniqueID & "," & oTask.GetField(lngOutlineCode)
+          End If
+next_task:
+          lngItem = lngItem + 1
+          Application.StatusBar = "Backing up task data...(" & Format(lngItem / lngItems, "0%") & ")"
+        Next oTask
+        Close #lngFile
+        Shell "notepad.exe '" & strFile & "'", vbMinimizedNoFocus
+        Application.StatusBar = ""
+        
+        'delete outline codes and start fresh
+        oOutlineCode.Delete
+        oOutlineCode.Name = strOutlineCode
+        CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=False, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
+      End If
+    End If
+  End If
   
   'ensure toppane is selected
   If Not ActiveWindow.BottomPane Is Nothing Then WindowActivate TopPane:=True
@@ -188,6 +254,8 @@ Dim lngOutlineCode As Long
   
 exit_here:
   On Error Resume Next
+  Set oTask = Nothing
+  Set oOutlineCode = Nothing
   
   Exit Sub
 
