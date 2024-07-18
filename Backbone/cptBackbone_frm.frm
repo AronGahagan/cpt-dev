@@ -163,6 +163,7 @@ Dim lngOutlineCode As Long
     strOutlineCode = Me.txtNameIt
   End If
   lngOutlineCode = Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0)
+  CustomFieldRename lngOutlineCode, strOutlineCode
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   'does a lookuptable already exist?
   If oOutlineCode.LookupTable.Count > 0 Then 'what does user want us to do? ask:
@@ -214,9 +215,10 @@ next_task:
         Shell "notepad.exe '" & strFile & "'", vbMinimizedNoFocus
         Application.StatusBar = ""
         
-        'delete outline codes and start fresh
-        oOutlineCode.Delete
-        oOutlineCode.Name = strOutlineCode
+        'delete lookup table and start fresh
+        For lngItem = oOutlineCode.LookupTable.Count To 1 Step -1
+          oOutlineCode.LookupTable(lngItem).Delete
+        Next lngItem
         CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=False, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
       End If
     End If
