@@ -1013,11 +1013,18 @@ Sub cptCreateCode(lngOutlineCode As Long)
   Dim objLookupTableEntry As LookupTableEntry
   Dim oTask As MSProject.Task
   'strings
-  Dim strWBS As String, strParent As String, strChild As String
+  Dim strWBS As String
+  Dim strParent As String
+  Dim strChild As String
   'longs
-  Dim lngUID As Long, lngTasks As Long, lngTask As Long, lngLevel As Long
+  Dim lngUID As Long
+  Dim lngTasks As Long
+  Dim lngTask As Long
+  Dim lngItem As Long
   'variants
-  Dim aOutlineCode As Variant, tmr As Date
+  Dim aOutlineCode As Variant
+  'dates
+  Dim tmr As Date
 
   tmr = Now
   
@@ -1101,6 +1108,7 @@ Sub cptRefreshOutlineCodePreview(strOutlineCode As String)
   Dim oNode As Object 'Node
   'strings
   'longs
+  Dim lngEntries As Long
   Dim lngEntry As Long
   'integers
   'doubles
@@ -1116,19 +1124,28 @@ Sub cptRefreshOutlineCodePreview(strOutlineCode As String)
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oLookupTable Is Nothing Then
     If oLookupTable.Count > 0 Then
+      lngEntries = oLookupTable.Count
       cptBackbone_frm.lboOutlineCode.Clear
       For lngEntry = 1 To oLookupTable.Count
-        With cptBackbone_frm.lboOutlineCode
-          .AddItem
-          .List(.ListCount - 1, 0) = oLookupTable(lngEntry).UniqueID
-          .List(.ListCount - 1, 1) = oLookupTable(lngEntry).Level
-          .List(.ListCount - 1, 2) = oLookupTable(lngEntry).FullName & " - " & oLookupTable(lngEntry).Description
+        With cptBackbone_frm
+          With .lboOutlineCode
+            .AddItem
+            .List(.ListCount - 1, 0) = oLookupTable(lngEntry).UniqueID
+            .List(.ListCount - 1, 1) = oLookupTable(lngEntry).Level
+            .List(.ListCount - 1, 2) = oLookupTable(lngEntry).FullName & " - " & oLookupTable(lngEntry).Description
+          End With
+          .lblStatus.Caption = "Loading...(" & Format(lngEntry / lngEntries, "0%") & ")"
+          .lblProgress.Width = (lngEntry / lngEntries) * .lblStatus.Width
+          If .Visible Then DoEvents
           Application.StatusBar = "Adding: " & oLookupTable(lngEntry).FullName & " - " & oLookupTable(lngEntry).Description
         End With
       Next lngEntry
     End If 'lookuptable.count > 0
   End If 'lookuptable is nothing
-  
+  With cptBackbone_frm
+    .lblProgress.Width = .lblStatus.Width
+    .lblStatus.Caption = "Ready..."
+  End With
 exit_here:
   On Error Resume Next
   Application.StatusBar = ""

@@ -83,6 +83,7 @@ Private Sub cboOutlineCodes_Change()
   Me.txtReplace.Text = ""
   Me.txtReplacement.Text = ""
   Me.lboOutlineCode.Clear
+  DoEvents
   If Not IsNull(Me.cboOutlineCodes.Value) Then
     If Len(CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))) > 0 Then
       Call cptRefreshOutlineCodePreview(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 1))
