@@ -25,6 +25,7 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
   'integers
   'doubles
   'booleans
+  Dim blnValid As Boolean
   'variants
   'dates
     
@@ -78,13 +79,31 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
               End If
             Next c
             If oInvalid.Count > 0 Then
+              blnValid = False
               strMsg = "Duplicate Codes found!" & vbCrLf
               For lngItem = 0 To oInvalid.Count - 1
                 strMsg = strMsg & "- " & oInvalid.Keys(lngItem) & vbCrLf
               Next lngItem
               strMsg = strMsg & vbCrLf & "Code must be unique."
+              'indicate duplicate values
+              oRange.FormatConditions.AddUniqueValues
+              oRange.FormatConditions(oRange.FormatConditions.Count).SetFirstPriority
+              oRange.FormatConditions(1).DupeUnique = xlDuplicate
+              With oRange.FormatConditions(1).Font
+                .Color = -16383844
+                .TintAndShade = 0
+              End With
+              With oRange.FormatConditions(1).Interior
+                .PatternColorIndex = xlAutomatic
+                .Color = 13551615
+                .TintAndShade = 0
+              End With
+              oRange.FormatConditions(1).StopIfTrue = False
+              oWorkbook.Save
               MsgBox strMsg, vbExclamation + vbOKOnly, "INVALID CODE"
               GoTo exit_here
+            Else
+              blnValid = True
             End If
             lngItems = oRange.Cells.Count
             lngItem = 0
@@ -143,8 +162,13 @@ exit_here:
   Set oFileDialog = Nothing
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
-  oWorkbook.Close False
-  oExcel.Quit
+  If blnValid Then
+    oWorkbook.Close False
+    oExcel.Quit
+  Else
+    oExcel.Visible = True
+    oWorkbook.Activate
+  End If
   Set oExcel = Nothing
   Exit Sub
 err_here:
