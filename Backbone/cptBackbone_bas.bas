@@ -4,6 +4,8 @@ Option Explicit
 
 Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
   'objects
+  Dim oValid As Scripting.Dictionary
+  Dim oInvalid As Scripting.Dictionary
   Dim oTask As MSProject.Task
   Dim oLookupTable As LookupTable
   Dim oOutlineCode As OutlineCode
@@ -14,6 +16,7 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
   Dim oWorkbook As Object
   Dim oExcel As Object 'Excel.Application
   'strings
+  Dim strMsg As String
   Dim strOutlineCode As String
   'longs
   Dim lngItems As Long
@@ -64,6 +67,25 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
           If UCase(oWorksheet.[A1].Value) = "CODE" And UCase(oWorksheet.[B1].Value) = "LEVEL" And UCase(oWorksheet.[C1].Value) = "DESCRIPTION" Then
             strOutlineCode = CustomFieldGetName(lngOutlineCode)
             Set oRange = oWorksheet.Range(oWorksheet.[A2], oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(-4162)) '-4162 = xlUp
+            'validate unique Codes (esp. 1.1 and 1.10 when excel hacks off trailing zeros
+            Set oValid = CreateObject("Scripting.Dictionary")
+            Set oInvalid = CreateObject("Scripting.Dictionary")
+            For Each c In oRange.Cells
+              If Not oValid.Exists(c.Value) Then
+                oValid.Add c.Value, c.Offset(0, 2).Value
+              Else
+                oInvalid.Add c.Value, c.Offset(0, 2).Value
+              End If
+            Next c
+            If oInvalid.Count > 0 Then
+              strMsg = "Duplicate Codes found!" & vbCrLf
+              For lngItem = 0 To oInvalid.Count - 1
+                strMsg = strMsg & "- " & oInvalid.Keys(lngItem) & vbCrLf
+              Next lngItem
+              strMsg = strMsg & vbCrLf & "Code must be unique."
+              MsgBox strMsg, vbExclamation + vbOKOnly, "INVALID CODE"
+              GoTo exit_here
+            End If
             lngItems = oRange.Cells.Count
             lngItem = 0
             For Each c In oRange.Cells
@@ -79,7 +101,7 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
               If oOutlineCode Is Nothing Then Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
               If oLookupTable Is Nothing Then Set oLookupTable = oOutlineCode.LookupTable
               If Len(c.Offset(0, 2).Value) > 0 Then
-                oLookupTable.Item(lngItem).Description = c.Offset(0, 2)
+                oLookupTable.Item(lngItem).Description = c.Offset(0, 2).Value
               End If
               If cptBackbone_frm.chkAlsoCreateTasks Then
                 lngOutlineLevel = Len(c.Value) - Len(Replace(c.Value, ".", ""))
@@ -109,6 +131,8 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
 
 exit_here:
   On Error Resume Next
+  Set oValid = Nothing
+  Set oInvalid = Nothing
   cptSpeed False
   Application.CloseUndoTransaction
   Set oTask = Nothing
