@@ -443,6 +443,7 @@ skip_fields:
           'If cptRegEx(FieldConstantToFieldName(.Fields(0)), "[0-9]{1,}$") = "" Then GoTo next_item
           'If InStr("Custom", FieldConstantToFieldName(FieldNameToFieldConstant(.Fields(2)))) = 0 Then GoTo next_item
           If CustomFieldGetName(.Fields(0)) <> CStr(.Fields(1)) Then
+            If FieldConstantToFieldName(.Fields(0)) = CStr(.Fields(1)) Then GoTo next_item
             If Len(CustomFieldGetName(.Fields(0))) > 0 Then
               strNewCustomFieldName = CustomFieldGetName(.Fields(0))
             Else
