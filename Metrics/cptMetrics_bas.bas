@@ -7,7 +7,11 @@ Sub cptGetBAC()
 End Sub
 
 Sub cptGetETC()
-  MsgBox Format(cptGetMetric("etc"), "#,##0.00h"), vbInformation + vbOKOnly, "Estimate to Complete (ETC) - hours"
+  Dim dblETC As Double
+  dblETC = cptGetMetric("etc")
+  If dblETC > 0 Then
+    MsgBox Format(dblETC, "#,##0.00h"), vbInformation + vbOKOnly, "Estimate to Complete (ETC) - hours"
+  End If
 End Sub
 
 Sub cptGetBCWR()
@@ -503,30 +507,32 @@ err_here:
 End Sub
 
 Function cptGetMetric(strGet As String) As Double
-'todo: no screen changes!
-'objects
-Dim oShell As Object
-Dim oAssignment As MSProject.Assignment
-Dim oTSV As TimeScaleValue
-Dim oTSVS As TimeScaleValues
-Dim oTasks As MSProject.Tasks
-Dim oTask As MSProject.Task
-'strings
-Dim strVerbose As String
-Dim strLOE As String
-'longs
-Dim lngFile As Long
-Dim lngEVT As Long
-Dim lngEVP As Long
-Dim lngYears As Long
-'integers
-'doubles
-Dim dblResult As Double
-'booleans
-Dim blnVerbose As Boolean
-'variants
-'dates
-Dim dtStatus As Date
+  'todo: no screen changes!
+  'objects
+  Dim oShell As Object
+  Dim oAssignment As MSProject.Assignment
+  Dim oTSV As TimeScaleValue
+  Dim oTSVS As TimeScaleValues
+  Dim oTasks As MSProject.Tasks
+  Dim oTask As MSProject.Task
+  'strings
+  Dim strMsg As String
+  Dim strVerbose As String
+  Dim strLOE As String
+  'longs
+  Dim lngFile As Long
+  Dim lngEVT As Long
+  Dim lngEVP As Long
+  Dim lngYears As Long
+  'integers
+  'doubles
+  Dim dblResult As Double
+  Dim dblUnbaselined As Double
+  'booleans
+  Dim blnVerbose As Boolean
+  'variants
+  'dates
+  Dim dtStatus As Date
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -626,6 +632,8 @@ Dim dtStatus As Date
             End If
           Next oAssignment
       End Select
+    Else
+      dblUnbaselined = dblUnbaselined + (oTask.RemainingWork / 60)
     End If 'bac>0
     Select Case strGet
     
@@ -639,7 +647,15 @@ Dim dtStatus As Date
 next_task:
     Application.StatusBar = "Calculating " & UCase(strGet) & "..."
   Next
-
+  
+  If dblUnbaselined > 0 And strGet = "etc" Then
+    strMsg = "ETC on BASELINED TASKS: " & Format(dblResult, "#,##0.00h") & vbCrLf
+    strMsg = strMsg & "ETC on UNBASELINED TASKS: " & Format(dblUnbaselined, "#,##0.00h") & vbCrLf & vbCrLf
+    strMsg = strMsg & "TOTAL ETC: " & Format(dblResult + dblUnbaselined, "#,##0.00h")
+    MsgBox strMsg, vbExclamation + vbOKOnly, "Estimate to Complete (in hours)"
+    dblResult = 0
+  End If
+  
   cptGetMetric = dblResult
   If blnVerbose Then
     Close #lngFile
