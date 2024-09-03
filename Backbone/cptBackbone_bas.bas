@@ -54,19 +54,20 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
         Application.OpenUndoTransaction "Import " & strOutlineCode & " from Excel Workbook"
       
         cptSpeed True
-        
-        'set up the outline code field
-        For lngItem = 1 To 10
-          CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=lngItem, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
-        Next lngItem
-        CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=False, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
-        
+                
         'open the workbook
         Set oWorkbook = oExcel.Workbooks.Open(oFileDialog.SelectedItems(1))
         'find the sheet
         For Each oWorksheet In oWorkbook.Sheets
           If UCase(oWorksheet.[A1].Value) = "CODE" And UCase(oWorksheet.[B1].Value) = "LEVEL" And UCase(oWorksheet.[C1].Value) = "DESCRIPTION" Then
             strOutlineCode = CustomFieldGetName(lngOutlineCode)
+            'build the code mask
+            lngOutlineLevel = oWorksheet.Evaluate("MAX(B:B)")
+            For lngItem = 1 To lngOutlineLevel
+              CustomOutlineCodeEditEx FieldID:=lngOutlineCode, Level:=lngItem, Sequence:=pjCustomOutlineCodeCharacters, Length:="Any", Separator:="."
+            Next lngItem
+            CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=False, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
+            
             Set oRange = oWorksheet.Range(oWorksheet.[A2], oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(-4162)) '-4162 = xlUp
             'validate unique Codes (esp. 1.1 and 1.10 when excel hacks off trailing zeros
             Set oValid = CreateObject("Scripting.Dictionary")
@@ -110,17 +111,16 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
             For Each c In oRange.Cells
               lngItem = lngItem + 1
               If Len(c.Offset(0, 2).Value) > 0 Then
-                Set oTask = ActiveProject.Tasks.Add(c.Offset(0, 2).Value)
+                Set oTask = ActiveProject.Tasks.Add(Left(c.Offset(0, 2).Value, 255))
               Else
                 Set oTask = ActiveProject.Tasks.Add("DELETE - PLACEHOLDER")
               End If
               oTask.OutlineLevel = 1
-              'todo: if levels of c.value code exceed current levels of oOutlineCode.CodeMask.Count then add new code mask level
               oTask.SetField lngOutlineCode, c.Value
               If oOutlineCode Is Nothing Then Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
               If oLookupTable Is Nothing Then Set oLookupTable = oOutlineCode.LookupTable
               If Len(c.Offset(0, 2).Value) > 0 Then
-                oLookupTable.Item(lngItem).Description = c.Offset(0, 2).Value
+                oLookupTable.Item(lngItem).Description = Left(c.Offset(0, 2).Value, 255)
               End If
               If cptBackbone_frm.chkAlsoCreateTasks Then
                 lngOutlineLevel = Len(c.Value) - Len(Replace(c.Value, ".", ""))
@@ -130,7 +130,7 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
               Else
                 oTask.Delete
               End If
-              cptBackbone_frm.lblStatus.Caption = "Importing " & lngItem & " of " & lngItems & "(" & Format(lngItem / lngItems, "0%") & ")..."
+              cptBackbone_frm.lblStatus.Caption = "Importing " & lngItem & " of " & lngItems & " (" & Format(lngItem / lngItems, "0%") & ")..."
               cptBackbone_frm.lblProgress.Width = (lngItem / lngItems) * cptBackbone_frm.lblStatus.Width
             Next c
             cptBackbone_frm.lblStatus.Caption = "Ready..."
@@ -139,6 +139,7 @@ Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
             CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=True, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
             'refresh the form
             cptBackbone_frm.cboOutlineCodes.List(cptBackbone_frm.cboOutlineCodes.ListIndex, 1) = FieldConstantToFieldName(lngOutlineCode) & " (" & strOutlineCode & ")"
+            'prevent importing multiple sheets
             Exit For
           Else
             MsgBox "No worksheet found where [A1:C1] contains CODE, LEVEL, DESCRIPTION.", vbExclamation + vbOKOnly, "Invalid Workbook"
