@@ -246,7 +246,7 @@ Sub cptStatusSheetImport()
   Dim oDict As Scripting.Dictionary
   Dim oShell As Object
   Dim oRecordset As ADODB.Recordset
-  Dim oSubProject As Subproject
+  Dim oSubProject As SubProject
   Dim oTask As MSProject.Task
   Dim oResource As Resource
   Dim oAssignment As Assignment
@@ -1134,11 +1134,11 @@ Sub cptRefreshStatusImportTable(Optional blnUsageBelow As Boolean = False)
       rst.MoveFirst
       Do While Not rst.EOF
         'does field name still match?
-        If CustomFieldGetName(rst(0)) = rst(1) Then
+        If CustomFieldGetName(rst(0)) = rst(1) Or FieldConstantToFieldName(rst(0)) = rst(1) Then
           TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:=rst(1), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
         Else
           If CustomFieldGetName(rst(0)) = "" Then
-            MsgBox "Saved field '" & rst(1) & "' has been renamed to '" & FieldNameToFieldConstant(rst(0)) & "' - you may want to remove it from your list.", vbInformation + vbOKOnly, "Saved Field Changed"
+            MsgBox "Saved field '" & rst(1) & "' has been renamed to '" & FieldConstantToFieldName(rst(0)) & "' - you may want to remove it from your list.", vbInformation + vbOKOnly, "Saved Field Changed"
           Else
             MsgBox "Saved field '" & rst(1) & "' has been renamed to '" & CustomFieldGetName(rst(0)) & "' - you may want to remove it from your list.", vbInformation + vbOKOnly, "Saved Field Changed"
           End If
