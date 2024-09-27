@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.14</cpt_version>
+'<cpt_version>v3.3.15</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -165,7 +165,7 @@ Sub Export_IMS()
         On Error GoTo CleanUp
         ErrMsg = "Please try again, or contact the developer if this message repeats."
         '********************************************
-        'On Error GoTo 0 '**Used for Debugging ONLY**
+        On Error GoTo 0 '**Used for Debugging ONLY**
         '********************************************
 
         .Show
@@ -312,7 +312,7 @@ Private Sub DataChecks(ByVal curProj As Project)
     Dim tAssBFin As String
     Dim tAssBWork As String
     Dim tempID As String
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim wpCount As Integer
@@ -1193,7 +1193,7 @@ End Sub
 
 Private Sub MPP_Export(ByVal curProj As Project)
 
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim subProjs As Subprojects
 
     destFolder = SetDirectory(curProj.ProjectSummaryTask.Project)
@@ -1220,7 +1220,7 @@ Private Sub MPP_Export(ByVal curProj As Project)
 End Sub
 Private Sub XML_Export(ByVal curProj As Project)
 
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim subProjs As Subprojects
 
     destFolder = SetDirectory(curProj.ProjectSummaryTask.Project)
@@ -1287,7 +1287,7 @@ Private Sub CSV_Export(ByVal curProj As Project)
     '****BCR Review*****
     '*******************
 
-    If BCWSxport = True And BCRxport = True Then
+    If (BCWSxport = True Or WhatIfxport = True) And BCRxport = True Then 'v3.3.15
         If Find_BCRs(curProj, fWP, fBCR, BCR_ID) = 0 Then
             MsgBox "BCR ID " & Chr(34) & BCR_ID & Chr(34) & " was not found in the IMS." & vbCr & vbCr & "Please try again."
             BCR_Error = True
@@ -1356,7 +1356,7 @@ Private Sub BCWP_Export(ByVal curProj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, ResName, MSWeight, ID, PCNT As String 'v3.3.0
     Dim Milestone As String
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -1427,7 +1427,7 @@ Private Sub BCWP_Export(ByVal curProj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If EVT = "B" Or EVT = "N" Or EVT = "B Milestone" Or EVT = "N Earning Rules" Then
@@ -1762,7 +1762,7 @@ nrBCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earning Rules" Then
@@ -2142,7 +2142,7 @@ nrBCWP_WP_Match_B:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
                                 
 
@@ -2611,7 +2611,7 @@ BCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
@@ -3074,7 +3074,7 @@ Private Sub ETC_Export(ByVal curProj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT, ShortID As String 'v3.3.5
     Dim Milestone As String
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -4010,7 +4010,7 @@ Private Sub BCWS_Export(ByVal curProj As Project)
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, ShortID, PCNT As String 'v3.3.5
     Dim Milestone As String
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -4100,7 +4100,7 @@ Private Sub BCWS_Export(ByVal curProj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -4243,7 +4243,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4438,7 +4438,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -4640,7 +4640,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4833,7 +4833,7 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
     Dim tAssign As Assignment
     Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, ShortID, PCNT As String 'v3.3.5
     Dim Milestone As String
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -4923,7 +4923,7 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -5101,7 +5101,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5337,7 +5337,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -5608,7 +5608,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5922,7 +5922,7 @@ Private Sub Get_WP_Descriptions(ByVal curProj As Project)
     Dim X As Integer
     '<issue47>
     Dim subProjs As Subprojects
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim curSProj As Project
     Dim t As Task '</issue47>
 
@@ -6112,7 +6112,7 @@ Private Function Find_BCRs(ByVal curProj As Project, ByVal fWP As String, ByVal 
     Dim X As Integer
     Dim tempBCRstr As String
     Dim subProjs As Subprojects
-    Dim subProj As SubProject
+    Dim subProj As Subproject
     Dim curSProj As Project
 
     i = 0
