@@ -165,7 +165,7 @@ Sub Export_IMS()
         On Error GoTo CleanUp
         ErrMsg = "Please try again, or contact the developer if this message repeats."
         '********************************************
-        On Error GoTo 0 '**Used for Debugging ONLY**
+        'On Error GoTo 0 '**Used for Debugging ONLY**
         '********************************************
 
         .Show
