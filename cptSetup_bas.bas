@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.8.19</cpt_version>
+'<cpt_version>v1.8.21</cpt_version>
 Option Explicit
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
@@ -15,7 +15,6 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
                                                                         ByVal dwNameLen As Integer, _
                                                                         ByVal dwReserved As Long) As Long
 #End If
-
 #If VBA7 Then
     Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As LongPtr)
 #Else
@@ -23,36 +22,36 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
 #End If
 
 Sub cptSetup()
-'setup only needs to be run once
-'objects
-Dim Project As Object
-Dim vbComponent As Object 'vbComponent
-Dim rstCode As Object 'ADODB.Recordset
-Dim cmThisProject As Object 'CodeModule
-Dim cmCptThisProject As Object 'CodeModule
-Dim oStream As Object 'ADODB.Stream
-Dim xmlHttpDoc As Object
-Dim xmlNode As Object
-Dim xmlDoc As Object
-Dim rstCore As Object 'ADODB.Recordset
-'strings
-Dim strMsg As String
-Dim strError As String
-Dim strCptFileName As String
-Dim strVersion As String
-Dim strFileName As String
-Dim strModule As String
-Dim strURL As String
-'longs
-Dim lngLine As Long
-Dim lngEvent As Long
-'integers
-'booleans
-Dim blnImportModule As Boolean
-Dim blnExists As Boolean
-'variants
-Dim vEvent As Variant
-'dates
+  'setup only needs to be run once
+  'objects
+  Dim Project As Object
+  Dim vbComponent As Object 'vbComponent
+  Dim rstCode As Object 'ADODB.Recordset
+  Dim cmThisProject As Object 'CodeModule
+  Dim cmCptThisProject As Object 'CodeModule
+  Dim oStream As Object 'ADODB.Stream
+  Dim xmlHttpDoc As Object
+  Dim xmlNode As Object
+  Dim xmlDoc As Object
+  Dim rstCore As Object 'ADODB.Recordset
+  'strings
+  Dim strMsg As String
+  Dim strError As String
+  Dim strCptFileName As String
+  Dim strVersion As String
+  Dim strFileName As String
+  Dim strModule As String
+  Dim strURL As String
+  'longs
+  Dim lngLine As Long
+  Dim lngEvent As Long
+  'integers
+  'booleans
+  Dim blnImportModule As Boolean
+  Dim blnExists As Boolean
+  'variants
+  Dim vEvent As Variant
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -101,8 +100,12 @@ Dim vEvent As Variant
     Else
       strMsg = "We're having trouble downloading modules:" & vbCrLf & vbCrLf  '</issue35>
       strMsg = strMsg & xmlDoc.parseError.errorcode & ": " & xmlDoc.parseError.reason & vbCrLf & vbCrLf '</issue35>
-      strMsg = strMsg & "If the ClearPlan ribbon doesn't show up, please contact cpt@ClearPlanConsulting.com for assistance." '</issue35>
-      MsgBox strMsg, vbExclamation + vbOKOnly, "XML Error" '</issue35>
+      strMsg = strMsg & "Please try the manual installation method instead." & vbCrLf & vbCrLf & "Would you like to open the online instructions now?"  '</issue35>
+      If MsgBox(strMsg, vbExclamation + vbYesNo, "XML Error") = vbYes Then
+        If Not Application.FollowHyperlink("https://github.com/AronGahagan/cpt-dev#installation") Then
+          MsgBox "Your organization appears to have blocked this url." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for further assistance.", vbCritical + vbOKOnly, "Apologies!"
+        End If
+      End If
     End If
     GoTo this_project
   Else
@@ -358,8 +361,8 @@ err_here:
 End Sub
 
 Public Function cptBuildRibbonTab()
-Dim ribbonXML As String
-Dim lngCleanUp As Long
+  Dim ribbonXML As String
+  Dim lngCleanUp As Long
 
   'build ClearPlan Ribbon Tab XML
   ribbonXML = ribbonXML + vbCrLf & "<mso:tab id=""tCommon"" label=""ClearPlan"" >" 'insertBeforeQ=""mso:TabTask"">"
@@ -527,10 +530,10 @@ Dim lngCleanUp As Long
   'schedule
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Schedule"" visible=""true"" >"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mHealth"" label=""Health"" imageMso=""CheckWorkflow"" visible=""true"" size=""large"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DCMA EVMS Compliance Metric (DECM)"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDECM"" label=""DECM Dashboard (v6.0)"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DECM Dashboard (v6.0)"" />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIntegrationSettings1"" label=""Integration Settings"" imageMso=""Settings"" onAction=""cptGetValidMap"" visible=""true"" supertip=""Set, edit, and confirm Integration Settings"" />"
+   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DCMA EVMS Compliance Metric (DECM)"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDECM"" label=""DECM Dashboard (v6.0)"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DECM Dashboard (v6.0)"" />"
+   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIntegrationSettings1"" label=""Integration Settings"" imageMso=""Settings"" onAction=""cptGetValidMap"" visible=""true"" supertip=""Set, edit, and confirm Integration Settings"" />"
 '  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DCMA 14"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
 '  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDCMA14"" label=""DCMA 01"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DCMA 14-pt Analysis"" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
@@ -562,6 +565,9 @@ Dim lngCleanUp As Long
   If cptModuleExists("cptTaskHistory_bas") And cptModuleExists("cptTaskHistory_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTaskHistory"" label=""Task History"" imageMso=""Archive"" onAction=""cptShowTaskHistory_frm"" visible=""true"" supertip=""Explore selected task history, take notes, export history, etc. Requires consistent use of Capture Week."" />"
   End If
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Analyze"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindCompleteThrough"" label=""Analyze CompleteThrough"" imageMso=""UpdateAsScheduled"" onAction=""cptFindCompleteThrough"" visible=""true"" supertip=""Analyze unexpected 'CompleteThrough' progress bar in Gantt Chart."" />"
+  
   'todo: account for EV Tool in cptValidateEVP
   'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bValidateEVT"" enabled=""false"" label=""Validate EVT"" imageMso=""RefreshWebView"" onAction=""cptAnalyzeEVT"" visible=""true"" supertip=""Validate EVT - e.g., ensure incomplete 50/50 tasks with Actual Start are marked as 50% EV % complete."" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
@@ -719,17 +725,17 @@ Dim lngCleanUp As Long
 
 End Function
 
-Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObject, Optional lngErl As Long)
-'common error handling prompt
-Dim strMsg As String
+Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObject, Optional lngErl As Long, Optional strStep As String)
+  'common error handling prompt
+  Dim strMsg As String
 
-    strMsg = "Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
-    strMsg = strMsg & "Error " & Err.Number & ": " & Err.Description & vbCrLf & vbCrLf
-    strMsg = strMsg & "Source: " & strModule & "." & strProcedure
-    If lngErl > 0 Then
-      strMsg = strMsg & ":" & lngErl
-    End If
-    MsgBox strMsg, vbExclamation + vbOKOnly, Err.Description
+  strMsg = "Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
+  strMsg = strMsg & "Error " & Err.Number & ": " & Err.Description & vbCrLf & vbCrLf
+  strMsg = strMsg & "Source: " & strModule & "." & strProcedure
+  If lngErl > 0 Then
+    strMsg = strMsg & ":" & lngErl
+  End If
+  MsgBox strMsg, vbExclamation + vbOKOnly, Err.Description
 
 End Sub
 
@@ -740,36 +746,36 @@ End Function
 
 Public Function cptInternetIsConnected() As Boolean
 
-    cptInternetIsConnected = InternetGetConnectedStateEx(0, "", 254, 0)
+  cptInternetIsConnected = InternetGetConnectedStateEx(0, "", 254, 0)
 
 End Function
 
 Function cptRegEx(strText As String, strRegEx As String, Optional blnMultiline As Boolean = False, Optional blnIgnoreCase As Boolean = True) As String
-Dim RE As Object, REMatch As Variant, REMatches As Object
-Dim strMatch As String
+  Dim RE As Object, REMatch As Variant, REMatches As Object
+  Dim strMatch As String
 
-    On Error GoTo err_here
+  On Error GoTo err_here
 
-    Set RE = CreateObject("vbscript.regexp")
-    With RE
-      .MultiLine = blnMultiline
-      .Global = True
-      .IgnoreCase = blnIgnoreCase
-      .Pattern = strRegEx
-    End With
+  Set RE = CreateObject("vbscript.regexp")
+  With RE
+    .MultiLine = blnMultiline
+    .Global = True
+    .IgnoreCase = blnIgnoreCase
+    .Pattern = strRegEx
+  End With
 
-    Set REMatches = RE.Execute(strText)
-    For Each REMatch In REMatches
-      strMatch = REMatch
-      Exit For
-    Next
-    cptRegEx = strMatch
+  Set REMatches = RE.Execute(strText)
+  For Each REMatch In REMatches
+    strMatch = REMatch
+    Exit For
+  Next
+  cptRegEx = strMatch
 
 exit_here:
-    On Error Resume Next
-    Set RE = Nothing
-    Set REMatches = Nothing
-    Exit Function
+  On Error Resume Next
+  Set RE = Nothing
+  Set REMatches = Nothing
+  Exit Function
 err_here:
   If Err.Number = 5 Then
     cptRegEx = ""
@@ -779,7 +785,7 @@ err_here:
 End Function
 
 Function cptDir() As String
-Dim strPath As String
+  Dim strPath As String
 
   'confirm existence of cpt settings and backup modules file
 
@@ -802,12 +808,12 @@ Dim strPath As String
 End Function
 
 Function cptModuleExists(strModule As String) As Boolean
-'objects
-Dim vbComponent As Object
-'booleans
-Dim blnExists As Boolean
-'strings
-Dim strError As String
+  'objects
+  Dim vbComponent As Object
+  'booleans
+  Dim blnExists As Boolean
+  'strings
+  Dim strError As String
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -832,20 +838,20 @@ err_here:
 End Function
 
 Sub cptUninstall()
-'objects
-Dim vEvent As Object
-Dim Project As Object
-Dim vbComponent As Object
-Dim cmThisProject As Object
-'strings
-Dim strMsg As String
-'longs
-Dim lngLine As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim vEvent As Object
+  Dim Project As Object
+  Dim vbComponent As Object
+  Dim cmThisProject As Object
+  'strings
+  Dim strMsg As String
+  'longs
+  Dim lngLine As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
