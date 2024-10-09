@@ -3134,6 +3134,7 @@ Sub cptFindUnstatusedTasks()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   cptSpeed True
+  ActiveWindow.TopPane.Activate
   FilterClear
   OptionsViewEx DisplaySummaryTasks:=True
   OutlineShowAllTasks
