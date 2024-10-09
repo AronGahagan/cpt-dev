@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.15</cpt_version>
+'<cpt_version>v3.3.16</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -11,6 +11,7 @@ Private ExportMilestones As Boolean 'v3.3.13
 Private MasterProject As Boolean
 Private ACTfilename As String
 Private RESfilename As String
+Private ShortName As String 'v3.3.16
 Private BCR_WP() As String
 Private BCR_ID As String
 Private BCRxport As Boolean
@@ -112,7 +113,13 @@ Sub Export_IMS()
     On Error GoTo CleanUp
 
     Set curProj = ActiveProject
-
+    
+    If 11 + Len(RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv") > 255 Then 'v3.3.16
+      ShortName = InputBox("Please enter a short program acronym:", "Long File Name!") 'v3.3.16
+      ShortName = RemoveIllegalCharacters(ShortName) 'v3.3.16
+      If Len(ShortName) = 0 Then ShortName = "Contoso" 'v3.3.16
+    End If 'v3.3.16
+    
     curProj.Application.Calculation = pjManual
     curProj.Application.DisplayAlerts = False
 
@@ -619,7 +626,13 @@ Private Sub DataChecks(ByVal curProj As Project)
     End If
 
     ACTfilename = destFolder & "\DataChecks_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
-
+    If Len(ACTfilename) > 255 Then 'v3.3.16
+      ShortName = InputBox("Please enter a short program acronym:", "Long File Name!") 'v3.3.16
+      ShortName = RemoveIllegalCharacters(ShortName) 'v3.3.16
+      If Len(ShortName) = 0 Then ShortName = "Contoso" 'v3.3.16
+      ACTfilename = destFolder & "\DataChecks_" & ShortName & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+    End If 'v3.3.16
+    
     Open ACTfilename For Output As #1
 
     Print #1, "Tasks Missing Data - The following tasks are assumed to be EV Relevant Activities due to User population of one or more of the following data values: Work Package ID; Earned Value Technique; Baseline Work; Baseline Cost"
@@ -1366,9 +1379,15 @@ Private Sub BCWP_Export(ByVal curProj As Project)
     Dim aFinishString As String
     Dim tempID As String 'v3.3.3
 
+    If Len(ShortName) = 0 Then 'v3.3.16
+      ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+    Else 'v3.3.16
+      ACTfilename = destFolder & "\BCWP ACT_" & ShortName & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+    End If 'v3.3.16
+
     If ResourceLoaded = False Then
 
-        ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        'ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
 
@@ -1427,7 +1446,7 @@ Private Sub BCWP_Export(ByVal curProj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If EVT = "B" Or EVT = "N" Or EVT = "B Milestone" Or EVT = "N Earning Rules" Then
@@ -1762,7 +1781,7 @@ nrBCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earning Rules" Then
@@ -2082,7 +2101,7 @@ nrBCWP_WP_Match_B:
 
     Else '**Resource Loaded**
 
-        ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        'ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
 
@@ -2142,7 +2161,7 @@ nrBCWP_WP_Match_B:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
                                 
 
@@ -2611,7 +2630,7 @@ BCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
@@ -3088,10 +3107,18 @@ Private Sub ETC_Export(ByVal curProj As Project)
     '*******************
     
     ActIDCounter = 0 'v3.3.5
-
+    
+    If Len(ShortName) = 0 Then 'v3.3.16
+      ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+      RESfilename = destFolder & "\ETC RES_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+    Else 'v3.3.16
+      ACTfilename = destFolder & "\ETC ACT_" & ShortName & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+      RESfilename = destFolder & "\ETC RES_" & ShortName & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+    End If 'v3.3.16
+    
     If ResourceLoaded = False Then
 
-        ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        'ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
 
         Open ACTfilename For Output As #1
 
@@ -3468,8 +3495,8 @@ nrETC_WP_Match_B:
 
     Else '**Resource Loaded**
 
-        ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
-        RESfilename = destFolder & "\ETC RES_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        'ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+        'RESfilename = destFolder & "\ETC RES_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
 
         Open ACTfilename For Output As #1
         Open RESfilename For Output As #2
@@ -4030,9 +4057,17 @@ Private Sub BCWS_Export(ByVal curProj As Project)
         Get_WP_Descriptions curProj
     End If
 
+    If Len(ShortName) = 0 Then 'v3.3.16
+      ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+      RESfilename = destFolder & "\BCWS RES_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+    Else 'v3.3.16
+      ACTfilename = destFolder & "\BCWS ACT_" & ShortName & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+      RESfilename = destFolder & "\BCWS RES_" & ShortName & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+    End If 'v3.3.16
+
     If ResourceLoaded = False Then
 
-        ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        'ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
 
         Open ACTfilename For Output As #1
 
@@ -4100,7 +4135,7 @@ Private Sub BCWS_Export(ByVal curProj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -4243,7 +4278,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4373,8 +4408,8 @@ Next_nrTask:
 
     Else
 
-        ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
-        RESfilename = destFolder & "\BCWS RES_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        'ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+        'RESfilename = destFolder & "\BCWS RES_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
 
         Open ACTfilename For Output As #1
         Open RESfilename For Output As #2
@@ -4438,7 +4473,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -4640,7 +4675,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4853,9 +4888,17 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
         Get_WP_Descriptions curProj
     End If
 
+    If Len(ShortName) = 0 Then 'v3.3.16
+      ACTfilename = destFolder & "\WhatIf ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+      RESfilename = destFolder & "\WhatIf RES_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+    Else 'v3.3.16
+      ACTfilename = destFolder & "\WhatIf ACT_" & ShortName & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+      RESfilename = destFolder & "\WhatIf RES_" & ShortName & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+    End If 'v3.3.16
+
     If ResourceLoaded = False Then
 
-        ACTfilename = destFolder & "\WhatIf ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        'ACTfilename = destFolder & "\WhatIf ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
 
         Open ACTfilename For Output As #1
 
@@ -4923,7 +4966,7 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -5101,7 +5144,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5268,8 +5311,8 @@ Next_nrTask:
 
     Else
 
-        ACTfilename = destFolder & "\WhatIf ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
-        RESfilename = destFolder & "\WhatIf RES_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
+        'ACTfilename = destFolder & "\WhatIf ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
+        'RESfilename = destFolder & "\WhatIf RES_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv" 'v3.3.16
 
         Open ACTfilename For Output As #1
         Open RESfilename For Output As #2
@@ -5337,7 +5380,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -5608,7 +5651,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
