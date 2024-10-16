@@ -264,6 +264,9 @@ End Sub
 
 Sub cptFindDuplicateTaskNames()
   'objects
+  Dim oTask As MSProject.Task
+  Dim oDict As Scripting.Dictionary
+  Dim oSubProject As MSProject.Subproject
   Dim oShell As Object
   Dim oExcel As Excel.Application
   Dim oWorkbook As Excel.Workbook
@@ -273,7 +276,10 @@ Sub cptFindDuplicateTaskNames()
   'strings
   Dim strFileName As String
   'longs
-  Dim lgNameCol As Long
+  Dim lngItem As Long
+  Dim lngItems As Long
+  Dim lngNameCol As Long
+  Dim lngDuplicateNames As Long
   'integers
   'doubles
   'booleans
@@ -303,52 +309,107 @@ Sub cptFindDuplicateTaskNames()
   MapEdit Name:="ExportTaskNames", DataCategory:=0, FieldName:="Name", ExternalFieldName:="Name"
   Set oShell = CreateObject("WScript.Shell")
   strFileName = oShell.SpecialFolders("Desktop") & "\DuplicateTaskNames_" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".xlsx"
-  FileSaveAs Name:=strFileName, FormatID:="MSProject.ACE", Map:="ExportTaskNames"
   
-  On Error Resume Next
-  Set oExcel = GetObject(, "Excel.Application")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  If oExcel Is Nothing Then
-    Set oExcel = CreateObject("Excel.Application")
+  If blnMaster Then
+    If MsgBox("Load and expand all subprojects?", vbQuestion + vbYesNo, "Please confirm:") = vbNo Then GoTo exit_here
+    GroupClear
+    FilterClear
+    ActiveWindow.TopPane.Activate
+    lngItems = ActiveProject.Subprojects.Count
+    For Each oSubProject In ActiveProject.Subprojects
+      lngItem = lngItem + 1
+      Application.StatusBar = "Loading " & oSubProject.InsertedProjectSummary.Name & "..."
+      EditGoTo oSubProject.InsertedProjectSummary.ID
+      Application.OutlineShowSubTasks
+      Application.StatusBar = "Loading " & oSubProject.InsertedProjectSummary.Name & "...(" & Format(lngItem / lngItems, "0%") & ")"
+    Next oSubProject
+    Application.StatusBar = "Loading " & oSubProject.InsertedProjectSummary.Name & "...done."
+    Set oSubProject = Nothing
   End If
-  Set oWorkbook = oExcel.Workbooks.Open(strFileName)
-  Set oWorksheet = oWorkbook.Sheets(1)
   
-  Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(-4121)), , xlYes)
+  Set oDict = CreateObject("Scripting.Dictionary")
+  For Each oTask In ActiveProject.Tasks
+    If oTask Is Nothing Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If Not oDict.Exists(oTask.Name) Then
+      oDict.Add oTask.Name, 1
+    Else
+      lngDuplicateNames = lngDuplicateNames + 1
+      oDict.Item(oTask.Name) = oDict(oTask.Name) + 1
+    End If
+next_task:
+  Next oTask
   
-  oExcel.ActiveWindow.Zoom = 85
-  oListObject.Range.Columns.AutoFit
-  oListObject.TableStyle = ""
-  Set oRange = oWorksheet.Range("Table1[Name]")
-  oRange.FormatConditions.AddUniqueValues
-  oRange.FormatConditions(oRange.FormatConditions.Count).SetFirstPriority
-  oRange.FormatConditions(1).DupeUnique = xlDuplicate
-  With oRange.FormatConditions(1).Font
-    .Color = -16383844
-    .TintAndShade = 0
-  End With
-  With oRange.FormatConditions(1).Interior
-    .PatternColorIndex = xlAutomatic
-    .Color = 13551615
-    .TintAndShade = 0
-  End With
-  oRange.FormatConditions(1).StopIfTrue = False
-  'filter for duplicates
-  lgNameCol = oWorksheet.Rows(1).Find("Name", lookat:=xlWhole).Column
-  oListObject.Range.AutoFilter Field:=lgNameCol, Criteria1:=RGB(255, 199, 206), Operator:=xlFilterCellColor
-  'sort by task name (to put duplicates together)
-  oListObject.Sort.SortFields.Clear
-  oListObject.Sort.SortFields.Add Key:=oWorksheet.Range("Table1[[#All],[Name]]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortTextAsNumbers
-  With oListObject.Sort
-    .Header = xlYes
-    .MatchCase = False
-    .Orientation = xlTopToBottom
-    .SortMethod = xlPinYin
-    .Apply
-  End With
+  If lngDuplicateNames > 0 Then
+    If MsgBox(Format(lngDuplicateNames, "#,##0") & " duplicate task names found." & vbCrLf & vbCrLf & "Open in Excel?", vbExclamation + vbYesNo, "Duplicate Task Names Found") = vbYes Then
+      Application.StatusBar = "Exporting..."
+      FileSaveAs Name:=strFileName, FormatID:="MSProject.ACE", Map:="ExportTaskNames"
+      Application.StatusBar = "Exporting...done."
+      
+      Application.StatusBar = "Formatting..."
+      On Error Resume Next
+      Set oExcel = GetObject(, "Excel.Application")
+      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If oExcel Is Nothing Then
+        Set oExcel = CreateObject("Excel.Application")
+      End If
+      oExcel.Visible = True
+      oExcel.WindowState = xlNormal
+      Set oWorkbook = oExcel.Workbooks.Open(strFileName)
+      Set oWorksheet = oWorkbook.Sheets(1)
+      
+      Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(-4121)), , xlYes)
+      
+      oExcel.ActiveWindow.Zoom = 85
+      oListObject.Range.Columns.AutoFit
+      oListObject.TableStyle = ""
+      Set oRange = oWorksheet.Range("Table1[Name]")
+      oRange.FormatConditions.AddUniqueValues
+      oRange.FormatConditions(oRange.FormatConditions.Count).SetFirstPriority
+      oRange.FormatConditions(1).DupeUnique = xlDuplicate
+      With oRange.FormatConditions(1).Font
+        .Color = -16383844
+        .TintAndShade = 0
+      End With
+      With oRange.FormatConditions(1).Interior
+        .PatternColorIndex = xlAutomatic
+        .Color = 13551615
+        .TintAndShade = 0
+      End With
+      oRange.FormatConditions(1).StopIfTrue = False
+      'filter for duplicates
+      lngNameCol = oWorksheet.Rows(1).Find("Name", lookat:=xlWhole).Column
+      oListObject.Range.AutoFilter Field:=lngNameCol, Criteria1:=RGB(255, 199, 206), Operator:=xlFilterCellColor
+      'add a count formula
+      oWorksheet.Cells(1, oWorksheet.[A1].End(xlToRight).Column + 1).Value = "Count"
+      oListObject.ListColumns("Count").DataBodyRange.FormulaR1C1 = "=COUNTIFS([Name],[@Name])"
+      'sort by task name (to put duplicates together)
+      oListObject.Sort.SortFields.Clear
+      oListObject.Sort.SortFields.Add2 key:=oWorksheet.Range("Table1[Count]"), SortOn:=xlSortOnValues, Order:=xlDescending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add2 key:=oWorksheet.Range("Table1[Name]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      With oListObject.Sort
+        .Header = xlYes
+        .MatchCase = False
+        .Orientation = xlTopToBottom
+        .SortMethod = xlPinYin
+        .Apply
+      End With
+      oWorkbook.Activate
+      Application.StatusBar = "Formatting...done."
+      Application.StatusBar = "Complete."
+      MsgBox "See Excel Workbook.", vbInformation + vbOKOnly, "Complete"
+      Application.ActivateMicrosoftApp (pjMicrosoftExcel)
+    End If
+  Else
+    MsgBox "No duplicate task names found.", vbInformation + vbOKOnly, "Well Done"
+  End If
 
 exit_here:
   On Error Resume Next
+  Application.StatusBar = ""
+  Set oDict = Nothing
+  Set oTask = Nothing
+  Set oSubProject = Nothing
   Set oShell = Nothing
   Set oWorkbook = Nothing
   Set oWorksheet = Nothing
@@ -693,7 +754,7 @@ next_task:
     ActiveWindow.TopPane.Activate
     GroupClear
     FilterClear
-    OptionsViewEx displaysummarytasks:=True
+    OptionsViewEx DisplaySummaryTasks:=True
     OutlineShowAllTasks
     SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strFilter
     SelectBeginning
