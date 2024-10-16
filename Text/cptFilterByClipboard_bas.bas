@@ -173,7 +173,7 @@ next_task:
       'add to autofilter
       strFilter = strFilter & oTask.UniqueID & vbTab 'vbTab = Chr$(9)
       cptFilterByClipboard_frm.lboFilter.List(cptFilterByClipboard_frm.lboFilter.ListCount - 1, 1) = oTask.Name
-      If lngFreeField > 0 Then oTask.SetField lngFreeField, CStr(lngItem)
+      If lngFreeField > 0 Then oTask.SetField lngFreeField, CStr(lngItem + 1)
       Set oTask = Nothing
     Else
       cptFilterByClipboard_frm.lboFilter.List(lngItem, 1) = "< not found >"
