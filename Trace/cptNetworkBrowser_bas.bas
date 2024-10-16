@@ -1,10 +1,69 @@
 Attribute VB_Name = "cptNetworkBrowser_bas"
 '<cpt_version>v1.2.0</cpt_version>
 Option Explicit
+'=====================================
+Public Const GWL_STYLE = -16
+Public Const WS_CAPTION = &HC00000
+Public Const WS_THICKFRAME = &H40000
+
+#If VBA7 Then
+    Public Declare PtrSafe Function GetWindowLong _
+        Lib "user32" Alias "GetWindowLongA" ( _
+        ByVal hWnd As Long, ByVal nIndex As Long) As Long
+    Public Declare PtrSafe Function SetWindowLong _
+        Lib "user32" Alias "SetWindowLongA" ( _
+        ByVal hWnd As Long, ByVal nIndex As Long, _
+        ByVal dwNewLong As Long) As Long
+    Public Declare PtrSafe Function DrawMenuBar _
+        Lib "user32" (ByVal hWnd As Long) As Long
+    Public Declare PtrSafe Function FindWindowA _
+        Lib "user32" (ByVal lpClassName As String, _
+        ByVal lpWindowName As String) As Long
+#Else
+    Public Declare Function GetWindowLong _
+        Lib "user32" Alias "GetWindowLongA" ( _
+        ByVal hWnd As Long, ByVal nIndex As Long) As Long
+    Public Declare Function SetWindowLong _
+        Lib "user32" Alias "SetWindowLongA" ( _
+        ByVal hWnd As Long, ByVal nIndex As Long, _
+        ByVal dwNewLong As Long) As Long
+    Public Declare Function DrawMenuBar _
+        Lib "user32" (ByVal hWnd As Long) As Long
+    Public Declare Function FindWindowA _
+        Lib "user32" (ByVal lpClassName As String, _
+        ByVal lpWindowName As String) As Long
+#End If
+'=====================================
+
 Public oSubMap As Scripting.Dictionary
+
+Sub cptResizeWindowSettings(frm As Object, Show As Boolean)
+
+  Dim windowStyle As Long
+  Dim windowHandle As Long
+  
+  'Get the references to window and style position within the Windows memory
+  windowHandle = FindWindowA(vbNullString, frm.Caption)
+  windowStyle = GetWindowLong(windowHandle, GWL_STYLE)
+  
+  'Determine the style to apply based
+  If Show = False Then
+      windowStyle = windowStyle And (Not WS_THICKFRAME)
+  Else
+      windowStyle = windowStyle + (WS_THICKFRAME)
+  End If
+  
+  'Apply the new style
+  SetWindowLong windowHandle, GWL_STYLE, windowStyle
+  
+  'Recreate the UserForm window with the new style
+  DrawMenuBar windowHandle
+
+End Sub
 
 Sub cptShowNetworkBrowser_frm()
   'objects
+  Dim cptMyForm As cptNetworkBrowser_frm
   'strings
   Dim strDescending As String
   Dim strSortBy As String
@@ -20,8 +79,8 @@ Sub cptShowNetworkBrowser_frm()
   If Not cptFilterExists("Marked") Then cptCreateFilter ("Marked")
   
   Call cptStartEvents
-  Call cptShowPreds
-  With cptNetworkBrowser_frm
+  Set cptMyForm = New cptNetworkBrowser_frm
+  With cptMyForm
     .Caption = "Network Browser (" & cptGetVersion("cptNetworkBrowser_frm") & ")"
     .tglTrace = False
     .tglTrace.Caption = "Jump"
@@ -63,39 +122,42 @@ Sub cptShowNetworkBrowser_frm()
     Else
       .chkSortSuccDescending.Value = False
     End If
+    cptResizeWindowSettings cptMyForm, True
     .Show False
+    cptShowPreds cptMyForm
   End With
 
 exit_here:
   On Error Resume Next
-
+  Set cptMyForm = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptNetworkBrowser_bas", "cptShowNetworkBrowser_frm", Err, Erl)
   Resume exit_here
 End Sub
 
-Sub cptShowPreds()
-'objects
-Dim oTaskDependencies As TaskDependencies
-Dim oSubproject As Subproject
-Dim oLink As TaskDependency, oTask As MSProject.Task
-'strings
-Dim strHideInactive As String
-Dim strProject As String
-'longs
-Dim lngLinkUID As Long
-Dim lngItem As Long
-Dim lngFactor As Long
-Dim lngTasks As Long
-'integers
-'doubles
-'booleans
-Dim blnHideInactive As Boolean
-Dim blnSubprojects As Boolean
-'variants
-Dim vControl As Variant
-'dates
+Sub cptShowPreds(Optional cptMyForm As cptNetworkBrowser_frm)
+  'objects
+  Dim oTaskDependencies As TaskDependencies
+  Dim oSubProject As Subproject
+  Dim oLink As TaskDependency, oTask As MSProject.Task
+  'strings
+  Dim strHideInactive As String
+  Dim strProject As String
+  'longs
+  Dim lngLinkUID As Long
+  Dim lngItem As Long
+  Dim lngItems As Long
+  Dim lngFactor As Long
+  Dim lngTasks As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnHideInactive As Boolean
+  Dim blnSubprojects As Boolean
+  'variants
+  Dim vControl As Variant
+  'dates
   
   On Error Resume Next
   Set oTask = ActiveSelection.Tasks(1)
@@ -113,13 +175,13 @@ Dim vControl As Variant
     Else
       oSubMap.RemoveAll
     End If
-    For Each oSubproject In ActiveProject.Subprojects
-      If InStr(oSubproject.Path, "<>") = 0 Then 'offline
-        oSubMap.Add Replace(Dir(oSubproject.Path), ".mpp", ""), 0
-      ElseIf Left(oSubproject.Path, 2) = "<>" Then 'online
-        oSubMap.Add Replace(oSubproject.Path, "<>\", ""), 0
+    For Each oSubProject In ActiveProject.Subprojects
+      If InStr(oSubProject.Path, "<>") = 0 Then 'offline
+        oSubMap.Add Replace(Dir(oSubProject.Path), ".mpp", ""), 0
+      ElseIf Left(oSubProject.Path, 2) = "<>" Then 'online
+        oSubMap.Add Replace(oSubProject.Path, "<>\", ""), 0
       End If
-      If oSubproject.IsLoaded = False Then
+      If oSubProject.IsLoaded = False Then
         Application.OpenUndoTransaction "cpt - load subproject"
         FilterClear
         GroupClear
@@ -132,7 +194,7 @@ Dim vControl As Variant
           End If
         End If
       End If
-    Next oSubproject
+    Next oSubProject
     For Each oTask In ActiveProject.Tasks
       If oSubMap.Exists(oTask.Project) Then
         If oSubMap(oTask.Project) > 0 Then GoTo next_mapping_task
@@ -142,9 +204,12 @@ next_mapping_task:
     Next oTask
   End If
   
+  'reset after mapping
   Set oTask = ActiveSelection.Tasks(1)
+  If cptMyForm Is Nothing Then Set cptMyForm = New cptNetworkBrowser_frm
   
-  With cptNetworkBrowser_frm
+  With cptMyForm
+    If Not .Visible Then .Show (False)
     Select Case lngTasks
       Case Is < 1
         .lboCurrent.Clear
@@ -202,14 +267,14 @@ next_mapping_task:
   Set oTaskDependencies = oTask.TaskDependencies
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oTaskDependencies Is Nothing Then
-    cptNetworkBrowser_frm.lboPredecessors.Clear
-    cptNetworkBrowser_frm.lboSuccessors.Clear
+    cptMyForm.lboPredecessors.Clear
+    cptMyForm.lboSuccessors.Clear
     GoTo exit_here
   End If
     
   'reset both lbos once in an array here
   For Each vControl In Array("lboPredecessors", "lboSuccessors")
-    With cptNetworkBrowser_frm.Controls(vControl)
+    With cptMyForm.Controls(vControl)
       .Clear
       .ColumnCount = 9
       .AddItem
@@ -229,9 +294,11 @@ next_mapping_task:
       .Column(7, .ListCount - 1) = "Task"
       .Column(8, .ListCount - 1) = "Critical"
     End With
-  Next
+  Next vControl
   
   'capture list of preds with valid native UIDs
+  lngItems = oTask.TaskDependencies.Count
+  lngItem = 0
   For Each oLink In oTask.TaskDependencies
     'limit to only predecessors
     If oLink.To.Guid = oTask.Guid Then 'it's a predecessor to selected task
@@ -255,7 +322,7 @@ next_mapping_task:
           lngLinkUID = oLink.From.UniqueID
         End If
       End If
-      With cptNetworkBrowser_frm.lboPredecessors
+      With cptMyForm.lboPredecessors
         .AddItem
         .Column(0, .ListCount - 1) = lngLinkUID
         .Column(1, .ListCount - 1) = lngLinkUID Mod 4194304
@@ -317,7 +384,7 @@ next_mapping_task:
           lngLinkUID = oLink.To.UniqueID
         End If
       End If
-      With cptNetworkBrowser_frm.lboSuccessors
+      With cptMyForm.lboSuccessors
         .AddItem
         .Column(0, .ListCount - 1) = lngLinkUID
         .Column(1, .ListCount - 1) = lngLinkUID Mod 4194304
@@ -356,20 +423,32 @@ next_mapping_task:
       End With
     End If
 next_link:
+    lngItem = lngItem + 1
+    cptMyForm.lblPreds.Caption = "Predecessors (" & Format(lngItem / lngItems, "0%") & ")"
+    cptMyForm.lblSuccs.Caption = "Successors (" & Format(lngItem / lngItems, "0%") & ")"
+    If lngItem = 1 Or lngItems > 300 Then DoEvents
   Next oLink
   
-  With cptNetworkBrowser_frm
+  With cptMyForm
     If .Visible Then
-      If .lboPredecessors.ListCount > 2 Then cptSortNetworkBrowserLinks "p", cptNetworkBrowser_frm.chkSortPredDescending.Value
-      If .lboSuccessors.ListCount > 2 Then cptSortNetworkBrowserLinks "s", cptNetworkBrowser_frm.chkSortSuccDescending.Value
+      If .lboPredecessors.ListCount > 2 Then cptSortNetworkBrowserLinks cptMyForm, "p", cptMyForm.chkSortPredDescending.Value
+      If .lboSuccessors.ListCount > 2 Then cptSortNetworkBrowserLinks cptMyForm, "s", cptMyForm.chkSortSuccDescending.Value
+      If Not oTask Is Nothing Then
+        .lblPreds.Caption = "Predecessors: (" & Format(oTask.PredecessorTasks.Count, "#,##0") & ")"
+        .lblSuccs.Caption = "Successors: (" & Format(oTask.SuccessorTasks.Count, "#,##0") & ")"
+      End If
+    Else
+      .lblPreds.Caption = "Predecessors:"
+      .lblSuccs.Caption = "Successors:"
     End If
   End With
   
 exit_here:
   On Error Resume Next
   cptSpeed False
+  'Set cptMyForm = Nothing 'do not do this
   Set oTaskDependencies = Nothing
-  Set oSubproject = Nothing
+  Set oSubProject = Nothing
   Set oLink = Nothing
   Set oTask = Nothing
   Exit Sub
@@ -403,16 +482,18 @@ Sub cptMarkSelected()
   Set oTasks = Nothing
 End Sub
 
-Sub cptUnmarkSelected()
-'todo: make cptMark(blnMark as Boolean)
-'todo: separate network browser and make it cptUnmarkSelected(Optional blnRefilter as Boolean)
-Dim Task As MSProject.Task
+Sub cptUnmarkSelected(Optional cptMyForm As cptNetworkBrowser_frm)
+  'todo: make cptMark(blnMark as Boolean)
+  'todo: separate network browser and make it cptUnmarkSelected(Optional blnRefilter as Boolean)
+  Dim oTask As MSProject.Task
 
-  For Each Task In ActiveSelection.Tasks
-    If Not Task Is Nothing Then Task.Marked = False
-  Next Task
+  cptSpeed True
+  For Each oTask In ActiveSelection.Tasks
+    If Not oTask Is Nothing Then oTask.Marked = False
+  Next oTask
+  cptSpeed False
   
-  If cptNetworkBrowser_frm.Visible Then
+  If Not cptMyForm Is Nothing Then
     'todo: from here down from network browser only
     ActiveWindow.TopPane.Activate
     FilterApply "Marked"
@@ -428,6 +509,9 @@ Dim Task As MSProject.Task
       cptSpeed False
     End If
   End If
+  
+  Set oTask = Nothing
+  Set cptMyForm = Nothing
 End Sub
 
 Sub cptMarked()
@@ -440,8 +524,14 @@ Sub cptMarked()
 End Sub
 
 Sub cptClearMarked()
-Dim oTask As MSProject.Task
-
+  Dim oTask As MSProject.Task
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  cptSpeed True
+  
+  'todo: what about master/sub?
+  
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.ExternalTask Then GoTo next_task
@@ -455,7 +545,7 @@ next_task:
     cptSpeed True
     If Edition = pjEditionProfessional Then
       If Not cptFilterExists("Active Tasks") Then
-        FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, OverwriteExisting:=False, FieldName:="Active", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
+        FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, OverwriteExisting:=False, FieldName:="Active", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
       End If
       FilterApply "Active Tasks"
     ElseIf Edition = pjEditionStandard Then
@@ -466,16 +556,24 @@ next_task:
   Else
     'todo: if lower pane
   End If
+
+exit_here:
+  On Error Resume Next
+  cptSpeed False
   Set oTask = Nothing
 
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptNetworkBrowser_bas", "cptClearMarked", Err, Erl)
+  Resume exit_here
 End Sub
 
-Sub cptHistoryDoubleClick()
+Sub cptHistoryDoubleClick(Optional cptMyForm As cptNetworkBrowser_frm)
   Dim lngTaskUID As Long
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
-  lngTaskUID = CLng(cptNetworkBrowser_frm.lboHistory.Value)
+  lngTaskUID = CLng(cptMyForm.lboHistory.Value)
   WindowActivate TopPane:=True
   If IsNumeric(lngTaskUID) Then
     On Error Resume Next
@@ -507,13 +605,14 @@ Sub cptHistoryDoubleClick()
   End If
   
 exit_here:
+  Set cptMyForm = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptNetworkBrowser_bas", "cptHistoryDoubleClick", Err, Erl)
   Resume exit_here
 End Sub
 
-Sub cptSortNetworkBrowserLinks(strWhich As String, Optional blnDescending = False)
+Sub cptSortNetworkBrowserLinks(ByRef cptMyForm As cptNetworkBrowser_frm, strWhich As String, Optional blnDescending = False)
   'objects
   Dim oComboBox As Object 'MSForms.ComboBox
   Dim oListBox As Object 'MSForms.ListBox
@@ -535,11 +634,11 @@ Sub cptSortNetworkBrowserLinks(strWhich As String, Optional blnDescending = Fals
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If strWhich = "p" Then
-    Set oListBox = cptNetworkBrowser_frm.lboPredecessors
-    Set oComboBox = cptNetworkBrowser_frm.cboSortPredecessorsBy
+    Set oListBox = cptMyForm.lboPredecessors
+    Set oComboBox = cptMyForm.cboSortPredecessorsBy
   ElseIf strWhich = "s" Then
-    Set oListBox = cptNetworkBrowser_frm.lboSuccessors
-    Set oComboBox = cptNetworkBrowser_frm.cboSortSuccessorsBy
+    Set oListBox = cptMyForm.lboSuccessors
+    Set oComboBox = cptMyForm.cboSortSuccessorsBy
   End If
 
   If oListBox.ListCount <= 2 Then GoTo exit_here
@@ -614,6 +713,7 @@ Sub cptSortNetworkBrowserLinks(strWhich As String, Optional blnDescending = Fals
 
 exit_here:
   On Error Resume Next
+  Set cptMyForm = Nothing
   Set oComboBox = Nothing
   Set oListBox = Nothing
   If oRecordset.State Then oRecordset.Close
