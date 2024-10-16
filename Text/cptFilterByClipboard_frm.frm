@@ -32,9 +32,13 @@ Private Sub cmdClear_Click()
   Me.txtFilter.Text = ""
   Me.txtFilter.Visible = True
   Me.lboFilter.Visible = False
-  Call cptClearFreeField
-  Call cptUpdateClipboard
+  cptClearFreeField Me
+  cptUpdateClipboard Me
   Me.txtFilter.SetFocus
+End Sub
+
+Private Sub cmdClose_Click()
+  Unload Me
 End Sub
 
 Private Sub lblURL_Click()
@@ -154,7 +158,7 @@ Private Sub optID_Click()
   Me.txtFilter.Value = strFilter
   Me.lboHeader.List(0, 0) = "ID"
   FilterClear
-  Call cptUpdateClipboard
+  cptUpdateClipboard Me
 End Sub
 
 Private Sub optUID_Click()
@@ -165,7 +169,7 @@ Private Sub optUID_Click()
   Me.lboHeader.List(0, 0) = "UID"
   ActiveWindow.TopPane.Activate
   FilterClear
-  Call cptUpdateClipboard
+  cptUpdateClipboard Me
 End Sub
 
 Private Sub tglEdit_Click()
@@ -315,16 +319,16 @@ End Sub
 Private Sub txtFilter_Change()
   If Me.txtFilter.Visible Then
     Me.lboFilter.Clear
-    If Right(Me.txtFilter.Text, 1) = "," Then Call cptUpdateClipboard
+    If Right(Me.txtFilter.Text, 1) = "," Then cptUpdateClipboard Me
   End If
 End Sub
 
 Private Sub txtFilter_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
-  If Len(Me.txtFilter.Text) > 0 Then Call cptClipboardJump
+  If Len(Me.txtFilter.Text) > 0 Then cptClipboardJump Me
 End Sub
 
 Private Sub txtFilter_MouseUp(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
-  If Len(Me.txtFilter.Text) > 0 Then Call cptClipboardJump
+  If Len(Me.txtFilter.Text) > 0 Then cptClipboardJump Me
 End Sub
 
 Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
@@ -342,5 +346,5 @@ Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, 
 End Sub
 
 Private Sub UserForm_Terminate()
-  Call cptClearFreeField
+  cptClearFreeField Me
 End Sub

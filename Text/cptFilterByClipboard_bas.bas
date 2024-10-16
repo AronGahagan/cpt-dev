@@ -3,20 +3,23 @@ Attribute VB_Name = "cptFilterByClipboard_bas"
 Option Explicit
 
 Sub cptShowFilterByClipboard_frm()
-'objects
-'strings
-Dim strMsg As String
-'longs
-Dim lngFreeField As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim cptMyForm As cptFilterByClipboard_frm
+  'strings
+  Dim strMsg As String
+  'longs
+  Dim lngFreeField As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
-  With cptFilterByClipboard_frm
+  Set cptMyForm = New cptFilterByClipboard_frm
+  
+  With cptMyForm
     .Caption = "Filter By Clipboard (" & cptGetVersion("cptFilterByClipboard_frm") & ")"
     .tglEdit = False
     .lboHeader.Height = 12.5
@@ -39,7 +42,7 @@ Dim lngFreeField As Long
     .chkFilter = True
   End With
   
-  lngFreeField = cptGetFreeField("Number")
+  lngFreeField = cptGetFreeField(cptMyForm, "Number")
 
   If lngFreeField = 0 Then
     strMsg = "Since there are no custom task number fields available*, filtered tasks will not appear in the same order as pasted."
@@ -50,7 +53,7 @@ Dim lngFreeField As Long
     strMsg = strMsg & "> no pick list" & vbCrLf
     strMsg = strMsg & "> no data on any task"
     If MsgBox(strMsg, vbInformation + vbOKCancel, "No Room at the Inn") = vbCancel Then GoTo exit_here
-    With cptFilterByClipboard_frm.cboFreeField
+    With cptMyForm.cboFreeField
       .Clear
       .AddItem 0
       .List(.ListCount - 1, 1) = "Not Available"
@@ -59,7 +62,7 @@ Dim lngFreeField As Long
     End With
   End If
   
-  cptFilterByClipboard_frm.Show False
+  cptMyForm.Show False
   
 exit_here:
   On Error Resume Next
@@ -71,7 +74,7 @@ err_here:
   
 End Sub
 
-Sub cptClipboardJump()
+Sub cptClipboardJump(ByRef cptMyForm As cptFilterByClipboard_frm)
   'objects
   'strings
   'longs
@@ -85,15 +88,15 @@ Sub cptClipboardJump()
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  If Len(cptFilterByClipboard_frm.txtFilter.Text) = 0 Then Exit Sub
-  vList = Split(cptFilterByClipboard_frm.txtFilter.Text, ",")
+  If Len(cptMyForm.txtFilter.Text) = 0 Then Exit Sub
+  vList = Split(cptMyForm.txtFilter.Text, ",")
   If UBound(vList) > 0 Then
-    If cptFilterByClipboard_frm.txtFilter.SelStart = Len(cptFilterByClipboard_frm.txtFilter.Text) Then Exit Sub
-    lngUID = vList(Len(Left(cptFilterByClipboard_frm.txtFilter.Text, IIf(cptFilterByClipboard_frm.txtFilter.SelStart = 0, 1, cptFilterByClipboard_frm.txtFilter.SelStart))) - Len(Replace(Left(cptFilterByClipboard_frm.txtFilter.Text, IIf(cptFilterByClipboard_frm.txtFilter.SelStart = 0, 1, cptFilterByClipboard_frm.txtFilter.SelStart)), ",", "")))
+    If cptMyForm.txtFilter.SelStart = Len(cptMyForm.txtFilter.Text) Then Exit Sub
+    lngUID = vList(Len(Left(cptMyForm.txtFilter.Text, IIf(cptMyForm.txtFilter.SelStart = 0, 1, cptMyForm.txtFilter.SelStart))) - Len(Replace(Left(cptMyForm.txtFilter.Text, IIf(cptMyForm.txtFilter.SelStart = 0, 1, cptMyForm.txtFilter.SelStart)), ",", "")))
   Else
     lngUID = vList(0)
   End If
-  If cptFilterByClipboard_frm.lboFilter.ListCount > 0 Then cptFilterByClipboard_frm.lboFilter.Value = lngUID
+  If cptMyForm.lboFilter.ListCount > 0 Then cptMyForm.lboFilter.Value = lngUID
 
 exit_here:
   On Error Resume Next
@@ -104,30 +107,30 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptUpdateClipboard()
-Dim oTask As MSProject.Task
-'strings
-Dim strFilter As String
-'longs
-Dim lngTask As Long
-Dim lngTasks As Long
-Dim lngFreeField As Long
-Dim lngItems As Long
-Dim lngItem As Long
-Dim lngUID As Long
-'integers
-'doubles
-'booleans
-'variants
-Dim vUID As Variant
-'dates
+Sub cptUpdateClipboard(ByRef cptMyForm As cptFilterByClipboard_frm)
+  Dim oTask As MSProject.Task
+  'strings
+  Dim strFilter As String
+  'longs
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  Dim lngFreeField As Long
+  Dim lngItems As Long
+  Dim lngItem As Long
+  Dim lngUID As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vUID As Variant
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   cptSpeed True
   
-  cptFilterByClipboard_frm.lboFilter.Clear
-  strFilter = cptFilterByClipboard_frm.txtFilter.Text
+  cptMyForm.lboFilter.Clear
+  strFilter = cptMyForm.txtFilter.Text
   If Len(strFilter) = 0 Then
     ActiveWindow.TopPane.Activate
     FilterClear
@@ -135,8 +138,8 @@ Dim vUID As Variant
   End If
   
   lngTasks = ActiveProject.Tasks.Count
-  If Not IsNull(cptFilterByClipboard_frm.cboFreeField.Value) Then
-    lngFreeField = cptFilterByClipboard_frm.cboFreeField
+  If Not IsNull(cptMyForm.cboFreeField.Value) Then
+    lngFreeField = cptMyForm.cboFreeField
     For Each oTask In ActiveProject.Tasks
       If oTask Is Nothing Then GoTo next_task
       If oTask.ExternalTask Then GoTo next_task
@@ -159,11 +162,11 @@ next_task:
 
     If Not IsNumeric(vUID(lngItem)) Then GoTo next_item
     lngUID = vUID(lngItem)
-    cptFilterByClipboard_frm.lboFilter.AddItem lngUID
+    cptMyForm.lboFilter.AddItem lngUID
     
     'validate task exists
     On Error Resume Next
-    If cptFilterByClipboard_frm.optUID Then
+    If cptMyForm.optUID Then
       Set oTask = ActiveProject.Tasks.UniqueID(lngUID)
     Else
       Set oTask = ActiveProject.Tasks(lngUID)
@@ -172,23 +175,23 @@ next_task:
     If Not oTask Is Nothing Then
       'add to autofilter
       strFilter = strFilter & oTask.UniqueID & vbTab 'vbTab = Chr$(9)
-      cptFilterByClipboard_frm.lboFilter.List(cptFilterByClipboard_frm.lboFilter.ListCount - 1, 1) = oTask.Name
+      cptMyForm.lboFilter.List(cptMyForm.lboFilter.ListCount - 1, 1) = oTask.Name
       If lngFreeField > 0 Then oTask.SetField lngFreeField, CStr(lngItem + 1)
       Set oTask = Nothing
     Else
-      cptFilterByClipboard_frm.lboFilter.List(lngItem, 1) = "< not found >"
+      cptMyForm.lboFilter.List(lngItem, 1) = "< not found >"
     End If
 next_item:
     Application.StatusBar = "Applying filter...(" & Format(lngItem / IIf(UBound(vUID) = 0, 1, UBound(vUID)), "0%") & ")"
     DoEvents
   Next lngItem
   
-  If Not cptFilterByClipboard_frm.tglEdit Then
-    cptFilterByClipboard_frm.lboFilter.Visible = True
-    cptFilterByClipboard_frm.txtFilter.Visible = False
+  If Not cptMyForm.tglEdit Then
+    cptMyForm.lboFilter.Visible = True
+    cptMyForm.txtFilter.Visible = False
   End If
   
-  If Len(strFilter) > 0 And cptFilterByClipboard_frm.chkFilter Then
+  If Len(strFilter) > 0 And cptMyForm.chkFilter Then
     ActiveWindow.TopPane.Activate
     ScreenUpdating = False
     OptionsViewEx DisplaySummaryTasks:=True
@@ -201,11 +204,11 @@ next_item:
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     SelectBeginning
     strFilter = Left(strFilter, Len(strFilter) - 1)
-    If cptFilterByClipboard_frm.optUID Then
-      cptFilterByClipboard_frm.lboHeader.List(0, 0) = "UID"
+    If cptMyForm.optUID Then
+      cptMyForm.lboHeader.List(0, 0) = "UID"
       SetAutoFilter "Unique ID", FilterType:=pjAutoFilterIn, Criteria1:=strFilter
-    ElseIf cptFilterByClipboard_frm.optID Then
-      cptFilterByClipboard_frm.lboHeader.List(0, 0) = "ID"
+    ElseIf cptMyForm.optID Then
+      cptMyForm.lboHeader.List(0, 0) = "ID"
       SetAutoFilter "Unique ID", FilterType:=pjAutoFilterIn, Criteria1:=strFilter
     End If
     OptionsViewEx ProjectSummary:=False, DisplayOutlineNumber:=False, DisplayNameIndent:=False, DisplaySummaryTasks:=False
@@ -224,22 +227,22 @@ err_here:
 End Sub
 
 Function cptGuessDelimiter(ByRef vData As Variant, strRegEx As String) As Long
-'objects
-Dim dScores As Scripting.Dictionary
-Dim RE As Object
-Dim REMatches As Object
-'strings
-'longs
-Dim lngMax As Long
-Dim lngMatch As Long
-Dim lngItem As Long
-'integers
-'doubles
-'booleans
-'variants
-Dim vRecords As Variant
-Dim REMatch As Variant
-'dates
+  'objects
+  Dim dScores As Scripting.Dictionary
+  Dim RE As Object
+  Dim REMatches As Object
+  'strings
+  'longs
+  Dim lngMax As Long
+  Dim lngMatch As Long
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vRecords As Variant
+  Dim REMatch As Variant
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -319,24 +322,24 @@ err_here:
   Resume exit_here
 End Function
 
-Function cptGetFreeField(strDataType As String, Optional lngType As Long) As Long
-'objects
-Dim dTypes As Object 'Scripting.Dictionary
-Dim rstFree As Object 'ADODB.Recordset
-Dim oTask As MSProject.Task
-'strings
-Dim strNum As String
-'longs
-Dim lngFreeField As Long
-Dim lngField As Long
-Dim lngItems As Long
-Dim lngItem As Long
-'integers
-'doubles
-'booleans
-Dim blnFree As Boolean
-'variants
-'dates
+Function cptGetFreeField(ByRef cptMyForm As cptFilterByClipboard_frm, strDataType As String, Optional lngType As Long) As Long
+  'objects
+  Dim dTypes As Object 'Scripting.Dictionary
+  Dim rstFree As Object 'ADODB.Recordset
+  Dim oTask As MSProject.Task
+  'strings
+  Dim strNum As String
+  'longs
+  Dim lngFreeField As Long
+  Dim lngField As Long
+  Dim lngItems As Long
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnFree As Boolean
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -407,9 +410,9 @@ next_task:
   Do While Not rstFree.EOF
     If rstFree(1) = True Then
       If MsgBox("Looks like " & FieldConstantToFieldName(rstFree(0)) & " isn't in use." & vbCrLf & vbCrLf & "OK to temporarily borrow it for this?", vbQuestion + vbYesNo, "Wanted: Custom Number Field") = vbYes Then
-        With cptFilterByClipboard_frm.cboFreeField
+        With cptMyForm.cboFreeField
           .AddItem rstFree(0)
-          .List(cptFilterByClipboard_frm.cboFreeField.ListCount - 1, 1) = FieldConstantToFieldName(rstFree(0))
+          .List(cptMyForm.cboFreeField.ListCount - 1, 1) = FieldConstantToFieldName(rstFree(0))
           .Value = rstFree(0)
           .Locked = True
           lngFreeField = rstFree(0)
@@ -444,7 +447,7 @@ err_here:
   Resume exit_here
 End Function
 
-Sub cptClearFreeField()
+Sub cptClearFreeField(ByRef cptMyForm As cptFilterByClipboard_frm)
   'objects
   Dim oTask As MSProject.Task
   'strings
@@ -462,8 +465,8 @@ Sub cptClearFreeField()
 
   Calculation = pjManual
   ScreenUpdating = False
-  If cptFilterByClipboard_frm.cboFreeField = "" Then GoTo exit_here
-  lngFreeField = cptFilterByClipboard_frm.cboFreeField.Value
+  If cptMyForm.cboFreeField = "" Then GoTo exit_here
+  lngFreeField = cptMyForm.cboFreeField.Value
   If lngFreeField > 0 Then
     lngTasks = ActiveProject.Tasks.Count
     For Each oTask In ActiveProject.Tasks
