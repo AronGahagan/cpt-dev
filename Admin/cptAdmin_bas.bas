@@ -236,7 +236,7 @@ Dim strDirectory As String
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  strDirectory = cptRegEx(strComponentName, "[^(cpt)](.*)(?=(_frm|_bas|_cls))")
+  strDirectory = cptRegEx(strComponentName, "[^(cpt)](.*)(?=(_frm|_bas|_cls))", , False)
   
   Select Case strDirectory
     Case "About"
@@ -339,28 +339,29 @@ err_here:
 End Function
 
 Sub cptSQL(strFile As String, Optional blnExport As Boolean = False)
-'objects
-Dim oListObject As Excel.ListObject
-Dim oWorksheet As Excel.Worksheet
-Dim oWorkbook As Excel.Workbook
-Dim oExcel As Excel.Application
-Dim oRecordset As ADODB.Recordset
-'strings
-Dim strRecord As String
-Dim strFields As String
-Dim strCon As String, strDir As String, strSQL As String
-'longs
-Dim lngField As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim oListObject As Excel.ListObject
+  Dim oWorksheet As Excel.Worksheet
+  Dim oWorkbook As Excel.Workbook
+  Dim oExcel As Excel.Application
+  Dim oRecordset As ADODB.Recordset
+  'strings
+  Dim strRecord As String
+  Dim strFields As String
+  Dim strCon As String, strDir As String, strSQL As String
+  'longs
+  Dim lngField As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
+  'cpt-data-dictionary.adtg
   'cpt-export-resource-userfields.adtg
+  'cpt-qbd.adtg
   'cpt-status-sheet.adtg
   'cpt-status-sheet-userfields.adtg
-  'cpt-data-dictionary.adtg
   'git-vba-repo.adtg
   'vba-backup-modules.adtg
 
@@ -490,7 +491,6 @@ next_subfolder:
   
   Application.StatusBar = "Complete."
   
-  'todo: should we go ahead and include any views/tables/filters/groups?
   MsgBox "Run cptSetReferences in newly created file; and" & vbCrLf & vbCrLf & "...compile it!", vbExclamation + vbOKOnly, "Don't Forget:"
   
 exit_here:
