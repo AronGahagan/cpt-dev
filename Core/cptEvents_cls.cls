@@ -83,7 +83,7 @@ Dim lngItems As Long
   End If
   
   Set oUserForm = cptGetUserForm("cptNetworkBrowser_frm") 'returns Nothing if form is not loaded
-  If Not oUserForm Is Nothing Then Application.Run "cptShowPreds"
+  If Not oUserForm Is Nothing Then Application.Run "cptShowPreds", oUserForm
   
   Set oUserForm = cptGetUserForm("cptAdjustment_frm") 'returns Nothing if form is not loaded
   If Not oUserForm Is Nothing Then Application.Run "cptRefreshAdjustment"

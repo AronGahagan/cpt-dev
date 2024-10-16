@@ -18,28 +18,38 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Private Sub cboSortPredecessorsBy_Change()
-  cptSaveSetting "NetworkBrowser", "cboSortPredecessorsBy", Me.cboSortPredecessorsBy.Value
-  cptSortNetworkBrowserLinks "p", Me.chkSortPredDescending.Value
+  If Me.Visible Then
+    cptSaveSetting "NetworkBrowser", "cboSortPredecessorsBy", Me.cboSortPredecessorsBy.Value
+    cptSortNetworkBrowserLinks Me, "p", Me.chkSortPredDescending.Value
+  End If
 End Sub
 
 Private Sub cboSortSuccessorsBy_Change()
-  cptSaveSetting "NetworkBrowser", "cboSortSuccessorsBy", Me.cboSortSuccessorsBy.Value
-  cptSortNetworkBrowserLinks "s", Me.chkSortSuccDescending.Value
+  If Me.Visible Then
+    cptSaveSetting "NetworkBrowser", "cboSortSuccessorsBy", Me.cboSortSuccessorsBy.Value
+    cptSortNetworkBrowserLinks Me, "s", Me.chkSortSuccDescending.Value
+  End If
 End Sub
 
 Private Sub chkHideInactive_Click()
-  cptSaveSetting "NetworkBrowser", "chkHideInactive", IIf(Me.chkHideInactive, 1, 0)
-  Call cptShowPreds
+  If Me.Visible Then
+    cptSaveSetting "NetworkBrowser", "chkHideInactive", IIf(Me.chkHideInactive, 1, 0)
+    cptShowPreds Me
+  End If
 End Sub
 
 Private Sub chkSortPredDescending_Click()
-  cptSaveSetting "NetworkBrowser", "chkSortPredDescending", IIf(Me.chkSortPredDescending, "1", "0")
-  cptSortNetworkBrowserLinks "p", Me.chkSortPredDescending.Value
+  If Me.Visible Then
+    cptSaveSetting "NetworkBrowser", "chkSortPredDescending", IIf(Me.chkSortPredDescending, "1", "0")
+    cptSortNetworkBrowserLinks Me, "p", Me.chkSortPredDescending.Value
+  End If
 End Sub
 
 Private Sub chkSortSuccDescending_Click()
-  cptSaveSetting "NetworkBrowser", "chkSortSuccDescending", IIf(Me.chkSortSuccDescending, "1", "0")
-  cptSortNetworkBrowserLinks "s", Me.chkSortSuccDescending.Value
+  If Me.Visible Then
+    cptSaveSetting "NetworkBrowser", "chkSortSuccDescending", IIf(Me.chkSortSuccDescending, "1", "0")
+    cptSortNetworkBrowserLinks Me, "s", Me.chkSortSuccDescending.Value
+  End If
 End Sub
 
 Private Sub cmdBack_Click()
@@ -53,7 +63,7 @@ Private Sub cmdBack_Click()
   If Me.lboHistory.ListCount > 0 Then
     'todo: fix this
     Me.lboHistory.ListIndex = Me.lboHistory.ListIndex + 1
-    Call cptHistoryDoubleClick
+    cptHistoryDoubleClick Me
   End If
 
 exit_here:
@@ -89,7 +99,7 @@ Private Sub cmdFwd_Click()
 
   If Me.lboHistory.ListCount > 0 And Me.lboHistory.ListIndex > 0 Then
     Me.lboHistory.ListIndex = Me.lboHistory.ListIndex - 1
-    Call cptHistoryDoubleClick
+    cptHistoryDoubleClick Me
   End If
 
 exit_here:
@@ -277,7 +287,7 @@ err_here:
 End Sub
 
 Sub lboHistory_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
-  Call cptHistoryDoubleClick
+  cptHistoryDoubleClick Me
 End Sub
 
 Sub lboPredecessors_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
@@ -318,7 +328,7 @@ Dim lngTaskUID As Long
     End If
     Me.lboHistory.AddItem lngTaskUID, 0
     Me.lboHistory.ListIndex = Me.lboHistory.TopIndex
-    Call cptShowPreds
+    cptShowPreds Me
   End If
   
 exit_here:
@@ -378,7 +388,7 @@ Dim lngTaskUID As Long, oTask As MSProject.Task
   End If
   Me.lboHistory.AddItem lngTaskUID, 0
   Me.lboHistory.ListIndex = Me.lboHistory.TopIndex
-  Call cptShowPreds
+  cptShowPreds Me
   
 exit_here:
   On Error Resume Next
