@@ -420,6 +420,26 @@ Private Sub tglTrace_Click()
   End If
 End Sub
 
+Private Sub UserForm_Initialize()
+  
+  Call cptResizeWindowSettings(Me, True)
+  
+End Sub
+
 Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
   Call cptCore_bas.cptStartEvents
+End Sub
+
+Private Sub UserForm_Resize()
+  
+  If Me.Width < 506.25 Then 'protect minimum width
+    Me.Width = 506.25
+  Else
+    Me.lboPredecessors.Width = 416 + (Me.Width - 506.25)
+    Me.lboSuccessors.Width = 416 + (Me.Width - 506.25)
+  End If
+  If Me.Height <> 345.75 Then 'protect height (for now)
+    Me.Height = 345.75
+  End If
+  
 End Sub
