@@ -1710,6 +1710,7 @@ End Sub
 
 Sub cptShowSettings_frm()
   'objects
+  Dim mySettings_frm As cptSettings_frm
   Dim oRecordset As Object 'ADODB.Recordset
   Dim oStream As Object 'Scripting.TextStream
   Dim oFSO As Object 'Scripting.FileSystemObject
@@ -1730,7 +1731,8 @@ Sub cptShowSettings_frm()
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
-  cptSettings_frm.Caption = "ClearPlan Toolbar Settings (" & cptGetVersion("cptUpgrades_frm") & ")"
+  Set mySettings_frm = New cptSettings_frm
+  mySettings_frm.Caption = "ClearPlan Toolbar Settings (" & cptGetVersion("cptSettings_frm") & ")"
   
   Set oRecordset = CreateObject("ADODB.Recordset")
   With oRecordset
@@ -1744,7 +1746,7 @@ Sub cptShowSettings_frm()
   lngFile = FreeFile
   Open strSettingsFileNew For Output As #lngFile
   
-  With cptSettings_frm
+  With mySettings_frm
     .lboFeatures.Clear
     .lboSettings.Clear
     Set oFSO = CreateObject("Scripting.FileSystemObject")
@@ -1810,7 +1812,9 @@ exit_here:
   Set oRecordset = Nothing
   Set oStream = Nothing
   Set oFSO = Nothing
-
+  Unload mySettings_frm
+  Set mySettings_frm = Nothing
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptCore_bas", "cptShowSettings_frm", Err, Erl)
