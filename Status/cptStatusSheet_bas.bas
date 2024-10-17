@@ -27,7 +27,7 @@ Sub cptShowStatusSheet_frm()
   'populate UID,[user selections],Task Name,Duration,Forecast Start,Forecast Finish,Total Slack,[EVT],EV%,New EV%,BLW,Remaining Work,New ETC,BLS,BLF,Reason/Impact/Action
   'add pick list for EV% or default to Physical % Complete
   'objects
-  Dim cptMyForm As cptStatusSheet_frm
+  Dim myStatusSheet_frm As cptStatusSheet_frm
   Dim oRecordset As ADODB.Recordset 'Object
   Dim oShell As Object
   Dim oTasks As MSProject.Tasks
@@ -119,8 +119,8 @@ Sub cptShowStatusSheet_frm()
   'reset options
   Application.StatusBar = "Loading default settings..."
   DoEvents
-  Set cptMyForm = New cptStatusSheet_frm
-  With cptMyForm
+  Set myStatusSheet_frm = New cptStatusSheet_frm
+  With myStatusSheet_frm
     .Caption = "Create Status Sheets (" & cptGetVersion("cptStatusSheet_frm") & ")"
     .lboFields.Clear
     .lboExport.Clear
@@ -197,7 +197,7 @@ Sub cptShowStatusSheet_frm()
   rstFields.Sort = "NAME"
   If rstFields.RecordCount > 0 Then
     rstFields.MoveFirst
-    With cptMyForm
+    With myStatusSheet_frm
       Do While Not rstFields.EOF
         If rstFields(1) = "Physical % Complete" Then GoTo skip_fields
         .lboFields.AddItem
@@ -247,7 +247,7 @@ skip_fields:
   End If
   
   'import saved settings
-  With cptMyForm
+  With myStatusSheet_frm
     Application.StatusBar = "Getting saved settings..."
     DoEvents
     strCreate = cptGetSetting("StatusSheet", "cboCreate")
@@ -436,10 +436,10 @@ skip_fields:
         .MoveFirst
         lngItem = 0
         Do While Not .EOF
-          cptMyForm.lboExport.AddItem
-          cptMyForm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
-          cptMyForm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
-          cptMyForm.lboExport.List(lngItem, 2) = .Fields(2) 'Local Field Name
+          myStatusSheet_frm.lboExport.AddItem
+          myStatusSheet_frm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
+          myStatusSheet_frm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
+          myStatusSheet_frm.lboExport.List(lngItem, 2) = .Fields(2) 'Local Field Name
           'todo: what was this for? no FieldConstantToFieldName(constant) returns "Custom"?
           'todo: was this for filtering out enterprise fields since CFGN = FCFN?
           'If cptRegEx(FieldConstantToFieldName(.Fields(0)), "[0-9]{1,}$") = "" Then GoTo next_item
@@ -454,13 +454,13 @@ skip_fields:
             'prompt user to accept changed name or remove from list
             If MsgBox("Saved field '" & .Fields(1) & "' has been renamed to '" & strNewCustomFieldName & "'." & vbCrLf & vbCrLf & "Click Yes to accept the name change." & vbCrLf & "Click No to remove from export list.", vbExclamation + vbYesNo, "Confirm Export Field") = vbYes Then
               'update export list
-              cptMyForm.lboExport.List(lngItem, 1) = CustomFieldGetName(.Fields(0))
+              myStatusSheet_frm.lboExport.List(lngItem, 1) = CustomFieldGetName(.Fields(0))
               'update the adtg
               .Fields(1) = CustomFieldGetName(.Fields(0))
               .Update
             Else
               'remove from export list
-              cptMyForm.lboExport.RemoveItem (lngItem)
+              myStatusSheet_frm.lboExport.RemoveItem (lngItem)
               'remove from adtg
               .Delete adAffectCurrent
               .Update
@@ -481,19 +481,19 @@ next_item:
     
   'set the status date / hide complete
   If ActiveProject.StatusDate = "NA" Then
-    cptMyForm.txtStatusDate.Value = FormatDateTime(DateAdd("d", 6 - Weekday(Now), Now), vbShortDate)
+    myStatusSheet_frm.txtStatusDate.Value = FormatDateTime(DateAdd("d", 6 - Weekday(Now), Now), vbShortDate)
   Else
-    cptMyForm.txtStatusDate.Value = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
+    myStatusSheet_frm.txtStatusDate.Value = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
   End If
-  dtStatus = CDate(cptMyForm.txtStatusDate.Value)
+  dtStatus = CDate(myStatusSheet_frm.txtStatusDate.Value)
   'default to one week prior to status date
-  cptMyForm.txtHideCompleteBefore.Value = DateAdd("d", -7, dtStatus)
+  myStatusSheet_frm.txtHideCompleteBefore.Value = DateAdd("d", -7, dtStatus)
 
   strAppendStatusDate = cptGetSetting("StatusSheet", "chkAppendStatusDate")
   If strAppendStatusDate <> "" Then
-    cptMyForm.chkAppendStatusDate = CBool(strAppendStatusDate)
+    myStatusSheet_frm.chkAppendStatusDate = CBool(strAppendStatusDate)
   Else
-    cptMyForm.chkAppendStatusDate = False 'default
+    myStatusSheet_frm.chkAppendStatusDate = False 'default
   End If
 
   'delete pre-existing search file
@@ -557,7 +557,7 @@ next_item:
     OutlineShowAllTasks
   End If
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  cptRefreshStatusTable cptMyForm, True 'this only runs when form is visible
+  cptRefreshStatusTable myStatusSheet_frm, True 'this only runs when form is visible
   FilterClear 'added 9/28/2021
   FilterApply "cptStatusSheet Filter"
   If Len(strCreate) > 0 And Len(strEach) > 0 Then
@@ -574,9 +574,9 @@ next_item:
   DoEvents
   Application.StatusBar = "Ready..."
   DoEvents
-  cptMyForm.txtStatusDate.SetFocus
+  myStatusSheet_frm.txtStatusDate.SetFocus
   cptSpeed True
-  cptMyForm.Show 'Modal = True! Keep!
+  myStatusSheet_frm.Show 'Modal = True! Keep!
   
   'after user closes form, then:
   Application.StatusBar = "Restoring your view/table/filter/group..."
@@ -600,8 +600,8 @@ next_item:
   
 exit_here:
   On Error Resume Next
-  Unload cptMyForm
-  Set cptMyForm = Nothing
+  Unload myStatusSheet_frm
+  Set myStatusSheet_frm = Nothing
   Set oRecordset = Nothing
   Set oShell = Nothing
   Application.StatusBar = ""
@@ -617,7 +617,7 @@ err_here:
 
 End Sub
 
-Sub cptCreateStatusSheet(ByRef cptMyForm As cptStatusSheet_frm)
+Sub cptCreateStatusSheet(ByRef myStatusSheet_frm As cptStatusSheet_frm)
   'objects
   Dim oListObject As Excel.ListObject
   Dim oTasks As MSProject.Tasks, oTask As MSProject.Task, oAssignment As MSProject.Assignment
@@ -710,14 +710,14 @@ Sub cptCreateStatusSheet(ByRef cptMyForm As cptStatusSheet_frm)
     GoTo exit_here
   End If
     
-  cptMyForm.lblStatus.Caption = " Analyzing project..."
+  myStatusSheet_frm.lblStatus.Caption = " Analyzing project..."
   Application.StatusBar = "Analyzing project..."
   DoEvents
-  blnValidation = cptMyForm.chkValidation = True
-  blnProtect = cptMyForm.chkProtect = True
-  blnConditionalFormatting = cptMyForm.chkConditionalFormatting = True
-  blnConditionalFormattingLegend = cptMyForm.chkConditionalFormattingLegend = True
-  blnEmail = cptMyForm.chkSendEmails = True
+  blnValidation = myStatusSheet_frm.chkValidation = True
+  blnProtect = myStatusSheet_frm.chkProtect = True
+  blnConditionalFormatting = myStatusSheet_frm.chkConditionalFormatting = True
+  blnConditionalFormattingLegend = myStatusSheet_frm.chkConditionalFormattingLegend = True
+  blnEmail = myStatusSheet_frm.chkSendEmails = True
   If blnEmail Then
     If Not cptCheckReference("Outlook") Then
       MsgBox "Reference to Microsoft Outlook not found.", vbCritical + vbOKOnly, "Is Outlook installed?"
@@ -730,7 +730,7 @@ Sub cptCreateStatusSheet(ByRef cptMyForm As cptStatusSheet_frm)
       End If
     End If
   End If
-  blnKeepOpen = cptMyForm.chkKeepOpen
+  blnKeepOpen = myStatusSheet_frm.chkKeepOpen
   'get task count
   If blnPerformanceTest Then t = GetTickCount
   SelectAll
@@ -744,7 +744,7 @@ Sub cptCreateStatusSheet(ByRef cptMyForm As cptStatusSheet_frm)
   lngTaskCount = oTasks.Count
   If blnPerformanceTest Then Debug.Print "<=====PERFORMANCE TEST " & Now() & "=====>"
 
-  cptMyForm.lblStatus.Caption = " Setting up Workbook..."
+  myStatusSheet_frm.lblStatus.Caption = " Setting up Workbook..."
   Application.StatusBar = "Setting up Workbook..."
   DoEvents
   'set up an excel Workbook
@@ -771,7 +771,7 @@ Sub cptCreateStatusSheet(ByRef cptMyForm As cptStatusSheet_frm)
   
   'copy/paste the data
   lngHeaderRow = 8
-  With cptMyForm
+  With myStatusSheet_frm
     If .cboCreate.Value = "0" Then 'single workbook
       
       SelectAll
@@ -798,7 +798,7 @@ Sub cptCreateStatusSheet(ByRef cptMyForm As cptStatusSheet_frm)
       .lblStatus.Caption = "Creating Workbook..."
       Application.StatusBar = .lblStatus.Caption
       DoEvents
-      cptCopyData cptMyForm, oWorksheet, lngHeaderRow
+      cptCopyData myStatusSheet_frm, oWorksheet, lngHeaderRow
       If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
       
       'add legend
@@ -846,7 +846,7 @@ Sub cptCreateStatusSheet(ByRef cptMyForm As cptStatusSheet_frm)
       'save the workbook
       .lblStatus.Caption = "Saving Workbook..."
       Application.StatusBar = .lblStatus.Caption
-      strFileName = cptSaveStatusSheet(cptMyForm, oWorkbook)
+      strFileName = cptSaveStatusSheet(myStatusSheet_frm, oWorkbook)
       .lblStatus.Caption = "Saving Workbook...done."
       Application.StatusBar = .lblStatus.Caption
       DoEvents
@@ -863,7 +863,7 @@ Sub cptCreateStatusSheet(ByRef cptMyForm As cptStatusSheet_frm)
         oExcel.Wait Now + TimeValue("00:00:02")
         oExcel.Quit
         Set oExcel = Nothing
-        cptSendStatusSheet cptMyForm, strFileName
+        cptSendStatusSheet myStatusSheet_frm, strFileName
         .lblStatus.Caption = "Creating Email...done."
         Application.StatusBar = .lblStatus.Caption
         DoEvents
@@ -906,7 +906,7 @@ Sub cptCreateStatusSheet(ByRef cptMyForm As cptStatusSheet_frm)
           .lblStatus.Caption = "Creating Worksheet for " & strItem & "..."
           Application.StatusBar = .lblStatus.Caption
           DoEvents
-          cptCopyData cptMyForm, oWorksheet, lngHeaderRow
+          cptCopyData myStatusSheet_frm, oWorksheet, lngHeaderRow
           If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
 
           'add legend
@@ -968,7 +968,7 @@ next_worksheet:
       'save the workbook
       .lblStatus.Caption = "Saving Workbook..."
       Application.StatusBar = .lblStatus.Caption
-      strFileName = cptSaveStatusSheet(cptMyForm, oWorkbook)
+      strFileName = cptSaveStatusSheet(myStatusSheet_frm, oWorkbook)
       .lblStatus.Caption = "Saving Workbook...done."
       Application.StatusBar = .lblStatus.Caption
       DoEvents
@@ -985,7 +985,7 @@ next_worksheet:
         oExcel.Wait Now + TimeValue("00:00:02")
         oExcel.Quit
         Set oExcel = Nothing
-        cptSendStatusSheet cptMyForm, strFileName
+        cptSendStatusSheet myStatusSheet_frm, strFileName
         .lblStatus.Caption = "Creating Email...done."
         Application.StatusBar = .lblStatus.Caption
         DoEvents
@@ -1029,7 +1029,7 @@ next_worksheet:
           .lblStatus.Caption = "Creating Workbook for " & strItem & "..."
           Application.StatusBar = .lblStatus.Caption
           DoEvents
-          cptCopyData cptMyForm, oWorksheet, lngHeaderRow
+          cptCopyData myStatusSheet_frm, oWorksheet, lngHeaderRow
           If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
           
           'add legend
@@ -1077,7 +1077,7 @@ next_worksheet:
           'save the workbook
           .lblStatus.Caption = "Saving Workbook for " & strItem & "..."
           Application.StatusBar = .lblStatus.Caption
-          strFileName = cptSaveStatusSheet(cptMyForm, oWorkbook, strItem)
+          strFileName = cptSaveStatusSheet(myStatusSheet_frm, oWorkbook, strItem)
           .lblStatus.Caption = "Saving Workbook for " & strItem & "...done."
           Application.StatusBar = .lblStatus.Caption
           DoEvents
@@ -1094,7 +1094,7 @@ next_worksheet:
             oExcel.Wait Now + TimeValue("00:00:02")
             oExcel.Quit
             Set oExcel = Nothing
-            cptSendStatusSheet cptMyForm, strFileName, strItem
+            cptSendStatusSheet myStatusSheet_frm, strFileName, strItem
             .lblStatus.Caption = "Creating Email for " & strItem & "...done"
             Application.StatusBar = .lblStatus.Caption
             DoEvents
@@ -1174,7 +1174,7 @@ err_here:
 
 End Sub
 
-Sub cptRefreshStatusTable(ByRef cptMyForm As cptStatusSheet_frm, Optional blnOverride As Boolean = False, Optional blnFilterOnly As Boolean = False)
+Sub cptRefreshStatusTable(ByRef myStatusSheet_frm As cptStatusSheet_frm, Optional blnOverride As Boolean = False, Optional blnFilterOnly As Boolean = False)
   'objects
   'strings
   Dim strLOE As String
@@ -1189,7 +1189,7 @@ Sub cptRefreshStatusTable(ByRef cptMyForm As cptStatusSheet_frm, Optional blnOve
   Dim dtLookahead As Date
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  If Not cptMyForm.Visible And blnOverride = False Then GoTo exit_here
+  If Not myStatusSheet_frm.Visible And blnOverride = False Then GoTo exit_here
 
   If Not blnOverride Then cptSpeed True
   If blnFilterOnly Then GoTo filter_only
@@ -1197,7 +1197,7 @@ Sub cptRefreshStatusTable(ByRef cptMyForm As cptStatusSheet_frm, Optional blnOve
   'reset the view
   Application.StatusBar = "Resetting the cptStatusSheet View..."
   Application.ActiveWindow.TopPane.Activate
-  If cptMyForm.chkAssignments Then
+  If myStatusSheet_frm.chkAssignments Then
     ViewApply "Task Usage"
   Else
     ViewApply "Gantt Chart"
@@ -1215,10 +1215,10 @@ Sub cptRefreshStatusTable(ByRef cptMyForm As cptStatusSheet_frm, Optional blnOve
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, Create:=True, OverwriteExisting:=True, FieldName:="ID", Title:="", Width:=10, Align:=1, ShowInMenu:=False, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   lngItem = 0
-  If cptMyForm.lboExport.ListCount > 0 Then
-    For lngItem = 0 To cptMyForm.lboExport.ListCount - 1
-      If Not IsNull(cptMyForm.lboExport.List(lngItem, 0)) Then
-        TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=FieldConstantToFieldName(cptMyForm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
+  If myStatusSheet_frm.lboExport.ListCount > 0 Then
+    For lngItem = 0 To myStatusSheet_frm.lboExport.ListCount - 1
+      If Not IsNull(myStatusSheet_frm.lboExport.List(lngItem, 0)) Then
+        TableEditEx Name:="cptStatusSheet Table", TaskTable:=True, NewFieldName:=FieldConstantToFieldName(myStatusSheet_frm.lboExport.List(lngItem, 0)), Title:="", Width:=10, Align:=0, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
       End If
     Next lngItem
   End If
@@ -1244,13 +1244,13 @@ filter_only:
   'reset the filter
   Application.StatusBar = "Resetting the cptStatusSheet Filter..."
   FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
-  If cptMyForm.chkHide And IsDate(cptMyForm.txtHideCompleteBefore) Then
-    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Actual Finish", test:="is greater than or equal to", Value:=cptMyForm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
+  If myStatusSheet_frm.chkHide And IsDate(myStatusSheet_frm.txtHideCompleteBefore) Then
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Actual Finish", test:="is greater than or equal to", Value:=myStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
   End If
   If Edition = pjEditionProfessional Then
     FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Active", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True, Parenthesis:=True
   End If
-  With cptMyForm
+  With myStatusSheet_frm
     If .chkLookahead And .txtLookaheadDate.BorderColor <> 192 Then
       dtLookahead = CDate(.txtLookaheadDate) & " 5:00 PM"
       FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Start", test:="is less than or equal to", Value:=dtLookahead, Operation:="And", Parenthesis:=False
@@ -1330,7 +1330,7 @@ err_here:
 
 End Sub
 
-Private Sub cptCopyData(ByRef cptMyForm As cptStatusSheet_frm, ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Long)
+Private Sub cptCopyData(ByRef myStatusSheet_frm As cptStatusSheet_frm, ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Long)
   'objects
   Dim oAssignment As MSProject.Assignment
   Dim oFormatRange As Object
@@ -1410,9 +1410,9 @@ Private Sub cptCopyData(ByRef cptMyForm As cptStatusSheet_frm, ByRef oWorksheet 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   dtStatus = ActiveProject.StatusDate
-  blnValidation = cptMyForm.chkValidation = True
-  blnConditionalFormats = cptMyForm.chkConditionalFormatting = True
-  blnProtect = cptMyForm.chkProtect = True
+  blnValidation = myStatusSheet_frm.chkValidation = True
+  blnConditionalFormats = myStatusSheet_frm.chkConditionalFormatting = True
+  blnProtect = myStatusSheet_frm.chkProtect = True
   ActiveWindow.TopPane.Activate
 try_again:
   SelectAll
@@ -1437,10 +1437,10 @@ try_again:
   oWorksheet.Columns.AutoFit
   'format the colums
   blnAlerts = oWorksheet.Application.DisplayAlerts
-  If cptMyForm.cboCreate <> 2 Then
+  If myStatusSheet_frm.cboCreate <> 2 Then
     strItem = ""
   Else
-    strItem = cptMyForm.lboItems.List(cptMyForm.lboItems.ListIndex, 0)
+    strItem = myStatusSheet_frm.lboItems.List(myStatusSheet_frm.lboItems.ListIndex, 0)
   End If
   If blnAlerts Then oWorksheet.Application.DisplayAlerts = False
   For lngCol = 1 To ActiveSelection.FieldIDList.Count
@@ -1647,7 +1647,7 @@ try_again:
     End If 'blnValidation
     
     'capture conditional formatting ranges
-    blnConditionalFormats = cptMyForm.chkConditionalFormatting
+    blnConditionalFormats = myStatusSheet_frm.chkConditionalFormatting
     If Not blnLOE And blnConditionalFormats Then 'todo: include LOE?
       If oNSRange Is Nothing Then
         Set oNSRange = oWorksheet.Cells(lngRow, lngASCol)
@@ -1678,7 +1678,7 @@ try_again:
         
 ''    'add EVT comment - this is slow, and often fails
 '    oWorksheet.Application.ScreenUpdating = True
-'    Set oComment = oWorksheet.Cells(lngRow, lngEVTCol).AddComment(oEVTs.Item(oTask.GetField(FieldNameToFieldConstant(cptMyForm.cboEVT.Value))))
+'    Set oComment = oWorksheet.Cells(lngRow, lngEVTCol).AddComment(oEVTs.Item(oTask.GetField(FieldNameToFieldConstant(myStatusSheet_frm.cboEVT.Value))))
 '    oComment.Shape.TextFrame.Characters.Font.Bold = False
 '    oComment.Shape.TextFrame.AutoSize = True
 '    oWorksheet.Application.ScreenUpdating = False
@@ -1691,7 +1691,7 @@ try_again:
     End If
     
     'export notes
-    If cptMyForm.chkExportNotes Then
+    If myStatusSheet_frm.chkExportNotes Then
       oWorksheet.Cells(lngRow, lngLastCol) = Trim(Replace(oTask.Notes, vbCr, vbLf))
     End If
     
@@ -1704,7 +1704,7 @@ get_assignments:
     blnAssignments = CBool(cptGetSetting("StatusSheet", "chkAssignments"))
     If blnAssignments Then
       If oTask.Assignments.Count > 0 And Not IsDate(oTask.ActualFinish) Then
-        cptGetAssignmentData cptMyForm, oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
+        cptGetAssignmentData myStatusSheet_frm, oTask, oWorksheet, lngRow, lngHeaderRow, lngNameCol, lngETCCol - 1
       ElseIf IsDate(oTask.ActualFinish) Then
         For Each oAssignment In oTask.Assignments
           Set oAssignment = Nothing
@@ -1740,7 +1740,7 @@ get_assignments:
 
 next_task:
     lngTask = lngTask + 1
-    cptMyForm.lblProgress.Width = (lngTask / lngTasks) * cptMyForm.lblStatus.Width
+    myStatusSheet_frm.lblProgress.Width = (lngTask / lngTasks) * myStatusSheet_frm.lblStatus.Width
   Next oTask
   
   'clear out group summary stuff
@@ -1860,7 +1860,7 @@ next_task:
   End If
   'add EVT gloassary - test comment
   If Not oEVTRange Is Nothing Then
-    If cptMyForm.cboCostTool = "COBRA" Then
+    If myStatusSheet_frm.cboCostTool = "COBRA" Then
       strEVTList = "A - Level of Effort,"
       strEVTList = strEVTList & "B - Milestones,"
       strEVTList = strEVTList & "C - % Complete,"
@@ -1876,7 +1876,7 @@ next_task:
       strEVTList = strEVTList & "N - Steps,"
       strEVTList = strEVTList & "O - Earned As Spent,"
       strEVTList = strEVTList & "P - % Complete Manual Entry,"
-    ElseIf cptMyForm.cboCostTool = "MPM" Then
+    ElseIf myStatusSheet_frm.cboCostTool = "MPM" Then
       strEVTList = strEVTList & "0 - No EVM required,"
       strEVTList = strEVTList & "1 - 0/100,"
       strEVTList = strEVTList & "'2 - 25/75,"
@@ -2130,13 +2130,13 @@ skip_working:
         'race is on
         lngFormatCondition = lngFormatCondition + 1
         If strItem <> "" Then
-          cptMyForm.lblStatus.Caption = "Applying Conditional Formatting [" & strItem & "]...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
+          myStatusSheet_frm.lblStatus.Caption = "Applying Conditional Formatting [" & strItem & "]...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
           Application.StatusBar = "Applying Conditional Formatting [" & strItem & "]...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
         Else
-          cptMyForm.lblStatus.Caption = "Applying Conditional Formatting...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
+          myStatusSheet_frm.lblStatus.Caption = "Applying Conditional Formatting...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
           Application.StatusBar = "Applying Conditional Formatting...(" & Format(lngFormatCondition / lngFormatConditions, "0%") & ")"
         End If
-        cptMyForm.lblProgress.Width = (lngFormatCondition / lngFormatConditions) * cptMyForm.lblStatus.Width
+        myStatusSheet_frm.lblProgress.Width = (lngFormatCondition / lngFormatConditions) * myStatusSheet_frm.lblStatus.Width
         Set oFormatRange = oDict.Item(CStr(.Fields(0)))
         oFormatRange.Select
         oFormatRange.FormatConditions.Add Type:=xlExpression, Formula1:=CStr(.Fields(1))
@@ -2185,12 +2185,12 @@ skip_working:
       Loop
       'race is over - notify
       If strItem <> "" Then
-        cptMyForm.lblStatus.Caption = "Applying Conditional Formatting [" & strItem & "]...done."
+        myStatusSheet_frm.lblStatus.Caption = "Applying Conditional Formatting [" & strItem & "]...done."
       Else
-        cptMyForm.lblStatus.Caption = "Applying Conditional Formatting...done."
+        myStatusSheet_frm.lblStatus.Caption = "Applying Conditional Formatting...done."
       End If
-      cptMyForm.lblProgress.Width = cptMyForm.lblStatus.Width
-      Application.StatusBar = cptMyForm.lblStatus.Caption
+      myStatusSheet_frm.lblProgress.Width = myStatusSheet_frm.lblStatus.Width
+      Application.StatusBar = myStatusSheet_frm.lblStatus.Caption
       oDict.RemoveAll
       .Close
     End With
@@ -2229,7 +2229,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Private Sub cptGetAssignmentData(ByRef cptMyForm As cptStatusSheet_frm, ByRef oTask As MSProject.Task, ByRef oWorksheet As Excel.Worksheet, lngRow As Long, lngHeaderRow As Long, lngNameCol As Long, lngRemainingWorkCol As Long)
+Private Sub cptGetAssignmentData(ByRef myStatusSheet_frm As cptStatusSheet_frm, ByRef oTask As MSProject.Task, ByRef oWorksheet As Excel.Worksheet, lngRow As Long, lngHeaderRow As Long, lngNameCol As Long, lngRemainingWorkCol As Long)
   'objects
   Dim oAssignment As Assignment
   'strings
@@ -2336,7 +2336,7 @@ Private Sub cptGetAssignmentData(ByRef cptMyForm As cptStatusSheet_frm, ByRef oT
     End If
     
     'export assignment notes
-    If cptMyForm.chkExportNotes And Len(oAssignment.Notes) > 0 Then
+    If myStatusSheet_frm.chkExportNotes And Len(oAssignment.Notes) > 0 Then
       vAssignment(1, lngLastCol) = Trim(Replace(oAssignment.Notes, vbCr, vbLf))
     End If
     'allow notes at the assignment level?
@@ -2423,7 +2423,7 @@ Sub cptFinalFormats(ByRef oWorksheet As Excel.Worksheet)
   Set oEntryHeaderRange = Nothing
 End Sub
 
-Sub cptListQuickParts(ByRef cptMyForm As cptStatusSheet_frm, Optional blnRefreshOutlook As Boolean = False)
+Sub cptListQuickParts(ByRef myStatusSheet_frm As cptStatusSheet_frm, Optional blnRefreshOutlook As Boolean = False)
   'objects
   Dim oOutlook As Outlook.Application
   Dim oMailItem As MailItem
@@ -2445,7 +2445,7 @@ Sub cptListQuickParts(ByRef cptMyForm As cptStatusSheet_frm, Optional blnRefresh
   
   If blnRefreshOutlook Then
     'refresh QuickParts in Outlook
-    cptMyForm.cboQuickParts.Clear
+    myStatusSheet_frm.cboQuickParts.Clear
     'get Outlook
     On Error Resume Next
     Set oOutlook = GetObject(, "Outlook.Application") 'this works even if Outlook isn't open
@@ -2467,7 +2467,7 @@ Sub cptListQuickParts(ByRef cptMyForm As cptStatusSheet_frm, Optional blnRefresh
       If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oDocument Is Nothing Then
         'todo: try again by accessing Word directly
-        cptMyForm.cboQuickParts.Enabled = False
+        myStatusSheet_frm.cboQuickParts.Enabled = False
         oMailItem.Close olDiscard
         GoTo exit_here
       Else
@@ -2490,7 +2490,7 @@ Sub cptListQuickParts(ByRef cptMyForm As cptStatusSheet_frm, Optional blnRefresh
       vQuickParts = Split(strQuickPartList, ",")
       cptQuickSort vQuickParts, 0, UBound(vQuickParts)
       For Each vQuickPart In vQuickParts
-        cptMyForm.cboQuickParts.AddItem vQuickPart
+        myStatusSheet_frm.cboQuickParts.AddItem vQuickPart
       Next vQuickPart
     End If
     oMailItem.Close olDiscard
@@ -2512,7 +2512,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Function cptSaveStatusSheet(ByRef cptMyForm As cptStatusSheet_frm, ByRef oWorkbook As Excel.Workbook, Optional strItem As String) As String
+Function cptSaveStatusSheet(ByRef myStatusSheet_frm As cptStatusSheet_frm, ByRef oWorkbook As Excel.Workbook, Optional strItem As String) As String
   'objects
   'strings
   Dim strMsg As String
@@ -2530,7 +2530,7 @@ Function cptSaveStatusSheet(ByRef cptMyForm As cptStatusSheet_frm, ByRef oWorkbo
 
   dtStatus = ActiveProject.StatusDate
 
-  With cptMyForm
+  With myStatusSheet_frm
     strDir = .lblDirSample.Caption
     'create the status date directory
     If Dir(strDir, vbDirectory) = vbNullString Then
@@ -2576,7 +2576,7 @@ err_here:
   Resume exit_here
 End Function
 
-Sub cptSendStatusSheet(ByRef cptMyForm As cptStatusSheet_frm, strFullName As String, Optional strItem As String)
+Sub cptSendStatusSheet(ByRef myStatusSheet_frm As cptStatusSheet_frm, strFullName As String, Optional strItem As String)
   'objects
   Dim oInspector As Outlook.Inspector
   Dim oBuildingBlock As Word.BuildingBlock
@@ -2606,7 +2606,7 @@ Sub cptSendStatusSheet(ByRef cptMyForm As cptStatusSheet_frm, strFullName As Str
   Set oMailItem = oOutlook.CreateItem(0) '0 = olMailItem
   oMailItem.Display False
   oMailItem.Attachments.Add strFullName
-  With cptMyForm
+  With myStatusSheet_frm
     strSubject = .txtSubject
     strSubject = Replace(strSubject, cptRegEx(strSubject, "\[status\_date\]"), FormatDateTime(ActiveProject.StatusDate, vbShortDate))
     strSubject = Replace(strSubject, cptRegEx(strSubject, "\[yyyy\-mm\-dd\]"), Format(ActiveProject.StatusDate, "yyyy-mm-dd"))
@@ -2679,7 +2679,7 @@ err_here:
 
 End Sub
 
-Sub cptSaveStatusSheetSettings(ByRef cptMyForm As cptStatusSheet_frm)
+Sub cptSaveStatusSheetSettings(ByRef myStatusSheet_frm As cptStatusSheet_frm)
   'objects
   Dim oRecordset As ADODB.Recordset
   'strings
@@ -2694,7 +2694,7 @@ Sub cptSaveStatusSheetSettings(ByRef cptMyForm As cptStatusSheet_frm)
     
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  With cptMyForm
+  With myStatusSheet_frm
     'save settings
     cptDeleteSetting "StatusSheet", "cboEVP" 'moved to Integration
     cptSaveSetting "StatusSheet", "cboCostTool", .cboCostTool.Value

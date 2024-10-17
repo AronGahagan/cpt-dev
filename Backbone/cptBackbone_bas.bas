@@ -2,7 +2,7 @@ Attribute VB_Name = "cptBackbone_bas"
 '<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 
-Sub cptImportCWBSFromExcel(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
+Sub cptImportCWBSFromExcel(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode As Long)
   'objects
   Dim oValid As Scripting.Dictionary
   Dim oInvalid As Scripting.Dictionary
@@ -122,7 +122,7 @@ Sub cptImportCWBSFromExcel(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As
               If Len(c.Offset(0, 2).Value) > 0 Then
                 oLookupTable.Item(lngItem).Description = Left(c.Offset(0, 2).Value, 255)
               End If
-              If cptMyForm.chkAlsoCreateTasks Then
+              If myBackbone_frm.chkAlsoCreateTasks Then
                 lngOutlineLevel = Len(c.Value) - Len(Replace(c.Value, ".", ""))
                 If lngOutlineLevel > 0 Then
                   oTask.OutlineLevel = lngOutlineLevel + 1
@@ -130,15 +130,15 @@ Sub cptImportCWBSFromExcel(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As
               Else
                 oTask.Delete
               End If
-              cptMyForm.lblStatus.Caption = "Importing " & lngItem & " of " & lngItems & " (" & Format(lngItem / lngItems, "0%") & ")..."
-              cptMyForm.lblProgress.Width = (lngItem / lngItems) * cptMyForm.lblStatus.Width
+              myBackbone_frm.lblStatus.Caption = "Importing " & lngItem & " of " & lngItems & " (" & Format(lngItem / lngItems, "0%") & ")..."
+              myBackbone_frm.lblProgress.Width = (lngItem / lngItems) * myBackbone_frm.lblStatus.Width
             Next c
-            cptMyForm.lblStatus.Caption = "Ready..."
-            cptMyForm.lblProgress.Width = cptMyForm.lblStatus.Width
+            myBackbone_frm.lblStatus.Caption = "Ready..."
+            myBackbone_frm.lblProgress.Width = myBackbone_frm.lblStatus.Width
             'reset outline code to disallow new entries
             CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=True, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
             'refresh the form
-            cptMyForm.cboOutlineCodes.List(cptMyForm.cboOutlineCodes.ListIndex, 1) = FieldConstantToFieldName(lngOutlineCode) & " (" & strOutlineCode & ")"
+            myBackbone_frm.cboOutlineCodes.List(myBackbone_frm.cboOutlineCodes.ListIndex, 1) = FieldConstantToFieldName(lngOutlineCode) & " (" & strOutlineCode & ")"
             'prevent importing multiple sheets
             Exit For
           Else
@@ -177,7 +177,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptImportCWBSFromServer(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
+Sub cptImportCWBSFromServer(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode As Long)
   'objects
   Dim c As Object
   Dim oTask As MSProject.Task
@@ -248,15 +248,15 @@ Sub cptImportCWBSFromServer(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode A
               strDescription = Replace(c.Offset(0, 2), strCode & " - ", "")
               oTask.SetField lngOutlineCode, strCode
               oLookupTable.Item(lngItem).Description = strDescription
-              cptMyForm.lblStatus.Caption = "Importing " & lngItem & " of " & lngItems & "(" & Format(lngItem / lngItems, "0%") & ")..."
-              cptMyForm.lblProgress.Width = (lngItem / lngItems) * cptMyForm.lblStatus.Width
+              myBackbone_frm.lblStatus.Caption = "Importing " & lngItem & " of " & lngItems & "(" & Format(lngItem / lngItems, "0%") & ")..."
+              myBackbone_frm.lblProgress.Width = (lngItem / lngItems) * myBackbone_frm.lblStatus.Width
             Next c
-            cptMyForm.lblStatus.Caption = "Ready..."
-            cptMyForm.lblProgress.Width = cptMyForm.lblStatus.Width
+            myBackbone_frm.lblStatus.Caption = "Ready..."
+            myBackbone_frm.lblProgress.Width = myBackbone_frm.lblStatus.Width
             'reset outline code to disallow new entries
             CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=True, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
             'refresh the form
-            cptMyForm.cboOutlineCodes.List(cptMyForm.cboOutlineCodes.ListIndex, 1) = FieldConstantToFieldName(lngOutlineCode) & " (" & strOutlineCode & ")"
+            myBackbone_frm.cboOutlineCodes.List(myBackbone_frm.cboOutlineCodes.ListIndex, 1) = FieldConstantToFieldName(lngOutlineCode) & " (" & strOutlineCode & ")"
             Exit For
           End If
         Next oWorksheet
@@ -287,7 +287,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptImportAppendixB(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
+Sub cptImportAppendixB(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode As Long)
   'objects
   Dim oTaskTable As Object 'TaskTable
   Dim oTask As MSProject.Task
@@ -430,7 +430,7 @@ Sub cptImportAppendixB(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Lon
   
   'reset outline code to disallow new entries
   CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=True, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
-  Call cptRefreshOutlineCodePreview(cptMyForm, CustomFieldGetName(lngOutlineCode))
+  Call cptRefreshOutlineCodePreview(myBackbone_frm, CustomFieldGetName(lngOutlineCode))
   
 exit_here:
   On Error Resume Next
@@ -444,7 +444,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptImportAppendixE(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
+Sub cptImportAppendixE(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode As Long)
   'objects
   Dim oTaskTable As Object 'TaskTable
   Dim oTask As MSProject.Task
@@ -587,7 +587,7 @@ Sub cptImportAppendixE(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Lon
   
   'reset outline code to disallow new entries
   CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=True, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
-  Call cptRefreshOutlineCodePreview(cptMyForm, CustomFieldGetName(lngOutlineCode))
+  Call cptRefreshOutlineCodePreview(myBackbone_frm, CustomFieldGetName(lngOutlineCode))
   
 exit_here:
   On Error Resume Next
@@ -601,7 +601,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptExportOutlineCodeToExcel(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
+Sub cptExportOutlineCodeToExcel(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode As Long)
   'objects
   Dim oExcel As Object 'Excel.Application
   Dim oWorkbook As Object 'Workbook
@@ -633,11 +633,11 @@ Sub cptExportOutlineCodeToExcel(ByRef cptMyForm As cptBackbone_frm, lngOutlineCo
     GoTo exit_here
   End If
   Application.StatusBar = "Exporting Outline Code '" & strOutlineCode & "'..."
-  cptMyForm.lblStatus.Caption = Application.StatusBar
+  myBackbone_frm.lblStatus.Caption = Application.StatusBar
   
   'get excel
   Application.StatusBar = "Setting up Excel..."
-  cptMyForm.lblStatus.Caption = Application.StatusBar
+  myBackbone_frm.lblStatus.Caption = Application.StatusBar
   Set oExcel = CreateObject("Excel.Application")
   Set oWorkbook = oExcel.Workbooks.Add
   oExcel.Calculation = -4135 'xlCalculationManual
@@ -659,12 +659,12 @@ Sub cptExportOutlineCodeToExcel(ByRef cptMyForm As cptBackbone_frm, lngOutlineCo
     Else
       oWorksheet.Rows(lngLastRow).OutlineLevel = oLookupTable.Item(lngLookupItems).Level
     End If
-    cptMyForm.lblProgress.Width = (lngLookupItems / oLookupTable.Count) * cptMyForm.lblStatus.Width
-    cptMyForm.lblStatus.Caption = "Exporting...(" & Format(lngLookupItems / oLookupTable.Count, "0%") & ")"
+    myBackbone_frm.lblProgress.Width = (lngLookupItems / oLookupTable.Count) * myBackbone_frm.lblStatus.Width
+    myBackbone_frm.lblStatus.Caption = "Exporting...(" & Format(lngLookupItems / oLookupTable.Count, "0%") & ")"
   Next lngLookupItems
   
   Application.StatusBar = "Formatting Worksheet..."
-  cptMyForm.lblStatus.Caption = Application.StatusBar
+  myBackbone_frm.lblStatus.Caption = Application.StatusBar
   
   'format the table
   oExcel.ActiveWindow.Zoom = 85
@@ -727,8 +727,8 @@ exit_here:
   On Error Resume Next
   Set oLookupTable = Nothing
   Application.StatusBar = "Ready..."
-  cptMyForm.lblStatus.Caption = Application.StatusBar
-  cptMyForm.lblProgress.Width = cptMyForm.lblStatus.Width
+  myBackbone_frm.lblStatus.Caption = Application.StatusBar
+  myBackbone_frm.lblProgress.Width = myBackbone_frm.lblStatus.Width
   oExcel.Visible = True
   oExcel.ScreenUpdating = True
   oExcel.Calculation = -4105 'xlCalculationAutomatic
@@ -746,7 +746,7 @@ err_here:
   
 End Sub
 
-Sub cptExport81334D(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
+Sub cptExport81334D(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode As Long)
   'objects
   Dim oMailItem As Object 'MailItem
   Dim oOutlook As Object 'Outlook.Application
@@ -777,7 +777,7 @@ Sub cptExport81334D(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'get outline code name and export it
-  cptMyForm.lblStatus.Caption = "Exporting..."
+  myBackbone_frm.lblStatus.Caption = "Exporting..."
   strOutlineCode = CustomFieldGetName(lngOutlineCode)
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
@@ -795,7 +795,7 @@ Sub cptExport81334D(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
     
     If Dir(strTemplateDir & "\" & strTemplate) = vbNullString Then
       'provide user feedback
-      cptMyForm.lblStatus.Caption = "Downloading template..."
+      myBackbone_frm.lblStatus.Caption = "Downloading template..."
       Set oXMLHttpDoc = CreateObject("Microsoft.XMLHTTP")
       strURL = strGitHub & "Templates/" & strTemplate
       oXMLHttpDoc.Open "GET", strURL, False
@@ -809,7 +809,7 @@ Sub cptExport81334D(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
         oStream.SaveToFile strTemplateDir & "\" & strTemplate
         oStream.Close
       Else
-        cptMyForm.lblStatus.Caption = "Download failed."
+        myBackbone_frm.lblStatus.Caption = "Download failed."
         'fail: prompt to request by email
         If MsgBox("Unable to download template. Request via email?", vbExclamation + vbYesNo, "No Connection") = vbYes Then
           MsgBox "When the template arrives, please save to:" & vbCrLf & vbCrLf & strTemplateDir, vbOKOnly + vbInformation, "Save Location"
@@ -861,8 +861,8 @@ Sub cptExport81334D(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
         wsDictionary.Range(wsDictionary.Cells(lngRow, 2), wsDictionary.Cells(lngRow, 3)).Merge
         wsDictionary.Range(wsDictionary.Cells(lngRow, 4), wsDictionary.Cells(lngRow, 11)).Merge
       End If
-      cptMyForm.lblStatus.Caption = "Exporting...(" & Format(lngItem / oLookupTable.Count, "0%") & ")"
-      cptMyForm.lblProgress.Width = (lngItem / oLookupTable.Count) * cptMyForm.lblStatus.Width
+      myBackbone_frm.lblStatus.Caption = "Exporting...(" & Format(lngItem / oLookupTable.Count, "0%") & ")"
+      myBackbone_frm.lblProgress.Width = (lngItem / oLookupTable.Count) * myBackbone_frm.lblStatus.Width
       lngRow = lngRow + 1
     Next
   End If
@@ -894,13 +894,13 @@ Sub cptExport81334D(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
   oExcel.Visible = True
   
   'provide user feedback
-  cptMyForm.lblStatus.Caption = "Complete."
+  myBackbone_frm.lblStatus.Caption = "Complete."
   
 exit_here:
   On Error Resume Next
   Set oMailItem = Nothing
-  cptMyForm.lblStatus.Caption = "Ready..."
-  cptMyForm.lblProgress.Width = cptMyForm.lblStatus.Width
+  myBackbone_frm.lblStatus.Caption = "Ready..."
+  myBackbone_frm.lblProgress.Width = myBackbone_frm.lblStatus.Width
   Set oLookupTable = Nothing
   Set oOutlineCode = Nothing
   Set wsDictionary = Nothing
@@ -973,7 +973,7 @@ End Sub
 
 Sub cptShowBackbone_frm()
   'objects
-  Dim cptMyForm As cptBackbone_frm
+  Dim myBackbone_frm As cptBackbone_frm
   'longs
   Dim lngCode As Long, lngOutlineCode As Long
   'strings
@@ -981,8 +981,8 @@ Sub cptShowBackbone_frm()
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
-  Set cptMyForm = New cptBackbone_frm
-  With cptMyForm.cboOutlineCodes
+  Set myBackbone_frm = New cptBackbone_frm
+  With myBackbone_frm.cboOutlineCodes
     .Clear
     'populate the listbox/combobox
     For lngCode = 1 To 10
@@ -999,7 +999,7 @@ Sub cptShowBackbone_frm()
   End With
   
   'add Import Actions
-  With cptMyForm.cboImport
+  With myBackbone_frm.cboImport
     .Clear
     .AddItem "From Excel Workbook"
     .AddItem "From MSP Server Outline Code Export"
@@ -1009,7 +1009,7 @@ Sub cptShowBackbone_frm()
   End With
   
   'add Export Actions
-  With cptMyForm.cboExport
+  With myBackbone_frm.cboExport
     .Clear
     .AddItem "To Excel Workbook"
     .AddItem "To CSV for MPM"
@@ -1018,26 +1018,26 @@ Sub cptShowBackbone_frm()
   End With
   
   'pre-select Outline Code 1
-  With cptMyForm
+  With myBackbone_frm
     .cboOutlineCodes.ListIndex = 0
     .txtNameIt = CustomFieldGetName(.cboOutlineCodes.List(0, 0))
     .Caption = "Backbone (" & cptGetVersion("cptBackbone_frm") & ")"
     .cboOutlineCodes.SetFocus
-   cptBackboneHideControls cptMyForm
-   .Show '(False)
+    cptBackboneHideControls myBackbone_frm
+    .Show '(False)
   End With
 
 exit_here:
   On Error Resume Next
-  Unload cptMyForm
-  Set cptMyForm = Nothing
+  Unload myBackbone_frm
+  Set myBackbone_frm = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptBackbone_bas", "cptShowBackbone_frm", Err, Erl)
   Resume exit_here
 End Sub
 
-Sub cptCreateCode(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
+Sub cptCreateCode(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode As Long)
   'objects
   Dim objOutlineCode As OutlineCode
   Dim objLookupTable As LookupTable
@@ -1062,7 +1062,7 @@ Sub cptCreateCode(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'ensure name doesn't already exist - trust form formatting
-  If cptMyForm.txtNameIt.BorderColor = 255 Then GoTo exit_here
+  If myBackbone_frm.txtNameIt.BorderColor = 255 Then GoTo exit_here
 
   'first name the field and create the code mask
   For lngItem = 1 To 10
@@ -1079,14 +1079,14 @@ Sub cptCreateCode(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
       lngTask = lngTask + 1
       oTask.SetField lngOutlineCode, oTask.WBS
       objLookupTable.Item(lngTask).Description = oTask.Name
-      cptMyForm.lblProgress.Width = ((lngTask - 1) / lngTasks) * cptMyForm.lblStatus.Width
-      cptMyForm.lblStatus.Caption = Format(lngTask - 1, "#,##0") & " / " & Format(lngTasks, "#,##0") & " (" & Format((lngTask - 1) / lngTasks, "0%") & ") [" & Format(Now - tmr, "hh:nn:ss") & "]"
+      myBackbone_frm.lblProgress.Width = ((lngTask - 1) / lngTasks) * myBackbone_frm.lblStatus.Width
+      myBackbone_frm.lblStatus.Caption = Format(lngTask - 1, "#,##0") & " / " & Format(lngTasks, "#,##0") & " (" & Format((lngTask - 1) / lngTasks, "0%") & ") [" & Format(Now - tmr, "hh:nn:ss") & "]"
     End If 'task is nothing
   Next oTask
   CustomOutlineCodeEditEx lngOutlineCode, OnlyLeaves:=True, OnlyLookUpTableCodes:=True
-  cptMyForm.lblStatus.Caption = "Complete."
+  myBackbone_frm.lblStatus.Caption = "Complete."
   Application.StatusBar = "Complete."
-  cptMyForm.cmdCancel.Caption = "Done"
+  myBackbone_frm.cmdCancel.Caption = "Done"
   
 exit_here:
   On Error Resume Next
@@ -1102,7 +1102,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptRenameInsideOutlineCode(ByRef cptMyForm As cptBackbone_frm, strOutlineCode As String, strFind As String, strReplace As String)
+Sub cptRenameInsideOutlineCode(ByRef myBackbone_frm As cptBackbone_frm, strOutlineCode As String, strFind As String, strReplace As String)
   'usage: Call RenameOutlineCode("CWBS","BOSS","IBRS")
   'objects
   Dim oOutlineCode As OutlineCode, oLookupTable As LookupTable, oLookupTableEntry As LookupTableEntry
@@ -1121,7 +1121,7 @@ Sub cptRenameInsideOutlineCode(ByRef cptMyForm As cptBackbone_frm, strOutlineCod
     End If
   Next lngEntry
   
-  cptMyForm.lblFeedback.Caption = Format(lngReplaced, "#,##0") & " replaced"
+  myBackbone_frm.lblFeedback.Caption = Format(lngReplaced, "#,##0") & " replaced"
   
 exit_here:
   On Error Resume Next
@@ -1133,7 +1133,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptRefreshOutlineCodePreview(ByRef cptMyForm As cptBackbone_frm, strOutlineCode As String)
+Sub cptRefreshOutlineCodePreview(ByRef myBackbone_frm As cptBackbone_frm, strOutlineCode As String)
   'objects
   Dim oOutlineCode As OutlineCode, oLookupTable As LookupTable, oLookupTableEntry As LookupTableEntry
   Dim oNode As Object 'Node
@@ -1156,9 +1156,9 @@ Sub cptRefreshOutlineCodePreview(ByRef cptMyForm As cptBackbone_frm, strOutlineC
   If Not oLookupTable Is Nothing Then
     If oLookupTable.Count > 0 Then
       lngEntries = oLookupTable.Count
-      cptMyForm.lboOutlineCode.Clear
+      myBackbone_frm.lboOutlineCode.Clear
       For lngEntry = 1 To oLookupTable.Count
-        With cptMyForm
+        With myBackbone_frm
           With .lboOutlineCode
             .AddItem
             .List(.ListCount - 1, 0) = oLookupTable(lngEntry).UniqueID
@@ -1173,7 +1173,7 @@ Sub cptRefreshOutlineCodePreview(ByRef cptMyForm As cptBackbone_frm, strOutlineC
       Next lngEntry
     End If 'lookuptable.count > 0
   End If 'lookuptable is nothing
-  With cptMyForm
+  With myBackbone_frm
     .lblProgress.Width = .lblStatus.Width
     .lblStatus.Caption = "Ready..."
   End With
@@ -1191,7 +1191,7 @@ err_here:
   
 End Sub
 
-Sub cptExportOutlineCodeForMPM(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode As Long)
+Sub cptExportOutlineCodeForMPM(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode As Long)
   'exports local Outline Code to CSV for MPM Upload
   'objects
   Dim oOutlineCode As OutlineCode
@@ -1227,7 +1227,7 @@ Sub cptExportOutlineCodeForMPM(ByRef cptMyForm As cptBackbone_frm, lngOutlineCod
   lngFile = FreeFile
   Open strDir & strFile For Output As #lngFile
   
-  If cptMyForm.chkIncludeHeaders Then
+  If myBackbone_frm.chkIncludeHeaders Then
     strHeader = "WBS ID,"
     strHeader = strHeader & "WBS Description,"
     strHeader = strHeader & "Alias,"
@@ -1272,8 +1272,8 @@ Sub cptExportOutlineCodeForMPM(ByRef cptMyForm As cptBackbone_frm, lngOutlineCod
     Else
       strParent = Left(strCode, InStrRev(strCode, ".") - 1)
     End If
-    cptMyForm.lblStatus.Caption = "Exporting...(" & Format(lngItem / oLookupTable.Count, "0%") & ")"
-    cptMyForm.lblProgress.Width = (lngItem / oLookupTable.Count) * cptMyForm.lblStatus.Width
+    myBackbone_frm.lblStatus.Caption = "Exporting...(" & Format(lngItem / oLookupTable.Count, "0%") & ")"
+    myBackbone_frm.lblProgress.Width = (lngItem / oLookupTable.Count) * myBackbone_frm.lblStatus.Width
     Print #lngFile, strCode & "," & Chr(34) & strDescription & Chr(34) & String(16, ",") & IIf(blnCA, "C", "") & String(7, ",") & strParent & ",,"
   Next lngItem
   
@@ -1301,9 +1301,9 @@ err_here:
 
 End Sub
 
-Sub cptBackboneHideControls(ByRef cptMyForm As cptBackbone_frm)
+Sub cptBackboneHideControls(ByRef myBackbone_frm As cptBackbone_frm)
 
-  With cptMyForm
+  With myBackbone_frm
     'Replace
     .lblFeedback.Visible = .optReplace
     .txtReplace.Enabled = .optReplace
@@ -1324,7 +1324,7 @@ Sub cptBackboneHideControls(ByRef cptMyForm As cptBackbone_frm)
 
 End Sub
 
-Sub cptExportOutlineCodeForCOBRA(ByRef cptMyForm As cptBackbone_frm, lngOutlineCode)
+Sub cptExportOutlineCodeForCOBRA(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode)
   'objects
   Dim oLookupTable As LookupTable
   Dim oOutlineCode As OutlineCode
@@ -1365,7 +1365,7 @@ Sub cptExportOutlineCodeForCOBRA(ByRef cptMyForm As cptBackbone_frm, lngOutlineC
   'export header
   strHeader = "Code,"
   strHeader = strHeader & "Description,"
-  If cptMyForm.chkIncludeThresholds Then
+  If myBackbone_frm.chkIncludeThresholds Then
     strHeader = strHeader & "Threshold SV Value Current Period Favorable,"
     strHeader = strHeader & "Threshold SV Value Current Period Unfavorable,"
     strHeader = strHeader & "Threshold SV % Current Period Favorable,"
@@ -1398,8 +1398,8 @@ Sub cptExportOutlineCodeForCOBRA(ByRef cptMyForm As cptBackbone_frm, lngOutlineC
       MsgBox "Invalid Code Found! See " & strCode & " : " & strDescription, vbCritical + vbOKOnly, "Error"
       GoTo kill_file
     End If
-    cptMyForm.lblStatus.Caption = "Exporting...(" & Format(lngItem / oLookupTable.Count, "0%") & ")"
-    cptMyForm.lblProgress.Width = (lngItem / oLookupTable.Count) * cptMyForm.lblStatus.Width
+    myBackbone_frm.lblStatus.Caption = "Exporting...(" & Format(lngItem / oLookupTable.Count, "0%") & ")"
+    myBackbone_frm.lblProgress.Width = (lngItem / oLookupTable.Count) * myBackbone_frm.lblStatus.Width
     Print #lngFile, strCode & "," & Chr(34) & strDescription & Chr(34) & ","
   Next lngItem
 

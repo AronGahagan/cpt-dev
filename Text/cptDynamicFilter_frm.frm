@@ -419,4 +419,5 @@ Private Sub UserForm_Terminate()
   If Not cptSaveSetting("DynamicFilter", "Highlight", CStr(IIf(Me.chkHighlight, "1", "0"))) Then Debug.Print "Highlight not saved."
   If Not cptSaveSetting("DynamicFilter", "geekMode", CStr(IIf(Me.tglRegEx, "1", "0"))) Then Debug.Print "geekMode not saved."
   If Not cptSaveSetting("DynamicFilter", "ActiveOnly", CStr(IIf(Me.chkActiveOnly, "1", "0"))) Then Debug.Print "Active Only not saved."
+  Unload Me
 End Sub

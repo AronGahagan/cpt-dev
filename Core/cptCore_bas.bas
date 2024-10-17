@@ -267,7 +267,7 @@ End Sub '<issue31>
 
 Sub cptShowAbout_frm()
   'objects
-  Dim cptMyForm As cptAbout_frm
+  Dim myAbout_frm As cptAbout_frm
   'strings
   Dim strAbout As String
   'longs
@@ -290,32 +290,32 @@ Sub cptShowAbout_frm()
   strAbout = strAbout & "AS IS and without warranty." & vbCrLf
   strAbout = strAbout & "It is free to use, free to distribute with prior written consent from the developers/copyright holders and without modification." & vbCrLf & vbCrLf
   strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright " & Chr(169) & " " & Year(Now()) & ", ClearPlan Consulting, LLC"
-  Set cptMyForm = New cptAbout_frm
-  cptMyForm.txtAbout.Value = strAbout  '<issue19>
+  Set myAbout_frm = New cptAbout_frm
+  myAbout_frm.txtAbout.Value = strAbout  '<issue19>
 
   'follow the project
   strAbout = vbCrLf & vbCrLf & "Follow the Project:" & vbCrLf & vbCrLf
   strAbout = strAbout & "http://GitHub.com/ClearPlan/cpt" & vbCrLf & vbCrLf
-  cptMyForm.txtGitHub.Value = strAbout '<issue19>
+  myAbout_frm.txtGitHub.Value = strAbout '<issue19>
 
   'show/hide
-  cptMyForm.lblScoreBoard.Visible = IIf(Now <= #10/25/2019#, False, True) '<issue19>
-  'cptMyForm.lblScoreBoard.Caption = "t0 : b1" EWR > MSY
-  'cptMyForm.lblScoreBoard.Caption = "t0 : b2" MSY > EWR
-  'cptMyForm.lblScoreBoard.Caption = "t0 : b3" 'EWR > SAN
-  'cptMyForm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR
-  'cptMyForm.lblScoreBoard.Caption = "t0 : b5" 'EWR > NAS
-  'cptMyForm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR
-  'cptMyForm.lblScoreBoard.Caption = "t0 : b7" 'EWR > SAV
-  cptMyForm.lblScoreBoard.Caption = "t0 : b8" 'EWR > SAV
+  myAbout_frm.lblScoreBoard.Visible = IIf(Now <= #10/25/2019#, False, True) '<issue19>
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b1" EWR > MSY
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b2" MSY > EWR
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b3" 'EWR > SAN
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b5" 'EWR > NAS
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b7" 'EWR > SAV
+  myAbout_frm.lblScoreBoard.Caption = "t0 : b8" 'EWR > SAV
   
-  cptMyForm.Caption = "The ClearPlan Toolbar - " & cptGetVersion("cptAbout_frm")
-  cptMyForm.Show '<issue19>
+  myAbout_frm.Caption = "The ClearPlan Toolbar - " & cptGetVersion("cptAbout_frm")
+  myAbout_frm.Show '<issue19>
 
 exit_here:
   On Error Resume Next
-  Unload cptMyForm
-  Set cptMyForm = Nothing
+  Unload myAbout_frm
+  Set myAbout_frm = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptCore_bas", "cptShowAbout_frm", Err, Erl)
@@ -883,7 +883,7 @@ End Sub
 
 Sub cptShowUpgrades_frm()
   'objects
-  Dim cptMyForm As cptUpgrades_frm
+  Dim myUpgrades_frm As cptUpgrades_frm
   Dim REMatch As Object
   Dim REMatches As Object
   Dim RE As Object
@@ -1011,16 +1011,16 @@ Sub cptShowUpgrades_frm()
   Application.StatusBar = "Preparing form..."
   DoEvents
   lngItem = 0
-  Set cptMyForm = New cptUpgrades_frm
-  cptMyForm.lboHeader.AddItem
+  Set myUpgrades_frm = New cptUpgrades_frm
+  myUpgrades_frm.lboHeader.AddItem
   For Each vCol In Array("Module", "Directory", "Current", "Installed", "Status", "Type")
-    cptMyForm.lboHeader.List(0, lngItem) = vCol
+    myUpgrades_frm.lboHeader.List(0, lngItem) = vCol
     lngItem = lngItem + 1
   Next vCol
-  cptMyForm.lboHeader.Height = 16
+  myUpgrades_frm.lboHeader.Height = 16
 
   'populate the listbox
-  cptMyForm.lboModules.Clear
+  myUpgrades_frm.lboModules.Clear
   rstStatus.Sort = "Module"
   rstStatus.MoveFirst
   lngItem = 0
@@ -1031,23 +1031,23 @@ Sub cptShowUpgrades_frm()
     Else
       strInstVer = "< missing >"
     End If
-    cptMyForm.lboModules.AddItem
-    cptMyForm.lboModules.List(lngItem, 0) = rstStatus(0) 'module name
-    cptMyForm.lboModules.List(lngItem, 1) = rstStatus(1) 'directory
-    cptMyForm.lboModules.List(lngItem, 2) = strCurVer 'current version
-    cptMyForm.lboModules.List(lngItem, 3) = strInstVer 'installed version
+    myUpgrades_frm.lboModules.AddItem
+    myUpgrades_frm.lboModules.List(lngItem, 0) = rstStatus(0) 'module name
+    myUpgrades_frm.lboModules.List(lngItem, 1) = rstStatus(1) 'directory
+    myUpgrades_frm.lboModules.List(lngItem, 2) = strCurVer 'current version
+    myUpgrades_frm.lboModules.List(lngItem, 3) = strInstVer 'installed version
     
     Select Case strInstVer
       Case Is = strCurVer
-        cptMyForm.lboModules.List(lngItem, 4) = "< ok >"
+        myUpgrades_frm.lboModules.List(lngItem, 4) = "< ok >"
       Case Is = "< missing >"
-        cptMyForm.lboModules.List(lngItem, 4) = "< install >"
+        myUpgrades_frm.lboModules.List(lngItem, 4) = "< install >"
       Case Is <> strCurVer
-        cptMyForm.lboModules.List(lngItem, 4) = "< " & cptVersionStatus(strInstVer, strCurVer) & " >"
+        myUpgrades_frm.lboModules.List(lngItem, 4) = "< " & cptVersionStatus(strInstVer, strCurVer) & " >"
     End Select
     'capture the type while we're at it - could have just pulled the FileName
-    Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + cptMyForm.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
-    cptMyForm.lboModules.List(lngItem, 5) = FindRecord.Text
+    Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + myUpgrades_frm.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
+    myUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
 next_lngItem:
     lngItem = lngItem + 1
     Application.StatusBar = Application.StatusBar = "Preparing form...(" & Format(lngItem / rstStatus.RecordCount, "0%") & ")"
@@ -1072,24 +1072,24 @@ next_lngItem:
       .Pattern = Chr(34) & "name" & Chr(34) & ":" & Chr(34) & "[A-z0-9-.]*"
     End With
     Set REMatches = RE.Execute(xmlHttpDoc.responseText)
-    cptMyForm.cboBranches.Clear
+    myUpgrades_frm.cboBranches.Clear
     For Each REMatch In REMatches
-      cptMyForm.cboBranches.AddItem Replace(REMatch, Chr(34) & "name" & Chr(34) & ":" & Chr(34), "")
+      myUpgrades_frm.cboBranches.AddItem Replace(REMatch, Chr(34) & "name" & Chr(34) & ":" & Chr(34), "")
     Next
-    cptMyForm.cboBranches.Value = "master"
+    myUpgrades_frm.cboBranches.Value = "master"
   Else
-    cptMyForm.cboBranches.Clear
-    cptMyForm.cboBranches.AddItem "<unavailable>"
+    myUpgrades_frm.cboBranches.Clear
+    myUpgrades_frm.cboBranches.AddItem "<unavailable>"
   End If
-  cptMyForm.Caption = "Installation Status (" & cptGetVersion("cptUpgrades_frm") & ")"
+  myUpgrades_frm.Caption = "Installation Status (" & cptGetVersion("cptUpgrades_frm") & ")"
   Application.StatusBar = "Ready for user input..."
   DoEvents
-  cptMyForm.Show
+  myUpgrades_frm.Show
 
 exit_here:
   On Error Resume Next
-  Unload cptMyForm
-  Set cptMyForm = Nothing
+  Unload myUpgrades_frm
+  Set myUpgrades_frm = Nothing
   Application.StatusBar = ""
   If rstStatus.State Then rstStatus.Close
   Set rstStatus = Nothing
@@ -2458,7 +2458,7 @@ End Sub
 
 Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalRequired As Boolean = False, Optional blnRollingWaveDateRequired As Boolean = False, Optional blnConfirmationRequired As Boolean = False) As Boolean
   'objects
-  Dim cptMyForm As cptIntegration_frm
+  Dim myIntegration_frm As cptIntegration_frm
   Dim oRequiredFields As Object 'Scripting.Dictionary
   Dim oComboBox As MSForms.ComboBox
   'strings
@@ -2494,8 +2494,8 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
     oRequiredFields(vRequired) = True
   Next
   
-  Set cptMyForm = New cptIntegration_frm
-  With cptMyForm
+  Set myIntegration_frm = New cptIntegration_frm
+  With myIntegration_frm
     
     .Caption = "Integration (" & cptGetVersion("cptIntegration_frm") & ")"
     
@@ -2662,8 +2662,8 @@ exit_here:
   On Error Resume Next
   Set oRequiredFields = Nothing
   Set oComboBox = Nothing
-  Unload cptMyForm
-  Set cptMyForm = Nothing
+  Unload myIntegration_frm
+  Set myIntegration_frm = Nothing
 
   Exit Function
 err_here:

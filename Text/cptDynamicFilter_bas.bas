@@ -5,7 +5,7 @@ Private pCachedRegexes As Scripting.Dictionary
 
 Sub cptShowDynamicFilter_frm()
   'objects
-  Dim cptMyForm As cptDynamicFilter_frm
+  Dim myDynamicFilter_frm As cptDynamicFilter_frm
   'strings
   Dim strCustomFields As String
   Dim strCustomFieldName As String
@@ -32,8 +32,8 @@ Sub cptShowDynamicFilter_frm()
   End If
   '===
   
-  Set cptMyForm = New cptDynamicFilter_frm
-  With cptMyForm
+  Set myDynamicFilter_frm = New cptDynamicFilter_frm
+  With myDynamicFilter_frm
     .Caption = "Dynamic Filter (" & cptGetVersion("cptDynamicFilter_frm") & ")"
     .txtFilter = ""
     With .cboField
@@ -96,7 +96,7 @@ Sub cptShowDynamicFilter_frm()
   
 exit_here:
   On Error Resume Next
-  Set cptMyForm = Nothing
+  Set myDynamicFilter_frm = Nothing
   
   Exit Sub
 err_here:
@@ -104,7 +104,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptGoRegEx(ByRef cptMyForm As cptDynamicFilter_frm, strRegEx As String)
+Sub cptGoRegEx(ByRef myDynamicFilter_frm As cptDynamicFilter_frm, strRegEx As String)
   'objects
   Dim oTask As MSProject.Task
   'strings
@@ -127,23 +127,23 @@ Sub cptGoRegEx(ByRef cptMyForm As cptDynamicFilter_frm, strRegEx As String)
   End If
   
   lngUID = 0
-  If cptMyForm.chkKeepSelected Then
+  If myDynamicFilter_frm.chkKeepSelected Then
     On Error Resume Next
     Set oTask = ActiveSelection.Tasks(1)
     lngUID = oTask.UniqueID
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   End If
-  If cptMyForm.cboField.Value = "Task Name" Then
+  If myDynamicFilter_frm.cboField.Value = "Task Name" Then
     lngFieldConstant = FieldNameToFieldConstant("Name", pjTask)
   Else
-    lngFieldConstant = FieldNameToFieldConstant(cptMyForm.cboField.Value)
+    lngFieldConstant = FieldNameToFieldConstant(myDynamicFilter_frm.cboField.Value)
   End If
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.Marked Then oTask.Marked = False
-    If cptMyForm.chkActiveOnly And Not oTask.Active Then GoTo next_task
+    If myDynamicFilter_frm.chkActiveOnly And Not oTask.Active Then GoTo next_task
     If Len(oTask.GetField(lngFieldConstant)) = 0 Then GoTo next_task
-    If cptMyForm.chkHideSummaries And oTask.Summary Then
+    If myDynamicFilter_frm.chkHideSummaries And oTask.Summary Then
       If Len(cptRxMatch(oTask.GetField(lngFieldConstant), strRegEx)) > 0 Then oTask.Marked = True
     ElseIf Not oTask.Summary Then
       If Len(cptRxMatch(oTask.GetField(lngFieldConstant), strRegEx)) > 0 Then oTask.Marked = True
@@ -162,7 +162,7 @@ next_task:
     OutlineShowAllTasks
   End If
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  OptionsViewEx DisplaySummaryTasks:=cptMyForm.chkShowRelatedSummaries
+  OptionsViewEx DisplaySummaryTasks:=myDynamicFilter_frm.chkShowRelatedSummaries
   
   SetAutoFilter "Marked", pjAutoFilterFlagYes
   'todo: allow user-selected Flag or Marked
