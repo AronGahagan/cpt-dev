@@ -13,7 +13,6 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 '<cpt_version>v1.6.2</cpt_version>
 Option Explicit
 
@@ -68,7 +67,7 @@ Private Sub chkShowRelatedSummaries_Click()
 End Sub
 
 Private Sub cmdCancel_Click()
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub cmdClear_Click()
@@ -92,7 +91,7 @@ Private Sub cmdGoRegEx_Click()
       If cptSaveSetting("DynamicFilter", "IgnoreOverwriteWarning", "1") Then Debug.Print "that worked fine"
     End If
   End If
-  Call cptGoRegEx(Me.txtFilter)
+  Call cptGoRegEx(Me, Me.txtFilter)
 exit_here:
   Me.txtFilter.SetFocus
 End Sub
@@ -304,7 +303,7 @@ Dim blnActiveOnly As Boolean
 Dim blnHideSummaryTasks As Boolean, blnHighlight As Boolean, blnKeepSelected As Boolean
 Dim blnShowRelatedSummaries As Boolean
 'longs
-Dim lgOriginalUID As Long
+Dim lngOriginalUID As Long
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Me.tglRegEx Then Exit Sub
@@ -312,14 +311,14 @@ Dim lgOriginalUID As Long
 
   'assign values to variables
   On Error Resume Next
-  lgOriginalUID = ActiveSelection.Tasks(1).UniqueID
+  lngOriginalUID = ActiveSelection.Tasks(1).UniqueID
   strField = Me.cboField
   strOperator = Me.cboOperator
   blnHideSummaryTasks = Not Me.chkHideSummaries
   blnShowRelatedSummaries = Me.chkShowRelatedSummaries
   blnHighlight = Me.chkHighlight
   blnKeepSelected = Me.chkKeepSelected
-  If lgOriginalUID = 0 Then blnKeepSelected = False
+  If lngOriginalUID = 0 Then blnKeepSelected = False
   If blnHighlight Then
     strFilter = "Dynamic Highlight"
   Else
@@ -364,13 +363,13 @@ Dim lgOriginalUID As Long
   'build custom filter on the fly and apply it
   If Len(strFilterText) > 0 And Len(strOperator) > 0 Then
     If strField = "Task Name" Then strField = "Name"
-    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=strField, Test:=strOperator, Value:=strFilterText, Operation:=IIf(blnKeepSelected Or blnHideSummaryTasks, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
+    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=strField, test:=strOperator, Value:=strFilterText, Operation:=IIf(blnKeepSelected Or blnHideSummaryTasks, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
   End If
   If blnKeepSelected Then
-    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Unique ID", Test:="equals", Value:=lgOriginalUID, Operation:="Or"
+    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Unique ID", test:="equals", Value:=lngOriginalUID, Operation:="Or"
   End If
   If blnHideSummaryTasks Then
-    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Summary", Test:="equals", Value:="No", Operation:="And", Parenthesis:=blnKeepSelected
+    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Summary", test:="equals", Value:="No", Operation:="And", Parenthesis:=blnKeepSelected
     OptionsViewEx DisplaySummaryTasks:=True
   End If
 
@@ -379,13 +378,13 @@ Dim lgOriginalUID As Long
     If blnShowRelatedSummaries Then OptionsViewEx DisplaySummaryTasks:=True
   Else
     'build a sterile filter to retain existing autofilters
-    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Summary", Test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True
-    FilterEdit Name:=strFilter, TaskFilter:=True, FieldName:="", NewFieldName:="Summary", Test:="equals", Value:="No", Operation:="Or", ShowSummaryTasks:=True
+    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Summary", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True
+    FilterEdit Name:=strFilter, TaskFilter:=True, FieldName:="", NewFieldName:="Summary", test:="equals", Value:="No", Operation:="Or", ShowSummaryTasks:=True
   End If
   
   If Application.Edition = pjEditionProfessional Then
     If blnActiveOnly Then
-      FilterEdit Name:=strFilter, TaskFilter:=True, Parenthesis:=True, NewFieldName:="Active", Test:="equals", Value:="Yes", Operation:="And"
+      FilterEdit Name:=strFilter, TaskFilter:=True, Parenthesis:=True, NewFieldName:="Active", test:="equals", Value:="Yes", Operation:="And"
     End If
   End If
   
@@ -393,7 +392,7 @@ Dim lgOriginalUID As Long
   FilterApply strFilter, blnHighlight
 
   On Error Resume Next
-  If lgOriginalUID > 0 And blnKeepSelected Then Application.Find "Unique ID", "equals", lgOriginalUID
+  If lngOriginalUID > 0 And blnKeepSelected Then Application.Find "Unique ID", "equals", lngOriginalUID
 
 exit_here:
   On Error Resume Next
@@ -403,6 +402,13 @@ err_here:
   Call cptHandleErr("cptDynamicFilter_frm", "txtFilter_Change", Err, Erl)
   Resume exit_here
 
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
 End Sub
 
 Private Sub UserForm_Terminate()
