@@ -682,6 +682,7 @@ End Function
 
 Sub cptCaptureWeek()
   'objects
+  Dim myTaskHistory_frm As cptTaskHistory_frm
   Dim oNotes As Scripting.Dictionary
   Dim oTasks As MSProject.Tasks
   Dim oTask As MSProject.Task
@@ -707,14 +708,15 @@ Sub cptCaptureWeek()
   'dates
   Dim dtStatus As Date
   
+  On Error Resume Next
+  Set myTaskHistory_frm = cptGetUserForm("cptTaskHistory_frm")
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  
-  If Not cptGetUserForm("cptTaskHistory_frm") Is Nothing Then
+  If Not myTaskHistory_frm Is Nothing Then
     blnReopenTaskHistory = True
-    lngTop = cptTaskHistory_frm.Top
-    lngLeft = cptTaskHistory_frm.Left
-    lngSelectedUID = cptTaskHistory_frm.lngTaskHistoryUID
-    Unload cptTaskHistory_frm
+    lngTop = myTaskHistory_frm.Top
+    lngLeft = myTaskHistory_frm.Left
+    lngSelectedUID = myTaskHistory_frm.lngTaskHistoryUID
+    Unload myTaskHistory_frm
   End If
   
   'ensure status date
@@ -842,14 +844,16 @@ do_not_overwrite:
   If blnReopenTaskHistory Then
     Application.ScreenUpdating = False
     Call cptShowTaskHistory_frm
-    cptTaskHistory_frm.Top = lngTop
-    cptTaskHistory_frm.Left = lngLeft
+    Set myTaskHistory_frm = cptGetUserForm("cptTaskHistory_frm")
+    myTaskHistory_frm.Top = lngTop
+    myTaskHistory_frm.Left = lngLeft
     EditGoTo ActiveProject.Tasks.UniqueID(lngSelectedUID).ID
     Application.ScreenUpdating = True
   End If
   
 exit_here:
   On Error Resume Next
+  Set myTaskHistory_frm = Nothing
   Set oNotes = Nothing
   Application.StatusBar = ""
   Set oTasks = Nothing
