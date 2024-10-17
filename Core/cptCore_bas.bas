@@ -729,6 +729,7 @@ End Sub
 
 Sub cptShowResetAll_frm()
   'objects
+  Dim myResetAll_frm As cptResetAll_frm
   Dim oView As MSProject.View
   Dim rstSettings As Object 'ADODB.Recordset
   'strings
@@ -760,15 +761,17 @@ Sub cptShowResetAll_frm()
   End If
   '===
   
+  'instantiate the form
+  Set myResetAll_frm = New cptResetAll_frm
   'populate the outline level picklist
   For lngOutlineLevel = 1 To 20
-    cptResetAll_frm.cboOutlineLevel.AddItem lngOutlineLevel
+    myResetAll_frm.cboOutlineLevel.AddItem lngOutlineLevel
   Next lngOutlineLevel
   'default to 2
-  cptResetAll_frm.cboOutlineLevel.Value = 2
+  myResetAll_frm.cboOutlineLevel.Value = 2
   
   'populate cboViews
-  cptResetAll_frm.cboViews.Clear
+  myResetAll_frm.cboViews.Clear
   For Each oView In ActiveProject.Views
     If oView.Type = pjTaskItem Then
       If oView.Screen = 1 Or oView.Screen = 14 Then
@@ -784,7 +787,7 @@ Sub cptShowResetAll_frm()
   Dim vViewList As Variant
   vViewList = Split(strViewList, ",")
   cptQuickSort vViewList, 0, UBound(vViewList)
-  cptResetAll_frm.cboViews.List = Split("<None>," & Join(vViewList, ","), ",")
+  myResetAll_frm.cboViews.List = Split("<None>," & Join(vViewList, ","), ",")
   
   strFile = cptDir & "\settings\cpt-reset-all.adtg"
   If Dir(strFile) <> vbNullString Then
@@ -809,20 +812,20 @@ Sub cptShowResetAll_frm()
         If Not cptViewExists(strDefaultView) Then
           MsgBox "Your default view '" & strDefaultView & "' does not exist.", vbExclamation + vbOKOnly, "Saved View Not Found"
         Else
-          cptResetAll_frm.cboViews.Value = strDefaultView
+          myResetAll_frm.cboViews.Value = strDefaultView
         End If
       Else
-        cptResetAll_frm.cboViews.Value = "<None>"
+        myResetAll_frm.cboViews.Value = "<None>"
       End If
     Else
       cptSaveSetting "ResetAll", "DefaultView", "<None>"
-      cptResetAll_frm.cboViews.Value = "<None>"
+      myResetAll_frm.cboViews.Value = "<None>"
     End If
   End If
     
   If lngSettings > 0 Then
     'parse and update the form
-    With cptResetAll_frm
+    With myResetAll_frm
       If lngSettings >= 128 Then
         .chkOutlineSymbols = True
         lngSettings = lngSettings - 128
@@ -866,13 +869,14 @@ Sub cptShowResetAll_frm()
     End With
   End If
   
-  cptResetAll_frm.Caption = "How would you like to Reset All? (" & cptGetVersion("cptResetAll_frm") & ")"
-  cptResetAll_frm.Show False
+  myResetAll_frm.Caption = "How would you like to Reset All? (" & cptGetVersion("cptResetAll_frm") & ")"
+  myResetAll_frm.Show False
   
 exit_here:
   On Error Resume Next
   Set oView = Nothing
   Set rstSettings = Nothing
+  Set myResetAll_frm = Nothing
 
   Exit Sub
 err_here:
