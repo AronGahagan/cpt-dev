@@ -883,6 +883,7 @@ End Sub
 
 Sub cptShowUpgrades_frm()
   'objects
+  Dim cptMyForm As cptUpgrades_frm
   Dim REMatch As Object
   Dim REMatches As Object
   Dim RE As Object
@@ -1010,15 +1011,16 @@ Sub cptShowUpgrades_frm()
   Application.StatusBar = "Preparing form..."
   DoEvents
   lngItem = 0
-  cptUpgrades_frm.lboHeader.AddItem
+  Set cptMyForm = New cptUpgrades_frm
+  cptMyForm.lboHeader.AddItem
   For Each vCol In Array("Module", "Directory", "Current", "Installed", "Status", "Type")
-    cptUpgrades_frm.lboHeader.List(0, lngItem) = vCol
+    cptMyForm.lboHeader.List(0, lngItem) = vCol
     lngItem = lngItem + 1
   Next vCol
-  cptUpgrades_frm.lboHeader.Height = 16
+  cptMyForm.lboHeader.Height = 16
 
   'populate the listbox
-  cptUpgrades_frm.lboModules.Clear
+  cptMyForm.lboModules.Clear
   rstStatus.Sort = "Module"
   rstStatus.MoveFirst
   lngItem = 0
@@ -1027,25 +1029,25 @@ Sub cptShowUpgrades_frm()
     If Not IsNull(rstStatus(3)) Then
       strInstVer = rstStatus(3)
     Else
-      strInstVer = "<not installed>"
+      strInstVer = "< missing >"
     End If
-    cptUpgrades_frm.lboModules.AddItem
-    cptUpgrades_frm.lboModules.List(lngItem, 0) = rstStatus(0) 'module name
-    cptUpgrades_frm.lboModules.List(lngItem, 1) = rstStatus(1) 'directory
-    cptUpgrades_frm.lboModules.List(lngItem, 2) = strCurVer 'current version
-    cptUpgrades_frm.lboModules.List(lngItem, 3) = strInstVer 'installed version
+    cptMyForm.lboModules.AddItem
+    cptMyForm.lboModules.List(lngItem, 0) = rstStatus(0) 'module name
+    cptMyForm.lboModules.List(lngItem, 1) = rstStatus(1) 'directory
+    cptMyForm.lboModules.List(lngItem, 2) = strCurVer 'current version
+    cptMyForm.lboModules.List(lngItem, 3) = strInstVer 'installed version
     
     Select Case strInstVer
       Case Is = strCurVer
-        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< ok >"
-      Case Is = "<not installed>"
-        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< install >"
+        cptMyForm.lboModules.List(lngItem, 4) = "< ok >"
+      Case Is = "< missing >"
+        cptMyForm.lboModules.List(lngItem, 4) = "< install >"
       Case Is <> strCurVer
-        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< " & cptVersionStatus(strInstVer, strCurVer) & " >"
+        cptMyForm.lboModules.List(lngItem, 4) = "< " & cptVersionStatus(strInstVer, strCurVer) & " >"
     End Select
     'capture the type while we're at it - could have just pulled the FileName
-    Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + cptUpgrades_frm.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
-    cptUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
+    Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + cptMyForm.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
+    cptMyForm.lboModules.List(lngItem, 5) = FindRecord.Text
 next_lngItem:
     lngItem = lngItem + 1
     Application.StatusBar = Application.StatusBar = "Preparing form...(" & Format(lngItem / rstStatus.RecordCount, "0%") & ")"
@@ -1070,22 +1072,24 @@ next_lngItem:
       .Pattern = Chr(34) & "name" & Chr(34) & ":" & Chr(34) & "[A-z0-9-.]*"
     End With
     Set REMatches = RE.Execute(xmlHttpDoc.responseText)
-    cptUpgrades_frm.cboBranches.Clear
+    cptMyForm.cboBranches.Clear
     For Each REMatch In REMatches
-      cptUpgrades_frm.cboBranches.AddItem Replace(REMatch, Chr(34) & "name" & Chr(34) & ":" & Chr(34), "")
+      cptMyForm.cboBranches.AddItem Replace(REMatch, Chr(34) & "name" & Chr(34) & ":" & Chr(34), "")
     Next
-    cptUpgrades_frm.cboBranches.Value = "master"
+    cptMyForm.cboBranches.Value = "master"
   Else
-    cptUpgrades_frm.cboBranches.Clear
-    cptUpgrades_frm.cboBranches.AddItem "<unavailable>"
+    cptMyForm.cboBranches.Clear
+    cptMyForm.cboBranches.AddItem "<unavailable>"
   End If
-  cptUpgrades_frm.Caption = "Installation Status (" & cptGetVersion("cptUpgrades_frm") & ")"
+  cptMyForm.Caption = "Installation Status (" & cptGetVersion("cptUpgrades_frm") & ")"
   Application.StatusBar = "Ready for user input..."
   DoEvents
-  cptUpgrades_frm.Show
+  cptMyForm.Show
 
 exit_here:
   On Error Resume Next
+  Unload cptMyForm
+  Set cptMyForm = Nothing
   Application.StatusBar = ""
   If rstStatus.State Then rstStatus.Close
   Set rstStatus = Nothing
