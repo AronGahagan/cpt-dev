@@ -13,7 +13,6 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 '<cpt_version>v1.1.0</cpt_version>
 Option Explicit
 
@@ -85,8 +84,12 @@ Private Sub cmdAnalyzeEVT_Click()
       Call cptAnalyzeEVT(Me.cboImportField.Value)
     End If
   Else
-    Call cptAnalyzeEVT
+    cptAnalyzeEVT Me
   End If
+End Sub
+
+Private Sub cmdCancel_Click()
+  Me.Hide
 End Sub
 
 Private Sub cmdDelete_Click()
@@ -101,11 +104,11 @@ Private Sub cmdDelete_Click()
 End Sub
 
 Private Sub cmdExport_Click()
-  Call cptExportFiscalCalendar
+  cptExportFiscalCalendar Me
 End Sub
 
 Private Sub cmdImport_Click()
-  Call cptImportCalendarExceptions
+  cptImportCalendarExceptions Me
 End Sub
 
 Private Sub cmdTemplate_Click()
@@ -115,22 +118,22 @@ Private Sub cmdTemplate_Click()
 End Sub
 
 Private Sub txtExceptions_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, ByVal Action As MSForms.fmAction, ByVal Data As MSForms.DataObject, ByVal X As Single, ByVal Y As Single, ByVal Effect As MSForms.ReturnEffect, ByVal Shift As Integer)
-'objects
-Dim oException As MSProject.Exception
-Dim oCalendar As MSProject.Calendar
-'strings
-Dim strLabel As String
-Dim strExceptions As String
-'longs
-Dim lngItem As Long
-'integers
-'doubles
-'booleans
-Dim blnLabels As Boolean
-'variants
-Dim vException As Variant
-Dim vExceptions As Variant
-'dates
+  'objects
+  Dim oException As MSProject.Exception
+  Dim oCalendar As MSProject.Calendar
+  'strings
+  Dim strLabel As String
+  Dim strExceptions As String
+  'longs
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnLabels As Boolean
+  'variants
+  Dim vException As Variant
+  Dim vExceptions As Variant
+  'dates
 
   On Error Resume Next
   Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar")
@@ -208,4 +211,15 @@ exit_here:
 err_here:
   Call cptHandleErr("cptFiscal_frm", "txtExceptions_BeforeDropOrPaste", Err, Erl)
   Resume exit_here
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
+Private Sub UserForm_Terminate()
+  Unload Me
 End Sub
