@@ -4,6 +4,7 @@ Option Explicit
 
 Sub cptShowCalendarExceptions_frm()
   'objects
+  Dim myCalendarExceptions_frm As cptCalendarExceptions_frm
   Dim oResource As Resource
   'strings
   Dim strCalendar As String
@@ -20,7 +21,8 @@ Sub cptShowCalendarExceptions_frm()
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
-  With cptCalendarExceptions_frm
+  Set myCalendarExceptions_frm = New cptCalendarExceptions_frm
+  With myCalendarExceptions_frm
     .Caption = "Calendar Details (" & cptGetVersion("cptCalendarExceptions_frm") & ")"
     .cboCalendars.Clear
     .cboCalendars.AddItem "All Calendars"
@@ -35,7 +37,7 @@ Sub cptShowCalendarExceptions_frm()
         If oResource.Calendar.Exceptions.Count > 0 Or oResource.Calendar.WorkWeeks.Count > 0 Then
           If Len(oResource.Calendar.Name) > 0 Then
             'todo: only add a calendar once
-            'todo: what does it mean when a resource's calendar is named differently then the resource itself?
+            'todo: what does it mean when a resource's calendar is named differently than the resource itself?
             .cboCalendars.AddItem oResource.Calendar.Name
           Else
             strErrors = strErrors & "Resource UID " & oResource.UniqueID & " is unnamed." & vbCrLf
@@ -64,14 +66,15 @@ next_resource:
 exit_here:
   On Error Resume Next
   Set oResource = Nothing
-
+  Unload myCalendarExceptions_frm
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptCalendarExceptions_bas", "cptShowCalendarExceptions_frm", Err, Erl)
   Resume exit_here
 End Sub
 
-Sub cptExportCalendarExceptionsMain(Optional blnDetail As Boolean = False)
+Sub cptExportCalendarExceptionsMain(ByRef myCalendarExceptions_frm As cptCalendarExceptions_frm, Optional blnDetail As Boolean = False)
   'objects
   Dim oListObject As ListObject
   Dim oResource As Resource
@@ -111,9 +114,9 @@ Sub cptExportCalendarExceptionsMain(Optional blnDetail As Boolean = False)
   
   'export base calendars
   For Each oCalendar In ActiveProject.BaseCalendars
-    If cptCalendarExceptions_frm.cboCalendars = "All Calendars" Then
+    If myCalendarExceptions_frm.cboCalendars = "All Calendars" Then
       cptExportCalendarExceptions oWorkbook, oCalendar, blnDetail
-    ElseIf oCalendar.Name = cptCalendarExceptions_frm.cboCalendars.Value Then
+    ElseIf oCalendar.Name = myCalendarExceptions_frm.cboCalendars.Value Then
       cptExportCalendarExceptions oWorkbook, oCalendar, blnDetail
     End If
   Next oCalendar
@@ -121,9 +124,9 @@ Sub cptExportCalendarExceptionsMain(Optional blnDetail As Boolean = False)
   For Each oResource In ActiveProject.Resources
     If oResource Is Nothing Then GoTo next_resource
     If Not oResource.Calendar Is Nothing Then
-      If cptCalendarExceptions_frm.cboCalendars.Value = "All Calendars" Then
+      If myCalendarExceptions_frm.cboCalendars.Value = "All Calendars" Then
         cptExportCalendarExceptions oWorkbook, oResource.Calendar, blnDetail
-      ElseIf oResource.Calendar.Name = cptCalendarExceptions_frm.cboCalendars.Value Then
+      ElseIf oResource.Calendar.Name = myCalendarExceptions_frm.cboCalendars.Value Then
         cptExportCalendarExceptions oWorkbook, oResource.Calendar, blnDetail
       End If
     End If
