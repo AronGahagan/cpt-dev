@@ -86,38 +86,38 @@ Private Sub cboOutlineCodes_Change()
   DoEvents
   If Not IsNull(Me.cboOutlineCodes.Value) Then
     If Len(CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))) > 0 Then
-      Call cptRefreshOutlineCodePreview(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 1))
+      Call cptRefreshOutlineCodePreview(Me, Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 1))
     End If
     Me.txtNameIt = CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))
   End If
 End Sub
 
 Private Sub cmdCancel_Click()
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub cmdExport_Click()
-'objects
-'strings
-'longs
-Dim lngOutlineCode As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  'strings
+  'longs
+  Dim lngOutlineCode As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   lngOutlineCode = Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0)
   Select Case Me.cboExport
     Case "To Excel Workbook"
-      Call cptExportOutlineCodeToExcel(lngOutlineCode)
+      Call cptExportOutlineCodeToExcel(Me, lngOutlineCode)
     Case "To CSV for MPM"
-      Call cptExportOutlineCodeForMPM(lngOutlineCode)
+      Call cptExportOutlineCodeForMPM(Me, lngOutlineCode)
     Case "To CSV for COBRA"
-      Call cptExportOutlineCodeForCOBRA(lngOutlineCode)
+      Call cptExportOutlineCodeForCOBRA(Me, lngOutlineCode)
     Case "To DI-MGMT-81334D Template"
-      Call cptExport81334D(lngOutlineCode)
+      Call cptExport81334D(Me, lngOutlineCode)
   End Select
 
 exit_here:
@@ -134,24 +134,24 @@ Private Sub cmdExportTemplate_Click()
 End Sub
 
 Private Sub cmdImport_Click()
-'objects
-Dim oTask As MSProject.Task
-Dim oOutlineCode As MSProject.OutlineCode
-'strings
-Dim strFile As String
-Dim strMsg As String
-Dim strOutlineCode As String
-'longs
-Dim lngItem As Long
-Dim lngItems As Long
-Dim lngFile As Long
-Dim lngResponse As Long
-Dim lngOutlineCode As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim oTask As MSProject.Task
+  Dim oOutlineCode As MSProject.OutlineCode
+  'strings
+  Dim strFile As String
+  Dim strMsg As String
+  Dim strOutlineCode As String
+  'longs
+  Dim lngItem As Long
+  Dim lngItems As Long
+  Dim lngFile As Long
+  Dim lngResponse As Long
+  Dim lngOutlineCode As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -238,19 +238,19 @@ next_task:
   CustomFieldRename lngOutlineCode, strOutlineCode
   Select Case Me.cboImport
     Case "From Excel Workbook"
-      Call cptImportCWBSFromExcel(lngOutlineCode)
+      Call cptImportCWBSFromExcel(Me, lngOutlineCode)
       
     Case "From MSP Server Outline Code Export"
-      Call cptImportCWBSFromServer(lngOutlineCode)
+      Call cptImportCWBSFromServer(Me, lngOutlineCode)
     
     Case "From MIL-STD-881D Appendix B"
-      Call cptImportAppendixB(lngOutlineCode)
+      Call cptImportAppendixB(Me, lngOutlineCode)
       
     Case "From MIL-STD-881D Appendix E"
-      Call cptImportAppendixE(lngOutlineCode)
+      Call cptImportAppendixE(Me, lngOutlineCode)
       
     Case "From Existing Tasks"
-      Call cptCreateCode(lngOutlineCode)
+      Call cptCreateCode(Me, lngOutlineCode)
   
   End Select
   
@@ -268,11 +268,11 @@ err_here:
 End Sub
 
 Private Sub cmdReplace_Click()
-Dim strOutlineCode As String
+  Dim strOutlineCode As String
 
   If Len(Me.txtReplace) > 0 And Len(Me.txtReplacement) > 0 Then
     strOutlineCode = CustomFieldGetName(Me.cboOutlineCodes.Column(0))
-    Call cptRenameInsideOutlineCode(strOutlineCode, Me.txtReplace, Me.txtReplacement)
+    Call cptRenameInsideOutlineCode(Me, strOutlineCode, Me.txtReplace, Me.txtReplacement)
   End If
 
 End Sub
@@ -294,31 +294,31 @@ err_here:
 End Sub
 
 Private Sub optExport_Click()
-  Call cptBackboneHideControls
+  cptBackboneHideControls Me
   Me.cboExport.SetFocus
   Me.cboExport.DropDown
 End Sub
 
 Private Sub optImport_Click()
-  Call cptBackboneHideControls
+  cptBackboneHideControls Me
   Me.cboImport.SetFocus
   Me.cboImport.DropDown
 End Sub
 
 Private Sub optOutlineCode_Click()
-  Call cptBackboneHideControls
+  cptBackboneHideControls Me
   Me.cboOutlineCodes.SetFocus
   Me.cboOutlineCodes.DropDown
 End Sub
 
 Private Sub optReplace_Click()
-  Call cptBackboneHideControls
+  cptBackboneHideControls Me
   Me.txtReplace.SetFocus
 End Sub
 
 Private Sub txtReplace_Change()
-Dim lngEntry As Long
-Dim lngSelected As Long
+  Dim lngEntry As Long
+  Dim lngSelected As Long
 
   lngSelected = 0
   For lngEntry = 0 To Me.lboOutlineCode.ListCount - 1
@@ -336,18 +336,18 @@ Dim lngSelected As Long
 End Sub
 
 Private Sub txtReplacement_Change()
-'objects
-Dim oOutlineCode As Object 'OutlineCode
-Dim oLookupTable As Object 'LookupTable
-'strings
-Dim strOutlineCode As String
-'long
-Dim lngEntry As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim oOutlineCode As Object 'OutlineCode
+  Dim oLookupTable As Object 'LookupTable
+  'strings
+  Dim strOutlineCode As String
+  'long
+  Dim lngEntry As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -380,8 +380,8 @@ err_here:
 End Sub
 
 Private Sub txtNameIt_Change()
-'longs
-Dim lngField As Long
+  'longs
+  Dim lngField As Long
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -414,22 +414,22 @@ err_here:
 End Sub
 
 Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
-'objects
-Dim oOutlineCode As Object 'OutlineCode
-Dim oLookupTable As Object 'LookupTable
-'strings
-Dim strNewName As String
-Dim strCustomName As String
-Dim strOutlineCode As String
-'longs
-Dim lngItem As Long
-Dim lngOutlineCode As Long
-Dim lngSelected As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim oOutlineCode As Object 'OutlineCode
+  Dim oLookupTable As Object 'LookupTable
+  'strings
+  Dim strNewName As String
+  Dim strCustomName As String
+  Dim strOutlineCode As String
+  'longs
+  Dim lngItem As Long
+  Dim lngOutlineCode As Long
+  Dim lngSelected As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -469,7 +469,7 @@ Dim lngSelected As Long
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oLookupTable Is Nothing Then
     If Me.lboOutlineCode.ListCount = 0 Then
-      Call cptRefreshOutlineCodePreview(strOutlineCode)
+      Call cptRefreshOutlineCodePreview(Me, strOutlineCode)
     Else
       For lngItem = 1 To oLookupTable.Count
         If Me.lboOutlineCode.List(lngItem - 1, 2) <> oLookupTable.Item(lngItem).FullName & " - " & oLookupTable.Item(lngItem).Description Then
@@ -489,4 +489,11 @@ err_here:
   Call cptHandleErr("cptBackbone_frm", "UserForm_MouseMove", Err, Erl)
   Resume exit_here
 
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
 End Sub
