@@ -13,12 +13,11 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 '<cpt_version>v1.0.7</cpt_version>
 Option Explicit
 
 Private Sub cmdDone_Click()
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub cmdImport_Click()
@@ -39,7 +38,10 @@ Private Sub cmdImport_Click()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If IsNull(Me.lboMarked.Value) Then GoTo exit_here
-  If Me.lboDetails.ListCount <= 1 Then GoTo exit_here
+  If Me.lboDetails.ListCount <= 1 Then
+    MsgBox "No tasks were saved.", vbExclamation + vbOKOnly, "What happened?"
+    GoTo exit_here
+  End If
   
   'confirm overwrite
   lngResponse = MsgBox("Save current marked tasks before import?", vbQuestion + vbYesNoCancel, "Confirm Overwrite")
@@ -47,9 +49,9 @@ Private Sub cmdImport_Click()
     GoTo exit_here
   ElseIf lngResponse = vbYes Then
     dtTimestamp = Me.lboMarked.Value
-    Call cptSaveMarked
+    cptSaveMarked
     Me.lboMarked.AddItem , 0
-    Call cptUpdateMarked
+    cptUpdateMarked Me
     Me.lboMarked.Value = dtTimestamp
   End If
   
@@ -134,7 +136,7 @@ Private Sub cmdRemove_Click()
   rstMarked.Save strMarked, adPersistADTG
   rstMarked.Close
   
-  Call cptUpdateMarked
+  cptUpdateMarked Me
   Me.lboMarked.ListIndex = -1
   
 exit_here:
@@ -249,9 +251,9 @@ Private Sub txtFilter_Change()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.txtFilter.Text) > 0 Then
-    Call cptUpdateMarked(Me.txtFilter.Text)
+    Call cptUpdateMarked(Me, Me.txtFilter.Text)
   Else
-    Call cptUpdateMarked
+    Call cptUpdateMarked(Me)
   End If
 
 exit_here:
@@ -263,3 +265,13 @@ err_here:
   Resume exit_here
 End Sub
 
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
+Private Sub UserForm_Terminate()
+  Unload Me
+End Sub
