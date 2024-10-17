@@ -267,6 +267,7 @@ End Sub '<issue31>
 
 Sub cptShowAbout_frm()
   'objects
+  Dim cptMyForm As cptAbout_frm
   'strings
   Dim strAbout As String
   'longs
@@ -289,30 +290,32 @@ Sub cptShowAbout_frm()
   strAbout = strAbout & "AS IS and without warranty." & vbCrLf
   strAbout = strAbout & "It is free to use, free to distribute with prior written consent from the developers/copyright holders and without modification." & vbCrLf & vbCrLf
   strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright " & Chr(169) & " " & Year(Now()) & ", ClearPlan Consulting, LLC"
-  cptAbout_frm.txtAbout.Value = strAbout  '<issue19>
+  Set cptMyForm = New cptAbout_frm
+  cptMyForm.txtAbout.Value = strAbout  '<issue19>
 
   'follow the project
   strAbout = vbCrLf & vbCrLf & "Follow the Project:" & vbCrLf & vbCrLf
   strAbout = strAbout & "http://GitHub.com/ClearPlan/cpt" & vbCrLf & vbCrLf
-  cptAbout_frm.txtGitHub.Value = strAbout '<issue19>
+  cptMyForm.txtGitHub.Value = strAbout '<issue19>
 
   'show/hide
-  cptAbout_frm.lblScoreBoard.Visible = IIf(Now <= #10/25/2019#, False, True) '<issue19>
-  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b1" EWR > MSY
-  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b2" MSY > EWR
-  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b3" 'EWR > SAN
-  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR
-  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b5" 'EWR > NAS
-  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR
-  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b7" 'EWR > SAV
-  cptAbout_frm.lblScoreBoard.Caption = "t0 : b8" 'EWR > SAV
+  cptMyForm.lblScoreBoard.Visible = IIf(Now <= #10/25/2019#, False, True) '<issue19>
+  'cptMyForm.lblScoreBoard.Caption = "t0 : b1" EWR > MSY
+  'cptMyForm.lblScoreBoard.Caption = "t0 : b2" MSY > EWR
+  'cptMyForm.lblScoreBoard.Caption = "t0 : b3" 'EWR > SAN
+  'cptMyForm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR
+  'cptMyForm.lblScoreBoard.Caption = "t0 : b5" 'EWR > NAS
+  'cptMyForm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR
+  'cptMyForm.lblScoreBoard.Caption = "t0 : b7" 'EWR > SAV
+  cptMyForm.lblScoreBoard.Caption = "t0 : b8" 'EWR > SAV
   
-  cptAbout_frm.Caption = "The ClearPlan Toolbar - " & cptGetVersion("cptAbout_frm")
-  cptAbout_frm.Show '<issue19>
+  cptMyForm.Caption = "The ClearPlan Toolbar - " & cptGetVersion("cptAbout_frm")
+  cptMyForm.Show '<issue19>
 
 exit_here:
   On Error Resume Next
-  
+  Unload cptMyForm
+  Set cptMyForm = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptCore_bas", "cptShowAbout_frm", Err, Erl)
@@ -463,10 +466,10 @@ End Function
 
 Sub cptGetEnviron()
   'list the environment variables and their associated values
-  Dim lgIndex As Long
+  Dim lngIndex As Long
 
-  For lgIndex = 1 To 200
-    Debug.Print lgIndex & ": " & Environ(lgIndex)
+  For lngIndex = 1 To 200
+    Debug.Print lngIndex & ": " & Environ(lngIndex)
   Next
 
 End Sub
@@ -1688,7 +1691,7 @@ Sub cptCreateFilter(strFilter As String)
 
   Select Case strFilter
     Case "Marked"
-      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
+      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
       
   End Select
   
