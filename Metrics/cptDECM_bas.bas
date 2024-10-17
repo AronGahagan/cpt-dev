@@ -2281,6 +2281,7 @@ skip_fiscal:
   
 exit_here:
   On Error Resume Next
+  Set cptMyForm = Nothing
   Set oException = Nothing
   Set oTasks = Nothing
   Set oCell = Nothing
@@ -3534,7 +3535,7 @@ Private Function cptDECMGetTargetUID() As Long
   strSQL = "SELECT * FROM [targets.csv] "
   oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
   If oRecordset.RecordCount = 0 Then 'user has no zero-day duration tasks nor milestones
-    cptDECMTargetUID_frm.lngTargetTaskUID = 0
+    cptMyForm.lngTargetTaskUID = 0
     GoTo exit_here
   End If
   oRecordset.MoveFirst
