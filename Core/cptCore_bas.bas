@@ -2458,6 +2458,7 @@ End Sub
 
 Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalRequired As Boolean = False, Optional blnRollingWaveDateRequired As Boolean = False, Optional blnConfirmationRequired As Boolean = False) As Boolean
   'objects
+  Dim cptMyForm As cptIntegration_frm
   Dim oRequiredFields As Object 'Scripting.Dictionary
   Dim oComboBox As MSForms.ComboBox
   'strings
@@ -2493,7 +2494,8 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
     oRequiredFields(vRequired) = True
   Next
   
-  With New cptIntegration_frm
+  Set cptMyForm = New cptIntegration_frm
+  With cptMyForm
     
     .Caption = "Integration (" & cptGetVersion("cptIntegration_frm") & ")"
     
@@ -2660,11 +2662,12 @@ exit_here:
   On Error Resume Next
   Set oRequiredFields = Nothing
   Set oComboBox = Nothing
-  Unload cptDECM_frm
+  Unload cptMyForm
+  Set cptMyForm = Nothing
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptDECM_bas", "cptValidMap", Err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptValidMap", Err, Erl)
   Resume exit_here
     
 End Function
