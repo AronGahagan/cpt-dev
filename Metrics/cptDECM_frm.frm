@@ -21,8 +21,12 @@ Private Sub chkUpdateView_Click()
   If Not Me.Visible Then Exit Sub
   blnUpdateView = Me.chkUpdateView
   cptSaveSetting "Integration", "chkUpdateView", IIf(blnUpdateView, "1", "0")
-  If blnUpdateView And Not IsNull(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)) Then
-    cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)
+  If blnUpdateView Then
+    If Not IsNull(Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)) Then
+      cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), Me.lboMetrics.List(Me.lboMetrics.ListIndex, 8)
+    Else
+      cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), ""
+    End If
   End If
 End Sub
 
@@ -51,7 +55,7 @@ Private Sub cmdDone_Click()
 End Sub
 
 Private Sub cmdExport_Click()
-  cptDECM_EXPORT
+  cptDECM_EXPORT Me
 End Sub
 
 Private Sub lblURL_Click()
@@ -215,8 +219,13 @@ Public Sub lboMetrics_AfterUpdate()
   
   Me.txtTitle.Value = strDescription
   blnUpdateView = Me.chkUpdateView
-  If blnUpdateView And Len(oDECM(strMetric)) > 0 Then
-    cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), oDECM(strMetric)
+  If blnUpdateView Then
+    If Len(oDECM(strMetric)) > 0 Then
+      cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), oDECM(strMetric)
+    Else
+      cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), oDECM(strMetric)
+    End If
+    AppActivate Me.Caption, False
   End If
   
 exit_here:
@@ -280,7 +289,7 @@ Private Sub txtTitle_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, By
     strSQL = "SELECT DISTINCT WP FROM [wp-ev.csv]"
     oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
     lngY = oRecordset.RecordCount
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+    Me.lboMetrics.List(Me.lboMetrics.ListCount - 1, 4) = lngY
     Set oFile = oFSO.CreateTextFile(strDir & "\wp-ev-distinct.csv", True)
     oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
     oFile.Close

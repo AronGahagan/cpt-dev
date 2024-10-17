@@ -22,6 +22,7 @@ Public oDECM As Scripting.Dictionary
 Sub cptDECM_GET_DATA()
   'Optional blnIncompleteOnly As Boolean = True, Optional blnDiscreteOnly As Boolean = True
   'objects
+  Dim cptMyForm As cptDECM_frm
   Dim oException As MSProject.Exception
   Dim oTasks As MSProject.Tasks
   Dim oCell As Excel.Range
@@ -262,7 +263,8 @@ Sub cptDECM_GET_DATA()
   Print #lngAssignmentFile, "TASK_UID,RESOURCE_UID,BLW,BLC,RW,RC,"
   Print #lngTargetFile, "UID,TASK_NAME,"
   
-  With cptDECM_frm
+  Set cptMyForm = New cptDECM_frm
+  With cptMyForm
     .Caption = "DECM v6.0 (cpt " & cptGetVersion("cptDECM_bas") & ")"
     lngItem = 0
     .lboHeader.Clear
@@ -326,8 +328,8 @@ next_task:
     strRecord = ""
     lngTask = lngTask + 1
     Application.StatusBar = "Loading Data...(" & Format(lngTask / lngTasks, "0%") & ")"
-    cptDECM_frm.lblStatus.Caption = "Loading Data...(" & Format(lngTask / lngTasks, "0%") & ")"
-    cptDECM_frm.lblProgress.Width = (lngTask / lngTasks) * cptDECM_frm.lblStatus.Width
+    cptMyForm.lblStatus.Caption = "Loading Data...(" & Format(lngTask / lngTasks, "0%") & ")"
+    cptMyForm.lblProgress.Width = (lngTask / lngTasks) * cptMyForm.lblStatus.Width
     DoEvents
   Next oTask
   
@@ -336,7 +338,7 @@ next_task:
   Close #lngAssignmentFile
   Close #lngTargetFile
   
-  cptDECM_frm.lblStatus.Caption = "Loading...done."
+  cptMyForm.lblStatus.Caption = "Loading...done."
   Application.StatusBar = "Loading...done."
   
   Set oRecordset = CreateObject("ADODB.Recordset")
@@ -351,13 +353,13 @@ next_task:
   '===== EVMS =====
   '05A101a - 1 CA : 1 OBS
   strMetric = "05A101a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting EVMS: 05A101a..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 OBS"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 OBS"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
   'X = Count of CAs with more than one OBS element or no OBS elements assigned
   'Y = Total count of CAs
@@ -387,31 +389,31 @@ next_task:
     If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore = 0 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '05A102a - 1 CA : 1 CAM
   strMetric = "05A102a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 CAM"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 CAM"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = Count of CAs that have more than one CAM or no CAM assigned
   'Y = Total count of CAs
@@ -436,31 +438,31 @@ next_task:
     If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore <= 0.05 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '05A103a - 1 CA : 1 WBS
   strMetric = "05A103a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting EVMS: 05A103a..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 WBS"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 WBS"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
   'X = Count of CAs with more than one WBS element or no WBS elements assigned
   'Y = Total count of CAs
@@ -485,30 +487,30 @@ next_task:
     If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore = 0 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   'bonus - 1 WP : 1 CA
-  cptDECM_frm.lblStatus.Caption = "Getting bonus metric 1wp_1ca..."
+  cptMyForm.lblStatus.Caption = "Getting bonus metric 1wp_1ca..."
   Application.StatusBar = "Getting bonus metric 1wp_1ca..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = "1wp_1ca"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 WP : 1 CA"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = "1wp_1ca"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "1 WP : 1 CA"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
   'X = count of incomplete WPs that have more than one CA or no CA assigned
   'Y = count of incomplete WPs
@@ -539,31 +541,31 @@ next_task:
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = lngX 'Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = lngX 'Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = lngX 'Format(dblScore, "0%")
   If dblScore = 0 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription("1wp_1ca")
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription("1wp_1ca")
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add "1wp_1ca", strList
-  cptDECM_frm.lblStatus.Caption = "Getting bonus metric 1wp_1ca...done."
+  cptMyForm.lblStatus.Caption = "Getting bonus metric 1wp_1ca...done."
   Application.StatusBar = "Getting bonus metric 1wp_1ca...done."
   DoEvents
   
   '10A102a - 1 WP : 1 EVT
   strMetric = "10A102a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting EVMS: 05A103a..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "1 WP : 1 EVT"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "1 WP : 1 EVT"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = count of incomplete WPs that have more than one EVT or no EVT assigned
   'Y = count of incomplete WPs
@@ -595,31 +597,31 @@ next_task:
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore < 0.05 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '10A103a - 0/100 EVTs in one fiscal period
   strMetric = "10A103a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "0/100 EVTs in >1 period"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "0/100 EVTs in >1 period"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = Count of 0-100 EVT incomplete WPs with more than one accounting period of budget
   'Y = Total count of 0-100 EVT incomplete WPs
@@ -649,19 +651,19 @@ next_task:
   Else
     lngX = 0
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore < 0.05 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
@@ -672,13 +674,13 @@ next_task:
   
   '10A109b - all WPs have budget
   strMetric = "10A109b"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs w/o Budgets"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "WPs w/o Budgets"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = Count of WPs/PPs/SLPPs with BAC = 0
   'Y = Total count of WPs/PPs/SLPPs
@@ -708,32 +710,32 @@ next_task:
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore < 0.05 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '10A302b - PPs with progress
   strMetric = "10A302b"
   Set oFSO = CreateObject("Scripting.FileSystemObject")
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs w/EVP > 0"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 2%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "PPs w/EVP > 0"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 2%"
   DoEvents
   strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
   strSQL = strSQL & "WHERE EVT='K' " 'todo: what about other values/tools
@@ -773,30 +775,30 @@ next_task:
     
   End If
   oRecordset.Close
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore <= 0.02 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '10A303a - all PPs have duration?
   strMetric = "10A303a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs duration = 0"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "PPs duration = 0"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
   DoEvents
   'we already have lngY
   If lngY = 0 Then
@@ -828,25 +830,25 @@ next_task:
     dblScore = Round(lngX / lngY, 2)
     oRecordset.Close
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore <= 0.02 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '11A101a - CA BAC = SUM(WP BAC)?
   'this one is a bit different - need to skip if no assignments
   strMetric = "11A101a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
   'X = Sum of the absolute values of (CA BAC - the sum of its WP and PP budgets)
   'Y = Total program BAC
@@ -874,15 +876,15 @@ next_task:
   strSQL = strSQL & "    t1.wp "
   oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
   If oRecordset.EOF Then
-    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...skipped."
+    cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...skipped."
     Application.StatusBar = "Getting " & strMetric & "....skipped."
     GoTo decm_schedule
   Else
-    cptDECM_frm.lboMetrics.AddItem
-    cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "CA BAC = Sum(WP BAC)"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
+    cptMyForm.lboMetrics.AddItem
+    cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "CA BAC = Sum(WP BAC)"
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
     DoEvents
   End If
   lngFile = FreeFile
@@ -1002,19 +1004,19 @@ next_task:
   End If
   oRecordset.Close
   
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore <= 0.01 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
@@ -1023,13 +1025,13 @@ decm_schedule:
   '===== SCHEDULE =====
   '06A101a - WPs Missing between IMS vs EV
   strMetric = "06A101a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs IMS vs EV Tool"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "WPs IMS vs EV Tool"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
   strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
   strSQL = strSQL & "WHERE AF IS NULL AND EVT<>'" & strLOE & "' AND SUMMARY='No'"
@@ -1041,34 +1043,34 @@ decm_schedule:
   oRecordset.Close
   oFile.Close
   FileCopy strDir & "\wp-ims.csv", strDir & "\wp-not-in-ev.csv"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore = 0 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
     
   '06A204b - Dangling Logic
   '06A204b - todo: ignore first/last milestone - how?
   strMetric = "06A204b"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Dangling Logic"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
-  'cptDECM_frm.lboMetrics.Value = "06A204b"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Dangling Logic"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  'cptMyForm.lboMetrics.Value = "06A204b"
   DoEvents
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = DECM("06A204b")
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = DECM("06A204b")
   'Y = count incomplete Non-LOE tasks/activities & milestones
   'X = count of tasks with open starts or finishes
   'X/Y = 0%
@@ -1151,32 +1153,32 @@ decm_schedule:
     End If
   Next vField
   lngX = oDict.Count
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore = 0 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A205a - Lags (what about leads?)
   strMetric = "06A205a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'cptDECM_frm.lboMetrics.Value = "06A205a"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Lags"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  'cptMyForm.lboMetrics.Value = "06A205a"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Lags"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
   DoEvents
   'X = count of incomplete tasks/activities & milestones with at least one lag in the pred logic
   'Y = count of incomplete tasks/activities & milestones in the IMS
@@ -1200,32 +1202,32 @@ decm_schedule:
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore <= 0.1 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A208a - summary tasks with logic
   strMetric = "06A208a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'cptDECM_frm.lboMetrics.Value = "06A208a"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Summary Logic"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  'cptMyForm.lboMetrics.Value = "06A208a"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Summary Logic"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
   'X = Count of summary tasks/activities with logic applied (# predecessors > 0 or # successors > 0)
   'X = 0
@@ -1245,30 +1247,30 @@ decm_schedule:
     End If
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = lngX
   If lngX = 0 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A209a - hard constraints
   strMetric = "06A209a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'cptDECM_frm.lboMetrics.Value = "06A209a"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Hard Constraints"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  'cptMyForm.lboMetrics.Value = "06A209a"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Hard Constraints"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
   'X = count of incomplete tasks/activities & milestones with hard constraints
   'Y = count of incomplete tasks/activities & milestones
@@ -1290,32 +1292,32 @@ decm_schedule:
     End If
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore <= 0.1 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A210a - LOE Driving Discrete
   strMetric = "06A210a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'cptDECM_frm.lboMetrics.Value = "06A210a"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "LOE Driving Discrete"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  'cptMyForm.lboMetrics.Value = "06A210a"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "LOE Driving Discrete"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
   'X = count of incomplete LOE tasks/activities in the IMS with at least one Non-LOE successor
   'Y = count of incomplete LOE tasks/activities in the IMS
@@ -1348,19 +1350,19 @@ decm_schedule:
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore = 0 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList 'todo: need guilty link too
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList 'todo: need guilty link too
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
@@ -1369,14 +1371,14 @@ decm_schedule:
   '06A211a - High Float todo: need rationale; user can mark 'acceptable'
   '06A211a - High Float todo: allow user input for lngX
   strMetric = "06A211a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'cptDECM_frm.lboMetrics.Value = "06A211a"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "High Float"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 20%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  'cptMyForm.lboMetrics.Value = "06A211a"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "High Float"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 20%"
   DoEvents
 '  X = count of high total float Non-LOE tasks/activities & milestones sampled with inadequate rationale
 '  Y = count of high total float Non-LOE tasks/activities & milestones sampled
@@ -1401,49 +1403,49 @@ decm_schedule:
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore <= 0.2 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A212a - out of sequence
   strMetric = "06A212a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'cptDECM_frm.lboMetrics.Value = "06A501a"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Out of Sequence"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  'cptMyForm.lboMetrics.Value = "06A501a"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Out of Sequence"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
   'X = Count of out of sequence conditions
-  strList = cptGetOutOfSequence 'function returns lngX|uid vbtab uid vbtab uid
+  strList = cptGetOutOfSequence(cptMyForm) 'function returns lngX|uid vbtab uid vbtab uid
   lngX = CLng(Split(strList, "|")(0))
   strList = Split(strList, "|")(1)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = ""
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = ""
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = lngX
   If lngX = 0 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   ElseIf lngX > 0 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric) 'todo: see workbook
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric) 'todo: see workbook
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
@@ -1451,19 +1453,19 @@ decm_schedule:
   
   '06A401a - critical path (constraint method)
   strMetric = "06A401a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Critical Path"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Critical Path"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
 
   'create function form with type-ahead-find for user to select target milestone
   lngTargetUID = cptDECMGetTargetUID()
   If lngTargetUID = 0 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Critical Path - SKIPPED"
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Critical Path - SKIPPED"
     'todo: remove it? give a bad score?
     GoTo skip_06A401a
   Else
@@ -1502,33 +1504,33 @@ next_critical_task:
       lngX = 0
     End If
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = lngX
   If dblScore = 0 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
 skip_06A401a:
   '06A501a - baselines
   strMetric = "06A501a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'cptDECM_frm.lboMetrics.Value = "06A501a"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Baselines"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  'cptMyForm.lboMetrics.Value = "06A501a"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Baselines"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = Count of tasks/activities & milestones without baseline dates
   'Y = Total count of tasks/activities & milestones
@@ -1555,19 +1557,19 @@ skip_06A401a:
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore <= 0.05 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
@@ -1670,14 +1672,14 @@ skip_06A401a:
   strMetric = "06A504a"
   strFile = strDir & "\cpt-cei.csv"
   If Dir(strFile) <> vbNullString And blnFiscalExists Then
-    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+    cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
     Application.StatusBar = "Getting " & strMetric & "..."
-    cptDECM_frm.lboMetrics.AddItem
-    cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-    'cptDECM_frm.lboMetrics.Value = "06A505a"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Start"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+    cptMyForm.lboMetrics.AddItem
+    cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+    'cptMyForm.lboMetrics.Value = "06A505a"
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Changed Actual Start"
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
     DoEvents
     
     'X = Count of tasks/activities & milestones where actual start date does not equal previously reported actual start date
@@ -1724,18 +1726,18 @@ skip_06A401a:
     End If
     oRecordset.Close
     'X/Y <= 10%
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
     dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
     If dblScore <= 0.1 Then
-      cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+      cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
     Else
-      cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+      cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
     End If
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-    'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+    'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
+    cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
     Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
   End If
@@ -1743,14 +1745,14 @@ skip_06A401a:
   '06A504b - AF changed - only if task history
   strMetric = "06A504b"
   If Dir(strDir & "\cpt-cei.csv") <> vbNullString And blnFiscalExists Then
-    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+    cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
     Application.StatusBar = "Getting " & strMetric & "..."
-    cptDECM_frm.lboMetrics.AddItem
-    cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-    'cptDECM_frm.lboMetrics.Value = "06A505a"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Finish"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+    cptMyForm.lboMetrics.AddItem
+    cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+    'cptMyForm.lboMetrics.Value = "06A505a"
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Changed Actual Finish"
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
     DoEvents
   
     'X = Count of tasks/activities & milestones where actual finish date does not equal previously reported actual finish date
@@ -1798,18 +1800,18 @@ skip_06A401a:
     oRecordset.Close
     
     'X/Y <= 10%
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
     dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
     If dblScore <= 0.1 Then
-      cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+      cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
     Else
-      cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+      cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
     End If
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-    'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
-    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+    'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
+    cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
     Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
   End If
@@ -1818,14 +1820,14 @@ skip_fiscal:
   
   '06A505a - In-Progress Tasks Have AS
   strMetric = "06A505a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'cptDECM_frm.lboMetrics.Value = "06A505a"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "In-Progress Tasks w/o Actual Start"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  'cptMyForm.lboMetrics.Value = "06A505a"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "In-Progress Tasks w/o Actual Start"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = count of in-progress tasks/activities & milestones with no actual start date
   'Y = count of in-progress tasks/activities & milestones
@@ -1855,32 +1857,32 @@ skip_fiscal:
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore <= 0.05 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A505b - Complete Tasks Have AF
   strMetric = "06A505b"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'cptDECM_frm.lboMetrics.Value = "06A505b"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Complete Tasks w/o Actual Finish"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  'cptMyForm.lboMetrics.Value = "06A505b"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Complete Tasks w/o Actual Finish"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
   'X = count of complete tasks/activities & milestones with no actual finish date
   'Y = count of complete tasks/activities & milestones
@@ -1909,32 +1911,32 @@ skip_fiscal:
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore <= 0.05 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A506a - bogus actuals
   strMetric = "06A506a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Bogus Actuals"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
-  'cptDECM_frm.lboMetrics.Value = "06A506a"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Bogus Actuals"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  'cptMyForm.lboMetrics.Value = "06A506a"
   DoEvents
   'X = count of tasks/activities & milestones with either actual start or actual finish after status date
   'Y = count of tasks/activities & milestones with an actual start date
@@ -1963,32 +1965,32 @@ skip_fiscal:
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
   dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
   If dblScore <= 0.05 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
   '06A506b - invalid forecast
   strMetric = "06A506b"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'cptDECM_frm.lboMetrics.Value = "06A506b"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Invalid Forecast"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  'cptMyForm.lboMetrics.Value = "06A506b"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Invalid Forecast"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
   'X = Count of incomplete tasks/activities & milestones with either forecast start or forecast finish before the status date
   'X = 0
@@ -2009,18 +2011,18 @@ skip_fiscal:
     'DumpRecordsetToExcel oRecordset
     .Close
   End With
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngX there is no Y
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngX there is no Y
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = lngX
   If lngX = 0 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
@@ -2029,14 +2031,14 @@ skip_fiscal:
   '06A506c - riding status date
   strMetric = "06A506c"
   If Dir(strDir & "\cpt-cei.csv") <> vbNullString And blnFiscalExists Then
-    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+    cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
     Application.StatusBar = "Getting " & strMetric & "..."
-    cptDECM_frm.lboMetrics.AddItem
-    cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-    'cptDECM_frm.lboMetrics.Value = "06A506b"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Riding the Status Date"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
+    cptMyForm.lboMetrics.AddItem
+    cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+    'cptMyForm.lboMetrics.Value = "06A506b"
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Riding the Status Date"
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
     DoEvents
     
     'X = Count of incomplete tasks/activities & milestones with either forecast start or forecast finish date riding the status date
@@ -2111,33 +2113,33 @@ skip_fiscal:
       'DumpRecordsetToExcel oRecordset
       .Close
     End With
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
     dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
     If dblScore < 0.01 Then
-      cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+      cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
     Else
-      cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+      cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
     End If
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-    'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+    'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
     oDECM.Add strMetric, strList
-    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+    cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
     Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
   End If
   
   '06I201a - SVTs todo: capture task names with "^SVT" ; allow alternative
   strMetric = "06I201a"
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
-  cptDECM_frm.lboMetrics.AddItem
-  cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'cptDECM_frm.lboMetrics.Value = "06I201a"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Schedule Visibility Tasks (SVTs)"
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  cptMyForm.lboMetrics.AddItem
+  cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+  'cptMyForm.lboMetrics.Value = "06I201a"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Schedule Visibility Tasks (SVTs)"
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
   'X = Count of incomplete tasks/activities and milestones that are not properly identified and controlled as SVTs in the IMS
   'X = 0
@@ -2179,18 +2181,18 @@ skip_fiscal:
     If GetUndoListItem(1) = "cpt DECM 06I201a" Then Undo 'todo: why isn't label 'taking'?
   End If
   
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY there is no Y
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY there is no Y
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = lngX
   If lngX = 0 Then
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
   Else
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+  cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
   oDECM.Add strMetric, strList
-  cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
@@ -2200,14 +2202,14 @@ skip_fiscal:
   If Len(strRollingWaveDate) > 0 Then
     dtRollingWaveDate = CDate(strRollingWaveDate)
     
-    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+    cptMyForm.lblStatus.Caption = "Getting " & strMetric & "..."
     Application.StatusBar = "Getting " & strMetric & "..."
-    cptDECM_frm.lboMetrics.AddItem
-    cptDECM_frm.lboMetrics.TopIndex = cptDECM_frm.lboMetrics.ListCount - 1
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-    'cptDECM_frm.lboMetrics.Value = "29A601a"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 1) = "Rolling Wave Planning"
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+    cptMyForm.lboMetrics.AddItem
+    cptMyForm.lboMetrics.TopIndex = cptMyForm.lboMetrics.ListCount - 1
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 0) = strMetric
+    'cptMyForm.lboMetrics.Value = "29A601a"
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 1) = "Rolling Wave Planning"
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
     DoEvents
     'X = Count of PPs/SLPPs where baseline start precedes the next rolling wave cycle
     'Y = Total count of PPs/SLPPs
@@ -2253,28 +2255,28 @@ skip_fiscal:
     Else
       lngY = 1
     End If
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 3) = lngX
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 4) = lngY
     dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
     If (lngX / lngY) <= 0.1 Then
-      cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+      cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strPass
     Else
-      cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+      cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 6) = strFail
     End If
-    cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-    'cptDECM_frm.lboMetrics.List(cptDECM_frm.lboMetrics.ListCount - 1, 8) = strList
+    cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+    'cptMyForm.lboMetrics.List(cptMyForm.lboMetrics.ListCount - 1, 8) = strList
     oDECM.Add strMetric, strList
-    cptDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+    cptMyForm.lblStatus.Caption = "Getting " & strMetric & "...done."
     Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
     
   End If
   
-  cptDECM_frm.lboMetrics.ListIndex = 0
+  cptMyForm.lboMetrics.ListIndex = 0
   
   Application.StatusBar = "DECM Scoring Complete"
-  cptDECM_frm.lblStatus.Caption = "DECM Scoring Complete"
+  cptMyForm.lblStatus.Caption = "DECM Scoring Complete"
   DoEvents
   
 exit_here:
@@ -2294,9 +2296,7 @@ exit_here:
   Application.StatusBar = ""
   If oRecordset.State Then oRecordset.Close
   Set oRecordset = Nothing
-  For lngFile = 0 To FreeFile
-    Close #lngFile
-  Next lngFile
+  Reset 'closes all active files opened by the Open statement and writes the contents of all file buffers to disk.
   Set oLink = Nothing
   Set oTask = Nothing
   
@@ -2307,7 +2307,7 @@ err_here:
  Resume exit_here
 End Sub
 
-Function DECM(strDECM As String, Optional blnNotify As Boolean = False) As Double
+Function DECM(ByRef cptMyForm As cptDECM_frm, strDECM As String, Optional blnNotify As Boolean = False) As Double
   Dim oTask As MSProject.Task
   Dim oLinks As Scripting.Dictionary
   Dim oLink As TaskDependency
@@ -2391,7 +2391,7 @@ next_task:
       SetAutoFilter "Marked", pjAutoFilterFlagYes
       
       If blnNotify Then MsgBox "X: " & lngX & vbCrLf & "Y: " & lngY & vbCrLf & "X/Y = " & Format(lngX / lngY, "0%"), vbInformation + vbOKOnly, "06A204b"
-      cptDECM_frm.txtTitle = "X: " & lngX & vbCrLf & "Y: " & lngY
+      cptMyForm.txtTitle = "X: " & lngX & vbCrLf & "Y: " & lngY
       'X = count of incomplete Non-LOE tasks/activities & milestones in the IMS WITH open starts or finishes
       'Y = count of incomplete Non-LOE tasks/activities & milestones in the IMS
       DECM = Round(lngX / lngY, 2)
@@ -2460,7 +2460,7 @@ Sub opencsv(strFile)
   Shell "C:\Windows\notepad.exe '" & Environ("tmp") & "\" & strFile & "'", vbNormalFocus
 End Sub
 
-Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
+Sub cptDECM_EXPORT(ByRef cptMyForm As cptDECM_frm, Optional blnDetail As Boolean = False)
   'objects
   Dim o10A103a As Excel.Workbook
   Dim oRecordset As ADODB.Recordset
@@ -2501,8 +2501,8 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
   oExcel.WindowState = xlMinimized 'xlMaximized
   oExcel.Visible = True 'just in case
   oWorksheet.Name = "DECM Dashboard"
-  oWorksheet.[A1:I1] = cptDECM_frm.lboHeader.List
-  oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].Offset(cptDECM_frm.lboMetrics.ListCount - 1, cptDECM_frm.lboMetrics.ColumnCount - 1)) = cptDECM_frm.lboMetrics.List
+  oWorksheet.[A1:I1] = cptMyForm.lboHeader.List
+  oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].Offset(cptMyForm.lboMetrics.ListCount - 1, cptMyForm.lboMetrics.ColumnCount - 1)) = cptMyForm.lboMetrics.List
   oWorksheet.[A2].Select
   With oExcel.ActiveWindow
     .Zoom = 85
@@ -2551,12 +2551,12 @@ Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
     End With
   End With
   
-  If blnDetail And Not cptDECM_frm.chkUpdateView Then cptDECM_frm.chkUpdateView = True
+  If blnDetail And Not cptMyForm.chkUpdateView Then cptMyForm.chkUpdateView = True
   strDir = Environ("tmp")
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
   
   If blnDetail Then
-    With cptDECM_frm
+    With cptMyForm
       For lngItem = 0 To .lboMetrics.ListCount - 1
         .lboMetrics.Value = .lboMetrics.List(lngItem)
         .lboMetrics.Selected(lngItem) = True
@@ -2845,9 +2845,10 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
     Case "06A101a" 'WP mismatches
       'todo: do what?
     
-    Case "06A210a"
+    Case "06A210a" 'LOE driving discrete
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        ScreenUpdating = True
         SetAutoFilter "Unique ID", pjAutoFilterIn, "equals", strList
         strEVT = Split(cptGetSetting("Integration", "EVT"), "|")(1)
         strGroup = "cpt 06A210a LOE driving Discrete"
@@ -2865,6 +2866,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
         End If
         ActiveWindow.BottomPane.Activate
         ViewApply "Network Diagram"
+        
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
@@ -2978,9 +2980,10 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
   End Select
   SelectBeginning
   ScreenUpdating = True
+  
 End Sub
 
-Function cptGetOutOfSequence() As String
+Function cptGetOutOfSequence(ByRef cptMyForm As cptDECM_frm) As String
   'objects
   Dim oAssignment As MSProject.Assignment
   Dim oOOS As Scripting.Dictionary
@@ -3281,8 +3284,8 @@ next_link:
 next_task:
     lngTask = lngTask + 1
     Application.StatusBar = "[06A212a] Analyzing Out of Sequence Status...(" & Format(lngTask / lngTasks, "0%") & ")" & IIf(lngOOS > 0, " | " & lngOOS & " found", "")
-    If cptDECM_frm.Visible Then
-      cptDECM_frm.lblProgress.Width = (lngTask / lngTasks) * cptDECM_frm.lblStatus.Width
+    If cptMyForm.Visible Then
+      cptMyForm.lblProgress.Width = (lngTask / lngTasks) * cptMyForm.lblStatus.Width
     End If
     DoEvents
   Next oTask
@@ -3343,6 +3346,7 @@ return_val:
   
 exit_here:
   On Error Resume Next
+  'Set cptMyForm = Nothing 'don't do this
   Set oAssignment = Nothing
   oOOS.RemoveAll
   Set oOOS = Nothing
@@ -3488,9 +3492,7 @@ exit_here:
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
   Set oExcel = Nothing
-  For lngFile = 1 To FreeFile
-    Close #lngFile
-  Next lngFile
+  Reset 'closes all active files opened by the Open statement and writes the contents of all file buffers to disk.
   If rst.State = 1 Then rst.Close
   Set rst = Nothing
   Set oException = Nothing
@@ -3506,6 +3508,7 @@ End Function
 
 Private Function cptDECMGetTargetUID() As Long
   'objects
+  Dim cptMyForm As cptDECMTargetUID_frm
   Dim oRecordset As ADODB.Recordset
   'strings
   Dim strDir As String
@@ -3535,7 +3538,9 @@ Private Function cptDECMGetTargetUID() As Long
     GoTo exit_here
   End If
   oRecordset.MoveFirst
-  With cptDECMTargetUID_frm
+  
+  Set cptMyForm = New cptDECMTargetUID_frm
+  With cptMyForm
     .lboHeader.Clear
     .lboHeader.AddItem
     .lboHeader.List(0, 0) = "UID"
@@ -3550,8 +3555,8 @@ Private Function cptDECMGetTargetUID() As Long
     oRecordset.Close
     .cmdSubmit.Enabled = False
     .Show
-    lngTargetUID = cptDECMTargetUID_frm.lngTargetTaskUID
-    Unload cptDECMTargetUID_frm
+    lngTargetUID = cptMyForm.lngTargetTaskUID
+    Unload cptMyForm
   End With
   
   cptDECMGetTargetUID = lngTargetUID
