@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.3.15</cpt_version>
+'<cpt_version>v3.4.1</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -27,6 +27,7 @@ Private CAID2_Used As Boolean
 Private Milestones_Used As Boolean
 Private AssignmentPCNT_Used As Boolean 'v3.3.2
 Private TimeScaleExport As Boolean
+Private TsvScale As String 'v3.4
 Private DescExport As Boolean
 Private ErrMsg As String
 Private WPDescArray() As WP_Descriptions
@@ -161,6 +162,7 @@ Sub Export_IMS()
         .DateFormat_Combobox.List = Split("M/D/YYYY,D/M/YYYY", ",") 'v3.3.5
         .WeekStartCombobox.List = Split("Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday", ",")
         .WeekStartCombobox.ListIndex = curProj.StartWeekOn - 1
+        .ScaleCombobox.List = Split("Weekly,Monthly", ",") 'v3.4
         
         On Error GoTo CleanUp
         ErrMsg = "Please try again, or contact the developer if this message repeats."
@@ -200,6 +202,7 @@ Sub Export_IMS()
             BCR_ID = .BCR_ID_TextBox
             ResourceLoaded = .ResExportCheckbox
             TimeScaleExport = .exportTPhaseCheckBox
+            TsvScale = .ScaleCombobox.Value 'v3.4
             Set xportFrm = Nothing
             xportFormat = "CSV"
             CAID3_Used = .CAID3TxtBox.Enabled
@@ -5865,12 +5868,18 @@ End Sub
 Private Function SetDirectory(ByVal ProjName As String) As String
     Dim newDir As String
     Dim pathDesktop As String
+    Dim fs As FileSystemObject 'v3.4.1
 
     pathDesktop = CreateObject("WScript.Shell").SpecialFolders("Desktop")
     newDir = pathDesktop & "\" & RemoveIllegalCharacters(ProjName) & "_" & Format(Now, "YYYYMMDD HHMMSS")
 
+    If Len(newDir) > 220 Then 'v3.4.1
+        newDir = "\\?\" & newDir
+    End If
+
     MkDir newDir
-    SetDirectory = newDir
+    Set fs = CreateObject("Scripting.FileSystemObject") 'v3.4.1
+    SetDirectory = fs.GetFolder(newDir).ShortPath 'v3.4.1
     Exit Function
 
 End Function
@@ -6370,9 +6379,14 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                     If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                        Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
-                        Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks)
-
+                        If TsvScale = "Weekly" Then 'v3.4
+                            Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
+                            Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks)
+                        Else
+                            Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleMonths) 'v3.4
+                            Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleMonths) 'v3.4
+                        End If
+                        
                         For Each tsv In tsvs
 
                             Set tsva = tsvsa(tsv.Index)
@@ -6419,7 +6433,12 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                     ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                        Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
+                        If TsvScale = "Weekly" Then 'v3.4
+                            Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
+                        Else
+                            Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleMonths) 'v3.4
+                        End If
+                        
                         For Each tsv In tsvs
 
                             If tsv.Value <> "" Then
@@ -6460,9 +6479,14 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                 If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                    Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
-                    Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleWeeks)
-
+                    If TsvScale = "Weekly" Then 'v3.4
+                        Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
+                        Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleWeeks)
+                    Else
+                        Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleMonths) 'v3.4
+                        Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleMonths) 'v3.4
+                    End If
+                    
                     For Each tsv In tsvs
 
                         Set tsva = tsvsa(tsv.Index)
@@ -6509,7 +6533,12 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                 ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                    Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
+                    If TsvScale = "Weekly" Then 'v3.4
+                        Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
+                    Else
+                        Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleMonths) 'v3.4
+                    End If
+                    
                     For Each tsv In tsvs
 
                         If tsv.Value <> "" Then
@@ -6550,8 +6579,13 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                 If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                        Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
-                        Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks)
+                        If TsvScale = "Weekly" Then 'v3.4
+                            Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
+                            Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks)
+                        Else
+                            Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleMonths) 'v3.4
+                            Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleMonths) 'v3.4
+                        End If
 
                         For Each tsv In tsvs
 
@@ -6599,7 +6633,12 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                     ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
 
-                        Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
+                        If TsvScale = "Weekly" Then 'v3.4
+                            Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
+                        Else
+                            Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleMonths) 'v3.4
+                        End If
+                        
                         For Each tsv In tsvs
 
                             If tsv.Value <> "" Then
@@ -6644,7 +6683,12 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                 Case pjResourceTypeWork
 
-                    Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
+                    If TsvScale = "Weekly" Then 'v3.4
+                        Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
+                    Else
+                        Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleMonths) 'v3.4
+                    End If
+                    
                     For Each tsv In tsvs
 
                         If tsv.Value <> "" Then
@@ -6681,7 +6725,12 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
             Case pjResourceTypeCost
 
-                Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineCost, pjTimescaleWeeks)
+                If TsvScale = "Weekly" Then 'v3.4
+                    Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineCost, pjTimescaleWeeks)
+                Else
+                    Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineCost, pjTimescaleMonths) 'v3.4
+                End If
+                
                 For Each tsv In tsvs
 
                     If tsv.Value <> "" Then
@@ -6718,7 +6767,12 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
             Case pjResourceTypeMaterial
 
-                Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
+                If TsvScale = "Weekly" Then 'v3.4
+                    Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleWeeks)
+                Else
+                    Set tsvs = tAssign.TimeScaleData(tAssign.BaselineStart, tAssign.BaselineFinish, pjAssignmentTimescaledBaselineWork, pjTimescaleMonths) 'v3.4
+                End If
+                
                 For Each tsv In tsvs
 
                     If tsv.Value <> "" Then
