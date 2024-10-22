@@ -86,13 +86,13 @@ Dim lngItems As Long
   If Not oUserForm Is Nothing Then Application.Run "cptShowPreds", oUserForm
   
   Set oUserForm = cptGetUserForm("cptAdjustment_frm") 'returns Nothing if form is not loaded
-  If Not oUserForm Is Nothing Then Application.Run "cptRefreshAdjustment"
+  If Not oUserForm Is Nothing Then Application.Run "cptRefreshAdjustment", oUserForm
   
   Set oUserForm = cptGetUserForm("cptTaskHistory_frm") 'returns Nothing if form is not loaded
   If Not oUserForm Is Nothing Then Application.Run "cptUpdateTaskHistory", oUserForm
   
   Set oUserForm = cptGetUserForm("cptQBD_frm") 'returns Nothing if form is not loaded
-  If Not oUserForm Is Nothing Then Application.Run "cptUpdateQBDForm"
+  If Not oUserForm Is Nothing Then Application.Run "cptUpdateQBDForm", oUserForm
   
   Set oUserForm = cptGetUserForm("cptSmartDuration_frm") 'returns Nothing if form is not loaded
   If Not oUserForm Is Nothing Then Application.Run "cptUpdateSmartDurationForm", oUserForm
