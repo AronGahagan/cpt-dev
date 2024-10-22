@@ -5868,7 +5868,6 @@ End Sub
 Private Function SetDirectory(ByVal ProjName As String) As String
     Dim newDir As String
     Dim pathDesktop As String
-    Dim fs As FileSystemObject 'v3.4.1
 
     pathDesktop = CreateObject("WScript.Shell").SpecialFolders("Desktop")
     newDir = pathDesktop & "\" & RemoveIllegalCharacters(ProjName) & "_" & Format(Now, "YYYYMMDD HHMMSS")
@@ -5878,8 +5877,7 @@ Private Function SetDirectory(ByVal ProjName As String) As String
     End If
 
     MkDir newDir
-    Set fs = CreateObject("Scripting.FileSystemObject") 'v3.4.1
-    SetDirectory = fs.GetFolder(newDir).ShortPath 'v3.4.1
+    SetDirectory = CreateObject("Scripting.FileSystemObject").GetFolder(newDir).ShortPath 'v3.4.1
     Exit Function
 
 End Function
