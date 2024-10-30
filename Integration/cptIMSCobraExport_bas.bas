@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.4.1</cpt_version>
+'<cpt_version>v3.4.2</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -102,6 +102,7 @@ Private Type TaskDataCheck
     MSWeight As String
     AssignmentCount As Integer
 End Type
+Private noFolderSelected As Boolean
 
 Sub Export_IMS()
 
@@ -259,7 +260,7 @@ CleanUp:
     curProj.Application.Calculation = pjAutomatic
     curProj.Application.DisplayAlerts = True
     Set curProj = Nothing
-    MsgBox "An error was encountered." & vbCr & vbCr & ErrMsg
+    If noFolderSelected = False Then MsgBox "An error was encountered." & vbCr & vbCr & ErrMsg 'v3.4.2
     Exit Sub
 
 Quick_Exit:
@@ -5869,7 +5870,7 @@ Private Function SetDirectory(ByVal ProjName As String) As String
     Dim newDir As String
     Dim pathDesktop As String
 
-    pathDesktop = CreateObject("WScript.Shell").SpecialFolders("Desktop")
+    pathDesktop = BrowseForFolder 'CreateObject("WScript.Shell").SpecialFolders("Desktop")) 'v3.4.2
     newDir = pathDesktop & "\" & RemoveIllegalCharacters(ProjName) & "_" & Format(Now, "YYYYMMDD HHMMSS")
 
     If Len(newDir) > 220 Then 'v3.4.1
@@ -6976,3 +6977,31 @@ Public Sub cptQuickSort(vArray As Variant, inLow As Long, inHi As Long)
   If (inLow < tmpHi) Then cptQuickSort vArray, inLow, tmpHi
   If (tmpLow < inHi) Then cptQuickSort vArray, tmpLow, inHi
 End Sub
+
+Private Function BrowseForFolder(Optional OpenAt As Variant) As Variant 'v3.4.2
+    Dim ShellApp As Object
+    Set ShellApp = CreateObject("Shell.Application"). _
+    BrowseForFolder(0, "Choose an output folder:", 0, OpenAt)
+    
+    On Error Resume Next
+    BrowseForFolder = ShellApp.self.Path
+    On Error GoTo 0
+    
+    Set ShellApp = Nothing
+        Select Case Mid(BrowseForFolder, 2, 1)
+            Case Is = ":"
+                If Left(BrowseForFolder, 1) = ":" Then GoTo Invalid
+            Case Is = "\"
+                If Not Left(BrowseForFolder, 1) = "\" Then GoTo Invalid
+            Case Else
+                GoTo Invalid
+        End Select
+    Exit Function
+    
+Invalid:
+        noFolderSelected = True
+        BrowseForFolder = False
+End Function
+
+
+
