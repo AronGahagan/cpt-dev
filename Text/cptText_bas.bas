@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.5.1</cpt_version>
+'<cpt_version>v1.5.2</cpt_version>
 Option Explicit
 
 Sub cptReplicateProcess()
@@ -229,7 +229,7 @@ next_task:
     rstReplaced.MoveFirst
     FilterEdit "cptMyReplace", True, True, True, False, , "Unique ID", , "equals", rstReplaced(0), "Or", True
     Do While Not rstReplaced.EOF
-      FilterEdit "cptMyReplace", TaskFilter:=True, FieldName:="", NewFieldName:="Unique ID", test:="equals", Value:=rstReplaced(0), Operation:="Or", ShowInMenu:=True
+      FilterEdit "cptMyReplace", TaskFilter:=True, FieldName:="", NewFieldName:="Unique ID", test:="equals", Value:=rstReplaced(0), operation:="Or", ShowInMenu:=True
       rstReplaced.MoveNext
     Loop
     FilterApply "cptMyReplace", True
@@ -274,6 +274,9 @@ Sub cptFindDuplicateTaskNames()
   Dim oRange As Excel.Range
   Dim oListObject As ListObject
   'strings
+  Dim strRestoreFilter As String
+  Dim strFilter As String
+  Dim strMap As String
   Dim strFileName As String
   'longs
   Dim lngItem As Long
@@ -283,38 +286,27 @@ Sub cptFindDuplicateTaskNames()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   Dim blnMaster As Boolean
+  Dim blnIgnoreExternal As Boolean
+  Dim blnIgnoreSummaryTasks As Boolean
   'variants
   'dates
 
   If ActiveProject.Tasks.Count = 0 Then GoTo exit_here
   If ActiveProject.Subprojects.Count > 0 Then blnMaster = True
-  
   If Not cptCheckReference("Excel") Then GoTo exit_here
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping 'evaluate once per routine
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
-  If Edition = pjEditionProfessional Then
-    If Not cptFilterExists("Active Tasks") Then
-      FilterEdit Name:="Active Tasks", TaskFilter:=True, Create:=True, OverwriteExisting:=False, FieldName:="Active", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=True
-    End If
-    MapEdit Name:="ExportTaskNames", Create:=True, OverwriteExisting:=True, DataCategory:=0, categoryenabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:="Active Tasks", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
-  ElseIf Edition = pjEditionStandard Then
-    MapEdit Name:="ExportTaskNames", Create:=True, OverwriteExisting:=True, DataCategory:=0, categoryenabled:=True, TableName:="Task_Table1", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ImportMethod:=0, headerRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
-  End If
-  If blnMaster Then
-    MapEdit Name:="ExportTaskNames", DataCategory:=0, FieldName:="Project", ExternalFieldName:="Project"
-  End If
-  MapEdit Name:="ExportTaskNames", DataCategory:=0, FieldName:="Summary", ExternalFieldName:="Summary"
-  MapEdit Name:="ExportTaskNames", DataCategory:=0, FieldName:="Name", ExternalFieldName:="Name"
-  Set oShell = CreateObject("WScript.Shell")
-  strFileName = oShell.SpecialFolders("Desktop") & "\DuplicateTaskNames_" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".xlsx"
+  'first, expand all subprojects
+  ActiveWindow.TopPane.Activate
+  GroupClear
+  FilterClear
+  Sort "ID", , , , , , False, True
   
   If blnMaster Then
     If MsgBox("Load and expand all subprojects?", vbQuestion + vbYesNo, "Please confirm:") = vbNo Then GoTo exit_here
-    GroupClear
-    FilterClear
-    ActiveWindow.TopPane.Activate
     lngItems = ActiveProject.Subprojects.Count
     For Each oSubProject In ActiveProject.Subprojects
       lngItem = lngItem + 1
@@ -323,14 +315,64 @@ Sub cptFindDuplicateTaskNames()
       Application.OutlineShowSubTasks
       Application.StatusBar = "Loading " & oSubProject.InsertedProjectSummary.Name & "...(" & Format(lngItem / lngItems, "0%") & ")"
     Next oSubProject
-    Application.StatusBar = "Loading " & oSubProject.InsertedProjectSummary.Name & "...done."
+    Application.StatusBar = "Loading subprojects...done."
     Set oSubProject = Nothing
   End If
   
+  blnIgnoreSummaryTasks = MsgBox("Ignore Summary Tasks?", vbQuestion + vbYesNo, "Please Confrim") = vbYes
+  'first, build the filter
+  strFilter = "cptDuplicateTaskNames Filter"
+  If Edition = pjEditionProfessional Then
+    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Active", test:="equals", Value:="Yes"
+  ElseIf Edition = pjEditionStandard Then
+    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Unique ID", test:="greater than", Value:=0
+  End If
+  If blnIgnoreSummaryTasks Then
+    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Summary", test:="equals", Value:="No", operation:="And", Parenthesis:=False
+  End If
+  strRestoreFilter = ActiveProject.CurrentFilter
+  FilterApply strFilter
+  DoEvents
+  blnIgnoreExternal = True
+  'only prompt if external tasks exist
+  For Each oTask In ActiveProject.Tasks
+    If oTask Is Nothing Then GoTo analyze_next
+    If Not oTask.Active Then GoTo analyze_next
+    If blnIgnoreSummaryTasks And oTask.Summary Then GoTo analyze_next
+    If oTask.ExternalTask Then
+      blnIgnoreExternal = MsgBox("Ignore External Tasks?", vbQuestion + vbYesNo, "Please Confirm") = vbYes
+      Exit For
+    End If
+analyze_next:
+  Next oTask
+  If blnIgnoreExternal Then
+    FilterEdit strFilter, TaskFilter:=True, NewFieldName:="External Task", test:="equals", Value:="No", operation:="And", Parenthesis:=False
+  End If
+  FilterEdit strFilter, TaskFilter:=True, ShowSummaryTasks:=Not blnIgnoreSummaryTasks
+  FilterApply strFilter
+  DoEvents
+  
+  'then build the map
+  strMap = "cptDuplicateTaskNames Map"
+  MapEdit Name:=strMap, Create:=True, OverwriteExisting:=True, datacategory:=0, categoryenabled:=True, TableName:="cptDuplicateTaskNames", FieldName:="Unique ID", ExternalFieldName:="Unique_ID", ExportFilter:=strFilter, ImportMethod:=0, HeaderRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
+  If blnMaster Then
+    MapEdit Name:=strMap, datacategory:=0, FieldName:="Project", ExternalFieldName:="Project"
+  End If
+  If Not blnIgnoreExternal Then
+    MapEdit Name:=strMap, datacategory:=0, FieldName:="External Task", ExternalFieldName:="External Task"
+  End If
+  If Not blnIgnoreSummaryTasks Then
+    MapEdit Name:=strMap, datacategory:=0, FieldName:="Summary", ExternalFieldName:="Summary"
+  End If
+  MapEdit Name:=strMap, datacategory:=0, FieldName:="Name", ExternalFieldName:="Name", ExportFilter:=strFilter, ImportMethod:=0, HeaderRow:=True, AssignmentData:=False, TextDelimiter:=Chr$(9), TextFileOrigin:=0, UseHtmlTemplate:=False, IncludeImage:=False
+  
+  'perform the analysis
   Set oDict = CreateObject("Scripting.Dictionary")
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If Not oTask.Active Then GoTo next_task
+    If blnIgnoreExternal And oTask.ExternalTask Then GoTo next_task
+    If blnIgnoreSummaryTasks And oTask.Summary Then GoTo next_task
     If Not oDict.Exists(oTask.Name) Then
       oDict.Add oTask.Name, 1
     Else
@@ -342,24 +384,25 @@ next_task:
   
   If lngDuplicateNames > 0 Then
     If MsgBox(Format(lngDuplicateNames, "#,##0") & " duplicate task names found." & vbCrLf & vbCrLf & "Open in Excel?", vbExclamation + vbYesNo, "Duplicate Task Names Found") = vbYes Then
+      Set oShell = CreateObject("WScript.Shell")
+      strFileName = oShell.SpecialFolders("Desktop") & "\DuplicateTaskNames_" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".xlsx"
       Application.StatusBar = "Exporting..."
-      FileSaveAs Name:=strFileName, FormatID:="MSProject.ACE", Map:="ExportTaskNames"
+      Application.FileSaveAs Name:=strFileName, FormatID:="MSProject.ACE", Map:=strMap
       Application.StatusBar = "Exporting...done."
-      
       Application.StatusBar = "Formatting..."
       On Error Resume Next
       Set oExcel = GetObject(, "Excel.Application")
-      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oExcel Is Nothing Then
         Set oExcel = CreateObject("Excel.Application")
+      Else
+        Application.ActivateMicrosoftApp pjMicrosoftExcel
       End If
       oExcel.Visible = True
       oExcel.WindowState = xlNormal
       Set oWorkbook = oExcel.Workbooks.Open(strFileName)
       Set oWorksheet = oWorkbook.Sheets(1)
-      
       Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(-4121)), , xlYes)
-      
       oExcel.ActiveWindow.Zoom = 85
       oListObject.Range.Columns.AutoFit
       oListObject.TableStyle = ""
@@ -380,6 +423,7 @@ next_task:
       'filter for duplicates
       lngNameCol = oWorksheet.Rows(1).Find("Name", lookat:=xlWhole).Column
       oListObject.Range.AutoFilter Field:=lngNameCol, Criteria1:=RGB(255, 199, 206), Operator:=xlFilterCellColor
+      oListObject.Range.Columns.AutoFit
       'add a count formula
       oWorksheet.Cells(1, oWorksheet.[A1].End(xlToRight).Column + 1).Value = "Count"
       oListObject.ListColumns("Count").DataBodyRange.FormulaR1C1 = "=COUNTIFS([Name],[@Name])"
@@ -394,16 +438,22 @@ next_task:
         .SortMethod = xlPinYin
         .Apply
       End With
+      oWorksheet.[A1].Select
       oWorkbook.Activate
       Application.StatusBar = "Formatting...done."
       Application.StatusBar = "Complete."
-      MsgBox "See Excel Workbook.", vbInformation + vbOKOnly, "Complete"
-      Application.ActivateMicrosoftApp (pjMicrosoftExcel)
     End If
   Else
     MsgBox "No duplicate task names found.", vbInformation + vbOKOnly, "Well Done"
   End If
-
+  
+  ActiveWindow.TopPane.Activate
+  GroupClear
+  FilterClear
+  Sort "ID", , , , , , False, True
+  OptionsViewEx DisplaySummaryTasks:=True
+  FilterApply strRestoreFilter
+  
 exit_here:
   On Error Resume Next
   Application.StatusBar = ""
@@ -497,23 +547,25 @@ err_here:
 End Sub
 
 Sub cptShowText_frm()
-'objects
-Dim oTasks As MSProject.Tasks
-Dim oTask As MSProject.Task
-'strings
-Dim strCustomFieldName As String
-'longs
-Dim lngItem As Long
-'integers
-'booleans
-'variants
-'dates
+  'objects
+  Dim myText_frm As cptText_frm
+  Dim oTasks As MSProject.Tasks
+  Dim oTask As MSProject.Task
+  'strings
+  Dim strCustomFieldName As String
+  'longs
+  Dim lngItem As Long
+  'integers
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not cptModuleExists("cptText_frm") Then GoTo exit_here
   
-  With cptText_frm.cboScope
+  Set myText_frm = New cptText_frm
+  With myText_frm.cboScope
     .AddItem
     .List(0, 0) = FieldNameToFieldConstant("Name", pjTask)
     .List(0, 1) = "Task Name"
@@ -539,20 +591,21 @@ Dim lngItem As Long
   Set oTasks = ActiveSelection.Tasks
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oTasks Is Nothing Then
-    cptText_frm.lboOutput.Clear
+    myText_frm.lboOutput.Clear
     For Each oTask In oTasks
-      cptText_frm.lboOutput.AddItem
-      cptText_frm.lboOutput.List(lngItem, 0) = oTask.UniqueID
-      cptText_frm.lboOutput.List(lngItem, 1) = oTask.Name
+      myText_frm.lboOutput.AddItem
+      myText_frm.lboOutput.List(lngItem, 0) = oTask.UniqueID
+      myText_frm.lboOutput.List(lngItem, 1) = oTask.Name
       lngItem = lngItem + 1
     Next oTask
   End If
-  cptText_frm.Caption = "Advanced Text Tools (" & cptGetVersion("cptText_frm") & ")"
+  myText_frm.Caption = "Advanced Text Tools (" & cptGetVersion("cptText_frm") & ")"
   Call cptStartEvents
-  cptText_frm.Show
+  myText_frm.Show False 'VBA.FormShowConstants.vbModeless
   
 exit_here:
   On Error Resume Next
+  Set myText_frm = Nothing
   Set oTask = Nothing
   Set oTasks = Nothing
   Exit Sub
@@ -562,7 +615,7 @@ err_here:
   
 End Sub
 
-Sub cptUpdatePreview(Optional strPrepend As String, Optional strAppend As String, Optional strPrefix As String, Optional lngCharacters As Long, Optional lngStartAt As Long, _
+Sub cptUpdatePreview(ByRef myText_frm As cptText_frm, Optional strPrepend As String, Optional strAppend As String, Optional strPrefix As String, Optional lngCharacters As Long, Optional lngStartAt As Long, _
                   Optional lngCountBy As Long, Optional strSuffix As String, Optional strReplaceWhat As String, Optional strReplaceWith As String)
   'objects
   Dim oTask As MSProject.Task
@@ -580,19 +633,19 @@ Sub cptUpdatePreview(Optional strPrepend As String, Optional strAppend As String
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  If cptText_frm.Visible Then
-    lngScope = cptText_frm.cboScope.Value
+  If myText_frm.Visible Then
+    lngScope = myText_frm.cboScope.Value
   Else
     lngScope = FieldNameToFieldConstant("Name", pjTask)
   End If
 
-  For lngItem = 0 To cptText_frm.lboOutput.ListCount - 1
-    If IsNull(cptText_frm.lboOutput.List(lngItem, 0)) Then GoTo exit_here
+  For lngItem = 0 To myText_frm.lboOutput.ListCount - 1
+    If IsNull(myText_frm.lboOutput.List(lngItem, 0)) Then GoTo exit_here
     On Error Resume Next
-    Set oTask = ActiveProject.Tasks.UniqueID(cptText_frm.lboOutput.List(lngItem, 0))
+    Set oTask = ActiveProject.Tasks.UniqueID(myText_frm.lboOutput.List(lngItem, 0))
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oTask Is Nothing Then
-      If MsgBox("UID " & cptText_frm.lboOutput.List(lngItem, 0) & " not found in " & UCase(ActiveProject.Name) & "! Proceed?", vbCritical + vbYesNo, "Task Not Found") = vbNo Then
+      If MsgBox("UID " & myText_frm.lboOutput.List(lngItem, 0) & " not found in " & UCase(ActiveProject.Name) & "! Proceed?", vbCritical + vbYesNo, "Task Not Found") = vbNo Then
         Err.Clear
         GoTo exit_here
       Else
@@ -605,61 +658,61 @@ Sub cptUpdatePreview(Optional strPrepend As String, Optional strAppend As String
     
     If Len(strPrepend) > 0 Then
       strTaskName = Trim(strPrepend) & " " & strTaskName
-    ElseIf Len(cptText_frm.txtPrepend.Value) > 0 Then
-      strTaskName = Trim(cptText_frm.txtPrepend.Value) & " " & strTaskName
+    ElseIf Len(myText_frm.txtPrepend.Value) > 0 Then
+      strTaskName = Trim(myText_frm.txtPrepend.Value) & " " & strTaskName
     End If
     If Len(strAppend) > 0 Then
       strTaskName = Trim(strTaskName) & " " & Trim(strAppend)
-    ElseIf Len(cptText_frm.txtAppend.Value) > 0 Then
-      strTaskName = Trim(strTaskName) & " " & Trim(cptText_frm.txtAppend.Value)
+    ElseIf Len(myText_frm.txtAppend.Value) > 0 Then
+      strTaskName = Trim(strTaskName) & " " & Trim(myText_frm.txtAppend.Value)
     End If
-    cptText_frm.chkIsDirty = cptText_frm.CheckDirty
-    If cptText_frm.chkIsDirty Then
-      strEnumerate = IIf(Len(strPrefix) > 0, strPrefix, cptText_frm.txtPrefix.Value)
+    myText_frm.chkIsDirty = myText_frm.CheckDirty
+    If myText_frm.chkIsDirty Then
+      strEnumerate = IIf(Len(strPrefix) > 0, strPrefix, myText_frm.txtPrefix.Value)
 
       If lngStartAt = 0 Then
-        If cptText_frm.txtStartAt.Value = "" Then
+        If myText_frm.txtStartAt.Value = "" Then
           lngStartAt = 1
-          'cptText_frm.txtStartAt.Value = 1
+          'myText_frm.txtStartAt.Value = 1
         Else
-          lngStartAt = CLng(cptText_frm.txtStartAt.Value)
+          lngStartAt = CLng(myText_frm.txtStartAt.Value)
         End If
       End If
 
       If lngCountBy = 0 Then
-        If cptText_frm.txtCountBy.Value = "" Then
+        If myText_frm.txtCountBy.Value = "" Then
           lngCountBy = 1
-          'cptText_frm.txtCountBy.Value = 1
+          'myText_frm.txtCountBy.Value = 1
         Else
-          lngCountBy = CLng(cptText_frm.txtCountBy.Value)
+          lngCountBy = CLng(myText_frm.txtCountBy.Value)
         End If
       End If
 
       lngEnumerate = lngStartAt + (lngItem * lngCountBy)
 
       If lngCharacters = 0 Then
-        If cptText_frm.txtCharacters.Value = "" Then
+        If myText_frm.txtCharacters.Value = "" Then
           lngCharacters = 1
-          'cptText_frm.txtCharacters.Value = 1
+          'myText_frm.txtCharacters.Value = 1
         Else
-          lngCharacters = CLng(cptText_frm.txtCharacters.Value)
+          lngCharacters = CLng(myText_frm.txtCharacters.Value)
         End If
       End If
 
       strEnumerate = strEnumerate & Format(lngEnumerate, String(lngCharacters, "0"))
-      strEnumerate = strEnumerate & IIf(Len(strSuffix) > 0, strSuffix, cptText_frm.txtSuffix.Value)
-      cptText_frm.lboOutput.List(lngItem, 1) = strTaskName & " " & strEnumerate
+      strEnumerate = strEnumerate & IIf(Len(strSuffix) > 0, strSuffix, myText_frm.txtSuffix.Value)
+      myText_frm.lboOutput.List(lngItem, 1) = strTaskName & " " & strEnumerate
     Else
-      cptText_frm.lboOutput.List(lngItem, 1) = strTaskName
+      myText_frm.lboOutput.List(lngItem, 1) = strTaskName
     End If
     
     'replace
     '<issue27> added
-    If Len(strReplaceWhat) = 0 Then strReplaceWhat = cptText_frm.txtReplaceWhat.Value
-    If Len(strReplaceWith) = 0 Then strReplaceWith = cptText_frm.txtReplaceWith.Value
+    If Len(strReplaceWhat) = 0 Then strReplaceWhat = myText_frm.txtReplaceWhat.Value
+    If Len(strReplaceWith) = 0 Then strReplaceWith = myText_frm.txtReplaceWith.Value
     If Len(strReplaceWhat) > 0 And Len(strReplaceWith) > 0 Then
       strTaskName = Replace(strTaskName, strReplaceWhat, strReplaceWith)
-      cptText_frm.lboOutput.List(lngItem, 1) = strTaskName & " " & strEnumerate '</issue27>
+      myText_frm.lboOutput.List(lngItem, 1) = strTaskName & " " & strEnumerate '</issue27>
     End If
 next_item:
   Next lngItem
