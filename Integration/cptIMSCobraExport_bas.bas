@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.4.2</cpt_version>
+'<cpt_version>v3.4.3</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -143,7 +143,7 @@ Sub Export_IMS()
         Dim vArray As Variant
         vArray = Split(Join(CustTextFields, ",") & "," & Join(CustOLCodeFields, ",") & "," & Join(EntFields, ","), ",") 'v3.3.9
         If vArray(UBound(vArray)) = "" Then ReDim Preserve vArray(UBound(vArray) - 1) 'v3.3.10
-        Call cptQuickSort(vArray, 0, UBound(vArray))
+        QuickSort vArray, 0, UBound(vArray)
         .caID1Box.List = Split("WBS," & Join(vArray, ","), ",")
         .caID2Box.List = Split("<None>," & Join(vArray, ","), ",")
         .caID3Box.List = Split("<None>," & Join(vArray, ","), ",")
@@ -155,9 +155,9 @@ Sub Export_IMS()
         .whatifBox.List = Split("<None>," & Join(vArray, ","), ",")
         vArray = Split(Join(CustTextFields, ",") & "," & Join(CustNumFields, ",") & "," & Join(CustOLCodeFields, ",") & "," & Join(EntFields, ","), ",") 'v3.3.9
         If vArray(UBound(vArray)) = "" Then ReDim Preserve vArray(UBound(vArray) - 1) 'v3.3.10
-        Call cptQuickSort(vArray, 0, UBound(vArray))
+        QuickSort vArray, 0, UBound(vArray)
         .msidBox.List = Split("<None>,UniqueID," & Join(vArray, ","), ",")
-        Call cptQuickSort(CustNumFields, 1, UBound(CustNumFields))
+        QuickSort CustNumFields, 1, UBound(CustNumFields)
         .PercentBox.List = Split("Physical % Complete,% Complete," & Join(CustNumFields, ","), ",")
         .AsgnPcntBox.List = Split("<None>," & Join(CustNumFields, ","), ",")
         .DateFormat_Combobox.List = Split("M/D/YYYY,D/M/YYYY", ",") 'v3.3.5
@@ -1431,7 +1431,7 @@ Private Sub BCWP_Export(ByVal curProj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If EVT = "B" Or EVT = "N" Or EVT = "B Milestone" Or EVT = "N Earning Rules" Then
@@ -1766,7 +1766,7 @@ nrBCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earning Rules" Then
@@ -2146,7 +2146,7 @@ nrBCWP_WP_Match_B:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
                                 
 
@@ -2615,7 +2615,7 @@ BCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
@@ -4104,7 +4104,7 @@ Private Sub BCWS_Export(ByVal curProj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -4247,7 +4247,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4442,7 +4442,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -4644,7 +4644,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4927,7 +4927,7 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -5105,7 +5105,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5341,7 +5341,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    err.Raise 1
+                                    Err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -5612,7 +5612,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                err.Raise 1
+                                Err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -6944,7 +6944,7 @@ Private Function get_Assignment_Pcnt(ByVal tAssignment As Assignment) As String
 
 End Function
 
-Public Sub cptQuickSort(vArray As Variant, inLow As Long, inHi As Long)
+Private Sub QuickSort(vArray As Variant, inLow As Long, inHi As Long)
   'public domain: https://stackoverflow.com/questions/152319/vba-array-sort-function
   Dim pivot   As Variant
   Dim tmpSwap As Variant
@@ -6974,8 +6974,8 @@ Public Sub cptQuickSort(vArray As Variant, inLow As Long, inHi As Long)
      End If
   Wend
 
-  If (inLow < tmpHi) Then cptQuickSort vArray, inLow, tmpHi
-  If (tmpLow < inHi) Then cptQuickSort vArray, tmpLow, inHi
+  If (inLow < tmpHi) Then QuickSort vArray, inLow, tmpHi
+  If (tmpLow < inHi) Then QuickSort vArray, tmpLow, inHi
 End Sub
 
 Private Function BrowseForFolder(Optional OpenAt As Variant) As Variant 'v3.4.2
