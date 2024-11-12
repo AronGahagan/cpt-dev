@@ -283,6 +283,7 @@ Sub cptFindDuplicateTaskNames()
   Dim lngItems As Long
   Dim lngNameCol As Long
   Dim lngDuplicateNames As Long
+  Dim lngInstances As Long
   'integers
   'doubles
   'booleans
@@ -383,7 +384,14 @@ next_task:
   Next oTask
   
   If lngDuplicateNames > 0 Then
-    If MsgBox(Format(lngDuplicateNames, "#,##0") & " duplicate task names found." & vbCrLf & vbCrLf & "Open in Excel?", vbExclamation + vbYesNo, "Duplicate Task Names Found") = vbYes Then
+    lngDuplicateNames = 0
+    For lngItem = 0 To oDict.Count - 1
+      If oDict.Items(lngItem) > 1 Then
+        lngDuplicateNames = lngDuplicateNames + 1
+        lngInstances = lngInstances + oDict.Items(lngItem)
+      End If
+    Next lngItem
+    If MsgBox(Format(lngDuplicateNames, "#,##0") & " duplicate task names found." & vbCrLf & Format(lngInstances, "#,##") & " instances of duplication." & vbCrLf & vbCrLf & "Open in Excel?", vbExclamation + vbYesNo, "Duplicate Task Names Found") = vbYes Then
       Set oShell = CreateObject("WScript.Shell")
       strFileName = oShell.SpecialFolders("Desktop") & "\DuplicateTaskNames_" & Format(Now(), "yyyy-mm-dd-hh-nn-ss") & ".xlsx"
       Application.StatusBar = "Exporting..."
