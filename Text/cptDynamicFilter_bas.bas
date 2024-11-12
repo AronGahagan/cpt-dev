@@ -56,7 +56,7 @@ Dim vArray As Variant
       If Len(strCustomFields) > 0 Then
         strCustomFields = Left(strCustomFields, Len(strCustomFields) - 1)
         vArray = Split(strCustomFields, ",")
-        Call cptQuickSort(vArray, 0, UBound(vArray))
+        cptQuickSort vArray, 0, UBound(vArray)
         'join vArray into string, prepend 'Task Name', split into array
         .List = Split("Task Name," & Join(vArray, ","), ",")
       Else

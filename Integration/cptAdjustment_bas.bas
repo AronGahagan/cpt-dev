@@ -33,7 +33,7 @@ Sub cptShowAdjustment_frm()
   strResources = Left(strResources, Len(strResources) - 1)
   vResources = Split(strResources, ",")
   
-  Call cptQuickSort(vResources, 0, UBound(vResources))
+  cptQuickSort vResources, 0, UBound(vResources)
   
   'vResources = Split("All Resources," & Join(vResources, ","), ",")
   
