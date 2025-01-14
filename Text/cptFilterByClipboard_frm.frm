@@ -38,7 +38,7 @@ Private Sub cmdClear_Click()
 End Sub
 
 Private Sub cmdClose_Click()
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub lblURL_Click()
@@ -345,6 +345,14 @@ Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, 
   End If
 End Sub
 
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
 Private Sub UserForm_Terminate()
   cptClearFreeField Me
+  Unload Me
 End Sub

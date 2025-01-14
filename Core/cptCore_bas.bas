@@ -267,6 +267,7 @@ End Sub '<issue31>
 
 Sub cptShowAbout_frm()
   'objects
+  Dim myAbout_frm As cptAbout_frm
   'strings
   Dim strAbout As String
   'longs
@@ -289,30 +290,32 @@ Sub cptShowAbout_frm()
   strAbout = strAbout & "AS IS and without warranty." & vbCrLf
   strAbout = strAbout & "It is free to use, free to distribute with prior written consent from the developers/copyright holders and without modification." & vbCrLf & vbCrLf
   strAbout = strAbout & "All rights reserved." & vbCrLf & "Copyright " & Chr(169) & " " & Year(Now()) & ", ClearPlan Consulting, LLC"
-  cptAbout_frm.txtAbout.Value = strAbout  '<issue19>
+  Set myAbout_frm = New cptAbout_frm
+  myAbout_frm.txtAbout.Value = strAbout  '<issue19>
 
   'follow the project
   strAbout = vbCrLf & vbCrLf & "Follow the Project:" & vbCrLf & vbCrLf
   strAbout = strAbout & "http://GitHub.com/ClearPlan/cpt" & vbCrLf & vbCrLf
-  cptAbout_frm.txtGitHub.Value = strAbout '<issue19>
+  myAbout_frm.txtGitHub.Value = strAbout '<issue19>
 
   'show/hide
-  cptAbout_frm.lblScoreBoard.Visible = IIf(Now <= #10/25/2019#, False, True) '<issue19>
-  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b1" EWR > MSY
-  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b2" MSY > EWR
-  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b3" 'EWR > SAN
-  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR
-  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b5" 'EWR > NAS
-  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR
-  'cptAbout_frm.lblScoreBoard.Caption = "t0 : b7" 'EWR > SAV
-  cptAbout_frm.lblScoreBoard.Caption = "t0 : b8" 'EWR > SAV
+  myAbout_frm.lblScoreBoard.Visible = IIf(Now <= #10/25/2019#, False, True) '<issue19>
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b1" EWR > MSY
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b2" MSY > EWR
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b3" 'EWR > SAN
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b5" 'EWR > NAS
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b7" 'EWR > SAV
+  myAbout_frm.lblScoreBoard.Caption = "t0 : b8" 'EWR > SAV
   
-  cptAbout_frm.Caption = "The ClearPlan Toolbar - " & cptGetVersion("cptAbout_frm")
-  cptAbout_frm.Show '<issue19>
+  myAbout_frm.Caption = "The ClearPlan Toolbar - " & cptGetVersion("cptAbout_frm")
+  myAbout_frm.Show '<issue19>
 
 exit_here:
   On Error Resume Next
-  
+  Unload myAbout_frm
+  Set myAbout_frm = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptCore_bas", "cptShowAbout_frm", Err, Erl)
@@ -463,10 +466,10 @@ End Function
 
 Sub cptGetEnviron()
   'list the environment variables and their associated values
-  Dim lgIndex As Long
+  Dim lngIndex As Long
 
-  For lgIndex = 1 To 200
-    Debug.Print lgIndex & ": " & Environ(lgIndex)
+  For lngIndex = 1 To 200
+    Debug.Print lngIndex & ": " & Environ(lngIndex)
   Next
 
 End Sub
@@ -726,6 +729,7 @@ End Sub
 
 Sub cptShowResetAll_frm()
   'objects
+  Dim myResetAll_frm As cptResetAll_frm
   Dim oView As MSProject.View
   Dim rstSettings As Object 'ADODB.Recordset
   'strings
@@ -757,15 +761,17 @@ Sub cptShowResetAll_frm()
   End If
   '===
   
+  'instantiate the form
+  Set myResetAll_frm = New cptResetAll_frm
   'populate the outline level picklist
   For lngOutlineLevel = 1 To 20
-    cptResetAll_frm.cboOutlineLevel.AddItem lngOutlineLevel
+    myResetAll_frm.cboOutlineLevel.AddItem lngOutlineLevel
   Next lngOutlineLevel
   'default to 2
-  cptResetAll_frm.cboOutlineLevel.Value = 2
+  myResetAll_frm.cboOutlineLevel.Value = 2
   
   'populate cboViews
-  cptResetAll_frm.cboViews.Clear
+  myResetAll_frm.cboViews.Clear
   For Each oView In ActiveProject.Views
     If oView.Type = pjTaskItem Then
       If oView.Screen = 1 Or oView.Screen = 14 Then
@@ -781,7 +787,7 @@ Sub cptShowResetAll_frm()
   Dim vViewList As Variant
   vViewList = Split(strViewList, ",")
   cptQuickSort vViewList, 0, UBound(vViewList)
-  cptResetAll_frm.cboViews.List = Split("<None>," & Join(vViewList, ","), ",")
+  myResetAll_frm.cboViews.List = Split("<None>," & Join(vViewList, ","), ",")
   
   strFile = cptDir & "\settings\cpt-reset-all.adtg"
   If Dir(strFile) <> vbNullString Then
@@ -806,20 +812,20 @@ Sub cptShowResetAll_frm()
         If Not cptViewExists(strDefaultView) Then
           MsgBox "Your default view '" & strDefaultView & "' does not exist.", vbExclamation + vbOKOnly, "Saved View Not Found"
         Else
-          cptResetAll_frm.cboViews.Value = strDefaultView
+          myResetAll_frm.cboViews.Value = strDefaultView
         End If
       Else
-        cptResetAll_frm.cboViews.Value = "<None>"
+        myResetAll_frm.cboViews.Value = "<None>"
       End If
     Else
       cptSaveSetting "ResetAll", "DefaultView", "<None>"
-      cptResetAll_frm.cboViews.Value = "<None>"
+      myResetAll_frm.cboViews.Value = "<None>"
     End If
   End If
     
   If lngSettings > 0 Then
     'parse and update the form
-    With cptResetAll_frm
+    With myResetAll_frm
       If lngSettings >= 128 Then
         .chkOutlineSymbols = True
         lngSettings = lngSettings - 128
@@ -863,13 +869,14 @@ Sub cptShowResetAll_frm()
     End With
   End If
   
-  cptResetAll_frm.Caption = "How would you like to Reset All? (" & cptGetVersion("cptResetAll_frm") & ")"
-  cptResetAll_frm.Show False
+  myResetAll_frm.Caption = "How would you like to Reset All? (" & cptGetVersion("cptResetAll_frm") & ")"
+  myResetAll_frm.Show False
   
 exit_here:
   On Error Resume Next
   Set oView = Nothing
   Set rstSettings = Nothing
+  Set myResetAll_frm = Nothing
 
   Exit Sub
 err_here:
@@ -880,6 +887,7 @@ End Sub
 
 Sub cptShowUpgrades_frm()
   'objects
+  Dim myUpgrades_frm As cptUpgrades_frm
   Dim REMatch As Object
   Dim REMatches As Object
   Dim RE As Object
@@ -1007,15 +1015,16 @@ Sub cptShowUpgrades_frm()
   Application.StatusBar = "Preparing form..."
   DoEvents
   lngItem = 0
-  cptUpgrades_frm.lboHeader.AddItem
+  Set myUpgrades_frm = New cptUpgrades_frm
+  myUpgrades_frm.lboHeader.AddItem
   For Each vCol In Array("Module", "Directory", "Current", "Installed", "Status", "Type")
-    cptUpgrades_frm.lboHeader.List(0, lngItem) = vCol
+    myUpgrades_frm.lboHeader.List(0, lngItem) = vCol
     lngItem = lngItem + 1
   Next vCol
-  cptUpgrades_frm.lboHeader.Height = 16
+  myUpgrades_frm.lboHeader.Height = 16
 
   'populate the listbox
-  cptUpgrades_frm.lboModules.Clear
+  myUpgrades_frm.lboModules.Clear
   rstStatus.Sort = "Module"
   rstStatus.MoveFirst
   lngItem = 0
@@ -1024,25 +1033,25 @@ Sub cptShowUpgrades_frm()
     If Not IsNull(rstStatus(3)) Then
       strInstVer = rstStatus(3)
     Else
-      strInstVer = "<not installed>"
+      strInstVer = "< missing >"
     End If
-    cptUpgrades_frm.lboModules.AddItem
-    cptUpgrades_frm.lboModules.List(lngItem, 0) = rstStatus(0) 'module name
-    cptUpgrades_frm.lboModules.List(lngItem, 1) = rstStatus(1) 'directory
-    cptUpgrades_frm.lboModules.List(lngItem, 2) = strCurVer 'current version
-    cptUpgrades_frm.lboModules.List(lngItem, 3) = strInstVer 'installed version
+    myUpgrades_frm.lboModules.AddItem
+    myUpgrades_frm.lboModules.List(lngItem, 0) = rstStatus(0) 'module name
+    myUpgrades_frm.lboModules.List(lngItem, 1) = rstStatus(1) 'directory
+    myUpgrades_frm.lboModules.List(lngItem, 2) = strCurVer 'current version
+    myUpgrades_frm.lboModules.List(lngItem, 3) = strInstVer 'installed version
     
     Select Case strInstVer
       Case Is = strCurVer
-        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< ok >"
-      Case Is = "<not installed>"
-        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< install >"
+        myUpgrades_frm.lboModules.List(lngItem, 4) = "< ok >"
+      Case Is = "< missing >"
+        myUpgrades_frm.lboModules.List(lngItem, 4) = "< install >"
       Case Is <> strCurVer
-        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< " & cptVersionStatus(strInstVer, strCurVer) & " >"
+        myUpgrades_frm.lboModules.List(lngItem, 4) = "< " & cptVersionStatus(strInstVer, strCurVer) & " >"
     End Select
     'capture the type while we're at it - could have just pulled the FileName
-    Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + cptUpgrades_frm.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
-    cptUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
+    Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + myUpgrades_frm.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
+    myUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
 next_lngItem:
     lngItem = lngItem + 1
     Application.StatusBar = Application.StatusBar = "Preparing form...(" & Format(lngItem / rstStatus.RecordCount, "0%") & ")"
@@ -1067,22 +1076,24 @@ next_lngItem:
       .Pattern = Chr(34) & "name" & Chr(34) & ":" & Chr(34) & "[A-z0-9-.]*"
     End With
     Set REMatches = RE.Execute(xmlHttpDoc.responseText)
-    cptUpgrades_frm.cboBranches.Clear
+    myUpgrades_frm.cboBranches.Clear
     For Each REMatch In REMatches
-      cptUpgrades_frm.cboBranches.AddItem Replace(REMatch, Chr(34) & "name" & Chr(34) & ":" & Chr(34), "")
+      myUpgrades_frm.cboBranches.AddItem Replace(REMatch, Chr(34) & "name" & Chr(34) & ":" & Chr(34), "")
     Next
-    cptUpgrades_frm.cboBranches.Value = "master"
+    myUpgrades_frm.cboBranches.Value = "master"
   Else
-    cptUpgrades_frm.cboBranches.Clear
-    cptUpgrades_frm.cboBranches.AddItem "<unavailable>"
+    myUpgrades_frm.cboBranches.Clear
+    myUpgrades_frm.cboBranches.AddItem "<unavailable>"
   End If
-  cptUpgrades_frm.Caption = "Installation Status (" & cptGetVersion("cptUpgrades_frm") & ")"
+  myUpgrades_frm.Caption = "Installation Status (" & cptGetVersion("cptUpgrades_frm") & ")"
   Application.StatusBar = "Ready for user input..."
   DoEvents
-  cptUpgrades_frm.Show
+  myUpgrades_frm.Show
 
 exit_here:
   On Error Resume Next
+  Unload myUpgrades_frm
+  Set myUpgrades_frm = Nothing
   Application.StatusBar = ""
   If rstStatus.State Then rstStatus.Close
   Set rstStatus = Nothing
@@ -1688,7 +1699,7 @@ Sub cptCreateFilter(strFilter As String)
 
   Select Case strFilter
     Case "Marked"
-      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", Test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
+      FilterEdit Name:="Marked", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Marked", test:="equals", Value:="Yes", ShowInMenu:=True, ShowSummaryTasks:=False
       
   End Select
   
@@ -1703,6 +1714,7 @@ End Sub
 
 Sub cptShowSettings_frm()
   'objects
+  Dim mySettings_frm As cptSettings_frm
   Dim oRecordset As Object 'ADODB.Recordset
   Dim oStream As Object 'Scripting.TextStream
   Dim oFSO As Object 'Scripting.FileSystemObject
@@ -1723,7 +1735,8 @@ Sub cptShowSettings_frm()
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
-  cptSettings_frm.Caption = "ClearPlan Toolbar Settings (" & cptGetVersion("cptUpgrades_frm") & ")"
+  Set mySettings_frm = New cptSettings_frm
+  mySettings_frm.Caption = "ClearPlan Toolbar Settings (" & cptGetVersion("cptSettings_frm") & ")"
   
   Set oRecordset = CreateObject("ADODB.Recordset")
   With oRecordset
@@ -1737,7 +1750,7 @@ Sub cptShowSettings_frm()
   lngFile = FreeFile
   Open strSettingsFileNew For Output As #lngFile
   
-  With cptSettings_frm
+  With mySettings_frm
     .lboFeatures.Clear
     .lboSettings.Clear
     Set oFSO = CreateObject("Scripting.FileSystemObject")
@@ -1803,7 +1816,9 @@ exit_here:
   Set oRecordset = Nothing
   Set oStream = Nothing
   Set oFSO = Nothing
-
+  Unload mySettings_frm
+  Set mySettings_frm = Nothing
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptCore_bas", "cptShowSettings_frm", Err, Erl)
@@ -2451,6 +2466,7 @@ End Sub
 
 Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalRequired As Boolean = False, Optional blnRollingWaveDateRequired As Boolean = False, Optional blnConfirmationRequired As Boolean = False) As Boolean
   'objects
+  Dim myIntegration_frm As cptIntegration_frm
   Dim oRequiredFields As Object 'Scripting.Dictionary
   Dim oComboBox As MSForms.ComboBox
   'strings
@@ -2486,7 +2502,8 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
     oRequiredFields(vRequired) = True
   Next
   
-  With New cptIntegration_frm
+  Set myIntegration_frm = New cptIntegration_frm
+  With myIntegration_frm
     
     .Caption = "Integration (" & cptGetVersion("cptIntegration_frm") & ")"
     
@@ -2653,11 +2670,12 @@ exit_here:
   On Error Resume Next
   Set oRequiredFields = Nothing
   Set oComboBox = Nothing
-  Unload cptDECM_frm
+  Unload myIntegration_frm
+  Set myIntegration_frm = Nothing
 
   Exit Function
 err_here:
-  Call cptHandleErr("cptDECM_bas", "cptValidMap", Err, Erl)
+  Call cptHandleErr("cptCore_bas", "cptValidMap", Err, Erl)
   Resume exit_here
     
 End Function

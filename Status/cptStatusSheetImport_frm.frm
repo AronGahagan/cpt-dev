@@ -18,13 +18,13 @@ Option Explicit
 
 Private Sub cboAF_Change()
   If Me.Visible Then
-    If Me.ActiveControl.Name = "cboAF" Then Call cptRefreshStatusImportTable
+    If Me.ActiveControl.Name = "cboAF" Then Call cptRefreshStatusImportTable(Me)
   End If
 End Sub
 
 Private Sub cboAS_Change()
   If Me.Visible Then
-    If Me.ActiveControl.Name = "cboAS" Then Call cptRefreshStatusImportTable
+    If Me.ActiveControl.Name = "cboAS" Then Call cptRefreshStatusImportTable(Me)
   End If
 End Sub
 
@@ -39,7 +39,7 @@ Private Sub cboETC_Change()
         Me.lblEV.ForeColor = 192
         Me.lblETC.ForeColor = 192
       Else
-        Call cptRefreshStatusImportTable
+        Call cptRefreshStatusImportTable(Me)
       End If
     End If
   End If
@@ -56,7 +56,7 @@ Private Sub cboEV_Change()
         Me.lblEV.ForeColor = 192
         Me.lblETC.ForeColor = 192
       Else
-        Call cptRefreshStatusImportTable
+        Call cptRefreshStatusImportTable(Me)
       End If
     End If
   End If
@@ -64,13 +64,13 @@ End Sub
 
 Private Sub cboFF_Change()
   If Me.Visible Then
-    If Me.ActiveControl.Name = "cboFF" Then Call cptRefreshStatusImportTable
+    If Me.ActiveControl.Name = "cboFF" Then Call cptRefreshStatusImportTable(Me)
   End If
 End Sub
 
 Private Sub cboFS_Change()
   If Me.Visible Then
-    If Me.ActiveControl.Name = "cboFS" Then Call cptRefreshStatusImportTable
+    If Me.ActiveControl.Name = "cboFS" Then Call cptRefreshStatusImportTable(Me)
   End If
 End Sub
 
@@ -79,7 +79,7 @@ Private Sub chkAppend_Click()
 End Sub
 
 Private Sub cmdDone_Click()
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub cmdImport_Click()
@@ -108,7 +108,7 @@ Private Sub cmdImport_Click()
     End If
     cptSaveSetting "StatusSheetImport", "optTaskUsage", IIf(Me.optAbove, "above", "below")
     
-    Call cptStatusSheetImport
+    cptStatusSheetImport Me
   End If
   
 End Sub
@@ -242,9 +242,9 @@ Private Sub cmdSelectFiles_Click()
         For lngItem = 1 To .SelectedItems.Count
           strFile = .SelectedItems(lngItem)
           If Dir(strFile) <> vbNullString Then
-            cptStatusSheetImport_frm.lboStatusSheets.AddItem
-            cptStatusSheetImport_frm.lboStatusSheets.List(cptStatusSheetImport_frm.lboStatusSheets.ListCount - 1, 0) = Replace(strFile, Dir(strFile), "")
-            cptStatusSheetImport_frm.lboStatusSheets.List(cptStatusSheetImport_frm.lboStatusSheets.ListCount - 1, 1) = Dir(strFile)
+            Me.lboStatusSheets.AddItem
+            Me.lboStatusSheets.List(Me.lboStatusSheets.ListCount - 1, 0) = Replace(strFile, Dir(strFile), "")
+            Me.lboStatusSheets.List(Me.lboStatusSheets.ListCount - 1, 1) = Dir(strFile)
           End If
         Next lngItem
       End If
@@ -334,9 +334,20 @@ err_here:
 End Sub
 
 Private Sub optAbove_Click()
-  Call cptRefreshStatusImportTable(Me.optBelow)
+  If Me.Visible Then Call cptRefreshStatusImportTable(Me, Me.optBelow)
 End Sub
 
 Private Sub optBelow_Click()
-  Call cptRefreshStatusImportTable(Me.optBelow)
+  If Me.Visible Then Call cptRefreshStatusImportTable(Me, Me.optBelow)
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
+Private Sub UserForm_Terminate()
+  Unload Me
 End Sub

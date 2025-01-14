@@ -6,7 +6,6 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptNetworkBrowser_frm
    ClientTop       =   330
    ClientWidth     =   9885.001
    OleObjectBlob   =   "cptNetworkBrowser_frm.frx":0000
-   ShowModal       =   0   'False
    StartUpPosition =   1  'CenterOwner
 End
 Attribute VB_Name = "cptNetworkBrowser_frm"
@@ -86,7 +85,7 @@ End Sub
 
 Private Sub cmdClose_Click()
   Set oSubMap = Nothing
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub cmdFwd_Click()
@@ -430,6 +429,13 @@ Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, 
   Call cptCore_bas.cptStartEvents
 End Sub
 
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
 Private Sub UserForm_Resize()
   
   If Me.Width < 506.25 Then 'protect minimum width
@@ -442,4 +448,8 @@ Private Sub UserForm_Resize()
     Me.Height = 345.75
   End If
   
+End Sub
+
+Private Sub UserForm_Terminate()
+  Unload Me
 End Sub

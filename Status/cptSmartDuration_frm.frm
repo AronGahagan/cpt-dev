@@ -65,7 +65,7 @@ exit_here:
 End Sub
 
 Private Sub cmdClose_Click()
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub txtTargetFinish_Change()
@@ -94,3 +94,13 @@ Private Sub txtTargetFinish_Change()
   End If
 End Sub
 
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
+Private Sub UserForm_Terminate()
+  Unload Me
+End Sub

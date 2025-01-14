@@ -2,7 +2,7 @@ Attribute VB_Name = "cptDataDictionary_bas"
 '<cpt_version>v1.4.1</cpt_version>
 Option Explicit
 
-Sub cptExportDataDictionary()
+Sub cptExportDataDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
   'objects
   Dim wsLookups As Object 'Worksheet
   Dim dFields As Scripting.Dictionary 'Object
@@ -51,7 +51,7 @@ Sub cptExportDataDictionary()
   blnLookups = MsgBox("Replicate Pick Lists in Excel?", vbQuestion + vbYesNo, "Data Dictionary") = vbYes
   
   'set up a workbook/worksheet
-  cptDataDictionary_frm.lblStatus.Caption = "Creating Excel Workbook..."
+  myDataDictionary_frm.lblStatus.Caption = "Creating Excel Workbook..."
   Set oExcel = CreateObject("Excel.Application")
   Set oWorkbook = oExcel.Workbooks.Add
   Set oWorksheet = oWorkbook.Worksheets(1)
@@ -89,7 +89,7 @@ Sub cptExportDataDictionary()
   oExcel.ActiveWindow.FreezePanes = True
   oExcel.ActiveWindow.Zoom = 85
 
-  cptDataDictionary_frm.lblStatus.Caption = "Exporting local custom fields..."
+  myDataDictionary_frm.lblStatus.Caption = "Exporting local custom fields..."
   
   blnExists = Dir(cptDir & "\settings\cpt-data-dictionary.adtg") <> vbNullString
 
@@ -230,13 +230,13 @@ Sub cptExportDataDictionary()
         
 next_field:
         lngItem = lngItem + 1
-        cptDataDictionary_frm.lblStatus.Caption = "Exporting Local Custom Fields..." & lngItem & "/" & lngItems & " (" & Format(lngItem / lngItems, "0%") & ")"
-        cptDataDictionary_frm.lblProgress.Width = (lngItem / lngItems) * cptDataDictionary_frm.lblStatus.Width
+        myDataDictionary_frm.lblStatus.Caption = "Exporting Local Custom Fields..." & lngItem & "/" & lngItems & " (" & Format(lngItem / lngItems, "0%") & ")"
+        myDataDictionary_frm.lblProgress.Width = (lngItem / lngItems) * myDataDictionary_frm.lblStatus.Width
       Next intField
     Next vFieldType
   Next vFieldScope
   
-  cptDataDictionary_frm.lblStatus.Caption = "Exporting Enterprise Custom Fields..."
+  myDataDictionary_frm.lblStatus.Caption = "Exporting Enterprise Custom Fields..."
   
   'get enterprise custom fields
   For lngField = 188776000 To 188778000
@@ -312,11 +312,11 @@ next_field:
 
     End If
     lngItem = lngItem + 1
-    cptDataDictionary_frm.lblStatus.Caption = "Exporting Enterprise Custom Fields..." & lngItem & "/" & lngItems & " (" & Format(lngItem / lngItems, "0%") & ")"
-    cptDataDictionary_frm.lblProgress.Width = (lngItem / lngItems) * cptDataDictionary_frm.lblStatus.Width
+    myDataDictionary_frm.lblStatus.Caption = "Exporting Enterprise Custom Fields..." & lngItem & "/" & lngItems & " (" & Format(lngItem / lngItems, "0%") & ")"
+    myDataDictionary_frm.lblProgress.Width = (lngItem / lngItems) * myDataDictionary_frm.lblStatus.Width
   Next lngField
     
-  cptDataDictionary_frm.lblStatus.Caption = "Formatting..."
+  myDataDictionary_frm.lblStatus.Caption = "Formatting..."
   
   'make it nice
   If blnLookups Then
@@ -345,7 +345,7 @@ next_field:
   oWorksheet.Columns(lngCol).ColumnWidth = 100
   oWorksheet.Cells(lngHeaderRow + 1, 1).Select
   
-  cptDataDictionary_frm.lblStatus.Caption = "Opening..."
+  myDataDictionary_frm.lblStatus.Caption = "Opening..."
   
 exit_here:
   On Error Resume Next
@@ -353,7 +353,7 @@ exit_here:
   If rstDictionary.State Then rstDictionary.Close
   Set rstDictionary = Nothing
   Set oLookupTable = Nothing
-  cptDataDictionary_frm.lblStatus.Caption = "Ready..."
+  myDataDictionary_frm.lblStatus.Caption = "Ready..."
   If Not oExcel Is Nothing Then oExcel.Visible = True
   Set oRange = Nothing
   Set oWorksheet = Nothing
@@ -374,6 +374,7 @@ End Sub
 
 Sub cptShowDataDictionary_frm()
   'objects
+  Dim myDataDictionary_frm As cptDataDictionary_frm
   Dim cn As ADODB.Recordset
   Dim oWorksheet As Excel.Worksheet
   Dim oWorkbook As Excel.Workbook
@@ -448,23 +449,26 @@ Sub cptShowDataDictionary_frm()
       End If
     End If
   End If
-    
-  With cptDataDictionary_frm
+  
+  Set myDataDictionary_frm = New cptDataDictionary_frm
+  With myDataDictionary_frm
     .lboCustomFields.Clear
-    Call cptRefreshDictionary
+    cptRefreshDictionary myDataDictionary_frm
     .txtFilter.SetFocus
     .Caption = "IMS Data Dictionary (" & cptGetVersion("cptDataDictionary_frm") & ")"
     .txtDescription.Enabled = False
     .chkIgnore.Enabled = False
-    If cptErrorTrapping Then
+    'If cptErrorTrapping Then
       .Show
-    Else
-      .Show (False)
-    End If
+    'Else
+    '  .Show (False)
+    'End If
   End With
   
 exit_here:
   On Error Resume Next
+  Unload myDataDictionary_frm
+  Set myDataDictionary_frm = Nothing
   Set cn = Nothing
   Set oWorksheet = Nothing
   Set oWorkbook = Nothing
@@ -478,7 +482,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptRefreshDictionary()
+Sub cptRefreshDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
   'objects
   Dim dTypes As Object 'Scripting.Dictionary
   Dim rstSaved As Object 'ADODB.Recordset
@@ -488,6 +492,7 @@ Sub cptRefreshDictionary()
   Dim strCustomName As String
   Dim strGUID As String
   'longs
+  Dim lngFieldCount As Long
   Dim lngItem As Long
   Dim lngField As Long
   Dim lngMax As Long
@@ -507,15 +512,17 @@ Sub cptRefreshDictionary()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'clear the form if it's visible
-  If cptDataDictionary_frm.Visible Then
-    cptDataDictionary_frm.lboCustomFields.Clear
-    cptDataDictionary_frm.txtFilter.Text = ""
-    cptDataDictionary_frm.txtDescription.Value = ""
-    cptDataDictionary_frm.txtDescription.Enabled = False
-    cptDataDictionary_frm.chkIgnore.Enabled = False
-    cptDataDictionary_frm.lblAlert.Caption = "-'"
-    cptDataDictionary_frm.lblAlert.Visible = False
-    cptDataDictionary_frm.lboCustomFields.Height = 128.25
+  If myDataDictionary_frm.Visible Then
+    With myDataDictionary_frm
+      .lboCustomFields.Clear
+      .txtFilter.Text = ""
+      .txtDescription.Value = ""
+      .txtDescription.Enabled = False
+      .chkIgnore.Enabled = False
+      .lblAlert.Caption = "-'"
+      .lblAlert.Visible = False
+      .lboCustomFields.Height = 128.25
+    End With
   End If
   
   'ensure project acronym
@@ -603,6 +610,10 @@ Sub cptRefreshDictionary()
             If Not .EOF Then .Delete adAffectCurrent
             .Filter = 0
           End If
+          lngFieldCount = lngFieldCount + 1
+          myDataDictionary_frm.lblStatus.Caption = "Refreshing...(" & Format(lngFieldCount / 2261, "0%") & ")"
+          myDataDictionary_frm.lblProgress.Width = (lngFieldCount / 2261) * myDataDictionary_frm.lblStatus.Width
+          DoEvents
         Next intField
       Next vFieldType
     Next vFieldScope
@@ -625,8 +636,12 @@ Sub cptRefreshDictionary()
           .Filter = ""
         End If
       End If
+      lngFieldCount = lngFieldCount + 1
+      myDataDictionary_frm.lblStatus.Caption = "Refreshing...(" & Format(lngFieldCount / 2261, "0%") & ")"
+      myDataDictionary_frm.lblProgress.Width = (lngFieldCount / 2261) * myDataDictionary_frm.lblStatus.Width
+      DoEvents
     Next lngField
-    
+    Debug.Print lngFieldCount; " fields analyzed."
     'todo: remove PROJECT_ID
     
     'save the data
@@ -644,24 +659,24 @@ Sub cptRefreshDictionary()
       .MoveFirst
       lngItem = 0
       Do While Not .EOF
-        cptDataDictionary_frm.lboCustomFields.AddItem
-        cptDataDictionary_frm.lboCustomFields.List(lngItem, 0) = .Fields("FIELD_ID")
+        myDataDictionary_frm.lboCustomFields.AddItem
+        myDataDictionary_frm.lboCustomFields.List(lngItem, 0) = .Fields("FIELD_ID")
         If .Fields("FIELD_ID") >= 188776000 Then
-          cptDataDictionary_frm.lboCustomFields.List(lngItem, 1) = .Fields("CUSTOM_NAME") & " (Enterprise)"
+          myDataDictionary_frm.lboCustomFields.List(lngItem, 1) = .Fields("CUSTOM_NAME") & " (Enterprise)"
         Else
-          cptDataDictionary_frm.lboCustomFields.List(lngItem, 1) = .Fields("CUSTOM_NAME") & " (" & .Fields("FIELD_NAME") & ")"
+          myDataDictionary_frm.lboCustomFields.List(lngItem, 1) = .Fields("CUSTOM_NAME") & " (" & .Fields("FIELD_NAME") & ")"
         End If
         If Len(.Fields("CUSTOM_NAME")) = 0 Then
           If Len(CustomFieldGetFormula(.Fields("FIELD_ID"))) > 0 Then
-            cptDataDictionary_frm.lboCustomFields.List(lngItem, 4) = "f"
+            myDataDictionary_frm.lboCustomFields.List(lngItem, 4) = "f"
           End If
           blnHasPickList = False
           On Error Resume Next
           blnHasPickList = Len(CustomFieldValueListGetItem(lngField, pjValueListValue, 1)) > 0
           If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         End If
-        cptDataDictionary_frm.lboCustomFields.List(lngItem, 2) = .Fields("DESCRIPTION")
-        cptDataDictionary_frm.lboCustomFields.List(lngItem, 3) = CBool(.Fields("IGNORE"))
+        myDataDictionary_frm.lboCustomFields.List(lngItem, 2) = .Fields("DESCRIPTION")
+        myDataDictionary_frm.lboCustomFields.List(lngItem, 3) = CBool(.Fields("IGNORE"))
         .MoveNext
         lngItem = lngItem + 1
       Loop
@@ -671,6 +686,7 @@ Sub cptRefreshDictionary()
   
 exit_here:
   On Error Resume Next
+  myDataDictionary_frm.lblStatus.Caption = "Ready..."
   Set dTypes = Nothing
   If rstSaved.State = 1 Then rstSaved.Close
   Set rstSaved = Nothing
@@ -681,7 +697,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptImportDataDictionary(Optional strFile As String)
+Sub cptImportDataDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm, Optional strFile As String)
   'objects
   Dim rstSaved As ADODB.Recordset
   Dim oExcel As Object
@@ -798,7 +814,7 @@ skip_that:
         Else
           .AddNew Array(0, 1, 2, 3, 4, 5), Array(strGUID, lngFieldID, strFieldName, strCustomName, strDescription, strProject)
         End If
-        With cptDataDictionary_frm
+        With myDataDictionary_frm
           .lblStatus.Caption = "Resetting...(" & Format((lngRow - 1) / (lngLastRow - 1), "0%") & ")"
           .lblProgress.Width = .lblStatus.Width * ((lngRow - 1) / (lngLastRow - 1))
           DoEvents
@@ -810,8 +826,8 @@ skip_that:
       If Dir(strSavedSettings) <> vbNullString Then Kill strSavedSettings
       .Save strSavedSettings, adPersistADTG
       .Close
-      cptDataDictionary_frm.lblStatus.Caption = "Data Dictionary Reset."
-      cptRefreshDictionary
+      myDataDictionary_frm.lblStatus.Caption = "Data Dictionary Reset."
+      cptRefreshDictionary myDataDictionary_frm
       GoTo exit_here
     End With
   End If
@@ -823,7 +839,7 @@ skip_that:
   lngDescriptionCol = oWorksheet.Rows(lngHeaderRow).Find("Description", lookat:=1).Column
   
   'get saved dictionary settings
-  If Dir(strSavedSettings) = vbNullString Then Call cptRefreshDictionary
+  If Dir(strSavedSettings) = vbNullString Then Call cptRefreshDictionary(myDataDictionary_frm)
   
   With rstSaved
     .Open strSavedSettings
@@ -924,7 +940,7 @@ next_row2:
   End With
   
   If lngNew > 0 Then
-    Call cptRefreshDictionary
+    cptRefreshDictionary myDataDictionary_frm
     MsgBox Format(lngNew, "#,##0") & " entries updated.", vbInformation + vbOKOnly, "Import Complete"
   Else
     MsgBox "No updates found.", vbInformation + vbOKOnly, "Import Skipped"
@@ -932,7 +948,7 @@ next_row2:
   
 exit_here:
   On Error Resume Next
-  cptDataDictionary_frm.lblStatus.Caption = "Ready..."
+  myDataDictionary_frm.lblStatus.Caption = "Ready..."
   If rstSaved.State Then rstSaved.Close
   Set rstSaved = Nothing
   Set oRange = Nothing

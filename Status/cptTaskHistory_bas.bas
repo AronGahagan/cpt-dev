@@ -5,6 +5,7 @@ Public oTaskHistory As ADODB.Recordset
 
 Sub cptShowTaskHistory_frm()
   'objects
+  Dim myTaskHistory_frm As cptTaskHistory_frm
   'strings
   Dim strProgramAcronym As String
   Dim strFile As String
@@ -34,22 +35,24 @@ Sub cptShowTaskHistory_frm()
   'ensure NOTE field exists
   blnFieldExists = True
   On Error Resume Next
-  Debug.Print oTaskHistory.Fields("NOTE")
+  Debug.Print oTaskHistory.Fields("NOTE") 'keep
   If Err.Number = 3265 Then blnFieldExists = False
   If Not blnFieldExists Then
     oTaskHistory.Close
     cptAppendColumn strFile, "NOTE", 203, 500 '203=adLongVarWChar
     oTaskHistory.Open strFile
   End If
-  Call cptUpdateTaskHistory
-  With cptTaskHistory_frm
+  Set myTaskHistory_frm = New cptTaskHistory_frm
+  cptUpdateTaskHistory myTaskHistory_frm
+  With myTaskHistory_frm
     .Caption = "Task History (" & cptGetVersion("cptTaskHistory_bas") & ")"
     .Show False
   End With
   
 exit_here:
   On Error Resume Next
-
+  Set myTaskHistory_frm = Nothing
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptTaskHistory_bas", "cptShowTaskHistory_frm", Err, Erl)
@@ -57,7 +60,7 @@ err_here:
 
 End Sub
 
-Sub cptUpdateTaskHistory()
+Sub cptUpdateTaskHistory(ByRef myTaskHistory_frm As cptTaskHistory_frm)
   'objects
   Dim oTasks As Object
   'strings
@@ -76,13 +79,13 @@ Sub cptUpdateTaskHistory()
   
   On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
-  cptTaskHistory_frm.lblWarning.Visible = False
+  myTaskHistory_frm.lblWarning.Visible = False
   If oTasks Is Nothing Then
-    cptTaskHistory_frm.lngTaskHistoryUID = 0
-    cptTaskHistory_frm.lboTaskHistory.Clear
-    cptTaskHistory_frm.txtVariance = ""
-    cptTaskHistory_frm.lblWarning.Caption = "Nothing selected"
-    cptTaskHistory_frm.lblWarning.Visible = True
+    myTaskHistory_frm.lngTaskHistoryUID = 0
+    myTaskHistory_frm.lboTaskHistory.Clear
+    myTaskHistory_frm.txtVariance = ""
+    myTaskHistory_frm.lblWarning.Caption = "Nothing selected"
+    myTaskHistory_frm.lblWarning.Visible = True
     GoTo exit_here
   End If
   
@@ -90,7 +93,7 @@ Sub cptUpdateTaskHistory()
   
   strProgramAcronym = cptGetProgramAcronym
   
-  With cptTaskHistory_frm
+  With myTaskHistory_frm
     .lboHeader.Clear
     .lboHeader.ColumnCount = 7
     .lboHeader.AddItem
@@ -202,7 +205,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptUpdateTaskHistoryNote(lngUID As Long, dtStatus As Date, strVariance As String)
+Sub cptUpdateTaskHistoryNote(ByRef myTaskHistory_frm As cptTaskHistory_frm, lngUID As Long, dtStatus As Date, strVariance As String)
   'objects
   'strings
   Dim strFile As String
@@ -225,7 +228,7 @@ Sub cptUpdateTaskHistoryNote(lngUID As Long, dtStatus As Date, strVariance As St
     'todo: do what if Filter > .EOF=TRUE
   End If
   
-  With cptTaskHistory_frm
+  With myTaskHistory_frm
     If Len(strVariance) = 0 Then
       .lboTaskHistory.List(.lboTaskHistory.ListIndex, 6) = ""
     ElseIf Len(strVariance) > 10 Then
@@ -250,7 +253,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptGetTaskHistoryNote(dtStatus As Date, lngUID As Long)
+Sub cptGetTaskHistoryNote(ByRef myTaskHistory_frm As cptTaskHistory_frm, dtStatus As Date, lngUID As Long)
   'objects
   'strings
   'longs
@@ -261,7 +264,7 @@ Sub cptGetTaskHistoryNote(dtStatus As Date, lngUID As Long)
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  With cptTaskHistory_frm
+  With myTaskHistory_frm
     .txtVariance = ""
     oTaskHistory.MoveFirst
     oTaskHistory.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND TASK_UID=" & lngUID & " AND STATUS_DATE=#" & FormatDateTime(dtStatus, vbGeneralDate) & "#"
@@ -280,7 +283,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptExportTaskHistory(Optional lngUID As Long, Optional blnNotesOnly As Boolean = False)
+Sub cptExportTaskHistory(ByRef myTaskHistory_frm As cptTaskHistory_frm, Optional lngUID As Long, Optional blnNotesOnly As Boolean = False)
   'objects
   Dim oWorksheet As Excel.Worksheet
   Dim oWorkbook As Excel.Workbook
@@ -342,12 +345,13 @@ Sub cptExportTaskHistory(Optional lngUID As Long, Optional blnNotesOnly As Boole
     oWorksheet.Columns.AutoFit
     oWorksheet.[A4].Select
     oExcel.Visible = True
+    Application.ActivateMicrosoftApp pjMicrosoftExcel
     oExcel.ScreenUpdating = True
     oExcel.ActiveWindow.FreezePanes = True
     Application.StatusBar = "...done."
   Else
-    cptTaskHistory_frm.lblWarning.Caption = "No records found."
-    cptTaskHistory_frm.lblWarning.Visible = True
+    myTaskHistory_frm.lblWarning.Caption = "No records found."
+    myTaskHistory_frm.lblWarning.Visible = True
   End If
   
 exit_here:

@@ -13,12 +13,11 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 '<cpt_version>v1.3.0</cpt_version>
 Option Explicit
 
 Private Sub cmdDone_Click()
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub cmdEdit_Click()
@@ -27,7 +26,6 @@ Dim strMsg As String
   strMsg = strMsg & "Contact cpt@ClearPlanConsulting.com if you need help." & vbCrLf & vbCrLf
   strMsg = strMsg & "Do you still wish to venture forth?"
   If MsgBox(strMsg, vbCritical + vbYesNo, "Do Not Attempt This...") = vbYes Then
-    Unload Me
     MsgBox "...you've been warned.", vbInformation + vbOKOnly, "OK"
     Shell "C:\Windows\notepad.exe '" & cptDir & "\settings\cpt-settings.ini" & "'", vbNormalFocus
   End If
@@ -61,7 +59,7 @@ Private Sub cmdSetProgramAcronym_Click()
     strOld = oDocProp.Value
     strNew = Me.txtProgramAcronym
     oDocProp.Value = strNew
-    lngResponse = MsgBox("Also replace all instances of '" & strOld & "' with '" & strNew & "' in stored program data and settings (CEI, Data Dictionary, Marked tasks, and Metrics)?" & vbCrLf & vbCrLf & "Hit Cancel to ignore all updates.", vbQuestion + vbYesNoCancel, "Confirm Overwrite")
+    lngResponse = MsgBox("Also replace all instances of '" & strOld & "' with '" & strNew & "' in stored program data and settings (CEI, Data Dictionary, Marked tasks, Metrics, and QBD)?" & vbCrLf & vbCrLf & "Hit Cancel to ignore all updates.", vbQuestion + vbYesNoCancel, "Confirm Overwrite")
     Select Case lngResponse
       Case vbYes
         Set oRecordset = CreateObject("ADODB.Recordset")
@@ -162,7 +160,7 @@ Private Sub cmdSetProgramAcronym_Click()
         End If
         MsgBox strUpdated, vbInformation + vbOKOnly, "Data Files Updated"
       Case vbNo
-        If MsgBox("CEI, Data Dictionary, Marked tasks, and Metrics entries associated with '" & strOld & "' will be disconnected from this project file. Are you sure you wish to proceed?", vbQuestion + vbYesNo) = vbNo Then
+        If MsgBox("CEI, Data Dictionary, Marked tasks, Metrics, and QBD entries associated with '" & strOld & "' will be disconnected from this project file. Are you sure you wish to proceed?", vbQuestion + vbYesNo) = vbNo Then
           oDocProp.Value = strOld
           Me.txtProgramAcronym.Value = strOld
         End If
@@ -255,10 +253,18 @@ Sub tglErrorTrapping_Click()
   End If
 End Sub
 
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
 Private Sub UserForm_Terminate()
   Dim strFile As String
   strFile = cptDir & "\settings\cpt-settings.adtg"
   If Dir(strFile) <> vbNullString Then Kill strFile
+  Unload Me
 End Sub
 
 Sub cptUpdateSetting(strFeature As String, strKey As String, strVal As String)

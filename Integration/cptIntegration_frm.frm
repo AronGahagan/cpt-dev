@@ -487,6 +487,9 @@ Private Sub txtRollingWave_Exit(ByVal Cancel As MSForms.ReturnBoolean)
 End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
-  If CloseMode = 1 Then Me.blnValidIntegrationMap = False
-  If Cancel = 1 Then Me.blnValidIntegrationMap = False
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.blnValidIntegrationMap = False
+    Me.Hide
+    Cancel = True
+  End If
 End Sub

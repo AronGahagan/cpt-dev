@@ -36,7 +36,7 @@ Private Sub cmdDone_Click()
   Dim vGroup As Variant
   Dim strGroups As String
   
-  Unload Me
+  Me.Hide
   'then clean up after yourself
   For Each vFile In Split("Schema.ini,tasks.csv,targets.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv,06A504a.csv,06A504b.csv,segregated.csv,itemized.csv", ",")
     strFile = Environ("tmp") & "\" & vFile

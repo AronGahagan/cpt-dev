@@ -222,7 +222,7 @@ Dim dtConstraintDate As Date
   If oTask Is Nothing Then GoTo exit_here
   If oTask.Summary Then GoTo exit_here
   If Not oTask.Active Then GoTo exit_here
-  HighlightDrivingPredecessors Set:=True
+  HighlightDrivingPredecessors set:=True
   For Each oPred In ActiveProject.Tasks
     If oPred.PathDrivingPredecessor Then
       If IsDate(oPred.ActualStart) Then
@@ -682,6 +682,7 @@ End Function
 
 Sub cptCaptureWeek()
   'objects
+  Dim myTaskHistory_frm As cptTaskHistory_frm
   Dim oNotes As Scripting.Dictionary
   Dim oTasks As MSProject.Tasks
   Dim oTask As MSProject.Task
@@ -707,14 +708,15 @@ Sub cptCaptureWeek()
   'dates
   Dim dtStatus As Date
   
+  On Error Resume Next
+  Set myTaskHistory_frm = cptGetUserForm("cptTaskHistory_frm")
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  
-  If Not cptGetUserForm("cptTaskHistory_frm") Is Nothing Then
+  If Not myTaskHistory_frm Is Nothing Then
     blnReopenTaskHistory = True
-    lngTop = cptTaskHistory_frm.Top
-    lngLeft = cptTaskHistory_frm.Left
-    lngSelectedUID = cptTaskHistory_frm.lngTaskHistoryUID
-    Unload cptTaskHistory_frm
+    lngTop = myTaskHistory_frm.Top
+    lngLeft = myTaskHistory_frm.Left
+    lngSelectedUID = myTaskHistory_frm.lngTaskHistoryUID
+    Unload myTaskHistory_frm
   End If
   
   'ensure status date
@@ -842,14 +844,16 @@ do_not_overwrite:
   If blnReopenTaskHistory Then
     Application.ScreenUpdating = False
     Call cptShowTaskHistory_frm
-    cptTaskHistory_frm.Top = lngTop
-    cptTaskHistory_frm.Left = lngLeft
+    Set myTaskHistory_frm = cptGetUserForm("cptTaskHistory_frm")
+    myTaskHistory_frm.Top = lngTop
+    myTaskHistory_frm.Left = lngLeft
     EditGoTo ActiveProject.Tasks.UniqueID(lngSelectedUID).ID
     Application.ScreenUpdating = True
   End If
   
 exit_here:
   On Error Resume Next
+  Set myTaskHistory_frm = Nothing
   Set oNotes = Nothing
   Application.StatusBar = ""
   Set oTasks = Nothing
@@ -2927,6 +2931,7 @@ End Sub
 
 Sub cptShowMetricsData_frm()
   'objects
+  Dim myMetricsData_frm As cptMetricsData_frm
   Dim oRecordset As ADODB.Recordset 'Object
   'strings
   Dim strPrograms As String
@@ -2968,34 +2973,35 @@ Sub cptShowMetricsData_frm()
       End If
       .MoveNext
     Loop
-    cptMetricsData_frm.Caption = "cpt Metrics Data (" & cptGetVersion("cptMetricsData_frm") & ")"
-    'cptMetricsData_frm.lblDir.Caption = strFile
+    Set myMetricsData_frm = New cptMetricsData_frm
+    myMetricsData_frm.Caption = "cpt Metrics Data (" & cptGetVersion("cptMetricsData_frm") & ")"
+    'myMetricsData_frm.lblDir.Caption = strFile
     .MoveFirst
     .Sort = "STATUS_DATE DESC"
     .Filter = "PROGRAM='" & strProgram & "'"
     If Not .EOF Then
       'populate headers
-      cptMetricsData_frm.lboHeader.AddItem
+      myMetricsData_frm.lboHeader.AddItem
       For lngItem = 0 To .Fields.Count - 1
-        cptMetricsData_frm.lboHeader.List(cptMetricsData_frm.lboHeader.ListCount - 1, lngItem) = .Fields(lngItem).Name
+        myMetricsData_frm.lboHeader.List(myMetricsData_frm.lboHeader.ListCount - 1, lngItem) = .Fields(lngItem).Name
       Next lngItem
       'populate data
       .MoveFirst
       Do While Not .EOF
-        cptMetricsData_frm.lboMetricsData.AddItem
-        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 0) = .Fields(0)
-        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 1) = .Fields(1)
-        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 2) = .Fields(2)
-        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 3) = .Fields(3)
-        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 4) = .Fields(4)
-        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 5) = .Fields(5)
-        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 6) = .Fields(6)
-        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 7) = .Fields(7)
-        cptMetricsData_frm.lboMetricsData.List(cptMetricsData_frm.lboMetricsData.ListCount - 1, 8) = IIf(CLng(.Fields(8)) = 0, "-", .Fields(8))
+        myMetricsData_frm.lboMetricsData.AddItem
+        myMetricsData_frm.lboMetricsData.List(myMetricsData_frm.lboMetricsData.ListCount - 1, 0) = .Fields(0)
+        myMetricsData_frm.lboMetricsData.List(myMetricsData_frm.lboMetricsData.ListCount - 1, 1) = .Fields(1)
+        myMetricsData_frm.lboMetricsData.List(myMetricsData_frm.lboMetricsData.ListCount - 1, 2) = .Fields(2)
+        myMetricsData_frm.lboMetricsData.List(myMetricsData_frm.lboMetricsData.ListCount - 1, 3) = .Fields(3)
+        myMetricsData_frm.lboMetricsData.List(myMetricsData_frm.lboMetricsData.ListCount - 1, 4) = .Fields(4)
+        myMetricsData_frm.lboMetricsData.List(myMetricsData_frm.lboMetricsData.ListCount - 1, 5) = .Fields(5)
+        myMetricsData_frm.lboMetricsData.List(myMetricsData_frm.lboMetricsData.ListCount - 1, 6) = .Fields(6)
+        myMetricsData_frm.lboMetricsData.List(myMetricsData_frm.lboMetricsData.ListCount - 1, 7) = .Fields(7)
+        myMetricsData_frm.lboMetricsData.List(myMetricsData_frm.lboMetricsData.ListCount - 1, 8) = IIf(CLng(.Fields(8)) = 0, "-", .Fields(8))
         .MoveNext
       Loop
-      cptMetricsData_frm.lboMetricsData.Top = cptMetricsData_frm.lboHeader.Top + cptMetricsData_frm.lboHeader.Height
-      cptMetricsData_frm.Show
+      myMetricsData_frm.lboMetricsData.Top = myMetricsData_frm.lboHeader.Top + myMetricsData_frm.lboHeader.Height
+      myMetricsData_frm.Show
     Else
       MsgBox "No records found for Program '" & strProgram & "'", vbExclamation + vbOKOnly, "No Records Found"
       GoTo exit_here
@@ -3005,7 +3011,9 @@ Sub cptShowMetricsData_frm()
 exit_here:
   On Error Resume Next
   Set oRecordset = Nothing
-
+  Unload myMetricsData_frm
+  Set myMetricsData_frm = Nothing
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptMetrics_bas", "cptShowMetricsData_frm", Err, Erl)

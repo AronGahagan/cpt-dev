@@ -17,7 +17,7 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Private Sub cmdCancel_Click()
-  Unload Me
+  Me.Hide
 End Sub
 
 Sub cmdDoIt_Click()
@@ -58,11 +58,11 @@ Sub cmdDoIt_Click()
     lngSettings = lngSettings + 2
   End If
   If Me.chkSummaries Then
-    OptionsViewEx displaysummarytasks:=True
+    OptionsViewEx DisplaySummaryTasks:=True
     lngSettings = lngSettings + 4
   End If
   'outline options
-  OptionsViewEx displaysummarytasks:=True
+  OptionsViewEx DisplaySummaryTasks:=True
   On Error Resume Next
   blnApplyOutlineLevel = True
   If Not OutlineShowAllTasks Then
@@ -85,18 +85,18 @@ Sub cmdDoIt_Click()
   
   If Me.optShowAllTasks Then
     If ActiveProject.Subprojects.Count > 0 Then
-      OptionsViewEx displaysummarytasks:=True
+      OptionsViewEx DisplaySummaryTasks:=True
       If Not Me.chkFilter Then
         strFilter = ActiveProject.CurrentFilter
       End If
       FilterClear
       SelectAll
       OutlineShowAllTasks
-      If Not Me.chkSummaries Then OptionsViewEx displaysummarytasks:=False
+      If Not Me.chkSummaries Then OptionsViewEx DisplaySummaryTasks:=False
       If Len(strFilter) > 0 Then FilterApply strFilter
     End If
     If Not Me.chkSummaries Then
-      OptionsViewEx displaysummarytasks:=False
+      OptionsViewEx DisplaySummaryTasks:=False
     End If
     lngSettings = lngSettings + 8
   ElseIf Me.optOutlineLevel Then
@@ -118,7 +118,7 @@ Sub cmdDoIt_Click()
     lngSettings = lngSettings + 32
   End If
   If Me.chkIndent Then
-    OptionsViewEx displaynameindent:=True
+    OptionsViewEx DisplayNameIndent:=True
     lngSettings = lngSettings + 64
   End If
   If Me.chkOutlineSymbols Then
@@ -131,7 +131,7 @@ Sub cmdDoIt_Click()
 exit_here:
   On Error Resume Next
   cptSpeed False
-  Unload Me
+  Me.Hide
   Exit Sub
 err_here:
   Call cptHandleErr("cptResetAll_frm", "cmdDoIt_Click", Err, Erl)
@@ -144,4 +144,15 @@ End Sub
 
 Private Sub optShowAllTasks_Click()
   Me.cboOutlineLevel.Enabled = False
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
+Private Sub UserForm_Terminate()
+  Unload Me
 End Sub

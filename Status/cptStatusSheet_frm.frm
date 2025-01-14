@@ -37,8 +37,8 @@ Private Sub cboCostTool_Change()
   If Not oEVTs Is Nothing Then
     If oEVTs.Count > 0 Then oEVTs.RemoveAll
   End If
-  If Not IsNull(cptStatusSheet_frm.cboCostTool.Value) Then
-    If cptStatusSheet_frm.cboCostTool.Value = "COBRA" Then
+  If Not IsNull(Me.cboCostTool.Value) Then
+    If Me.cboCostTool.Value = "COBRA" Then
       oEVTs.Add "A", "Level of Effort"
       oEVTs.Add "B", "Milestones"
       oEVTs.Add "C", "% Complete"
@@ -54,7 +54,7 @@ Private Sub cboCostTool_Change()
       oEVTs.Add "N", "Steps"
       oEVTs.Add "O", "Earned As Spent"
       oEVTs.Add "P", "% Complete Manual Entry"
-    ElseIf cptStatusSheet_frm.cboCostTool.Value = "MPM" Then
+    ElseIf Me.cboCostTool.Value = "MPM" Then
       oEVTs.Add "0", "No EVM required"
       oEVTs.Add "1", "0/100"
       oEVTs.Add "2", "25/75"
@@ -106,7 +106,7 @@ Private Sub cboCreate_Change()
       Me.chkAllItems.Enabled = False
       FilterClear
       If Not cptFilterExists("cptStatusSheet Filter") Then
-        Call cptRefreshStatusTable
+        cptRefreshStatusTable Me
       End If
       
     Case 1 'A worksheet for each
@@ -275,7 +275,7 @@ Private Sub chkAssignments_Click()
     Me.chkAllowAssignmentNotes.Enabled = False
   End If
   
-  Call cptRefreshStatusTable(True)
+  Call cptRefreshStatusTable(Me, True)
   
 exit_here:
   On Error Resume Next
@@ -309,7 +309,7 @@ Private Sub chkHide_Click()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Me.txtHideCompleteBefore.Enabled = Me.chkHide
-  Call cptRefreshStatusTable(False, True)
+  Call cptRefreshStatusTable(Me, False, True)
   
 exit_here:
   On Error Resume Next
@@ -322,7 +322,7 @@ err_here:
 End Sub
 
 Private Sub chkIgnoreLOE_Click()
-  Call cptRefreshStatusTable(False, True)
+  Call cptRefreshStatusTable(Me, False, True)
 End Sub
 
 Private Sub chkKeepOpen_Click()
@@ -344,7 +344,7 @@ Private Sub chkLookahead_Click()
     Me.txtLookaheadDays.Enabled = False
     Me.txtLookaheadDate = ""
     Me.txtLookaheadDate.Enabled = False
-    Call cptRefreshStatusTable(False, True)
+    Call cptRefreshStatusTable(Me, False, True)
   End If
 End Sub
 
@@ -368,7 +368,7 @@ Private Sub chkSendEmails_Click()
       Me.txtCC = strCC
     End If
     
-    Call cptListQuickParts(True)
+    Call cptListQuickParts(Me, True)
     strQuickPart = cptGetSetting("StatusSheet", "cboQuickPart")
     If Len(strQuickPart) > 0 Then
       blnExists = False
@@ -457,7 +457,7 @@ Sub cmdAdd_Click()
 next_item:
   Next lngField
 
-  Call cptRefreshStatusTable
+  cptRefreshStatusTable Me
 
 exit_here:
   On Error Resume Next
@@ -491,7 +491,7 @@ Private Sub cmdAddAll_Click()
 next_item:
   Next lngField
 
-  Call cptRefreshStatusTable
+  cptRefreshStatusTable Me
 
 exit_here:
   On Error Resume Next
@@ -512,7 +512,7 @@ Private Sub cmdCancel_Click()
   If Dir(strFileName) <> vbNullString Then Kill strFileName
   If Not oEVTs Is Nothing Then oEVTs.RemoveAll
   Set oEVTs = Nothing
-  Unload Me
+  Me.Hide
 
 exit_here:
   On Error Resume Next
@@ -553,7 +553,7 @@ Private Sub cmdDown_Click()
     End If
   Next lngExport
 
-  If blnSelected Then Call cptRefreshStatusTable
+  If blnSelected Then cptRefreshStatusTable Me
 
 exit_here:
   On Error Resume Next
@@ -576,7 +576,7 @@ Private Sub cmdRemove_Click()
     End If
   Next lngExport
 
-  Call cptRefreshStatusTable
+  cptRefreshStatusTable Me
 
 exit_here:
   On Error Resume Next
@@ -597,7 +597,7 @@ Private Sub cmdRemoveAll_Click()
     Me.lboExport.RemoveItem lngExport
   Next lngExport
 
-  Call cptRefreshStatusTable
+  cptRefreshStatusTable Me
 
 exit_here:
   On Error Resume Next
@@ -763,10 +763,10 @@ next_dir:
     Me.lblStatus.Caption = " Please complete all required fields."
   Else
     'save settings
-    Call cptSaveStatusSheetSettings
+    cptSaveStatusSheetSettings Me
     'create the sheet
     Application.DefaultDateFormat = pjDate_mm_dd_yyyy
-    Call cptCreateStatusSheet
+    cptCreateStatusSheet Me
   End If
 
 exit_here:
@@ -809,7 +809,7 @@ Private Sub cmdUp_Click()
     End If
   Next lngExport
   
-  If blnSelected Then Call cptRefreshStatusTable
+  If blnSelected Then cptRefreshStatusTable Me
 
 exit_here:
   On Error Resume Next
@@ -928,7 +928,7 @@ Private Sub SpinButton1_SpinDown()
     End If
   Next lngExport
 
-  If blnSelected Then Call cptRefreshStatusTable
+  If blnSelected Then cptRefreshStatusTable Me
 
 exit_here:
   On Error Resume Next
@@ -969,7 +969,7 @@ Private Sub SpinButton1_SpinUp()
     End If
   Next lngExport
   
-  If blnSelected Then Call cptRefreshStatusTable
+  If blnSelected Then cptRefreshStatusTable Me
 
 exit_here:
   On Error Resume Next
@@ -1029,8 +1029,8 @@ Private Sub stxtSearch_Enter()
     .Fields.Append "Custom Field Name", 200, 100 '200=adVarChar
     .Fields.Append "Local Field Name", 200, 100 '200=adVarChar
     .Open
-    For lngField = 0 To cptStatusSheet_frm.lboFields.ListCount - 1
-      .AddNew Array(0, 1, 2), Array(Me.lboFields.List(lngField, 0), cptStatusSheet_frm.lboFields.List(lngField, 1), cptStatusSheet_frm.lboFields.List(lngField, 2))
+    For lngField = 0 To Me.lboFields.ListCount - 1
+      .AddNew Array(0, 1, 2), Array(Me.lboFields.List(lngField, 0), Me.lboFields.List(lngField, 1), Me.lboFields.List(lngField, 2))
     Next lngField
     .Update
     .Save strFileName
@@ -1317,7 +1317,7 @@ Private Sub txtLookaheadDate_Change()
         Me.lblLookaheadWeekday.Visible = True
         Me.lblLookaheadWeekday.Caption = Format(CDate(Me.txtLookaheadDate.Text), "dddd")
         Me.Repaint
-        Call cptRefreshStatusTable(False, True)
+        Call cptRefreshStatusTable(Me, False, True)
       End If
       Me.Repaint
     End If
@@ -1362,7 +1362,7 @@ Private Sub txtLookaheadDays_Change()
     Me.txtLookaheadDate.ForeColor = lngForeColorValid
     Me.lblLookaheadWeekday.Visible = True
     Me.lblLookaheadWeekday.Caption = Format(Me.txtLookaheadDate, "dddd")
-    Call cptRefreshStatusTable(False, True)
+    Call cptRefreshStatusTable(Me, False, True)
   Else
     Me.txtLookaheadDate = ""
     Me.txtLookaheadDate.BorderColor = lngBorderColorValid
@@ -1395,7 +1395,7 @@ End Sub
 Private Sub txtNotesColTitle_Change()
   If Not Me.Visible Then Exit Sub
   'todo: ensure column name uniqueness
-  Stop
+
 End Sub
 
 Private Sub txtNotesColTitle_DropButtonClick()
@@ -1560,4 +1560,11 @@ Private Sub UserForm_Initialize()
   Me.lblSubjectPreview.Visible = False
   Me.lblLookaheadWeekday.Visible = False
   Me.txtStatusDate.SetFocus
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
 End Sub
