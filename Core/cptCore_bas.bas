@@ -744,10 +744,13 @@ Sub cptShowResetAll_frm()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
+  Dim vViewList As Variant
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   '===
   'Validate users selected view type
@@ -780,11 +783,11 @@ Sub cptShowResetAll_frm()
 '        Debug.Print oView.Screen & vbTab & Choose(oView.Screen, "pjGantt", "pjNetworkDiagram", "pjRelationshipDiagram", "pjTaskForm", "pjTaskSheet", "pjResourceForm", "pjResourceSheet", "pjResourceGraph", "pjRSVDoNotUse", "pjTaskDetailsForm", "pjTaskNameForm", "pjResourceNameForm", "pjCalendar", "pjTaskUsage", "pjResourceUsage", "pjTimeline", "pjResourceScheduling")
       End If
     End If
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   Next oView
   Set oView = Nothing
   strViewList = Left(strViewList, Len(strViewList) - 1)
-  Dim vViewList As Variant
+  
   vViewList = Split(strViewList, ",")
   cptQuickSort vViewList, 0, UBound(vViewList)
   myResetAll_frm.cboViews.List = Split("<None>," & Join(vViewList, ","), ",")
@@ -1351,10 +1354,12 @@ Sub cptWrapItUp(Optional lngOutlineLevel As Long)
   'longs
   Dim lngLevel As Long
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   '===
   'Validate users selected view type
@@ -1398,7 +1403,7 @@ Sub cptWrapItUp(Optional lngOutlineLevel As Long)
       GoTo exit_here
     End If
   End If
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   OutlineShowTasks pjTaskOutlineShowLevelMax
   'pjTaskOutlineShowLevelMax = 65,535 = do not use
@@ -1883,12 +1888,14 @@ Function cptGetMyHeaders(strTitle As String, Optional blnRequired As Boolean = F
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   Dim vResponse As Variant
   Dim vMyHeader As Variant
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
 try_again:
   'get other fields
@@ -1939,7 +1946,7 @@ try_again:
       End If
     End If
   Next vMyHeader
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   cptSaveSetting "Metrics", "txtMyHeaders", strMyHeaders
 
@@ -2057,10 +2064,12 @@ Sub cptAppendColumn(strFile As String, strColumn As String, lngType As Long, Opt
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Set oRecordset = CreateObject("ADODB.Recordset")
   Set oRecordsetNew = CreateObject("ADODB.Recordset")
@@ -2070,10 +2079,10 @@ Sub cptAppendColumn(strFile As String, strColumn As String, lngType As Long, Opt
   Debug.Print oRecordset.Fields(strColumn)
   If Err.Number = 0 Then 'field already exists
     Err.Clear
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     GoTo exit_here
   End If
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   'first rebuld the existing fields
   For lngField = 0 To oRecordset.Fields.Count - 1
     With oRecordsetNew
@@ -2479,6 +2488,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   Dim blnUseDefault As Boolean
   Dim blnValid As Boolean
   'variants
@@ -2487,8 +2497,9 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
   Dim vFields As Variant
   Dim vControl As Variant
   'dates
-    
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   blnValid = True
   
