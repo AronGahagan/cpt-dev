@@ -346,16 +346,18 @@ Private Sub txtReplacement_Change()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   strOutlineCode = CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oLookupTable Is Nothing Then GoTo exit_here
   If Len(Me.txtReplace.Text) > 0 Then
     If Len(Me.txtReplacement.Text) > 0 Then
@@ -382,8 +384,11 @@ End Sub
 Private Sub txtNameIt_Change()
   'longs
   Dim lngField As Long
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  'booleans
+  Dim blnErrorTrapping As Boolean
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'reset to default
   Me.txtNameIt.BorderColor = -2147483642
@@ -394,7 +399,7 @@ Private Sub txtNameIt_Change()
   lngField = 0
   On Error Resume Next
   lngField = FieldNameToFieldConstant(Me.txtNameIt.Text)
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If lngField <> 0 Then 'exists
     If FieldNameToFieldConstant(Me.txtNameIt.Text) <> CLng(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0)) Then
       Me.txtNameIt.BorderColor = 255

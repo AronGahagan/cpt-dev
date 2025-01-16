@@ -617,16 +617,18 @@ Sub cptExportOutlineCodeToExcel(ByRef myBackbone_frm As cptBackbone_frm, lngOutl
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
 
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   strOutlineCode = CustomFieldGetName(lngOutlineCode)
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If oLookupTable Is Nothing Then
     MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbCritical + vbOKOnly, "No Code Defined"
@@ -771,10 +773,12 @@ Sub cptExport81334D(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode As L
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'get outline code name and export it
   myBackbone_frm.lblStatus.Caption = "Exporting..."
@@ -782,7 +786,7 @@ Sub cptExport81334D(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode As L
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oLookupTable Is Nothing Then
     MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbCritical + vbOKOnly, "No Code Defined"
     GoTo exit_here
@@ -1144,15 +1148,17 @@ Sub cptRefreshOutlineCodePreview(ByRef myBackbone_frm As cptBackbone_frm, strOut
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   strOutlineCode = Replace(Replace(strOutlineCode, cptRegEx(strOutlineCode, "Outline Code[0-9]{1,}") & " (", ""), ")", "")
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oLookupTable Is Nothing Then
     If oLookupTable.Count > 0 Then
       lngEntries = oLookupTable.Count
@@ -1204,15 +1210,17 @@ Sub cptExportOutlineCodeForMPM(ByRef myBackbone_frm As cptBackbone_frm, lngOutli
   Dim strCode As String, strDescription As String, strParent As String
   Dim strDir As String, strFile As String, strOutlineCode As String
   'booleans
+  Dim blnErrorTrapping As Boolean
   Dim blnCA As Boolean
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'confirm lookuptable exists
   Set oOutlineCode = ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode))
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oLookupTable Is Nothing Then
     strOutlineCode = CustomFieldGetName(lngOutlineCode)
     MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbExclamation + vbOKOnly, "No LookupTable"
@@ -1340,16 +1348,19 @@ Sub cptExportOutlineCodeForCOBRA(ByRef myBackbone_frm As cptBackbone_frm, lngOut
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
+  Dim blnIncludeThresholds As Boolean
   'variants
   'dates
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'confirm lookuptable exists
   Set oOutlineCode = ActiveProject.OutlineCodes(CustomFieldGetName(lngOutlineCode))
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oLookupTable Is Nothing Then
     strOutlineCode = CustomFieldGetName(lngOutlineCode)
     MsgBox "There is no LookupTable associated with " & FieldConstantToFieldName(lngOutlineCode) & IIf(Len(strOutlineCode) > 0, " (" & strOutlineCode & ")", "") & ".", vbExclamation + vbOKOnly, "No LookupTable"
@@ -1365,7 +1376,8 @@ Sub cptExportOutlineCodeForCOBRA(ByRef myBackbone_frm As cptBackbone_frm, lngOut
   'export header
   strHeader = "Code,"
   strHeader = strHeader & "Description,"
-  If myBackbone_frm.chkIncludeThresholds Then
+  blnIncludeThresholds = myBackbone_frm.chkIncludeThresholds
+  If blnIncludeThresholds Then
     strHeader = strHeader & "Threshold SV Value Current Period Favorable,"
     strHeader = strHeader & "Threshold SV Value Current Period Unfavorable,"
     strHeader = strHeader & "Threshold SV % Current Period Favorable,"
@@ -1385,7 +1397,7 @@ Sub cptExportOutlineCodeForCOBRA(ByRef myBackbone_frm As cptBackbone_frm, lngOut
     strHeader = strHeader & "Threshold At Complete Value Favorable,"
     strHeader = strHeader & "Threshold At Complete Value Unfavorable,"
     strHeader = strHeader & "Threshold At Complete % Favorable,"
-    strHeader = strHeader & "Threshold At Complete % Unfavorable,"
+    strHeader = strHeader & "Threshold At Complete % Unfavorable"
   End If
   
   Print #lngFile, strHeader
@@ -1400,7 +1412,7 @@ Sub cptExportOutlineCodeForCOBRA(ByRef myBackbone_frm As cptBackbone_frm, lngOut
     End If
     myBackbone_frm.lblStatus.Caption = "Exporting...(" & Format(lngItem / oLookupTable.Count, "0%") & ")"
     myBackbone_frm.lblProgress.Width = (lngItem / oLookupTable.Count) * myBackbone_frm.lblStatus.Width
-    Print #lngFile, strCode & "," & Chr(34) & strDescription & Chr(34) & ","
+    Print #lngFile, strCode & "," & Chr(34) & strDescription & Chr(34) & IIf(blnIncludeThresholds, String(20, ","), ",") '2 fields OR 22 fields
   Next lngItem
 
   Close #lngFile
