@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveMarked_bas"
-'<cpt_version>v1.0.7</cpt_version>
+'<cpt_version>v1.0.8</cpt_version>
 Option Explicit
 
 Sub cptShowSaveMarked_frm()
@@ -141,6 +141,7 @@ End Sub
 
 Sub cptSaveMarked()
   'objects
+  Dim mySaveMarked_frm As cptSaveMarked_frm
   Dim oTask As MSProject.Task
   Dim rstMarked As Object 'ADODB.Recordset
   'strings
@@ -212,9 +213,9 @@ next_one:
     rstMarked.Fields.Append "TSTAMP", adDBTimeStamp
     rstMarked.Fields.Append "UID", adInteger
     rstMarked.Open
-    rstMarked.Save strMarked, adPersistADTG
+  Else
+    rstMarked.Open strMarked
   End If
-  If rstMarked.State <> 1 Then rstMarked.Open strMarked
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.Marked Then
@@ -228,7 +229,6 @@ next_task:
   
   dtTimestamp = 0
   If Not cptGetUserForm("cptSaveMarked_frm") Is Nothing Then
-    Dim mySaveMarked_frm As cptSaveMarked_frm
     Set mySaveMarked_frm = cptGetUserForm("cptSaveMarked_frm")
     If Not IsNull(mySaveMarked_frm.lboMarked.Value) Then dtTimestamp = mySaveMarked_frm.lboMarked.Value
     cptUpdateMarked mySaveMarked_frm
