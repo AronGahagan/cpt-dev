@@ -95,11 +95,11 @@ Sub cptShowFiscal_frm()
       .cboUse.Value = Split(strSetting, "|")(0)
       .cmdAnalyzeEVT.Enabled = True
     End If
-    strSetting = cptGetSetting("Integration", "EVT_MS")
+    strSetting = cptGetSetting("Integration", "EVTMS")
     If Len(strSetting) > 0 Then
       .cboUse.AddItem
       .cboUse.List(.cboUse.ListCount - 1, 0) = Split(strSetting, "|")(0)
-      .cboUse.List(.cboUse.ListCount - 1, 1) = "EVT_MS"
+      .cboUse.List(.cboUse.ListCount - 1, 1) = "EVTMS"
       .cboUse.List(.cboUse.ListCount - 1, 2) = Split(strSetting, "|")(1)
       .cmdAnalyzeEVT.Enabled = True
     End If
@@ -132,10 +132,12 @@ Sub cptExportFiscalCalendar(ByRef myFiscal_frm As cptFiscal_frm)
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Not cptCalendarExists("cptFiscalCalendar") Then
     MsgBox "cptFiscalCalendar has been deleted! Please re-open the form to re-create it.", vbCritical + vbOKOnly, "What happened?"
@@ -148,7 +150,7 @@ Sub cptExportFiscalCalendar(ByRef myFiscal_frm As cptFiscal_frm)
     Application.StatusBar = "Getting Excel..."
     On Error Resume Next
     Set oExcel = GetObject(, "Excel.Application")
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oExcel Is Nothing Then
       Set oExcel = CreateObject("Excel.Application")
       oExcel.Visible = True
@@ -270,6 +272,7 @@ Sub cptImportCalendarExceptions(ByRef myFiscal_frm As cptFiscal_frm)
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   Dim blnCloseExcel As Boolean
   'variants
   'dates
@@ -277,7 +280,8 @@ Sub cptImportCalendarExceptions(ByRef myFiscal_frm As cptFiscal_frm)
 
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   blnCloseExcel = False
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
@@ -307,7 +311,7 @@ Sub cptImportCalendarExceptions(ByRef myFiscal_frm As cptFiscal_frm)
       Set oWorkbook = oExcel.Workbooks.Open(.SelectedItems(1))
       On Error Resume Next
       Set oWorksheet = oWorkbook.Sheets("Fiscal Calendar")
-      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oWorksheet Is Nothing Then
         MsgBox "A worksheet named 'Fiscal Calendar' was not found in the selected workbook.", vbExclamation + vbOKOnly, "Invalid Selection"
         GoTo exit_here
@@ -316,7 +320,7 @@ Sub cptImportCalendarExceptions(ByRef myFiscal_frm As cptFiscal_frm)
         myFiscal_frm.lboExceptions.Visible = True
         On Error Resume Next
         Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar")
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If oCalendar Is Nothing Then
           BaseCalendarCreate Name:="cptFiscalCalendar", FromName:="Standard" ' [" & ActiveProject.Name & "]"
           Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar")
@@ -351,7 +355,7 @@ Sub cptImportCalendarExceptions(ByRef myFiscal_frm As cptFiscal_frm)
             myFiscal_frm.lboExceptions.List(myFiscal_frm.lboExceptions.ListCount - 1, 1) = oException.Name 'CStr(oCell.Offset(0, 1).Value)
             myFiscal_frm.lblCount.Caption = oCalendar.Exceptions.Count & " exception" & IIf(oCalendar.Exceptions.Count = 1, "", "s") & "."
           End If
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 next_record:
         Next oCell
         oWorkbook.Close False
@@ -480,7 +484,7 @@ Sub cptAnalyzeEVT(ByRef myFiscal_frm As cptFiscal_frm, Optional lngImportField A
     GoTo exit_here
   End If
     
-  'either EVT or EVT_MS
+  'either EVT or EVTMS
   strEVT = myFiscal_frm.cboUse.List(myFiscal_frm.cboUse.ListIndex, 1)
   lngEVT = CLng(myFiscal_frm.cboUse.List(myFiscal_frm.cboUse.ListIndex, 0))
   strLOE = cptGetSetting("Integration", "LOE")
@@ -528,7 +532,7 @@ Sub cptAnalyzeEVT(ByRef myFiscal_frm As cptFiscal_frm, Optional lngImportField A
     If oTask.Assignments.Count = 0 Then GoTo next_task
     If oTask.BaselineWork = 0 And oTask.BaselineCost = 0 Then GoTo next_task
     If oTask.GetField(lngEVT) = strLOE Then GoTo next_task
-    If Len(oTask.GetField(lngEVT)) = 0 And strEVT = "EVT_MS" Then GoTo next_task
+    If Len(oTask.GetField(lngEVT)) = 0 And strEVT = "EVTMS" Then GoTo next_task
     If Not IsDate(oTask.BaselineStart) Or Not IsDate(oTask.BaselineFinish) Then
       strMissingBaselines = strMissingBaselines = oTask.UniqueID & ","
     End If
