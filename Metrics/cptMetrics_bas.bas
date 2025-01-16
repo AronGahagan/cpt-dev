@@ -113,26 +113,26 @@ Sub cptGetSV()
 End Sub
 
 Sub cptGetCPLI()
-'objects
-Dim oTasks As MSProject.Tasks
-Dim oPred As MSProject.Task
-Dim oTask As MSProject.Task
-'strings
-Dim strProgram  As String
-Dim strMsg As String
-Dim strTitle As String
-'longs
-Dim lngConstraintType As Long
-Dim lngTS As Long
-Dim lngCPL As Long
-'integers
-'doubles
-Dim dblCPLI As Double
-'booleans
-'variants
-'dates
-Dim dtStart As Date, dtFinish As Date
-Dim dtConstraintDate As Date
+  'objects
+  Dim oTasks As MSProject.Tasks
+  Dim oPred As MSProject.Task
+  Dim oTask As MSProject.Task
+  'strings
+  Dim strProgram  As String
+  Dim strMsg As String
+  Dim strTitle As String
+  'longs
+  Dim lngConstraintType As Long
+  Dim lngTS As Long
+  Dim lngCPL As Long
+  'integers
+  'doubles
+  Dim dblCPLI As Double
+  'booleans
+  'variants
+  'dates
+  Dim dtStart As Date, dtFinish As Date
+  Dim dtConstraintDate As Date
 
   strTitle = "Critical Path Length Index (CPLI)"
 
@@ -268,28 +268,30 @@ err_here:
 End Sub
 
 Sub cptGET(strWhat As String)
-'objects
-Dim oTask As Object
-Dim oRecordset As ADODB.Recordset
-'strings
-Dim strNotFound As String
-Dim strMsg As String, strProgram As String
-'longs
-Dim lngAF As Long
-Dim lngFF As Long
-Dim lngBEI_AF As Long
-Dim lngBEI_BF As Long
-'integers
-'doubles
-Dim dblBCWS As Double
-Dim dblBCWP As Double
-Dim dblResult As Double
-'booleans
-'variants
-'dates
-Dim dtStatus As Date, dtPrevious As Date
+  'objects
+  Dim oTask As Object
+  Dim oRecordset As ADODB.Recordset
+  'strings
+  Dim strNotFound As String
+  Dim strMsg As String, strProgram As String
+  'longs
+  Dim lngAF As Long
+  Dim lngFF As Long
+  Dim lngBEI_AF As Long
+  Dim lngBEI_BF As Long
+  'integers
+  'doubles
+  Dim dblBCWS As Double
+  Dim dblBCWP As Double
+  Dim dblResult As Double
+  'booleans
+  Dim blnErrorTrapping As Boolean
+  'variants
+  'dates
+  Dim dtStatus As Date, dtPrevious As Date
 
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'validate tasks exist
   If ActiveProject.Tasks.Count = 0 Then
@@ -365,7 +367,7 @@ Dim dtStatus As Date, dtPrevious As Date
               Set oTask = Nothing
               On Error Resume Next
               Set oTask = ActiveProject.Tasks.UniqueID(CLng(.Fields(1)))
-              If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+              If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
               If Not oTask Is Nothing Then
                 If IsDate(oTask.ActualFinish) Then
                   lngAF = lngAF + 1
@@ -443,19 +445,19 @@ err_here:
 End Sub
 
 Sub cptGetHitTask()
-'objects
-Dim oTask As MSProject.Task
-'strings
-Dim strMsg As String
-'longs
-Dim lngAF As Long
-Dim lngBLF As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
-Dim dtStatus As Date
+  'objects
+  Dim oTask As MSProject.Task
+  'strings
+  Dim strMsg As String
+  'longs
+  Dim lngAF As Long
+  Dim lngBLF As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  Dim dtStatus As Date
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -529,12 +531,14 @@ Function cptGetMetric(strGet As String) As Double
   Dim dblResult As Double
   Dim dblUnbaselined As Double
   'booleans
+  Dim blnErrorTrapping As Boolean
   Dim blnVerbose As Boolean
   'variants
   'dates
   Dim dtStatus As Date
 
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   lngYears = Year(ActiveProject.ProjectFinish) - Year(ActiveProject.ProjectStart) + 1
   
@@ -571,7 +575,7 @@ Function cptGetMetric(strGet As String) As Double
     Sort "ID", , , , , , False, True
     OutlineShowAllTasks
   End If
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   SelectAll
   Set oTasks = ActiveSelection.Tasks
   For Each oTask In oTasks
@@ -911,6 +915,7 @@ Sub cptLateStartsFinishes()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   Dim vResponse As Variant
   Dim vRow As Variant
@@ -922,7 +927,8 @@ Sub cptLateStartsFinishes()
   Dim dtMin As Date
   Dim dtStatus As Date
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Not cptValidMap("EVT,LOE", blnConfirmationRequired:=True) Then
     MsgBox "Settings not saved. Exiting.", vbExclamation + vbOKOnly, "Settings Required"
@@ -950,12 +956,16 @@ Sub cptLateStartsFinishes()
   'get excel
   On Error Resume Next
   'Set oExcel = GetObject(, "Excel.Application")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
-  oExcel.Visible = False
+  If blnErrorTrapping Then
+    oExcel.Visible = False
+  Else
+    oExcel.Visible = True
+  End If
   Set oWorkbook = oExcel.Workbooks.Add
   oExcel.Calculation = xlCalculationManual
-  oExcel.ScreenUpdating = False
+  If blnErrorTrapping Then oExcel.ScreenUpdating = False
   Set oWorksheet = oWorkbook.Sheets(1)
   oWorksheet.Name = "DETAILS"
   cptSaveSetting "Metrics", "txtMyHeaders", strMyHeaders
@@ -967,7 +977,6 @@ Sub cptLateStartsFinishes()
   oWorksheet.Range(oWorksheet.Cells(1, 1), oWorksheet.Cells(1, 1).Offset(0, UBound(Split(strHeaders, ",")))) = Split(strHeaders, ",")
   lngLastCol = oWorksheet.[A1].End(xlToRight).Column
   lngTasks = ActiveProject.Tasks.Count
-  
   For Each oTask In ActiveProject.Tasks
     If Not oTask Is Nothing Then
       oTask.Marked = False
@@ -1556,6 +1565,7 @@ Sub cptGetTrend_CEI()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   Dim vHeader As Variant
   Dim vBanding As Variant
@@ -1566,7 +1576,8 @@ Sub cptGetTrend_CEI()
   Dim dtThisWeek As Date
   Dim dtNextWeek As Date
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Not cptValidMap("EVT,LOE", False, False, True) Then
     MsgBox "Settings not saved. Exiting.", vbExclamation + vbOKOnly, "Settings Required"
@@ -1717,7 +1728,7 @@ Sub cptGetTrend_CEI()
           Set oTask = Nothing
           On Error Resume Next
           Set oTask = ActiveProject.Tasks.UniqueID(oRecordset("TASK_UID"))
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If lngFF = 1 And oListObject.ListRows.Count = 1 Then
             Set oListRow = oListObject.ListRows(1)
           Else
@@ -2132,6 +2143,7 @@ Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   Dim vBorder As Variant
   Dim vHeader As Variant
@@ -2139,8 +2151,8 @@ Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
   'dates
   
   'todo: limit trends to x periods?
-  
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   strFile = cptDir & "\settings\cpt-metrics.adtg"
   If Dir(strFile) = vbNullString Then
     MsgBox strFile & " not found.", vbExclamation + vbOKOnly, "File Not Found"
@@ -2177,7 +2189,7 @@ Sub cptGetTrend(strMetric As String, Optional dtStatus As Date)
       'get excel
       On Error Resume Next
       'Set oExcel = GetObject(, "Excel.Application")
-      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oExcel Is Nothing Then
         Set oExcel = CreateObject("Excel.Application")
       End If
@@ -2574,6 +2586,7 @@ Sub cptGetEarnedSchedule()
   Dim dblBCWP As Double
   Dim dblBCWS As Double
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   Dim vWeek As Variant
   Dim vBorder As Variant
@@ -2587,7 +2600,8 @@ Sub cptGetEarnedSchedule()
   
   On Error Resume Next
   Set oTasks = ActiveProject.Tasks
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oTasks Is Nothing Then GoTo exit_here
   
   strProgram = cptGetProgramAcronym
@@ -2705,7 +2719,7 @@ next_task:
     If .RecordCount > 0 Then
       On Error Resume Next
       Set oExcel = GetObject(, "Excel.Application")
-      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oExcel Is Nothing Then
         Set oExcel = CreateObject("Excel.Application")
         'oExcel.Visible = True
