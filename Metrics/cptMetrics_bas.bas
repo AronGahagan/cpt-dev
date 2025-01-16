@@ -222,7 +222,7 @@ Dim dtConstraintDate As Date
   If oTask Is Nothing Then GoTo exit_here
   If oTask.Summary Then GoTo exit_here
   If Not oTask.Active Then GoTo exit_here
-  HighlightDrivingPredecessors set:=True
+  HighlightDrivingPredecessors Set:=True
   For Each oPred In ActiveProject.Tasks
     If oPred.PathDrivingPredecessor Then
       If IsDate(oPred.ActualStart) Then
@@ -1021,7 +1021,14 @@ next_task:
     Application.StatusBar = "Exporting BEI... " & Format(lngTask, "#,##0") & " / " & Format(lngTasks, "#,##0") & " (" & Format(lngTask / lngTasks, "0%") & ")"
     DoEvents
   Next oTask
-
+  
+  If lngLastRow = 0 Then 'no results
+    MsgBox "No baselined, active, resourced tasks, with start or finish variances, to analyze.", vbExclamation + vbOKOnly, "No Tasks"
+    oWorkbook.Close False
+    oExcel.Quit
+    GoTo exit_here
+  End If
+  
   Application.StatusBar = "Analyzing..."
 
   oWorksheet.Cells(1, oWorksheet.Rows(1).Find("START", lookat:=xlWhole).Column).Value = "CURRENT START"
@@ -1058,7 +1065,7 @@ next_task:
   oListObject.ListColumns(strSummary).Range.Copy oWorksheet.[A5]
   oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A1048576]).RemoveDuplicates Columns:=1, Header:=xlNo
   oWorksheet.Sort.SortFields.Clear
-  oWorksheet.Sort.SortFields.Add key:=oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A6].End(xlDown)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+  oWorksheet.Sort.SortFields.Add Key:=oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A6].End(xlDown)), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
   With oWorksheet.Sort
     .SetRange oWorksheet.Range(oWorksheet.[A6], oWorksheet.[A1048576].End(xlUp))
     .Header = xlNo
@@ -1095,7 +1102,7 @@ next_task:
   oListObject.ListColumns("LF").TotalsCalculation = xlTotalsCalculationSum
   oListObject.ListColumns("# BLF").TotalsCalculation = xlTotalsCalculationSum
   oListObject.ListColumns("# AF").TotalsCalculation = xlTotalsCalculationSum
-  oListObject.TotalsRowRange(ColumnIndex:=oListObject.ListColumns("BEI (Finishes)").DataBodyRange.Column).FormulaR1C1 = "=BEI[[#Totals],['# AF]]/BEI[[#Totals],['# BLF]]"
+  oListObject.TotalsRowRange(ColumnIndex:=oListObject.ListColumns("BEI (Finishes)").DataBodyRange.Column).FormulaR1C1 = "=BEI[[#Totals],['# AF]]/IF(BEI[[#Totals],['# BLF]]=0,1,BEI[[#Totals],['# BLF]])"
   oListObject.ListColumns("BEI (Finishes)").DataBodyRange.Style = "Comma"
   oListObject.TotalsRowRange(ColumnIndex:=oListObject.ListColumns("BEI (Finishes)").DataBodyRange.Column).Style = "Comma"
 
@@ -1131,6 +1138,7 @@ next_task:
   dtMin = oExcel.WorksheetFunction.Min(oListObject.ListColumns("Baseline Start").DataBodyRange)
   dtMin = oExcel.WorksheetFunction.Min(dtMin, oListObject.ListColumns("Actual Start").DataBodyRange)
   dtMin = oExcel.WorksheetFunction.Min(dtMin, oListObject.ListColumns("Current Start").DataBodyRange)
+  If dtMin > dtStatus Then dtMin = dtStatus
   'convert to WE Friday
   dtMin = DateAdd("d", 6 - Weekday(dtMin), dtMin)
   dtMax = oExcel.WorksheetFunction.Max(oListObject.ListColumns("Baseline Finish").DataBodyRange)
@@ -1142,7 +1150,7 @@ next_task:
   oWorksheet.Name = "Chart_Data"
   oWorksheet.[A1:D1] = Array("WEEK", "BLF", "AF", "FF")
   lngLastRow = 2
-  dtDate = dtMin & " 5:00 PM"
+  dtDate = FormatDateTime(dtMin, vbShortDate) & " 5:00 PM"
   oWorksheet.Cells(lngLastRow, 1) = dtDate
   Do While dtDate <= dtMax
     dtDate = DateAdd("d", 7, dtDate)
@@ -1170,7 +1178,11 @@ next_task:
   oListObject.DataBodyRange.PasteSpecial xlPasteValuesAndNumberFormats
   lngLastRow = oWorksheet.Columns(1).Find(dtStatus).Row 'requires matching date format
   oListObject.ListColumns(1).DataBodyRange.NumberFormat = "m/d/yyyy"
-  oWorksheet.Range(oWorksheet.Cells(2, 7), oWorksheet.Cells(lngLastRow - 1, 7)).Value = ""
+  If lngLastRow = 2 Then
+    oWorksheet.Range(oWorksheet.Cells(2, 7), oWorksheet.Cells(lngLastRow, 7)).Value = ""
+  Else
+    oWorksheet.Range(oWorksheet.Cells(2, 7), oWorksheet.Cells(lngLastRow - 1, 7)).Value = ""
+  End If
   oWorksheet.Range(oWorksheet.Cells(lngLastRow + 1, 6), oWorksheet.Cells(1048576, 6)).Value = ""
   oWorksheet.[I1].Select
   oWorksheet.Shapes.AddChart2 227, xlLine
@@ -1247,7 +1259,9 @@ next_task:
   
   'capture BEI
   Set oWorksheet = oWorkbook.Sheets("SUMMARY")
-  cptCaptureMetric strProject, dtStatus, "BEI", Round(oWorksheet.Range("BEI[[#Totals],[BEI (Finishes)]]").Value, 2)
+  If Not IsError(oWorksheet.Range("BEI[[#Totals],[BEI (Finishes)]]").Value) Then
+    cptCaptureMetric strProject, dtStatus, "BEI", Round(oWorksheet.Range("BEI[[#Totals],[BEI (Finishes)]]").Value, 2)
+  End If
   Application.StatusBar = "Complete."
   DoEvents
   oExcel.Visible = True
@@ -1920,9 +1934,9 @@ next_task:
     'sort by first custom field,FF or by only FF
     oListObject.Sort.SortFields.Clear
     If UBound(Split(strMyHeaders, ",")) > 0 Then
-      oListObject.Sort.SortFields.Add key:=oWorksheet.Range("THIS_WEEK[" & Split(strMyHeaders, ",")(0) & "]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add Key:=oWorksheet.Range("THIS_WEEK[" & Split(strMyHeaders, ",")(0) & "]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
     End If
-    oListObject.Sort.SortFields.Add key:=oWorksheet.Range("THIS_WEEK[FF]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+    oListObject.Sort.SortFields.Add Key:=oWorksheet.Range("THIS_WEEK[FF]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
     With oListObject.Sort
       .Header = xlYes
       .MatchCase = False
