@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.3.0</cpt_version>
+'<cpt_version>v1.3.1</cpt_version>
 Option Explicit
 
 Private Sub cmdCancel_Click()
@@ -32,11 +32,13 @@ Sub cmdDoIt_Click()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   Dim blnApplyOutlineLevel As Boolean
   'variants
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   cptSpeed True
   
@@ -81,7 +83,7 @@ Sub cmdDoIt_Click()
       blnApplyOutlineLevel = True
     End If
   End If
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Me.optShowAllTasks Then
     If ActiveProject.Subprojects.Count > 0 Then
