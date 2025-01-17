@@ -177,11 +177,13 @@ Private Sub lboMarked_Click()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   Dim dtTimestamp As Date
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Me.lboMarked.Value = "TIMESTAMP" Then
     Me.lboMarked.Value = Null
@@ -215,7 +217,7 @@ Private Sub lboMarked_Click()
           Set oTask = Nothing
           On Error Resume Next
           Set oTask = ActiveProject.Tasks.UniqueID(CLng(rstMarked(1)))
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If oTask Is Nothing Then
             Me.lboDetails.List(Me.lboDetails.ListCount - 1, 1) = "< task not found >"
           Else
