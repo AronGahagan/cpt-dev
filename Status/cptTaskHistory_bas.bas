@@ -137,7 +137,7 @@ Sub cptUpdateTaskHistory(ByRef myTaskHistory_frm As cptTaskHistory_frm)
       .lngTaskHistoryUID = oTasks(1).UniqueID
       lngUID = .lngTaskHistoryUID
       If oTaskHistory.RecordCount > 0 Then
-        oTaskHistory.Filter = "PROJECT='" & strProgramAcronym & "' AND TASK_UID=" & CInt(lngUID)
+        oTaskHistory.Filter = "PROJECT='" & strProgramAcronym & "' AND TASK_UID=" & CLng(lngUID)
         oTaskHistory.Sort = "STATUS_DATE desc"
         If oTaskHistory.EOF Then
           .lblWarning.Caption = "No history for UID " & lngUID & "."
@@ -221,7 +221,7 @@ Sub cptUpdateTaskHistoryNote(ByRef myTaskHistory_frm As cptTaskHistory_frm, lngU
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   oTaskHistory.MoveFirst
-  oTaskHistory.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND TASK_UID=" & CInt(lngUID) & " AND STATUS_DATE=#" & FormatDateTime(dtStatus, vbGeneralDate) & "#"
+  oTaskHistory.Filter = "PROJECT='" & cptGetProgramAcronym & "' AND TASK_UID=" & CLng(lngUID) & " AND STATUS_DATE=#" & FormatDateTime(dtStatus, vbGeneralDate) & "#"
   If Not oTaskHistory.EOF Then
     oTaskHistory.Update Array("NOTE"), Array(strVariance)
   Else
@@ -294,11 +294,13 @@ Sub cptExportTaskHistory(ByRef myTaskHistory_frm As cptTaskHistory_frm, Optional
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   Dim vRow As Variant
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Application.StatusBar = "Getting data..."
   oTaskHistory.MoveFirst
@@ -318,7 +320,7 @@ Sub cptExportTaskHistory(ByRef myTaskHistory_frm As cptTaskHistory_frm, Optional
     Application.StatusBar = "Getting Excel..."
     On Error Resume Next
     Set oExcel = GetObject(, "Excel.Application")
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oExcel Is Nothing Then
       Set oExcel = CreateObject("Excel.Application")
     End If
@@ -344,6 +346,7 @@ Sub cptExportTaskHistory(ByRef myTaskHistory_frm As cptTaskHistory_frm, Optional
     oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight)).Font.Bold = True
     oWorksheet.Columns.AutoFit
     oWorksheet.[A4].Select
+    MsgBox "Export complete.", vbInformation + vbOKOnly, "Task History"
     oExcel.Visible = True
     Application.ActivateMicrosoftApp pjMicrosoftExcel
     oExcel.ScreenUpdating = True

@@ -266,7 +266,7 @@ Sub cptFindDuplicateTaskNames()
   'objects
   Dim oTask As MSProject.Task
   Dim oDict As Scripting.Dictionary
-  Dim oSubProject As MSProject.Subproject
+  Dim oSubproject As MSProject.Subproject
   Dim oShell As Object
   Dim oExcel As Excel.Application
   Dim oWorkbook As Excel.Workbook
@@ -309,15 +309,15 @@ Sub cptFindDuplicateTaskNames()
   If blnMaster Then
     If MsgBox("Load and expand all subprojects?", vbQuestion + vbYesNo, "Please confirm:") = vbNo Then GoTo exit_here
     lngItems = ActiveProject.Subprojects.Count
-    For Each oSubProject In ActiveProject.Subprojects
+    For Each oSubproject In ActiveProject.Subprojects
       lngItem = lngItem + 1
-      Application.StatusBar = "Loading " & oSubProject.InsertedProjectSummary.Name & "..."
-      EditGoTo oSubProject.InsertedProjectSummary.ID
+      Application.StatusBar = "Loading " & oSubproject.InsertedProjectSummary.Name & "..."
+      EditGoTo oSubproject.InsertedProjectSummary.ID
       Application.OutlineShowSubTasks
-      Application.StatusBar = "Loading " & oSubProject.InsertedProjectSummary.Name & "...(" & Format(lngItem / lngItems, "0%") & ")"
-    Next oSubProject
+      Application.StatusBar = "Loading " & oSubproject.InsertedProjectSummary.Name & "...(" & Format(lngItem / lngItems, "0%") & ")"
+    Next oSubproject
     Application.StatusBar = "Loading subprojects...done."
-    Set oSubProject = Nothing
+    Set oSubproject = Nothing
   End If
   
   blnIgnoreSummaryTasks = MsgBox("Ignore Summary Tasks?", vbQuestion + vbYesNo, "Please Confrim") = vbYes
@@ -437,8 +437,8 @@ next_task:
       oListObject.ListColumns("Count").DataBodyRange.FormulaR1C1 = "=COUNTIFS([Name],[@Name])"
       'sort by task name (to put duplicates together)
       oListObject.Sort.SortFields.Clear
-      oListObject.Sort.SortFields.Add2 key:=oWorksheet.Range("Table1[Count]"), SortOn:=xlSortOnValues, Order:=xlDescending, DataOption:=xlSortNormal
-      oListObject.Sort.SortFields.Add2 key:=oWorksheet.Range("Table1[Name]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add2 Key:=oWorksheet.Range("Table1[Count]"), SortOn:=xlSortOnValues, Order:=xlDescending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add2 Key:=oWorksheet.Range("Table1[Name]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
       With oListObject.Sort
         .Header = xlYes
         .MatchCase = False
@@ -467,7 +467,7 @@ exit_here:
   Application.StatusBar = ""
   Set oDict = Nothing
   Set oTask = Nothing
-  Set oSubProject = Nothing
+  Set oSubproject = Nothing
   Set oShell = Nothing
   Set oWorkbook = Nothing
   Set oWorksheet = Nothing
@@ -565,10 +565,12 @@ Sub cptShowText_frm()
   Dim lngItem As Long
   'integers
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not cptModuleExists("cptText_frm") Then GoTo exit_here
   
@@ -597,7 +599,7 @@ Sub cptShowText_frm()
   
   On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oTasks Is Nothing Then
     myText_frm.lboOutput.Clear
     For Each oTask In oTasks
@@ -636,10 +638,12 @@ Sub cptUpdatePreview(ByRef myText_frm As cptText_frm, Optional strPrepend As Str
   Dim lngEnumerate As Long
   'integers
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If myText_frm.Visible Then
     lngScope = myText_frm.cboScope.Value
@@ -651,7 +655,7 @@ Sub cptUpdatePreview(ByRef myText_frm As cptText_frm, Optional strPrepend As Str
     If IsNull(myText_frm.lboOutput.List(lngItem, 0)) Then GoTo exit_here
     On Error Resume Next
     Set oTask = ActiveProject.Tasks.UniqueID(myText_frm.lboOutput.List(lngItem, 0))
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oTask Is Nothing Then
       If MsgBox("UID " & myText_frm.lboOutput.List(lngItem, 0) & " not found in " & UCase(ActiveProject.Name) & "! Proceed?", vbCritical + vbYesNo, "Task Not Found") = vbNo Then
         Err.Clear
@@ -782,9 +786,12 @@ Sub cptCheckAnnoyances()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
@@ -822,7 +829,7 @@ next_task:
     SelectAll
     On Error Resume Next
     Set oTasks = ActiveSelection.Tasks
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oTasks.Count = 0 Then
       MsgBox "No annoyances.", vbInformation + vbOKOnly, "Well Done"
     Else

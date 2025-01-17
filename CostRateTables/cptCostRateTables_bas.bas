@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCostRateTables_bas"
-'<cpt_version>v1.0.1</cpt_version>
+'<cpt_version>v1.0.2</cpt_version>
 Option Explicit
 
 Sub cptShowCostRateTables_frm()
@@ -203,6 +203,7 @@ Sub cptImportCostRateTables(ByRef myCostRateTables_frm As cptCostRateTables_frm,
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   Dim blnImportStatus As Boolean
   Dim blnOverwrite As Boolean
   Dim blnAddResources As Boolean
@@ -212,6 +213,9 @@ Sub cptImportCostRateTables(ByRef myCostRateTables_frm As cptCostRateTables_frm,
   Dim vStdRate As Variant
   Dim vEffectiveDate As Variant
   'dates
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Application.ActiveWindow.TopPane.Activate
   ViewApply "Resource Sheet"
@@ -232,7 +236,7 @@ Sub cptImportCostRateTables(ByRef myCostRateTables_frm As cptCostRateTables_frm,
   myCostRateTables_frm.lblStatus.Caption = "Getting Excel..."
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If
@@ -284,13 +288,13 @@ Sub cptImportCostRateTables(ByRef myCostRateTables_frm As cptCostRateTables_frm,
     If lngRow = 2 Then
       On Error Resume Next
       Set oResource = ActiveProject.Resources(oWorksheet.Cells(lngRow, 1).Value)
-      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     Else
       If oResource.Name <> oWorksheet.Cells(lngRow, 1).Value Then
         Set oResource = Nothing
         On Error Resume Next
         Set oResource = ActiveProject.Resources(oWorksheet.Cells(lngRow, 1).Value)
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       Else
         GoTo cost_rate_tables
       End If

@@ -164,14 +164,14 @@
 	<Module>
 		<Name>cptDynamicFilter_bas</Name>
 		<FileName>cptDynamicFilter_bas.bas</FileName>
-		<Version>v1.6.2</Version>
+		<Version>v1.6.3</Version>
 		<Type>1</Type>
 		<Directory>Text</Directory>
 	</Module>
 	<Module>
 		<Name>cptDynamicFilter_frm</Name>
 		<FileName>cptDynamicFilter_frm.frm</FileName>
-		<Version>v1.6.2</Version>
+		<Version>v1.6.3</Version>
 		<Type>3</Type>
 		<Directory>Text</Directory>
 	</Module>
@@ -227,7 +227,7 @@
 	<Module>
 		<Name>cptIntegration_frm</Name>
 		<FileName>cptIntegration_frm.frm</FileName>
-		<Version>v0.0.2</Version>
+		<Version>v0.0.3</Version>
 		<Type>3</Type>
 		<Directory>Integration</Directory>
 	</Module>
@@ -269,7 +269,7 @@
 	<Module>
 		<Name>cptResetAll_frm</Name>
 		<FileName>cptResetAll_frm.frm</FileName>
-		<Version>v1.3.0</Version>
+		<Version>v1.3.1</Version>
 		<Type>3</Type>
 		<Directory>Core</Directory>
 	</Module>

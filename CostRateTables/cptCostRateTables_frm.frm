@@ -21,7 +21,7 @@ Private Sub cboStatusField_AfterUpdate()
 End Sub
 
 Private Sub cboStatusField_KeyPress(ByVal KeyAscii As MSForms.ReturnInteger)
-  If KeyAscii = 27 Then Unload Me
+  If KeyAscii = 27 Then Me.Hide
 End Sub
 
 Private Sub chkAddNew_Click()
@@ -108,7 +108,7 @@ Private Sub tglImport_Click()
 End Sub
 
 Private Sub tglImport_KeyPress(ByVal KeyAscii As MSForms.ReturnInteger)
-  If KeyAscii = 27 Then Unload Me
+  If KeyAscii = 27 Then Me.Hide
 End Sub
 
 Private Sub txtCostRateTables_Change()

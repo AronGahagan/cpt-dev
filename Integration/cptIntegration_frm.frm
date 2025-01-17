@@ -13,13 +13,17 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v0.0.2</cpt_version>
+'<cpt_version>v0.0.3</cpt_version>
 Option Explicit
 Public blnValidIntegrationMap As Boolean
 
 Private Sub cboCA_Change()
   If Not Me.Visible Then Exit Sub
-  'do not sync WBS, OBS, CA with COBRA Export Tool
+  'DO NOT SYNC WBS, OBS, CA with COBRA Export Tool because
+  'CA1 is not always "WBS" (and it usually means CA anyway; and
+  'CA2 is not always "OBS"; and
+  'CA3 is not always CA; therefore
+  'the DECM requires the WBS,OBS, and CA to be different fields.
   UpdateIntegrationSettings
 End Sub
 
@@ -32,16 +36,18 @@ Private Sub cboCAM_Change()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not Me.Visible Then Exit Sub
   If Me.chkSyncSettings Then
     On Error Resume Next
     Set oCDP = ActiveProject.CustomDocumentProperties("fCAM")
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oCDP Is Nothing Then
       lngField = FieldNameToFieldConstant(ActiveProject.CustomDocumentProperties("fCAM"))
       If Me.cboCAM.Value <> lngField Then
@@ -66,7 +72,7 @@ err_here:
 
 End Sub
 
-Private Sub cboEVT_MS_Change()
+Private Sub cboEVTMS_Change()
   If Not Me.Visible Then Exit Sub
   UpdateIntegrationSettings
 End Sub
@@ -75,26 +81,30 @@ Private Sub cboEVP_Change()
   'objects
   Dim oCDP As DocumentProperty
   'strings
+  Dim strCFN As String
   'longs
   Dim lngField As Long
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
   If Not Me.Visible Then Exit Sub
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
   If Me.chkSyncSettings Then
     
     On Error Resume Next
     Set oCDP = ActiveProject.CustomDocumentProperties("fPCNT")
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oCDP Is Nothing Then
-      lngField = FieldNameToFieldConstant(ActiveProject.CustomDocumentProperties("fPCNT"))
+      strCFN = ActiveProject.CustomDocumentProperties("fPCNT")
+      lngField = FieldNameToFieldConstant(strCFN)
       If Me.cboEVP.Value <> lngField Then
-        If MsgBox("COBRA Export Tool setting is '" & CustomFieldGetName(lngField) & "' - use this instead?", vbQuestion + vbYesNo, "Synchronize?") = vbYes Then
+        If MsgBox("COBRA Export Tool setting is '" & strCFN & "' - use this instead?", vbQuestion + vbYesNo, "Synchronize?") = vbYes Then
           Me.cboEVP.Value = lngField
         End If
       End If
@@ -128,12 +138,15 @@ Private Sub cboEVT_Change()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'If Not Me.Visible Then Exit Sub
+  If IsNull(Me.cboEVT.Value) Then GoTo exit_here
   UpdateIntegrationSettings 'todo: can this be moved to only the end?
   Me.cboLOE.Value = ""
   Me.cboLOE.Clear
@@ -154,7 +167,7 @@ next_task:
     
     On Error Resume Next
     Set oCDP = ActiveProject.CustomDocumentProperties("fEVT")
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oCDP Is Nothing Then
       lngField = FieldNameToFieldConstant(ActiveProject.CustomDocumentProperties("fEVT"))
       If Me.cboEVT.Value <> lngField Then
@@ -193,13 +206,21 @@ End Sub
 
 Private Sub cboOBS_Change()
   If Not Me.Visible Then Exit Sub
-  'do not sync WBS, OBS, CA with COBRA Export Tool
+  'DO NOT SYNC WBS, OBS, CA with COBRA Export Tool because
+  'CA1 is not always "WBS" (and it usually means CA anyway; and
+  'CA2 is not always "OBS"; and
+  'CA3 is not always CA; therefore
+  'the DECM requires the WBS,OBS, and CA to be different fields.
   UpdateIntegrationSettings
 End Sub
 
 Private Sub cboWBS_Change()
   If Not Me.Visible Then Exit Sub
-  'do not sync WBS, OBS, CA with COBRA Export Tool
+  'DO NOT SYNC WBS, OBS, CA with COBRA Export Tool because
+  'CA1 is not always "WBS" (and it usually means CA anyway; and
+  'CA2 is not always "OBS"; and
+  'CA3 is not always CA; therefore
+  'the DECM requires the WBS,OBS, and CA to be different fields.
   UpdateIntegrationSettings
 End Sub
 
@@ -212,17 +233,19 @@ Private Sub cboWP_Change()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not Me.Visible Then Exit Sub
   If Me.chkSyncSettings Then
     
     On Error Resume Next
     Set oCDP = ActiveProject.CustomDocumentProperties("fWP")
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oCDP Is Nothing Then
       lngField = FieldNameToFieldConstant(oCDP.Value)
       If Me.cboWP.Value <> lngField Then
@@ -252,53 +275,62 @@ Private Sub cboWPM_Change()
   UpdateIntegrationSettings
 End Sub
 
-Private Sub chkSyncSettings_Click()
+Private Sub chkSyncSettings_AfterUpdate()
   'objects
   Dim oCDP As DocumentProperty
   Dim oComboBox As MSForms.ComboBox
   Dim oDict As Scripting.Dictionary
   'strings
   Dim strFields As String
+  Dim strCFN As String
   'longs
+  Dim lngCFC As Long
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   Dim vControl As Variant
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   cptSaveSetting "Integration", "chkSyncSettings", IIf(Me.chkSyncSettings, "1", "0")
-  
-  strFields = "CAM,WP,EVT,EVP"
-  'map integration settings with COBRA Export Tool settings
-  Set oDict = CreateObject("Scripting.Dictionary")
-  'do not sync WBS
-  'do not sync OBS
-  'do not sync CA
-  oDict.Add "CAM", "fCAM"
-  oDict.Add "WP", "fWP"
-  oDict.Add "EVT", "fEVT"
-  oDict.Add "EVP", "fPCNT"
-  
+    
   If Me.chkSyncSettings Then
+  
+    strFields = "CAM,WP,EVT,EVP"
+    'map integration settings with COBRA Export Tool settings
+    Set oDict = CreateObject("Scripting.Dictionary")
+    'DO NOT SYNC WBS, OBS, CA with COBRA Export Tool because
+    'CA1 is not always "WBS" (and it usually means CA anyway; and
+    'CA2 is not always "OBS"; and
+    'CA3 is not always CA; therefore
+    'the DECM requires the WBS,OBS, and CA to be different fields.
+    oDict.Add "CAM", "fCAM"
+    oDict.Add "WP", "fWP"
+    oDict.Add "EVT", "fEVT"
+    oDict.Add "EVP", "fPCNT"
+  
     For Each vControl In Split(strFields, ",")
       Set oComboBox = Me.Controls("cbo" & vControl)
       If Not oComboBox.Enabled Then GoTo next_control
       On Error Resume Next
+      Set oCDP = Nothing
       Set oCDP = ActiveProject.CustomDocumentProperties(oDict(vControl))
-      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If Not oCDP Is Nothing Then
-        'does it still exist?
+        'does saved COBRA Export field still exist?
+        strCFN = "" 'reset
+        strCFN = oCDP.Value
+        lngCFC = 0 'reset
         On Error Resume Next
-        Dim lngField As Long
-        lngField = 0
-        lngField = FieldNameToFieldConstant(oCDP.Value)
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-        If lngField = 0 Then
-          If MsgBox("The field '" & oCDP.Value & "' in the COBRA settings no longer exists in this file. Update with '" & CustomFieldGetName(oComboBox.Value) & "'?", vbCritical + vbYesNo, "Mapping Invalid") = vbYes Then
-            oCDP = CustomFieldGetName(oComboBox.Value)
+        lngCFC = FieldNameToFieldConstant(strCFN)
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If lngCFC = 0 Then
+          If MsgBox("The field '" & oCDP.Value & "' in the COBRA settings no longer exists in this file. Update with '" & strCFN & "'?", vbCritical + vbYesNo, "Mapping Invalid") = vbYes Then
+            oCDP = strCFN
             oComboBox.BorderColor = -2147483642
           Else
             oComboBox.BorderColor = 192
@@ -307,7 +339,7 @@ Private Sub chkSyncSettings_Click()
         Else
           If IsNull(oComboBox) Then 'import from COBRA Export Tool setting
             oComboBox.Value = FieldNameToFieldConstant(oCDP.Value)
-            cptSaveSetting "Integration", CStr(vControl), oComboBox.Value & "|" & CustomFieldGetName(oComboBox.Value)
+            cptSaveSetting "Integration", CStr(vControl), oComboBox.Value & "|" & oCDP.Value
             oComboBox.BorderColor = -2147483642
           Else 'notify discrepancy
             If FieldNameToFieldConstant(oCDP.Value) <> oComboBox.Value Then
@@ -317,8 +349,21 @@ Private Sub chkSyncSettings_Click()
             End If
           End If
         End If
+      Else 'CDP for COBRA Export setting doesn't exist yet
+        oComboBox.BorderColor = 192
+        lngCFC = 0
+        lngCFC = oComboBox.Value
+        strCFN = ""
+        strCFN = CustomFieldGetName(lngCFC)
+        If Len(strCFN) = 0 Then strCFN = FieldConstantToFieldName(lngCFC)
+        If MsgBox("COBRA Export Setting for '" & IIf(vControl = "EVP", "EV%", vControl) & "' ('" & oDict(vControl) & "') does not exist - add it?", vbExclamation + vbYesNo, "Add Setting?") = vbYes Then
+          Set oCDP = ActiveProject.CustomDocumentProperties.Add(oDict(vControl), False, msoPropertyTypeString, strCFN)
+          oComboBox.BorderColor = -2147483642
+        End If
+        cptSaveSetting "Integration", CStr(vControl), lngCFC & "|" & strCFN
       End If
 next_control:
+      Set oCDP = Nothing
     Next vControl
   End If
   
@@ -329,7 +374,7 @@ exit_here:
   
   Exit Sub
 err_here:
-  Call cptHandleErr("cptIntegration_frm", "chkSyncSettings_Click", Err, Erl)
+  Call cptHandleErr("cptIntegration_frm", "chkSyncSettings_AfterUpdate", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -341,6 +386,7 @@ End Sub
 Private Sub cmdConfirm_Click()
   Dim blnValid As Boolean
   Dim oControl As MSForms.Control
+  Dim strConstants As String
   
   blnValid = True
   For Each oControl In Me.Controls
@@ -352,13 +398,23 @@ Private Sub cmdConfirm_Click()
     End If
 next_control:
   Next oControl
-  
+'  If blnValid And Me.chkAnalyzePMB Then
+'    For Each oControl In Me.Controls
+'      If Left(oControl.Name, 3) = "cbo" And oControl.Name <> "cboLOE" Then
+'        If Not IsNull(Me.Controls(oControl.Name).Value) And Me.Controls(oControl.Name).Enabled Then
+'          strConstants = strConstants & Replace(oControl.Name, "cbo", "") & "|" & CustomFieldGetName(Me.Controls(oControl.Name)) & "|" & Me.Controls(oControl.Name).Value & ","
+'        End If
+'      End If
+'    Next oControl
+'    cptCheckMetadata strConstants, "strMissing"
+'  End If
   Me.blnValidIntegrationMap = blnValid
   Me.Hide
 End Sub
 
 Private Sub UpdateIntegrationSettings()
   'objects
+  Dim oCDP As Office.DocumentProperty
   'strings
   Dim strControl As String
   Dim strField As String
@@ -367,22 +423,25 @@ Private Sub UpdateIntegrationSettings()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   Dim vControl As Variant
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not Me.Visible Then Exit Sub
   strControl = Me.ActiveControl.Name
-  If Left(strControl, 3) <> "cbo" Then Exit Sub
+  If Left(strControl, 3) <> "cbo" Then GoTo exit_here
+  If IsNull(Me.Controls(strControl).Value) Then GoTo exit_here
   lngField = Me.Controls(strControl).Value
   Me.Controls(strControl).BorderColor = -2147483642
   strControl = Replace(strControl, "cbo", "")
   strField = CustomFieldGetName(lngField)
   If Len(strField) = 0 Then strField = FieldConstantToFieldName(lngField)
   cptSaveSetting "Integration", strControl, lngField & "|" & strField
-  'sync metrics settings
+  'sync metrics settings - todo: is this still needed?
   If strControl = "EVT" Then
     cptSaveSetting "Metrics", "cboLOEField", lngField
   End If
@@ -398,6 +457,10 @@ Private Sub UpdateIntegrationSettings()
     For Each vControl In Split("CAM,WP,EVT,EVP", ",")
       strControl = CStr(vControl)
       If strControl = "EVP" Then strControl = "PCNT"
+      On Error Resume Next
+      Set oCDP = ActiveProject.CustomDocumentProperties("f" & strControl)
+      If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If oCDP Is Nothing Then GoTo next_control
       If CustomFieldGetName(Me.Controls("cbo" & vControl).Value) <> ActiveProject.CustomDocumentProperties("f" & strControl) Then
         If FieldConstantToFieldName(Me.Controls("cbo" & vControl).Value) <> ActiveProject.CustomDocumentProperties("f" & strControl) Then 'catch if not a custom field (e.g., Physical % Complete)
           If Me.Controls("cbo" & vControl).Enabled Then Me.Controls("cbo" & vControl).BorderColor = 192
@@ -407,12 +470,21 @@ Private Sub UpdateIntegrationSettings()
       Else
         If Me.Controls("cbo" & vControl).Enabled Then Me.Controls("cbo" & vControl).BorderColor = -2147483642
       End If
+next_control:
+      Set oCDP = Nothing
     Next vControl
   End If
   
+'  For Each oControl In Me.Controls
+'    'get constants, do metadatacheck, get lngCount
+'    'if lngCount>0 then visible,indicate,populate listbox
+'    'if tgl then visible lbo, form height, etc
+'  Next oControl
+  
 exit_here:
   On Error Resume Next
-
+  Set oCDP = Nothing
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptIntegration_frm", "UpdateIntegrationSettings", Err, Erl)

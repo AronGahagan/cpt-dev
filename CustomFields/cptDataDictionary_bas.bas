@@ -389,10 +389,12 @@ Sub cptShowDataDictionary_frm()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   strProgram = cptGetProgramAcronym
   
@@ -421,7 +423,7 @@ Sub cptShowDataDictionary_frm()
         'create the workbook
         On Error Resume Next
         Set oExcel = GetObject(, "Excel.Application")
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
         oExcel.Visible = True
         Set oWorkbook = oExcel.Workbooks.Add
@@ -458,11 +460,7 @@ Sub cptShowDataDictionary_frm()
     .Caption = "IMS Data Dictionary (" & cptGetVersion("cptDataDictionary_frm") & ")"
     .txtDescription.Enabled = False
     .chkIgnore.Enabled = False
-    'If cptErrorTrapping Then
-      .Show
-    'Else
-    '  .Show (False)
-    'End If
+    .Show
   End With
   
 exit_here:
@@ -500,6 +498,7 @@ Sub cptRefreshDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
   Dim intField As Integer
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   Dim blnHasPickList As Boolean
   Dim blnHasFormula As Boolean
   Dim blnCreate As Boolean
@@ -509,7 +508,8 @@ Sub cptRefreshDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
   Dim vFieldScope As Variant
   'dates
 
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'clear the form if it's visible
   If myDataDictionary_frm.Visible Then
@@ -551,14 +551,14 @@ Sub cptRefreshDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
       'Debug.Print .Fields("IGNORE")
       If Err.Number = 3265 Then 'it has not
         Err.Clear
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         .Filter = 0
         .Close
         cptAppendColumn cptDir & "\settings\cpt-data-dictionary.adtg", "IGNORE", adBoolean, , 0
         .Open cptDir & "\settings\cpt-data-dictionary.adtg"
         .Filter = "PROJECT_NAME='" & strProject & "'"
       End If
-      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     End If
     
     'get local custom fields
@@ -586,7 +586,7 @@ Sub cptRefreshDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
             blnHasPickList = False
             On Error Resume Next
             blnHasPickList = Len(CustomFieldValueListGetItem(lngField, pjValueListValue, 1)) > 0
-            If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+            If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           End If
           If Len(strCustomName) > 0 Or blnHasFormula Or blnHasPickList Then
             If blnCreate Then
@@ -673,7 +673,7 @@ Sub cptRefreshDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
           blnHasPickList = False
           On Error Resume Next
           blnHasPickList = Len(CustomFieldValueListGetItem(lngField, pjValueListValue, 1)) > 0
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         End If
         myDataDictionary_frm.lboCustomFields.List(lngItem, 2) = .Fields("DESCRIPTION")
         myDataDictionary_frm.lboCustomFields.List(lngItem, 3) = CBool(.Fields("IGNORE"))
@@ -730,18 +730,20 @@ Sub cptImportDataDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm,
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   Dim blnSkip As Boolean
   Dim blnClose As Boolean
   'variants
   Dim vFile As Variant
   'dates
 
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'prompt user to select a file
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
     blnClose = True
@@ -776,7 +778,7 @@ skip_that:
     MsgBox strFile & " does not appear to be a valid IMS Data Dictionary workbook. The wheet named 'Data Dictionary' not found.", vbExclamation + vbOKOnly, "Invalid Workbook"
     GoTo exit_here
   End If
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Set rstSaved = CreateObject("ADODB.Recordset")
   strSavedSettings = cptDir & "\settings\cpt-data-dictionary.adtg"
@@ -979,7 +981,7 @@ Function WhatTheActual() As String
   dFieldCounts.Add "Number", 20
   dFieldCounts.Add "Flag", 20
   
-  For Each vType In Array("Cost", "Date", "Duration", "Flag", "Finish", "Number", "Outline Code", "Start", "Text")
+  For Each vType In Split("Cost,Date,Duration,Flag,Finish,Number,Outline Code,Start,Text", ",")
     If dFieldCounts.Exists(vType) Then
       lngItems = dFieldCounts(vType)
     Else
@@ -991,9 +993,9 @@ Function WhatTheActual() As String
       blnHasPickList = False
       On Error Resume Next
       blnHasFormula = Len(CustomFieldGetFormula(lngField)) > 0
-      If Not blnHasFormula Then
+      'If Not blnHasFormula Then
         blnHasPickList = Len(CustomFieldValueListGetItem(lngField, pjValueListValue, 1)) > 0
-      End If
+      'End If
       On Error GoTo 0
       strResult = strResult & lngField & "," & FieldConstantToFieldName(lngField) & "," & CustomFieldGetName(lngField) & "," & blnHasFormula & "," & blnHasPickList & vbCrLf
     Next lngItem

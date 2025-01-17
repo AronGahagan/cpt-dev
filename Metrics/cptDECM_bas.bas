@@ -18,10 +18,12 @@ Private lngWP As Long
 Private lngEVT As Long
 Private lngEVP As Long
 Public oDECM As Scripting.Dictionary
+Private oSubMap As Scripting.Dictionary
 
 Sub cptDECM_GET_DATA()
   'Optional blnIncompleteOnly As Boolean = True, Optional blnDiscreteOnly As Boolean = True
   'objects
+  Dim oSubproject As MSProject.Subproject
   Dim myDECM_frm As cptDECM_frm
   Dim oException As MSProject.Exception
   Dim oTasks As MSProject.Tasks
@@ -38,6 +40,7 @@ Sub cptDECM_GET_DATA()
   Dim oLink As MSProject.TaskDependency
   Dim oTask As MSProject.Task
   'strings
+  Dim strProject As String
   Dim strMetric As String
   Dim strRollingWaveDate As String
   Dim strUpdateView As String
@@ -54,6 +57,9 @@ Sub cptDECM_GET_DATA()
   Dim strLOE As String
   Dim strList As String
   'longs
+  Dim lngToUID As Long
+  Dim lngFactor As Long
+  Dim lngFromUID As Long
   Dim lngTargetFile As Long
   Dim lngTaskName As Long
   Dim lngTargetUID As Long
@@ -80,7 +86,7 @@ Sub cptDECM_GET_DATA()
   Dim lngCA As Long
   Dim lngCAM As Long
   Dim lngWP As Long
-  Dim lngWPM As Long
+  Dim lngWPM As Long 'todo: why is WPM required for the DECM?
   Dim lngEVT As Long
   Dim lngEVP As Long
   Dim lngFile As Long
@@ -90,8 +96,12 @@ Sub cptDECM_GET_DATA()
   'doubles
   Dim dblScore As Double
   'booleans
+  Dim blnMaster As Boolean
+  Dim blnLimitToPMB As Boolean
+  Dim blnTaskHistoryExists As Boolean
   Dim blnFiscalExists As Boolean
   Dim blnDumpToExcel As Boolean
+  Dim blnErrorTrapping As Boolean
   'variants
   Dim vFile As Variant
   Dim vHeader As Variant
@@ -102,7 +112,8 @@ Sub cptDECM_GET_DATA()
   Dim dtCurrent As Date
   Dim dtStatus As Date
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Not IsDate(ActiveProject.StatusDate) Then
     If Not ChangeStatusDate Then
@@ -112,8 +123,10 @@ Sub cptDECM_GET_DATA()
   End If
   
   dtStatus = ActiveProject.StatusDate 'GetField returns mm/dd/yyyy hh:nn AMPM
+  'todo: if blnSubprojects then ensure status dates all in sync?
   
-  If Not cptValidMap(blnConfirmationRequired:=True) Then GoTo exit_here 'default required fields, cptFiscal not required to proceed, will prompt
+  If Not cptValidMap(blnConfirmationRequired:=True) Then GoTo exit_here
+  'todo: disable Confirm button until all reds are gone; forcing 'cancel'?
   
   strProgramAcronym = cptGetProgramAcronym
   
@@ -133,7 +146,7 @@ Sub cptDECM_GET_DATA()
   Print #lngFile, "Col4=CA text"
   Print #lngFile, "Col5=CAM text"
   Print #lngFile, "Col6=WP text"
-  Print #lngFile, "Col7=WPM text"
+  Print #lngFile, "Col7=WPM text" 'todo: why is WPM required for the DECM?
   Print #lngFile, "Col8=EVT text"
   Print #lngFile, "Col9=EVP integer"
   Print #lngFile, "Col10=FS date"
@@ -230,8 +243,41 @@ Sub cptDECM_GET_DATA()
   
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
   
-  lngTasks = ActiveProject.Tasks.Count
-  
+  'todo: blnMaster
+  blnMaster = ActiveProject.Subprojects.Count > 0
+  If blnMaster Then
+    'todo: run LCF sync?
+    
+    'set up mapping
+    If oSubMap Is Nothing Then
+      Set oSubMap = CreateObject("Scripting.Dictionary")
+    Else
+      oSubMap.RemoveAll
+    End If
+    For Each oSubproject In ActiveProject.Subprojects
+      If Left(oSubproject.Path, 2) <> "<>" Then 'offline
+        oSubMap.Add Replace(Dir(oSubproject.Path), ".mpp", ""), 0
+      ElseIf Left(oSubproject.Path, 2) = "<>" Then 'online
+        oSubMap.Add oSubproject.Path, 0
+      End If
+    Next oSubproject
+    For Each oTask In ActiveProject.Tasks
+      If oTask Is Nothing Then GoTo next_mapping_task
+      If Not oTask.Active Then GoTo next_mapping_task
+      If oSubMap.Exists(oTask.Project) Then
+        If oSubMap(oTask.Project) > 0 Then GoTo next_mapping_task
+        If Not oTask.Summary Then
+          oSubMap.Item(oTask.Project) = CLng(oTask.UniqueID / 4194304)
+        End If
+      End If
+next_mapping_task:
+      If oTask.Active Then lngTasks = lngTasks + 1
+    Next oTask
+    
+  Else
+    lngTasks = ActiveProject.Tasks.Count
+  End If
+
   'get settings
   lngUID = FieldNameToFieldConstant("Unique ID")
   lngWBS = CLng(Split(cptGetSetting("Integration", "WBS"), "|")(0))
@@ -239,7 +285,7 @@ Sub cptDECM_GET_DATA()
   lngCA = CLng(Split(cptGetSetting("Integration", "CA"), "|")(0))
   lngCAM = CLng(Split(cptGetSetting("Integration", "CAM"), "|")(0))
   lngWP = CLng(Split(cptGetSetting("Integration", "WP"), "|")(0))
-  lngWPM = CLng(Split(cptGetSetting("Integration", "WPM"), "|")(0))
+  'lngWPM = CLng(Split(cptGetSetting("Integration", "WPM"), "|")(0)) 'note: WPM is not required for DECM and is skipped
   lngEVT = CLng(Split(cptGetSetting("Integration", "EVT"), "|")(0))
   strLOE = cptGetSetting("Integration", "LOE")
   lngEVP = CLng(Split(cptGetSetting("Integration", "EVP"), "|")(0))
@@ -258,7 +304,7 @@ Sub cptDECM_GET_DATA()
   lngTaskName = FieldNameToFieldConstant("Name", pjTask)
   
   'headers
-  Print #lngTaskFile, "UID,WBS,OBS,CA,CAM,WP,WPM,EVT,EVP,FS,FF,BLS,BLF,AS,AF,BDUR,DUR,SUMMARY,CONST,TS,TASK_NAME,"
+  Print #lngTaskFile, "UID,WBS,OBS,CA,CAM,WP,WPM,EVT,EVP,FS,FF,BLS,BLF,AS,AF,BDUR,DUR,SUMMARY,CONST,TS,TASK_NAME," 'note: WPM is not required for DECM and is skipped
   Print #lngLinkFile, "FROM,TO,TYPE,LAG,"
   Print #lngAssignmentFile, "TASK_UID,RESOURCE_UID,BLW,BLC,RW,RC,"
   Print #lngTargetFile, "UID,TASK_NAME,"
@@ -266,6 +312,7 @@ Sub cptDECM_GET_DATA()
   Set myDECM_frm = New cptDECM_frm
   With myDECM_frm
     .Caption = "DECM v6.0 (cpt " & cptGetVersion("cptDECM_bas") & ")"
+    .lboOOS.Visible = False
     lngItem = 0
     .lboHeader.Clear
     .lboHeader.AddItem
@@ -284,15 +331,25 @@ Sub cptDECM_GET_DATA()
   End With
   
   blnDumpToExcel = False 'for debug
+  blnLimitToPMB = False 'don't do this
   
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If Not oTask.Active Then GoTo next_task
+    If blnLimitToPMB Then
+      If oTask.Assignments.Count = 0 Then GoTo next_task
+      If oTask.BaselineWork + oTask.BaselineCost = 0 Then GoTo next_task
+    End If
+    'todo: what about NOT blnMaster AND External Tasks?
     'If oTask.Summary Then GoTo next_task
-    'todo: skip external tasks?
 '    If blnIncompleteOnly Then If IsDate(oTask.ActualFinish) Then GoTo next_task 'todo: what was this for?
 '    If blnDiscreteOnly Then If oTask.GetField(lngEVT) = "A" Then GoTo next_task 'todo: what else is non-discrete? apportioned?
+    'todo: why is WPM required for the DECM?
     For Each vField In Array(lngUID, lngWBS, lngOBS, lngCA, lngCAM, lngWP, lngWPM, lngEVT, lngEVP, lngFS, lngFF, lngBLS, lngBLF, lngAS, lngAF, lngBDur, lngDur, lngSummary, lngConst, lngTS, lngTaskName)
+      If vField = 0 Then
+        strRecord = strRecord & "," 'account for empty WPM
+        GoTo next_field
+      End If
       If vField = FieldNameToFieldConstant("Physical % Complete") Then
         strRecord = strRecord & cptRegEx(oTask.GetField(vField), "[0-9]{1,}") & ","
       ElseIf vField = FieldNameToFieldConstant("% Complete") Then
@@ -312,11 +369,53 @@ Sub cptDECM_GET_DATA()
       Else
         strRecord = strRecord & oTask.GetField(CLng(vField)) & ","
       End If
+next_field:
     Next vField
     Print #lngTaskFile, strRecord
+    'todo: kick out PMB tasks (BAC>0) where metadata is missing?
     For Each oLink In oTask.TaskDependencies
       'todo: convert lag to effective days?
-      Print #lngLinkFile, oLink.From & "," & oLink.To & "," & Choose(oLink.Type + 1, "FF", "FS", "SF", "SS") & "," & oLink.Lag & ","
+      If oTask.Guid = oLink.To.Guid Then 'get predecessors
+        lngToUID = oTask.UniqueID
+        If blnMaster And oLink.From.ExternalTask Then
+          'fix the pred UID if master-sub
+          lngFromUID = oLink.From.GetField(185073906) Mod 4194304
+          strProject = oLink.From.Project
+          If InStr(oLink.From.Project, "\") > 0 Then
+            strProject = Replace(strProject, ".mpp", "")
+            strProject = Mid(strProject, InStrRev(strProject, "\") + 1)
+          End If
+          lngFactor = oSubMap(strProject)
+          lngFromUID = (lngFactor * 4194304) + lngFromUID
+        Else
+          If blnMaster Then
+            lngFactor = Round(oTask.UniqueID / 4194304, 0)
+            lngFromUID = (lngFactor * 4194304) + oLink.From.UniqueID
+          Else
+            lngFromUID = oLink.From.UniqueID
+          End If
+        End If
+      ElseIf oTask.Guid = oLink.From.Guid Then 'get successors
+        lngFromUID = oTask.UniqueID
+        If blnMaster And oLink.To.ExternalTask Then
+          lngToUID = oLink.To.GetField(185073906) Mod 4194304
+          strProject = oLink.To.Project
+          If InStr(strProject, "\") > 0 Then
+            strProject = Replace(strProject, ".mpp", "")
+            strProject = Mid(strProject, InStrRev(strProject, "\") + 1)
+          End If
+          lngFactor = oSubMap(strProject)
+          lngToUID = (lngFactor * 4194304) + lngToUID
+        Else
+          If blnMaster Then
+            lngFactor = Round(oTask.UniqueID / 4194304, 0)
+            lngToUID = (lngFactor * 4194304) + oLink.To.UniqueID
+          Else
+            lngToUID = oLink.To.UniqueID
+          End If
+        End If
+      End If
+      Print #lngLinkFile, lngFromUID & "," & lngToUID & "," & Choose(oLink.Type + 1, "FF", "FS", "SF", "SS") & "," & oLink.Lag & ","
     Next oLink
     For Each oAssignment In oTask.Assignments
       Print #lngAssignmentFile, Join(Array(oTask.UniqueID, oAssignment.ResourceUniqueID, oAssignment.BaselineWork, oAssignment.BaselineCost, oAssignment.RemainingWork, oAssignment.RemainingCost), ",")
@@ -346,6 +445,24 @@ next_task:
   'lboMetrics: METRIC,TITLE,THRESHOLD,X,Y,SCORE,DESCRIPTION,?sql
   strPass = "[+]"
   strFail = "<!>"
+  'strMore = "..."
+  'strQuestion = "<?>"
+  'strError = "<!>"
+  
+  'confirm fiscal calendar exists and export it
+  'needed for: 10A103a; 06A504a; 06A504b;
+  blnFiscalExists = cptCalendarExists("cptFiscalCalendar")
+  If blnFiscalExists Then
+    'export fiscal.csv
+    lngFile = FreeFile
+    strFile = strDir & "\fiscal.csv"
+    Open strFile For Output As #lngFile
+    Print #1, "FISCAL_END,LABEL,"
+    For Each oException In ActiveProject.BaseCalendars("cptFiscalCalendar").Exceptions
+      Print #1, oException.Finish & " 5:00 PM," & oException.Name & ","
+    Next oException
+    Close #lngFile
+  End If
   
   'ad hoc todo: destroy on form close
   Set oDECM = CreateObject("Scripting.Dictionary")
@@ -538,7 +655,7 @@ next_task:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngY = .RecordCount
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -570,10 +687,29 @@ next_task:
   'X = count of incomplete WPs that have more than one EVT or no EVT assigned
   'Y = count of incomplete WPs
   'X/Y <= 5%
-  strSQL = "SELECT WP,COUNT(EVT) AS CountOfEVT "
-  strSQL = strSQL & "FROM (SELECT DISTINCT WP,EVT FROM [tasks.csv] WHERE WP IS NOT NULL AND AF IS NULL) "
-  strSQL = strSQL & "GROUP BY WP "
-  strSQL = strSQL & "HAVING COUNT(EVT)>1"
+  
+  'limit to incomplete WPs with PMB and either mixed or missing EVTs
+  strSQL = "SELECT DISTINCT WP "
+  strSQL = strSQL & "FROM("
+  strSQL = strSQL & "    SELECT WP, Count(EVT) AS CountOfEVT" 'WP has mixed EVTs
+  strSQL = strSQL & "    FROM ("
+  strSQL = strSQL & "        SELECT T.WP, Iif(Isnull(T.EVT),'',T.EVT) AS EVT, SUM(A.BLW+A.BLC) AS BAC "
+  strSQL = strSQL & "        FROM [tasks.csv] AS T "
+  strSQL = strSQL & "        INNER JOIN [assignments.csv] AS A ON A.TASK_UID=T.UID "
+  strSQL = strSQL & "        WHERE T.WP IS NOT NULL AND T.AF IS NULL "
+  strSQL = strSQL & "        GROUP BY T.WP, T.EVT "
+  strSQL = strSQL & "        HAVING SUM(A.BLW+A.BLC)>0 "
+  strSQL = strSQL & "    )  AS PMB"
+  strSQL = strSQL & "    GROUP BY WP"
+  strSQL = strSQL & "    HAVING Count(EVT)>1"
+  strSQL = strSQL & "    UNION"
+  strSQL = strSQL & "    SELECT WP,Count(EVT) " 'WP has no EVTs
+  strSQL = strSQL & "    FROM [tasks.csv] AS T "
+  strSQL = strSQL & "    INNER JOIN [assignments.csv] AS A ON A.TASK_UID=T.UID"
+  strSQL = strSQL & "    WHERE T.EVT IS NULL"
+  strSQL = strSQL & "    GROUP BY WP"
+  strSQL = strSQL & ") AS [10a102a]"
+  
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngX = .RecordCount
@@ -588,13 +724,17 @@ next_task:
     If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
-  strSQL = "SELECT DISTINCT WP "
-  strSQL = strSQL & "FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE WP IS NOT NULL AND AF IS NULL"
+  'limit to incomplete WPs with PMB
+  strSQL = "SELECT T.WP,SUM(A.BLW+A.BLC) AS BAC "
+  strSQL = strSQL & "FROM [tasks.csv] AS T "
+  strSQL = strSQL & "INNER JOIN [assignments.csv] AS A ON A.TASK_UID = T.UID "
+  strSQL = strSQL & "WHERE T.WP IS NOT NULL AND T.AF IS NULL "
+  strSQL = strSQL & "GROUP BY T.WP "
+  strSQL = strSQL & "HAVING SUM(A.BLW+A.BLC)>0"
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngY = .RecordCount
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -623,6 +763,7 @@ next_task:
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "0/100 EVTs in >1 period"
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
   DoEvents
+  
   'X = Count of 0-100 EVT incomplete WPs with more than one accounting period of budget
   'Y = Total count of 0-100 EVT incomplete WPs
   strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
@@ -632,21 +773,25 @@ next_task:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
     lngY = .RecordCount
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   If lngY > 0 Then
-    Set oWorkbook = cptGetEVTAnalysis
-    Set oWorksheet = oWorkbook.Sheets(1)
-    Set oListObject = oWorksheet.ListObjects(1)
-    lngY = oListObject.DataBodyRange.Rows.Count
-    oListObject.Range.AutoFilter Field:=6, Criteria1:=">1", Operator:=xlAnd
-    lngX = oListObject.DataBodyRange.SpecialCells(xlCellTypeVisible).Rows.Count
-    strList = ""
-    If lngX > 0 Then
-      For Each oCell In oListObject.ListColumns("WP").DataBodyRange.SpecialCells(xlCellTypeVisible).Cells
-        If InStr(strList, oCell.Value) = 0 Then strList = strList & oCell.Value & vbTab
-      Next oCell
+    If blnFiscalExists Then
+      Set oWorkbook = cptGetEVTAnalysis
+      Set oWorksheet = oWorkbook.Sheets(1)
+      Set oListObject = oWorksheet.ListObjects(1)
+      lngY = oListObject.DataBodyRange.Rows.Count
+      oListObject.Range.AutoFilter Field:=6, Criteria1:=">1", Operator:=xlAnd
+      lngX = oListObject.DataBodyRange.SpecialCells(xlCellTypeVisible).Rows.Count
+      strList = ""
+      If lngX > 0 Then
+        For Each oCell In oListObject.ListColumns("WP").DataBodyRange.SpecialCells(xlCellTypeVisible).Cells
+          If InStr(strList, oCell.Value) = 0 Then strList = strList & oCell.Value & vbTab
+        Next oCell
+      End If
+    Else 'blnFiscalExists
+      lngX = lngY 'triggers failure
     End If
   Else
     lngX = 0
@@ -666,7 +811,6 @@ next_task:
   myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
-  
   'todo: bonus metrics if EVT_MS is used:
   'todo: EVT = "B" AND (EVT_MS MISSING OR EVT_MS NOT IN ({discrete})
   'todo: EVT = "B" AND EVT_MS = 0/100 AND FiscalPeriods > 1
@@ -688,7 +832,7 @@ next_task:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngY = .RecordCount
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   strSQL = "SELECT t.WP,SUM(a.BLW) AS [BLW],SUM(a.BLC) AS [BLC] FROM [tasks.csv] t "
@@ -707,7 +851,7 @@ next_task:
         .MoveNext
       Loop
     End If
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -877,7 +1021,7 @@ next_task:
   oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
   If oRecordset.EOF Then
     myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...skipped."
-    Application.StatusBar = "Getting " & strMetric & "....skipped."
+    Application.StatusBar = "Getting " & strMetric & "...skipped."
     GoTo decm_schedule
   Else
     myDECM_frm.lboMetrics.AddItem
@@ -1034,7 +1178,7 @@ decm_schedule:
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
   strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE AF IS NULL AND EVT<>'" & strLOE & "' AND SUMMARY='No'"
+  strSQL = strSQL & "WHERE WP IS NOT NULL AND AF IS NULL AND EVT<>'" & strLOE & "' AND SUMMARY='No'"
   oRecordset.Open strSQL, strCon, adOpenKeyset
   lngX = oRecordset.RecordCount 'pending upload
   lngY = oRecordset.RecordCount 'pending upload
@@ -1074,7 +1218,10 @@ decm_schedule:
   'Y = count incomplete Non-LOE tasks/activities & milestones
   'X = count of tasks with open starts or finishes
   'X/Y = 0%
-  strSQL = "SELECT * FROM [tasks.csv] WHERE AF IS NULL AND (EVT<>'" & strLOE & "' OR EVT IS NULL) AND SUMMARY='No'"
+  strSQL = "SELECT * FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE AF IS NULL "
+  strSQL = strSQL & "AND (EVT<>'" & strLOE & "' OR EVT IS NULL) "
+  strSQL = strSQL & "AND SUMMARY='No'"
   oRecordset.Open strSQL, strCon, adOpenKeyset
   lngY = oRecordset.RecordCount
   'start with this list - guilty until proven innocent
@@ -1088,14 +1235,15 @@ decm_schedule:
   End With
   oRecordset.Close
   
+  'now do predecessors - guilty until proven innocent
   strSQL = "SELECT t.UID,t.DUR,p.[TYPE],p.[FROM] FROM [tasks.csv] t "
   strSQL = strSQL & "LEFT JOIN (SELECT DISTINCT * FROM [links.csv]) p ON p.TO=t.UID "
   strSQL = strSQL & "WHERE t.SUMMARY='No' AND t.AF IS NULL AND (t.EVT<>'" & strLOE & "' OR t.EVT IS NULL)"
   With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
+    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
     .MoveFirst
     Do While Not .EOF
-      If oRecordset("UID") <> "" And (oRecordset("TYPE") = "SS" Or oRecordset("TYPE") = "FS") Then  'And oRecordset("DUR") > 0
+      If oRecordset("UID") <> "" And (oRecordset("TYPE") = "SS" Or oRecordset("TYPE") = "FS") And oRecordset("DUR") > 0 Then
         If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
       ElseIf oRecordset("UID") <> "" And oRecordset("DUR") = 0 And Not IsNull(oRecordset("TYPE")) Then
         If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
@@ -1126,10 +1274,10 @@ decm_schedule:
   strSQL = strSQL & "LEFT JOIN (SELECT DISTINCT * FROM [links.csv]) s ON s.[FROM]=t.UID "
   strSQL = strSQL & "WHERE t.SUMMARY='No' AND t.AF IS NULL AND (t.EVT<>'" & strLOE & "' OR t.EVT IS NULL)"
   With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
+    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
     .MoveFirst
     Do While Not .EOF
-      If oRecordset("UID") <> "" And (oRecordset("TYPE") = "FF" Or oRecordset("TYPE") = "FS") Then  'And oRecordset("DUR") > 0
+      If oRecordset("UID") <> "" And (oRecordset("TYPE") = "FF" Or oRecordset("TYPE") = "FS") And oRecordset("DUR") > 0 Then
         If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
       ElseIf oRecordset("UID") <> "" And oRecordset("DUR") = 0 And Not IsNull(oRecordset("TYPE")) Then
         If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
@@ -1139,11 +1287,30 @@ decm_schedule:
     .Close
   End With
   
+  'account for earliest/latest
+  strSQL = "SELECT UID,BLS,BLF "
+  strSQL = strSQL & "FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE AF IS NULL " 'incomplete
+  strSQL = strSQL & "AND SUMMARY='No' " 'non-summary
+  strSQL = strSQL & "AND (EVT <> '" & strLOE & "' OR EVT IS NULL) " 'non-LOE
+  strSQL = strSQL & "AND (BLS = (SELECT MIN(BLS) FROM [tasks.csv]) " 'earliest BLS
+  strSQL = strSQL & "OR BLF = (SELECT MAX(BLF) FROM [tasks.csv])) " 'latest BLF
+  strSQL = strSQL & "ORDER BY BLS"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    .MoveFirst
+    Do While Not .EOF
+      If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
+      .MoveNext
+    Loop
+    .Close
+  End With
+  
   'extract the guilty to a string for later consolidation
   For lngItem = 0 To oDict.Count - 1
     strLinks = strLinks & oDict.Items(lngItem) & ","
   Next lngItem
-  strLinks = Left(strLinks, Len(strLinks) - 1)
+  If Len(strLinks) > 0 Then strLinks = Left(strLinks, Len(strLinks) - 1)
   oDict.RemoveAll
   strList = ""
   For Each vField In Split(strLinks, ",")
@@ -1199,7 +1366,7 @@ decm_schedule:
         .MoveNext
       Loop
     End If
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -1322,18 +1489,37 @@ decm_schedule:
   'X = count of incomplete LOE tasks/activities in the IMS with at least one Non-LOE successor
   'Y = count of incomplete LOE tasks/activities in the IMS
   'X/Y = 0%
-  strSQL = "SELECT UID FROM [tasks.csv] WHERE EVT='" & strLOE & "' AND AF IS NULL"
+  'get Y
+  strSQL = "SELECT UID FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE AF IS NULL "
+  strSQL = strSQL & "AND SUMMARY='No' "
+  strSQL = strSQL & "AND EVT='" & strLOE & "' "
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
-    lngY = oRecordset.RecordCount
-    'DumpRecordsetToExcel oRecordset
+    If Not oRecordset.EOF Then
+      lngY = oRecordset.RecordCount
+    Else
+      lngY = 0
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
-  strSQL = "SELECT DISTINCT t.UID,t.EVT,s.TO,d.EVT "
-  strSQL = strSQL & "FROM ([tasks.csv] t "
-  strSQL = strSQL & "INNER JOIN (SELECT [FROM],TO FROM [links.csv]) s ON s.[FROM]=t.UID) "
-  strSQL = strSQL & "INNER JOIN [tasks.csv] d ON d.UID=s.TO "
-  strSQL = strSQL & "WHERE t.EVT='" & strLOE & "' AND t.AF IS NULL AND d.EVT<>'" & strLOE & "'"
+  'get X
+  strSQL = "SELECT DISTINCT [FROM], PRED.EVT, [TO], SUCC.EVT "
+  strSQL = strSQL & "FROM ([links.csv] LINKS "
+  strSQL = strSQL & "    INNER JOIN (SELECT * FROM [tasks.csv]  "
+  strSQL = strSQL & "        WHERE AF IS NULL  " 'incomplete
+  strSQL = strSQL & "        AND SUMMARY = 'No'  " 'non-summary
+  strSQL = strSQL & "        AND BLF <(SELECT MAX(BLF) FROM [tasks.csv] WHERE SUMMARY = 'No') " 'not last task/milestone/deliverable
+  strSQL = strSQL & "        ) AS PRED ON PRED.UID = LINKS.FROM) "
+  strSQL = strSQL & "    INNER JOIN (SELECT * FROM [tasks.csv] "
+  strSQL = strSQL & "        WHERE AF IS NULL " 'incomplete
+  strSQL = strSQL & "        AND SUMMARY = 'No' " 'non-summary
+  strSQL = strSQL & "        AND BLF <(SELECT MAX(BLF) FROM [tasks.csv] WHERE SUMMARY = 'No') " 'not last task/milestone/deliverable
+  strSQL = strSQL & "        ) AS SUCC ON SUCC.UID = LINKS.TO "
+  'strSQL = strSQL & "WHERE (PRED.EVT = '" & strLOE & "' OR PRED.EVT IS NULL) " 'LOE/Null Pred EVT
+  strSQL = strSQL & "WHERE PRED.EVT = '" & strLOE & "' "
+  strSQL = strSQL & "AND (SUCC.EVT <> '" & strLOE & "' OR SUCC.EVT IS NULL) " 'LOE/Null Succ EVT
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     oDict.RemoveAll
@@ -1347,7 +1533,7 @@ decm_schedule:
       Loop
     End If
     lngX = oDict.Count
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -1400,7 +1586,7 @@ decm_schedule:
         .MoveNext
       Loop
     End If
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -1420,13 +1606,14 @@ decm_schedule:
   DoEvents
   
   '06A212a - out of sequence
+  'todo: don't do Excel; cut title lbo in half and
+  'todo: add list of pairs - user can pull up whatever add'l info is wanted
   strMetric = "06A212a"
   myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
   myDECM_frm.lboMetrics.AddItem
   myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'myDECM_Frm.lboMetrics.Value = "06A501a"
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Out of Sequence"
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
@@ -1449,8 +1636,6 @@ decm_schedule:
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
   
-  '06A301a - vertical integration todo: lower level baselines rollup...refers to supplemental schedules...too complicated
-  
   '06A401a - critical path (constraint method)
   strMetric = "06A401a"
   myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
@@ -1462,7 +1647,7 @@ decm_schedule:
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
 
-  'create function form with type-ahead-find for user to select target milestone
+  'get targetUID
   lngTargetUID = cptDECMGetTargetUID()
   If lngTargetUID = 0 Then
     myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Critical Path - SKIPPED"
@@ -1485,6 +1670,7 @@ decm_schedule:
     strList = ""
     For Each oTask In ActiveProject.Tasks
       If oTask Is Nothing Then GoTo next_critical_task
+      If oTask.Summary Then GoTo next_critical_task
       If Not oTask.Active Then GoTo next_critical_task
       If oTask.TotalSlack = lngTargetTotalSlack Then
         strList = strList & oTask.UniqueID & ","
@@ -1515,12 +1701,12 @@ next_critical_task:
   End If
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
   'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
+  oDECM.Add strMetric, lngTargetUID & "|" & strList
   myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
-  
 skip_06A401a:
+
   '06A501a - baselines
   strMetric = "06A501a"
   myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
@@ -1539,7 +1725,7 @@ skip_06A401a:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngY = oRecordset.RecordCount
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   strSQL = "SELECT UID,BLS,BLF FROM [tasks.csv] WHERE SUMMARY='No' AND (BLS IS NULL OR BLF IS NULL)"
@@ -1554,7 +1740,7 @@ skip_06A401a:
         .MoveNext
       Loop
     End If
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -1572,23 +1758,8 @@ skip_06A401a:
   myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
-  
-  'confirm fiscal calendar exists and export it
-  'needed for: 06A504a; 06A504b;
-  blnFiscalExists = cptCalendarExists("cptFiscalCalendar")
-  If blnFiscalExists Then
-    'export fiscal.csv
-    lngFile = FreeFile
-    strFile = strDir & "\fiscal.csv"
-    Open strFile For Output As #lngFile
-    Print #1, "FISCAL_END,LABEL,"
-    For Each oException In ActiveProject.BaseCalendars("cptFiscalCalendar").Exceptions
-      Print #1, oException.Finish & " 5:00 PM," & oException.Name & ","
-    Next oException
-    Close #lngFile
-  End If
-  
-  'confirm cpt-cei.adtg exists and convert it
+    
+  'confirm cpt-cei.adtg exists and convert it to csv for easy querying
   'needed for: 06A504a; 06A504b;
   strFile = cptDir & "\settings\cpt-cei.adtg"
   If Dir(strFile) <> vbNullString Then
@@ -1599,8 +1770,14 @@ skip_06A401a:
     strFile = strDir & "\cpt-cei.adtg"
     Set oRecordset = CreateObject("ADODB.Recordset")
     oRecordset.Open strFile
+    'limit to program
+    oRecordset.Filter = "PROJECT='" & strProgramAcronym & "'"
+    oRecordset.Save strFile, adPersistADTG
+    oRecordset.Close
     
-    'clean it up
+    'clean it up (remove commas)
+    'todo: any other fields that might have a comma?
+    oRecordset.Open strFile
     oRecordset.Filter = "TASK_NAME LIKE '%,%'"
     If Not oRecordset.EOF Then
       oRecordset.MoveFirst
@@ -1629,62 +1806,77 @@ skip_06A401a:
   End If
   
   If Dir(strDir & "\cpt-cei.csv") <> vbNullString And blnFiscalExists Then
+    'is there more than one period of history?
     Set oRecordset = CreateObject("ADODB.Recordset")
-    strSQL = "SELECT "
-    strSQL = strSQL & "    MAX(STATUS_DATE) "
-    strSQL = strSQL & "FROM "
-    strSQL = strSQL & "    ( "
-    strSQL = strSQL & "        SELECT "
-    strSQL = strSQL & "            T1.FISCAL_END, "
-    strSQL = strSQL & "            T2.STATUS_DATE "
-    strSQL = strSQL & "        FROM "
-    strSQL = strSQL & "            [fiscal.csv] T1 "
-    strSQL = strSQL & "            LEFT JOIN ( "
-    strSQL = strSQL & "                SELECT "
-    strSQL = strSQL & "                    DISTINCT STATUS_DATE "
-    strSQL = strSQL & "                FROM "
-    strSQL = strSQL & "                    [cpt-cei.csv] "
-    strSQL = strSQL & "                WHERE "
-    strSQL = strSQL & "                    PROJECT = '" & strProgramAcronym & "' "
-    strSQL = strSQL & "            ) T2 ON T2.[STATUS_DATE] = T1.FISCAL_END "
-    strSQL = strSQL & "    )"
+    strSQL = "SELECT DISTINCT STATUS_DATE "
+    strSQL = strSQL & "FROM [cpt-cei.csv] "
+    strSQL = strSQL & "WHERE PROJECT ='" & strProgramAcronym & "'"
     oRecordset.Open strSQL, strCon, adOpenKeyset
     If oRecordset.EOF Then
-      oRecordset.Close
-      blnFiscalExists = False
-      GoTo skip_fiscal
+      blnTaskHistoryExists = False
+    ElseIf oRecordset.RecordCount < 2 Then
+      blnTaskHistoryExists = False
+    Else
+      blnTaskHistoryExists = True
     End If
-    dtCurrent = oRecordset(0)
     oRecordset.Close
-    'get 2nd most recent fiscal end/status date
-    strSQL = strSQL & " WHERE STATUS_DATE<#" & dtCurrent & "#"
-    oRecordset.Open strSQL, strCon, adOpenKeyset
-    If oRecordset.EOF Then
+    
+    If blnTaskHistoryExists Then 'get previous
+      Set oRecordset = CreateObject("ADODB.Recordset")
+      strSQL = "SELECT "
+      strSQL = strSQL & "    MAX(STATUS_DATE) "
+      strSQL = strSQL & "FROM "
+      strSQL = strSQL & "    ( "
+      strSQL = strSQL & "        SELECT "
+      strSQL = strSQL & "            T1.FISCAL_END, "
+      strSQL = strSQL & "            T2.STATUS_DATE "
+      strSQL = strSQL & "        FROM "
+      strSQL = strSQL & "            [fiscal.csv] T1 "
+      strSQL = strSQL & "            LEFT JOIN ( "
+      strSQL = strSQL & "                SELECT "
+      strSQL = strSQL & "                    DISTINCT STATUS_DATE "
+      strSQL = strSQL & "                FROM "
+      strSQL = strSQL & "                    [cpt-cei.csv] "
+      strSQL = strSQL & "                WHERE "
+      strSQL = strSQL & "                    PROJECT = '" & strProgramAcronym & "' "
+      strSQL = strSQL & "            ) T2 ON T2.[STATUS_DATE] = T1.FISCAL_END "
+      strSQL = strSQL & "    )"
+      oRecordset.Open strSQL, strCon, adOpenKeyset
+      If oRecordset.EOF Then
+        oRecordset.Close
+        blnTaskHistoryExists = False
+      End If
+      dtCurrent = oRecordset(0)
       oRecordset.Close
-      blnFiscalExists = False
-      GoTo skip_fiscal
+      'get 2nd most recent fiscal end/status date
+      strSQL = strSQL & " WHERE STATUS_DATE<#" & dtCurrent & "#"
+      oRecordset.Open strSQL, strCon, adOpenKeyset
+      If oRecordset.EOF Then
+        oRecordset.Close
+        blnTaskHistoryExists = False
+      End If
+      dtPrevious = oRecordset(0)
+      oRecordset.Close
     End If
-    dtPrevious = oRecordset(0)
-    oRecordset.Close
   End If
   
   '06A504a - AS changed - only if task history otherwise notify to 'use capture period'
   strMetric = "06A504a"
-  strFile = strDir & "\cpt-cei.csv"
-  If Dir(strFile) <> vbNullString And blnFiscalExists Then
-    myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-    Application.StatusBar = "Getting " & strMetric & "..."
-    myDECM_frm.lboMetrics.AddItem
-    myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-    'myDECM_Frm.lboMetrics.Value = "06A505a"
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Start"
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
-    DoEvents
-    
-    'X = Count of tasks/activities & milestones where actual start date does not equal previously reported actual start date
-    'Y = Total count of tasks/activities & milestones with actual start dates
-        
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  'myDECM_Frm.lboMetrics.Value = "06A505a"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Start"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+  DoEvents
+  
+  'X = Count of tasks/activities & milestones where actual start date does not equal previously reported actual start date
+  'Y = Total count of tasks/activities & milestones with actual start dates
+  
+  If blnTaskHistoryExists Then
+  
     'get Y
     strSQL = "SELECT TASK_UID,TASK_AS FROM [cpt-cei.csv] "
     strSQL = strSQL & "WHERE PROJECT='" & strProgramAcronym & "' AND TASK_AS IS NOT NULL "
@@ -1692,7 +1884,7 @@ skip_06A401a:
     oRecordset.Open strSQL, strCon, adOpenKeyset
     If Not oRecordset.EOF Then lngY = oRecordset.RecordCount Else lngY = 1
     oRecordset.Close
-    
+  
     'get X
     strSQL = "SELECT "
     strSQL = strSQL & "    t1.TASK_UID, "
@@ -1740,23 +1932,36 @@ skip_06A401a:
     myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
     Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
-  End If
+    
+  Else 'blnTaskHistoryExists
+  
+    'myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = Null 'X
+    'myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = Null 'Y
+    'myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Null 'SCORE
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = "-" 'ICON
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = "No Task History found. Please run ClearPlan > Schedule > Status > Capture Week before and after each Status Period to capture Task History."
+    myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...skipped."
+    Application.StatusBar = "Getting " & strMetric & "...skipped."
+    DoEvents
+    
+  End If 'blnTaskHistoryExists
   
   '06A504b - AF changed - only if task history
   strMetric = "06A504b"
-  If Dir(strDir & "\cpt-cei.csv") <> vbNullString And blnFiscalExists Then
-    myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-    Application.StatusBar = "Getting " & strMetric & "..."
-    myDECM_frm.lboMetrics.AddItem
-    myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-    'myDECM_Frm.lboMetrics.Value = "06A505a"
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Finish"
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
-    DoEvents
-  
-    'X = Count of tasks/activities & milestones where actual finish date does not equal previously reported actual finish date
-    'Y = Total count of tasks/activities & milestones with actual finish dates
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  'myDECM_Frm.lboMetrics.Value = "06A505a"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Changed Actual Finish"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+  DoEvents
+
+  'X = Count of tasks/activities & milestones where actual finish date does not equal previously reported actual finish date
+  'Y = Total count of tasks/activities & milestones with actual finish dates
+
+  If blnTaskHistoryExists Then
   
     'get Y
     strSQL = "SELECT TASK_UID,TASK_AF FROM [cpt-cei.csv] "
@@ -1814,9 +2019,19 @@ skip_06A401a:
     myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
     Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
-  End If
+    
+  Else 'blnTaskHistoryExists
   
-skip_fiscal:
+    'myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = Null 'X
+    'myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = Null 'Y
+    'myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Null 'SCORE
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = "-" 'ICON
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = "No Task History found. Please run ClearPlan > Schedule > Status > Capture Week before and after each Status Period to capture Task History."
+    myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...skipped."
+    Application.StatusBar = "Getting " & strMetric & "...skipped."
+    DoEvents
+    
+  End If
   
   '06A505a - In-Progress Tasks Have AS
   strMetric = "06A505a"
@@ -1837,7 +2052,7 @@ skip_fiscal:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngY = oRecordset.RecordCount
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   strSQL = "SELECT UID,EVP,[AS] FROM [tasks.csv] "
@@ -1854,7 +2069,7 @@ skip_fiscal:
         .MoveNext
       Loop
     End If
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -1892,7 +2107,7 @@ skip_fiscal:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngY = oRecordset.RecordCount
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   strSQL = "SELECT UID,EVP,AF FROM [tasks.csv] "
@@ -1908,7 +2123,7 @@ skip_fiscal:
         .MoveNext
       Loop
     End If
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -1946,7 +2161,7 @@ skip_fiscal:
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngY = oRecordset.RecordCount
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   strSQL = "SELECT UID,[AS],AF FROM [tasks.csv] "
@@ -1962,7 +2177,7 @@ skip_fiscal:
         .MoveNext
       Loop
     End If
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -2008,7 +2223,7 @@ skip_fiscal:
         .MoveNext
       Loop
     End If
-    'DumpRecordsetToExcel oRecordset
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -2030,25 +2245,27 @@ skip_fiscal:
   
   '06A506c - riding status date
   strMetric = "06A506c"
-  If Dir(strDir & "\cpt-cei.csv") <> vbNullString And blnFiscalExists Then
-    myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-    Application.StatusBar = "Getting " & strMetric & "..."
-    myDECM_frm.lboMetrics.AddItem
-    myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-    'myDECM_Frm.lboMetrics.Value = "06A506b"
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Riding the Status Date"
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
-    DoEvents
-    
-    'X = Count of incomplete tasks/activities & milestones with either forecast start or forecast finish date riding the status date
-    'Y = Total count of incomplete tasks/activities & milestones
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  'myDECM_Frm.lboMetrics.Value = "06A506b"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Riding the Status Date"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
+  DoEvents
+  
+  'X = Count of incomplete tasks/activities & milestones with either forecast start or forecast finish date riding the status date
+  'Y = Total count of incomplete tasks/activities & milestones
+  
+  If blnTaskHistoryExists Then
+  
     strSQL = "SELECT UID FROM [tasks.csv] "
     strSQL = strSQL & "WHERE SUMMARY='No' AND [AF] IS NULL "
     With oRecordset
       .Open strSQL, strCon, adOpenKeyset
       lngY = oRecordset.RecordCount
-      'DumpRecordsetToExcel oRecordset
+      If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
       .Close
     End With
       
@@ -2110,7 +2327,7 @@ skip_fiscal:
           .MoveNext
         Loop
       End If
-      'DumpRecordsetToExcel oRecordset
+      If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
       .Close
     End With
     myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
@@ -2128,7 +2345,16 @@ skip_fiscal:
     myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
     Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
-  End If
+  Else 'blnTaskHistoryExists
+    'myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = Null 'X
+    'myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = Null 'Y
+    'myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Null 'SCORE
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = "-" 'ICON
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = "No Task History found. Please run ClearPlan > Schedule > Status > Capture Week before and after each Status Period to capture Task History."
+    myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...skipped."
+    Application.StatusBar = "Getting " & strMetric & "...skipped."
+    DoEvents
+  End If 'blnTaskHistoryExists
   
   '06I201a - SVTs todo: capture task names with "^SVT" ; allow alternative
   strMetric = "06I201a"
@@ -2165,7 +2391,7 @@ skip_fiscal:
   Set oTasks = Nothing
   On Error Resume Next
   Set oTasks = ActiveSelection.Tasks
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   strList = ""
   If Not oTasks Is Nothing Then
     lngX = ActiveSelection.Tasks.Count
@@ -2481,6 +2707,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   
@@ -2490,7 +2717,8 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
 
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Application.StatusBar = "Opening Excel..."
     Set oExcel = CreateObject("Excel.Application")
@@ -2673,7 +2901,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
             If o10A103a Is Nothing Then
               'todo: what if it doesn't exist?
             Else
-              If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+              If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
               'replace current worksheet with worksheet from saved workbook
               oExcel.DisplayAlerts = False
               oWorksheet.Delete
@@ -2734,7 +2962,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
         EditCopy
         On Error Resume Next
         Set oTasks = ActiveSelection.Tasks
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If oTasks Is Nothing Then GoTo next_item
         If oTasks.Count = 0 Then GoTo next_item
         oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
@@ -2745,6 +2973,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
         oWorksheet.Cells.Font.Size = 11
         oWorksheet.Cells.WrapText = False
         oWorksheet.[B4].Select
+        oExcel.WindowState = xlNormal
         oExcel.ActiveWindow.FreezePanes = True
         oWorksheet.Columns.AutoFit
         If .lboMetrics.List(lngItem, 6) = strFail Then
@@ -2897,7 +3126,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
         SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strList
-        Sort "Finish", renumber:=False, Outline:=False
+        Sort key1:="Finish", ascending1:=True, key2:="Duration", ascending2:=False, renumber:=False, Outline:=False
         SelectBeginning
         EditGoTo Date:=ActiveSelection.Tasks(1).Finish
       Else
@@ -2989,8 +3218,8 @@ Function cptGetOutOfSequence(ByRef myDECM_frm As cptDECM_frm) As String
   Dim oAssignment As MSProject.Assignment
   Dim oOOS As Scripting.Dictionary
   Dim oCalendar As MSProject.Calendar
-  Dim oSubProject As MSProject.Subproject
-  Dim oSubMap As Scripting.Dictionary
+  Dim oSubproject As MSProject.Subproject
+  'Dim oSubMap As Scripting.Dictionary
   Dim oTask As MSProject.Task
   Dim oLink As MSProject.TaskDependency
   Dim oExcel As Excel.Application
@@ -3007,6 +3236,7 @@ Function cptGetOutOfSequence(ByRef myDECM_frm As cptDECM_frm) As String
   Dim strDir As String
   Dim strFile As String
   'longs
+  Dim lngItem As Long
   Dim lngLagType As Long
   Dim lngLag As Long
   Dim lngFactor As Long
@@ -3020,7 +3250,7 @@ Function cptGetOutOfSequence(ByRef myDECM_frm As cptDECM_frm) As String
   'doubles
   'booleans
   Dim blnElapsed As Boolean
-  Dim blnSubprojects As Boolean
+  Dim blnMaster As Boolean
   'variants
   'dates
   Dim dtStatus As Date
@@ -3033,35 +3263,32 @@ Function cptGetOutOfSequence(ByRef myDECM_frm As cptDECM_frm) As String
     On Error GoTo 0
   End If
   
-  blnSubprojects = ActiveProject.Subprojects.Count > 0
-  If blnSubprojects Then
-    'get correct task count
-    lngTasks = ActiveProject.Tasks.Count
-    'set up mapping
-    If oSubMap Is Nothing Then
-      Set oSubMap = CreateObject("Scripting.Dictionary")
-    Else
-      oSubMap.RemoveAll
-    End If
-    For Each oSubProject In ActiveProject.Subprojects
-      If Left(oSubProject.Path, 2) <> "<>" Then 'offline
-        oSubMap.Add Replace(Dir(oSubProject.Path), ".mpp", ""), 0
-      ElseIf Left(oSubProject.Path, 2) = "<>" Then 'online
-        oSubMap.Add oSubProject.Path, 0
-      End If
-      lngTasks = lngTasks + oSubProject.SourceProject.Tasks.Count
-    Next oSubProject
+  blnMaster = ActiveProject.Subprojects.Count > 0
+  If blnMaster Then
+'    'set up mapping
+'    If oSubMap Is Nothing Then
+'      Set oSubMap = CreateObject("Scripting.Dictionary")
+'    Else
+'      oSubMap.RemoveAll
+'    End If
+'    For Each oSubproject In ActiveProject.Subprojects
+'      If Left(oSubproject.Path, 2) <> "<>" Then 'offline
+'        oSubMap.Add Replace(Dir(oSubproject.Path), ".mpp", ""), 0
+'      ElseIf Left(oSubproject.Path, 2) = "<>" Then 'online
+'        oSubMap.Add oSubproject.Path, 0
+'      End If
+'    Next oSubproject
     For Each oTask In ActiveProject.Tasks
       If oTask Is Nothing Then GoTo next_mapping_task
-      If oSubMap.Exists(oTask.Project) Then
-        If oSubMap(oTask.Project) > 0 Then GoTo next_mapping_task
-        If Not oTask.Summary Then
-          oSubMap.Item(oTask.Project) = CLng(oTask.UniqueID / 4194304)
-        End If
-      End If
+'      If oSubMap.Exists(oTask.Project) Then
+'        If oSubMap(oTask.Project) > 0 Then GoTo next_mapping_task
+'        If Not oTask.Summary Then
+'          oSubMap.Item(oTask.Project) = CLng(oTask.UniqueID / 4194304)
+'        End If
+'      End If
 next_mapping_task:
+      If oTask.Active Then lngTasks = lngTasks + 1
     Next oTask
-    
   Else
     lngTasks = ActiveProject.Tasks.Count
   End If
@@ -3091,12 +3318,11 @@ next_mapping_task:
     If oTask.Summary Then GoTo next_task 'skip summary tasks
     If Not oTask.Active Then GoTo next_task 'skip inactive tasks
     If IsDate(oTask.ActualFinish) Then GoTo next_task 'incomplete predecessors only
-    
     For Each oLink In oTask.TaskDependencies
       If oLink.From.Guid = oTask.Guid Then   'predecessors only
         If Not oLink.To.Active Then GoTo next_link
         lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
-        If blnSubprojects And oLink.From.ExternalTask Then
+        If blnMaster And oLink.From.ExternalTask Then
           'fix the pred UID if master-sub
           lngFromUID = oLink.From.GetField(185073906) Mod 4194304
           strProject = oLink.From.Project
@@ -3107,14 +3333,30 @@ next_mapping_task:
           lngFactor = oSubMap(strProject)
           lngFromUID = (lngFactor * 4194304) + lngFromUID
         Else
-          If blnSubprojects Then
-            lngFactor = Round(oTask / 4194304, 0)
+          If blnMaster Then
+            lngFactor = Round(oTask.UniqueID / 4194304, 0)
             lngFromUID = (lngFactor * 4194304) + oLink.From.UniqueID
           Else
             lngFromUID = oLink.From.UniqueID
           End If
         End If
-        lngToUID = oLink.To.UniqueID
+        If blnMaster And oLink.To.ExternalTask Then
+          lngToUID = oLink.To.GetField(185073906) Mod 4194304
+          strProject = oLink.To.Project
+          If InStr(strProject, "\") > 0 Then
+            strProject = Replace(strProject, ".mpp", "")
+            strProject = Mid(strProject, InStrRev(strProject, "\") + 1)
+          End If
+          lngFactor = oSubMap(strProject)
+          lngToUID = (lngFactor * 4194304) + lngToUID
+        Else
+          If blnMaster Then
+            lngFactor = Round(oTask.UniqueID / 4194304, 0)
+            lngToUID = (lngFactor * 4194304) + oLink.To.UniqueID
+          Else
+            lngToUID = oLink.To.UniqueID
+          End If
+        End If
         lngLag = 0
         If oLink.Lag <> 0 Then
           'elapsed lagType properties are even
@@ -3141,16 +3383,15 @@ next_mapping_task:
             End If
             If oLink.To.Finish < dtDate Or IsDate(oLink.To.ActualFinish) Then
               lngOOS = lngOOS + 1
-              If Not oOOS.Exists(oLink.From.UniqueID) Then oOOS.Add oLink.From.UniqueID, oLink.From.UniqueID
-              If Not oOOS.Exists(oLink.To.UniqueID) Then oOOS.Add oLink.To.UniqueID, oLink.To.UniqueID
+              oOOS.Add oOOS.Count, lngFromUID & "," & lngToUID
               oWorksheet.Cells(lngLastRow, 1) = lngFromUID
-              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oLink.From.ID)
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnMaster, "-", oLink.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oLink.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oLink.From.Finish
               oWorksheet.Cells(lngLastRow, 5) = "FF"
               oWorksheet.Cells(lngLastRow, 6) = oLink.Lag / (8 * 60)
               oWorksheet.Cells(lngLastRow, 7) = lngToUID
-              oWorksheet.Cells(lngLastRow, 8) = IIf(blnSubprojects, "-", oLink.To.ID)
+              oWorksheet.Cells(lngLastRow, 8) = IIf(blnMaster, "-", oLink.To.ID)
               oWorksheet.Cells(lngLastRow, 9) = oLink.To.Name
               oWorksheet.Cells(lngLastRow, 10) = oLink.To.Finish
               If IsDate(oLink.To.ActualFinish) Then
@@ -3178,16 +3419,15 @@ next_mapping_task:
             'compare and report
             If oLink.To.Start < dtDate Or IsDate(oLink.To.ActualStart) Then
               lngOOS = lngOOS + 1
-              If Not oOOS.Exists(oLink.From.UniqueID) Then oOOS.Add oLink.From.UniqueID, oLink.From.UniqueID
-              If Not oOOS.Exists(oLink.To.UniqueID) Then oOOS.Add oLink.To.UniqueID, oLink.To.UniqueID
+              oOOS.Add oOOS.Count, lngFromUID & "," & lngToUID
               oWorksheet.Cells(lngLastRow, 1) = lngFromUID
-              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oLink.From.ID)
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnMaster, "-", oLink.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oLink.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oLink.From.Finish
               oWorksheet.Cells(lngLastRow, 5) = "FS"
               oWorksheet.Cells(lngLastRow, 6) = oLink.Lag / (8 * 60)
               oWorksheet.Cells(lngLastRow, 7) = lngToUID
-              oWorksheet.Cells(lngLastRow, 8) = IIf(blnSubprojects, "-", oLink.To.ID)
+              oWorksheet.Cells(lngLastRow, 8) = IIf(blnMaster, "-", oLink.To.ID)
               oWorksheet.Cells(lngLastRow, 9) = oLink.To.Name
               oWorksheet.Cells(lngLastRow, 10) = oLink.To.Start
               If IsDate(oLink.To.ActualStart) Then
@@ -3215,16 +3455,15 @@ next_mapping_task:
             'compare and report
             If IsDate(oLink.To.ActualStart) Or oLink.To.Start < dtDate Then 'should not be an issue if both have actual starts
               lngOOS = lngOOS + 1
-              If Not oOOS.Exists(oLink.From.UniqueID) Then oOOS.Add oLink.From.UniqueID, oLink.From.UniqueID
-              If Not oOOS.Exists(oLink.To.UniqueID) Then oOOS.Add oLink.To.UniqueID, oLink.To.UniqueID
+              oOOS.Add oOOS.Count, lngFromUID & "," & lngToUID
               oWorksheet.Cells(lngLastRow, 1) = lngFromUID
-              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oLink.From.ID)
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnMaster, "-", oLink.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oLink.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oLink.From.Start
               oWorksheet.Cells(lngLastRow, 5) = "SS"
               oWorksheet.Cells(lngLastRow, 6) = oLink.Lag / (8 * 60)
               oWorksheet.Cells(lngLastRow, 7) = lngToUID
-              oWorksheet.Cells(lngLastRow, 8) = IIf(blnSubprojects, "-", oLink.To.ID)
+              oWorksheet.Cells(lngLastRow, 8) = IIf(blnMaster, "-", oLink.To.ID)
               oWorksheet.Cells(lngLastRow, 9) = oLink.To.Name
               oWorksheet.Cells(lngLastRow, 10) = oLink.To.Start
               If IsDate(oLink.To.ActualStart) Then
@@ -3252,16 +3491,15 @@ next_mapping_task:
             'compare and report
             If IsDate(oLink.To.ActualFinish) Or oLink.To.Finish < oLink.From.Start Then
               lngOOS = lngOOS + 1
-              If Not oOOS.Exists(oLink.From.UniqueID) Then oOOS.Add oLink.From.UniqueID, oLink.From.UniqueID
-              If Not oOOS.Exists(oLink.To.UniqueID) Then oOOS.Add oLink.To.UniqueID, oLink.To.UniqueID
+              oOOS.Add oOOS.Count, lngFromUID & "," & lngToUID
               oWorksheet.Cells(lngLastRow, 1) = lngFromUID
-              oWorksheet.Cells(lngLastRow, 2) = IIf(blnSubprojects, "-", oLink.From.ID)
+              oWorksheet.Cells(lngLastRow, 2) = IIf(blnMaster, "-", oLink.From.ID)
               oWorksheet.Cells(lngLastRow, 3) = oLink.From.Name
               oWorksheet.Cells(lngLastRow, 4) = oLink.From.Start
               oWorksheet.Cells(lngLastRow, 5) = "SF"
               oWorksheet.Cells(lngLastRow, 6) = oLink.Lag / (8 * 60)
               oWorksheet.Cells(lngLastRow, 7) = lngToUID
-              oWorksheet.Cells(lngLastRow, 8) = IIf(blnSubprojects, "-", oLink.To.ID)
+              oWorksheet.Cells(lngLastRow, 8) = IIf(blnMaster, "-", oLink.To.ID)
               oWorksheet.Cells(lngLastRow, 9) = oLink.To.Name
               oWorksheet.Cells(lngLastRow, 10) = oLink.To.Finish
               If IsDate(oLink.To.ActualFinish) Then
@@ -3290,16 +3528,18 @@ next_task:
     End If
     DoEvents
   Next oTask
-    
-  'get ~count of OOS oTasks
-  lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
   
   'only open workbook if OOS oTasks found
+  lngOOS = oOOS.Count
   If lngOOS = 0 Then
     oWorkbook.Close False
     GoTo return_val
   Else
-    strOOS = Join(oOOS.Keys, vbTab)
+    'strOOS = Join(oOOS.Keys, vbTab)
+    For lngItem = 0 To lngOOS - 1
+      strOOS = strOOS & oOOS.Items(lngItem) & ";"
+    Next lngItem
+    'todo: delete tmp\06A212a.xlsx on form close
   End If
     
   With oExcel.ActiveWindow
@@ -3341,6 +3581,10 @@ next_task:
   
   oExcel.Visible = True
   oExcel.WindowState = xlMinimized
+  'todo: 06A212a capture if open and close
+  If Dir(Environ("tmp") & "\06A212a.xlsm") <> vbNull Then Kill Environ("tmp") & "\06A212a.xlsm"
+  oWorkbook.SaveAs Environ("tmp") & "\06A212a.xlsm", 52 'xlOpenXMLWorkbookMacroEnabled
+  oWorkbook.Close
   
 return_val:
   cptGetOutOfSequence = CStr(lngOOS) & "|" & strOOS
@@ -3352,7 +3596,7 @@ exit_here:
   oOOS.RemoveAll
   Set oOOS = Nothing
   Set oCalendar = Nothing
-  Set oSubProject = Nothing
+  Set oSubproject = Nothing
   Set oSubMap = Nothing
   Application.StatusBar = ""
   oExcel.EnableEvents = True
@@ -3400,12 +3644,14 @@ Private Function cptGetEVTAnalysis() As Excel.Workbook
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   Dim blnExists As Boolean
   'variants
   Dim vbResponse As Variant
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Set oProject = ActiveProject
   
@@ -3415,26 +3661,26 @@ Private Function cptGetEVTAnalysis() As Excel.Workbook
     GoTo exit_here
   End If
   
-  'ensure fiscal calendar is still loaded
-  If Not cptCalendarExists("cptFiscalCalendar") Then
-    MsgBox "The Fiscal Calendar (cptFiscalCalendar) is missing! Please reset it and try again.", vbCritical + vbOKOnly, "What happened?"
-    GoTo exit_here
-  End If
-      
-  'export the calendar
-  Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar")
-  lngFile = FreeFile
-  strFile = Environ("tmp") & "\fiscal.csv"
-  Open strFile For Output As #lngFile
-  Print #lngFile, "fisc_end,label,"
-  For Each oException In oCalendar.Exceptions
-    Print #lngFile, oException.Finish & "," & oException.Name
-  Next oException
-  Close #lngFile
+'  'ensure fiscal calendar is still loaded
+'  If Not cptCalendarExists("cptFiscalCalendar") Then
+'    MsgBox "The Fiscal Calendar (cptFiscalCalendar) is missing! Please reset it and try again.", vbCritical + vbOKOnly, "What happened?"
+'    GoTo exit_here
+'  End If
+'
+'  'export the calendar
+'  Set oCalendar = ActiveProject.BaseCalendars("cptFiscalCalendar")
+'  lngFile = FreeFile
+'  strFile = Environ("tmp") & "\fiscal.csv"
+'  Open strFile For Output As #lngFile
+'  Print #lngFile, "fisc_end,label,"
+'  For Each oException In oCalendar.Exceptions
+'    Print #lngFile, oException.Finish & "," & oException.Name
+'  Next oException
+'  Close #lngFile
   
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If
@@ -3535,7 +3781,7 @@ Private Function cptDECMGetTargetUID() As Long
   strSQL = "SELECT * FROM [targets.csv] "
   oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
   If oRecordset.RecordCount = 0 Then 'user has no zero-day duration tasks nor milestones
-    myDECMTargetUID_frm.lngTargetTaskUID = 0
+    cptDECMGetTargetUID = 0
     GoTo exit_here
   End If
   oRecordset.MoveFirst
@@ -3624,7 +3870,7 @@ Function cptGetDECMDescription(strDECM As String) As String
     
     Case "06A211a"
       strDescription = "Is high total float rationale/justification acceptable?" & vbCrLf
-      strDescription = strDescription & "X = Count of high total float non-LOE tasks/activities & milestones sampled with inadequate rationale" & vbCrLf
+      strDescription = strDescription & "X = Count of high total float (>44 days) non-LOE tasks/activities & milestones sampled with inadequate rationale" & vbCrLf
       strDescription = strDescription & "Y = Total count of high total float non-LOE tasks/activities & milestones sampled"
     
     Case "06A212a"

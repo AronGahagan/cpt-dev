@@ -249,7 +249,7 @@ Sub cptStatusSheetImport(ByRef myStatusSheetImport_frm As cptStatusSheetImport_f
   Dim oDict As Scripting.Dictionary
   Dim oShell As Object
   Dim oRecordset As ADODB.Recordset
-  Dim oSubProject As Subproject
+  Dim oSubproject As Subproject
   Dim oTask As MSProject.Task
   Dim oResource As Resource
   Dim oAssignment As Assignment
@@ -307,6 +307,7 @@ Sub cptStatusSheetImport(ByRef myStatusSheetImport_frm As cptStatusSheetImport_f
   Dim dblWas As Double
   Dim dblETC As Double
   'booleans
+  Dim blnErrorTrapping As Boolean
   Dim blnKickoutReport As Boolean
   Dim blnImportLog As Boolean
   Dim blnAppend As Boolean
@@ -321,7 +322,8 @@ Sub cptStatusSheetImport(ByRef myStatusSheetImport_frm As cptStatusSheetImport_f
   Dim dtNewDate As Date
   Dim dtStatus As Date
 
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'validate choices for all
   With myStatusSheetImport_frm
@@ -422,8 +424,8 @@ Sub cptStatusSheetImport(ByRef myStatusSheetImport_frm As cptStatusSheetImport_f
   myStatusSheetImport_frm.lblStatus = "Clearing existing values..."
   cptSpeed True
   If ActiveProject.Subprojects.Count > 0 Then
-    For Each oSubProject In ActiveProject.Subprojects
-      lngTasks = lngTasks + oSubProject.SourceProject.Tasks.Count
+    For Each oSubproject In ActiveProject.Subprojects
+      lngTasks = lngTasks + oSubproject.SourceProject.Tasks.Count
     Next
   Else
     lngTasks = ActiveProject.Tasks.Count
@@ -550,17 +552,17 @@ next_task:
         On Error Resume Next
         dtStatus = oWorksheet.Range("STATUS_DATE")
         If Err.Number = 1004 Then 'invalid oWorkbook
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           Print #lngFile, "INVALID Worksheet - range 'STATUS_DATE' not found"
           GoTo next_worksheet
         End If
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         'get header row
         lngUIDCol = 1
         On Error Resume Next
         lngHeaderRow = oWorksheet.Columns(lngUIDCol).Find(what:="UID").Row
         If Err.Number = 1004 Then 'invalid oWorkbook
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           Print #lngFile, "INVALID Worksheet - UID column not found"
           GoTo next_worksheet
         End If
@@ -571,7 +573,7 @@ next_task:
         lngEVCol = oWorksheet.Rows(lngHeaderRow).Find(what:="New EV%", lookat:=xlWhole).Column
         On Error Resume Next
         Set oCell = oWorksheet.Rows(lngHeaderRow).Find(what:="New ETC", lookat:=xlWhole)
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If oCell Is Nothing Then
           lngETCCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Revised ETC", lookat:=xlWhole).Column 'for backwards compatibility
         Else
@@ -584,7 +586,7 @@ next_task:
         Else
           lngCommentsCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Reason / Action / Impact", lookat:=xlWhole).Column
         End If
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If lngCommentsCol = 0 Then
           lngCommentsCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
         End If
@@ -597,17 +599,17 @@ next_task:
           'determine if row is a oTask or an oAssignment
           On Error Resume Next
           Set oTask = ActiveProject.Tasks.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If oTask Is Nothing Or oTask.UniqueID <> oWorksheet.Cells(lngRow, lngUIDCol).Value Then 'check if it's a resource
             Set oResource = Nothing
             On Error Resume Next
             Set oResource = ActiveProject.Resources(oWorksheet.Cells(lngRow, lngTaskNameCol).Value)
-            If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+            If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
             If Not oResource Is Nothing Then
               blnTask = False
             Else
               Print #lngFile, "UID " & oWorksheet.Cells(lngRow, lngUIDCol) & " not found in IMS."
-              If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+              If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
               GoTo next_row
             End If
           Else
@@ -767,7 +769,7 @@ skip_evp:
           ElseIf Not blnTask Then 'it's an Assignment
             On Error Resume Next
             Set oAssignment = oTask.Assignments.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
-            If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+            If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
             If oAssignment Is Nothing Then
               Print #lngFile, "MISSING: TASK UID: [" & oTask.UniqueID & "] ASSIGNMENT UID: [" & oWorksheet.Cells(lngRow, lngUIDCol).Value & "] - " & oWorksheet.Cells(lngRow, lngTaskNameCol).Value
             Else
@@ -901,7 +903,7 @@ next_file:
         'get outlook
         On Error Resume Next
         Set oOutlook = GetObject(, "Outlook.Application")
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If oOutlook Is Nothing Then
           Set oOutlook = CreateObject("Outlook.Application")
         End If
@@ -914,7 +916,7 @@ next_file:
         'add some words
         On Error Resume Next
         Set oInspector = oMailItem.GetInspector
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If Not oInspector Is Nothing Then
           oInspector.WindowState = 1 '1=olMinimized
         End If
@@ -928,7 +930,7 @@ next_file:
           Set oRange = Nothing
           On Error Resume Next
           Set oRange = oWorksheet.Range("STATUS_DATE")
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If oRange Is Nothing Then GoTo next_worksheet1
           oWorksheet.Activate
           'show all rows and columns (if scheduler did not 'protect')
@@ -1024,7 +1026,7 @@ exit_here:
   Set oShell = Nothing
   If oRecordset.State = 1 Then oRecordset.Close
   Set oRecordset = Nothing
-  Set oSubProject = Nothing
+  Set oSubproject = Nothing
   myStatusSheetImport_frm.lblStatus.Caption = "Import Complete."
   myStatusSheetImport_frm.lblProgress.Width = myStatusSheetImport_frm.lblStatus.Width
   DoEvents
@@ -1092,10 +1094,12 @@ Sub cptRefreshStatusImportTable(ByRef myStatusSheetImport_frm As cptStatusSheetI
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not myStatusSheetImport_frm.Visible Then GoTo exit_here
 
   cptSpeed True
@@ -1180,7 +1184,7 @@ Sub cptRefreshStatusImportTable(ByRef myStatusSheetImport_frm As cptStatusSheetI
   If Len(strEVT) > 0 Then
     On Error Resume Next
     lngEVT = Split(strEVT, "|")(0) 'FieldNameToFieldConstant(strEVT)
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If lngEVT > 0 Then
       TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:=Split(strEVT, "|")(1), Title:="EVT", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
     End If
@@ -1194,7 +1198,7 @@ Sub cptRefreshStatusImportTable(ByRef myStatusSheetImport_frm As cptStatusSheetI
     'does field still exist?
     On Error Resume Next
     lngEVP = Split(strEVP, "|")(0) 'FieldNameToFieldConstant (strEVP)
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If lngEVP > 0 Then
       TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:=Split(strEVP, "|")(1), Title:="EV%", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
     End If
@@ -1268,7 +1272,7 @@ Sub cptRefreshStatusImportTable(ByRef myStatusSheetImport_frm As cptStatusSheetI
       'Application.ToggleTaskDetails
     End If
     ActiveWindow.BottomPane.Activate
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     'If ActiveProject.CurrentView <> "Task Usage" Then ViewApply "Task Usage"
     ViewApply "Task Usage"
     'If ActiveProject.CurrentTable <> "cptStatusSheetImportDetails Table" Then TableApply "cptStatusSheetImportDetails Table"
@@ -1285,7 +1289,7 @@ Sub cptRefreshStatusImportTable(ByRef myStatusSheetImport_frm As cptStatusSheetI
     SetSplitBar ShowColumns:=ActiveProject.TaskTables(ActiveProject.CurrentTable).TableFields.Count
     On Error Resume Next
     strBottomPaneViewName = ActiveWindow.BottomPane.View.Name
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Len(strBottomPaneViewName) > 0 Then
       DetailsPaneToggle
     End If
