@@ -68,6 +68,7 @@ Private Sub lboFilter_Click()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   Dim dtGoTo As Date
@@ -82,7 +83,8 @@ Private Sub lboFilter_Click()
     Set oTask = ActiveProject.Tasks.Item(lngUID)
     strField = "ID"
   End If
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oTask Is Nothing Then
     
     If IsDate(oTask.Stop) Then
@@ -105,7 +107,7 @@ Private Sub lboFilter_Click()
             Sort "ID", , , , , , False, True
             OutlineShowAllTasks
           End If
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           ScreenUpdating = True
           If Not EditGoTo(oTask.ID, dtGoTo) Then
             MsgBox "An unknown error has occured--can't find it!", vbCritical + vbOKOnly, "Still can't find it"
@@ -126,7 +128,7 @@ Private Sub lboFilter_Click()
             Sort "ID", , , , , , False, True
             OutlineShowAllTasks
           End If
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           ScreenUpdating = True
           If Not FindEx(strField, "equals", lngUID) Then
             MsgBox "An unknown error has occured--can't find it!", vbCritical + vbOKOnly, "Still can't find it"
@@ -209,16 +211,15 @@ Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, B
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   Dim vRecord As Variant
   Dim strNewList As Variant
   Dim vData As Variant
   'dates
 
-  'FilterClear
-  
-  'todo: why no error trapping here?
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'scrub the incoming data
   vData = Split(Data.GetText, vbCrLf)
@@ -242,7 +243,7 @@ next_record:
     
   Else 'user pasted single line of delimited values, possibly including ranges
 
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     
     strFilter = Data.GetText
        
