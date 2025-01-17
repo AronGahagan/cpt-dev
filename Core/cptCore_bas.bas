@@ -179,6 +179,7 @@ Sub cptUpgrade(Optional strFileName As String)
   Dim oStream As Object
   Dim xmlHttpDoc As Object
   'strings
+  Dim strDir As String
   Dim strNewFileName As String
   Dim strModule As String
   Dim strError As String
@@ -193,7 +194,7 @@ Sub cptUpgrade(Optional strFileName As String)
   'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
+  strDir = cptDir
   If Len(strFileName) = 0 Then strFileName = "Core/cptUpgrades_frm.frm"
 
   'go get it
@@ -209,8 +210,8 @@ frx:
     oStream.Open
     oStream.Type = 1 'adTypeBinary
     oStream.Write xmlHttpDoc.responseBody
-    If Dir(cptDir & "\" & strFileName) <> vbNullString Then Kill cptDir & "\" & strFileName
-    oStream.SaveToFile cptDir & "\" & strFileName
+    If Dir(strDir & "\" & strFileName) <> vbNullString Then Kill strDir & "\" & strFileName
+    oStream.SaveToFile strDir & "\" & strFileName
     oStream.Close
     'need to fetch the .frx first
     If Right(strURL, 4) = ".frm" Then
@@ -241,7 +242,7 @@ frx:
 
   'import the module
   Application.StatusBar = "Importing " & strFileName & "..."
-  ThisProject.VBProject.VBComponents.Import cptDir & "\" & strFileName
+  ThisProject.VBProject.VBComponents.Import strDir & "\" & strFileName
   DoEvents
   
   '<issue24> remove the whitespace added by VBE import/export
@@ -414,7 +415,7 @@ Sub cptGetReferences()
     strRef = Join(Array(oRef.Name, oRef.Description, oRef.FullPath, oRef.Guid, oRef.Major, oRef.Minor, oRef.BuiltIn, oRef.IsBroken, oRef.Type), ",")
     Print #lngFile, strRef & ","
   Next oRef
-  Close #lngFile
+  Reset
   
   Shell "C:\Windows\notepad.exe '" & strFile & "'", vbNormalFocus
   
@@ -1123,6 +1124,7 @@ Sub cptSetReferences()
   Dim strDir As String
   Dim strRegEx As String
   Dim vPath As Variant
+  Dim vApp As Variant
 
   On Error Resume Next
 
@@ -1146,7 +1148,6 @@ Sub cptSetReferences()
   End If
 
   'office applications
-  Dim vApp As Variant
   For Each vApp In Split("EXCEL.EXE,MSOUTL.OLB,MSPPT.OLB,MSWORD.OLB", ",")
     strDir = cptGetOfficeDir2(CStr(vApp))
     If Len(strDir) > 0 Then
@@ -1351,6 +1352,7 @@ End Function
 Sub cptWrapItUp(Optional lngOutlineLevel As Long)
   'objects
   'strings
+  Dim strDir As String
   'longs
   Dim lngLevel As Long
   'booleans
@@ -1360,7 +1362,8 @@ Sub cptWrapItUp(Optional lngOutlineLevel As Long)
   
   blnErrorTrapping = cptErrorTrapping
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
+  strDir = cptDir
+  
   '===
   'Validate users selected view type
   If ActiveProject.Application.ActiveWindow.ActivePane.View.Type <> pjTaskItem Then
@@ -1375,9 +1378,9 @@ Sub cptWrapItUp(Optional lngOutlineLevel As Long)
   
   If lngOutlineLevel = 0 Then
     'check for a saved setting
-    If Dir(cptDir & "\settings\cpt-reset-all.adtg") <> vbNullString Then
+    If Dir(strDir & "\settings\cpt-reset-all.adtg") <> vbNullString Then
       With CreateObject("ADODB.Recordset")
-        .Open cptDir & "\settings\cpt-reset-all.adtg"
+        .Open strDir & "\settings\cpt-reset-all.adtg"
         .MoveFirst
         lngOutlineLevel = .Fields(1)
         .Close
@@ -1518,22 +1521,28 @@ Function cptVersionStatus(strInstalled As String, strCurrent As String) As Strin
   Next
 
   'figure out the things
-  For Each vLevel In Array(0, 1, 2)
-    If aCurrent(vLevel) <> aInstalled(vLevel) Then
-      cptVersionStatus = Choose(vLevel + 1, "major", "minor", "patch")
-      If Len(aInstalled(vLevel)) = 0 Then
-        cptVersionStatus = "install " & cptVersionStatus
-      ElseIf CLng(aCurrent(vLevel)) > CLng(aInstalled(vLevel)) Then '<issue62>
-        cptVersionStatus = cptVersionStatus & " upgrade"
-      Else
-        cptVersionStatus = cptVersionStatus & " downgrade"
+'  If strInstalled = "<missing>" Then
+'    cptVersionStatus = "install"
+'  Else
+    For Each vLevel In Array(0, 1, 2)
+      If aCurrent(vLevel) <> aInstalled(vLevel) Then
+        cptVersionStatus = Choose(vLevel + 1, "major", "minor", "patch")
+        If Len(aInstalled(vLevel)) = 0 Then
+          cptVersionStatus = "install " & cptVersionStatus
+        ElseIf CLng(aCurrent(vLevel)) > CLng(aInstalled(vLevel)) Then '<issue62>
+          cptVersionStatus = cptVersionStatus & " upgrade"
+        Else
+          cptVersionStatus = cptVersionStatus & " downgrade"
+        End If
+        Exit For
       End If
-      Exit For
-    End If
-  Next vLevel
-
+    Next vLevel
+'  End If
+  
   If cptVersionStatus = "" Then
     cptVersionStatus = "ok"
+  ElseIf cptVersionStatus = "install" Then
+    cptVersionStatus = "install"
   Else
     cptVersionStatus = "install " & cptVersionStatus
   End If
@@ -1724,6 +1733,7 @@ Sub cptShowSettings_frm()
   Dim oStream As Object 'Scripting.TextStream
   Dim oFSO As Object 'Scripting.FileSystemObject
   'strings
+  Dim strDir As String
   Dim strErrorTrapping As String
   Dim strSettingsFileNew As String
   Dim strSettingsFile As String
@@ -1739,7 +1749,7 @@ Sub cptShowSettings_frm()
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  
+  strDir = cptDir
   Set mySettings_frm = New cptSettings_frm
   mySettings_frm.Caption = "ClearPlan Toolbar Settings (" & cptGetVersion("cptSettings_frm") & ")"
   
@@ -1750,8 +1760,8 @@ Sub cptShowSettings_frm()
     .Open
   End With
   
-  strSettingsFile = cptDir & "\settings\cpt-settings.ini"
-  strSettingsFileNew = cptDir & "\settings\cpt-settings-temp.ini"
+  strSettingsFile = strDir & "\settings\cpt-settings.ini"
+  strSettingsFileNew = strDir & "\settings\cpt-settings-temp.ini"
   lngFile = FreeFile
   Open strSettingsFileNew For Output As #lngFile
   
@@ -1759,7 +1769,7 @@ Sub cptShowSettings_frm()
     .lboFeatures.Clear
     .lboSettings.Clear
     Set oFSO = CreateObject("Scripting.FileSystemObject")
-    Set oStream = oFSO.OpenTextFile(cptDir & "\settings\cpt-settings.ini")
+    Set oStream = oFSO.OpenTextFile(strDir & "\settings\cpt-settings.ini")
     Do While Not oStream.AtEndOfStream
       strLine = oStream.ReadLine
       If Left(strLine, 1) = "[" Then
@@ -1797,8 +1807,8 @@ Sub cptShowSettings_frm()
     If Dir(strSettingsFile) <> vbNullString Then Kill strSettingsFile
     Name strSettingsFileNew As strSettingsFile
     If Dir(strSettingsFileNew) <> vbNullString Then Kill strSettingsFileNew
-    If Dir(cptDir & "\settings\cpt-settings.adtg") <> vbNullString Then Kill cptDir & "\settings\cpt-settings.adtg"
-    oRecordset.Save cptDir & "\settings\cpt-settings.adtg", adPersistADTG
+    If Dir(strDir & "\settings\cpt-settings.adtg") <> vbNullString Then Kill strDir & "\settings\cpt-settings.adtg"
+    oRecordset.Save strDir & "\settings\cpt-settings.adtg", adPersistADTG
     oRecordset.Close
     '.lblDir = strSettingsFile
     strProgramAcronym = cptGetProgramAcronym
@@ -1818,6 +1828,7 @@ Sub cptShowSettings_frm()
   
 exit_here:
   On Error Resume Next
+  Reset
   Set oRecordset = Nothing
   Set oStream = Nothing
   Set oFSO = Nothing
@@ -2059,6 +2070,7 @@ Sub cptAppendColumn(strFile As String, strColumn As String, lngType As Long, Opt
   Dim oRecordsetNew As Object 'ADODB.Recordset
   Dim oRecordset As Object 'ADODB.Recordset
   'strings
+  Dim strDir As String
   'longs
   Dim lngField As Long
   'integers
@@ -2070,10 +2082,11 @@ Sub cptAppendColumn(strFile As String, strColumn As String, lngType As Long, Opt
   
   blnErrorTrapping = cptErrorTrapping
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
+  strDir = cptDir
+  
   Set oRecordset = CreateObject("ADODB.Recordset")
   Set oRecordsetNew = CreateObject("ADODB.Recordset")
-  If InStr(strFile, cptDir) = 0 Then strFile = cptDir & strFile
+  If InStr(strFile, strDir) = 0 Then strFile = strDir & strFile
   oRecordset.Open strFile, , adOpenKeyset, adLockReadOnly
   On Error Resume Next
   Debug.Print oRecordset.Fields(strColumn)
@@ -2427,6 +2440,7 @@ Function cptGetCustomFields(strFieldTypes As String, strDataTypes As String, str
               vRow(lngInclude) = CustomFieldGetName(lngConstant)
             Else
               vRow(lngInclude) = FieldConstantToFieldName(lngConstant)
+              'todo: if blnHideCFN then vRow(lngInclude) = ""
             End If
           End If
         Next lngInclude
@@ -2435,6 +2449,29 @@ Function cptGetCustomFields(strFieldTypes As String, strDataTypes As String, str
       Next lngField
     Next vField
   Next vFieldType
+  
+  'get enterprise custom fields
+  If blnIncludeEnterprise Then
+    For lngConstant = 188776000 To 188778000 '2000 should do it for now
+      If FieldConstantToFieldName(lngConstant) <> "<Unavailable>" Then
+        For lngInclude = 0 To UBound(vInclude)
+          If vInclude(lngInclude) = "c" Then
+            vRow(lngInclude) = lngConstant
+          ElseIf vInclude(lngInclude) = "fn" Then
+            vRow(lngInclude) = FieldConstantToFieldName(lngConstant)
+          ElseIf vInclude(lngInclude) = "cfn" Then
+            If Len(CustomFieldGetName(lngConstant)) > 0 Then
+              vRow(lngInclude) = CustomFieldGetName(lngConstant)
+            Else
+              vRow(lngInclude) = FieldConstantToFieldName(lngConstant)
+            End If
+          End If
+        Next lngInclude
+        strResult = strResult & Join(vRow, ",") & vbCrLf
+        lngResultCount = lngResultCount + 1
+      End If
+    Next lngConstant
+  End If
   
   ReDim vResult(0 To UBound(Split(strResult, vbCrLf)) - 1, 0 To UBound(vInclude))
   For lngField = 0 To UBound(Split(strResult, vbCrLf)) - 1
@@ -2503,12 +2540,15 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
   
   blnValid = True
   
-  strDefaultFields = "WBS,OBS,CA,CAM,WP,WPM,EVT,EVT_MS,LOE,EVP"
+  strDefaultFields = "WBS,OBS,CA,CAM,WP,WPM,EVT,EVTMS,LOE,EVP"
+  'todo: distinguish between default,enabled,required
   blnUseDefault = Len(strRequiredFields) = 0
   Set oRequiredFields = CreateObject("Scripting.Dictionary")
   For Each vRequired In Split(strDefaultFields, ",")
     oRequiredFields.Add vRequired, blnUseDefault
   Next vRequired
+  oRequiredFields("WPM") = False
+  oRequiredFields("EVTMS") = False
   For Each vRequired In Split(strRequiredFields, ",")
     oRequiredFields(vRequired) = True
   Next
@@ -2545,7 +2585,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
             cptSaveSetting "Integration", "EVP", strSetting
             cptDeleteSetting "Metrics", "cboEVP"
           End If
-        ElseIf vControl = "EVT" Or vControl = "EVT_MS" Then
+        ElseIf vControl = "EVT" Or vControl = "EVTMS" Then
           strSetting = cptGetSetting("Metrics", "cboLOEField")
           If Len(strSetting) = 0 Then
             If oRequiredFields(vControl) Then blnValid = False
@@ -2555,7 +2595,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
               cptSaveSetting "Integration", CStr(vControl), strSetting
               cptDeleteSetting "Metrics", "cboEVT"
             Else
-              GoTo next_control
+              strSetting = cptGetSetting("Integration", CStr(vControl))
             End If
           End If
         ElseIf vControl = "LOE" Then
@@ -2611,15 +2651,20 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
       ElseIf vControl = "LOE" Then
         On Error Resume Next
         .cboLOE.Value = strLOE
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         GoTo next_control
-      Else 'WP,EVT_MS
+      Else 'WP,EVTMS
         oComboBox.List = cptSortedArray(cptGetCustomFields("t", "Text,Outline Code", "c,cfn", False), 1)
         If IsEmpty(oComboBox.List(oComboBox.ListCount - 1, 0)) Then oComboBox.RemoveItem (oComboBox.ListCount - 1)
       End If
       If lngField > 0 Then oComboBox.Value = lngField
 next_control:
-      If Not oRequiredFields(vControl) Then oComboBox.Enabled = False
+      If blnUseDefault Then
+        oComboBox.Enabled = True
+      Else
+        oComboBox.Enabled = oRequiredFields(vControl)
+      End If
+      Set oComboBox = Nothing
     Next vControl
     
     .txtFiscalCalendar.Enabled = False
@@ -2829,13 +2874,233 @@ Function cptGetDate(dtDate As Date, Optional strFormat As String)
   For Each vFormat In Array(vbGeneralDate, vbLongDate, vbShortDate, vbLongTime, vbShortTime)
     Debug.Print vFormat & ": " & FormatDateTime(dtDate, vFormat)
   Next vFormat
+  If Len(strFormat) > 0 Then
+    Debug.Print "custom: " & Format(dtDate, strFormat)
+  End If
 End Function
 
 Function cptCustomFieldExists(strCustomFieldName As String) As Variant
-  Dim lngFC As Long
+  'returns 0 if false; constant if true
+  Dim lngCFC As Long
   On Error Resume Next
-  lngFC = FieldNameToFieldConstant(strCustomFieldName)
+  lngCFC = FieldNameToFieldConstant(strCustomFieldName)
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  cptCustomFieldExists = lngFC
+  cptCustomFieldExists = lngCFC
 err_here:
 End Function
+
+Function cptGetLatest(strModule As String) As String
+  'objects
+  Dim xmlDoc As Object
+  Dim xmlNode As Object
+  Dim oFile As Scripting.File
+  Dim oFSO As Scripting.FileSystemObject
+  Dim oRecordset As ADODB.Recordset
+  'strings
+  Dim strLatest As String
+  Dim strURL As String
+  Dim strFile As String
+  Dim strDir As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  Dim blnStale As Boolean
+  Dim blnErrorTrapping
+  'variants
+  'dates
+  
+  'todo: prompt the user no more than once a week if an update is available
+  'todo: use it as a basis for the upgrades form?
+  
+  If Not cptInternetIsConnected Then GoTo exit_here
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  strDir = cptDir
+  
+  strFile = strDir & "\cpt-latest.adtg"
+  blnStale = True
+  'does file exist?
+  If Dir(strFile) <> vbNullString Then
+    'is it stale?
+    Set oFSO = CreateObject("Scripting.FileSystemObject")
+    Set oFile = oFSO.GetFile(strFile)
+    'todo: use DateModified? DateCreated? notified as date or boolean?
+    'todo: what if a file is installed that gets removed from the package?
+    'todo: if a module gets removed then <cpt_version>remove</cpt_version>
+    If oFile.DateCreated > DateAdd("d", -7, Now()) Then
+      blnStale = False
+    End If
+    Set oFile = Nothing
+    Set oFSO = Nothing
+    If blnStale Then
+      Kill strFile
+    End If
+  End If
+  
+  'todo: if update is available then notify user and mark 'notified=true
+  
+  If blnStale Then
+    'set up the recordset
+    Set oRecordset = CreateObject("ADODB.Recordset")
+    oRecordset.Fields.Append "Module", 200, 200 '200=adVarChar
+    oRecordset.Fields.Append "Directory", 200, 200 '200=adVarChar
+    oRecordset.Fields.Append "Current", 200, 200 '200=adVarChar
+    oRecordset.Fields.Append "Notified", 11 '11=adBoolean
+    oRecordset.Fields.Append "Installed", 200, 200
+    oRecordset.Fields.Append "Status", 200, 200
+    oRecordset.Open
+
+    'get current versions
+    Application.StatusBar = "Fetching latest versions..."
+    DoEvents
+    Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
+    xmlDoc.async = False
+    xmlDoc.validateOnParse = False
+    xmlDoc.SetProperty "SelectionLanguage", "XPath"
+    xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
+    strURL = strGitHub & "CurrentVersions.xml"
+    If Not xmlDoc.Load(strURL) Then
+      'MsgBox xmlDoc.parseError.errorcode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
+      cptGetLatest = "error"
+      GoTo exit_here
+    Else
+      For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
+        oRecordset.AddNew
+        oRecordset(0) = xmlNode.SelectSingleNode("Name").Text '>Module
+        oRecordset(1) = xmlNode.SelectSingleNode("Directory").Text '>Directory
+        oRecordset(2) = xmlNode.SelectSingleNode("Version").Text '>Latest
+        oRecordset(3) = False
+        If cptModuleExists(xmlNode.SelectSingleNode("Name").Text) Then
+          oRecordset(4) = cptGetVersion(xmlNode.SelectSingleNode("Name").Text)
+          oRecordset(5) = cptVersionStatus(cptGetVersion(xmlNode.SelectSingleNode("Name").Text), cptGetLatest(xmlNode.SelectSingleNode("Name").Text))
+        End If
+        oRecordset.Update
+      Next xmlNode
+    End If
+    oRecordset.Save strFile, adPersistADTG
+    oRecordset.Close
+  End If
+  
+  'now check latest version
+  Set oRecordset = CreateObject("ADODB.REcordset")
+  oRecordset.Open strFile
+  oRecordset.Filter = "Module='" & strModule & "'"
+  If Not oRecordset.EOF Then
+    strLatest = oRecordset(2)
+    'note: updating a record will affect LastModified...
+  End If
+  oRecordset.Filter = 0
+  oRecordset.Close
+  
+  cptGetLatest = strLatest
+
+exit_here:
+  On Error Resume Next
+  Set xmlNode = Nothing
+  Set xmlDoc = Nothing
+  Set oFile = Nothing
+  Set oFSO = Nothing
+  If oRecordset.State Then
+    oRecordset.Filter = 0
+    oRecordset.Close
+  End If
+  Set oRecordset = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptGetLatest", Err, Erl)
+  Resume exit_here
+End Function
+
+Function cptTriageError(strModule As String) As String
+  Dim strInstalled As String
+  Dim strLatest As String
+  Dim strStatus As String
+  Dim strMsg As String
+  strInstalled = cptGetVersion(strModule)
+  strLatest = cptGetLatest(strModule)
+  strStatus = cptVersionStatus(strInstalled, strLatest)
+  If InStr(strStatus, "upgrade") Then
+    strMsg = "Update available for " & strModule & "!" & vbCrLf & strInstalled & " -> " & strLatest
+    strMsg = strMsg & vbCrLf & vbCrLf & "ClearPlan > Help > Check for Upgrades, Upgrade All"
+    MsgBox strMsg, vbExclamation + vbOKOnly, "Upgrade Available!"
+  ElseIf InStr(strStatus, "downgrade") Then
+    MsgBox "You found a bug!" & vbCrLf & vbCrLf & "Please let the dev know ASAP." & vbCrLf & vbCrLf & "Thank you!", vbExclamation + vbOKOnly, "Nice."
+  End If
+    
+End Function
+
+Sub cptCheckMetadata(strConstants As String, strReturn As String)
+  'objects
+  Dim oTask As MSProject.Task
+  Dim oDict As Scripting.Dictionary
+  'strings
+  Dim strMissing As String
+  'longs
+  Dim lngCount As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnErrorTrapping As Boolean
+  'variants
+  Dim vCF As Variant
+  'dates
+  
+  blnErrorTrapping = cptErrorTrapping
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'todo: should strConstants include things like BLS,BLF,BLD?
+  'todo: should strConstants include assignments?
+  
+  Set oDict = CreateObject("Scripting.Dictionary")
+  For Each vCF In Split(strConstants, ",")
+    oDict.Add vCF, "0|"
+  Next vCF
+  
+  'assume alignment between master and subs
+  'if they're not, this will make it clear
+  For Each oTask In ActiveProject.Tasks
+    If oTask Is Nothing Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If oTask.Summary Then GoTo next_task
+    If oTask.Assignments.Count > 0 And (oTask.BaselineWork > 0 Or oTask.BaselineCost > 0) Then
+      For Each vCF In Split(strConstants, ",")
+        If vCF = "" Then GoTo next_cf
+        If Len(oTask.GetField(Split(vCF, "|")(2))) = 0 Then
+          lngCount = CLng(Split(oDict(vCF), "|")(0))
+          strMissing = Split(oDict(vCF), "|")(1)
+          lngCount = lngCount + 1
+          strMissing = strMissing & oTask.UniqueID & ","
+          oDict(vCF) = lngCount & "|" & strMissing
+        End If
+next_cf:
+      Next vCF
+    End If
+next_task:
+  Next oTask
+  
+  lngCount = 0
+  strMissing = "Results:"
+  For Each vCF In Split(strConstants, ",")
+    If vCF <> "" Then
+      lngCount = lngCount + CLng(Split(oDict(vCF), "|")(0))
+      strMissing = strMissing & "[" & Split(vCF, "|")(0) & "] " & CustomFieldGetName(Split(vCF, "|")(2)) & ": " & Split(oDict(vCF), "|")(0) & " missing" & vbCrLf
+    End If
+  Next vCF
+  If strReturn = "lngCount" Then
+    MsgBox lngCount, vbExclamation + vbOKOnly, "PMB Task Metadata Check"
+  ElseIf strReturn = "strMissing" Then
+    MsgBox strMissing, vbExclamation + vbOKOnly, "PMB Task Metadata Check"
+  End If
+  
+exit_here:
+  On Error Resume Next
+  Set oTask = Nothing
+  Set oDict = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptCheckMetadata", Err, Erl)
+  Resume exit_here
+End Sub

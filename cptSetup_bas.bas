@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.8.23</cpt_version>
+'<cpt_version>v1.8.24</cpt_version>
 Option Explicit
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
@@ -35,6 +35,7 @@ Sub cptSetup()
   Dim xmlDoc As Object
   Dim rstCore As Object 'ADODB.Recordset
   'strings
+  Dim strDir As String
   Dim strMsg As String
   Dim strError As String
   Dim strCptFileName As String
@@ -54,7 +55,9 @@ Sub cptSetup()
   'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
+  strDir = cptDir
+  
   '<issue61> ensure proper installation
   If InStr(ThisProject.FullName, "Global") = 0 Then
     strMsg = "The CPT can only be installed in one of the following:" & vbCrLf
@@ -135,8 +138,8 @@ frx:
           oStream.Open
           oStream.Type = 1 'adTypeBinary
           oStream.Write xmlHttpDoc.responseBody
-          If Dir(cptDir & "\" & strFileName) <> vbNullString Then Kill cptDir & "\" & strFileName
-          oStream.SaveToFile cptDir & "\" & strFileName
+          If Dir(strDir & "\" & strFileName) <> vbNullString Then Kill strDir & "\" & strFileName
+          oStream.SaveToFile strDir & "\" & strFileName
           oStream.Close
           'need to fetch the .frx first
           If Right(strURL, 4) = ".frm" Then
@@ -173,7 +176,7 @@ frx:
         If strModule <> "ThisProject" Then
           Application.StatusBar = "Importing " & strFileName & "..."
           'Debug.Print Application.StatusBar
-          ThisProject.VBProject.VBComponents.Import cptDir & "\" & strFileName
+          ThisProject.VBProject.VBComponents.Import strDir & "\" & strFileName
           '<issue19> added
           DoEvents '</issue19>
 
@@ -198,7 +201,7 @@ this_project:
 
   '<issue35>
   'update user's ThisProject - if it downloaded correctly, or was copied in correctly
-  strFileName = cptDir & "\ThisProject.cls"
+  strFileName = strDir & "\ThisProject.cls"
   If Dir(strFileName) <> vbNullString Then 'it was downloaded, import it
     'rename the file and import it
     strCptFileName = Replace(strFileName, "ThisProject", "cptThisProject_cls")
@@ -469,7 +472,7 @@ Public Function cptBuildRibbonTab()
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMyReplace"" label=""MyReplace"" imageMso=""ReplaceDialog"" onAction=""cptMyReplace"" visible=""true"" supertip=""Find/Replace only on selected tasks, in the selected field."" />"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bEnumerate"" label=""Enumerate"" imageMso=""NumberingRestart"" onAction=""cptEnumerate"" visible=""true"" supertip=""Select a group of tasks, and then enumerate them."" />"
       ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrimText"" label=""Trim Task Names"" imageMso=""TextEffectsClear"" onAction=""cptTrimTaskNames"" visible=""true"" supertip=""For the 'Type A' folks out there, this trims leading and trailing spaces (and multiple spaces) in your task names (e.g., after pasting them in from Excel--cool, right?)."" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrimText"" label=""Trim Task Names"" imageMso=""TextEffectsClear"" onAction=""cptTrimTaskNames"" visible=""true"" supertip=""For the 'Type A' folks out there, this trims leading and trailing spaces (and multiple spaces) in your task names (e.g., after pasting them in from Excel--cool, right?). Note: this applies to all non-external tasks in the project."" />"
       'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process (WIP)"" imageMso=""DuplicateSelectedSlides"" onAction=""cptReplicateProcess"" visible=""true"" />"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""cptFindDuplicateTaskNames"" visible=""true"" supertip=""Clearly worded tasks represent well-defined tasks and are important for estimating and providing status. Click to find duplicate task names and create a report in Excel. Remember: Noun and Verb!"" />"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetRowHeight"" label=""Reset Row Height"" imageMso=""RowHeight"" onAction=""cptResetRowHeight"" visible=""true"" supertip=""Another one for our fellow 'Type A' folks out there--reset all row heights after they get all jacked up. Give it a go; you'll like it."" />"
@@ -526,7 +529,11 @@ Public Function cptBuildRibbonTab()
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
-
+  
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gIntegration2"" visible=""true"" >"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIntegrationSettings3"" label=""Field Mapping"" imageMso=""Settings"" screentip=""Integration Settings"" onAction=""cptGetValidMap"" size=""large"" />"
+'  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  
   'schedule
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Schedule"" visible=""true"" >"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mHealth"" label=""Health"" imageMso=""CheckWorkflow"" visible=""true"" size=""large"" >"
@@ -535,13 +542,14 @@ Public Function cptBuildRibbonTab()
    ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIntegrationSettings1"" label=""Integration Settings"" imageMso=""Settings"" onAction=""cptGetValidMap"" visible=""true"" supertip=""Set, edit, and confirm Integration Settings"" />"
 '  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DCMA 14"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDCMA14"" label=""DCMA 01"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DCMA 14-pt Analysis"" />"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDCMA14"" label=""DCMA 01"" imageMso=""CheckWorkflow"" onAction=""cptDCMA14_GET_DATA"" visible=""true"" supertip=""DCMA 14-pt Analysis"" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mStatus"" label=""Status"" imageMso=""UpdateAsScheduled"" visible=""true"" size=""large"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Before Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""General"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   If cptModuleExists("cptQBD_frm") And cptModuleExists("cptQBD_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bQBD"" label=""Quantifiable Backup Data (QBD)"" imageMso=""ExportExcel"" onAction=""cptShowQBD_frm"" visible=""true"" supertip=""Yes, Quantifiable Backup Data."" />"
   End If
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Before Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cpt_bAdvanceStatusDate"" label=""Advance Status Date"" imageMso=""CalendarToolSelectDate"" onAction=""cptAdvanceStatusDate"" visible=""true"" supertip=""Advance the Status Date prior to kicking off a status cycle."" />"
   If cptModuleExists("cptAgeDates_bas") And cptModuleExists("cptAgeDates_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cpt_bAgeDates"" label=""Age Dates"" imageMso=""CalendarToolSelectDate"" onAction=""cptShowAgeDates_frm"" visible=""true"" supertip=""Keep a rolling history of the current schedule.""  />"
@@ -750,7 +758,7 @@ Public Function cptInternetIsConnected() As Boolean
 
 End Function
 
-Function cptRegEx(strText As String, strRegEx As String, Optional blnMultiline As Boolean = False, Optional blnIgnoreCase As Boolean = True) As String
+Function cptRegEx(strText As String, strRegEx As String, Optional blnMultiLine As Boolean = False, Optional blnIgnoreCase As Boolean = True) As String
   Dim RE As Object, REMatch As Variant, REMatches As Object
   Dim strMatch As String
 
@@ -758,7 +766,7 @@ Function cptRegEx(strText As String, strRegEx As String, Optional blnMultiline A
 
   Set RE = CreateObject("vbscript.regexp")
   With RE
-    .MultiLine = blnMultiline
+    .MultiLine = blnMultiLine
     .Global = True
     .IgnoreCase = blnIgnoreCase
     .Pattern = strRegEx
@@ -844,6 +852,7 @@ Sub cptUninstall()
   Dim vbComponent As Object
   Dim cmThisProject As Object
   'strings
+  Dim strDir As String
   Dim strMsg As String
   'longs
   Dim lngLine As Long
@@ -854,6 +863,7 @@ Sub cptUninstall()
   'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  strDir = cptDir
 
   If MsgBox("Are you sure?", vbCritical + vbYesNo, "Uninstall CPT") = vbNo Then GoTo exit_here
 
@@ -898,8 +908,8 @@ Sub cptUninstall()
     If Left(vbComponent.Name, 3) = "cpt" And vbComponent.Name <> "cptSetup_bas" Then
       If vbComponent.Name = "cptAdmin_bas" Then GoTo next_component
       Application.StatusBar = "Purging module " & vbComponent.Name & "..."
-      If Dir(cptDir & "\modules\", vbDirectory) = vbNullString Then MkDir cptDir & "\modules"
-      vbComponent.Export cptDir & "\modules\" & vbComponent.Name
+      If Dir(strDir & "\modules\", vbDirectory) = vbNullString Then MkDir strDir & "\modules"
+      vbComponent.Export strDir & "\modules\" & vbComponent.Name
       ThisProject.VBProject.VBComponents.Remove vbComponent
     End If
 next_component:

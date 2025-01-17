@@ -1077,6 +1077,7 @@ Sub cptRefreshStatusImportTable(ByRef myStatusSheetImport_frm As cptStatusSheetI
   'objects
   Dim rst As Object 'ADODB.Recordset 'Object
   'strings
+  Dim strDir As String
   Dim strBottomPaneViewName As String
   Dim strEVT As String
   Dim strEVP As String
@@ -1100,13 +1101,14 @@ Sub cptRefreshStatusImportTable(ByRef myStatusSheetImport_frm As cptStatusSheetI
   
   blnErrorTrapping = cptErrorTrapping
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  strDir = cptDir
   If Not myStatusSheetImport_frm.Visible Then GoTo exit_here
 
   cptSpeed True
   
   'get saved settings
   'get EVP and EVT
-  strSettings = cptDir & "\settings\cpt-status-sheet.adtg" 'todo: keep for a few more versions
+  strSettings = strDir & "\settings\cpt-status-sheet.adtg" 'todo: keep for a few more versions
   If Dir(strSettings) <> vbNullString Then
     Set rst = CreateObject("ADODB.Recordset")
     rst.Open strSettings
@@ -1130,7 +1132,7 @@ Sub cptRefreshStatusImportTable(ByRef myStatusSheetImport_frm As cptStatusSheetI
   TableEditEx Name:="cptStatusSheetImport Table", TaskTable:=True, NewFieldName:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
   
   'import user fields
-  strSettings = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
+  strSettings = strDir & "\settings\cpt-status-sheet-userfields.adtg"
   If Dir(strSettings) <> vbNullString Then
     'import user settings
     Set rst = CreateObject("ADODB.Recordset")
@@ -1226,7 +1228,7 @@ Sub cptRefreshStatusImportTable(ByRef myStatusSheetImport_frm As cptStatusSheetI
     TableEditEx Name:="cptStatusSheetImportDetails Table", TaskTable:=True, NewFieldName:="Unique ID", Title:="UID", Width:=10, Align:=1, LockFirstColumn:=True, DateFormat:=255, RowHeight:=1, AlignTitle:=1, HeaderAutoRowHeightAdjustment:=False, WrapText:=False
     
     'import user fields
-    strSettings = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
+    strSettings = strDir & "\settings\cpt-status-sheet-userfields.adtg"
     If Dir(strSettings) <> vbNullString Then
       'import user settings
       Set rst = CreateObject("ADODB.Recordset")

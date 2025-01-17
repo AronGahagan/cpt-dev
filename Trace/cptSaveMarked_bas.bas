@@ -53,6 +53,7 @@ Sub cptUpdateMarked(ByRef mySaveMarked_frm As cptSaveMarked_frm, Optional strFil
   'objects
   Dim rstMarked As Object 'ADODB.Recordset 'Object
   'strings
+  Dim strDir As String
   Dim strProject As String
   Dim strMarked As String
   'longs
@@ -64,6 +65,7 @@ Sub cptUpdateMarked(ByRef mySaveMarked_frm As cptSaveMarked_frm, Optional strFil
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  strDir = cptDir
   strProject = cptGetProgramAcronym
   If Len(strProject) = 0 Then
     MsgBox "Program Acronym is required for this feature.", vbExclamation + vbOKOnly, "Program Acronym Needed"
@@ -87,7 +89,7 @@ Sub cptUpdateMarked(ByRef mySaveMarked_frm As cptSaveMarked_frm, Optional strFil
   
   'get list of marked sets
   'todo: filter for where PROJECT=cptGetProgramAcronym?
-  strMarked = cptDir & "\cpt-marked.adtg"
+  strMarked = strDir & "\cpt-marked.adtg"
   If Dir(strMarked) = vbNullString Then
     MsgBox "No marked tasks saved.", vbCritical + vbOKOnly, "Nada"
     GoTo exit_here
@@ -117,7 +119,7 @@ Sub cptUpdateMarked(ByRef mySaveMarked_frm As cptSaveMarked_frm, Optional strFil
     .Close
     
     'get marked task count
-    strMarked = cptDir & "\cpt-marked-details.adtg"
+    strMarked = strDir & "\cpt-marked-details.adtg"
     rstMarked.Open strMarked
     With mySaveMarked_frm
       For lngItem = 1 To .lboMarked.ListCount - 1

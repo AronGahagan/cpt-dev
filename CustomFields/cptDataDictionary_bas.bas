@@ -4,15 +4,16 @@ Option Explicit
 
 Sub cptExportDataDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
   'objects
-  Dim wsLookups As Object 'Worksheet
-  Dim dFields As Scripting.Dictionary 'Object
-  Dim oLookupTable As LookupTable
-  Dim rstDictionary As Object 'ADODB.Recordset
-  Dim oExcel As Object 'Excel.Application
-  Dim oWorkbook As Object 'Workbook
-  Dim oWorksheet As Object 'Worksheet
-  Dim oRange As Object 'Excel.Range
+  Dim wsLookups As Excel.Worksheet
+  Dim dFields As Scripting.Dictionary
+  Dim oLookupTable As MSProject.LookupTable
+  Dim rstDictionary As ADODB.Recordset
+  Dim oExcel As Excel.Application
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
+  Dim oRange As Excel.Range
   'strings
+  Dim strDir As String
   Dim strProject As String
   Dim strDescription As String
   Dim strValue As String
@@ -44,7 +45,7 @@ Sub cptExportDataDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
   
   blnErrorTrapping = cptErrorTrapping
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  
+  strDir = cptDir
   'ensure project name
   strProject = cptGetProgramAcronym
   
@@ -91,11 +92,11 @@ Sub cptExportDataDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
 
   myDataDictionary_frm.lblStatus.Caption = "Exporting local custom fields..."
   
-  blnExists = Dir(cptDir & "\settings\cpt-data-dictionary.adtg") <> vbNullString
+  blnExists = Dir(strDir & "\settings\cpt-data-dictionary.adtg") <> vbNullString
 
   If blnExists Then
     Set rstDictionary = CreateObject("ADODB.Recordset")
-    rstDictionary.Open cptDir & "\settings\cpt-data-dictionary.adtg"
+    rstDictionary.Open strDir & "\settings\cpt-data-dictionary.adtg"
   End If
   
   'count of custom fields = local + enterprise
@@ -381,6 +382,7 @@ Sub cptShowDataDictionary_frm()
   Dim oExcel As Excel.Application
   Dim rst As ADODB.Recordset 'Object
   'strings
+  Dim strDir As String
   Dim strProgram As String
   Dim strMsg As String
   Dim strFile As String
@@ -395,14 +397,14 @@ Sub cptShowDataDictionary_frm()
   
   blnErrorTrapping = cptErrorTrapping
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  
+  strDir = cptDir
   strProgram = cptGetProgramAcronym
   
   'update legacy adtg for ProjectName field
   'todo: ensure IMPORT Feature Supports PROJECT_NAME, but allows for legacy files as well
   'todo: should there *still* be a 'recover' option? maybe repeat this procedure also if there are blanks in the PROJECT_NAME?
   'todo: to remove an entry, either put 'REMOVE' in the PROJECT_NAME, or delete the worksheet row
-  strFile = cptDir & "\settings\cpt-data-dictionary.adtg"
+  strFile = strDir & "\settings\cpt-data-dictionary.adtg"
   'does the file exist?
   If Dir(strFile) <> vbNullString Then
     Set rst = CreateObject("ADODB.Recordset")
@@ -428,7 +430,7 @@ Sub cptShowDataDictionary_frm()
         oExcel.Visible = True
         Set oWorkbook = oExcel.Workbooks.Add
         'todo: handle if cpt-data-dictionary-reset.xlsx already exists
-        oWorkbook.SaveAs cptDir & "\settings\cpt-data-dictionary-reset.xlsx", 51
+        oWorkbook.SaveAs strDir & "\settings\cpt-data-dictionary-reset.xlsx", 51
         Set oWorksheet = oWorkbook.Sheets(1)
         oWorksheet.Name = "Data Dictionary"
         'dump the columns
@@ -485,6 +487,7 @@ Sub cptRefreshDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
   Dim dTypes As Object 'Scripting.Dictionary
   Dim rstSaved As Object 'ADODB.Recordset
   'strings
+  Dim strDir As String
   Dim strProject As String
   Dim strFieldName As String
   Dim strCustomName As String
@@ -510,6 +513,7 @@ Sub cptRefreshDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
 
   blnErrorTrapping = cptErrorTrapping
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  strDir = cptDir
   
   'clear the form if it's visible
   If myDataDictionary_frm.Visible Then
@@ -531,7 +535,7 @@ Sub cptRefreshDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
   'if data file exists then use it else create it
   Set rstSaved = CreateObject("ADODB.Recordset")
   With rstSaved
-    If Dir(cptDir & "\settings\cpt-data-dictionary.adtg") = vbNullString Then
+    If Dir(strDir & "\settings\cpt-data-dictionary.adtg") = vbNullString Then
       blnCreate = True
       .Fields.Append "PROJECT_ID", 200, 50 'adVarChar
       .Fields.Append "FIELD_ID", 3 'adInteger = Long
@@ -543,7 +547,7 @@ Sub cptRefreshDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
       .Open
     Else
       blnCreate = False
-      .Open cptDir & "\settings\cpt-data-dictionary.adtg"
+      .Open strDir & "\settings\cpt-data-dictionary.adtg"
       'todo: has it been upgraded yet?
       .Filter = "PROJECT_NAME='" & strProject & "'"
       'has it been upgraded with IGNORE?
@@ -554,8 +558,8 @@ Sub cptRefreshDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
         If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         .Filter = 0
         .Close
-        cptAppendColumn cptDir & "\settings\cpt-data-dictionary.adtg", "IGNORE", adBoolean, , 0
-        .Open cptDir & "\settings\cpt-data-dictionary.adtg"
+        cptAppendColumn strDir & "\settings\cpt-data-dictionary.adtg", "IGNORE", adBoolean, , 0
+        .Open strDir & "\settings\cpt-data-dictionary.adtg"
         .Filter = "PROJECT_NAME='" & strProject & "'"
       End If
       If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -646,7 +650,7 @@ Sub cptRefreshDictionary(ByRef myDataDictionary_frm As cptDataDictionary_frm)
     
     'save the data
     .Filter = 0
-    .Save cptDir & "\settings\cpt-data-dictionary.adtg", 0 '0=adPersistADTG
+    .Save strDir & "\settings\cpt-data-dictionary.adtg", 0 '0=adPersistADTG
     
     'populate the list
     If Not .EOF Then
