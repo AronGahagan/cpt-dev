@@ -126,6 +126,8 @@ Private Sub cmdMark_Click()
   'variants
   'dates
   
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
   'cptSpeed True
   If ActiveSelection.Tasks.Count = 1 Then
     lngUID = ActiveSelection.Tasks(1).UniqueID
@@ -290,9 +292,11 @@ Sub lboHistory_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
 End Sub
 
 Sub lboPredecessors_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
-Dim lngTaskUID As Long
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  Dim lngTaskUID As Long
+  Dim blnErrorTrapping As Boolean
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Me.lboPredecessors.ListIndex <= 0 Then GoTo exit_here
   With Me.lboHistory
@@ -317,7 +321,7 @@ Dim lngTaskUID As Long
             GoTo exit_here
           End If
         End If
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If Not Find("Unique ID", "equals", lngTaskUID) Then
           MsgBox "Task not found.", vbExclamation + vbOKOnly, "Missing Task?"
         End If
@@ -338,7 +342,7 @@ err_here:
 End Sub
 
 Private Sub lboSuccessors_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
-Dim lngTaskUID As Long, oTask As MSProject.Task
+  Dim lngTaskUID As Long, oTask As MSProject.Task
 
   On Error Resume Next
   If Me.lboSuccessors.ListIndex <= 0 Then GoTo exit_here

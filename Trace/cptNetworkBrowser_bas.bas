@@ -139,7 +139,7 @@ End Sub
 Sub cptShowPreds(Optional myNetworkBrowser_frm As cptNetworkBrowser_frm)
   'objects
   Dim oTaskDependencies As TaskDependencies
-  Dim oSubProject As Subproject
+  Dim oSubproject As Subproject
   Dim oLink As TaskDependency, oTask As MSProject.Task
   'strings
   Dim strHideInactive As String
@@ -153,6 +153,7 @@ Sub cptShowPreds(Optional myNetworkBrowser_frm As cptNetworkBrowser_frm)
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   Dim blnHideInactive As Boolean
   Dim blnSubprojects As Boolean
   'variants
@@ -163,7 +164,8 @@ Sub cptShowPreds(Optional myNetworkBrowser_frm As cptNetworkBrowser_frm)
   Set oTask = ActiveSelection.Tasks(1)
   If oTask Is Nothing Then GoTo exit_here
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   lngTasks = ActiveSelection.Tasks.Count
   'determine if there are subprojects loaded (this affects displayed UIDs)
@@ -175,13 +177,13 @@ Sub cptShowPreds(Optional myNetworkBrowser_frm As cptNetworkBrowser_frm)
     Else
       oSubMap.RemoveAll
     End If
-    For Each oSubProject In ActiveProject.Subprojects
-      If InStr(oSubProject.Path, "<>") = 0 Then 'offline
-        oSubMap.Add Replace(Dir(oSubProject.Path), ".mpp", ""), 0
-      ElseIf Left(oSubProject.Path, 2) = "<>" Then 'online
-        oSubMap.Add Replace(oSubProject.Path, "<>\", ""), 0
+    For Each oSubproject In ActiveProject.Subprojects
+      If InStr(oSubproject.Path, "<>") = 0 Then 'offline
+        oSubMap.Add Replace(Dir(oSubproject.Path), ".mpp", ""), 0
+      ElseIf Left(oSubproject.Path, 2) = "<>" Then 'online
+        oSubMap.Add Replace(oSubproject.Path, "<>\", ""), 0
       End If
-      If oSubProject.IsLoaded = False Then
+      If oSubproject.IsLoaded = False Then
         Application.OpenUndoTransaction "cpt - load subproject"
         FilterClear
         GroupClear
@@ -194,7 +196,7 @@ Sub cptShowPreds(Optional myNetworkBrowser_frm As cptNetworkBrowser_frm)
           End If
         End If
       End If
-    Next oSubProject
+    Next oSubproject
     For Each oTask In ActiveProject.Tasks
       If oSubMap.Exists(oTask.Project) Then
         If oSubMap(oTask.Project) > 0 Then GoTo next_mapping_task
@@ -265,7 +267,7 @@ next_mapping_task:
   'only 1 is selected
   On Error Resume Next
   Set oTaskDependencies = oTask.TaskDependencies
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oTaskDependencies Is Nothing Then
     myNetworkBrowser_frm.lboPredecessors.Clear
     myNetworkBrowser_frm.lboSuccessors.Clear
@@ -448,7 +450,7 @@ exit_here:
   cptSpeed False
   'Set myNetworkBrowser_frm = Nothing 'do not do this
   Set oTaskDependencies = Nothing
-  Set oSubProject = Nothing
+  Set oSubproject = Nothing
   Set oLink = Nothing
   Set oTask = Nothing
   Exit Sub
@@ -570,8 +572,10 @@ End Sub
 
 Sub cptHistoryDoubleClick(Optional myNetworkBrowser_frm As cptNetworkBrowser_frm)
   Dim lngTaskUID As Long
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  Dim blnErrorTrapping As Boolean
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   lngTaskUID = CLng(myNetworkBrowser_frm.lboHistory.Value)
   WindowActivate TopPane:=True
@@ -596,7 +600,7 @@ Sub cptHistoryDoubleClick(Optional myNetworkBrowser_frm As cptNetworkBrowser_frm
             GoTo exit_here
           End If
         End If
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If Not Find("Unique ID", "equals", lngTaskUID) Then
           MsgBox "Unable to find Task UID " & lngTaskUID & "...", vbExclamation + vbOKOnly, "Task Not Found"
         End If
