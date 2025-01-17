@@ -1,6 +1,6 @@
 ---
 name: Generic Issue
-about: 
+about: generic issue templat
 title: ''
 labels: enhancement
 assignees: ''
