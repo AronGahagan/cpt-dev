@@ -113,11 +113,13 @@ Sub cptAgeDates(ByRef myAgeDates_frm As cptAgeDates_frm)
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   Dim dtStatus As Date
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Application.Calculation = pjManual
   Application.OpenUndoTransaction "Age Dates"
@@ -125,7 +127,7 @@ Sub cptAgeDates(ByRef myAgeDates_frm As cptAgeDates_frm)
   
   On Error Resume Next
   lngTest = FieldNameToFieldConstant("Start (" & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & ")")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If lngTest > 0 Then
     MsgBox "Dates already aged for status date " & FormatDateTime(dtStatus, vbShortDate) & ".", vbExclamation + vbOKOnly, "Age Dates"
     GoTo exit_here
@@ -231,6 +233,7 @@ Sub cptBlameReport()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   Dim vMyHeader As Variant
   Dim vBorder As Variant
@@ -240,7 +243,8 @@ Sub cptBlameReport()
   Dim dtCurr As Date
   Dim dtPrev As Date
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Application.StatusBar = "Gettings saved settings..."
   DoEvents
@@ -270,7 +274,7 @@ Sub cptBlameReport()
   
   On Error Resume Next
   'Set oExcel = GetObject(, "Excel.Application")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If
@@ -459,8 +463,8 @@ next_task:
   For Each vColumn In Array("START DELTA", "DURATION DELTA", "FINISH DELTA")
     If lngMin = oExcel.WorksheetFunction.Min(oListObject.ListColumns(vColumn).DataBodyRange) Then
       oListObject.Sort.SortFields.Clear
-      oListObject.Sort.SortFields.Add key:=oListObject.ListColumns(vColumn).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-      oListObject.Sort.SortFields.Add key:=oListObject.ListColumns("CURRENT " & Replace(vColumn, " DELTA", "")).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add Key:=oListObject.ListColumns(vColumn).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add Key:=oListObject.ListColumns("CURRENT " & Replace(vColumn, " DELTA", "")).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
       With oListObject.Sort
         .Header = xlYes
         .MatchCase = False

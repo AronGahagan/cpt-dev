@@ -56,6 +56,10 @@ err_here:
   Resume exit_here
 End Sub
 
+Private Sub cmdCancel_Click()
+  Me.Hide
+End Sub
+
 Private Sub cmdRun_Click()
   'objects
   'strings
