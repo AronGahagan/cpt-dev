@@ -10,7 +10,7 @@ Sub cptExportResourceDemand(ByRef myResourceDemand_frm As cptResourceDemand_frm,
   Dim oShell As Object
   Dim oSettings As Object
   Dim oListObject As Excel.ListObject 'Object
-  Dim oSubProject As MSProject.Subproject
+  Dim oSubproject As MSProject.Subproject
   Dim oTask As MSProject.Task
   Dim oResource As MSProject.Resource
   Dim oAssignment As MSProject.Assignment
@@ -61,11 +61,13 @@ Sub cptExportResourceDemand(ByRef myResourceDemand_frm As cptResourceDemand_frm,
   Dim vRateSet As Variant
   Dim aUserFields() As Variant
   'booleans
+  Dim blnErrorTrapping As Boolean
   Dim blnFiscal As Boolean
   Dim blnExportBaseline As Boolean
   Dim blnIncludeCosts As Boolean
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Application.StatusBar = "Confirming Status Date..."
   myResourceDemand_frm.lblStatus.Caption = "Confirming Status Date..."
@@ -202,7 +204,7 @@ Sub cptExportResourceDemand(ByRef myResourceDemand_frm As cptResourceDemand_frm,
         Sort "ID", , , , , , False, True
         OutlineShowAllTasks
       End If
-      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     SelectAll
     lngTasks = ActiveSelection.Tasks.Count
     ViewApply strView
@@ -436,7 +438,7 @@ next_task:
   'set reference to Excel
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
     oExcel.Visible = True
@@ -445,11 +447,11 @@ next_task:
   'is previous run still open?
   On Error Resume Next
   Set oWorkbook = oExcel.oWorkbooks(strFile)
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oWorkbook Is Nothing Then oWorkbook.Close False
   On Error Resume Next
   Set oWorkbook = oExcel.Workbooks(Environ("TEMP") & "\ExportResourceDemand.xlsx")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oWorkbook Is Nothing Then 'add timestamp to existing file
     If oWorkbook.Application.Visible = False Then oWorkbook.Application.Visible = True
     strMsg = "'" & strFile & "' already exists and is open."
@@ -468,7 +470,7 @@ next_task:
 
   On Error Resume Next
   If Dir(Environ("TEMP") & "\ExportResourceDemand.xlsx") <> vbNullString Then Kill Environ("TEMP") & "\ExportResourceDemand.xlsx"
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Dir(Environ("TEMP") & "\ExportResourceDemand.xlsx") <> vbNullString Then 'kill failed, rename it
     oWorkbook.SaveAs Environ("TEMP") & "\ExportResourceDemand_" & Format(Now, "yyyy-mm-dd-hh-nn-ss") & ".xlsx", 51
   Else
@@ -750,13 +752,13 @@ next_task:
         Next oCostRateTable
       Next oResource
     ElseIf ActiveProject.Subprojects.Count > 0 Then
-      For Each oSubProject In ActiveProject.Subprojects
-        For Each oResource In oSubProject.SourceProject.Resources
+      For Each oSubproject In ActiveProject.Subprojects
+        For Each oResource In oSubproject.SourceProject.Resources
           oWorksheet.Cells(lngRow, 1) = oResource.Name
           For Each oCostRateTable In oResource.CostRateTables
             If myResourceDemand_frm.Controls(Choose(oCostRateTable.Index, "chkA", "chkB", "chkC", "chkD", "chkE")).Value = True Then
               For Each oPayRate In oCostRateTable.PayRates
-                oWorksheet.Cells(lngRow, 1) = oSubProject.SourceProject.Name
+                oWorksheet.Cells(lngRow, 1) = oSubproject.SourceProject.Name
                 oWorksheet.Cells(lngRow, 2) = oResource.Name
                 oWorksheet.Cells(lngRow, 3) = Choose(oResource.Type + 1, "Work", "Material", "Cost")
                 oWorksheet.Cells(lngRow, 4) = oResource.Enterprise
@@ -770,7 +772,7 @@ next_task:
             End If
           Next oCostRateTable
         Next oResource
-      Next oSubProject
+      Next oSubproject
     End If
   
     'make it a oListObject
@@ -834,7 +836,7 @@ exit_here:
   Set oShell = Nothing
   Set oSettings = Nothing
   Set oListObject = Nothing
-  Set oSubProject = Nothing
+  Set oSubproject = Nothing
   If Not oExcel Is Nothing Then oExcel.Visible = True
   Application.StatusBar = ""
   myResourceDemand_frm.lblStatus.Caption = "Ready..."
