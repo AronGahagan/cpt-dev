@@ -3,27 +3,29 @@ Attribute VB_Name = "cptCriticalPathTools_bas"
 Option Explicit
 
 Sub cptExportCriticalPath(ByRef oProject As MSProject.Project, Optional blnSendEmail As Boolean = False, Optional blnKeepOpen As Boolean = False, Optional ByRef oTargetTask As MSProject.Task)
-'objects
-Dim oShell As Object
-Dim pptExists As PowerPoint.Presentation
-Dim oTask As MSProject.Task
-Dim oTasks As MSProject.Tasks
-Dim oPowerPoint As PowerPoint.Application
-Dim oPresentation As PowerPoint.Presentation
-Dim oSlide As PowerPoint.Slide
-'Dim Shape As PowerPoint.Shape
-'Dim ShapeRange As PowerPoint.ShapeRange
-'strings
-Dim strFileName As String, strProjectName As String, strDir As String
-'longs
-Dim lngTask As Long, lngTasks As Long, lngSlide As Long
-'dates
-Dim dtFrom As Date, dtTo As Date
-'boolean
-'variants
-Dim vPath As Variant
+  'objects
+  Dim oShell As Object
+  Dim pptExists As PowerPoint.Presentation
+  Dim oTask As MSProject.Task
+  Dim oTasks As MSProject.Tasks
+  Dim oPowerPoint As PowerPoint.Application
+  Dim oPresentation As PowerPoint.Presentation
+  Dim oSlide As PowerPoint.Slide
+  'Dim Shape As PowerPoint.Shape
+  'Dim ShapeRange As PowerPoint.ShapeRange
+  'strings
+  Dim strFileName As String, strProjectName As String, strDir As String
+  'longs
+  Dim lngTask As Long, lngTasks As Long, lngSlide As Long
+  'dates
+  Dim dtFrom As Date, dtTo As Date
+  'booleans
+  Dim blnErrorTrapping As Boolean
+  'variants
+  Dim vPath As Variant
 
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = True
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not cptModuleExists("cptCriticalPath_bas") Then
     MsgBox "Please install the ClearPlan Critical Path Module.", vbCritical + vbOKOnly, "CP Toolbar"
@@ -60,7 +62,7 @@ Dim vPath As Variant
   strFileName = strDir & cptGetProgramAcronym & "-CriticalPathAnalysis-" & Format(Now, "yyyy-mm-dd") & ".pptx"
   On Error Resume Next
   Set pptExists = oPowerPoint.Presentations(strFileName)
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not pptExists Is Nothing Then 'add timestamp to this file
     pptExists.Save
     pptExists.Close
@@ -90,7 +92,7 @@ Dim vPath As Variant
     'SetAutoFilter FieldName:="CP Driving Paths", FilterType:=pjAutoFilterCustom, Test1:="contains", Criteria1:=CStr(vPath)
     SetAutoFilter FieldName:="CP Driving Path Group ID", FilterType:=pjAutoFilterIn, Criteria1:=CStr(vPath)
 
-    Sort key1:="Finish", Key2:="Duration", Ascending2:=False, renumber:=False
+    Sort key1:="Finish", key2:="Duration", ascending2:=False, renumber:=False
     TimescaleEdit MajorUnits:=0, MinorUnits:=2, MajorLabel:=0, MinorLabel:=10, MinorTicks:=True, Separator:=True, TierCount:=2
     SelectBeginning
     Debug.Print vPath & ": " & FormatDateTime(dtFrom, vbShortDate) & " - " & FormatDateTime(dtTo, vbShortDate)
@@ -98,7 +100,7 @@ Dim vPath As Variant
     'account for when a path is somehow not found
     On Error Resume Next
     Set oTasks = ActiveSelection.Tasks
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oTasks Is Nothing Then GoTo next_path
     'account for when task count exceeds easily visible range
     'on powerpoint slide
@@ -153,8 +155,8 @@ err_here:
 End Sub
 
 Sub cptExportCriticalPathSelected()
-'objects
-Dim oTargetTask As MSProject.Task
+  'objects
+  Dim oTargetTask As MSProject.Task
 
   On Error GoTo err_here
 
