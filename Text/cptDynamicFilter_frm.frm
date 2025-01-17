@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.6.2</cpt_version>
+'<cpt_version>v1.6.3</cpt_version>
 Option Explicit
 
 Private Sub cboField_Change()
@@ -40,14 +40,16 @@ Private Sub chkHighlight_Click()
 End Sub
 
 Private Sub chkKeepSelected_Click()
-Dim Task As MSProject.Task
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  Dim Task As MSProject.Task
+  Dim blnErrorTrapping As Boolean
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Me.chkKeepSelected = True Then
     On Error Resume Next
     Set Task = ActiveSelection.Tasks(1)
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Task Is Nothing Then Me.chkKeepSelected = False
     Set Task = Nothing
   End If
@@ -296,14 +298,14 @@ Private Sub tglRegEx_Click()
 End Sub
 
 Sub txtFilter_Change()
-'strings
-Dim strField As String, strOperator As String, strFilterText As String, strFilter As String
-'booleans
-Dim blnActiveOnly As Boolean
-Dim blnHideSummaryTasks As Boolean, blnHighlight As Boolean, blnKeepSelected As Boolean
-Dim blnShowRelatedSummaries As Boolean
-'longs
-Dim lngOriginalUID As Long
+  'strings
+  Dim strField As String, strOperator As String, strFilterText As String, strFilter As String
+  'booleans
+  Dim blnActiveOnly As Boolean
+  Dim blnHideSummaryTasks As Boolean, blnHighlight As Boolean, blnKeepSelected As Boolean
+  Dim blnShowRelatedSummaries As Boolean
+  'longs
+  Dim lngOriginalUID As Long
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Me.tglRegEx Then Exit Sub
@@ -363,13 +365,13 @@ Dim lngOriginalUID As Long
   'build custom filter on the fly and apply it
   If Len(strFilterText) > 0 And Len(strOperator) > 0 Then
     If strField = "Task Name" Then strField = "Name"
-    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=strField, test:=strOperator, Value:=strFilterText, Operation:=IIf(blnKeepSelected Or blnHideSummaryTasks, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
+    FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:=strField, test:=strOperator, Value:=strFilterText, operation:=IIf(blnKeepSelected Or blnHideSummaryTasks, "Or", "None"), ShowInMenu:=False, ShowSummaryTasks:=blnShowRelatedSummaries
   End If
   If blnKeepSelected Then
-    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Unique ID", test:="equals", Value:=lngOriginalUID, Operation:="Or"
+    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Unique ID", test:="equals", Value:=lngOriginalUID, operation:="Or"
   End If
   If blnHideSummaryTasks Then
-    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Summary", test:="equals", Value:="No", Operation:="And", Parenthesis:=blnKeepSelected
+    FilterEdit Name:=strFilter, TaskFilter:=True, NewFieldName:="Summary", test:="equals", Value:="No", operation:="And", Parenthesis:=blnKeepSelected
     OptionsViewEx DisplaySummaryTasks:=True
   End If
 
@@ -379,12 +381,12 @@ Dim lngOriginalUID As Long
   Else
     'build a sterile filter to retain existing autofilters
     FilterEdit Name:=strFilter, TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Summary", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True
-    FilterEdit Name:=strFilter, TaskFilter:=True, FieldName:="", NewFieldName:="Summary", test:="equals", Value:="No", Operation:="Or", ShowSummaryTasks:=True
+    FilterEdit Name:=strFilter, TaskFilter:=True, FieldName:="", NewFieldName:="Summary", test:="equals", Value:="No", operation:="Or", ShowSummaryTasks:=True
   End If
   
   If Application.Edition = pjEditionProfessional Then
     If blnActiveOnly Then
-      FilterEdit Name:=strFilter, TaskFilter:=True, Parenthesis:=True, NewFieldName:="Active", test:="equals", Value:="Yes", Operation:="And"
+      FilterEdit Name:=strFilter, TaskFilter:=True, Parenthesis:=True, NewFieldName:="Active", test:="equals", Value:="Yes", operation:="And"
     End If
   End If
   

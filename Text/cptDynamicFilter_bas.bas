@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDynamicFilter_bas"
-'<cpt_version>v1.6.2</cpt_version>
+'<cpt_version>v1.6.3</cpt_version>
 Option Explicit
 Private pCachedRegexes As Scripting.Dictionary
 
@@ -114,10 +114,12 @@ Sub cptGoRegEx(ByRef myDynamicFilter_frm As cptDynamicFilter_frm, strRegEx As St
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   cptSpeed True
   
@@ -131,7 +133,7 @@ Sub cptGoRegEx(ByRef myDynamicFilter_frm As cptDynamicFilter_frm, strRegEx As St
     On Error Resume Next
     Set oTask = ActiveSelection.Tasks(1)
     lngUID = oTask.UniqueID
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   End If
   If myDynamicFilter_frm.cboField.Value = "Task Name" Then
     lngFieldConstant = FieldNameToFieldConstant("Name", pjTask)
@@ -161,7 +163,7 @@ next_task:
     Sort "ID", , , , , , False, True
     OutlineShowAllTasks
   End If
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   OptionsViewEx DisplaySummaryTasks:=myDynamicFilter_frm.chkShowRelatedSummaries
   
   SetAutoFilter "Marked", pjAutoFilterFlagYes
