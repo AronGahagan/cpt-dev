@@ -104,6 +104,7 @@ Private Sub cmdRemove_Click()
   'objects
   Dim rstMarked As Object 'ADODB.Recordset
   'strings
+  Dim strDir As String
   Dim strMarked As String
   'longs
   'integers
@@ -114,7 +115,7 @@ Private Sub cmdRemove_Click()
   Dim dtTimestamp As Date
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
+  strDir = cptDir
   If Me.lboMarked.Value = "TIMESTAMP" Then GoTo exit_here
   If Me.lboMarked.ListIndex < 1 Then GoTo exit_here
   
@@ -124,13 +125,13 @@ Private Sub cmdRemove_Click()
   dtTimestamp = Me.lboMarked.Value
   Set rstMarked = CreateObject("ADODB.Recordset")
   'remove from marked
-  strMarked = cptDir & "\cpt-marked.adtg"
+  strMarked = strDir & "\cpt-marked.adtg"
   rstMarked.Open strMarked
   rstMarked.Filter = "TSTAMP<>#" & dtTimestamp & "#"
   rstMarked.Save strMarked, adPersistADTG
   rstMarked.Close
   'remove from marked details
-  strMarked = cptDir & "\cpt-marked-details.adtg"
+  strMarked = strDir & "\cpt-marked-details.adtg"
   rstMarked.Open strMarked
   rstMarked.Filter = "TSTAMP<>#" & dtTimestamp & "#"
   rstMarked.Save strMarked, adPersistADTG
@@ -172,6 +173,7 @@ Private Sub lboMarked_Click()
   Dim oTask As MSProject.Task
   Dim rstMarked As ADODB.Recordset 'Object
   'strings
+  Dim strDir As String
   Dim strMarked As String
   'longs
   'integers
@@ -184,7 +186,7 @@ Private Sub lboMarked_Click()
   
   blnErrorTrapping = cptErrorTrapping
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
+  strDir = cptDir
   If Me.lboMarked.Value = "TIMESTAMP" Then
     Me.lboMarked.Value = Null
     GoTo exit_here
@@ -197,7 +199,7 @@ Private Sub lboMarked_Click()
     .List(.ListCount - 1, 1) = "TASK NAME"
   End With
 
-  strMarked = cptDir & "\cpt-marked-details.adtg"
+  strMarked = strDir & "\cpt-marked-details.adtg"
   If Dir(strMarked) = vbNullString Then
     MsgBox "Save Marked Details not found!", vbCritical + vbOKOnly, "Nada"
     GoTo exit_here

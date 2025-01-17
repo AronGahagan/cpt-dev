@@ -878,6 +878,7 @@ Sub cptShowExportResourceDemand_frm()
   Dim objProject As Object
   Dim rstFields As Object 'ADODB.Recordset
   'strings
+  Dim strDir As String
   Dim strNonLabor As String
   Dim strBaseline As String
   Dim strCostSets As String
@@ -902,7 +903,8 @@ Sub cptShowExportResourceDemand_frm()
   'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
+  strDir = cptDir
+  
   'requires ms excel
   If Not cptCheckReference("Excel") Then
     MsgBox "This feature requires MS Excel.", vbCritical + vbOKOnly, "Resource Demand"
@@ -1034,7 +1036,7 @@ next_field1:
   End With
   
   'import saved fields if exists
-  strFileName = cptDir & "\settings\cpt-export-resource-userfields.adtg"
+  strFileName = strDir & "\settings\cpt-export-resource-userfields.adtg"
   If Dir(strFileName) <> vbNullString Then
     Set rst = CreateObject("ADODB.Recordset")
     With rst
@@ -1100,7 +1102,7 @@ next_saved_field:
   
   'import saved settings
   With myResourceDemand_frm
-    If Dir(cptDir & "\settings\cpt-settings.ini") <> vbNullString Then
+    If Dir(strDir & "\settings\cpt-settings.ini") <> vbNullString Then
       'userfields
       strFields = cptGetSetting("ResourceDemand", "lboExport")
       .lboExport.Clear

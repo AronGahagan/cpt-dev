@@ -41,6 +41,7 @@ Sub cptShowStatusSheet_frm()
   'integers
   Dim intField As Integer
   'strings
+  Dim strCptDir As String
   Dim strNewCustomFieldName As String
   Dim strLOE As String
   Dim strIgnoreLOE As String
@@ -82,6 +83,7 @@ Sub cptShowStatusSheet_frm()
   Set oTasks = ActiveProject.Tasks
   blnErrorTrapping = cptErrorTrapping
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  strCptDir = cptDir
   If oTasks Is Nothing Then
     MsgBox "This Project has no Tasks.", vbExclamation + vbOKOnly, "No Tasks"
     GoTo exit_here
@@ -226,7 +228,7 @@ skip_fields:
   End If
   
   'convert saved settings if they exist
-  strFileName = cptDir & "\settings\cpt-status-sheet.adtg"
+  strFileName = strCptDir & "\settings\cpt-status-sheet.adtg"
   If Dir(strFileName) <> vbNullString Then
     Application.StatusBar = "Converting saved settings..."
     DoEvents
@@ -430,7 +432,7 @@ skip_fields:
   End With
 
   'add saved export fields if they exist
-  strFileName = cptDir & "\settings\cpt-status-sheet-userfields.adtg"
+  strFileName = strCptDir & "\settings\cpt-status-sheet-userfields.adtg"
   If Dir(strFileName) <> vbNullString Then
     Set oRecordset = CreateObject("ADODB.Recordset")
     With oRecordset
@@ -501,7 +503,7 @@ next_item:
   End If
 
   'delete pre-existing search file
-  strFileName = cptDir & "\settings\cpt-status-sheet-search.adtg"
+  strFileName = strCptDir & "\settings\cpt-status-sheet-search.adtg"
   If Dir(strFileName) <> vbNullString Then Kill strFileName
 
   'set up the view/table/filter

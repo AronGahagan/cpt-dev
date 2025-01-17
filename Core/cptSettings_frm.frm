@@ -37,6 +37,7 @@ Private Sub cmdSetProgramAcronym_Click()
   Dim oDocProp As DocumentProperty
   Dim oDocProps As DocumentProperties
   'strings
+  Dim strDir As String
   Dim strUpdated As String
   Dim strFile As String
   Dim strOld As String, strNew As String
@@ -53,6 +54,7 @@ Private Sub cmdSetProgramAcronym_Click()
   On Error Resume Next
   Set oDocProp = oDocProps("cptProgramAcronym")
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  strDir = cptDir
   If oDocProp Is Nothing Then
     oDocProps.Add "cptProgramAcronym", False, msoPropertyTypeString, Me.txtProgramAcronym.Value, False
    Else
@@ -64,7 +66,7 @@ Private Sub cmdSetProgramAcronym_Click()
       Case vbYes
         Set oRecordset = CreateObject("ADODB.Recordset")
         '\settings\cpt-cei.adtg
-        strFile = cptDir & "\settings\cpt-cei.adtg"
+        strFile = strDir & "\settings\cpt-cei.adtg"
         lngUpdated = 0
         If Dir(strFile) <> vbNullString Then
           With oRecordset
@@ -83,7 +85,7 @@ Private Sub cmdSetProgramAcronym_Click()
           strUpdated = Format(lngUpdated, "#,##0") & " record(s) updated in CEI data." & vbCrLf
         End If
         'settings\cpt-data-dictionary.adtg
-        strFile = cptDir & "\settings\cpt-data-dictionary.adtg"
+        strFile = strDir & "\settings\cpt-data-dictionary.adtg"
         lngUpdated = 0
         If Dir(strFile) <> vbNullString Then
           With oRecordset
@@ -102,7 +104,7 @@ Private Sub cmdSetProgramAcronym_Click()
           strUpdated = strUpdated & Format(lngUpdated, "#,##0") & " record(s) updated in Data Dictionary." & vbCrLf
         End If
         '\cpt-marked.adtg
-        strFile = cptDir & "\cpt-marked.adtg"
+        strFile = strDir & "\cpt-marked.adtg"
         lngUpdated = 0
         If Dir(strFile) <> vbNullString Then
           With oRecordset
@@ -121,7 +123,7 @@ Private Sub cmdSetProgramAcronym_Click()
           strUpdated = strUpdated & Format(lngUpdated, "#,##0") & " record(s) updated in Marked tasks data." & vbCrLf
         End If
         '\settings\cpt-metrics.adtg
-        strFile = cptDir & "\settings\cpt-metrics.adtg"
+        strFile = strDir & "\settings\cpt-metrics.adtg"
         lngUpdated = 0
         If Dir(strFile) <> vbNullString Then
           With oRecordset
@@ -140,7 +142,7 @@ Private Sub cmdSetProgramAcronym_Click()
           strUpdated = strUpdated & Format(lngUpdated, "#,##0") & " record(s) updated in Metrics data." & vbCrLf
         End If
         '\settings\cpt-qbd.adtg
-        strFile = cptDir & "\settings\cpt-qbd.adtg"
+        strFile = strDir & "\settings\cpt-qbd.adtg"
         lngUpdated = 0
         If Dir(strFile) <> vbNullString Then
           With oRecordset

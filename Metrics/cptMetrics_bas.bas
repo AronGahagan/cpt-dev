@@ -272,6 +272,7 @@ Sub cptGET(strWhat As String)
   Dim oTask As Object
   Dim oRecordset As ADODB.Recordset
   'strings
+  Dim strDir As String
   Dim strNotFound As String
   Dim strMsg As String, strProgram As String
   'longs
@@ -292,7 +293,8 @@ Sub cptGET(strWhat As String)
 
   blnErrorTrapping = cptErrorTrapping
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
+  strDir = cptDir
+  
   'validate tasks exist
   If ActiveProject.Tasks.Count = 0 Then
     MsgBox "This project has no tasks.", vbExclamation + vbOKOnly, "No Tasks"
@@ -331,7 +333,7 @@ Sub cptGET(strWhat As String)
       
     Case "CEI"
       'does cpt-cei.adtg exist?
-      If Dir(cptDir & "\settings\cpt-cei.adtg") = vbNullString Then
+      If Dir(strDir & "\settings\cpt-cei.adtg") = vbNullString Then
         MsgBox "No data file found. You must 'Capture Week' on previous period's file before you can run CEI on current period's statused IMS.", vbExclamation + vbOKOnly, "File Not Found"
         GoTo exit_here
       End If
@@ -341,7 +343,7 @@ Sub cptGET(strWhat As String)
       'connect to data source
       Set oRecordset = CreateObject("ADODB.Recordset")
       'get list of tasks & count
-      oRecordset.Open cptDir & "\settings\cpt-cei.adtg"
+      oRecordset.Open strDir & "\settings\cpt-cei.adtg"
       dtStatus = ActiveProject.StatusDate
       With oRecordset
         .Sort = "STATUS_DATE desc"
@@ -1542,6 +1544,7 @@ Sub cptGetTrend_CEI()
   Dim oTask As MSProject.Task
   Dim oRecordset As ADODB.Recordset
   'strings
+  Dim strCptDir As String
   Dim strLOE As String
   Dim strHeaders As String
   Dim strMyHeaders As String
@@ -1578,6 +1581,7 @@ Sub cptGetTrend_CEI()
   
   blnErrorTrapping = cptErrorTrapping
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  strCptDir = cptDir
   
   If Not cptValidMap("EVT,LOE", False, False, True) Then
     MsgBox "Settings not saved. Exiting.", vbExclamation + vbOKOnly, "Settings Required"
@@ -1609,7 +1613,7 @@ Sub cptGetTrend_CEI()
   'ensure cei file exists
   Application.StatusBar = "Confirming cpt-cei.adtg exists..."
   DoEvents
-  strFile = cptDir & "\settings\cpt-cei.adtg"
+  strFile = strCptDir & "\settings\cpt-cei.adtg"
   If Dir(strFile) = vbNullString Then
     MsgBox "CEI data file not found!" & vbCrLf & vbCrLf & "Please open a previous version of the schedule and run Schedule > Status > Capture Week before proceeding.", vbExclamation + vbOKOnly, "File Not Found"
     GoTo exit_here
@@ -1637,7 +1641,7 @@ Sub cptGetTrend_CEI()
   Set oRecordset = Nothing
   
   'get latest date of cei from cpt-metrics.adtg
-  strFile = cptDir & "\settings\cpt-metrics.adtg"
+  strFile = strCptDir & "\settings\cpt-metrics.adtg"
   Set oRecordset = CreateObject("ADODB.Recordset")
   With oRecordset
     .Open strFile
@@ -1710,7 +1714,7 @@ Sub cptGetTrend_CEI()
   oListObject.TableStyle = ""
   oListObject.Name = "THIS_WEEK"
   oListObject.ShowTotals = True
-  strFile = cptDir & "\settings\cpt-cei.adtg"
+  strFile = strCptDir & "\settings\cpt-cei.adtg"
   Set oRecordset = CreateObject("ADODB.Recordset")
   oRecordset.Open strFile
   If oRecordset.RecordCount > 0 Then
@@ -1966,7 +1970,7 @@ next_task:
   oRange = Split("STATUS_DATE,CEI,< 0.70,0.70 - 0.75,> 0.75", ",")
   Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oRange, , xlYes)
   oListObject.Name = "CEI_DATA"
-  strFile = cptDir & "\settings\cpt-metrics.adtg"
+  strFile = strCptDir & "\settings\cpt-metrics.adtg"
   Set oRecordset = Nothing
   Set oRecordset = CreateObject("ADODB.Recordset")
   With oRecordset
@@ -2427,6 +2431,7 @@ Sub cptExportMetricsData()
   Dim oWorkbook As Excel.Workbook
   Dim oWorksheet As Excel.Worksheet
   'strings
+  Dim strDir As String
   Dim strFile As String
   Dim strProgram As String
   'longs
@@ -2439,14 +2444,14 @@ Sub cptExportMetricsData()
   
   Application.StatusBar = "Exporting..."
   DoEvents
-  
-  strFile = cptDir & "\settings\cpt-metrics.adtg"
+  strDir = cptDir
+  strFile = strDir & "\settings\cpt-metrics.adtg"
   If Dir(strFile) = vbNullString Then
     MsgBox strFile & " not found!", vbCritical + vbOKOnly, "File Not Found"
     GoTo exit_here
   End If
   
-  strFile = cptDir & "\settings\cpt-cei.adtg"
+  strFile = strDir & "\settings\cpt-cei.adtg"
   If Dir(strFile) = vbNullString Then
     MsgBox strFile & " not found!", vbCritical + vbOKOnly, "File Not Found"
     GoTo exit_here
@@ -2458,7 +2463,7 @@ Sub cptExportMetricsData()
     GoTo exit_here
   End If
   
-  strFile = cptDir & "\settings\cpt-metrics.adtg"
+  strFile = strDir & "\settings\cpt-metrics.adtg"
   Set oRecordset = CreateObject("ADODB.Recordset")
   oRecordset.Open strFile
   oRecordset.Filter = "PROGRAM='" & strProgram & "'"
@@ -2492,7 +2497,7 @@ Sub cptExportMetricsData()
   oRecordset.Filter = ""
   oRecordset.Close
   
-  strFile = cptDir & "\settings\cpt-cei.adtg"
+  strFile = strDir & "\settings\cpt-cei.adtg"
   Set oRecordset = CreateObject("ADODB.Recordset")
   oRecordset.Open strFile
   oRecordset.Filter = "PROJECT='" & strProgram & "'"
@@ -2561,6 +2566,7 @@ Sub cptGetEarnedSchedule()
   Dim oRange As Excel.Range
   Dim oCell As Excel.Range
   'strings
+  Dim strCptDir As String
   Dim strMissingWeeks As String
   Dim strFormula As String
   Dim strLOE As String
@@ -2602,6 +2608,7 @@ Sub cptGetEarnedSchedule()
   Set oTasks = ActiveProject.Tasks
   blnErrorTrapping = cptErrorTrapping
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  strCptDir = cptDir
   If oTasks Is Nothing Then GoTo exit_here
   
   strProgram = cptGetProgramAcronym
@@ -2633,7 +2640,7 @@ Sub cptGetEarnedSchedule()
     GoTo exit_here
   End If
   
-  strFile = cptDir & "\Schema.ini"
+  strFile = strCptDir & "\Schema.ini"
   lngFile = FreeFile
   Open strFile For Output As #lngFile
   Print #lngFile, "[bcws.csv]"
@@ -2644,7 +2651,7 @@ Sub cptGetEarnedSchedule()
   Print #lngFile, "Col3=ETC Double"
   Close #lngFile
   
-  strFile = cptDir & "\EarnedSchedule.csv"
+  strFile = strCptDir & "\EarnedSchedule.csv"
   Open strFile For Output As #lngFile
   Print #lngFile, "WEEK_ENDING,BCWS,ETC,"
     
@@ -2687,7 +2694,7 @@ next_task:
   DoEvents
   
   Set oRecordset = CreateObject("ADODB.Recordset")
-  strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & cptDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
+  strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strCptDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
   'ensure continuity of weeks
   strSQL = "SELECT MIN(WEEK_ENDING),MAX(WEEK_ENDING) FROM [EarnedSchedule.csv]"
   With oRecordset
@@ -2935,8 +2942,8 @@ exit_here:
   Set oComment = Nothing
   Application.StatusBar = ""
   DoEvents
-  Kill cptDir & "\Schema.ini"
-  Kill cptDir & "\EarnedSchedule.csv"
+  Kill strCptDir & "\Schema.ini"
+  Kill strCptDir & "\EarnedSchedule.csv"
   Set oAssignment = Nothing
   If oRecordset.State = 1 Then oRecordset.Close
   Set oRecordset = Nothing

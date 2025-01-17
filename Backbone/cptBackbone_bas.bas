@@ -292,6 +292,7 @@ Sub cptImportAppendixB(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode A
   Dim oTaskTable As Object 'TaskTable
   Dim oTask As MSProject.Task
   'strings
+  Dim strDir As String
   'longs
   Dim lngItem As Long
   Dim lngField As Long
@@ -303,7 +304,7 @@ Sub cptImportAppendixB(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode A
   'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  
+  strDir = cptDir
   Application.OpenUndoTransaction "Import Appendix B"
   
   For lngItem = 1 To 10
@@ -313,8 +314,8 @@ Sub cptImportAppendixB(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode A
 
   With CreateObject("ADODB.Recordset")
     'delete existing
-    If Dir(cptDir & "\cwbs-appendix-b.adtg") <> vbNullString Then
-      Kill cptDir & "\cwbs-appendix-b.adtg"
+    If Dir(strDir & "\cwbs-appendix-b.adtg") <> vbNullString Then
+      Kill strDir & "\cwbs-appendix-b.adtg"
     End If
     .Fields.Append "CWBS", adVarChar, 10
     .Fields.Append "CWBS TITLE", adVarChar, 75
@@ -396,7 +397,7 @@ Sub cptImportAppendixB(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode A
     .AddNew Array("CWBS", "CWBS Title"), Array("1.12.2", "Equipment Acquisition or Modernization")
     .AddNew Array("CWBS", "CWBS Title"), Array("1.12.3", "Maintenance (Industrial Facilities)")
     .AddNew Array("CWBS", "CWBS Title"), Array("1.13", "Initial Spares and Repair Parts")
-    .Save cptDir & "\cwbs-appendix-b.adtg"
+    .Save strDir & "\cwbs-appendix-b.adtg"
     .MoveFirst
     lngItem = 0
     Do While Not .EOF
@@ -449,6 +450,7 @@ Sub cptImportAppendixE(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode A
   Dim oTaskTable As Object 'TaskTable
   Dim oTask As MSProject.Task
   'strings
+  Dim strDir As String
   'longs
   Dim lngItem As Long
   Dim lngField As Long
@@ -460,6 +462,7 @@ Sub cptImportAppendixE(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode A
   'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  strDir = cptDir
   
   Application.OpenUndoTransaction "Import Appendix E"
   
@@ -470,8 +473,8 @@ Sub cptImportAppendixE(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode A
 
   With CreateObject("ADODB.Recordset")
     'delete existing
-    If Dir(cptDir & "\cwbs-appendix-e.adtg") <> vbNullString Then
-      Kill cptDir & "\cwbs-appendix-e.adtg"
+    If Dir(strDir & "\cwbs-appendix-e.adtg") <> vbNullString Then
+      Kill strDir & "\cwbs-appendix-e.adtg"
     End If
     .Fields.Append "CWBS", adVarChar, 10
     .Fields.Append "CWBS TITLE", adVarChar, 75
@@ -553,7 +556,7 @@ Sub cptImportAppendixE(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode A
     .AddNew Array("CWBS", "CWBS Title"), Array("1.11.2", "Equipment Acquisition or Modernization")
     .AddNew Array("CWBS", "CWBS Title"), Array("1.11.3", "Maintenance (Industrial Facilities)")
     .AddNew Array("CWBS", "CWBS Title"), Array("1.12", "Initial Spares and Repair Parts")
-    .Save cptDir & "\cwbs-appendix-e.adtg"
+    .Save strDir & "\cwbs-appendix-e.adtg"
     .MoveFirst
     lngItem = 0
     Do While Not .EOF

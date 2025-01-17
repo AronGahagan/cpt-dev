@@ -40,10 +40,10 @@ Private Sub cmdCancel_Click()
 End Sub
 
 Private Sub cmdCustomFields_Click()
-'long
-Dim lngSelected As Long
-'string
-Dim strDescription As String
+  'long
+  Dim lngSelected As Long
+  'string
+  Dim strDescription As String
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
