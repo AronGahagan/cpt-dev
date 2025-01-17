@@ -300,10 +300,12 @@ Private Sub lboStatusSheets_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Me.lboStatusSheets.ListCount > 0 Then
     For lngItem = 0 To Me.lboStatusSheets.ListCount - 1
@@ -312,7 +314,7 @@ Private Sub lboStatusSheets_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
         If Dir(strPath) <> vbNullString Then
           On Error Resume Next
           Set oExcel = GetObject(, "Excel.Application")
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
           oExcel.Workbooks.Open strPath
           oExcel.Visible = True

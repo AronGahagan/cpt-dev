@@ -70,8 +70,12 @@ Private Sub cboCostTool_Change()
       oEVTs.Add "K", "Key Event"
     End If
   End If
-
-
+  
+  If Not IsNull(Me.cboCostTool) Then
+    Me.lblCostTool.ForeColor = lngForeColorValid
+    Me.cboCostTool.BorderColor = lngBorderColorValid
+  End If
+  
 exit_here:
   On Error Resume Next
 
@@ -131,6 +135,23 @@ Private Sub cboCreate_Change()
 
     End Select
         
+    If Not IsNull(Me.cboCreate) Then
+      Me.lblCreate.ForeColor = lngForeColorValid
+      Me.cboCreate.BorderColor = lngBorderColorValid
+      If CLng(Me.cboCreate.Value) > 0 Then
+        If Me.cboEach = "" Then
+          Me.lblForEach.ForeColor = lngForeColorInvalid
+          Me.cboEach.BorderColor = lngBorderColorInvalid
+        Else
+          Me.lblForEach.ForeColor = lngForeColorValid
+          Me.cboEach.BorderColor = lngBorderColorValid
+        End If
+      Else
+        Me.lblForEach.ForeColor = lngForeColorValid
+        Me.cboEach.BorderColor = lngBorderColorValid
+      End If
+    End If
+        
 exit_here:
   On Error Resume Next
   Me.Repaint
@@ -153,10 +174,12 @@ Private Sub cboEach_Change()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
 
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Me.lboItems.Clear
   Me.lboItems.ForeColor = lngForeColorValid
@@ -167,7 +190,7 @@ Private Sub cboEach_Change()
   
   On Error Resume Next
   lngField = FieldNameToFieldConstant(Me.cboEach)
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If lngField > 0 Then
     Set rstItems = CreateObject("ADODB.Recordset")
@@ -208,6 +231,11 @@ next_task:
       Me.txtFileName_Change
     End With
   End If 'lngField > 0
+  
+  If Me.cboEach <> "" Then
+    Me.lblForEach.ForeColor = lngForeColorValid
+    Me.cboEach.BorderColor = lngBorderColorValid
+  End If
   
 exit_here:
   On Error Resume Next
@@ -613,7 +641,9 @@ Private Sub cmdRun_Click()
   'objects
   'strings
   Dim strTempDir As String
+  Dim strMsg As String
   'longs
+  Dim lngResponse As Long
   Dim lngEVP As Long
   Dim lngEVT As Long
   Dim lngDateFormat As Long
@@ -635,14 +665,19 @@ Private Sub cmdRun_Click()
   blnError = False
 
   Me.lblStatusDate.ForeColor = lngForeColorValid
+  Me.txtStatusDate.BorderColor = lngBorderColorValid
   Me.chkHide.ForeColor = lngForeColorValid
   Me.lblStatus.ForeColor = lngForeColorValid
-  Me.cboCostTool.ForeColor = lngForeColorValid
-  Me.cboCreate.ForeColor = lngForeColorValid
+  Me.lblCostTool.ForeColor = lngForeColorValid
+  Me.cboCostTool.BorderColor = lngBorderColorValid
+  Me.lblCreate.ForeColor = lngForeColorValid
+  Me.cboCreate.BorderColor = lngBorderColorValid
+  Me.lblForEach.ForeColor = lngForeColorValid
   Me.cboEach.BorderColor = lngBorderColorValid
   Me.lblDirectory.ForeColor = lngForeColorValid
   Me.txtDir.BorderColor = lngBorderColorValid
   Me.lblNamingConvention.ForeColor = lngForeColorValid
+  Me.txtFileName.BorderColor = lngBorderColorValid
   Me.lboItems.BorderColor = lngBorderColorValid
   Me.lblIncludeItems.ForeColor = lngForeColorValid
   
@@ -652,10 +687,12 @@ Private Sub cmdRun_Click()
   'validation
   If Not IsDate(Me.txtStatusDate.Value) Then
     Me.lblStatusDate.ForeColor = lngForeColorInvalid
+    Me.txtStatusDate.BorderColor = lngBorderColorInvalid
     blnError = True
   ElseIf IsDate(Me.txtStatusDate.Value) Then
     If CDate(Me.txtStatusDate.Value) < #1/1/1984# Then
       Me.lblStatusDate.ForeColor = lngForeColorInvalid
+      Me.txtStatusDate.BorderColor = lngBorderColorInvalid
       blnError = True
     End If
   End If
@@ -672,6 +709,7 @@ Private Sub cmdRun_Click()
   End If
   If Len(Me.cboCostTool.Value) = 0 Then
     Me.lblCostTool.ForeColor = lngForeColorInvalid
+    Me.cboCostTool.BorderColor = lngBorderColorInvalid
     blnError = True
   End If
   'hide complete before must be prior to or equal to status date
@@ -682,55 +720,78 @@ Private Sub cmdRun_Click()
       blnError = True
     End If
   End If
-  'ensure unique filenames
-  If Me.cboCreate.Value = "0" Then 'one workbook
-    If InStr(Me.txtFileName, "[item]") > 0 Then
-      Me.lblNamingConvention.ForeColor = lngForeColorInvalid
-      MsgBox "Cannot use '[item]' in naming convention when creating a single workbook.", vbExclamation + vbOKOnly, "Invalid Naming Convention"
-      blnError = True
-    End If
-  ElseIf Me.cboCreate.Value = "1" Then 'worksheet for each
-    If InStr(Me.txtFileName, "[item]") > 0 Then
-      Me.lblNamingConvention.ForeColor = lngForeColorInvalid
-      MsgBox "Cannot use '[item]' in naming convention when creating worksheet for each.", vbExclamation + vbOKOnly, "Invalid Naming Convention"
-      blnError = True
-    End If
-  ElseIf Me.cboCreate.Value = "2" Then 'workbook for each
-    If InStr(Me.txtFileName, "[item]") = 0 Then
-      Me.lblNamingConvention.ForeColor = lngForeColorInvalid
-      MsgBox "Must include '[item]' in naming convention when creating workbook for each.", vbExclamation + vbOKOnly, "Invalid Naming Convention"
-      blnError = True
-    End If
-  End If
-  If Me.cboCreate.Value <> "0" Then
-    'a limiting field must be selected
-    If Me.cboEach.Value = 0 Then
-      Me.cboEach.BorderColor = lngBorderColorInvalid
-      blnError = True
-    End If
-    'at least one item selected
-    For lngItem = 0 To Me.lboItems.ListCount - 1
-      If Me.lboItems.Selected(lngItem) Then lngSelectedItems = lngSelectedItems + 1
-    Next lngItem
-    If lngSelectedItems = 0 Then
-      Me.lboItems.BorderColor = lngBorderColorInvalid
-      Me.lblIncludeItems.ForeColor = lngForeColorInvalid
-      blnError = True
-    End If
-    'the limiting field should be included in the export list
-    blnIncluded = False
-    For lngItem = 0 To Me.lboExport.ListCount - 1
-      If Me.lboExport.List(lngItem, 1) = Me.cboEach Then blnIncluded = True
-    Next lngItem
-    If Not blnIncluded Then
-      If MsgBox("The For Each field '" & Me.cboEach & "' is not included in the export list." & vbCrLf & vbCrLf & "Include it?", vbYesNo + vbQuestion, "Include For Each Field?") = vbYes Then
-        For lngItem = 0 To Me.lboFields.ListCount - 1
-          Me.lboFields.Selected(lngItem) = Me.lboFields.List(lngItem, 1) = Me.cboEach
+  'ensure selections
+  If IsNull(Me.cboCreate) Then
+    Me.cboCreate.BorderColor = lngBorderColorInvalid
+    Me.lblCreate.ForeColor = lngForeColorInvalid
+    blnError = True
+  Else
+    'ensure each if necessary
+    If Me.cboCreate.Value <> "0" Then
+      'a limiting field must be selected
+      If Me.cboEach.Value = 0 Or Me.cboEach.Value = "" Then
+        Me.cboEach.BorderColor = lngBorderColorInvalid
+        Me.lblForEach.ForeColor = lngForeColorInvalid
+        blnError = True
+      Else
+        'at least one item selected
+        For lngItem = 0 To Me.lboItems.ListCount - 1
+          If Me.lboItems.Selected(lngItem) Then lngSelectedItems = lngSelectedItems + 1
         Next lngItem
-        Me.cmdAdd_Click
+        If lngSelectedItems = 0 Then
+          Me.lboItems.BorderColor = lngBorderColorInvalid
+          Me.lblIncludeItems.ForeColor = lngForeColorInvalid
+          blnError = True
+        End If
+        'the limiting field should be included in the export list
+        blnIncluded = False
+        For lngItem = 0 To Me.lboExport.ListCount - 1
+          If Me.lboExport.List(lngItem, 1) = Me.cboEach Then blnIncluded = True
+        Next lngItem
+        If Not blnIncluded Then
+          If MsgBox("The For Each field '" & Me.cboEach & "' is not included in the export list." & vbCrLf & vbCrLf & "Include it?", vbYesNo + vbQuestion, "Include For Each Field?") = vbYes Then
+            For lngItem = 0 To Me.lboFields.ListCount - 1
+              Me.lboFields.Selected(lngItem) = Me.lboFields.List(lngItem, 1) = Me.cboEach
+            Next lngItem
+            Me.cmdAdd_Click
+          End If
+        End If
+      End If
+    End If
+    'ensure unique filenames
+    If Me.cboCreate.Value = "0" Then 'one workbook
+      If InStr(Me.txtFileName, "[item]") > 0 Then
+        Me.lblNamingConvention.ForeColor = lngForeColorInvalid
+        Me.txtFileName.BorderColor = lngForeColorInvalid
+        MsgBox "Cannot use '[item]' in naming convention when creating a single workbook.", vbExclamation + vbOKOnly, "Invalid Naming Convention"
+        blnError = True
+      End If
+    ElseIf Me.cboCreate.Value = "1" Then 'worksheet for each
+      If InStr(Me.txtFileName, "[item]") > 0 Then
+        Me.lblNamingConvention.ForeColor = lngForeColorInvalid
+        Me.txtFileName.BorderColor = lngForeColorInvalid
+        MsgBox "Cannot use '[item]' in naming convention when creating worksheet for each.", vbExclamation + vbOKOnly, "Invalid Naming Convention"
+        blnError = True
+      End If
+    ElseIf Me.cboCreate.Value = "2" Then 'workbook for each
+      If InStr(Me.txtFileName, "[item]") = 0 Then
+        Me.lblNamingConvention.ForeColor = lngForeColorInvalid
+        Me.txtFileName.BorderColor = lngForeColorInvalid
+        If Len(Me.txtFileName) > 0 Then
+          strMsg = Me.txtFileName & "_[item]"
+        Else
+          strMsg = cptGetProgramAcronym & "_Status_[YYYY-MM-DD]_[item]"
+        End If
+        strMsg = InputBox("Must include '[item]' in naming convention when creating workbook for each." & vbCrLf & vbCrLf & "Example (click 'OK' to accept):", "Invalid Naming Convention", strMsg)
+        If StrPtr(strMsg) = 0 Then 'user hit cancel
+          blnError = True
+        Else
+          Me.txtFileName.Value = strMsg
+        End If
       End If
     End If
   End If
+  'ensure directory exists
   If Dir(Me.txtDir, vbDirectory) = vbNullString Then
     For Each vDir In Split(Me.txtDir, "\")
       strTempDir = strTempDir & "\" & vDir
@@ -761,6 +822,7 @@ next_dir:
   If blnError Then
     Me.lblStatus.ForeColor = lngForeColorInvalid
     Me.lblStatus.Caption = " Please complete all required fields."
+    Me.Repaint
   Else
     'save settings
     cptSaveStatusSheetSettings Me
@@ -819,6 +881,10 @@ err_here:
   Call cptHandleErr("cptStatusSheet_frm", "cmdUp_Click", Err, Erl)
   Resume exit_here
   
+End Sub
+
+Private Sub cmdSave_Click()
+  Me.Hide
 End Sub
 
 Private Sub lblURL_Click()
@@ -882,9 +948,8 @@ Private Sub lboItems_Change()
   End If
   
   If lngSelectedItems > 0 Then
-    Me.lboItems.BorderColor = lngBorderColorValid
-    Me.Repaint
     Me.lblIncludeItems.ForeColor = lngForeColorValid
+    Me.lboItems.BorderColor = lngBorderColorValid
   End If
   
   ActiveWindow.TopPane.Activate
@@ -1192,12 +1257,10 @@ Sub txtFileName_Change()
   
   If Not blnValid Then
     Me.txtFileName.BorderColor = lngBorderColorInvalid
-    Me.txtFileName.ForeColor = lngForeColorInvalid
     Me.lblNamingConvention.ForeColor = lngForeColorInvalid
     Me.lblFileNameSample.ForeColor = lngForeColorInvalid
   Else
     Me.txtFileName.BorderColor = lngBorderColorValid
-    Me.txtFileName.ForeColor = lngForeColorValid
     Me.lblNamingConvention.ForeColor = lngForeColorValid
     Me.lblFileNameSample.ForeColor = 8421504
   End If
@@ -1566,5 +1629,11 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
   If CloseMode = VbQueryClose.vbFormControlMenu Then
     Me.Hide
     Cancel = True
+  ElseIf CloseMode = VbQueryClose.vbFormCode Then
+    If Me.ActiveControl.Name = "cmdSave" Then
+      cptSaveStatusSheetSettings Me
+    ElseIf Me.ActiveControl.Name = "cmdRun" Then
+      cptSaveStatusSheetSettings Me
+    End If
   End If
 End Sub

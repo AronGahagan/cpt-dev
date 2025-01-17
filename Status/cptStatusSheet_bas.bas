@@ -70,6 +70,8 @@ Sub cptShowStatusSheet_frm()
   Dim strEVT As String
   Dim strFieldName As String
   Dim strFileName As String
+  'booleans
+  Dim blnErrorTrapping As Boolean
   'dates
   Dim dtStatus As Date
   'variants
@@ -132,7 +134,7 @@ Sub cptShowStatusSheet_frm()
     For lngItem = 0 To 2
       .cboCreate.AddItem
       .cboCreate.List(lngItem, 0) = lngItem
-      .cboCreate.List(lngItem, 1) = Choose(lngItem + 1, "A Single Workbook", "A Worksheet for each", "A Workbook for each")
+      .cboCreate.List(lngItem, 1) = Choose(lngItem + 1, "Single Workbook", "Worksheet for each", "Workbook for each")
     Next lngItem
     .chkSendEmails.Enabled = cptCheckReference("Outlook")
     .chkHide = True
@@ -146,6 +148,7 @@ Sub cptShowStatusSheet_frm()
     Else  'not a server project: use ActiveProject.Path
       .txtDir = ActiveProject.Path & "\" 'Status Requests\" & IIf(.chkAppendStatusDate, "[yyyy-mm-dd]\", "")
     End If
+    .txtFileName.ForeColor = -2147483630 'lngForeColorValid
     .txtFileName = "StatusRequest_[yyyy-mm-dd]"
   End With
 
@@ -622,7 +625,6 @@ Sub cptCreateStatusSheet(ByRef myStatusSheet_frm As cptStatusSheet_frm)
   'objects
   Dim oListObject As Excel.ListObject
   Dim oTasks As MSProject.Tasks, oTask As MSProject.Task, oAssignment As MSProject.Assignment
-  'early binding:
   Dim oExcel As Excel.Application, oWorkbook As Excel.Workbook, oWorksheet As Excel.Worksheet, rng As Excel.Range
   Dim rSummaryTasks As Excel.Range, rMilestones As Excel.Range, rNormal As Excel.Range, rAssignments As Excel.Range, rLockedCells As Excel.Range
   Dim rDates As Excel.Range, rWork As Excel.Range, rMedium As Excel.Range, rCentered As Excel.Range, rEntry As Excel.Range
@@ -630,16 +632,8 @@ Sub cptCreateStatusSheet(ByRef myStatusSheet_frm As cptStatusSheet_frm)
   Dim oOutlook As Outlook.Application, oMailItem As MailItem, oDoc As Word.Document, oWord As Word.Application, oSel As Word.Selection, oETemp As Word.Template
   Dim aSummaries As Object, aMilestones As Object, aNormal As Object, aAssignments As Object
   Dim rstEach As ADODB.Recordset, aTaskRow As Object, rstColumns As ADODB.Recordset
-  'late binding:
-'  Dim oExcel As Object, oWorkbook As Object, oWorksheet As Object, rng As Object
-'  Dim rSummaryTasks As Object, rMilestones As Object, rNormal As Object, rAssignments As Object, rLockedCells As Object
-'  Dim rDates As Object, rWork As Object, rMedium As Object, rCentered As Object, rEntry As Object
-'  Dim xlCells As Object, rngAll As Object
-'  Dim oOutlook As Object, oMailItem As Object, objDoc As Object, oWord As Object, oSel As Object, oETemp As Object
-'  Dim aSummaries As Object, aMilestones As Object, aNormal As Object, aAssignments As Object
-'  Dim rstEach As Object, aTaskRow As Object, rstColumns As Object
-'  Dim oOddBalls As Object, aCentered As Object, aEntryHeaders As Object
   'longs
+  Dim lngSelectedItems As Long
   Dim lngFormatCondition As Long
   Dim lngConditionalFormats As Long
   Dim lngDayLabelDisplay As Long
@@ -909,7 +903,7 @@ Sub cptCreateStatusSheet(ByRef myStatusSheet_frm As cptStatusSheet_frm)
           .lblStatus.Caption = "Creating Worksheet for " & strItem & "..."
           Application.StatusBar = .lblStatus.Caption
           DoEvents
-          cptCopyData myStatusSheet_frm, oWorksheet, lngHeaderRow
+          cptCopyData myStatusSheet_frm, oWorksheet, lngHeaderRow, strItem
           If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
 
           'add legend
@@ -1032,7 +1026,7 @@ next_worksheet:
           .lblStatus.Caption = "Creating Workbook for " & strItem & "..."
           Application.StatusBar = .lblStatus.Caption
           DoEvents
-          cptCopyData myStatusSheet_frm, oWorksheet, lngHeaderRow
+          cptCopyData myStatusSheet_frm, oWorksheet, lngHeaderRow, strItem
           If blnPerformanceTest Then Debug.Print "copy data: " & (GetTickCount - t) / 1000
           
           'add legend
@@ -1122,8 +1116,21 @@ next_workbook:
       End If
       
     End If 'cboCreate
-    .lblStatus.Caption = Choose(.cboCreate + 1, "Workbook", "Workbook", "Workbooks") & " Complete"
-    Application.StatusBar = .lblStatus.Caption
+    lngSelectedItems = 0
+    For lngItem = 0 To .lboItems.ListCount - 1
+      If .lboItems.Selected(lngItem) Then
+        lngSelectedItems = lngSelectedItems + 1
+      End If
+    Next lngItem
+    If CLng(.cboCreate) = 2 And lngSelectedItems > 1 Then 'workbook for each
+      .lblStatus.Caption = "Workbooks complete"
+      Application.StatusBar = .lblStatus.Caption
+      MsgBox "Workbooks complete.", vbInformation + vbOKOnly, "Create Status Sheet(s)"
+    Else 'single workbook
+      .lblStatus.Caption = "Workbook complete"
+      Application.StatusBar = .lblStatus.Caption
+      MsgBox "Workbook complete", vbInformation + vbOKOnly, "Create Status Sheet(s)"
+    End If
     DoEvents
   End With
 
@@ -1248,7 +1255,7 @@ filter_only:
   Application.StatusBar = "Resetting the cptStatusSheet Filter..."
   FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, Create:=True, OverwriteExisting:=True, FieldName:="Actual Finish", test:="equals", Value:="NA", ShowInMenu:=False, ShowSummaryTasks:=True
   If myStatusSheet_frm.chkHide And IsDate(myStatusSheet_frm.txtHideCompleteBefore) Then
-    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Actual Finish", test:="is greater than or equal to", Value:=myStatusSheet_frm.txtHideCompleteBefore, Operation:="Or", ShowSummaryTasks:=True
+    FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Actual Finish", test:="is greater than or equal to", Value:=myStatusSheet_frm.txtHideCompleteBefore, operation:="Or", ShowSummaryTasks:=True
   End If
   If Edition = pjEditionProfessional Then
     FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Active", test:="equals", Value:="Yes", ShowInMenu:=False, ShowSummaryTasks:=True, Parenthesis:=True
@@ -1256,12 +1263,12 @@ filter_only:
   With myStatusSheet_frm
     If .chkLookahead And .txtLookaheadDate.BorderColor <> 192 Then
       dtLookahead = CDate(.txtLookaheadDate) & " 5:00 PM"
-      FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Start", test:="is less than or equal to", Value:=dtLookahead, Operation:="And", Parenthesis:=False
+      FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:="Start", test:="is less than or equal to", Value:=dtLookahead, operation:="And", Parenthesis:=False
     End If
     If .chkIgnoreLOE Then
       strEVT = Split(cptGetSetting("Integration", "EVT"), "|")(1)
       strLOE = cptGetSetting("Integration", "LOE")
-      FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:=strEVT, test:="does not equal", Value:=strLOE, Operation:="And", Parenthesis:=False
+      FilterEdit Name:="cptStatusSheet Filter", TaskFilter:=True, FieldName:="", NewFieldName:=strEVT, test:="does not equal", Value:=strLOE, operation:="And", Parenthesis:=False
     End If
   End With
   FilterApply "cptStatusSheet Filter"
@@ -1333,7 +1340,7 @@ err_here:
 
 End Sub
 
-Private Sub cptCopyData(ByRef myStatusSheet_frm As cptStatusSheet_frm, ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Long)
+Private Sub cptCopyData(ByRef myStatusSheet_frm As cptStatusSheet_frm, ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Long, Optional strItem As String)
   'objects
   Dim oAssignment As MSProject.Assignment
   Dim oFormatRange As Object
@@ -1358,7 +1365,6 @@ Private Sub cptCopyData(ByRef myStatusSheet_frm As cptStatusSheet_frm, ByRef oWo
   Dim strCEVP As String
   Dim strCF As String
   Dim strCS As String
-  Dim strItem As String
   Dim strFormula As String
   Dim strETC As String
   Dim strEVP As String
@@ -1410,6 +1416,7 @@ Private Sub cptCopyData(ByRef myStatusSheet_frm As cptStatusSheet_frm, ByRef oWo
   'variants
   'dates
   Dim dtStatus As Date
+  Dim dtEarliestStart As Date
   
   blnErrorTrapping = cptErrorTrapping
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -1444,8 +1451,8 @@ try_again:
   blnAlerts = oWorksheet.Application.DisplayAlerts
   If myStatusSheet_frm.cboCreate <> 2 Then
     strItem = ""
-  Else
-    strItem = myStatusSheet_frm.lboItems.List(myStatusSheet_frm.lboItems.ListIndex, 0)
+  'Else
+  '  strItem = myStatusSheet_frm.lboItems.List(myStatusSheet_frm.lboItems.ListIndex, 0)
   End If
   If blnAlerts Then oWorksheet.Application.DisplayAlerts = False
   For lngCol = 1 To ActiveSelection.FieldIDList.Count
@@ -1796,16 +1803,21 @@ next_task:
   End If
   If blnValidation And Not oDateValidationRange Is Nothing Then
     'date validation range
+    If ActiveProject.Subprojects.Count > 0 Then
+      dtEarliestStart = cptGetEarliestStart
+    Else
+      dtEarliestStart = ActiveProject.ProjectStart
+    End If
     With oDateValidationRange.Validation
       .Delete
       oWorksheet.Application.WindowState = xlNormal
-      .Add Type:=xlValidateDate, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:=FormatDateTime(ActiveProject.ProjectStart, vbShortDate), Formula2:="12/31/2149"
+      .Add Type:=xlValidateDate, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:=FormatDateTime(dtEarliestStart, vbShortDate), Formula2:="12/31/2149"
       .IgnoreBlank = True
       .InCellDropdown = True
       .InputTitle = "Date Only"
       .ErrorTitle = "Date Only"
-      .InputMessage = "Please enter a date between " & FormatDateTime(ActiveProject.ProjectStart, vbShortDate) & " and 12/31/2149 in 'm/d/yyyy' format."
-      .ErrorMessage = "Please enter a date between " & FormatDateTime(ActiveProject.ProjectStart, vbShortDate) & " and 12/31/2149 in 'm/d/yyyy' format."
+      .InputMessage = "Please enter a date between " & FormatDateTime(dtEarliestStart, vbShortDate) & " and 12/31/2149 in 'm/d/yyyy' format."
+      .ErrorMessage = "Please enter a date between " & FormatDateTime(dtEarliestStart, vbShortDate) & " and 12/31/2149 in 'm/d/yyyy' format."
       .ShowInput = True
       .ShowError = True
     End With
@@ -1996,7 +2008,7 @@ next_task:
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strCS & "<=STATUS_DATE," & strNS & "=0)", "BAD") 'should have started
     'NS:AND(NS>0,NF>0,NS>NF) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & ")", "BAD")
-    'todo:oRecordset.AddNew Array(0, 1, 2), Array("NS", "=IF(""NS>0,NF>0,NS>NF,"",""BAD"",AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & "))","BAD")
+    'todo: oRecordset.AddNew Array(0, 1, 2), Array("NS", "=IF(""NS>0,NF>0,NS>NF,"",""BAD"",AND(" & strNS & ">0," & strNF & ">0," & strNS & ">" & strNF & "))","BAD")
     'NS:AND(NS=0,AF>0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("NS", "=AND(" & strNS & "=0," & strAF & ")", "BAD")
     'NS:AND(FS>0,EVP>0) -> BAD
@@ -2269,7 +2281,6 @@ Private Sub cptGetAssignmentData(ByRef myStatusSheet_frm As cptStatusSheet_frm, 
   lngLastCol = oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight).Column
   lngLastRow = oWorksheet.Cells(1048576, 1).End(xlUp).Row
   'get column for FS,FF,NS,NF,EVT,EVP
-  
   lngFSCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Forecast Start", lookat:=xlWhole).Column
   lngFFCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Forecast Finish", lookat:=xlWhole).Column
   lngNSCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Start", lookat:=xlPart).Column
@@ -2280,14 +2291,12 @@ Private Sub cptGetAssignmentData(ByRef myStatusSheet_frm As cptStatusSheet_frm, 
   lngItem = 0
   For Each oAssignment In oTask.Assignments
     lngItem = lngItem + 1
-    If ActiveProject.CurrentView <> "Task Usage" Or IsDate(oAssignment.ActualFinish) Then
-      If Trim(oWorksheet.Cells(lngRow + lngItem, lngNameCol).Value) <> oAssignment.ResourceName Then
-        oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
-        oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.ColorIndex = xlAutomatic
-      Else
-        oWorksheet.Rows(lngRow + lngItem).Value = ""
-      End If
-    Else
+    'if custom field used to filter the ims is not filled down to assignment...problems.
+    'if the next row is NOT the assignment, then make room for it
+    If (oWorksheet.Cells(lngRow + lngItem, 1).Value Mod 4194304) <> (oAssignment.UniqueID - (2 ^ 20)) Then
+      oWorksheet.Rows(lngRow + lngItem).Insert Shift:=xlDown, CopyOrigin:=xlFormatFromLeftOrAbove
+      oWorksheet.Range(oWorksheet.Cells(lngRow + lngItem, 1), oWorksheet.Cells(lngRow + lngItem, lngLastCol)).Font.ColorIndex = xlAutomatic
+    Else 'clear it out and rebuild
       oWorksheet.Rows(lngRow + lngItem).Value = ""
     End If
     'this fills down task custom fields to assignments
@@ -2421,6 +2430,9 @@ Sub cptFinalFormats(ByRef oWorksheet As Excel.Worksheet)
   oWorksheet.[B1].Select
   oWorksheet.Application.ActiveWindow.SplitRow = 8
   oWorksheet.Application.ActiveWindow.SplitColumn = 0
+  'note: if user's Excel 'normal' window size is puny then FreezePans might fail;
+  'note: have them adjust manually - alternative is to change the line above to xlMaximized
+  'note: and that's a terrible UX with all the screen flashes
   oWorksheet.Application.ActiveWindow.FreezePanes = True
   oWorksheet.Application.ActiveWindow.DisplayHorizontalScrollBar = True
   oWorksheet.Application.ActiveWindow.DisplayVerticalScrollBar = True
@@ -2437,8 +2449,6 @@ Sub cptListQuickParts(ByRef myStatusSheet_frm As cptStatusSheet_frm, Optional bl
   Dim oTemplate As Word.Template
   Dim oBuildingBlockEntries As Word.BuildingBlockEntries
   Dim oBuildingBlock As Word.BuildingBlock
-  'longs
-  Dim lngItem As Long
   'strings
   Dim strQuickPartList As String
   Dim strSQL As String
@@ -2570,7 +2580,7 @@ Function cptSaveStatusSheet(ByRef myStatusSheet_frm As cptStatusSheet_frm, ByRef
     If Dir(strDir & strFileName) <> vbNullString Then  'delete failed, rename with timestamp
       strMsg = "'" & strFileName & "' already exists, and is likely open." & vbCrLf
       strFileName = Replace(strFileName, ".xlsx", "_" & Format(Now, "hh-nn-ss") & ".xlsx")
-      strMsg = strMsg & "The file you are now creating will be named '" & strFileName & "'"
+      strMsg = strMsg & vbCrLf & "The file you are now creating will be named '" & strFileName & "'"
       MsgBox strMsg, vbExclamation + vbOKOnly, "NOTA BENE"
       oWorkbook.SaveAs strDir & strFileName, 51
       oWorkbook.Application.Wait Now + TimeValue("00:00:02")
@@ -2717,13 +2727,15 @@ Sub cptSaveStatusSheetSettings(ByRef myStatusSheet_frm As cptStatusSheet_frm)
     cptSaveSetting "StatusSheet", "cboCostTool", .cboCostTool.Value
     cptDeleteSetting "StatusSheet", "cboEVT" 'moved to Integration
     cptSaveSetting "StatusSheet", "chkHide", IIf(.chkHide, 1, 0)
-    cptSaveSetting "StatusSheet", "cboCreate", .cboCreate
+    If Not IsNull(.cboCreate) Then
+      cptSaveSetting "StatusSheet", "cboCreate", .cboCreate
+    End If
     cptSaveSetting "StatusSheet", "txtDir", .txtDir
     cptSaveSetting "StatusSheet", "chkAppendStatusDate", IIf(.chkAppendStatusDate, 1, 0)
-    If .cboEach.Value <> 0 Then
+    If .cboEach.Value <> "" Then
       cptSaveSetting "StatusSheet", "cboEach", .cboEach.Value
     Else
-      cptSaveSetting "StatusSheet", "cboEach", "" 'todo: handle '<none>'
+      cptSaveSetting "StatusSheet", "cboEach", ""
     End If
     cptSaveSetting "StatusSheet", "txtFileName", .txtFileName
     cptSaveSetting "StatusSheet", "chkAllItems", IIf(.chkAllItems, 1, 0)
@@ -3218,10 +3230,6 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptAddConditionalFormatting(ByRef oWorksheet As Excel.Worksheet)
-
-End Sub
-
 Sub cptAddConditionalFormattingLegend(ByRef oWorkbook As Excel.Workbook)
   'objects
   Dim oListObject As Object
@@ -3490,5 +3498,14 @@ err_here:
 
 End Sub
 
-
-
+Function cptGetEarliestStart() As Date
+  Dim dtStart As Date
+  Dim oSubproject As Subproject
+  dtStart = #12/31/2149#
+  For Each oSubproject In ActiveProject.Subprojects
+    If oSubproject.InsertedProjectSummary.Start < dtStart Then
+      dtStart = oSubproject.InsertedProjectSummary.Start
+    End If
+  Next oSubproject
+  cptGetEarliestStart = dtStart
+End Function
