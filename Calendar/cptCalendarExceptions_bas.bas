@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCalendarExceptions_bas"
-'<cpt_version>v1.0.7</cpt_version>
+'<cpt_version>v1.0.8</cpt_version>
 Option Explicit
 
 Sub cptShowCalendarExceptions_frm()
@@ -92,18 +92,14 @@ Sub cptExportCalendarExceptionsMain(ByRef myCalendarExceptions_frm As cptCalenda
   'variants
   Dim vBorder As Variant
   'dates
-  
+
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'set up file
   Application.StatusBar = "Setting up Excel Workbook..."
   DoEvents
-  On Error Resume Next
-  Set oExcel = GetObject(, "Excel.Application")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  If oExcel Is Nothing Then
-    Set oExcel = CreateObject("Excel.Application")
-  End If
+  'get new instance of Excel
+  Set oExcel = CreateObject("Excel.Application")
   Set oWorkbook = oExcel.Workbooks.Add
   cptSpeed True
   oWorkbook.Sheets(1).Name = "Exceptions"
@@ -214,11 +210,14 @@ next_resource:
   Next oWorksheet
   
   Application.StatusBar = "Complete."
+  MsgBox "Export complete.", vbInformation + vbOKOnly, "Fiscal Export"
   DoEvents
   
   'show the user what you've done for them
-  oWorkbook.Sheets("Exceptions").Activate
   oExcel.Visible = True
+  oExcel.WindowState = xlMaximized
+  oExcel.Windows(oExcel.Windows.Count).Activate
+  oWorkbook.Sheets("Exceptions").Activate
 
 exit_here:
   On Error Resume Next
