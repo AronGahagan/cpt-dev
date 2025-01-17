@@ -456,12 +456,14 @@ Sub cptAnalyzeEVT(ByRef myFiscal_frm As cptFiscal_frm, Optional lngImportField A
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   Dim blnExists As Boolean
   'variants
   Dim vbResponse As Variant
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If IsNull(myFiscal_frm.cboUse) Then
     myFiscal_frm.cboUse.BorderColor = 192
@@ -547,7 +549,7 @@ next_task:
   
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If
