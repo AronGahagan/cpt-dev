@@ -2,7 +2,7 @@
 name: Generic Issue
 about: generic issue templat
 title: ''
-labels: enhancement
+labels: 
 assignees: ''
 
 ---
