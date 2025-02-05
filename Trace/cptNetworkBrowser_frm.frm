@@ -59,10 +59,11 @@ Private Sub cmdBack_Click()
   
   If IsNull(Me.lboHistory.Value) Then Me.lboHistory.ListIndex = -1
 
-  If Me.lboHistory.ListCount > 0 Then
-    'todo: fix this
-    Me.lboHistory.ListIndex = Me.lboHistory.ListIndex + 1
-    cptHistoryDoubleClick Me
+  If Me.lboHistory.ListCount > 1 Then
+    If Me.lboHistory.ListIndex < Me.lboHistory.ListCount - 1 Then
+      Me.lboHistory.ListIndex = Me.lboHistory.ListIndex + 1
+      cptHistoryDoubleClick Me
+    End If
   End If
 
 exit_here:
