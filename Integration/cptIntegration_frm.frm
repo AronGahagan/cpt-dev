@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIntegration_frm 
    Caption         =   "Integration"
-   ClientHeight    =   3495
+   ClientHeight    =   4410
    ClientLeft      =   120
    ClientTop       =   465
-   ClientWidth     =   6555
+   ClientWidth     =   7020
    OleObjectBlob   =   "cptIntegration_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -28,48 +28,8 @@ Private Sub cboCA_Change()
 End Sub
 
 Private Sub cboCAM_Change()
-  'objects
-  Dim oCDP As DocumentProperty
-  'strings
-  'longs
-  Dim lngField As Long
-  'integers
-  'doubles
-  'booleans
-  Dim blnErrorTrapping As Boolean
-  'variants
-  'dates
-  
-  blnErrorTrapping = cptErrorTrapping
-  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
   If Not Me.Visible Then Exit Sub
-  If Me.chkSyncSettings Then
-    On Error Resume Next
-    Set oCDP = ActiveProject.CustomDocumentProperties("fCAM")
-    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-    If Not oCDP Is Nothing Then
-      lngField = FieldNameToFieldConstant(ActiveProject.CustomDocumentProperties("fCAM"))
-      If Me.cboCAM.Value <> lngField Then
-        If MsgBox("COBRA Export Tool setting is '" & CustomFieldGetName(lngField) & "' - use this instead?", vbQuestion + vbYesNo, "Synchronize?") = vbYes Then
-          Me.cboCAM.Value = lngField
-        End If
-      End If
-    Else
-      Set oCDP = ActiveProject.CustomDocumentProperties.Add("fCAM", False, msoPropertyTypeString, FieldConstantToFieldName(Me.cboCAM.Value))
-    End If
-  End If
   UpdateIntegrationSettings
-  
-exit_here:
-  On Error Resume Next
-  Set oCDP = Nothing
-  
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptIntegration_frm", "cboCAM_Change", Err, Erl)
-  Resume exit_here
-
 End Sub
 
 Private Sub cboEVTMS_Change()
@@ -109,7 +69,9 @@ Private Sub cboEVP_Change()
         End If
       End If
     Else
-      Set oCDP = ActiveProject.CustomDocumentProperties.Add("fPCNT", False, msoPropertyTypeString, FieldConstantToFieldName(Me.cboEVP.Value))
+      If Not IsNull(Me.cboEVP) Then
+        Set oCDP = ActiveProject.CustomDocumentProperties.Add("fPCNT", False, msoPropertyTypeString, FieldConstantToFieldName(Me.cboEVP.Value))
+      End If
     End If
   End If
   UpdateIntegrationSettings
@@ -127,6 +89,7 @@ End Sub
 
 Private Sub cboEVT_Change()
   'objects
+  Dim oSubproject As MSProject.Subproject
   Dim oCDP As DocumentProperty
   Dim oDict As Scripting.Dictionary
   Dim oTask As MSProject.Task
@@ -150,18 +113,37 @@ Private Sub cboEVT_Change()
   UpdateIntegrationSettings 'todo: can this be moved to only the end?
   Me.cboLOE.Value = ""
   Me.cboLOE.Clear
+  Me.cboPP.Value = ""
+  Me.cboPP.Clear
   Set oDict = CreateObject("Scripting.Dictionary")
-  For Each oTask In ActiveProject.Tasks
-    If oTask Is Nothing Then GoTo next_task
-    If Not oTask.Active Then GoTo next_task
-    strValue = oTask.GetField(Me.cboEVT.Value)
-    If Len(strValue) > 0 Then
-      If Not oDict.Exists(strValue) Then oDict.Add strValue, strValue
-    End If
-next_task:
-  Next oTask
+  If ActiveProject.Subprojects.Count > 0 Then
+    For Each oSubproject In ActiveProject.Subprojects
+      For Each oTask In oSubproject.SourceProject.Tasks
+        If oTask Is Nothing Then GoTo next_task_single
+        If Not oTask.Active Then GoTo next_task_single
+        strValue = oTask.GetField(Me.cboEVT.Value)
+        If Len(strValue) > 0 Then
+          If Not oDict.Exists(strValue) Then oDict.Add strValue, strValue
+        End If
+next_task_master:
+      Next oTask
+    Next oSubproject
+  Else
+    For Each oTask In ActiveProject.Tasks
+      If oTask Is Nothing Then GoTo next_task_single
+      If Not oTask.Active Then GoTo next_task_single
+      strValue = oTask.GetField(Me.cboEVT.Value)
+      If Len(strValue) > 0 Then
+        If Not oDict.Exists(strValue) Then oDict.Add strValue, strValue
+      End If
+next_task_single:
+    Next oTask
+  End If
+  Me.cboLOE.AddItem "<unused>"
+  Me.cboPP.AddItem "<unused>"
   For lngItem = 0 To oDict.Count - 1
     Me.cboLOE.AddItem oDict.Items(lngItem)
+    Me.cboPP.AddItem oDict.Items(lngItem)
   Next lngItem
   If Me.chkSyncSettings Then
     
@@ -183,6 +165,7 @@ next_task:
   
 exit_here:
   On Error Resume Next
+  Set oSubproject = Nothing
   Set oDict = Nothing
   Set oCDP = Nothing
 
@@ -214,6 +197,16 @@ Private Sub cboOBS_Change()
   UpdateIntegrationSettings
 End Sub
 
+Private Sub cboPP_Change()
+  If Not Me.Visible Then Exit Sub
+  If Me.cboPP.Value = "" Then
+    Me.cboPP.BorderColor = 192
+  Else
+    Me.cboPP.BorderColor = -2147483642
+    cptSaveSetting "Integration", "PP", Me.cboPP.Value
+  End If
+End Sub
+
 Private Sub cboWBS_Change()
   If Not Me.Visible Then Exit Sub
   'DO NOT SYNC WBS, OBS, CA with COBRA Export Tool because
@@ -225,54 +218,132 @@ Private Sub cboWBS_Change()
 End Sub
 
 Private Sub cboWP_Change()
-  'objects
-  Dim oCDP As DocumentProperty
-  'strings
-  'longs
-  Dim lngField As Long
-  'integers
-  'doubles
-  'booleans
-  Dim blnErrorTrapping As Boolean
-  'variants
-  'dates
-  
-  blnErrorTrapping = cptErrorTrapping
-  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
   If Not Me.Visible Then Exit Sub
-  If Me.chkSyncSettings Then
-    
-    On Error Resume Next
-    Set oCDP = ActiveProject.CustomDocumentProperties("fWP")
-    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-    If Not oCDP Is Nothing Then
-      lngField = FieldNameToFieldConstant(oCDP.Value)
-      If Me.cboWP.Value <> lngField Then
-        If MsgBox("COBRA Export Tool setting is '" & CustomFieldGetName(lngField) & "' - use this instead?", vbQuestion + vbYesNo, "Synchronize?") = vbYes Then
-          Me.cboWP.Value = lngField
-        End If
-      End If
-    Else
-      Set oCDP = ActiveProject.CustomDocumentProperties.Add("fWP", False, msoPropertyTypeString, CustomFieldGetName(Me.cboWP.Value))
-    End If
-  End If
   UpdateIntegrationSettings
-  
-exit_here:
-  On Error Resume Next
-  Set oCDP = Nothing
-  
-  Exit Sub
-err_here:
-  Call cptHandleErr("cptIntegration_frm", "cboWP_Change", Err, Erl)
-  Resume exit_here
-
 End Sub
 
 Private Sub cboWPM_Change()
   If Not Me.Visible Then Exit Sub
   UpdateIntegrationSettings
+End Sub
+
+Private Sub chkECF_Click()
+  'objects
+  Dim oComboBox As MSForms.ComboBox
+  'strings
+  'longs
+  Dim lngItem As Long
+  Dim lngKeep As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnErrorTrapping As Boolean
+  Dim blnECF As Boolean
+  'variants
+  Dim vAddField As Variant
+  Dim vFields As Variant
+  Dim vControl As Variant
+  'dates
+  
+  If Not Me.Visible Then GoTo exit_here
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnECF = CBool(Me.chkECF.Value)
+  'first, save the changed setting
+  cptSaveSetting "Integration", "chkECF", IIf(Me.chkECF, "1", "0")
+  
+  'update WBS,OBS,CA,WP,EVT,EVTMS
+  vFields = cptSortedArray(cptGetCustomFields("t", "Outline Code,Text", "c,cfn,loc", blnECF), 1)
+  For Each vControl In Split("WBS,OBS,CA,WP,EVT,EVTMS", ",")
+    Set oComboBox = Me.Controls("cbo" & vControl)
+    lngKeep = 0
+    If Not IsNull(oComboBox.Value) Then lngKeep = oComboBox.Value
+    oComboBox.Clear
+    If blnECF Then
+      oComboBox.ColumnCount = 3
+      oComboBox.ColumnWidths = "0 pt;105 pt;10 pt"
+      oComboBox.ListWidth = 140
+    Else
+      oComboBox.ColumnCount = 2
+      oComboBox.ColumnWidths = "0 pt"
+      oComboBox.ListWidth = oComboBox.Width
+    End If
+    For lngItem = 0 To UBound(vFields)
+      oComboBox.AddItem
+      oComboBox.List(oComboBox.ListCount - 1, 0) = vFields(lngItem, 0)
+      oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
+      If blnECF Then oComboBox.List(oComboBox.ListCount - 1, 2) = vFields(lngItem, 2)
+    Next lngItem
+    If lngKeep > 0 Then oComboBox.Value = lngKeep
+  Next vControl
+  
+  'update CAM,WPM
+  vFields = cptSortedArray(cptGetCustomFields("t", "Text,Outline Code", "c,cfn,loc", blnECF), 1)
+  For Each vControl In Split("CAM,WPM", ",")
+    Set oComboBox = Me.Controls("cbo" & vControl)
+    lngKeep = 0
+    If Not IsNull(oComboBox.Value) Then lngKeep = oComboBox.Value
+    oComboBox.Clear
+    If blnECF Then
+      oComboBox.ColumnCount = 3
+      oComboBox.ColumnWidths = "0 pt;105 pt;10 pt"
+      oComboBox.ListWidth = 140
+    Else
+      oComboBox.ColumnCount = 2
+      oComboBox.ColumnWidths = "0 pt"
+      oComboBox.ListWidth = oComboBox.Width
+    End If
+    oComboBox.AddItem
+    oComboBox.List(oComboBox.ListCount - 1, 0) = FieldNameToFieldConstant("Contact", pjTask)
+    oComboBox.List(oComboBox.ListCount - 1, 1) = "Contact"
+    If blnECF Then oComboBox.List(oComboBox.ListCount - 1, 2) = "LCF"
+    For lngItem = 0 To UBound(vFields)
+      oComboBox.AddItem
+      oComboBox.List(oComboBox.ListCount - 1, 0) = vFields(lngItem, 0)
+      oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
+      If blnECF Then oComboBox.List(oComboBox.ListCount - 1, 2) = vFields(lngItem, 2)
+    Next lngItem
+    If lngKeep > 0 Then oComboBox.Value = lngKeep
+  Next vControl
+ 
+  'update EV%
+  Set oComboBox = Me.cboEVP
+  lngKeep = 0
+  If Not IsNull(oComboBox) Then lngKeep = oComboBox.Value
+  oComboBox.Clear
+  If blnECF Then
+    oComboBox.ColumnCount = 3
+    oComboBox.ColumnWidths = "0 pt;105 pt;10 pt"
+    oComboBox.ListWidth = 140
+  Else
+    oComboBox.ColumnCount = 2
+    oComboBox.ColumnWidths = "0 pt"
+    oComboBox.ListWidth = oComboBox.Width
+  End If
+  For Each vAddField In Split("Physical % Complete,% Complete", ",")
+    oComboBox.AddItem
+    oComboBox.List(oComboBox.ListCount - 1, 0) = FieldNameToFieldConstant(vAddField)
+    oComboBox.List(oComboBox.ListCount - 1, 1) = vAddField
+    If blnECF Then oComboBox.List(oComboBox.ListCount - 1, 2) = "LCF"
+  Next vAddField
+  vFields = cptSortedArray(cptGetCustomFields("t", "Number", "c,cfn,loc", False), 1)
+  For lngItem = 0 To UBound(vFields)
+    oComboBox.AddItem
+    oComboBox.List(oComboBox.ListCount - 1, 0) = vFields(lngItem, 0)
+    oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
+    If blnECF Then oComboBox.List(oComboBox.ListCount - 1, 2) = vFields(lngItem, 2)
+  Next lngItem
+  If lngKeep > 0 Then Me.cboEVP.Value = lngKeep
+  
+exit_here:
+  On Error Resume Next
+  Set oComboBox = Nothing
+  
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptIntegration_frm", "chkECF_Click", Err, Erl)
+  Resume exit_here
 End Sub
 
 Private Sub chkSyncSettings_AfterUpdate()
@@ -298,23 +369,22 @@ Private Sub chkSyncSettings_AfterUpdate()
   
   cptSaveSetting "Integration", "chkSyncSettings", IIf(Me.chkSyncSettings, "1", "0")
     
-  If Me.chkSyncSettings Then
+  strFields = "CAM,WP,EVT,EVP"
+  'map integration settings with COBRA Export Tool settings
+  Set oDict = CreateObject("Scripting.Dictionary")
+  'DO NOT SYNC WBS, OBS, CA with COBRA Export Tool because
+  'CA1 is not always "WBS" (and it usually means CA anyway; and
+  'CA2 is not always "OBS"; and
+  'CA3 is not always CA; therefore
+  'the DECM requires the WBS,OBS, and CA to be different fields.
+  oDict.Add "CAM", "fCAM"
+  oDict.Add "WP", "fWP"
+  oDict.Add "EVT", "fEVT"
+  oDict.Add "EVP", "fPCNT"
   
-    strFields = "CAM,WP,EVT,EVP"
-    'map integration settings with COBRA Export Tool settings
-    Set oDict = CreateObject("Scripting.Dictionary")
-    'DO NOT SYNC WBS, OBS, CA with COBRA Export Tool because
-    'CA1 is not always "WBS" (and it usually means CA anyway; and
-    'CA2 is not always "OBS"; and
-    'CA3 is not always CA; therefore
-    'the DECM requires the WBS,OBS, and CA to be different fields.
-    oDict.Add "CAM", "fCAM"
-    oDict.Add "WP", "fWP"
-    oDict.Add "EVT", "fEVT"
-    oDict.Add "EVP", "fPCNT"
-  
-    For Each vControl In Split(strFields, ",")
-      Set oComboBox = Me.Controls("cbo" & vControl)
+  For Each vControl In Split(strFields, ",")
+    Set oComboBox = Me.Controls("cbo" & vControl)
+    If Me.chkSyncSettings Then
       If Not oComboBox.Enabled Then GoTo next_control
       On Error Resume Next
       Set oCDP = Nothing
@@ -364,8 +434,10 @@ Private Sub chkSyncSettings_AfterUpdate()
       End If
 next_control:
       Set oCDP = Nothing
-    Next vControl
-  End If
+    Else
+      oComboBox.BorderColor = -2147483642
+    End If
+  Next vControl
   
 exit_here:
   Set oCDP = Nothing
@@ -398,9 +470,11 @@ Private Sub cmdConfirm_Click()
     End If
 next_control:
   Next oControl
-'  If blnValid And Me.chkAnalyzePMB Then
+  'todo: if blnValid and me.chkSyncWithCOBRA and master/sub -> flowdown oCDPs?
+'  todo: PMB missing data quicklook?
+'  If blnValid Then
 '    For Each oControl In Me.Controls
-'      If Left(oControl.Name, 3) = "cbo" And oControl.Name <> "cboLOE" Then
+'      If Left(oControl.Name, 3) = "cbo" And oControl.Name <> "cboLOE" And oControl.Name <> "cboPP" Then
 '        If Not IsNull(Me.Controls(oControl.Name).Value) And Me.Controls(oControl.Name).Enabled Then
 '          strConstants = strConstants & Replace(oControl.Name, "cbo", "") & "|" & CustomFieldGetName(Me.Controls(oControl.Name)) & "|" & Me.Controls(oControl.Name).Value & ","
 '        End If
@@ -461,7 +535,9 @@ Private Sub UpdateIntegrationSettings()
       Set oCDP = ActiveProject.CustomDocumentProperties("f" & strControl)
       If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oCDP Is Nothing Then GoTo next_control
-      If CustomFieldGetName(Me.Controls("cbo" & vControl).Value) <> ActiveProject.CustomDocumentProperties("f" & strControl) Then
+      If IsNull(Me.Controls("cbo" & vControl).Value) Then 'populate it
+        If Me.Controls("cbo" & vControl).Enabled Then Me.Controls("cbo" & vControl).Value = ActiveProject.CustomDocumentProperties("f" & strControl)
+      ElseIf CustomFieldGetName(Me.Controls("cbo" & vControl).Value) <> ActiveProject.CustomDocumentProperties("f" & strControl) Then
         If FieldConstantToFieldName(Me.Controls("cbo" & vControl).Value) <> ActiveProject.CustomDocumentProperties("f" & strControl) Then 'catch if not a custom field (e.g., Physical % Complete)
           If Me.Controls("cbo" & vControl).Enabled Then Me.Controls("cbo" & vControl).BorderColor = 192
         Else

@@ -2383,8 +2383,8 @@ End Sub
 
 Function cptGetCustomFields(strFieldTypes As String, strDataTypes As String, strInclude As String, Optional blnIncludeEnterprise As Boolean = False) As Variant
   'strFieldTypes  := comma-separated list of any of "p,t,r" [project,task,resource]
-  'strDataTypes   := comma-separated list of any of "Cost,Date,Duration,Flag,Finish,Number,Start,Text,Outline Code"
-  'strInclude     := comma-separated list of any of "c,fn,cfn" [constant,fieldname,customfieldname]
+  'strDataTypes   := comma-separated list of any of "Cost,Date,Duration,Flag,Finish,Number,Outline Code,Start,Text"
+  'strInclude     := comma-separated list of any of "c,fn,cfn,loc" [constant,fieldname,customfieldname,location(LCF|ECF)]
   'blnIncludeEnterprise := self-explanatory
   'objects
   Dim oFieldTypes As Object 'Scripting.Dictionary
@@ -2442,6 +2442,8 @@ Function cptGetCustomFields(strFieldTypes As String, strDataTypes As String, str
               vRow(lngInclude) = FieldConstantToFieldName(lngConstant)
               'todo: if blnHideCFN then vRow(lngInclude) = ""
             End If
+          ElseIf vInclude(lngInclude) = "loc" Then
+            vRow(lngInclude) = "LCF"
           End If
         Next lngInclude
         strResult = strResult & Join(vRow, ",") & vbCrLf
@@ -2465,6 +2467,8 @@ Function cptGetCustomFields(strFieldTypes As String, strDataTypes As String, str
             Else
               vRow(lngInclude) = FieldConstantToFieldName(lngConstant)
             End If
+          ElseIf vInclude(lngInclude) = "loc" Then
+            vRow(lngInclude) = "ECF"
           End If
         Next lngInclude
         strResult = strResult & Join(vRow, ",") & vbCrLf
@@ -2516,6 +2520,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
   Dim oRequiredFields As Object 'Scripting.Dictionary
   Dim oComboBox As MSForms.ComboBox
   'strings
+  Dim strPP As String
   Dim strDefaultFields As String
   Dim strLOE As String
   Dim strSetting As String
@@ -2525,6 +2530,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
   'integers
   'doubles
   'booleans
+  Dim blnECF As Boolean
   Dim blnErrorTrapping As Boolean
   Dim blnUseDefault As Boolean
   Dim blnValid As Boolean
@@ -2540,7 +2546,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
   
   blnValid = True
   
-  strDefaultFields = "WBS,OBS,CA,CAM,WP,WPM,EVT,EVTMS,LOE,EVP"
+  strDefaultFields = "WBS,OBS,CA,CAM,WP,WPM,EVT,LOE,PP,EVTMS,EVP"
   'todo: distinguish between default,enabled,required
   blnUseDefault = Len(strRequiredFields) = 0
   Set oRequiredFields = CreateObject("Scripting.Dictionary")
@@ -2549,6 +2555,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
   Next vRequired
   oRequiredFields("WPM") = False
   oRequiredFields("EVTMS") = False
+  oRequiredFields("PP") = False
   For Each vRequired In Split(strRequiredFields, ",")
     oRequiredFields(vRequired) = True
   Next
@@ -2557,7 +2564,22 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
   With myIntegration_frm
     
     .Caption = "Integration (" & cptGetVersion("cptIntegration_frm") & ")"
-    
+    .lblMasterOnly.Visible = ActiveProject.Subprojects.Count > 0
+      
+    .chkLCF.Value = True 'always
+    .chkLCF.Enabled = False 'always
+    blnECF = False
+    If Application.Edition = pjEditionProfessional Then
+      .chkECF.Enabled = True
+      strSetting = cptGetSetting("Integration", "chkECF")
+      If Len(strSetting) > 0 Then
+        blnECF = CBool(strSetting)
+        .chkECF.Value = blnECF
+      End If
+    Else
+      .chkECF.Value = False
+      .chkECF.Enabled = False
+    End If
     'convert saved settings
     strSetting = cptGetSetting("Integration", "CWBS")
     If Len(strSetting) > 0 Then
@@ -2615,49 +2637,99 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
         lngField = 0
         If oRequiredFields(vControl) Then oComboBox.BorderColor = 192
       Else
-        If vControl <> "LOE" Then
-          lngField = CLng(Split(strSetting, "|")(0))
-        Else
+        If vControl = "LOE" Then
           strLOE = strSetting
+        ElseIf vControl = "PP" Then
+          strPP = strSetting
+        Else
+          lngField = CLng(Split(strSetting, "|")(0))
+        End If
+      End If
+      If vControl <> "LOE" And vControl <> "PP" Then
+        If blnECF Then
+          oComboBox.ColumnCount = 3
+          oComboBox.ColumnWidths = "0 pt;105 pt;10 pt"
+          oComboBox.ListWidth = 140
+        Else
+          oComboBox.ColumnCount = 2
+          oComboBox.ColumnWidths = "0 pt"
+          oComboBox.ListWidth = oComboBox.Width
         End If
       End If
       If vControl = "WBS" Then
-        oComboBox.List = cptSortedArray(cptGetCustomFields("t", "Outline Code,Text", "c,cfn", False), 1)
+        vFields = cptSortedArray(cptGetCustomFields("t", "Outline Code,Text", "c,cfn,loc", blnECF), 1)
+        For lngItem = 0 To UBound(vFields)
+          oComboBox.AddItem
+          oComboBox.List(oComboBox.ListCount - 1, 0) = vFields(lngItem, 0)
+          oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
+          If blnECF Then oComboBox.List(oComboBox.ListCount - 1, 2) = vFields(lngItem, 2)
+        Next lngItem
         If IsEmpty(oComboBox.List(oComboBox.ListCount - 1, 0)) Then oComboBox.RemoveItem (oComboBox.ListCount - 1)
       ElseIf vControl = "CAM" Or vControl = "WPM" Then
         For Each vAddField In Split("Contact", ",")
           oComboBox.AddItem
           oComboBox.List(oComboBox.ListCount - 1, 0) = FieldNameToFieldConstant(vAddField)
           oComboBox.List(oComboBox.ListCount - 1, 1) = vAddField
+          If blnECF Then oComboBox.List(oComboBox.ListCount - 1, 2) = "LCF"
         Next vAddField
-        vFields = cptSortedArray(cptGetCustomFields("t", "Text,Outline Code", "c,cfn", False), 1)
+        vFields = cptSortedArray(cptGetCustomFields("t", "Text,Outline Code", "c,cfn,loc", blnECF), 1)
         For lngItem = 0 To UBound(vFields)
           oComboBox.AddItem
           oComboBox.List(oComboBox.ListCount - 1, 0) = vFields(lngItem, 0)
           oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
+          If blnECF Then oComboBox.List(oComboBox.ListCount - 1, 2) = vFields(lngItem, 2)
         Next lngItem
       ElseIf vControl = "EVP" Then
         For Each vAddField In Split("Physical % Complete,% Complete", ",")
           oComboBox.AddItem
           oComboBox.List(oComboBox.ListCount - 1, 0) = FieldNameToFieldConstant(vAddField)
           oComboBox.List(oComboBox.ListCount - 1, 1) = vAddField
+          If blnECF Then oComboBox.List(oComboBox.ListCount - 1, 2) = "LCF"
         Next vAddField
-        vFields = cptSortedArray(cptGetCustomFields("t", "Number", "c,cfn", False), 1)
+        vFields = cptSortedArray(cptGetCustomFields("t", "Number", "c,cfn,loc", blnECF), 1)
         For lngItem = 0 To UBound(vFields)
           oComboBox.AddItem
           oComboBox.List(oComboBox.ListCount - 1, 0) = vFields(lngItem, 0)
           oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
+          If blnECF Then oComboBox.List(oComboBox.ListCount - 1, 2) = vFields(lngItem, 2)
         Next lngItem
       ElseIf vControl = "LOE" Then
         On Error Resume Next
-        .cboLOE.Value = strLOE
+        If .cboLOE.ListCount > 0 Then .cboLOE.Value = strLOE
         If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         GoTo next_control
+      ElseIf vControl = "PP" Then
+        On Error Resume Next
+        If .cboPP.ListCount > 0 Then .cboPP.Value = strPP
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        GoTo next_control
       Else 'WP,EVTMS
-        oComboBox.List = cptSortedArray(cptGetCustomFields("t", "Text,Outline Code", "c,cfn", False), 1)
+        vFields = cptSortedArray(cptGetCustomFields("t", "Text,Outline Code", "c,cfn,loc", blnECF), 1)
+        For lngItem = 0 To UBound(vFields)
+          oComboBox.AddItem
+          oComboBox.List(oComboBox.ListCount - 1, 0) = vFields(lngItem, 0)
+          oComboBox.List(oComboBox.ListCount - 1, 1) = vFields(lngItem, 1)
+          If blnECF Then oComboBox.List(oComboBox.ListCount - 1, 2) = vFields(lngItem, 2)
+        Next lngItem
         If IsEmpty(oComboBox.List(oComboBox.ListCount - 1, 0)) Then oComboBox.RemoveItem (oComboBox.ListCount - 1)
       End If
-      If lngField > 0 Then oComboBox.Value = lngField
+      If lngField > 0 And InStr(strSetting, "|") > 0 Then
+        If lngField > 188776000 And FieldConstantToFieldName(lngField) = "<Unavailable>" Then 'this happens when it's an ECF; but offline
+          MsgBox "The saved mapping field for element '" & vControl & "' is an Enterprise Custom Field (ECF) named '" & Split(strSetting, "|")(1) & "' but ECFs are only available when connected to PWA." & vbCrLf & vbCrLf & "Import of saved field mapping for '" & vControl & "' will be skipped.", vbExclamation + vbOKOnly, "Integration: " & vControl
+        ElseIf InStr(strSetting, "|") > 0 Then
+          If FieldConstantToFieldName(lngField) <> Split(strSetting, "|")(1) Then
+            If CustomFieldGetName(lngField) <> Split(strSetting, "|")(1) Then
+              If MsgBox("The saved mapping field for element '" & vControl & "' is named '" & Split(strSetting, "|")(1) & "' but in this file that field is named '" & CustomFieldGetName(lngField) & "'." & vbCrLf & vbCrLf & "Import saved mapping field anyway?", vbQuestion + vbYesNo, "Integration: " & vControl) = vbYes Then
+                oComboBox.Value = lngField
+              End If
+            Else
+              oComboBox.Value = lngField
+            End If
+          Else
+            oComboBox.Value = lngField
+          End If
+        End If
+      End If
 next_control:
       If blnUseDefault Then
         oComboBox.Enabled = True
@@ -2708,11 +2780,7 @@ next_control:
     Else
       .chkSyncSettings.Enabled = False
     End If
-    
-    'only show form if something required is missing
-    'DECM should require confirmation
-    'Status Sheet/Import can skip
-    
+        
     If Not blnValid Or blnConfirmationRequired Then
       .Show
       cptValidMap = .blnValidIntegrationMap
@@ -2947,8 +3015,8 @@ Function cptGetLatest(strModule As String) As String
     oRecordset.Fields.Append "Directory", 200, 200 '200=adVarChar
     oRecordset.Fields.Append "Current", 200, 200 '200=adVarChar
     oRecordset.Fields.Append "Notified", 11 '11=adBoolean
-    oRecordset.Fields.Append "Installed", 200, 200
-    oRecordset.Fields.Append "Status", 200, 200
+    oRecordset.Fields.Append "Installed", 200, 200 '200=adVarChar
+    oRecordset.Fields.Append "Status", 200, 200 '200=adVarChar
     oRecordset.Open
 
     'get current versions
@@ -2973,7 +3041,7 @@ Function cptGetLatest(strModule As String) As String
         oRecordset(3) = False
         If cptModuleExists(xmlNode.SelectSingleNode("Name").Text) Then
           oRecordset(4) = cptGetVersion(xmlNode.SelectSingleNode("Name").Text)
-          oRecordset(5) = cptVersionStatus(cptGetVersion(xmlNode.SelectSingleNode("Name").Text), cptGetLatest(xmlNode.SelectSingleNode("Name").Text))
+          oRecordset(5) = cptVersionStatus(cptGetVersion(xmlNode.SelectSingleNode("Name").Text), xmlNode.SelectSingleNode("Version").Text)
         End If
         oRecordset.Update
       Next xmlNode
@@ -3060,6 +3128,7 @@ Sub cptCheckMetadata(strConstants As String, strReturn As String)
   
   'assume alignment between master and subs
   'if they're not, this will make it clear
+  If ActiveProject.Subprojects.Count > 0 Then OutlineShowTasks pjTaskOutlineShowLevel2
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If Not oTask.Active Then GoTo next_task
@@ -3081,7 +3150,7 @@ next_task:
   Next oTask
   
   lngCount = 0
-  strMissing = "Results:"
+  strMissing = "Results:" & vbCrLf
   For Each vCF In Split(strConstants, ",")
     If vCF <> "" Then
       lngCount = lngCount + CLng(Split(oDict(vCF), "|")(0))
