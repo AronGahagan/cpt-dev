@@ -733,7 +733,7 @@ Public Function cptBuildRibbonTab()
 
 End Function
 
-Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObject, Optional lngErl As Long, Optional strStep As String)
+Sub cptHandleErrOld(strModule As String, strProcedure As String, objErr As ErrObject, Optional lngErl As Long, Optional strStep As String)
   'common error handling prompt
   Dim strMsg As String
 
@@ -746,6 +746,260 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
   MsgBox strMsg, vbExclamation + vbOKOnly, Err.Description
 
 End Sub
+
+Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObject, Optional lngErl As Long)
+  'common error handling prompt
+  'objects
+  Dim oTask As MSProject.Task
+  Dim oSubproject As MSProject.Subproject
+  Dim oProfile As MSProject.Profile
+  Dim oShell As Object
+  'strings
+  Dim strFile As String
+  Dim strErrNumber As String
+  Dim strErrDescription As String
+  Dim strErrSource As String
+  Dim strInstalled As String
+  Dim strLatest As String
+  Dim strStatus As String
+  Dim strMsg As String
+  Dim strKey As String
+  'longs
+  Dim lngTotalResources As Long
+  Dim lngTotalTasks As Long
+  Dim lngFile As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnErrorTrapping As Boolean
+  Dim blnResourceLoaded As Boolean
+  Dim blnBeta As Boolean
+  'variants
+  'dates
+  
+  strErrNumber = CStr(Err.Number)
+  strErrDescription = Err.Description
+  strErrSource = Err.Source
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'todo: trim down options on ticket form
+  'todo: has the code been modified?
+  'todo: not until CurrentVersions.xml is revised
+  
+  'is an upgrade available?
+  strInstalled = cptGetVersion(strModule)
+  strLatest = cptGetLatest(strModule)
+  If strLatest = "error" Or strLatest = "" Then
+    strStatus = "unavailable"
+    strLatest = "unavailable"
+  Else
+    strStatus = cptVersionStatus(strInstalled, strLatest)
+  End If
+  blnBeta = False
+  If InStr(strStatus, "upgrade") > 0 Then 'please upgrade, try again
+    strMsg = "An error has occurred in module '" & strModule & "-" & strInstalled & "." & vbCrLf
+    strMsg = strMsg & "An upgrade is available: " & strModule & "-" & strLatest & "." & vbCrLf & vbCrLf
+    strMsg = strMsg & strErrNumber & ": " & strErrDescription & vbCrLf & vbCrLf
+    strMsg = strMsg & "Would you like to upgrade to '" & strModule & "' (" & strLatest & ") now?"
+    If MsgBox(strMsg, vbInformation + vbYesNo, "CPT Error") = vbYes Then
+      cptShowUpgrades_frm
+    Else
+      Exit Sub
+    End If
+  ElseIf InStr(strStatus, "downgrade") > 0 Then 'beta tester, tell us, thank you
+    blnBeta = True
+    strMsg = "Thank you for being a beta tester!" & vbCrLf & vbCrLf
+    strMsg = strMsg & "An error has occurred in module " & strModule & "-" & strInstalled & "." & vbCrLf
+    strMsg = strMsg & "Latest release version is " & strModule & "-" & strLatest & "." & vbCrLf & vbCrLf
+    strMsg = strMsg & strErrNumber & ": " & strErrDescription & vbCrLf & vbCrLf
+    strMsg = strMsg & "Please submit a ticket with the information on the note that follows this prompt."
+    MsgBox strMsg, vbExclamation + vbOKOnly, "CPT Error"
+  Else 'strStatus = "unavailable" or "ok" or "error" then submit ticket
+    strMsg = "An error has occurred in module " & strModule & "-" & strInstalled & "." & vbCrLf
+    If strStatus = "ok" Then
+      strMsg = strMsg & "You are running the latest version of this module." & vbCrLf & vbCrLf
+    Else
+      strMsg = strMsg & "Unable to query github.com for latest version of this module." & vbCrLf & vbCrLf
+    End If
+    strMsg = strMsg & strErrNumber & ": " & strErrDescription & vbCrLf & vbCrLf
+    strMsg = strMsg & "Would you like to submit a support ticket?"
+    If MsgBox(strMsg, vbExclamation + vbYesNo, "CPT Error") = vbNo Then GoTo exit_here
+  End If
+  
+  Set oShell = CreateObject("WScript.Shell")
+  
+  'get error and system details
+  Application.StatusBar = "Collecting anonymous error information..."
+  strMsg = "-> Your browser will open to our ticketing system: https://clearplan.happyfox.com/new" & vbCrLf & vbCrLf
+  strMsg = strMsg & "-> The below information will help you submit a support ticket..." & vbCrLf & vbCrLf
+  strMsg = strMsg & "-> === TICKET DETAILS ===" & vbCrLf
+  strMsg = strMsg & "-> CATEGORY: ClearPlan Toolbar CPT" & vbCrLf
+  strMsg = strMsg & "-> CPT Issue Type: (select one: installation; use; other)" & vbCrLf
+  strMsg = strMsg & "-> SUBJECT: " & strModule & "-" & strInstalled & IIf(blnBeta, " (beta)", "") & " (Error: " & strErrNumber & ")" & vbCrLf
+  strMsg = strMsg & "-> MESSAGE: (COPY & PASTE EVERYTHING BETWEEN THIS LINE AND THE ONE BELOW; SEE FINAL STEPS AT BOTTOM)" & vbCrLf
+  strMsg = strMsg & String(80, "-") & vbCrLf
+  strMsg = strMsg & "[Please REPLACE THIS LINE with any notes or comments you'd like to add.]" & vbCrLf
+  strMsg = strMsg & "EXAMPLE: I'm trying to run Status Sheets and I keep getting this error..." & vbCrLf
+  strMsg = strMsg & "A screenshot with your dialog selections (e.g., Status Sheet) would also be helpful (see ticket page where it says 'drag and drop file'." & vbCrLf & vbCrLf
+  
+  strMsg = strMsg & "--- FILE ---" & vbCrLf 'most likely culprit
+  If Left(ActiveProject.Path, 2) = "<>" Or Left(ActiveProject.Path, 4) = "http" Then
+    strMsg = strMsg & "Type: Cloud/PWA" & vbCrLf
+  Else
+    strMsg = strMsg & "Type: Local or Network (*.mpp)" & vbCrLf
+  End If
+  If ActiveProject.Subprojects.Count > 0 Then
+    strMsg = strMsg & "Subprojects: " & ActiveProject.Subprojects.Count & vbCrLf
+    strMsg = strMsg & "Master Project: " & Format(ActiveProject.Tasks.Count, "#,##0") & " tasks; " & Format(ActiveProject.ResourceCount, "#,##0") & " resources" & vbCrLf
+    lngTotalTasks = ActiveProject.Tasks.Count
+    lngTotalResources = ActiveProject.ResourceCount
+    For Each oSubproject In ActiveProject.Subprojects
+      strMsg = strMsg & "- Subproject " & oSubproject.Index & ": " & Format(oSubproject.SourceProject.Tasks.Count, "#,##0") & " tasks; " & Format(oSubproject.SourceProject.ResourceCount, "#,##0") & " resources" & vbCrLf
+      lngTotalTasks = lngTotalTasks + oSubproject.SourceProject.Tasks.Count
+      lngTotalResources = lngTotalResources + oSubproject.SourceProject.ResourceCount
+    Next oSubproject
+    strMsg = strMsg & "Total: " & Format(lngTotalTasks, "#,##0") & " tasks; " & Format(lngTotalResources, "#,##0") & " resources" & vbCrLf
+  Else
+    strMsg = strMsg & "Tasks: " & Format(ActiveProject.Tasks.Count, "#,##0") & vbCrLf
+    strMsg = strMsg & "Resources: " & Format(ActiveProject.ResourceCount, "#,##0") & vbCrLf
+  End If
+  blnResourceLoaded = False
+  If ActiveProject.Subprojects.Count > 0 Then
+    For Each oSubproject In ActiveProject.Subprojects
+      For Each oTask In oSubproject.SourceProject.Tasks
+        If oTask Is Nothing Then GoTo next_task_master
+        If oTask.Assignments.Count > 0 Then
+          blnResourceLoaded = True
+          Exit For
+        End If
+next_task_master:
+      Next oTask
+    Next oSubproject
+  Else
+    If ActiveProject.ResourceCount > 0 Then
+      For Each oTask In ActiveProject.Tasks
+        If oTask Is Nothing Then GoTo next_task_single
+        If oTask.Assignments.Count > 0 Then
+          blnResourceLoaded = True
+          Exit For
+        End If
+next_task_single:
+      Next oTask
+    End If
+  End If
+  strMsg = strMsg & "Resource Loaded: " & blnResourceLoaded & vbCrLf
+  strMsg = strMsg & "Baselined: " & IsDate(ActiveProject.BaselineSavedDate(pjBaseline)) & vbCrLf
+  
+  strMsg = strMsg & "--- CPT ---" & vbCrLf 'slightly less likely culprit
+  strMsg = strMsg & "Installed to: " & ThisProject.Name & vbCrLf
+  strMsg = strMsg & "Error Number: " & strErrNumber & vbCrLf
+  strMsg = strMsg & "Error Description: " & strErrDescription & vbCrLf
+  strMsg = strMsg & "Error Source: " & strErrSource & vbCrLf
+  strMsg = strMsg & "Module: " & strModule & "-" & strInstalled
+  If blnBeta Then
+    strMsg = strMsg & " -> NOTE: USER IS RUNNING A BETA VERSION" & vbCrLf
+  Else
+    strMsg = strMsg & vbCrLf
+  End If
+  strMsg = strMsg & "Latest: " & strModule & "-" & strLatest & vbCrLf
+  strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf
+  If lngErl > 0 Then
+    strMsg = strMsg & "Line: " & lngErl & vbCrLf
+  End If
+  
+  strMsg = strMsg & "--- PROFILE ---" & vbCrLf 'even less likely culprit
+  Set oProfile = Application.Profiles.ActiveProfile
+  With oProfile
+    strMsg = strMsg & "Name: " & .Name & vbCrLf
+    strMsg = strMsg & "Type: " & Choose(.Type + 1, "pjLocalProfile", "pjServerProfile") & " (" & .Type & ")" & vbCrLf
+    strMsg = strMsg & "LoginType: " & Choose(.LoginType, "pjProjectServerLogin", "pjWindowsLogin") & " (" & .LoginType & ")" & vbCrLf
+    If .Type = pjServerProfile Then
+      strMsg = strMsg & "ConnectionState: " & Choose(.ConnectionState + 1, "pjProfileOffline", "pjProfileOnline") & " (" & .ConnectionState & ")" & vbCrLf
+      strMsg = strMsg & "Server: " & .Server & vbCrLf
+      strMsg = strMsg & "SiteId: " & .SiteId & vbCrLf
+      'strMsg = strMsg & "Username: " & .UserName & vbCrLf 'keep it anonymous, though they'll type in their own name and email...
+      strMsg = strMsg & "IsOffline: " & Application.IsOffline & vbCrLf
+    End If
+  End With
+  
+  strMsg = strMsg & "--- APPLICATION ---" & vbCrLf 'even less likely culprit
+  strMsg = strMsg & "Name: " & Application.Name & " " & Choose(Application.Edition + 1, "Standard", "Professional") & " (" & Application.Build & ")" & vbCrLf
+  If Application.Edition = pjEditionProfessional Then
+    If Application.IsOffline Then
+      strMsg = strMsg & "PWA Status: Offline" & vbCrLf
+    Else
+      strMsg = strMsg & "PWA Status: Connected" & vbCrLf
+    End If
+  End If
+  strMsg = strMsg & "Calculation: " & IIf(Application.Calculation = pjAutomatic, "On", "Off") & vbCrLf
+  #If Win64 Then
+    strMsg = strMsg & "Win64: True" & vbCrLf
+  #Else
+    strMsg = strMsg & "Win64: False" & vbCrLf
+  #End If
+  #If VBA7 Then
+    strMsg = strMsg & "VBA7: True" & vbCrLf
+  #Else
+    strMsg = strMsg & "VBA7: False" & vbCrLf
+  #End If
+  strMsg = strMsg & "VBE Version: " & VBE.Version & vbCrLf
+  
+  strMsg = strMsg & "--- OS ---" & vbCrLf 'least likely culprit, but might be releveant
+  strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProductName" 'Windows 10 Pro
+  strMsg = strMsg & "Name: " & oShell.RegRead(strKey)
+  If Len(Environ("ProgramW6432")) > 0 Then
+    strMsg = strMsg & " (64-bit)" & vbCrLf
+  Else
+    strMsg = strMsg & " (32-bit)" & vbCrLf
+  End If
+  strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DisplayVersion" '22H2
+  strMsg = strMsg & "Version: " & oShell.RegRead(strKey) & " (OS Build "
+  strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\CurrentMajorVersionNumber" '10
+  strMsg = strMsg & oShell.RegRead(strKey) & "."
+  strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\CurrentMinorVersionNumber" '0
+  strMsg = strMsg & oShell.RegRead(strKey) & "."
+  strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\CurrentBuildNumber" '19045
+  strMsg = strMsg & oShell.RegRead(strKey) & "."
+  strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\UBR" '3930
+  strMsg = strMsg & oShell.RegRead(strKey) & ")" & vbCrLf
+  strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\EditionID" 'Professional
+  strMsg = strMsg & "Edition: " & oShell.RegRead(strKey) & vbCrLf
+  
+  strMsg = strMsg & String(80, "-") & vbCrLf
+  strMsg = strMsg & "=== FINAL STEPS ===" & vbCrLf
+  strMsg = strMsg & "-> Enter your name (required)." & vbCrLf
+  strMsg = strMsg & "-> Enter your email address (required)." & vbCrLf
+  strMsg = strMsg & "-> Enter your phone number (optional). (It is more likely we'll set up a Teams meeting." & vbCrLf
+  strMsg = strMsg & "-> Enter an alternate email address (optional)." & vbCrLf
+  strMsg = strMsg & "-> Pass the [I AM NOT ROBOT] test." & vbCrLf
+  strMsg = strMsg & "-> Click [Create Ticket]."
+  strMsg = strMsg & "-> Thank you! We will contact you ASAP..."
+  lngFile = FreeFile
+  strFile = Environ("tmp") & "\cpt-err-" & Format(Now, "yyyy-mm-dd-_hh-mm-ss") & ".txt"
+  Open strFile For Output As #lngFile
+  Print #lngFile, "-> The location of this file is " & strFile & vbCrLf
+  Print #lngFile, strMsg
+  Close #lngFile
+  Shell "notepad.exe '" & strFile & "'", vbNormalFocus
+  Application.StatusBar = "Opening https://clearplan.happyfox.com/new..."
+  Application.FollowHyperlink "https://clearplan.happyfox.com/new/"
+  
+exit_here:
+  On Error Resume Next
+  Application.StatusBar = ""
+  Set oTask = Nothing
+  Set oSubproject = Nothing
+  Set oShell = Nothing
+  Set oProfile = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptHandleErr2", Err, Erl)
+  Resume exit_here
+End Sub
+
 
 Function cptIncrement(ByRef lngCleanUp As Long) As Long
   lngCleanUp = lngCleanUp + 1
