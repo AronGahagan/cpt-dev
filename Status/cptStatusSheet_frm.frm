@@ -383,6 +383,7 @@ Private Sub chkSendEmails_Click()
 
   Me.txtSubject.Enabled = Me.chkSendEmails
   Me.txtCC.Enabled = Me.chkSendEmails
+  Me.cboQuickParts.Clear
   Me.cboQuickParts.Enabled = Me.chkSendEmails
   If Me.chkSendEmails Then
     Me.chkKeepOpen = False
@@ -395,7 +396,6 @@ Private Sub chkSendEmails_Click()
     If Len(strCC) > 0 Then
       Me.txtCC = strCC
     End If
-    
     Call cptListQuickParts(Me, True)
     strQuickPart = cptGetSetting("StatusSheet", "cboQuickPart")
     If Len(strQuickPart) > 0 Then
@@ -410,14 +410,6 @@ Private Sub chkSendEmails_Click()
       If Not blnExists Then
         MsgBox "QuickPart '" & strQuickPart & "' not found.", vbExclamation + vbOKOnly, "Stored Setting Invalid"
       End If
-    End If
-  Else
-    Me.chkKeepOpen.Enabled = True
-    strKeepOpen = cptGetSetting("StatusSheet", "chkKeepOpen")
-    If Len(strKeepOpen) > 0 Then
-      Me.chkKeepOpen.Value = CBool(strKeepOpen)
-    Else
-      Me.chkKeepOpen.Value = 0 'default
     End If
   End If
 
@@ -1097,7 +1089,7 @@ Private Sub stxtSearch_Enter()
     For lngField = 0 To Me.lboFields.ListCount - 1
       .AddNew Array(0, 1, 2), Array(Me.lboFields.List(lngField, 0), Me.lboFields.List(lngField, 1), Me.lboFields.List(lngField, 2))
     Next lngField
-    .Update
+    If Not .EOF Then .Update
     .Save strFileName
     .Close
   End With

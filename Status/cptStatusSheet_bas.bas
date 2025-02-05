@@ -2089,24 +2089,7 @@ next_task:
     If Not blnAssignments Then
       'ETC:AND(AS,NF=0) -> INPUT
       oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
-    
-    Else
-      'ETC:AND(FF,ETC=PREVIOUS) -> NEUTRAL (ASSIGNMENT)
-      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFF & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
-      'ETC:AND(FS,ETC=PREVIOUS) -> NEUTRAL (ASSIGNMENT)
-      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFS & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
-      'ETC:AND(FF,ETC=0) -> NEUTRAL (ASSIGNMENT)
-      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFF & "," & strETC & "=0)", "NEUTRAL")
-      'ETC:AND(FS,ETC=0) -> NEUTRAL (ASSIGNMENT)
-      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFS & "," & strETC & "=0)", "NEUTRAL")
-      'ETC:AND(AS,NF=0) -> INPUT (ASSIGNMENT)
-      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
-      'ETC:AND(ETC>0,AF>0) -> BAD (ASSIGNMENT)
-      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strETC & ">0," & strAF & ")", "BAD")
-      'ETC:AND(ETC>0,EVP=1) -> BAD (ASSIGNMENT)
-      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strETC & ">0," & strEVP & "=1)", "BAD")
     End If
-    
     'ETC:AND(ETC=0,FS>0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strFS & ")", "BAD")
     'ETC:AND(ETC=0,FF>0) -> BAD
@@ -2123,6 +2106,41 @@ next_task:
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strNF & "=0)", "BAD")
     'ETC:AND(ETC=0,AS=0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strNS & "=0)", "BAD")
+    
+    If blnAssignments Then
+      'need to reset certain variables for Assignment ranges
+      oETCValidationRange.Select
+      Set oFirstCell = oWorksheet.Application.ActiveCell
+      oFirstCell.Select
+      strNS = oWorksheet.Cells(oFirstCell.Row, lngASCol).Address(False, True)
+      strNF = oWorksheet.Cells(oFirstCell.Row, lngAFCol).Address(False, True)
+      strEVP = oWorksheet.Cells(oFirstCell.Row, lngEVPCol).Address(False, True)
+      strETC = oWorksheet.Cells(oFirstCell.Row, lngETCCol).Address(False, True)
+      strCETC = oWorksheet.Cells(oFirstCell.Row, lngCETCCol).Address(False, True)
+      'set up derived addresses for ease of formula writing
+      'AS = (NS>0,NS<=SD)
+      strAS = strNS & ">0," & strNS & "<=STATUS_DATE"
+      'AF = (NF>0,NF<=SD)
+      strAF = strNF & ">0," & strNF & "<=STATUS_DATE"
+      'FS = (NS>0,NS>SD)
+      strFS = strNS & ">0," & strNS & ">STATUS_DATE"
+      'FF = (NF>0,NF>SD)
+      strFF = strNF & ">0," & strNF & ">STATUS_DATE"
+      'ETC:AND(FF,ETC=PREVIOUS) -> NEUTRAL (ASSIGNMENT)
+      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFF & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
+      'ETC:AND(FS,ETC=PREVIOUS) -> NEUTRAL (ASSIGNMENT)
+      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFS & "," & strETC & "=" & strCETC & ")", "NEUTRAL")
+      'ETC:AND(FF,ETC=0) -> NEUTRAL (ASSIGNMENT)
+      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFF & "," & strETC & "=0)", "NEUTRAL")
+      'ETC:AND(FS,ETC=0) -> NEUTRAL (ASSIGNMENT)
+      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strFS & "," & strETC & "=0)", "NEUTRAL")
+      'ETC:AND(AS,NF=0) -> INPUT (ASSIGNMENT)
+      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strAS & "," & strNF & "=0)", "INPUT") 'in progress
+      'ETC:AND(ETC>0,AF>0) -> BAD (ASSIGNMENT)
+      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strETC & ">0," & strAF & ")", "BAD")
+      'ETC:AND(ETC>0,EVP=1) -> BAD (ASSIGNMENT)
+      oRecordset.AddNew Array(0, 1, 2), Array("AssignmentETC", "=AND(" & strETC & ">0," & strEVP & "=1)", "BAD")
+    End If
     
     Dim blnMilestones As Boolean
     If blnMilestones Then 'assumes COBRA and field values = COBRA codes
@@ -2401,11 +2419,16 @@ End Sub
 
 Sub cptFinalFormats(ByRef oWorksheet As Excel.Worksheet)
   Dim lngHeaderRow As Long
+  Dim lngLastRow As Long
+  Dim lngNameCol As Long
   Dim vBorder As Variant
   
   lngHeaderRow = 8
   oWorksheet.Cells(lngHeaderRow, 1).AutoFilter
   oWorksheet.Columns(1).AutoFit
+  lngNameCol = WorksheetFunction.Match("Task Name / Scope", oWorksheet.Rows(lngHeaderRow), 0)
+  lngLastRow = oWorksheet.Cells(1048576, lngNameCol)
+  oWorksheet.Range(oWorksheet.Cells(lngHeaderRow, lngNameCol), oWorksheet.Cells(lngLastRow, lngNameCol)).Columns.AutoFit
   With oWorksheet.Range(oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight), oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp))
     .Borders(xlDiagonalDown).LineStyle = xlNone
     .Borders(xlDiagonalUp).LineStyle = xlNone
@@ -2474,14 +2497,20 @@ Sub cptListQuickParts(ByRef myStatusSheet_frm As cptStatusSheet_frm, Optional bl
     'get Outlook
     On Error Resume Next
     Set oOutlook = GetObject(, "Outlook.Application") 'this works even if Outlook isn't open
-    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oOutlook Is Nothing Then
       Set oOutlook = CreateObject("Outlook.Application")
     End If
     'create MailItem, insert quickparts, update links, dates
     Set oMailItem = oOutlook.CreateItem(olMailItem)
     If oMailItem.BodyFormat <> olFormatHTML Then oMailItem.BodyFormat = olFormatHTML
-    On Error Resume Next
+    If Err.Number > 0 Then
+      MsgBox "Outlook QuickParts are inaccessible.", vbExclamation + vbOKOnly, "Blocked"
+      myStatusSheet_frm.cboQuickParts.AddItem "[blocked]"
+      myStatusSheet_frm.cboQuickParts.Value = "[blocked]"
+      myStatusSheet_frm.cboQuickParts.Enabled = False
+      Err.Clear
+      GoTo exit_here
+    End If
     Set oDocument = oMailItem.GetInspector.WordEditor
     If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oDocument Is Nothing Then
@@ -2492,6 +2521,9 @@ Sub cptListQuickParts(ByRef myStatusSheet_frm As cptStatusSheet_frm, Optional bl
       If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       If oDocument Is Nothing Then
         'todo: try again by accessing Word directly
+        MsgBox "Outlook QuickParts are inaccessible.", vbExclamation + vbOKOnly, "Blocked"
+        myStatusSheet_frm.cboQuickParts.AddItem "[blocked]"
+        myStatusSheet_frm.cboQuickParts.Value = "[blocked]"
         myStatusSheet_frm.cboQuickParts.Enabled = False
         oMailItem.Close olDiscard
         GoTo exit_here
@@ -2752,7 +2784,11 @@ Sub cptSaveStatusSheetSettings(ByRef myStatusSheet_frm As cptStatusSheet_frm)
       cptSaveSetting "StatusSheet", "txtSubject", .txtSubject
       cptSaveSetting "StatusSheet", "txtCC", .txtCC
       If Not IsNull(.cboQuickParts.Value) Then
-        cptSaveSetting "StatusSheet", "cboQuickPart", .cboQuickParts.Value
+        If Not .cboCostTool.Value = "[blocked]" Then
+          cptSaveSetting "StatusSheet", "cboQuickPart", .cboQuickParts.Value
+        Else
+          cptDeleteSetting "StatusSheet", "cboQuickPart"
+        End If
       End If
     End If
     If Len(.txtNotesColTitle.Value) > 0 Then
@@ -2887,6 +2923,7 @@ Sub cptExportCompletedWork()
   Dim oRecordset As Object 'ADODB.Recordset
   Dim oTask As MSProject.Task
   'strings
+  Dim strSetting As String
   Dim strCA As String
   Dim strEVP As String
   Dim strEVT As String
@@ -2920,6 +2957,7 @@ Sub cptExportCompletedWork()
   'integers
   'doubles
   'booleans
+  Dim blnHasWPM As Boolean
   Dim blnErrorTrapping As Boolean
   Dim blnMissing As Boolean
   'variants
@@ -2927,7 +2965,7 @@ Sub cptExportCompletedWork()
   Dim dtStatus As Date
   Dim dtAF As Date
   
-  If Not cptValidMap("WBS,OBS,CAM,CAM,WP,WPM,EVT,EVP", False, False, True) Then
+  If Not cptValidMap("WBS,OBS,CA,CAM,WP,WPM,EVT,EVP", False, False, True) Then 'todo: WPM is not really required...
     MsgBox "Settings required. Exiting.", vbExclamation + vbOKOnly, "Invalid Settings"
     GoTo exit_here
   End If
@@ -2945,8 +2983,12 @@ Sub cptExportCompletedWork()
   strCAM = CustomFieldGetName(lngCAM)
   lngWP = Split(cptGetSetting("Integration", "WP"), "|")(0)
   strWP = CustomFieldGetName(lngWP)
-  lngWPM = Split(cptGetSetting("Integration", "WPM"), "|")(0)
-  strWPM = CustomFieldGetName(lngWPM)
+  strSetting = cptGetSetting("Integration", "WPM")
+  blnHasWPM = Len(strSetting) > 0
+  If blnHasWPM Then
+    lngWPM = Split(cptGetSetting("Integration", "WPM"), "|")(0)
+    strWPM = CustomFieldGetName(lngWPM)
+  End If
   On Error Resume Next
   Set oCDP = ActiveProject.CustomDocumentProperties("fResID")
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -2984,7 +3026,12 @@ Sub cptExportCompletedWork()
   Print #lngFile, "UID,WBS,OBS,CA,CAM,WP,WPM,LC,AF,PercentComplete,"
   
   lngTasks = ActiveProject.Tasks.Count
-    
+  If ActiveProject.Subprojects.Count > 0 Then
+    ActiveWindow.TopPane.Activate
+    If ActiveWindow.ActivePane.View.Type <> pjTaskItem Then ViewApply "Gantt Chart"
+    OptionsViewEx DisplaySummaryTasks:=True
+    OutlineShowTasks pjTaskOutlineShowLevel2
+  End If
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If Not oTask.Active Then GoTo next_task
@@ -2996,7 +3043,11 @@ Sub cptExportCompletedWork()
       strRecord = strRecord & oTask.GetField(lngCA) & ","
       strRecord = strRecord & oTask.GetField(lngCAM) & ","
       strRecord = strRecord & oTask.GetField(lngWP) & ","
-      strRecord = strRecord & oTask.GetField(lngWPM) & ","
+      If blnHasWPM Then
+        strRecord = strRecord & oTask.GetField(lngWPM) & ","
+      Else
+        strRecord = strRecord & ","
+      End If
       If lngLC > 0 Then
         strRecord = strRecord & oAssignment.Resource.GetField(lngLC) & ","
       Else
