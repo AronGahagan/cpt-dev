@@ -98,10 +98,6 @@ Sub cptExportResourceDemand(ByRef myResourceDemand_frm As cptResourceDemand_frm,
     End If
     cptSaveSetting "ResourceDemand", "chkBaseline", IIf(.chkBaseline, 1, 0)
     cptSaveSetting "ResourceDemand", "chkNonLabor", IIf(.chkNonLabor, 1, 0)
-    For lngExport = 0 To .lboExport.ListCount - 1
-      strFields = strFields & .lboExport.List(lngExport, 0) & "|" & .lboExport.List(lngExport, 1) & ","
-    Next
-    cptSaveSetting "ResourceDemand", "lboExport", strFields
   End With
   
   strFileName = cptDir & "\settings\cpt-export-resource-userfields.adtg."
@@ -947,7 +943,7 @@ Sub cptShowExportResourceDemand_frm()
 
   Set rstFields = CreateObject("ADODB.Recordset")
   rstFields.Fields.Append "CONSTANT", adInteger
-  rstFields.Fields.Append "CUSTOM_NAME", adVarChar, 200
+  rstFields.Fields.Append "CUSTOM_NAME", adVarChar, 255
   rstFields.Open
   
   'add the 'Critical' field
@@ -1087,49 +1083,19 @@ next_field1:
           myResourceDemand_frm.lboExport.AddItem
           myResourceDemand_frm.lboExport.List(lngItem, 0) = .Fields(0) 'Field Constant
           myResourceDemand_frm.lboExport.List(lngItem, 1) = .Fields(1) 'Custom Field Name
-          'convert to ini
-          strFields = strFields & .Fields(0) & "|" & .Fields(1) & ","
           lngItem = lngItem + 1
         End If
 next_saved_field:
         .MoveNext
       Loop
-      cptSaveSetting "ResourceDemand", "lboExport", strFields
       .Close
-      Kill strFileName
     End With
   End If
   
   'import saved settings
   With myResourceDemand_frm
     If Dir(strDir & "\settings\cpt-settings.ini") <> vbNullString Then
-      'userfields
-      strFields = cptGetSetting("ResourceDemand", "lboExport")
-      .lboExport.Clear
-      If Len(strFields) > 0 Then
-        For Each vField In Split(strFields, ",")
-          If vField = "" Then GoTo next_export_field
-          'validate fields still exist
-          If CLng(Split(vField, "|")(0)) >= 188776000 Then 'check enterprise field
-            If FieldConstantToFieldName(Split(vField, "|")(0)) <> Replace(Split(vField, "|")(1), cptRegEx(CStr(Split(vField, "|")(1)), " \([A-z0-9]*\)$"), "") Then
-              strMissing = strMissing & "- " & Split(vField, "|")(1) & vbCrLf
-              GoTo next_export_field
-            End If
-          Else 'check local field
-            If CustomFieldGetName(Split(vField, "|")(0)) <> Trim(Replace(Split(vField, "|")(1), cptRegEx(CStr(Split(vField, "|")(1)), "\([^\(].*\)$"), "")) Then
-              'limit this check to Custom Fields - if not ECF and not LCF then built-in and assumed to exist - saved 'Active' not likely
-              If IsNumeric(Right(FieldConstantToFieldName(Split(vField, "|")(0)), 1)) Then
-                strMissing = strMissing & "- " & Split(vField, "|")(1) & vbCrLf
-                GoTo next_export_field
-              End If
-            End If
-          End If
-          .lboExport.AddItem
-          .lboExport.List(.lboExport.ListCount - 1, 0) = Split(vField, "|")(0)
-          .lboExport.List(.lboExport.ListCount - 1, 1) = Split(vField, "|")(1)
-next_export_field:
-        Next vField
-      End If
+      cptDeleteSetting "ResourceDemand", "lboExport"
       'month
       strMonths = cptGetSetting("ResourceDemand", "cboMonths")
       If Len(strMonths) > 0 Then
