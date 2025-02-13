@@ -1175,33 +1175,4 @@ err_here:
 
 End Sub
 
-Function cptCalendarExists(strCalendar As String) As Boolean
-  Dim oCalendar As MSProject.Calendar
-  Dim strMsg As String
-  
-  On Error Resume Next
-  Set oCalendar = ActiveProject.BaseCalendars(strCalendar)
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  
-  If oCalendar Is Nothing Then
-    cptCalendarExists = False
-  Else
-    If oCalendar.Exceptions.Count = 0 Then
-      strMsg = "cptFiscalCalendar exists but has no exceptions." & vbCrLf & vbCrLf
-      strMsg = strMsg & "Please rebuild it (ClearPlan > Calendars > Fiscal)."
-      MsgBox strMsg, vbCritical + vbOKOnly, "No Exceptions"
-      oCalendar.Delete
-      cptCalendarExists = False
-    Else
-      cptCalendarExists = True
-    End If
-  End If
-  
-exit_here:
-  On Error Resume Next
-  Set oCalendar = Nothing
-  Exit Function
-err_here:
-  Call cptHandleErr("cptResourceDemand_bas", "cptCalendarExists", Err, Erl)
-  Resume exit_here
-End Function
+

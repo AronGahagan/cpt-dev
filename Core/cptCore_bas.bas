@@ -1332,21 +1332,22 @@ err_here:
   Resume exit_here
 End Sub
 
-Function cptRemoveIllegalCharacters(strText As String) As String
-  'written by Ryan Beard (RyanBeard@ClearPlanConsulting.com)
-    Const cstrIllegals As String = "\,/,:,*,?,"",<,>,|"
-
-    Dim lngCounter As Long
-    Dim astrChars() As String
-
-    astrChars() = Split(cstrIllegals, ",")
-
-    For lngCounter = LBound(astrChars()) To UBound(astrChars())
-        strText = Replace(strText, astrChars(lngCounter), vbNullString)
-    Next lngCounter
-
-    cptRemoveIllegalCharacters = strText
-
+Function cptRemoveIllegalCharacters(strText As String, Optional strReplacement As String, Optional blnTrim As Boolean = False) As String
+  Dim vBad As Variant
+  If Len(cptRegEx(strReplacement, "[\/:*?<>|[]")) > 0 Or InStr(strReplacement, Chr(34)) > 0 Then
+    MsgBox "Function cptRemoveIllegalCharacters() returned an error:" & vbCrLf & vbCrLf & "Replacement '" & strReplacement & "' contains illegal characters.", vbCritical + vbOKOnly, "Invalid"
+    Debug.Print "Function cptRemoveIllegalCharacters() returned an error: replacement '" & strReplacement & "' contains illegal characters."
+    cptRemoveIllegalCharacters = vbNullString
+    Exit Function
+  End If
+  For Each vBad In Split("\,/,:,*,?,"",<,>,|", ",")
+    strText = Replace(strText, vBad, strReplacement)
+  Next vBad
+  If blnTrim Then
+    strText = Trim(strText)
+    strText = Replace(strText, cptRegEx(strText, "\s{2,}"), " ")
+  End If
+  cptRemoveIllegalCharacters = strText
 End Function
 
 Sub cptWrapItUp(Optional lngOutlineLevel As Long)
@@ -1729,9 +1730,9 @@ End Sub
 Sub cptShowSettings_frm()
   'objects
   Dim mySettings_frm As cptSettings_frm
-  Dim oRecordset As Object 'ADODB.Recordset
-  Dim oStream As Object 'Scripting.TextStream
-  Dim oFSO As Object 'Scripting.FileSystemObject
+  Dim oRecordset As ADODB.Recordset
+  Dim oStream As Scripting.TextStream
+  Dim oFSO As Scripting.FileSystemObject
   'strings
   Dim strDir As String
   Dim strErrorTrapping As String
@@ -3081,22 +3082,35 @@ err_here:
   Resume exit_here
 End Function
 
-Function cptTriageError(strModule As String) As String
-  Dim strInstalled As String
-  Dim strLatest As String
-  Dim strStatus As String
+Function cptCalendarExists(strCalendar As String) As Boolean
+  Dim oCalendar As MSProject.Calendar
   Dim strMsg As String
-  strInstalled = cptGetVersion(strModule)
-  strLatest = cptGetLatest(strModule)
-  strStatus = cptVersionStatus(strInstalled, strLatest)
-  If InStr(strStatus, "upgrade") Then
-    strMsg = "Update available for " & strModule & "!" & vbCrLf & strInstalled & " -> " & strLatest
-    strMsg = strMsg & vbCrLf & vbCrLf & "ClearPlan > Help > Check for Upgrades, Upgrade All"
-    MsgBox strMsg, vbExclamation + vbOKOnly, "Upgrade Available!"
-  ElseIf InStr(strStatus, "downgrade") Then
-    MsgBox "You found a bug!" & vbCrLf & vbCrLf & "Please let the dev know ASAP." & vbCrLf & vbCrLf & "Thank you!", vbExclamation + vbOKOnly, "Nice."
+  
+  On Error Resume Next
+  Set oCalendar = ActiveProject.BaseCalendars(strCalendar)
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  If oCalendar Is Nothing Then
+    cptCalendarExists = False
+  Else
+    If oCalendar.Exceptions.Count = 0 Then
+      strMsg = "cptFiscalCalendar exists but has no exceptions." & vbCrLf & vbCrLf
+      strMsg = strMsg & "Please rebuild it (ClearPlan > Calendars > Fiscal)."
+      MsgBox strMsg, vbCritical + vbOKOnly, "No Exceptions"
+      oCalendar.Delete
+      cptCalendarExists = False
+    Else
+      cptCalendarExists = True
+    End If
   End If
-    
+  
+exit_here:
+  On Error Resume Next
+  Set oCalendar = Nothing
+  Exit Function
+err_here:
+  Call cptHandleErr("cptResourceDemand_bas", "cptCalendarExists", Err, Erl)
+  Resume exit_here
 End Function
 
 Sub cptCheckMetadata(strConstants As String, strReturn As String)
