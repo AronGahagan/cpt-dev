@@ -1250,19 +1250,19 @@ Function cptGetAppDir(oFolder As Object, strApp As String) As String
 End Function
 
 Sub cptSubmitIssue()
-  If Not Application.FollowHyperlink("https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUQ0VSV1JBRU4xQ1E5VUkyQjE5RDcwQllWRSQlQCN0PWcu", , , True) Then
+  If Not Application.FollowHyperlink("https://clearplan.happyfox.com/new", , , True) Then
     Call cptSendMail("Issue")
   End If
 End Sub
 
 Sub cptSubmitRequest()
-  If Not Application.FollowHyperlink("https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUNVBET1RGUzRWMzZHN0pYNFZBUjZCUzgzNSQlQCN0PWcu", , , True) Then
+  If Not Application.FollowHyperlink("https://clearplan.happyfox.com/new", , , True) Then
     Call cptSendMail("Request")
   End If
 End Sub
 
 Sub cptSubmitFeedback()
-  If Not Application.FollowHyperlink("https://forms.office.com/Pages/ResponsePage.aspx?id=Ro5H7jf1GEu_K_zo12S-I41LrliPQfRIoKdHTo6ZR7RUNERTVDRISUhVVVFSWjBBMlVLQThCRFlHQiQlQCN0PWcu", , , True) Then
+  If Not Application.FollowHyperlink("https://clearplan.happyfox.com/new", , , True) Then
     Call cptSendMail("Feedback")
   End If
 End Sub
@@ -1291,7 +1291,7 @@ Sub cptSendMail(strCategory As String)
 
   'create the email and set generic settings
   Set MailItem = objOutlook.CreateItem(0) 'olMailItem
-  MailItem.To = "cpt@ClearPlanConsulting.com"
+  MailItem.To = "help@ClearPlanConsulting.com"
   MailItem.Importance = 2 'olImportanceHigh
   MailItem.Display
 
@@ -1299,6 +1299,9 @@ Sub cptSendMail(strCategory As String)
   Select Case strCategory
     Case "Issue"
       MailItem.Subject = "Issue: <enter brief summary of the issue>"
+      On Error Resume Next
+      Err.Raise 1, "User", "User-submitted Issue"
+      cptHandleErr "cptCore_bas", "cptSendMail", Err
       strHTML = "<h3>Please Describe Your Environment:</h3><p>"
       strHTML = strHTML & "<i>Operating System</i>: [operating system]<p>"
       strHTML = strHTML & "<i>Microsoft Project Version</i>: [Standard / Professional] [Year]<p>"
