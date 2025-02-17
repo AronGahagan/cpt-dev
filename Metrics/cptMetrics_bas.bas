@@ -1749,9 +1749,9 @@ Sub cptGetTrend_CEI()
             oListRow.Range(1, lngCol + 1) = oTask.Name
             If IsDate(oTask.ActualFinish) Then
               lngAF = lngAF + 1
-              oListRow.Range(1, lngCol + 2) = oTask.ActualFinish
+              oListRow.Range(1, lngCol + 3) = oTask.ActualFinish
             Else
-              oListRow.Range(1, lngCol + 2) = "NA"
+              oListRow.Range(1, lngCol + 3) = "NA"
             End If
           Else
             oListRow.Range(1, lngCol + 1) = " < task not found > "
@@ -1879,93 +1879,12 @@ next_task:
     oWorksheet.Cells(lngLastRow - 1, lngNameCol) = "<< there are no tasks forecast to complete next week >>"
   End If
   
-  'format tables
-  For Each vTable In Array("THIS_WEEK", "NEXT_WEEK")
-    Set oListObject = oWorksheet.ListObjects(vTable)
-    'clear formatting
-    oListObject.TableStyle = ""
-    'restore borders
-    oListObject.Range.Borders(xlDiagonalDown).LineStyle = xlNone
-    oListObject.Range.Borders(xlDiagonalUp).LineStyle = xlNone
-    For Each vBorder In Array(xlEdgeLeft, xlEdgeTop, xlEdgeBottom, xlEdgeRight)
-      With oListObject.HeaderRowRange.Borders(vBorder)
-        .LineStyle = xlContinuous
-        .ThemeColor = 1
-        .TintAndShade = -0.499984740745262
-        .Weight = xlThin
-      End With
-      With oListObject.DataBodyRange.Borders(vBorder)
-        .LineStyle = xlContinuous
-        .ThemeColor = 1
-        .TintAndShade = -0.499984740745262
-        .Weight = xlThin
-      End With
-      With oListObject.TotalsRowRange.Borders(vBorder)
-        .LineStyle = xlContinuous
-        .ThemeColor = 1
-        .TintAndShade = -0.499984740745262
-        .Weight = xlThin
-      End With
-    Next
-    'restore inside borders
-    For Each vBorder In Array(xlInsideVertical, xlInsideHorizontal)
-      With oListObject.HeaderRowRange.Borders(vBorder)
-        .LineStyle = xlContinuous
-        .ThemeColor = 1
-        .TintAndShade = -0.249946592608417
-        .Weight = xlThin
-      End With
-      With oListObject.DataBodyRange.Borders(vBorder)
-        .LineStyle = xlContinuous
-        .ThemeColor = 1
-        .TintAndShade = -0.249946592608417
-        .Weight = xlThin
-      End With
-      With oListObject.TotalsRowRange.Borders(vBorder)
-        .LineStyle = xlContinuous
-        .ThemeColor = 1
-        .TintAndShade = -0.249946592608417
-        .Weight = xlThin
-      End With
-    Next
-    oListObject.HeaderRowRange.Font.Bold = True
-    oListObject.TotalsRowRange.Font.Bold = True
-    With oListObject.HeaderRowRange.Interior
-      .Pattern = xlSolid
-      .PatternColorIndex = xlAutomatic
-      .ThemeColor = xlThemeColorDark1
-      .TintAndShade = -0.149998474074526
-      .PatternTintAndShade = 0
-    End With
-    If vTable = "THIS_WEEK" Then
-      oListObject.TotalsRowRange(ColumnIndex:=oListObject.ListColumns("FF").Range.Column).NumberFormat = "0"
-      oListObject.TotalsRowRange(ColumnIndex:=oListObject.ListColumns("AF").Range.Column).NumberFormat = "0"
-    ElseIf vTable = "NEXT_WEEK" Then
-      oListObject.TotalsRowRange(ColumnIndex:=oListObject.ListColumns("UID").Range.Column).Value = "Total"
-      oListObject.TotalsRowRange(ColumnIndex:=oListObject.ListColumns("FF").Range.Column).FormulaR1C1 = "=SUBTOTAL(103,[FF])"
-      oListObject.TotalsRowRange(ColumnIndex:=oListObject.ListColumns("FF").Range.Column).NumberFormat = "0"
-    End If
-    
-    'sort by first custom field,FF or by only FF
-    oListObject.Sort.SortFields.Clear
-    If UBound(Split(strMyHeaders, ",")) > 0 Then
-      oListObject.Sort.SortFields.Add Key:=oWorksheet.Range("THIS_WEEK[" & Split(strMyHeaders, ",")(0) & "]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-    End If
-    oListObject.Sort.SortFields.Add Key:=oWorksheet.Range("THIS_WEEK[FF]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-    With oListObject.Sort
-      .Header = xlYes
-      .MatchCase = False
-      .Orientation = xlTopToBottom
-      .SortMethod = xlPinYin
-      .Apply
-    End With
-    
-  Next vTable
-  
-  oWorksheet.[A5:Z100].Columns.AutoFit
-  
   'get trend
-  Set oRange = oWorksheet.Cells(36, 6 + UBound(Split(strMyHeaders, ",")))
+  If Len(strMyHeaders) = 0 Then
+    Set oRange = oWorksheet.Cells(36, 6)
+  Else
+    Set oRange = oWorksheet.Cells(36, 6 + UBound(Split(strMyHeaders, ",")))
+  End If
   Set oRange = oWorksheet.Range(oRange, oRange.Offset(0, 4))
   oRange = Split("STATUS_DATE,CEI,< 0.70,0.70 - 0.75,> 0.75", ",")
   Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oRange, , xlYes)
@@ -1996,6 +1915,101 @@ next_task:
   oListObject.ListColumns("STATUS_DATE").DataBodyRange.NumberFormat = "m/d/yyyy"
   oListObject.ListColumns("STATUS_DATE").DataBodyRange.HorizontalAlignment = xlCenter
   
+  'format tables
+  For Each vTable In Array("THIS_WEEK", "NEXT_WEEK", "CEI_DATA")
+    Set oListObject = oWorksheet.ListObjects(vTable)
+    'clear formatting
+    oListObject.TableStyle = ""
+    'restore borders
+    oListObject.Range.Borders(xlDiagonalDown).LineStyle = xlNone
+    oListObject.Range.Borders(xlDiagonalUp).LineStyle = xlNone
+    For Each vBorder In Array(xlEdgeLeft, xlEdgeTop, xlEdgeBottom, xlEdgeRight)
+      With oListObject.HeaderRowRange.Borders(vBorder)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.499984740745262
+        .Weight = xlThin
+      End With
+      With oListObject.DataBodyRange.Borders(vBorder)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.499984740745262
+        .Weight = xlThin
+      End With
+      If vTable <> "CEI_DATA" Then
+        With oListObject.TotalsRowRange.Borders(vBorder)
+          .LineStyle = xlContinuous
+          .ThemeColor = 1
+          .TintAndShade = -0.499984740745262
+          .Weight = xlThin
+        End With
+      End If
+    Next
+    'restore inside borders
+    For Each vBorder In Array(xlInsideVertical, xlInsideHorizontal)
+      With oListObject.HeaderRowRange.Borders(vBorder)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.249946592608417
+        .Weight = xlThin
+      End With
+      With oListObject.DataBodyRange.Borders(vBorder)
+        .LineStyle = xlContinuous
+        .ThemeColor = 1
+        .TintAndShade = -0.249946592608417
+        .Weight = xlThin
+      End With
+      If vTable <> "CEI_DATA" Then
+        With oListObject.TotalsRowRange.Borders(vBorder)
+          .LineStyle = xlContinuous
+          .ThemeColor = 1
+          .TintAndShade = -0.249946592608417
+          .Weight = xlThin
+        End With
+      End If
+    Next
+    oListObject.HeaderRowRange.Font.Bold = True
+    If vTable <> "CEI_DATA" Then
+      oListObject.TotalsRowRange.Font.Bold = True
+    End If
+    With oListObject.HeaderRowRange.Interior
+      .Pattern = xlSolid
+      .PatternColorIndex = xlAutomatic
+      .ThemeColor = xlThemeColorDark1
+      .TintAndShade = -0.149998474074526
+      .PatternTintAndShade = 0
+    End With
+    If vTable = "THIS_WEEK" Then
+      oListObject.TotalsRowRange(ColumnIndex:=oListObject.ListColumns("FF").Range.Column).NumberFormat = "0"
+      oListObject.TotalsRowRange(ColumnIndex:=oListObject.ListColumns("AF").Range.Column).NumberFormat = "0"
+    ElseIf vTable = "NEXT_WEEK" Then
+      oListObject.TotalsRowRange(ColumnIndex:=oListObject.ListColumns("UID").Range.Column).Value = "Total"
+      oListObject.TotalsRowRange(ColumnIndex:=oListObject.ListColumns("FF").Range.Column).FormulaR1C1 = "=SUBTOTAL(103,[FF])"
+      oListObject.TotalsRowRange(ColumnIndex:=oListObject.ListColumns("FF").Range.Column).NumberFormat = "0"
+    End If
+    
+    If vTable <> "CEI_DATA" Then
+      'sort by first custom field,FF or by only FF
+      oListObject.Sort.SortFields.Clear
+      If UBound(Split(strMyHeaders, ",")) > 0 Then
+        oListObject.Sort.SortFields.Add Key:=oWorksheet.Range("THIS_WEEK[" & Split(strMyHeaders, ",")(0) & "]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      End If
+      oListObject.Sort.SortFields.Add Key:=oWorksheet.Range("THIS_WEEK[FF]"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      With oListObject.Sort
+        .Header = xlYes
+        .MatchCase = False
+        .Orientation = xlTopToBottom
+        .SortMethod = xlPinYin
+        .Apply
+      End With
+    Else
+      oListObject.Sort.SortFields.Add Key:=oListObject.ListColumns("STATUS_DATE").DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+    End If
+    
+  Next vTable
+  
+  oWorksheet.[A5:Z100].Columns.AutoFit
+  
   'create chart
   Application.StatusBar = "Updating the CEI trend chart..."
   DoEvents
@@ -2004,7 +2018,11 @@ next_task:
   Set oChart = oChartObject.Chart
   oChart.SetSourceData oListObject.Range
   oChartObject.Top = 9.68370056152344
-  oChartObject.Left = oWorksheet.Columns(6 + UBound(Split(strMyHeaders, ","))).Left
+  If Len(strMyHeaders) = 0 Then
+    oChartObject.Left = oWorksheet.Columns(6).Left
+  Else
+    oChartObject.Left = oWorksheet.Columns(6 + UBound(Split(strMyHeaders, ","))).Left
+  End If
   oChartObject.Width = 800
   oChartObject.Height = 500
   oChart.SetElement (msoElementLegendRight)
@@ -2746,7 +2764,7 @@ next_task:
       'make cumulative column
       oWorksheet.Columns(3).Insert Shift:=xlRight
       oWorksheet.[C1].Value = "BCWS_CUM"
-      oWorksheet.[c2].FormulaR1C1 = "=RC[-1]"
+      oWorksheet.[C2].FormulaR1C1 = "=RC[-1]"
       lngLastRow = oWorksheet.[A1].End(xlDown).Row
       oWorksheet.Range(oWorksheet.Cells(3, 3), oWorksheet.Cells(lngLastRow, 3)).FormulaR1C1 = "=R[-1]C+RC[-1]"
       'find the status date/AD
@@ -2774,7 +2792,7 @@ next_task:
       oWorksheet.Cells(lngES + 3, 6) = "Earned Schedule"
       '=MATCH(BCWP,C2:C160,1)
       strFormula = "=MATCH(BCWP,"
-      strFormula = strFormula & oWorksheet.Range(oWorksheet.[c2], oWorksheet.[c2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",1)"
+      strFormula = strFormula & oWorksheet.Range(oWorksheet.[C2], oWorksheet.[C2].End(xlDown)).AddressLocal(ReferenceStyle:=xlR1C1) & ",1)"
       oWorksheet.Cells(lngES + 3, 7).FormulaArray = strFormula
       oWorksheet.Names.Add "ES", oWorksheet.Cells(lngES + 3, 7)
       oWorksheet.Cells(lngES + 3, 8) = "weeks"
