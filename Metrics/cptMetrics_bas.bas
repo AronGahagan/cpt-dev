@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.4.2</cpt_version>
+'<cpt_version>v1.4.3</cpt_version>
 Option Explicit
 
 Sub cptGetBAC()
@@ -1827,9 +1827,9 @@ Sub cptGetTrend_CEI()
             oListRow.Range(1, lngCol + 1) = oTask.Name
             If IsDate(oTask.ActualFinish) Then
               lngAF = lngAF + 1
-              oListRow.Range(1, lngCol + 2) = oTask.ActualFinish
+              oListRow.Range(1, lngCol + 3) = oTask.ActualFinish
             Else
-              oListRow.Range(1, lngCol + 2) = "NA"
+              oListRow.Range(1, lngCol + 3) = "NA"
             End If
           Else
             oListRow.Range(1, lngCol + 1) = " < task not found > "
