@@ -17,7 +17,6 @@ Private oNumberValidationRange As Excel.Range
 Private oETCValidationRange As Excel.Range
 Private oInputRange As Excel.Range
 Private oUnlockedRange As Excel.Range
-Private oEntryHeaderRange As Excel.Range
 Public oEVTs As Scripting.Dictionary
 Private Const lngForeColorValid As Long = -2147483630
 Private Const lngBorderColorValid As Long = 8421504 '-2147483642
@@ -152,6 +151,7 @@ Sub cptShowStatusSheet_frm()
     End If
     .txtFileName.ForeColor = -2147483630 'lngForeColorValid
     .txtFileName = "StatusRequest_[yyyy-mm-dd]"
+    .lblPathLength.Visible = False
   End With
 
   'set up arrays to capture values
@@ -1344,6 +1344,7 @@ End Sub
 
 Private Sub cptCopyData(ByRef myStatusSheet_frm As cptStatusSheet_frm, ByRef oWorksheet As Excel.Worksheet, lngHeaderRow As Long, Optional strItem As String)
   'objects
+  Dim oAssignmentETCRange As Excel.Range
   Dim oAssignment As MSProject.Assignment
   Dim oFormatRange As Object
   Dim oDict As Scripting.Dictionary
@@ -1468,13 +1469,6 @@ try_again:
       oWorksheet.Columns(lngCol).NumberFormat = "m/d/yyyy"
     ElseIf InStr(oWorksheet.Cells(lngHeaderRow, lngCol), "Work") > 0 Or InStr(oWorksheet.Cells(lngHeaderRow, lngCol), "ETC") > 0 Then
       oWorksheet.Columns(lngCol).Style = "Comma"
-    End If
-    If Len(cptRegEx(oWorksheet.Cells(lngHeaderRow, lngCol), "New|Revised")) > 0 Then
-      If oEntryHeaderRange Is Nothing Then
-        Set oEntryHeaderRange = oWorksheet.Cells(lngHeaderRow, lngCol)
-      Else
-        Set oEntryHeaderRange = oWorksheet.Application.Union(oEntryHeaderRange, oWorksheet.Cells(lngHeaderRow, lngCol))
-      End If
     End If
   Next lngCol
   oWorksheet.Application.DisplayAlerts = blnAlerts
@@ -1969,7 +1963,6 @@ next_task:
     Set oDict.Item("ETC") = oETCRange
     oETCRange.FormatConditions.Delete
     If blnAssignments Then
-      Dim oAssignmentETCRange As Excel.Range
       Set oAssignmentETCRange = oWorksheet.Application.Intersect(oAssignmentRange, oWorksheet.Columns(lngETCCol))
       Set oDict.Item("AssignmentETC") = oAssignmentETCRange
       oAssignmentETCRange.FormatConditions.Delete
@@ -2248,6 +2241,7 @@ exit_here:
   Set oNSRange = Nothing
   Set oComment = Nothing
   Set oUnlockedRange = Nothing
+  Set oAssignmentETCRange = Nothing
   Set oComment = Nothing
   Set oEVTRange = Nothing
   Set oCompleted = Nothing
@@ -2427,7 +2421,7 @@ Sub cptFinalFormats(ByRef oWorksheet As Excel.Worksheet)
   oWorksheet.Cells(lngHeaderRow, 1).AutoFilter
   oWorksheet.Columns(1).AutoFit
   lngNameCol = WorksheetFunction.Match("Task Name / Scope", oWorksheet.Rows(lngHeaderRow), 0)
-  lngLastRow = oWorksheet.Cells(1048576, lngNameCol)
+  lngLastRow = oWorksheet.Cells(1048576, lngNameCol).End(xlUp).Row
   oWorksheet.Range(oWorksheet.Cells(lngHeaderRow, lngNameCol), oWorksheet.Cells(lngLastRow, lngNameCol)).Columns.AutoFit
   With oWorksheet.Range(oWorksheet.Cells(lngHeaderRow, 1).End(xlToRight), oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp))
     .Borders(xlDiagonalDown).LineStyle = xlNone
@@ -2441,13 +2435,6 @@ Sub cptFinalFormats(ByRef oWorksheet As Excel.Worksheet)
       End With
     Next vBorder
   End With
-'  'todo: format entry headers - no, I don't like this, conditional formatting + locked cells is better
-'  With oEntryHeaderRange
-'    .Interior.ThemeColor = xlThemeColorAccent3
-'    .Interior.TintAndShade = 0.399975585192419
-'    .Font.ColorIndex = xlAutomatic
-'    .BorderAround xlContinuous, xlMedium
-'  End With
   oWorksheet.Application.WindowState = xlNormal 'cannot apply certain settings below if window is minimized...like data validation
   oWorksheet.Application.Calculation = xlCalculationAutomatic
   oWorksheet.Application.ScreenUpdating = True
@@ -2462,7 +2449,6 @@ Sub cptFinalFormats(ByRef oWorksheet As Excel.Worksheet)
   oWorksheet.Application.ActiveWindow.DisplayHorizontalScrollBar = True
   oWorksheet.Application.ActiveWindow.DisplayVerticalScrollBar = True
   oWorksheet.Application.WindowState = xlMinimized
-  Set oEntryHeaderRange = Nothing
 End Sub
 
 Sub cptListQuickParts(ByRef myStatusSheet_frm As cptStatusSheet_frm, Optional blnRefreshOutlook As Boolean = False)
@@ -2572,6 +2558,7 @@ End Sub
 Function cptSaveStatusSheet(ByRef myStatusSheet_frm As cptStatusSheet_frm, ByRef oWorkbook As Excel.Workbook, Optional strItem As String) As String
   'objects
   'strings
+  Dim strValidPath As String
   Dim strMsg As String
   Dim strFileName As String
   Dim strDir As String
@@ -2602,7 +2589,15 @@ Function cptSaveStatusSheet(ByRef myStatusSheet_frm As cptStatusSheet_frm, ByRef
     If Len(strItem) > 0 Then
       strFileName = Replace(strFileName, "[item]", strItem)
     End If
-    strFileName = cptRemoveIllegalCharacters(strFileName)
+    strFileName = cptRemoveIllegalCharacters(strFileName, "-")
+    strValidPath = cptValidPath(strDir & "\" & strFileName)
+    If CBool(Split(strValidPath, ":")(0)) = False Then
+      If InStr(strValidPath, "exceeds") > 0 Then
+        strDir = cptGetShortPath(strDir)
+      Else
+        MsgBox "There was an error saving this workbook:" & Replace(strValidPath, "0:", ""), vbExclamation + vbOKOnly, "Path/Filename error"
+      End If
+    End If
     On Error Resume Next
     If Dir(strDir & strFileName) <> vbNullString Then
       Kill strDir & strFileName
@@ -3307,8 +3302,8 @@ Sub cptAddConditionalFormattingLegend(ByRef oWorkbook As Excel.Workbook)
   oWorksheet.Range(oWorksheet.[A1048576].End(xlUp), oWorksheet.[A1048576].End(xlUp).End(xlUp)).Replace ":", ";", lookat:=xlPart
   oWorksheet.Range(oWorksheet.[A1048576].End(xlUp), oWorksheet.[A1048576].End(xlUp).End(xlUp)).Replace " -> ", ";", lookat:=xlPart
   oWorksheet.[C1:E1] = Split("COLUMN,CONDITION,FORMAT", ",")
-  oWorksheet.Range(oWorksheet.[A1048576].End(xlUp), oWorksheet.[A1048576].End(xlUp).End(xlUp)).Cut oWorksheet.[c2]
-  oWorksheet.Range(oWorksheet.[c2], oWorksheet.[c2].End(xlDown)).TextToColumns DataType:=xlDelimited, SemiColon:=True
+  oWorksheet.Range(oWorksheet.[A1048576].End(xlUp), oWorksheet.[A1048576].End(xlUp).End(xlUp)).Cut oWorksheet.[C2]
+  oWorksheet.Range(oWorksheet.[C2], oWorksheet.[C2].End(xlDown)).TextToColumns DataType:=xlDelimited, SemiColon:=True
   oWorksheet.[A1].Font.Bold = True
   oWorksheet.[A11].Font.Bold = True
   oWorksheet.[C1:E1].Font.Bold = True

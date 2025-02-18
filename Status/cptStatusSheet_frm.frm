@@ -1144,6 +1144,7 @@ Private Sub txtDir_DropButtonClick()
   Dim oFileDialog As Object 'FileDialog
   Dim oExcel As Excel.Application
   'strings
+  Dim strValidPath As String
   'longs
   'integers
   'doubles
@@ -1164,7 +1165,12 @@ Private Sub txtDir_DropButtonClick()
       .InitialFileName = ActiveProject.Path
     End If
     If .Show Then
-      Me.txtDir = .SelectedItems(1) & "\" & IIf(Me.chkAppendStatusDate, Format(ActiveProject.StatusDate, "yyyy-mm-dd") & "\", "")
+      strValidPath = cptValidPath(.SelectedItems(1))
+      If Not CBool(Split(strValidPath, ":")(0)) Then
+        MsgBox Replace(strValidPath, "0:", "Reason: "), vbCritical + vbOKOnly, "Invalid Path"
+      Else
+        Me.txtDir = .SelectedItems(1) & "\" & IIf(Me.chkAppendStatusDate, Format(ActiveProject.StatusDate, "yyyy-mm-dd") & "\", "")
+      End If
     End If
   End With
   
@@ -1187,6 +1193,7 @@ Private Sub txtDir_Enter()
   Me.lblCreate.Visible = False
   Me.lblDirectory.Visible = False
   Me.chkAppendStatusDate.Visible = False
+  Me.lblPathLength.Visible = True
 End Sub
 
 Private Sub txtDir_Exit(ByVal Cancel As MSForms.ReturnBoolean)
@@ -1196,6 +1203,7 @@ Private Sub txtDir_Exit(ByVal Cancel As MSForms.ReturnBoolean)
   Me.lblCreate.Visible = True
   Me.lblDirectory.Visible = True
   Me.chkAppendStatusDate.Visible = True
+  Me.lblPathLength.Visible = False
 End Sub
 
 Sub txtFileName_Change()
@@ -1204,6 +1212,7 @@ Sub txtFileName_Change()
   Dim strTempItem As String
   Dim blnValid As Boolean
   
+  Me.txtFileName.Text = cptRemoveIllegalCharacters(Me.txtFileName.Text, "", True)
   strFileName = Me.txtFileName.Text
   strNamingConvention = strFileName
   blnValid = True
@@ -1237,7 +1246,7 @@ Sub txtFileName_Change()
       End If
     Else
       blnValid = False
-      Me.lblFileNameSample.Caption = "'for each' requires use of '[item]'"
+      Me.lblFileNameSample.Caption = "'" & Me.cboCreate.List(Me.cboCreate.Value, 1) & "' requires use of '[item]'"
       Me.lblFileNameSample.ForeColor = lngForeColorInvalid
     End If
   Else
@@ -1251,10 +1260,32 @@ Sub txtFileName_Change()
     Me.txtFileName.BorderColor = lngBorderColorInvalid
     Me.lblNamingConvention.ForeColor = lngForeColorInvalid
     Me.lblFileNameSample.ForeColor = lngForeColorInvalid
+    Me.lblPathLength.Caption = "<!>"
+    Me.lblPathLength.BorderColor = lngBorderColorInvalid
+    Me.lblPathLength.ForeColor = lngForeColorInvalid
   Else
     Me.txtFileName.BorderColor = lngBorderColorValid
     Me.lblNamingConvention.ForeColor = lngForeColorValid
     Me.lblFileNameSample.ForeColor = 8421504
+    Dim lngPathLength As Long
+    Dim lngLongest As Long
+    Dim lngItem As Long
+    lngPathLength = Len(Me.txtDir.Value) + Len(Replace(strNamingConvention, "[item]", "")) + Len(".xlsx")
+    If Me.chkAppendStatusDate Then lngPathLength = lngPathLength + Len("YYYY-MM-DD\")
+    If Me.lboItems.ListCount > 0 Then
+      For lngItem = 0 To Me.lboItems.ListCount - 1
+        If Len(Me.lboItems.List(lngItem)) > lngLongest Then lngLongest = Len(Me.lboItems.List(lngItem))
+      Next lngItem
+      lngPathLength = lngPathLength + lngLongest
+    End If
+    Me.lblPathLength.Caption = lngPathLength
+    If lngPathLength < 218 Then
+      Me.lblPathLength.BorderColor = lngBorderColorValid
+      Me.lblPathLength.ForeColor = 8421504
+    Else
+      Me.lblPathLength.BorderColor = lngBorderColorInvalid
+      Me.lblPathLength.ForeColor = lngForeColorInvalid
+    End If
   End If
   Me.Repaint
   
@@ -1275,12 +1306,14 @@ Private Sub txtFileName_Enter()
   Me.lblFileNameSample.BackStyle = fmBackStyleOpaque
   Me.lblFileNameSample.Visible = True
   Me.lblNamingConvention.Visible = False
+  Me.lblPathLength.Visible = True
 End Sub
 
 Private Sub txtFileName_Exit(ByVal Cancel As MSForms.ReturnBoolean)
   Me.lblFileNameSample.Visible = False
   Me.lblFileNameSample.BackStyle = fmBackStyleTransparent
   Me.lblNamingConvention.Visible = True
+  Me.lblPathLength.Visible = False
 End Sub
 
 Private Sub txtHideCompleteBefore_AfterUpdate()
