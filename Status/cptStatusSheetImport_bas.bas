@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.2.3</cpt_version>
+'<cpt_version>v1.2.4</cpt_version>
 Option Explicit
 
 Sub cptShowStatusSheetImport_frm()
@@ -556,7 +556,7 @@ next_task:
 
             'todo: do we really need to separate AS/FS on the form?
             'new start date
-            If oWorksheet.Cells(lngRow, lngASCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngASCol).Locked Then
+            If oWorksheet.Cells(lngRow, lngASCol).Value > 0 Then 'And Not oWorksheet.Cells(lngRow, lngASCol).Locked
               dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngASCol).Value), vbShortDate)
               'determine actual or forecast
               If dtNewDate <= FormatDateTime(dtStatus, vbShortDate) Then 'actual start
@@ -577,7 +577,7 @@ next_task:
               End If
             End If
             'new finish date
-            If oWorksheet.Cells(lngRow, lngAFCol).Value > 0 And Not oWorksheet.Cells(lngRow, lngAFCol).Locked Then
+            If oWorksheet.Cells(lngRow, lngAFCol).Value > 0 Then 'And Not oWorksheet.Cells(lngRow, lngAFCol).Locked
               dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngAFCol)), vbShortDate)
               If dtNewDate <= dtStatus Then 'actual finish
                 If IsDate(oTask.ActualFinish) Then
@@ -648,7 +648,7 @@ evp_skipped:
             If oAssignment Is Nothing Then
               Print #lngFile, "ASSIGNMENT MISSING: TASK " & oTask.UniqueID & " ASSIGNMENT: " & oWorksheet.Cells(lngRow, lngUIDCol).Value
             Else
-              If Not oWorksheet.Cells(lngRow, lngETCCol).Locked Then
+              'If Not oWorksheet.Cells(lngRow, lngETCCol).Locked Then
                 dblETC = oWorksheet.Cells(lngRow, lngETCCol).Value 'get the new value
                 dblWas = 0 'reset was
                 If oAssignment.ResourceType = pjResourceTypeWork Then
@@ -752,7 +752,7 @@ evp_skipped:
                     oAssignment.AppendNotes vbCrLf & String(25, "-") & vbCrLf & Format(dtStatus, "mm/dd/yyyy") & " - " & oWorksheet.Cells(lngRow, lngCommentsCol) & vbCrLf
                   End If
                 End If
-              End If
+              'End If
               'todo: consolidate Assignment Notes into Task Notes?
               Set oAssignment = Nothing
             End If
