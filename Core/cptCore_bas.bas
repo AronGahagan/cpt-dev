@@ -3190,3 +3190,49 @@ err_here:
   Call cptHandleErr("cptCore_bas", "cptCheckMetadata", Err, Erl)
   Resume exit_here
 End Sub
+
+
+Sub cptAddBorders(ByRef rng As Excel.Range, Optional blnHorizontal As Boolean = True)
+  rng.Borders(xlDiagonalDown).LineStyle = xlNone
+  rng.Borders(xlDiagonalUp).LineStyle = xlNone
+  With rng.Borders(xlEdgeLeft)
+    .LineStyle = xlContinuous
+    .ThemeColor = 2
+    .TintAndShade = 0.499984740745262
+    .Weight = xlThin
+  End With
+  With rng.Borders(xlEdgeTop)
+    .LineStyle = xlContinuous
+    .ThemeColor = 2
+    .TintAndShade = 0.499984740745262
+    .Weight = xlThin
+  End With
+  With rng.Borders(xlEdgeBottom)
+    .LineStyle = xlContinuous
+    .ThemeColor = 2
+    .TintAndShade = 0.499984740745262
+    .Weight = xlThin
+  End With
+  With rng.Borders(xlEdgeRight)
+    .LineStyle = xlContinuous
+    .ThemeColor = 2
+    .TintAndShade = 0.499984740745262
+    .Weight = xlThin
+  End With
+  With rng.Borders(xlInsideVertical)
+    .LineStyle = xlContinuous
+    .ThemeColor = 1
+    .TintAndShade = -0.249946592608417
+    .Weight = xlThin
+  End With
+  'optional horizontal lines
+  If blnHorizontal Then
+    rng.Borders(xlInsideHorizontal).LineStyle = xlContinuous
+    rng.Borders(xlInsideHorizontal).ThemeColor = 1
+    rng.Borders(xlInsideHorizontal).TintAndShade = -0.249946592608417
+    rng.Borders(xlInsideHorizontal).Weight = xlThin
+  Else
+    rng.Borders(xlInsideHorizontal).LineStyle = xlNone
+  End If
+End Sub
+
