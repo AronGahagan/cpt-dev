@@ -239,7 +239,7 @@ End Sub
 
 Sub cptStatusSheetImport(ByRef myStatusSheetImport_frm As cptStatusSheetImport_frm)
   'objects
-  Dim oInspector As Object
+  Dim oInspector As Outlook.Inspector
   Dim oOutlook As Outlook.Application
   Dim oMailItem As Outlook.MailItem
   Dim oDocument As Word.Document
@@ -249,18 +249,18 @@ Sub cptStatusSheetImport(ByRef myStatusSheetImport_frm As cptStatusSheetImport_f
   Dim oDict As Scripting.Dictionary
   Dim oShell As Object
   Dim oRecordset As ADODB.Recordset
-  Dim oSubproject As Subproject
+  Dim oSubproject As MSProject.Subproject
   Dim oTask As MSProject.Task
-  Dim oResource As Resource
-  Dim oAssignment As Assignment
-  Dim oExcel As Object 'Excel.Application
-  Dim oWorkbook As Object 'Excel.Workbook
-  Dim oWorksheet As Object 'Excel.Worksheet
-  Dim oListObject As Object 'Excel.ListObject
-  Dim oRange As Object 'Excel.Range
-  Dim oCell As Object 'Excel.Range
+  Dim oResource As MSProject.Resource
+  Dim oAssignment As MSProject.Assignment
+  Dim oExcel As Excel.Application
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
+  Dim oListObject As Excel.ListObject
+  Dim oRange As Excel.Range
+  Dim oCell As Excel.Range
   Dim oComboBox As MSForms.ComboBox
-  Dim rst As Object 'ADODB.Recordset
+  Dim rst As ADODB.Recordset
   'strings
   Dim strUIDList As String
   Dim strLOE As String
@@ -278,21 +278,22 @@ Sub cptStatusSheetImport(ByRef myStatusSheetImport_frm As cptStatusSheetImport_f
   Dim strSettings As String
   Dim strGUID As String
   'longs
-  Dim lngEVT As Long
+  Dim lngEVT As Long 'EVT LCF
   Dim lngMultiplier As Long
   Dim lngDeconflictionFile As Long
   Dim lngEVP As Long
   Dim lngTask As Long
   Dim lngTasks As Long
   Dim lngTaskNameCol As Long
-  Dim lngEVCol As Long
+  Dim lngEVTCol As Long
+  Dim lnvEVPCol As Long
   Dim lngUIDCol As Long
   Dim lngFile As Long
   Dim lngRow As Long
   Dim lngCommentsCol As Long
   Dim lngETCCol As Long
-  Dim lngAFCol As Long
-  Dim lngASCol As Long
+  Dim lngNFCol As Long 'new finish
+  Dim lngNSCol As Long 'new start
   Dim lngHeaderRow As Long
   Dim lngLastRow As Long
   Dim lngItem As Long
@@ -568,9 +569,10 @@ next_task:
         End If
         'get header columns
         lngTaskNameCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Task Name", lookat:=xlPart).Column
-        lngASCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Start", lookat:=xlPart).Column
-        lngAFCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Finish", lookat:=xlPart).Column
-        lngEVCol = oWorksheet.Rows(lngHeaderRow).Find(what:="New EV%", lookat:=xlWhole).Column
+        lngEVTCol = oWorksheet.Rows(lngHeaderRow).Find(what:="EVT", lookat:=xlWhole).Column
+        lngNSCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Start", lookat:=xlPart).Column
+        lngNFCol = oWorksheet.Rows(lngHeaderRow).Find(what:="Actual Finish", lookat:=xlPart).Column
+        lnvEVPCol = oWorksheet.Rows(lngHeaderRow).Find(what:="New EV%", lookat:=xlWhole).Column
         On Error Resume Next
         Set oCell = oWorksheet.Rows(lngHeaderRow).Find(what:="New ETC", lookat:=xlWhole)
         If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -594,9 +596,11 @@ next_task:
         lngLastRow = oWorksheet.Cells(oWorksheet.Rows.Count, 1).End(xlUp).Row
         'pull in the data
         For lngRow = lngHeaderRow + 1 To lngLastRow
+          'summary lines and group summaries have UID = 0
           If oWorksheet.Cells(lngRow, lngUIDCol).Value = 0 Then GoTo next_row
           
           'determine if row is a oTask or an oAssignment
+          Set oTask = Nothing
           On Error Resume Next
           Set oTask = ActiveProject.Tasks.UniqueID(oWorksheet.Cells(lngRow, lngUIDCol).Value)
           If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
@@ -608,7 +612,8 @@ next_task:
             If Not oResource Is Nothing Then
               blnTask = False
             Else
-              Print #lngFile, "UID " & oWorksheet.Cells(lngRow, lngUIDCol) & " not found in IMS."
+              Print #lngFile, "UID " & oWorksheet.Cells(lngRow, lngUIDCol) & " in Status Sheet not found in IMS! Note: could be a missing Task or a missing Resource/Assignment."
+              oWorksheet.Cells(lngRow, lngUIDCol).Style = "Bad"
               If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
               GoTo next_row
             End If
@@ -621,28 +626,28 @@ next_task:
                     
             'skip completed tasks (which are also italicized)
             If IsDate(oTask.ActualFinish) Then
-              If FormatDateTime(oTask.ActualFinish, vbShortDate) = FormatDateTime(oWorksheet.Cells(lngRow, lngAFCol).Value, vbShortDate) Then GoTo next_row
+              If FormatDateTime(oTask.ActualFinish, vbShortDate) = FormatDateTime(oWorksheet.Cells(lngRow, lngNFCol).Value, vbShortDate) Then GoTo next_row
             End If
 
             'new start date
-            If Not oWorksheet.Cells(lngRow, lngASCol).Locked Then
-              If oWorksheet.Cells(lngRow, lngASCol).DisplayFormat.Interior.Color = 13551615 Then
-                Print #lngFile, "UID " & oTask.UniqueID & " - Should Have Started <<<<<"
+            If Not oWorksheet.Cells(lngRow, lngNSCol).Locked Then
+              If oWorksheet.Cells(lngRow, lngNSCol).DisplayFormat.Interior.Color = 13551615 Then
+                Print #lngFile, "UID " & oTask.UniqueID & " - Should Have Started " & String(10, "<")
                 oWorksheet.Cells(lngRow, lngUIDCol).Style = "Bad"
                 blnValid = False
                 GoTo skip_ns
               End If
               
-              oWorksheet.Cells(lngRow, lngASCol).NumberFormat = "0.00" 'work around overflow issue
-              If oWorksheet.Cells(lngRow, lngASCol).Value > 91312 Then 'invalid
+              oWorksheet.Cells(lngRow, lngNSCol).NumberFormat = "0.00" 'work around overflow issue
+              If oWorksheet.Cells(lngRow, lngNSCol).Value > 91312 Then 'invalid
                 oWorksheet.Cells(lngRow, lngUIDCol).Style = "Bad"
-                Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Start<<<<<"
+                Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Start Date " & String(10, "<")
               Else
-                oWorksheet.Cells(lngRow, lngASCol).NumberFormat = "m/d/yyyy" 'restore date format
-                If Len(oWorksheet.Cells(lngRow, lngASCol).Value) > 0 And Not IsDate(oWorksheet.Cells(lngRow, lngASCol).Value) Then
-                  Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Start Date <<<<<"
-                ElseIf oWorksheet.Cells(lngRow, lngASCol).Value > 0 Then
-                  dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngASCol).Value), vbShortDate)
+                oWorksheet.Cells(lngRow, lngNSCol).NumberFormat = "m/d/yyyy" 'restore date format
+                If Len(oWorksheet.Cells(lngRow, lngNSCol).Value) > 0 And Not IsDate(oWorksheet.Cells(lngRow, lngNSCol).Value) Then
+                  Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Start Date " & String(10, "<")
+                ElseIf oWorksheet.Cells(lngRow, lngNSCol).Value > 0 Then
+                  dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngNSCol).Value), vbShortDate)
                   'determine actual or forecast
                   If dtNewDate <= FormatDateTime(dtStatus, vbShortDate) Then 'actual start
                     If IsDate(oTask.ActualStart) Then
@@ -669,29 +674,29 @@ next_task:
                 End If
               End If
 skip_ns:
-              oWorksheet.Cells(lngRow, lngASCol).NumberFormat = "m/d/yyyy" 'restore date format
+              oWorksheet.Cells(lngRow, lngNSCol).NumberFormat = "m/d/yyyy" 'restore date format
             End If
             
             'new finish date
-            If Not oWorksheet.Cells(lngRow, lngAFCol).Locked Then
-              If oWorksheet.Cells(lngRow, lngAFCol).DisplayFormat.Interior.Color = 13551615 Then 'invalid
-                Print #lngFile, "UID " & oTask.UniqueID & " = invalid New Finish Date " & String(25, "<")
+            If Not oWorksheet.Cells(lngRow, lngNFCol).Locked Then
+              If oWorksheet.Cells(lngRow, lngNFCol).DisplayFormat.Interior.Color = 13551615 Then 'invalid
+                Print #lngFile, "UID " & oTask.UniqueID & " = invalid New Finish Date " & String(10, "<")
                 oWorksheet.Cells(lngRow, lngUIDCol).Style = "Bad"
                 blnValid = False
                 GoTo skip_nf
               End If
               
-              oWorksheet.Cells(lngRow, lngAFCol).NumberFormat = "0.00" 'work around overflow issue
-              If oWorksheet.Cells(lngRow, lngAFCol).Value > 91312 Then 'invalid
-                Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Finish Date " & String(25, "<")
+              oWorksheet.Cells(lngRow, lngNFCol).NumberFormat = "0.00" 'work around overflow issue
+              If oWorksheet.Cells(lngRow, lngNFCol).Value > 91312 Then 'invalid
+                Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Finish Date " & String(10, "<")
                 oWorksheet.Cells(lngRow, lngUIDCol).Style = "Bad"
                 blnValid = False
               Else
-                oWorksheet.Cells(lngRow, lngAFCol).NumberFormat = "m/d/yyyy" 'restore date format
-                If Len(oWorksheet.Cells(lngRow, lngAFCol).Value) > 0 And Not IsDate(oWorksheet.Cells(lngRow, lngAFCol).Value) Then
-                  Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Finish Date " & String(25, "<")
-                ElseIf oWorksheet.Cells(lngRow, lngAFCol).Value > 0 Then
-                  dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngAFCol)), vbShortDate)
+                oWorksheet.Cells(lngRow, lngNFCol).NumberFormat = "m/d/yyyy" 'restore date format
+                If Len(oWorksheet.Cells(lngRow, lngNFCol).Value) > 0 And Not IsDate(oWorksheet.Cells(lngRow, lngNFCol).Value) Then
+                  Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Finish Date " & String(10, "<")
+                ElseIf oWorksheet.Cells(lngRow, lngNFCol).Value > 0 Then
+                  dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngNFCol)), vbShortDate)
                   'determine actual or forecast
                   If dtNewDate <= dtStatus Then 'actual finish
                     If IsDate(oTask.ActualFinish) Then
@@ -704,7 +709,7 @@ skip_ns:
                   ElseIf dtNewDate > dtStatus Then 'forecast finish
                     If FormatDateTime(oTask.Finish, vbShortDate) <> FormatDateTime(dtNewDate, vbShortDate) Then
                       If dtNewDate > #12/31/2149# Then
-                        Print #lngFile, "UID " & oTask.UniqueID & " FF > ERROR (" & FormatDateTime(dtNewDate, vbShortDate) & " is outside allowable range)"
+                        Print #lngFile, "UID " & oTask.UniqueID & " FF > ERROR (" & FormatDateTime(dtNewDate, vbShortDate) & " is outside allowable range) " & String(10, "<")
                       Else
                         oTask.SetField lngFF, CDate(dtNewDate & " 05:00 PM")
                         Print #lngFile, "UID " & oTask.UniqueID & " FF > " & FormatDateTime(dtNewDate, vbShortDate)
@@ -718,7 +723,7 @@ skip_ns:
                 End If
               End If
 skip_nf:
-              oWorksheet.Cells(lngRow, lngAFCol).NumberFormat = "m/d/yyyy"
+              oWorksheet.Cells(lngRow, lngNFCol).NumberFormat = "m/d/yyyy"
             End If
             
             'evp
@@ -728,15 +733,15 @@ skip_nf:
               If oTask.GetField(lngEVT) = strLOE Then GoTo skip_evp
             End If
             'secondary catch to skip LOE
-            If oWorksheet.Cells(lngRow, lngEVCol).Value <> "-" Then
-              If oWorksheet.Cells(lngRow, lngEVCol).DisplayFormat.Interior.Color = 13551615 Then 'invalid EV
-                Print #lngFile, "UID " & oTask.UniqueID & " - Invalid EV " & String(25, "<")
+            If oWorksheet.Cells(lngRow, lnvEVPCol).Value <> "-" Then
+              If oWorksheet.Cells(lngRow, lnvEVPCol).DisplayFormat.Interior.Color = 13551615 Then 'invalid EV
+                Print #lngFile, "UID " & oTask.UniqueID & " - Invalid EV " & String(10, "<")
                 oWorksheet.Cells(lngRow, lngUIDCol).Style = "Bad"
                 blnValid = False
                 GoTo skip_evp
               End If
               
-              lngEVP = Round(oWorksheet.Cells(lngRow, lngEVCol).Value * 100, 0)
+              lngEVP = Round(oWorksheet.Cells(lngRow, lnvEVPCol).Value * 100, 0)
               strEVP = cptGetSetting("Integration", "EVP")
               If Len(strEVP) > 0 Then 'compare
                 If CLng(cptRegEx(oTask.GetField(Split(strEVP, "|")(0)), "[0-9]{1,}")) <> lngEVP Then
@@ -775,7 +780,7 @@ skip_evp:
             Else
               If Not oWorksheet.Cells(lngRow, lngETCCol).Locked Then
                 If oWorksheet.Cells(lngRow, lngETCCol).DisplayFormat.Interior.Color = 13551615 Then 'invalid ETC
-                  Print #lngFile, "UID " & oTask.UniqueID & " - Invalid ETC for " & oAssignment.ResourceName
+                  Print #lngFile, "UID " & oTask.UniqueID & " - Invalid ETC for " & oAssignment.ResourceName & " " & String(10, "<")
                   oWorksheet.Cells(lngRow, lngUIDCol).Style = "Bad" 'assignment level
                   oWorksheet.Cells(oWorksheet.Columns(lngUIDCol).Find(oTask.UniqueID).Row, lngUIDCol).Style = "Bad" 'task level
                   blnValid = False
@@ -1050,7 +1055,7 @@ exit_here:
   Reset 'closes all active files opened by the Open statement and writes the contents of all file buffers to disk.
   Close #lngDeconflictionFile
   If Dir(strImportLog) <> vbNullString And blnImportLog Then 'open log in notepad
-    Shell "C:\WINDOWS\notepad.exe " & strImportLog, vbNormalFocus
+    Shell "notepad.exe " & strImportLog, vbNormalFocus
   End If
   If Dir(Environ("tmp") & "\Schema.ini") <> vbNullString Then Kill Environ("tmp") & "\Schema.ini"
   If Dir(Environ("tmp") & "\imported.csv") <> vbNullString Then Kill Environ("tmp") & "\imported.csv"
