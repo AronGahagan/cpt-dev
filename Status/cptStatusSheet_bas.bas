@@ -628,7 +628,7 @@ Sub cptCreateStatusSheet(ByRef myStatusSheet_frm As cptStatusSheet_frm)
   Dim oListObject As Excel.ListObject
   Dim oTasks As MSProject.Tasks, oTask As MSProject.Task, oAssignment As MSProject.Assignment
   Dim oExcel As Excel.Application, oWorkbook As Excel.Workbook, oWorksheet As Excel.Worksheet, rng As Excel.Range
-  Dim rSummaryTasks As Excel.Range, rMilestones As Excel.Range, rNormal As Excel.Range, rAssignments As Excel.Range, rLockedCells As Excel.Range
+  Dim rSummaryTasks As Excel.Range, rMilestones As Excel.Range, rNormal As Excel.Range, rAssignments As Excel.Range
   Dim rDates As Excel.Range, rWork As Excel.Range, rMedium As Excel.Range, rCentered As Excel.Range, rEntry As Excel.Range
   Dim xlCells As Excel.Range, rngAll As Excel.Range
   Dim oOutlook As Outlook.Application, oMailItem As MailItem, oDoc As Word.Document, oWord As Word.Application, oSel As Word.Selection, oETemp As Word.Template
@@ -1153,7 +1153,6 @@ exit_here:
   Set oExcel = Nothing
   Set rng = Nothing
   Set rSummaryTasks = Nothing
-  Set rLockedCells = Nothing
   Set rMilestones = Nothing
   Set rNormal = Nothing
   Set rAssignments = Nothing
@@ -1555,6 +1554,10 @@ try_again:
 '      End If
 '      GoTo next_task 'don't skip - need to unlock foreceast dates for milestones, too
     End If
+    If blnLOE Then
+      oWorksheet.Cells(lngRow, lngEVPCol - 1) = "'-"
+      oWorksheet.Cells(lngRow, lngEVPCol) = "'-"
+    End If
     'format completed
     If IsDate(oTask.ActualFinish) Then
       If oCompleted Is Nothing Then
@@ -1564,9 +1567,20 @@ try_again:
       End If
       GoTo get_assignments
     End If
-    If blnLOE Then
-      oWorksheet.Cells(lngRow, lngEVPCol - 1) = "'-"
-      oWorksheet.Cells(lngRow, lngEVPCol) = "'-"
+    'we know now that it is incomplete
+    If oUnlockedRange Is Nothing Then
+      'unlock new finish
+      If oUnlockedRange Is Nothing Then
+        Set oUnlockedRange = oWorksheet.Cells(lngRow, lngAFCol)
+      Else
+        Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngAFCol))
+      End If
+      'unlock new EV (discrete only)
+      If Not blnLOE Then Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngEVPCol))
+      'unlock new start if not started
+      If Not IsDate(oTask.ActualStart) Then
+        Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngASCol))
+      End If
     End If
     'capture status formating:
     'tasks requiring status:
@@ -1615,17 +1629,6 @@ try_again:
       Else
         Set oTwoWeekWindowRange = oWorksheet.Application.Union(oTwoWeekWindowRange, oWorksheet.Cells(lngRow, lngAFCol))
       End If
-    End If
-    'unstarted
-    If Not IsDate(oTask.ActualStart) And Not IsDate(oTask.ActualFinish) Then 'unstarted
-      If oUnlockedRange Is Nothing Then
-        Set oUnlockedRange = oWorksheet.Cells(lngRow, lngASCol)
-      Else
-        Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngASCol))
-      End If
-      Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngAFCol))
-      If Not blnLOE Then Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngEVPCol))
-      'Set oUnlockedRange = oWorksheet.Application.Union(oUnlockedRange, oWorksheet.Cells(lngRow, lngETCCol))
     End If
     
     'capture data validation
@@ -1864,13 +1867,10 @@ next_task:
     End With
   End If
   'unlock the input cells
-  If Not oInputRange Is Nothing Then
-    oInputRange.Locked = False
-  End If
-  If blnProtect And Not oUnlockedRange Is Nothing Then oUnlockedRange.Locked = False
-  If Not oTwoWeekWindowRange Is Nothing Then
-    oTwoWeekWindowRange.Locked = False
-  End If
+  If Not oInputRange Is Nothing Then oInputRange.Locked = False
+  'unlock cells whether blnProtect = True or False
+  If Not oUnlockedRange Is Nothing Then oUnlockedRange.Locked = False
+  If Not oTwoWeekWindowRange Is Nothing Then oTwoWeekWindowRange.Locked = False
   'add EVT gloassary - test comment
   If Not oEVTRange Is Nothing Then
     If myStatusSheet_frm.cboCostTool = "COBRA" Then
@@ -1890,7 +1890,7 @@ next_task:
       strEVTList = strEVTList & "O - Earned As Spent,"
       strEVTList = strEVTList & "P - % Complete Manual Entry,"
     ElseIf myStatusSheet_frm.cboCostTool = "MPM" Then
-      strEVTList = strEVTList & "0 - No EVM required,"
+      strEVTList = "0 - No EVM required,"
       strEVTList = strEVTList & "1 - 0/100,"
       strEVTList = strEVTList & "'2 - 25/75,"
       strEVTList = strEVTList & "'3 - 40/60,"
@@ -3164,6 +3164,9 @@ Sub cptFindUnstatusedTasks()
   'integers
   'doubles
   'booleans
+  Dim blnAutoCalcCosts As Boolean
+  Dim blnAutoTrack As Boolean
+  Dim blnChangeSettings As Boolean
   Dim blnErrorTrapping As Boolean
   'variants
   'dates
@@ -3196,21 +3199,38 @@ Sub cptFindUnstatusedTasks()
   End If
   If Not IsDate(dtStatus) Then GoTo exit_here
   
-  'Updating Task status updates resource status
-  If Not ActiveProject.AutoTrack Then
-    strMsg = "> Updating Task status updates resource status = True" & vbCrLf
+  'catch and fix a non-working day
+  If Not ActiveProject.Calendar.Period(dtStatus).Working Then
+    'align status date to the most previous workday
+    'to compare against a task's stop date
+    Do While ActiveProject.Calendar.Period(dtStatus).Working = False
+      dtStatus = DateAdd("h", -1, dtStatus)
+    Loop
+    'align the time to default finish time
+    dtStatus = CDate(FormatDateTime(dtStatus, vbShortDate) & " " & ActiveProject.DefaultFinishTime)
   End If
+  
+  'Updating Task status updates resource status
+  blnAutoTrack = ActiveProject.AutoTrack
   
   'Actual costs are always calculated by Project
-  If Not ActiveProject.AutoCalcCosts Then
-    strMsg = strMsg & "> Actual costs are always calculated by Project = True" & vbCrLf
-  End If
+  blnAutoCalcCosts = ActiveProject.AutoCalcCosts
   
   'prompt user to apply recommended settings
-  If Len(strMsg) > 0 Then
-    strMsg = "File > Options > Schedule > Calculation options for this project:" & vbCrLf & vbCrLf & strMsg & vbCrLf & "Apply now?"
-    If MsgBox(strMsg, vbInformation + vbYesNo, "Recommended settings:") = vbYes Then
+  If Not blnAutoTrack Or Not blnAutoCalcCosts Then
+    strMsg = "Recommended settings:" & vbCrLf
+    strMsg = strMsg & "> Updating Task status updates resource status = True" & vbCrLf 'AutoTrack
+    strMsg = strMsg & "> Actual costs are always calculated by Project = True" & vbCrLf & vbCrLf 'AutoCalcCosts
+    strMsg = strMsg & "Your settings:" & vbCrLf
+    strMsg = strMsg & "> Updating Task status updates resource status = " & blnAutoTrack & vbCrLf
+    strMsg = strMsg & "> Actual costs are always calculated by Project = " & blnAutoCalcCosts & vbCrLf & vbCrLf
+    strMsg = strMsg & "(These options are found under File > Options > Schedule > Calculation options for this project:)" & vbCrLf & vbCrLf
+    strMsg = strMsg & "Would you like to apply these recommended settings?"
+    blnChangeSettings = MsgBox(strMsg, vbInformation + vbYesNo, "Apply Recommended Settings?") = vbYes
+    If blnChangeSettings Then
+      blnAutoTrack = ActiveProject.AutoTrack
       ActiveProject.AutoTrack = True
+      blnAutoCalcCosts = ActiveProject.AutoCalcCosts
       ActiveProject.AutoCalcCosts = True
     End If
   End If
@@ -3220,8 +3240,12 @@ Sub cptFindUnstatusedTasks()
   cptSpeed True
   ActiveWindow.TopPane.Activate
   FilterClear
+  GroupClear
   OptionsViewEx DisplaySummaryTasks:=True
+  Sort "ID", , , , , , False, True
   OutlineShowAllTasks
+  TimescaleEdit MajorUnits:=3, MinorUnits:=4, MajorCount:=1, MinorCount:=1, TierCount:=2
+  EditGoTo Date:=dtStatus
   
   lngTasks = oTasks.Count
   
@@ -3241,28 +3265,59 @@ Sub cptFindUnstatusedTasks()
     End If
 next_task:
     lngTask = lngTask + 1
-    Application.StatusBar = "Processing..." & Format(lngTask, "#,##0") & " of " & Format(lngTasks, "#,##0") & " (" & Format(lngTask / lngTasks, "0%") & ")"
+    lngUnstatused = UBound(Split(strUnstatused, vbTab))
+    Application.StatusBar = "Processing..." & Format(lngTask, "#,##0") & " of " & Format(lngTasks, "#,##0") & " (" & Format(lngTask / lngTasks, "0%") & ") " & IIf(lngUnstatused > 0, "| " & Format(lngUnstatused, "#,##0") & " found", "")
     DoEvents
   Next oTask
   'report results
-  lngUnstatused = UBound(Split(strUnstatused, vbTab))
   If lngUnstatused > 0 Then
-    strMsg = Format(lngUnstatused, "#,##0") & " unstatused task" & IIf(lngUnstatused = 1, ".", "s.") & vbCrLf & vbCrLf
-    strMsg = strMsg & "Unstatused means:" & vbCrLf
-    strMsg = strMsg & "> Forecast Start prior to Status Date" & vbCrLf
-    strMsg = strMsg & "> Forecast Finish prior to Status Date" & vbCrLf
-    strMsg = strMsg & "> In progress but not statused through Status Date"
-    MsgBox strMsg, vbExclamation + vbOKCancel, "Unstatused Tasks"
     strUnstatused = Left(strUnstatused, Len(strUnstatused) - 1) 'hack off trailing tab
+    FilterClear
+    GroupClear
+    Sort "ID", , , , , , False, True
+    OptionsViewEx DisplaySummaryTasks:=True
+    OutlineShowAllTasks
     OptionsViewEx DisplaySummaryTasks:=False
     SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", strUnstatused
     SelectAll
     SetRowHeight "1"
     SelectBeginning
+    cptSpeed False
+    strMsg = ""
+    If dtStatus <> ActiveProject.StatusDate Then
+      strMsg = "NOTE: For purposes of this analysis, your Status Date was adjusted to the prior working day:" & vbCrLf
+      strMsg = strMsg & ActiveProject.StatusDate & " > " & dtStatus & vbCrLf & vbCrLf
+    End If
+    strMsg = strMsg & "Given a Status Date of " & dtStatus & ":" & vbCrLf & vbCrLf
+    strMsg = strMsg & "You have " & Format(lngUnstatused, "#,##0") & " unstatused task" & IIf(lngUnstatused = 1, ".", "s.") & vbCrLf & vbCrLf
+    strMsg = strMsg & "Unstatused means:" & vbCrLf
+    strMsg = strMsg & "> Forecast Start prior to Status Date" & vbCrLf
+    strMsg = strMsg & "> Forecast Finish prior to Status Date" & vbCrLf
+    strMsg = strMsg & "> In progress but not statused through 'Time Now' (see task field [Stop] for details)."
+    MsgBox strMsg, vbExclamation + vbOKOnly, "You Have Unstatused Tasks!"
   Else
     MsgBox "No unstatused tasks.", vbInformation + vbOKOnly, "Well Done"
   End If
-
+  
+  'prompt to restore settings
+  If blnChangeSettings Then
+    strMsg = "Click YES to keep recommended settings:" & vbCrLf
+    strMsg = strMsg & "> Updating Task status updates resource status = True" & vbCrLf 'AutoTrack
+    strMsg = strMsg & "> Actual costs are always calculated by Project = True" & vbCrLf & vbCrLf 'AutoCalcCosts
+    strMsg = strMsg & "Click NO to restore your settings:" & vbCrLf
+    If Not blnAutoTrack Then
+      strMsg = strMsg & "> Updating Task status updates resource status = " & blnAutoTrack & vbCrLf
+    End If
+    If Not blnAutoCalcCosts Then
+      strMsg = strMsg & "> Actual costs are always calculated by Project = " & blnAutoCalcCosts & vbCrLf
+    End If
+    strMsg = strMsg & vbCrLf & "Would you like to keep these recommended settings?"
+    If MsgBox(strMsg, vbQuestion + vbYesNo, "Keep Recommended Settings?") = vbNo Then
+      ActiveProject.AutoTrack = blnAutoTrack
+      ActiveProject.AutoCalcCosts = blnAutoCalcCosts
+    End If
+  End If
+  
   Application.StatusBar = "Complete."
 
 exit_here:
@@ -3442,7 +3497,6 @@ err_here:
   Resume exit_here
 End Sub
 
-
 Sub cptFindCompleteThrough()
   'objects
   Dim oTSV As TimeScaleValue
@@ -3472,12 +3526,19 @@ Sub cptFindCompleteThrough()
   On Error Resume Next
   Set oTask = ActiveSelection.Tasks(1)
   If oTask Is Nothing Then GoTo exit_here
-  If Not IsDate(oTask.ActualStart) Then GoTo exit_here 'ignore unstarted
-  If IsDate(oTask.ActualFinish) Then GoTo exit_here 'ignore completed
+  If Not IsDate(oTask.ActualStart) Then 'ignore unstarted
+    MsgBox "Task has not started yet (no Actual Start).", vbExclamation + vbOKCancel, "Invalid"
+    GoTo exit_here
+  End If
+  If IsDate(oTask.ActualFinish) Then  'ignore completed
+    MsgBox "Task is already complete (has Actual Finish).", vbExclamation + vbOKOnly, "Invalid"
+    GoTo exit_here
+  End If
   
   'todo: do splits matter if no resources?
   Print #lngFile, "Task UID: " & oTask.UniqueID
   Print #lngFile, "Task Name: " & oTask.Name
+  Print #lngFile, "Task Type: " & Choose(oTask.Type + 1, "Fixed Units", "Fixed Duration", "Fixed Work")
   Print #lngFile, "Actual Start: " & FormatDateTime(oTask.ActualStart, vbShortDate)
   Print #lngFile, "Stop: " & FormatDateTime(oTask.Stop, vbShortDate) & " (vs. Status Date: " & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & ")"
   Print #lngFile, "Resume: " & FormatDateTime(oTask.Resume, vbShortDate)
@@ -3557,3 +3618,124 @@ Function cptGetEarliestStart() As Date
   Next oSubproject
   cptGetEarliestStart = dtStart
 End Function
+
+Sub cptFindAssignmentsWithoutWork()
+  'objects
+  Dim oDict As Scripting.Dictionary
+  Dim oTasks As MSProject.Tasks
+  Dim oAssignment As MSProject.Assignment
+  Dim oTask As MSProject.Task
+  'strings
+  Dim strResultUID As String
+  Dim strResult As String
+  Dim strFile As String
+  Dim strMissingForecastWork As String
+  'longs
+  Dim lngCount As Long
+  Dim lngTasks As Long
+  Dim lngTask As Long
+  Dim lngFile As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnErrorTrapping As Boolean
+  Dim blnDelete As Boolean
+  'variants
+  'dates
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnDelete = MsgBox("Delete whatever I find?" & vbCrLf & vbCrLf & "(Baseline data will not be touched.)" & vbCrLf & vbCrLf & "Note: click No for a dry-run and review what clicking Yes might do.", vbQuestion + vbYesNo, "Find Assignments Without ETC") = vbYes
+  If blnDelete Then
+    Application.OpenUndoTransaction "Delete Assignments with Zero Remaining Work"
+    Application.Calculation = pjManual
+    Application.ScreenUpdating = False
+  End If
+  If ActiveProject.Subprojects.Count > 0 Then
+    ActiveWindow.TopPane.Activate
+    FilterClear
+    GroupClear
+    Sort "ID", , , , , , False, True
+    SelectAll
+    OutlineShowAllTasks
+    SelectAll
+    Set oTasks = ActiveSelection.Tasks
+  Else
+    Set oTasks = ActiveProject.Tasks
+  End If
+  Set oDict = CreateObject("Scripting.Dictionary")
+  lngTasks = oTasks.Count
+  For Each oTask In ActiveProject.Tasks
+    If oTask Is Nothing Then GoTo next_task
+    If oTask.ExternalTask Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    For Each oAssignment In oTask.Assignments
+      If oAssignment.Work + oAssignment.Cost = 0 Then
+        If oAssignment.BaselineWork + oAssignment.BaselineCost = 0 Then
+          lngCount = lngCount + 1 'counting assignments, not tasks
+          'add to list for autofilter / filter by clipboard
+          If Not oDict.Exists(oTask.UniqueID) Then
+            oDict.Add oTask.UniqueID, oTask.UniqueID
+          End If
+          If blnDelete Then
+            strResult = strResult & oTask.UniqueID & "," & oAssignment.ResourceUniqueID & "," & oAssignment.ResourceName & ",0,0, Assignment had zero Baseline Work/Cost and zero Remaining Work (ETC) and has been deleted." & vbCrLf
+            oAssignment.Delete
+          Else
+            strResult = strResult & oTask.UniqueID & "," & oAssignment.ResourceUniqueID & "," & oAssignment.ResourceName & ",0,0,Assignment has zero Baseline Work/Cost and zero Remaining Work (ETC) and can be deleted." & vbCrLf
+          End If
+        End If
+      End If
+    Next oAssignment
+next_task:
+    lngTask = lngTask + 1
+    Application.StatusBar = "Analyzing...(" & Format(lngTask / lngTasks, "0%") & ") | " & Format(lngCount, "#,##0") & " found"
+  Next oTask
+  If lngCount > 0 Then
+    strFile = Environ("tmp") & "\cpt-assignments-without-work_" & Format(Now, "yyyy-mm-dd_hh-nn-ss") & ".txt"
+    lngFile = FreeFile
+    Open strFile For Output As #lngFile
+    Print #lngFile, "FILE: " & ActiveProject.FullName
+    Print #lngFile, "DATE: " & FormatDateTime(Now, vbGeneralDate) & vbCrLf
+    Print #lngFile, "'ASSIGNMENTS WITHOUT WORK' MEANS:"
+    Print #lngFile, "Assignment Baseline Work/Cost = 0 AND Assignment Remaining Work/Cost (ETC) = 0"
+    Print #lngFile, "WHERE:"
+    Print #lngFile, "-> [Assignment Work] = (Assignment Actual Work + Assignment Remaining Work)"
+    Print #lngFile, "-> [Assignment Cost] = (Assignment Actual Cost + Assignment Remaining Cost)"
+    Print #lngFile, "-> [Assignment Work] + [Assignment Cost] = 0"
+    Print #lngFile, "-> Assignment Baseline Work + Assignment Baseline Cost = 0" & vbCrLf
+    Print #lngFile, String(80, "-")
+    Print #lngFile, "TASK UID,RESOURCE UID,RESOURCE NAME,BASELINE WORK/COST,REMAINING WORK/COST,COMMENT"
+    Print #lngFile, Left(strResult, Len(strResult) - 1)
+    Print #lngFile, Format(lngCount, "#,##0") & " ASSIGNMENT" & IIf(lngCount = 1, ":", "S") & " FOUND."
+    Print #lngFile, String(80, "-")
+    Print #lngFile, "Paste this into ClearPlan > Text > FilterByClipboard:"
+    Print #lngFile, Join(oDict.Keys, ",") & ","
+    Print #lngFile, String(80, "-")
+    If blnDelete = False Then
+      Print #lngFile, "NOTE: To delete these assignments, run this macro again. At the prompt ('Delete what I find?'), click Yes. Undo is enabled."
+    End If
+    Print #lngFile, "NOTE: Resources can have the same name in MS Project. Confirm Resource Unique ID before deleting."
+    Close #lngFile
+    Shell "notepad.exe '" & strFile & "'", vbNormalFocus
+    SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", Join(oDict.Keys, vbTab)
+  Else
+    MsgBox "There are ZERO assignments without remaining work!", vbInformation + vbOKOnly, "Well Done"
+  End If
+
+exit_here:
+  On Error Resume Next
+  Set oDict = Nothing
+  Application.CloseUndoTransaction
+  Set oTasks = Nothing
+  Application.Calculation = pjAutomatic
+  Application.ScreenUpdating = True
+  Set oAssignment = Nothing
+  Set oTask = Nothing
+
+  Exit Sub
+err_here:
+  cptHandleErr "cptStatusSheet_bas", "cptAssignmentsWithoutWork", Err, Erl
+  Resume exit_here
+End Sub
+

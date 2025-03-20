@@ -232,7 +232,7 @@ next_task:
     End With
   End If 'lngField > 0
   
-  If Me.cboEach <> "" Then
+  If Me.cboEach.Value <> "" Then
     Me.lblForEach.ForeColor = lngForeColorValid
     Me.cboEach.BorderColor = lngBorderColorValid
   End If
@@ -1236,8 +1236,9 @@ Sub txtFileName_Change()
   If Len(strTempItem) > 0 And strTempItem <> "[item]" Then
     strNamingConvention = Replace(strNamingConvention, strTempItem, "[item]")
   End If
-
+  
   If Me.cboCreate.Value = 2 Then 'for each
+    'replace [item] with an example
     If InStr(strFileName, "[item]") > 0 Then
       If Me.lboItems.ListCount > 0 Then
         Me.lblFileNameSample.Caption = Replace(strFileName, "[item]", Me.lboItems.List(0, 0)) & ".xlsx"
