@@ -17,6 +17,7 @@ Private lngCAM As Long
 Private lngWP As Long
 Private lngEVT As Long
 Private lngEVP As Long
+Private lngY As Long
 Public oDECM As Scripting.Dictionary
 Private oSubMap As Scripting.Dictionary
 
@@ -57,6 +58,7 @@ Sub cptDECM_GET_DATA()
   Dim strLOE As String
   Dim strList As String
   'longs
+  Dim lngDefaultDateFormat As Long
   Dim lngToUID As Long
   Dim lngFactor As Long
   Dim lngFromUID As Long
@@ -67,7 +69,7 @@ Sub cptDECM_GET_DATA()
   Dim lngTS As Long
   Dim lngConst As Long
   Dim lngX As Long
-  Dim lngY As Long
+  'Dim lngY As Long
   Dim lngSummary As Long
   Dim lngDur As Long
   Dim lngBDur As Long
@@ -332,7 +334,10 @@ next_mapping_task:
   
   blnDumpToExcel = False 'for debug
   blnLimitToPMB = False 'don't do this
-  
+  lngDefaultDateFormat = Application.DefaultDateFormat
+  If lngDefaultDateFormat <> pjDate_mm_dd_yyyy Then
+    Application.DefaultDateFormat = pjDate_mm_dd_yyyy
+  End If
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If Not oTask.Active Then GoTo next_task
@@ -468,1296 +473,28 @@ next_task:
   Set oDECM = CreateObject("Scripting.Dictionary")
   
   '===== EVMS =====
-  '05A101a - 1 CA : 1 OBS
-  strMetric = "05A101a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting EVMS: 05A101a..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 OBS"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
-  DoEvents
-  'X = Count of CAs with more than one OBS element or no OBS elements assigned
-  'Y = Total count of CAs
-  'X/Y = 0%
-  strSQL = "SELECT DISTINCT CA FROM tasks.csv WHERE CA IS NOT NULL"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngY = .RecordCount
-    .Close
-  End With
-  strSQL = "SELECT CA,COUNT(OBS) AS CountOfOBS "
-  strSQL = strSQL & "FROM (SELECT DISTINCT CA,OBS FROM [tasks.csv]) "
-  strSQL = strSQL & "WHERE CA IS NOT NULL "
-  strSQL = strSQL & "GROUP BY CA "
-  strSQL = strSQL & "HAVING COUNT(OBS)>1"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = .RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("CA") & ","
-        .MoveNext
-      Loop
-    End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore = 0 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '05A102a - 1 CA : 1 CAM
-  strMetric = "05A102a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 CAM"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
-  DoEvents
-  'X = Count of CAs that have more than one CAM or no CAM assigned
-  'Y = Total count of CAs
-  'X/Y <= 5%
-  'we already have lngY...
-  strSQL = "SELECT CA,COUNT(CAM) AS CountOfCAM "
-  strSQL = strSQL & "FROM (SELECT DISTINCT CA,CAM FROM [tasks.csv]) "
-  strSQL = strSQL & "WHERE CA IS NOT NULL "
-  strSQL = strSQL & "GROUP BY CA "
-  strSQL = strSQL & "HAVING COUNT(CAM)>1"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = .RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("CA") & ","
-        .MoveNext
-      Loop
-    End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore <= 0.05 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '05A103a - 1 CA : 1 WBS
-  strMetric = "05A103a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting EVMS: 05A103a..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 WBS"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
-  DoEvents
-  'X = Count of CAs with more than one WBS element or no WBS elements assigned
-  'Y = Total count of CAs
-  'X/Y = 0%
-  'we already have lngY...
-  strSQL = "SELECT CA,COUNT(WBS) AS CountOfWBS "
-  strSQL = strSQL & "FROM (SELECT DISTINCT CA,WBS FROM [tasks.csv]) "
-  strSQL = strSQL & "WHERE CA IS NOT NULL "
-  strSQL = strSQL & "GROUP BY CA "
-  strSQL = strSQL & "HAVING COUNT(WBS)>1"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = .RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("CA") & ","
-        .MoveNext
-      Loop
-    End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore = 0 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  'bonus - 1 WP : 1 CA
-  myDECM_frm.lblStatus.Caption = "Getting bonus metric 1wp_1ca..."
-  Application.StatusBar = "Getting bonus metric 1wp_1ca..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = "1wp_1ca"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "1 WP : 1 CA"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
-  DoEvents
-  'X = count of incomplete WPs that have more than one CA or no CA assigned
-  'Y = count of incomplete WPs
-  strSQL = "SELECT WP,COUNT(CA) AS CountOfCA "
-  strSQL = strSQL & "FROM (SELECT DISTINCT WP,CA FROM [tasks.csv] WHERE AF IS NULL) "
-  strSQL = strSQL & "GROUP BY WP "
-  strSQL = strSQL & "HAVING COUNT(CA)>1"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-    lngX = .RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("WP") & ","
-        .MoveNext
-      Loop
-    End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  strSQL = "SELECT DISTINCT WP "
-  strSQL = strSQL & "FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE WP IS NOT NULL AND AF IS NULL"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngY = .RecordCount
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = lngX 'Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = lngX 'Format(dblScore, "0%")
-  If dblScore = 0 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription("1wp_1ca")
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add "1wp_1ca", strList
-  myDECM_frm.lblStatus.Caption = "Getting bonus metric 1wp_1ca...done."
-  Application.StatusBar = "Getting bonus metric 1wp_1ca...done."
-  DoEvents
-  
-  '10A102a - 1 WP : 1 EVT
-  strMetric = "10A102a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting EVMS: 05A103a..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "1 WP : 1 EVT"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
-  DoEvents
-  'X = count of incomplete WPs that have more than one EVT or no EVT assigned
-  'Y = count of incomplete WPs
-  'X/Y <= 5%
-  
-  'limit to incomplete WPs with PMB and either mixed or missing EVTs
-  strSQL = "SELECT DISTINCT WP "
-  strSQL = strSQL & "FROM("
-  strSQL = strSQL & "    SELECT WP, Count(EVT) AS CountOfEVT" 'WP has mixed EVTs
-  strSQL = strSQL & "    FROM ("
-  strSQL = strSQL & "        SELECT T.WP, Iif(Isnull(T.EVT),'',T.EVT) AS EVT, SUM(A.BLW+A.BLC) AS BAC "
-  strSQL = strSQL & "        FROM [tasks.csv] AS T "
-  strSQL = strSQL & "        INNER JOIN [assignments.csv] AS A ON A.TASK_UID=T.UID "
-  strSQL = strSQL & "        WHERE T.WP IS NOT NULL AND T.AF IS NULL "
-  strSQL = strSQL & "        GROUP BY T.WP, T.EVT "
-  strSQL = strSQL & "        HAVING SUM(A.BLW+A.BLC)>0 "
-  strSQL = strSQL & "    )  AS PMB"
-  strSQL = strSQL & "    GROUP BY WP"
-  strSQL = strSQL & "    HAVING Count(EVT)>1"
-  strSQL = strSQL & "    UNION"
-  strSQL = strSQL & "    SELECT WP,Count(EVT) " 'WP has no EVTs
-  strSQL = strSQL & "    FROM [tasks.csv] AS T "
-  strSQL = strSQL & "    INNER JOIN [assignments.csv] AS A ON A.TASK_UID=T.UID"
-  strSQL = strSQL & "    WHERE T.EVT IS NULL"
-  strSQL = strSQL & "    GROUP BY WP"
-  strSQL = strSQL & ") AS [10a102a]"
-  
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = .RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("WP") & ","
-        .MoveNext
-      Loop
-    End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  'limit to incomplete WPs with PMB
-  strSQL = "SELECT T.WP,SUM(A.BLW+A.BLC) AS BAC "
-  strSQL = strSQL & "FROM [tasks.csv] AS T "
-  strSQL = strSQL & "INNER JOIN [assignments.csv] AS A ON A.TASK_UID = T.UID "
-  strSQL = strSQL & "WHERE T.WP IS NOT NULL AND T.AF IS NULL "
-  strSQL = strSQL & "GROUP BY T.WP "
-  strSQL = strSQL & "HAVING SUM(A.BLW+A.BLC)>0"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngY = .RecordCount
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore < 0.05 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '10A103a - 0/100 EVTs in one fiscal period
-  strMetric = "10A103a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "0/100 EVTs in >1 period"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
-  DoEvents
-  
-  'X = Count of 0-100 EVT incomplete WPs with more than one accounting period of budget
-  'Y = Total count of 0-100 EVT incomplete WPs
-  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE WP IS NOT NULL "
-  strSQL = strSQL & "AND AF IS NULL "
-  strSQL = strSQL & "AND EVT='F'" 'todo: what about other tools or values?
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-    lngY = .RecordCount
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  If lngY > 0 Then
-    If blnFiscalExists Then
-      Set oWorkbook = cptGetEVTAnalysis
-      Set oWorksheet = oWorkbook.Sheets(1)
-      Set oListObject = oWorksheet.ListObjects(1)
-      lngY = oListObject.DataBodyRange.Rows.Count
-      oListObject.Range.AutoFilter Field:=6, Criteria1:=">1", Operator:=xlAnd
-      lngX = oListObject.DataBodyRange.SpecialCells(xlCellTypeVisible).Rows.Count
-      strList = ""
-      If lngX > 0 Then
-        For Each oCell In oListObject.ListColumns("WP").DataBodyRange.SpecialCells(xlCellTypeVisible).Cells
-          If InStr(strList, oCell.Value) = 0 Then strList = strList & oCell.Value & vbTab
-        Next oCell
-      End If
-    Else 'blnFiscalExists
-      lngX = lngY 'triggers failure
-    End If
-  Else
-    lngX = 0
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore < 0.05 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  'todo: bonus metrics if EVT_MS is used:
-  'todo: EVT = "B" AND (EVT_MS MISSING OR EVT_MS NOT IN ({discrete})
-  'todo: EVT = "B" AND EVT_MS = 0/100 AND FiscalPeriods > 1
-  'todo: EVT = "B" AND EVT_MS = 50/50 AND FiscalPeriods > 2
-  
-  '10A109b - all WPs have budget
-  strMetric = "10A109b"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs w/o Budgets"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
-  DoEvents
-  'X = Count of WPs/PPs/SLPPs with BAC = 0
-  'Y = Total count of WPs/PPs/SLPPs
-  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] WHERE WP IS NOT NULL"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngY = .RecordCount
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  strSQL = "SELECT t.WP,SUM(a.BLW) AS [BLW],SUM(a.BLC) AS [BLC] FROM [tasks.csv] t "
-  strSQL = strSQL & "INNER JOIN [assignments.csv] a on a.TASK_UID=t.UID "
-  strSQL = strSQL & "WHERE t.WP IS NOT NULL "
-  strSQL = strSQL & "GROUP BY t.WP "
-  strSQL = strSQL & "HAVING SUM(a.BLW)=0 AND SUM(a.BLC)=0"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = .RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("WP") & ","
-        .MoveNext
-      Loop
-    End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore < 0.05 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '10A302b - PPs with progress
-  strMetric = "10A302b"
-  Set oFSO = CreateObject("Scripting.FileSystemObject")
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs w/EVP > 0"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 2%"
-  DoEvents
-  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE EVT='K' " 'todo: what about other values/tools
-  oRecordset.Open strSQL, strCon, adOpenStatic, adLockReadOnly
-  If oRecordset.EOF Then
-    lngY = 0
-    lngX = 0
-    dblScore = 0
-    strList = ""
-  Else
-    lngY = oRecordset.RecordCount
-    oRecordset.Close
-    strSQL = "SELECT WP,IIF(SUM(EVP)>0,TRUE,FALSE) AS HasProgress  FROM [tasks.csv] "
-    strSQL = strSQL & "WHERE EVT='K' "
-    strSQL = strSQL & "GROUP BY WP "
-    strSQL = strSQL & "HAVING SUM(EVP)>0"
-    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-    If oRecordset.EOF Then
-      lngX = 0
-    Else
-      lngX = oRecordset.RecordCount
-    End If
-    dblScore = Round(lngX / lngY, 2)
-    strList = ""
-    With oRecordset
-      If oRecordset.RecordCount > 0 Then
-        .MoveFirst
-        Do While Not .EOF
-          strList = strList & oRecordset(0) & ","
-          .MoveNext
-        Loop
-        Set oFile = oFSO.CreateTextFile(strDir & "\10A302b-x.csv", True)
-        oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
-        oFile.Close
-      End If
-    End With
-    
-  End If
-  oRecordset.Close
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore <= 0.02 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '10A303a - all PPs have duration?
-  strMetric = "10A303a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs duration = 0"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
-  DoEvents
-  'we already have lngY
-  If lngY = 0 Then
-    lngX = 0
-    dblScore = 0
-    strList = ""
-  Else
-    strSQL = "SELECT WP,IIF(SUM(DUR)>0,TRUE,FALSE) AS HasProgress  FROM [tasks.csv] "
-    strSQL = strSQL & "WHERE EVT='K' "
-    strSQL = strSQL & "GROUP BY WP "
-    strSQL = strSQL & "HAVING SUM(EVP)>0"
-    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-    strList = ""
-    If oRecordset.EOF Then
-      lngX = 0
-    Else
-      lngX = oRecordset.RecordCount
-      With oRecordset
-        .MoveFirst
-        Do While Not .EOF
-          strList = strList & oRecordset(0) & ","
-          .MoveNext
-        Loop
-      End With
-      Set oFile = oFSO.CreateTextFile(strDir & "\10A303a-x.csv", True)
-      oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
-      oFile.Close
-    End If
-    dblScore = Round(lngX / lngY, 2)
-    oRecordset.Close
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore <= 0.02 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '11A101a - CA BAC = SUM(WP BAC)?
-  'this one is a bit different - need to skip if no assignments
-  strMetric = "11A101a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  'X = Sum of the absolute values of (CA BAC - the sum of its WP and PP budgets)
-  'Y = Total program BAC
-  'create segregated.csv
-  strSQL = "SELECT "
-  strSQL = strSQL & "    DISTINCT t1.ca, "
-  strSQL = strSQL & "    t1.wp, "
-  strSQL = strSQL & "    sum(t3.[wp blw]) AS [WP_BLW] "
-  strSQL = strSQL & "FROM "
-  strSQL = strSQL & "    ( "
-  strSQL = strSQL & "        tasks.csv t1 "
-  strSQL = strSQL & "        INNER JOIN assignments.csv t2 ON t2.task_uid = t1.uid "
-  strSQL = strSQL & "    ) "
-  strSQL = strSQL & "    INNER JOIN ( "
-  strSQL = strSQL & "        SELECT "
-  strSQL = strSQL & "            task_uid, "
-  strSQL = strSQL & "            sum(blw / 60) AS [wp blw] "
-  strSQL = strSQL & "        FROM "
-  strSQL = strSQL & "            assignments.csv "
-  strSQL = strSQL & "        GROUP BY "
-  strSQL = strSQL & "            task_uid "
-  strSQL = strSQL & "    ) AS t3 ON t3.task_uid = t1.uid "
-  strSQL = strSQL & "GROUP BY "
-  strSQL = strSQL & "    t1.ca, "
-  strSQL = strSQL & "    t1.wp "
-  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-  If oRecordset.EOF Then
-    myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...skipped."
-    Application.StatusBar = "Getting " & strMetric & "...skipped."
-    GoTo decm_schedule
-  Else
-    myDECM_frm.lboMetrics.AddItem
-    myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "CA BAC = Sum(WP BAC)"
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
-    DoEvents
-  End If
-  lngFile = FreeFile
-  strFile = Environ("tmp") & "\segregated.csv"
-  If Dir(strFile) <> vbNullString Then Kill strFile
-  Open strFile For Output As #lngFile
-  Print #lngFile, "CA,WP,WP_BLW,"
-  Print #lngFile, oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
-  Close #lngFile
-  oRecordset.Close
-  
-  'create itemized.csv
-  strSQL = "SELECT "
-  strSQL = strSQL & "    t1.ca, "
-  strSQL = strSQL & "    t2.[ca_bac], "
-  strSQL = strSQL & "    sum(t3.[wp_bac]) AS [WP_BAC], "
-  strSQL = strSQL & "    t2.[ca_bac] - sum(t3.[wp_bac]) AS [discrepancy] "
-  strSQL = strSQL & "FROM "
-  strSQL = strSQL & "    ( "
-  strSQL = strSQL & "        segregated.csv t1 "
-  strSQL = strSQL & "        LEFT JOIN ( "
-  strSQL = strSQL & "            SELECT "
-  strSQL = strSQL & "                ca, "
-  strSQL = strSQL & "                sum([wp_blw]) AS [ca_bac] "
-  strSQL = strSQL & "            FROM "
-  strSQL = strSQL & "                segregated.csv "
-  strSQL = strSQL & "            GROUP BY "
-  strSQL = strSQL & "                ca "
-  strSQL = strSQL & "        ) AS t2 ON t2.ca = t1.ca "
-  strSQL = strSQL & "    ) "
-  strSQL = strSQL & "    LEFT JOIN ( "
-  strSQL = strSQL & "        SELECT "
-  strSQL = strSQL & "            wp, "
-  strSQL = strSQL & "            sum([wp_blw]) AS [wp_bac] "
-  strSQL = strSQL & "        FROM "
-  strSQL = strSQL & "            segregated.csv "
-  strSQL = strSQL & "        GROUP BY "
-  strSQL = strSQL & "            wp "
-  strSQL = strSQL & "    ) AS t3 ON t3.wp = t1.wp "
-  strSQL = strSQL & "GROUP BY "
-  strSQL = strSQL & "    t1.ca, "
-  strSQL = strSQL & "    t2.[ca_bac] "
-  strSQL = strSQL & "HAVING "
-  strSQL = strSQL & "    t2.[ca_bac] - sum(t3.[wp_bac]) <> 0 "
-  
-  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-  lngFile = FreeFile
-  strFile = Environ("tmp") & "\itemized.csv"
-  If Dir(strFile) <> vbNullString Then Kill strFile
-  Open strFile For Output As #lngFile
-  Print #lngFile, "CA,CA_BAC,WP_BAC,discrepancy,"
-  If oRecordset.RecordCount > 0 Then
-    Print #lngFile, oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
-    Close #lngFile
-    oRecordset.Close
-    'get list of ca offenders
-    strSQL = "SELECT DISTINCT CA FROM itemized.csv"
-    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-    oRecordset.MoveFirst
-    strList = ""
-    Do While Not oRecordset.EOF
-      If Not IsNull(oRecordset("CA")) Then
-        strList = strList & oRecordset("CA") & ","
-      End If
-      oRecordset.MoveNext
-    Loop
-    oRecordset.Close
-    strList = Left(strList, Len(strList) - 1) 'remove trailing comma
-    strList = strList & ";" 'add separator between CAs and WPs
-    'get list of wp offenders
-    strSQL = "SELECT "
-    strSQL = strSQL & "    wp, "
-    strSQL = strSQL & "    count(ca) "
-    strSQL = strSQL & "FROM "
-    strSQL = strSQL & "    ( "
-    strSQL = strSQL & "        SELECT "
-    strSQL = strSQL & "            DISTINCT wp, "
-    strSQL = strSQL & "            ca "
-    strSQL = strSQL & "        FROM "
-    strSQL = strSQL & "            tasks.csv "
-    strSQL = strSQL & "    ) "
-    strSQL = strSQL & "WHERE "
-    strSQL = strSQL & "    wp IS NOT NULL "
-    strSQL = strSQL & "GROUP BY "
-    strSQL = strSQL & "    wp "
-    strSQL = strSQL & "HAVING "
-    strSQL = strSQL & "    count(ca) > 1 "
-    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-    If oRecordset.RecordCount > 0 Then
-      oRecordset.MoveFirst
-      Do While Not oRecordset.EOF
-        strList = strList & oRecordset("wp") & ","
-        oRecordset.MoveNext
-      Loop
-    End If
-  End If
-  Close #lngFile
-  oRecordset.Close
-  
-  'get delta as X
-  strSQL = "SELECT sum(abs([discrepancy])) as [DELTA] from itemized.csv"
-  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-  If oRecordset.RecordCount > 0 Then
-    If Not IsNull(oRecordset("DELTA")) Then lngX = Round(oRecordset("DELTA"), 0) Else lngX = 0
-  Else
-    lngX = 0
-  End If
-  oRecordset.Close
-  
-  'get total as Y
-  strSQL = "SELECT SUM(BLW/60) FROM assignments.csv"
-  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-  If oRecordset.RecordCount > 0 Then
-    lngY = Round(oRecordset(0), 0)
-  Else
-    lngX = 0
-  End If
-  oRecordset.Close
-  
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore <= 0.01 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-decm_schedule:
+  DECM_05A101a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '05A101a - 1 CA : 1 OBS
+  DECM_05A102a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '05A102a - 1 CA : 1 CAM
+  DECM_05A103a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '05A103a - 1 CA : 1 WBS
+  DECM_1WP1CA oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel 'bonus - 1 WP : 1 CA
+  DECM_10A102a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '10A102a - 1 WP : 1 EVT
+  DECM_10A103a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel, blnFiscalExists '10A103a - 0/100 EVTs in one fiscal period
+  DECM_10A109b oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '10A109b - all WPs have budget
+  DECM_10A302b oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '10A302b - PPs with progress
+  DECM_10A303a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '10A303a - all PPs have duration?
+  DECM_11A101a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '11A101a - CA BAC = SUM(WP BAC)?
   
   '===== SCHEDULE =====
-  '06A101a - WPs Missing between IMS vs EV
-  strMetric = "06A101a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs IMS vs EV Tool"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
-  DoEvents
-  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE WP IS NOT NULL AND AF IS NULL AND EVT<>'" & strLOE & "' AND SUMMARY='No'"
-  oRecordset.Open strSQL, strCon, adOpenKeyset
-  lngX = oRecordset.RecordCount 'pending upload
-  lngY = oRecordset.RecordCount 'pending upload
-  Set oFile = oFSO.CreateTextFile(strDir & "\wp-ims.csv", True)
-  oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
-  oRecordset.Close
-  oFile.Close
-  FileCopy strDir & "\wp-ims.csv", strDir & "\wp-not-in-ev.csv"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore = 0 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-    
-  '06A204b - Dangling Logic
-  '06A204b - todo: ignore first/last milestone - how?
-  strMetric = "06A204b"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Dangling Logic"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
-  'myDECM_Frm.lboMetrics.Value = "06A204b"
-  DoEvents
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 1) = DECM("06A204b")
-  'Y = count incomplete Non-LOE tasks/activities & milestones
-  'X = count of tasks with open starts or finishes
-  'X/Y = 0%
-  strSQL = "SELECT * FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE AF IS NULL "
-  strSQL = strSQL & "AND (EVT<>'" & strLOE & "' OR EVT IS NULL) "
-  strSQL = strSQL & "AND SUMMARY='No'"
-  oRecordset.Open strSQL, strCon, adOpenKeyset
-  lngY = oRecordset.RecordCount
-  'start with this list - guilty until proven innocent
-  Set oDict = CreateObject("Scripting.Dictionary")
-  With oRecordset
-    .MoveFirst
-    Do While Not .EOF
-      oDict.Add CStr(oRecordset("UID")), CStr(oRecordset("UID"))
-      .MoveNext
-    Loop
-  End With
-  oRecordset.Close
-  
-  'now do predecessors - guilty until proven innocent
-  strSQL = "SELECT t.UID,t.DUR,p.[TYPE],p.[FROM] FROM [tasks.csv] t "
-  strSQL = strSQL & "LEFT JOIN (SELECT DISTINCT * FROM [links.csv]) p ON p.TO=t.UID "
-  strSQL = strSQL & "WHERE t.SUMMARY='No' AND t.AF IS NULL AND (t.EVT<>'" & strLOE & "' OR t.EVT IS NULL)"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-    .MoveFirst
-    Do While Not .EOF
-      If oRecordset("UID") <> "" And (oRecordset("TYPE") = "SS" Or oRecordset("TYPE") = "FS") And oRecordset("DUR") > 0 Then
-        If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
-      ElseIf oRecordset("UID") <> "" And oRecordset("DUR") = 0 And Not IsNull(oRecordset("TYPE")) Then
-        If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
-      End If
-      .MoveNext
-    Loop
-  End With
-  oRecordset.Close
-  'extract the guilty to a string for later consolidation
-  For lngItem = 0 To oDict.Count - 1
-    strLinks = strLinks & oDict.Items(lngItem) & "," 'keep trailing comma, we're going to build on it
-  Next lngItem
-    
-  'now do successors - guilty until proven innocent
-  oDict.RemoveAll
-  strSQL = "SELECT * FROM [tasks.csv] WHERE AF IS NULL AND (EVT<>'" & strLOE & "' OR EVT IS NULL) AND SUMMARY='No'"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    .MoveFirst
-    Do While Not .EOF
-      oDict.Add CStr(oRecordset("UID")), CStr(oRecordset("UID"))
-      .MoveNext
-    Loop
-    .Close
-  End With
-  
-  strSQL = "SELECT t.UID,t.DUR,s.[TYPE],s.[TO] FROM [tasks.csv] t "
-  strSQL = strSQL & "LEFT JOIN (SELECT DISTINCT * FROM [links.csv]) s ON s.[FROM]=t.UID "
-  strSQL = strSQL & "WHERE t.SUMMARY='No' AND t.AF IS NULL AND (t.EVT<>'" & strLOE & "' OR t.EVT IS NULL)"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-    .MoveFirst
-    Do While Not .EOF
-      If oRecordset("UID") <> "" And (oRecordset("TYPE") = "FF" Or oRecordset("TYPE") = "FS") And oRecordset("DUR") > 0 Then
-        If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
-      ElseIf oRecordset("UID") <> "" And oRecordset("DUR") = 0 And Not IsNull(oRecordset("TYPE")) Then
-        If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
-      End If
-      .MoveNext
-    Loop
-    .Close
-  End With
-  
-  'account for earliest/latest
-  strSQL = "SELECT UID,BLS,BLF "
-  strSQL = strSQL & "FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE AF IS NULL " 'incomplete
-  strSQL = strSQL & "AND SUMMARY='No' " 'non-summary
-  strSQL = strSQL & "AND (EVT <> '" & strLOE & "' OR EVT IS NULL) " 'non-LOE
-  strSQL = strSQL & "AND (BLS = (SELECT MIN(BLS) FROM [tasks.csv]) " 'earliest BLS
-  strSQL = strSQL & "OR BLF = (SELECT MAX(BLF) FROM [tasks.csv])) " 'latest BLF
-  strSQL = strSQL & "ORDER BY BLS"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-    .MoveFirst
-    Do While Not .EOF
-      If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
-      .MoveNext
-    Loop
-    .Close
-  End With
-  
-  'extract the guilty to a string for later consolidation
-  For lngItem = 0 To oDict.Count - 1
-    strLinks = strLinks & oDict.Items(lngItem) & ","
-  Next lngItem
-  If Len(strLinks) > 0 Then strLinks = Left(strLinks, Len(strLinks) - 1)
-  oDict.RemoveAll
-  strList = ""
-  For Each vField In Split(strLinks, ",")
-    If Len(vField) > 0 And Not oDict.Exists(vField) Then
-      oDict.Add vField, vField
-      strList = strList & vField & ","
-    End If
-  Next vField
-  lngX = oDict.Count
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore = 0 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '06A205a - Lags (what about leads?)
-  strMetric = "06A205a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'myDECM_Frm.lboMetrics.Value = "06A205a"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Lags"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
-  DoEvents
-  'X = count of incomplete tasks/activities & milestones with at least one lag in the pred logic
-  'Y = count of incomplete tasks/activities & milestones in the IMS
-  'X/Y <=10%
-  'we already have lngY...
-  strSQL = "SELECT t.UID FROM [tasks.csv] t "
-  strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TO FROM [links.csv] WHERE LAG>0) p ON p.TO=t.UID " 'todo
-  'todo: to include leads replace above with strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TO FROM [links.csv] WHERE LAG<>0) p ON p.TO=t.UID "
-  strSQL = strSQL & "WHERE t.SUMMARY='No' AND t.AF IS NULL AND (t.EVT<>'" & strLOE & "' OR t.EVT IS NULL) "
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = oRecordset.RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
-        .MoveNext
-      Loop
-    End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore <= 0.1 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '06A208a - summary tasks with logic
-  strMetric = "06A208a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'myDECM_Frm.lboMetrics.Value = "06A208a"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Summary Logic"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
-  DoEvents
-  'X = Count of summary tasks/activities with logic applied (# predecessors > 0 or # successors > 0)
-  'X = 0
-  strSQL = "SELECT t.UID FROM [tasks.csv] t "
-  strSQL = strSQL & "INNER JOIN [links.csv] l ON L.TO=t.UID "
-  strSQL = strSQL & "WHERE t.SUMMARY='Yes'"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = .RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
-        .MoveNext
-      Loop
-    End If
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
-  If lngX = 0 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '06A209a - hard constraints
-  strMetric = "06A209a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'myDECM_Frm.lboMetrics.Value = "06A209a"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Hard Constraints"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
-  DoEvents
-  'X = count of incomplete tasks/activities & milestones with hard constraints
-  'Y = count of incomplete tasks/activities & milestones
-  'X/Y = 0%
-  'we already have lngY...
-  strSQL = "SELECT UID FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE SUMMARY='No' AND AF IS NULL AND (EVT<>'" & strLOE & "' OR EVT IS NULL) "
-  strSQL = strSQL & "AND (CONST='SNLT' OR CONST='FNLT' OR CONST='MSO' OR CONST='MFO')"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = .RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
-        .MoveNext
-      Loop
-    End If
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore <= 0.1 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '06A210a - LOE Driving Discrete
-  strMetric = "06A210a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'myDECM_Frm.lboMetrics.Value = "06A210a"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "LOE Driving Discrete"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
-  DoEvents
-  'X = count of incomplete LOE tasks/activities in the IMS with at least one Non-LOE successor
-  'Y = count of incomplete LOE tasks/activities in the IMS
-  'X/Y = 0%
-  'get Y
-  strSQL = "SELECT UID FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE AF IS NULL "
-  strSQL = strSQL & "AND SUMMARY='No' "
-  strSQL = strSQL & "AND EVT='" & strLOE & "' "
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    If Not oRecordset.EOF Then
-      lngY = oRecordset.RecordCount
-    Else
-      lngY = 0
-    End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  'get X
-  strSQL = "SELECT DISTINCT [FROM], PRED.EVT, [TO], SUCC.EVT "
-  strSQL = strSQL & "FROM ([links.csv] LINKS "
-  strSQL = strSQL & "    INNER JOIN (SELECT * FROM [tasks.csv]  "
-  strSQL = strSQL & "        WHERE AF IS NULL  " 'incomplete
-  strSQL = strSQL & "        AND SUMMARY = 'No'  " 'non-summary
-  strSQL = strSQL & "        AND BLF <(SELECT MAX(BLF) FROM [tasks.csv] WHERE SUMMARY = 'No') " 'not last task/milestone/deliverable
-  strSQL = strSQL & "        ) AS PRED ON PRED.UID = LINKS.FROM) "
-  strSQL = strSQL & "    INNER JOIN (SELECT * FROM [tasks.csv] "
-  strSQL = strSQL & "        WHERE AF IS NULL " 'incomplete
-  strSQL = strSQL & "        AND SUMMARY = 'No' " 'non-summary
-  strSQL = strSQL & "        AND BLF <(SELECT MAX(BLF) FROM [tasks.csv] WHERE SUMMARY = 'No') " 'not last task/milestone/deliverable
-  strSQL = strSQL & "        ) AS SUCC ON SUCC.UID = LINKS.TO "
-  'strSQL = strSQL & "WHERE (PRED.EVT = '" & strLOE & "' OR PRED.EVT IS NULL) " 'LOE/Null Pred EVT
-  strSQL = strSQL & "WHERE PRED.EVT = '" & strLOE & "' "
-  strSQL = strSQL & "AND (SUCC.EVT <> '" & strLOE & "' OR SUCC.EVT IS NULL) " 'LOE/Null Succ EVT
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    oDict.RemoveAll
-    strList = ""
-    If .RecordCount > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        If Not oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Add CStr(oRecordset("UID")), CStr(oRecordset("UID"))
-        strList = strList & .Fields("UID") & "," & .Fields("TO") & "," 'includes guilty successors
-        .MoveNext
-      Loop
-    End If
-    lngX = oDict.Count
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore = 0 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList 'todo: need guilty link too
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '06A211a - High Float
-  '06A211a - High Float todo: refine TS into effective days (elapsed, etc)
-  '06A211a - High Float todo: need rationale; user can mark 'acceptable'
-  '06A211a - High Float todo: allow user input for lngX
-  strMetric = "06A211a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'myDECM_Frm.lboMetrics.Value = "06A211a"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "High Float"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 20%"
-  DoEvents
-'  X = count of high total float Non-LOE tasks/activities & milestones sampled with inadequate rationale
-'  Y = count of high total float Non-LOE tasks/activities & milestones sampled
-'  X/Y <= 20%
-  strSQL = "SELECT UID,ROUND(TS/" & CLng(60 * ActiveProject.HoursPerDay) & ",2) AS HTF "
-  strSQL = strSQL & "FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE EVT<>'" & strLOE & "' "
-  strSQL = strSQL & "GROUP BY UID,ROUND(TS/480,2) "
-  strSQL = strSQL & "HAVING ROUND(TS/480,2)>44 "
-  strList = ""
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = oRecordset.RecordCount
-    lngY = oRecordset.RecordCount
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
-        .MoveNext
-      Loop
-    End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore <= 0.2 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '06A212a - out of sequence
-  'todo: don't do Excel; cut title lbo in half and
-  'todo: add list of pairs - user can pull up whatever add'l info is wanted
-  strMetric = "06A212a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Out of Sequence"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
-  DoEvents
-  'X = Count of out of sequence conditions
-  strList = cptGetOutOfSequence(myDECM_frm) 'function returns lngX|uid vbtab uid vbtab uid
-  lngX = CLng(Split(strList, "|")(0))
-  strList = Split(strList, "|")(1)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 4) = ""
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
-  If lngX = 0 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  ElseIf lngX > 0 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric) 'todo: see workbook
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '06A401a - critical path (constraint method)
-  strMetric = "06A401a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Critical Path"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
-  DoEvents
-
-  'get targetUID
-  lngTargetUID = cptDECMGetTargetUID()
-  If lngTargetUID = 0 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Critical Path - SKIPPED"
-    'todo: remove it? give a bad score?
-    GoTo skip_06A401a
-  Else
-    Set oTask = ActiveProject.Tasks.UniqueID(lngTargetUID)
-    Dim dtConstraint As Date
-    Dim lngConstraintType As Long
-    'save existing constraint
-    If IsDate(oTask.ConstraintDate) Then dtConstraint = oTask.ConstraintDate
-    lngConstraintType = oTask.ConstraintType
-    'replace with DateSubtract("yyyy",-10,finish)
-    oTask.ConstraintType = pjMFO
-    oTask.ConstraintDate = DateAdd("yyyy", -10, oTask.Finish)
-    Dim lngTargetTotalSlack As Long
-    'get total slack
-    lngTargetTotalSlack = oTask.TotalSlack
-    'get list of primary driving path UIDs
-    strList = ""
-    For Each oTask In ActiveProject.Tasks
-      If oTask Is Nothing Then GoTo next_critical_task
-      If oTask.Summary Then GoTo next_critical_task
-      If Not oTask.Active Then GoTo next_critical_task
-      If oTask.TotalSlack = lngTargetTotalSlack Then
-        strList = strList & oTask.UniqueID & ","
-      End If
-next_critical_task:
-    Next oTask
-    'restore constraint
-    If dtConstraint > 0 Then
-      ActiveProject.Tasks.UniqueID(lngTargetUID).ConstraintDate = dtConstraint
-    Else
-      ActiveProject.Tasks.UniqueID(lngTargetUID).ConstraintDate = "NA"
-    End If
-    ActiveProject.Tasks.UniqueID(lngTargetUID).ConstraintType = lngConstraintType
-    If Len(strList) > 0 Then
-      lngX = UBound(Split(strList, ","))
-    Else
-      lngX = 0
-    End If
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
-  If dblScore = 0 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, lngTargetUID & "|" & strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-skip_06A401a:
-
-  '06A501a - baselines
-  strMetric = "06A501a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'myDECM_Frm.lboMetrics.Value = "06A501a"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Baselines"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
-  DoEvents
-  'X = Count of tasks/activities & milestones without baseline dates
-  'Y = Total count of tasks/activities & milestones
-  'X/Y <= 5%
-  strSQL = "SELECT UID,BLS,BLF FROM [tasks.csv] WHERE SUMMARY='No'"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngY = oRecordset.RecordCount
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  strSQL = "SELECT UID,BLS,BLF FROM [tasks.csv] WHERE SUMMARY='No' AND (BLS IS NULL OR BLF IS NULL)"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = oRecordset.RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
-        .MoveNext
-      Loop
-    End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore <= 0.05 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
+  DECM_06A101a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A101a - WPs Missing between IMS vs EV
+  DECM_06A204b oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A204b - Dangling Logic
+  DECM_06A205a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A205a - Lags (what about leads?)
+  DECM_06A208a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A208a - summary tasks with logic
+  DECM_06A209a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A209a - hard constraints
+  DECM_06A210a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A210a - LOE Driving Discrete
+  DECM_06A211a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A211a - High Float
+  DECM_06A212a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A212a - out of sequence
+  DECM_06A401a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A401a - critical path (constraint method)
+  DECM_06A501a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A501a - baselines
     
   'confirm cpt-cei.adtg exists and convert it to csv for easy querying
   'needed for: 06A504a; 06A504b;
@@ -1789,20 +526,22 @@ skip_06A401a:
     oRecordset.Filter = 0
     oRecordset.Save strFile
     
-    'capture field names
-    strList = ""
-    For lngItem = 0 To oRecordset.Fields.Count - 1
-      strList = strList & oRecordset.Fields(lngItem).Name & ","
-    Next lngItem
-    'save as csv
-    Set oFile = oFSO.CreateTextFile(strDir & "\cpt-cei.csv", True)
-    oFile.Write strList & vbCrLf
-    oRecordset.MoveFirst
-    oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
-    oRecordset.Close
-    Kill strDir & "\cpt-cei.adtg"
-    oFile.Close
-    
+    If oRecordset.RecordCount > 0 Then
+      'capture field names
+      strList = ""
+      For lngItem = 0 To oRecordset.Fields.Count - 1
+        strList = strList & oRecordset.Fields(lngItem).Name & ","
+      Next lngItem
+      'save as csv
+      Set oFSO = CreateObject("Scripting.FileSystemObject")
+      Set oFile = oFSO.CreateTextFile(strDir & "\cpt-cei.csv", True)
+      oFile.Write strList & vbCrLf
+      oRecordset.MoveFirst
+      oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+      oRecordset.Close
+      Kill strDir & "\cpt-cei.adtg"
+      oFile.Close
+    End If
   End If
   
   If Dir(strDir & "\cpt-cei.csv") <> vbNullString And blnFiscalExists Then
@@ -1933,7 +672,7 @@ skip_06A401a:
     Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
     
-  Else 'blnTaskHistoryExists
+  Else 'Not blnTaskHistoryExists
   
     'myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = Null 'X
     'myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = Null 'Y
@@ -2033,213 +772,10 @@ skip_06A401a:
     
   End If
   
-  '06A505a - In-Progress Tasks Have AS
-  strMetric = "06A505a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'myDECM_Frm.lboMetrics.Value = "06A505a"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "In-Progress Tasks w/o Actual Start"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
-  DoEvents
-  'X = count of in-progress tasks/activities & milestones with no actual start date
-  'Y = count of in-progress tasks/activities & milestones
-  'X/Y <= 5%
-  strSQL = "SELECT UID,EVP,[AS] FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE SUMMARY='No' AND EVP<100 AND EVP>0 "
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngY = oRecordset.RecordCount
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  strSQL = "SELECT UID,EVP,[AS] FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE SUMMARY='No' AND EVP<100 AND EVP>0 "
-  strSQL = strSQL & "AND [AS] IS NULL"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = .RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
-        .MoveNext
-      Loop
-    End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore <= 0.05 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '06A505b - Complete Tasks Have AF
-  strMetric = "06A505b"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'myDECM_Frm.lboMetrics.Value = "06A505b"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Complete Tasks w/o Actual Finish"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
-  DoEvents
-  'X = count of complete tasks/activities & milestones with no actual finish date
-  'Y = count of complete tasks/activities & milestones
-  'X/Y <= 5%
-  strSQL = "SELECT UID,EVP,AF FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE SUMMARY='No' AND EVP=100 "
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngY = oRecordset.RecordCount
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  strSQL = "SELECT UID,EVP,AF FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE SUMMARY='No' AND EVP=100 AND AF IS NULL"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = oRecordset.RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
-        .MoveNext
-      Loop
-    End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore <= 0.05 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '06A506a - bogus actuals
-  strMetric = "06A506a"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Bogus Actuals"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
-  'myDECM_Frm.lboMetrics.Value = "06A506a"
-  DoEvents
-  'X = count of tasks/activities & milestones with either actual start or actual finish after status date
-  'Y = count of tasks/activities & milestones with an actual start date
-  'X/Y <= 5%
-  strSQL = "SELECT UID,[AS],AF FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE [AS] IS NOT NULL OR AF IS NOT NULL"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngY = oRecordset.RecordCount
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  strSQL = "SELECT UID,[AS],AF FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE ([AS]>#" & dtStatus & "# OR AF>#" & dtStatus & "#)"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = .RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
-        .MoveNext
-      Loop
-    End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
-  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
-  If dblScore <= 0.05 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
-  
-  '06A506b - invalid forecast
-  strMetric = "06A506b"
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
-  Application.StatusBar = "Getting " & strMetric & "..."
-  myDECM_frm.lboMetrics.AddItem
-  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
-  'myDECM_Frm.lboMetrics.Value = "06A506b"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Invalid Forecast"
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
-  DoEvents
-  'X = Count of incomplete tasks/activities & milestones with either forecast start or forecast finish before the status date
-  'X = 0
-  strSQL = "SELECT UID,FS,FF FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE ((FS<#" & dtStatus & "# AND [AS] IS NULL) "
-  strSQL = strSQL & "OR (FF<#" & dtStatus & "# AND AF IS NULL))"
-  With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = .RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
-        .MoveNext
-      Loop
-    End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
-    .Close
-  End With
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 4) = lngX there is no Y
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
-  If lngX = 0 Then
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
-  Else
-    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
-  End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
-  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add strMetric, strList
-  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
-  Application.StatusBar = "Getting " & strMetric & "...done."
-  DoEvents
+  DECM_06A505a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A505a - In-Progress Tasks Have AS
+  DECM_06A505b oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A505b - Complete Tasks Have AF
+  DECM_06A506a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel, dtStatus '06A506a - bogus actuals
+  DECM_06A506b oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel, dtStatus  '06A506b - invalid forecast
   
   'todo: allow user to refresh analysis on a one-by-one basis?
   
@@ -2497,7 +1033,7 @@ skip_06A401a:
     Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
     
-  End If
+  End If 'Len(strRollingWaveDate) > 0
   
   myDECM_frm.lboMetrics.ListIndex = 0
   
@@ -2507,6 +1043,9 @@ skip_06A401a:
   
 exit_here:
   On Error Resume Next
+  If lngDefaultDateFormat > 0 And Application.DefaultDateFormat <> lngDefaultDateFormate Then
+    Application.DefaultDateFormat = lngDefaultDateFormat
+  End If
   Set myDECM_frm = Nothing
   Set oException = Nothing
   Set oTasks = Nothing
@@ -2532,6 +1071,1760 @@ err_here:
  On Error Resume Next
  Call cptHandleErr("cptDECM", "cptDECM_GET_DATA", Err, Erl)
  Resume exit_here
+End Sub
+
+Sub DECM_05A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  '05A101a - 1 CA : 1 OBS
+  strMetric = "05A101a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting EVMS: 05A101a..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 OBS"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  DoEvents
+  'X = Count of CAs with more than one OBS element or no OBS elements assigned
+  'Y = Total count of CAs
+  'X/Y = 0%
+  strSQL = "SELECT DISTINCT CA FROM tasks.csv WHERE CA IS NOT NULL"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngY = .RecordCount
+    .Close
+  End With
+  strSQL = "SELECT CA,COUNT(OBS) AS CountOfOBS "
+  strSQL = strSQL & "FROM (SELECT DISTINCT CA,OBS FROM [tasks.csv]) "
+  strSQL = strSQL & "WHERE CA IS NOT NULL "
+  strSQL = strSQL & "GROUP BY CA "
+  strSQL = strSQL & "HAVING COUNT(OBS)>1"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("CA") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore = 0 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_05A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  '05A102a - 1 CA : 1 CAM
+  strMetric = "05A102a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 CAM"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  DoEvents
+  'X = Count of CAs that have more than one CAM or no CAM assigned
+  'Y = Total count of CAs
+  'X/Y <= 5%
+  'we already have lngY...
+  strSQL = "SELECT CA,COUNT(CAM) AS CountOfCAM "
+  strSQL = strSQL & "FROM (SELECT DISTINCT CA,CAM FROM [tasks.csv]) "
+  strSQL = strSQL & "WHERE CA IS NOT NULL "
+  strSQL = strSQL & "GROUP BY CA "
+  strSQL = strSQL & "HAVING COUNT(CAM)>1"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("CA") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore <= 0.05 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_05A103a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  '05A103a - 1 CA : 1 WBS
+  strMetric = "05A103a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting EVMS: 05A103a..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "1 CA : 1 WBS"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  DoEvents
+  'X = Count of CAs with more than one WBS element or no WBS elements assigned
+  'Y = Total count of CAs
+  'X/Y = 0%
+  'we already have lngY...
+  strSQL = "SELECT CA,COUNT(WBS) AS CountOfWBS "
+  strSQL = strSQL & "FROM (SELECT DISTINCT CA,WBS FROM [tasks.csv]) "
+  strSQL = strSQL & "WHERE CA IS NOT NULL "
+  strSQL = strSQL & "GROUP BY CA "
+  strSQL = strSQL & "HAVING COUNT(WBS)>1"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("CA") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore = 0 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_1WP1CA(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  'bonus: 1 WP : 1 CA
+  myDECM_frm.lblStatus.Caption = "Getting bonus metric 1wp_1ca..."
+  Application.StatusBar = "Getting bonus metric 1wp_1ca..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = "1wp_1ca"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "1 WP : 1 CA"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  DoEvents
+  'X = count of incomplete WPs that have more than one CA or no CA assigned
+  'Y = count of incomplete WPs
+  strSQL = "SELECT WP,COUNT(CA) AS CountOfCA "
+  strSQL = strSQL & "FROM (SELECT DISTINCT WP,CA FROM [tasks.csv] WHERE AF IS NULL) "
+  strSQL = strSQL & "GROUP BY WP "
+  strSQL = strSQL & "HAVING COUNT(CA)>1"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("WP") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  strSQL = "SELECT DISTINCT WP "
+  strSQL = strSQL & "FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE WP IS NOT NULL AND AF IS NULL"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngY = .RecordCount
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = lngX 'Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = lngX 'Format(dblScore, "0%")
+  If dblScore = 0 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription("1wp_1ca")
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add "1wp_1ca", strList
+  myDECM_frm.lblStatus.Caption = "Getting bonus metric 1wp_1ca...done."
+  Application.StatusBar = "Getting bonus metric 1wp_1ca...done."
+  DoEvents
+End Sub
+
+Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  '10A102a - 1 WP : 1 EVT
+  strMetric = "10A102a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting EVMS: 05A103a..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "1 WP : 1 EVT"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  DoEvents
+  'X = count of incomplete WPs that have more than one EVT or no EVT assigned
+  'Y = count of incomplete WPs
+  'X/Y <= 5%
+  
+  'limit to incomplete WPs with PMB and either mixed or missing EVTs
+  strSQL = "SELECT DISTINCT WP "
+  strSQL = strSQL & "FROM("
+  strSQL = strSQL & "    SELECT WP, Count(EVT) AS CountOfEVT" 'WP has mixed EVTs
+  strSQL = strSQL & "    FROM ("
+  strSQL = strSQL & "        SELECT T.WP, Iif(Isnull(T.EVT),'',T.EVT) AS EVT, SUM(A.BLW+A.BLC) AS BAC "
+  strSQL = strSQL & "        FROM [tasks.csv] AS T "
+  strSQL = strSQL & "        INNER JOIN [assignments.csv] AS A ON A.TASK_UID=T.UID "
+  strSQL = strSQL & "        WHERE T.WP IS NOT NULL AND T.AF IS NULL "
+  strSQL = strSQL & "        GROUP BY T.WP, T.EVT "
+  strSQL = strSQL & "        HAVING SUM(A.BLW+A.BLC)>0 "
+  strSQL = strSQL & "    )  AS PMB"
+  strSQL = strSQL & "    GROUP BY WP"
+  strSQL = strSQL & "    HAVING Count(EVT)>1"
+  strSQL = strSQL & "    UNION"
+  strSQL = strSQL & "    SELECT WP,Count(EVT) " 'WP has no EVTs
+  strSQL = strSQL & "    FROM [tasks.csv] AS T "
+  strSQL = strSQL & "    INNER JOIN [assignments.csv] AS A ON A.TASK_UID=T.UID"
+  strSQL = strSQL & "    WHERE T.EVT IS NULL"
+  strSQL = strSQL & "    GROUP BY WP"
+  strSQL = strSQL & ") AS [10a102a]"
+  
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("WP") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  'limit to incomplete WPs with PMB
+  strSQL = "SELECT T.WP,SUM(A.BLW+A.BLC) AS BAC "
+  strSQL = strSQL & "FROM [tasks.csv] AS T "
+  strSQL = strSQL & "INNER JOIN [assignments.csv] AS A ON A.TASK_UID = T.UID "
+  strSQL = strSQL & "WHERE T.WP IS NOT NULL AND T.AF IS NULL "
+  strSQL = strSQL & "GROUP BY T.WP "
+  strSQL = strSQL & "HAVING SUM(A.BLW+A.BLC)>0"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngY = .RecordCount
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore < 0.05 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_10A103a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean, blnFiscalExists As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
+  Dim oListObject As Excel.ListObject
+  Dim oCell As Excel.Range
+  
+  '10A103a - 0/100 EVTs in one fiscal period
+  strMetric = "10A103a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "0/100 EVTs in >1 period"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  DoEvents
+  
+  'X = Count of 0-100 EVT incomplete WPs with more than one accounting period of budget
+  'Y = Total count of 0-100 EVT incomplete WPs
+  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE WP IS NOT NULL "
+  strSQL = strSQL & "AND AF IS NULL "
+  strSQL = strSQL & "AND EVT='F'" 'todo: what about other tools or values?
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    lngY = .RecordCount
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  If lngY > 0 Then
+    If blnFiscalExists Then
+      Set oWorkbook = cptGetEVTAnalysis
+      Set oWorksheet = oWorkbook.Sheets(1)
+      Set oListObject = oWorksheet.ListObjects(1)
+      lngY = oListObject.DataBodyRange.Rows.Count
+      oListObject.Range.AutoFilter Field:=6, Criteria1:=">1", Operator:=xlAnd
+      lngX = oListObject.DataBodyRange.SpecialCells(xlCellTypeVisible).Rows.Count
+      strList = ""
+      If lngX > 0 Then
+        For Each oCell In oListObject.ListColumns("WP").DataBodyRange.SpecialCells(xlCellTypeVisible).Cells
+          If InStr(strList, oCell.Value) = 0 Then strList = strList & oCell.Value & vbTab
+        Next oCell
+      End If
+    Else 'blnFiscalExists
+      lngX = lngY 'triggers failure
+    End If
+  Else
+    lngX = 0
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore < 0.05 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+  'todo: bonus metrics if EVT_MS is used:
+  'todo: EVT = "B" AND (EVT_MS MISSING OR EVT_MS NOT IN ({discrete})
+  'todo: EVT = "B" AND EVT_MS = 0/100 AND FiscalPeriods > 1
+  'todo: EVT = "B" AND EVT_MS = 50/50 AND FiscalPeriods > 2
+  
+  Set oWorkbook = Nothing
+  Set oWorksheet = Nothing
+  Set oListObject = Nothing
+  Set oCell = Nothing
+  
+End Sub
+
+Sub DECM_10A109b(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  '10A109b - all WPs have budget
+  strMetric = "10A109b"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs w/o Budgets"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  DoEvents
+  'X = Count of WPs/PPs/SLPPs with BAC = 0
+  'Y = Total count of WPs/PPs/SLPPs
+  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] WHERE WP IS NOT NULL"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngY = .RecordCount
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  strSQL = "SELECT t.WP,SUM(a.BLW) AS [BLW],SUM(a.BLC) AS [BLC] FROM [tasks.csv] t "
+  strSQL = strSQL & "INNER JOIN [assignments.csv] a on a.TASK_UID=t.UID "
+  strSQL = strSQL & "WHERE t.WP IS NOT NULL "
+  strSQL = strSQL & "GROUP BY t.WP "
+  strSQL = strSQL & "HAVING SUM(a.BLW)=0 AND SUM(a.BLC)=0"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("WP") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore < 0.05 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_10A302b(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim strDir As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  Dim oFSO As Scripting.FileSystemObject
+  Dim oFile As Scripting.TextStream
+  
+  '10A302b - PPs with progress
+  strMetric = "10A302b"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs w/EVP > 0"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 2%"
+  DoEvents
+  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE EVT='K' " 'todo: what about other values/tools
+  oRecordset.Open strSQL, strCon, adOpenStatic, adLockReadOnly
+  If oRecordset.EOF Then
+    lngY = 0
+    lngX = 0
+    dblScore = 0
+    strList = ""
+  Else
+    lngY = oRecordset.RecordCount
+    oRecordset.Close
+    strSQL = "SELECT WP,IIF(SUM(EVP)>0,TRUE,FALSE) AS HasProgress  FROM [tasks.csv] "
+    strSQL = strSQL & "WHERE EVT='K' "
+    strSQL = strSQL & "GROUP BY WP "
+    strSQL = strSQL & "HAVING SUM(EVP)>0"
+    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    If oRecordset.EOF Then
+      lngX = 0
+    Else
+      lngX = oRecordset.RecordCount
+    End If
+    dblScore = Round(lngX / lngY, 2)
+    strList = ""
+    With oRecordset
+      If oRecordset.RecordCount > 0 Then
+        .MoveFirst
+        Do While Not .EOF
+          strList = strList & oRecordset(0) & ","
+          .MoveNext
+        Loop
+        Set oFSO = CreateObject("Scripting.FileSystemObject")
+        strDir = Environ("tmp")
+        Set oFile = oFSO.CreateTextFile(strDir & "\10A302b-x.csv", True)
+        oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+        oFile.Close
+      End If
+    End With
+    
+  End If
+  oRecordset.Close
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore <= 0.02 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+  
+  Set oFSO = Nothing
+  Set oFile = Nothing
+  
+End Sub
+
+Sub DECM_10A303a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim strDir As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  Dim oFSO As Scripting.FileSystemObject
+  Dim oFile As Scripting.TextStream
+  
+  '10A303a - all PPs have duration?
+  strMetric = "10A303a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "PPs duration = 0"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+  DoEvents
+  'we already have lngY
+  If lngY = 0 Then
+    lngX = 0
+    dblScore = 0
+    strList = ""
+  Else
+    strSQL = "SELECT WP,IIF(SUM(DUR)>0,TRUE,FALSE) AS HasProgress  FROM [tasks.csv] "
+    strSQL = strSQL & "WHERE EVT='K' "
+    strSQL = strSQL & "GROUP BY WP "
+    strSQL = strSQL & "HAVING SUM(EVP)>0"
+    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    strList = ""
+    If oRecordset.EOF Then
+      lngX = 0
+    Else
+      lngX = oRecordset.RecordCount
+      With oRecordset
+        .MoveFirst
+        Do While Not .EOF
+          strList = strList & oRecordset(0) & ","
+          .MoveNext
+        Loop
+      End With
+      Set oFSO = CreateObject("Scripting.FileSystemObject")
+      Set oFile = oFSO.CreateTextFile(strDir & "\10A303a-x.csv", True)
+      oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+      oFile.Close
+    End If
+    dblScore = Round(lngX / lngY, 2)
+    oRecordset.Close
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore <= 0.02 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+  
+  Set oFSO = Nothing
+  Set oFile = Nothing
+  
+End Sub
+
+Sub DECM_11A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim strDir As String
+  Dim strFile As String
+  Dim lngX As Long
+  Dim lngFile As Long
+  Dim dblScore As Double
+  
+  '11A101a - CA BAC = SUM(WP BAC)?
+  'this one is a bit different - need to skip if no assignments
+  strMetric = "11A101a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  'X = Sum of the absolute values of (CA BAC - the sum of its WP and PP budgets)
+  'Y = Total program BAC
+  'create segregated.csv
+  strSQL = "SELECT "
+  strSQL = strSQL & "    DISTINCT t1.ca, "
+  strSQL = strSQL & "    t1.wp, "
+  strSQL = strSQL & "    sum(t3.[wp blw]) AS [WP_BLW] "
+  strSQL = strSQL & "FROM "
+  strSQL = strSQL & "    ( "
+  strSQL = strSQL & "        tasks.csv t1 "
+  strSQL = strSQL & "        INNER JOIN assignments.csv t2 ON t2.task_uid = t1.uid "
+  strSQL = strSQL & "    ) "
+  strSQL = strSQL & "    INNER JOIN ( "
+  strSQL = strSQL & "        SELECT "
+  strSQL = strSQL & "            task_uid, "
+  strSQL = strSQL & "            sum(blw / 60) AS [wp blw] "
+  strSQL = strSQL & "        FROM "
+  strSQL = strSQL & "            assignments.csv "
+  strSQL = strSQL & "        GROUP BY "
+  strSQL = strSQL & "            task_uid "
+  strSQL = strSQL & "    ) AS t3 ON t3.task_uid = t1.uid "
+  strSQL = strSQL & "GROUP BY "
+  strSQL = strSQL & "    t1.ca, "
+  strSQL = strSQL & "    t1.wp "
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  If oRecordset.EOF Then
+    myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...skipped."
+    Application.StatusBar = "Getting " & strMetric & "...skipped."
+    Exit Sub 'was goto decm_schedule
+  Else
+    myDECM_frm.lboMetrics.AddItem
+    myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "CA BAC = Sum(WP BAC)"
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 1%"
+    DoEvents
+  End If
+  lngFile = FreeFile
+  strFile = Environ("tmp") & "\segregated.csv"
+  If Dir(strFile) <> vbNullString Then Kill strFile
+  Open strFile For Output As #lngFile
+  Print #lngFile, "CA,WP,WP_BLW,"
+  Print #lngFile, oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+  Close #lngFile
+  oRecordset.Close
+  
+  'create itemized.csv
+  strSQL = "SELECT "
+  strSQL = strSQL & "    t1.ca, "
+  strSQL = strSQL & "    t2.[ca_bac], "
+  strSQL = strSQL & "    sum(t3.[wp_bac]) AS [WP_BAC], "
+  strSQL = strSQL & "    t2.[ca_bac] - sum(t3.[wp_bac]) AS [discrepancy] "
+  strSQL = strSQL & "FROM "
+  strSQL = strSQL & "    ( "
+  strSQL = strSQL & "        segregated.csv t1 "
+  strSQL = strSQL & "        LEFT JOIN ( "
+  strSQL = strSQL & "            SELECT "
+  strSQL = strSQL & "                ca, "
+  strSQL = strSQL & "                sum([wp_blw]) AS [ca_bac] "
+  strSQL = strSQL & "            FROM "
+  strSQL = strSQL & "                segregated.csv "
+  strSQL = strSQL & "            GROUP BY "
+  strSQL = strSQL & "                ca "
+  strSQL = strSQL & "        ) AS t2 ON t2.ca = t1.ca "
+  strSQL = strSQL & "    ) "
+  strSQL = strSQL & "    LEFT JOIN ( "
+  strSQL = strSQL & "        SELECT "
+  strSQL = strSQL & "            wp, "
+  strSQL = strSQL & "            sum([wp_blw]) AS [wp_bac] "
+  strSQL = strSQL & "        FROM "
+  strSQL = strSQL & "            segregated.csv "
+  strSQL = strSQL & "        GROUP BY "
+  strSQL = strSQL & "            wp "
+  strSQL = strSQL & "    ) AS t3 ON t3.wp = t1.wp "
+  strSQL = strSQL & "GROUP BY "
+  strSQL = strSQL & "    t1.ca, "
+  strSQL = strSQL & "    t2.[ca_bac] "
+  strSQL = strSQL & "HAVING "
+  strSQL = strSQL & "    t2.[ca_bac] - sum(t3.[wp_bac]) <> 0 "
+  
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  lngFile = FreeFile
+  strFile = Environ("tmp") & "\itemized.csv"
+  If Dir(strFile) <> vbNullString Then Kill strFile
+  Open strFile For Output As #lngFile
+  Print #lngFile, "CA,CA_BAC,WP_BAC,discrepancy,"
+  If oRecordset.RecordCount > 0 Then
+    Print #lngFile, oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+    Close #lngFile
+    oRecordset.Close
+    'get list of ca offenders
+    strSQL = "SELECT DISTINCT CA FROM itemized.csv"
+    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    oRecordset.MoveFirst
+    strList = ""
+    Do While Not oRecordset.EOF
+      If Not IsNull(oRecordset("CA")) Then
+        strList = strList & oRecordset("CA") & ","
+      End If
+      oRecordset.MoveNext
+    Loop
+    oRecordset.Close
+    strList = Left(strList, Len(strList) - 1) 'remove trailing comma
+    strList = strList & ";" 'add separator between CAs and WPs
+    'get list of wp offenders
+    strSQL = "SELECT "
+    strSQL = strSQL & "    wp, "
+    strSQL = strSQL & "    count(ca) "
+    strSQL = strSQL & "FROM "
+    strSQL = strSQL & "    ( "
+    strSQL = strSQL & "        SELECT "
+    strSQL = strSQL & "            DISTINCT wp, "
+    strSQL = strSQL & "            ca "
+    strSQL = strSQL & "        FROM "
+    strSQL = strSQL & "            tasks.csv "
+    strSQL = strSQL & "    ) "
+    strSQL = strSQL & "WHERE "
+    strSQL = strSQL & "    wp IS NOT NULL "
+    strSQL = strSQL & "GROUP BY "
+    strSQL = strSQL & "    wp "
+    strSQL = strSQL & "HAVING "
+    strSQL = strSQL & "    count(ca) > 1 "
+    oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    If oRecordset.RecordCount > 0 Then
+      oRecordset.MoveFirst
+      Do While Not oRecordset.EOF
+        strList = strList & oRecordset("wp") & ","
+        oRecordset.MoveNext
+      Loop
+    End If
+  End If
+  Close #lngFile
+  oRecordset.Close
+  
+  'get delta as X
+  strSQL = "SELECT sum(abs([discrepancy])) as [DELTA] from itemized.csv"
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  If oRecordset.RecordCount > 0 Then
+    If Not IsNull(oRecordset("DELTA")) Then lngX = Round(oRecordset("DELTA"), 0) Else lngX = 0
+  Else
+    lngX = 0
+  End If
+  oRecordset.Close
+  
+  'get total as Y
+  strSQL = "SELECT SUM(BLW/60) FROM assignments.csv"
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  If oRecordset.RecordCount > 0 Then
+    lngY = Round(oRecordset(0), 0)
+  Else
+    lngX = 0
+  End If
+  oRecordset.Close
+  
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore <= 0.01 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_06A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim strDir As String
+  Dim strLOE As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  Dim oFSO As Scripting.FileSystemObject
+  Dim oFile As Scripting.TextStream
+  
+  '06A101a - WPs Missing between IMS vs EV
+  strLOE = cptGetSetting("Integration", "LOE")
+  strMetric = "06A101a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs IMS vs EV Tool"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  DoEvents
+  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE WP IS NOT NULL AND AF IS NULL AND EVT<>'" & strLOE & "' AND SUMMARY='No'"
+  oRecordset.Open strSQL, strCon, adOpenKeyset
+  lngX = oRecordset.RecordCount 'pending upload
+  lngY = oRecordset.RecordCount 'pending upload
+  Set oFSO = CreateObject("Scripting.FileSystemObject")
+  strDir = Environ("tmp")
+  Set oFile = oFSO.CreateTextFile(strDir & "\wp-ims.csv", True)
+  oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+  oRecordset.Close
+  oFile.Close
+  FileCopy strDir & "\wp-ims.csv", strDir & "\wp-not-in-ev.csv"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore = 0 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+  
+  Set oFSO = Nothing
+  Set oFile = Nothing
+  
+End Sub
+
+Sub DECM_06A204b(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim strDir As String
+  Dim strLOE As String
+  Dim strLinks As String
+  Dim lngX As Long
+  Dim lngItem As Long
+  Dim dblScore As Double
+  Dim oDict As Scripting.Dictionary
+  Dim vField As Variant
+  
+  '06A204b - Dangling Logic
+  '06A204b - todo: ignore first/last milestone - how?
+  strMetric = "06A204b"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Dangling Logic"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  'myDECM_Frm.lboMetrics.Value = "06A204b"
+  DoEvents
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 1) = DECM("06A204b")
+  'Y = count incomplete Non-LOE tasks/activities & milestones
+  'X = count of tasks with open starts or finishes
+  'X/Y = 0%
+  strSQL = "SELECT * FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE AF IS NULL "
+  strSQL = strSQL & "AND (EVT<>'" & strLOE & "' OR EVT IS NULL) "
+  strSQL = strSQL & "AND SUMMARY='No'"
+  oRecordset.Open strSQL, strCon, adOpenKeyset
+  lngY = oRecordset.RecordCount
+  'start with this list - guilty until proven innocent
+  Set oDict = CreateObject("Scripting.Dictionary")
+  With oRecordset
+    .MoveFirst
+    Do While Not .EOF
+      oDict.Add CStr(oRecordset("UID")), CStr(oRecordset("UID"))
+      .MoveNext
+    Loop
+  End With
+  oRecordset.Close
+  
+  'now do predecessors - guilty until proven innocent
+  strSQL = "SELECT t.UID,t.DUR,p.[TYPE],p.[FROM] FROM [tasks.csv] t "
+  strSQL = strSQL & "LEFT JOIN (SELECT DISTINCT * FROM [links.csv]) p ON p.TO=t.UID "
+  strSQL = strSQL & "WHERE t.SUMMARY='No' AND t.AF IS NULL AND (t.EVT<>'" & strLOE & "' OR t.EVT IS NULL)"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    .MoveFirst
+    Do While Not .EOF
+      If oRecordset("UID") <> "" And (oRecordset("TYPE") = "SS" Or oRecordset("TYPE") = "FS") And oRecordset("DUR") > 0 Then
+        If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
+      ElseIf oRecordset("UID") <> "" And oRecordset("DUR") = 0 And Not IsNull(oRecordset("TYPE")) Then
+        If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
+      End If
+      .MoveNext
+    Loop
+  End With
+  oRecordset.Close
+  'extract the guilty to a string for later consolidation
+  For lngItem = 0 To oDict.Count - 1
+    strLinks = strLinks & oDict.Items(lngItem) & "," 'keep trailing comma, we're going to build on it
+  Next lngItem
+    
+  'now do successors - guilty until proven innocent
+  oDict.RemoveAll
+  strSQL = "SELECT * FROM [tasks.csv] WHERE AF IS NULL AND (EVT<>'" & strLOE & "' OR EVT IS NULL) AND SUMMARY='No'"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    .MoveFirst
+    Do While Not .EOF
+      oDict.Add CStr(oRecordset("UID")), CStr(oRecordset("UID"))
+      .MoveNext
+    Loop
+    .Close
+  End With
+  
+  strSQL = "SELECT t.UID,t.DUR,s.[TYPE],s.[TO] FROM [tasks.csv] t "
+  strSQL = strSQL & "LEFT JOIN (SELECT DISTINCT * FROM [links.csv]) s ON s.[FROM]=t.UID "
+  strSQL = strSQL & "WHERE t.SUMMARY='No' AND t.AF IS NULL AND (t.EVT<>'" & strLOE & "' OR t.EVT IS NULL)"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    .MoveFirst
+    Do While Not .EOF
+      If oRecordset("UID") <> "" And (oRecordset("TYPE") = "FF" Or oRecordset("TYPE") = "FS") And oRecordset("DUR") > 0 Then
+        If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
+      ElseIf oRecordset("UID") <> "" And oRecordset("DUR") = 0 And Not IsNull(oRecordset("TYPE")) Then
+        If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
+      End If
+      .MoveNext
+    Loop
+    .Close
+  End With
+  
+  'account for earliest/latest
+  strSQL = "SELECT UID,BLS,BLF "
+  strSQL = strSQL & "FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE AF IS NULL " 'incomplete
+  strSQL = strSQL & "AND SUMMARY='No' " 'non-summary
+  strSQL = strSQL & "AND (EVT <> '" & strLOE & "' OR EVT IS NULL) " 'non-LOE
+  strSQL = strSQL & "AND (BLS = (SELECT MIN(BLS) FROM [tasks.csv]) " 'earliest BLS
+  strSQL = strSQL & "OR BLF = (SELECT MAX(BLF) FROM [tasks.csv])) " 'latest BLF
+  strSQL = strSQL & "ORDER BY BLS"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    .MoveFirst
+    Do While Not .EOF
+      If oDict.Exists(CStr(oRecordset("UID"))) Then oDict.Remove (CStr(oRecordset("UID")))
+      .MoveNext
+    Loop
+    .Close
+  End With
+  
+  'extract the guilty to a string for later consolidation
+  For lngItem = 0 To oDict.Count - 1
+    strLinks = strLinks & oDict.Items(lngItem) & ","
+  Next lngItem
+  If Len(strLinks) > 0 Then strLinks = Left(strLinks, Len(strLinks) - 1)
+  oDict.RemoveAll
+  strList = ""
+  For Each vField In Split(strLinks, ",")
+    If Len(vField) > 0 And Not oDict.Exists(vField) Then
+      oDict.Add vField, vField
+      strList = strList & vField & ","
+    End If
+  Next vField
+  lngX = oDict.Count
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore = 0 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+  
+  Set oDict = Nothing
+  
+End Sub
+
+Sub DECM_06A205a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim strDir As String
+  Dim strLOE As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  '06A205a - Lags (what about leads?)
+  strLOE = cptGetSetting("Integration", "LOE")
+  strMetric = "06A205a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  'myDECM_Frm.lboMetrics.Value = "06A205a"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Lags"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 10%"
+  DoEvents
+  'X = count of incomplete tasks/activities & milestones with at least one lag in the pred logic
+  'Y = count of incomplete tasks/activities & milestones in the IMS
+  'X/Y <=10%
+  'we already have lngY...
+  strSQL = "SELECT t.UID FROM [tasks.csv] t "
+  strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TO FROM [links.csv] WHERE LAG>0) p ON p.TO=t.UID " 'todo
+  'todo: to include leads replace above with strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TO FROM [links.csv] WHERE LAG<>0) p ON p.TO=t.UID "
+  strSQL = strSQL & "WHERE t.SUMMARY='No' AND t.AF IS NULL AND (t.EVT<>'" & strLOE & "' OR t.EVT IS NULL) "
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = oRecordset.RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore <= 0.1 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_06A208a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  '06A208a - summary tasks with logic
+  strMetric = "06A208a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  'myDECM_Frm.lboMetrics.Value = "06A208a"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Summary Logic"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  DoEvents
+  'X = Count of summary tasks/activities with logic applied (# predecessors > 0 or # successors > 0)
+  'X = 0
+  strSQL = "SELECT t.UID FROM [tasks.csv] t "
+  strSQL = strSQL & "INNER JOIN [links.csv] l ON L.TO=t.UID "
+  strSQL = strSQL & "WHERE t.SUMMARY='Yes'"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
+  If lngX = 0 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_06A209a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim strLOE As String
+  Dim lngX As Long
+  Dim dblScore As Double
+
+  strLOE = cptGetSetting("Integration", "LOE")
+  '06A209a - hard constraints
+  strMetric = "06A209a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  'myDECM_Frm.lboMetrics.Value = "06A209a"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Hard Constraints"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  DoEvents
+  'X = count of incomplete tasks/activities & milestones with hard constraints
+  'Y = count of incomplete tasks/activities & milestones
+  'X/Y = 0%
+  'we already have lngY...
+  strSQL = "SELECT UID FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE SUMMARY='No' AND AF IS NULL AND (EVT<>'" & strLOE & "' OR EVT IS NULL) "
+  strSQL = strSQL & "AND (CONST='SNLT' OR CONST='FNLT' OR CONST='MSO' OR CONST='MFO')"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore <= 0.1 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_06A210a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim strLOE As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  Dim oDict As Scripting.Dictionary
+  
+  '06A210a - LOE Driving Discrete
+  strLOE = cptGetSetting("Integration", "LOE")
+  strMetric = "06A210a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  'myDECM_Frm.lboMetrics.Value = "06A210a"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "LOE Driving Discrete"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
+  DoEvents
+  'X = count of incomplete LOE tasks/activities in the IMS with at least one Non-LOE successor
+  'Y = count of incomplete LOE tasks/activities in the IMS
+  'X/Y = 0%
+  'get Y
+  strSQL = "SELECT UID FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE AF IS NULL "
+  strSQL = strSQL & "AND SUMMARY='No' "
+  strSQL = strSQL & "AND EVT='" & strLOE & "' "
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    If Not oRecordset.EOF Then
+      lngY = oRecordset.RecordCount
+    Else
+      lngY = 0
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  'get X
+  strSQL = "SELECT DISTINCT [FROM], PRED.EVT, [TO], SUCC.EVT "
+  strSQL = strSQL & "FROM ([links.csv] LINKS "
+  strSQL = strSQL & "    INNER JOIN (SELECT * FROM [tasks.csv]  "
+  strSQL = strSQL & "        WHERE AF IS NULL  " 'incomplete
+  strSQL = strSQL & "        AND SUMMARY = 'No'  " 'non-summary
+  strSQL = strSQL & "        AND BLF <(SELECT MAX(BLF) FROM [tasks.csv] WHERE SUMMARY = 'No') " 'not last task/milestone/deliverable
+  strSQL = strSQL & "        ) AS PRED ON PRED.UID = LINKS.FROM) "
+  strSQL = strSQL & "    INNER JOIN (SELECT * FROM [tasks.csv] "
+  strSQL = strSQL & "        WHERE AF IS NULL " 'incomplete
+  strSQL = strSQL & "        AND SUMMARY = 'No' " 'non-summary
+  strSQL = strSQL & "        AND BLF <(SELECT MAX(BLF) FROM [tasks.csv] WHERE SUMMARY = 'No') " 'not last task/milestone/deliverable
+  strSQL = strSQL & "        ) AS SUCC ON SUCC.UID = LINKS.TO "
+  'strSQL = strSQL & "WHERE (PRED.EVT = '" & strLOE & "' OR PRED.EVT IS NULL) " 'LOE/Null Pred EVT
+  strSQL = strSQL & "WHERE PRED.EVT = '" & strLOE & "' "
+  strSQL = strSQL & "AND (SUCC.EVT <> '" & strLOE & "' OR SUCC.EVT IS NULL) " 'LOE/Null Succ EVT
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    Set oDict = CreateObject("Scripting.Dictionary")
+    strList = ""
+    If .RecordCount > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        If Not oDict.Exists(CStr(oRecordset("FROM"))) Then oDict.Add CStr(oRecordset("FROM")), CStr(oRecordset("FROM"))
+        strList = strList & .Fields("FROM") & "," & .Fields("TO") & "," 'includes guilty successors
+        .MoveNext
+      Loop
+    End If
+    lngX = oDict.Count
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore = 0 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList 'todo: need guilty link too
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+  
+  Set oDict = Nothing
+  
+End Sub
+
+Sub DECM_06A211a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim strLOE As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  '06A211a - High Float
+  '06A211a - High Float todo: refine TS into effective days (elapsed, etc)
+  '06A211a - High Float todo: need rationale; user can mark 'acceptable'
+  '06A211a - High Float todo: allow user input for lngX
+  strLOE = cptGetSetting("Integration", "LOE")
+  strMetric = "06A211a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  'myDECM_Frm.lboMetrics.Value = "06A211a"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "High Float"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 20%"
+  DoEvents
+'  X = count of high total float Non-LOE tasks/activities & milestones sampled with inadequate rationale
+'  Y = count of high total float Non-LOE tasks/activities & milestones sampled
+'  X/Y <= 20%
+  strSQL = "SELECT UID,ROUND(TS/" & CLng(60 * ActiveProject.HoursPerDay) & ",2) AS HTF "
+  strSQL = strSQL & "FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE EVT<>'" & strLOE & "' "
+  strSQL = strSQL & "GROUP BY UID,ROUND(TS/480,2) "
+  strSQL = strSQL & "HAVING ROUND(TS/480,2)>44 "
+  strList = ""
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = oRecordset.RecordCount
+    lngY = oRecordset.RecordCount
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore <= 0.2 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_06A212a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  '06A212a - out of sequence
+  'todo: don't do Excel; cut title lbo in half and
+  'todo: add list of pairs - user can pull up whatever add'l info is wanted
+  strMetric = "06A212a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Out of Sequence"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  DoEvents
+  'X = Count of out of sequence conditions
+  strList = cptGetOutOfSequence(myDECM_frm) 'function returns lngX|uid vbtab uid vbtab uid
+  lngX = CLng(Split(strList, "|")(0))
+  strList = Split(strList, "|")(1)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 4) = ""
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
+  If lngX = 0 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  ElseIf lngX > 0 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric) 'todo: see workbook
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_06A401a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim lngTargetUID As Long
+  Dim dblScore As Double
+  Dim oTask As MSProject.Task
+  Dim dtConstraint As Date
+  Dim lngConstraintType As Long
+  Dim lngTargetTotalSlack As Long
+  
+  '06A401a - critical path (constraint method)
+  strMetric = "06A401a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Critical Path"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  DoEvents
+
+  'get targetUID
+  lngTargetUID = cptDECMGetTargetUID()
+  If lngTargetUID = 0 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Critical Path - SKIPPED"
+    'todo: remove it? give a bad score?
+    Exit Sub 'was GoTo skip_06A401a
+  Else
+    Set oTask = ActiveProject.Tasks.UniqueID(lngTargetUID)
+    'save existing constraint
+    If IsDate(oTask.ConstraintDate) Then dtConstraint = oTask.ConstraintDate
+    lngConstraintType = oTask.ConstraintType
+    'replace with DateSubtract("yyyy",-10,finish)
+    oTask.ConstraintType = pjMFO
+    oTask.ConstraintDate = DateAdd("yyyy", -10, oTask.Finish)
+    'get total slack
+    lngTargetTotalSlack = oTask.TotalSlack
+    'get list of primary driving path UIDs
+    strList = ""
+    For Each oTask In ActiveProject.Tasks
+      If oTask Is Nothing Then GoTo next_critical_task
+      If oTask.Summary Then GoTo next_critical_task
+      If Not oTask.Active Then GoTo next_critical_task
+      If oTask.TotalSlack = lngTargetTotalSlack Then
+        strList = strList & oTask.UniqueID & ","
+      End If
+next_critical_task:
+    Next oTask
+    'restore constraint
+    If dtConstraint > 0 Then
+      ActiveProject.Tasks.UniqueID(lngTargetUID).ConstraintDate = dtConstraint
+    Else
+      ActiveProject.Tasks.UniqueID(lngTargetUID).ConstraintDate = "NA"
+    End If
+    ActiveProject.Tasks.UniqueID(lngTargetUID).ConstraintType = lngConstraintType
+    If Len(strList) > 0 Then
+      lngX = UBound(Split(strList, ","))
+    Else
+      lngX = 0
+    End If
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
+  If dblScore = 0 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, lngTargetUID & "|" & strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+  Set oTask = Nothing
+End Sub
+
+Sub DECM_06A501a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  '06A501a - baselines
+  strMetric = "06A501a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  'myDECM_Frm.lboMetrics.Value = "06A501a"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Baselines"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  DoEvents
+  'X = Count of tasks/activities & milestones without baseline dates
+  'Y = Total count of tasks/activities & milestones
+  'X/Y <= 5%
+  strSQL = "SELECT UID,BLS,BLF FROM [tasks.csv] WHERE SUMMARY='No'"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngY = oRecordset.RecordCount
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  strSQL = "SELECT UID,BLS,BLF FROM [tasks.csv] WHERE SUMMARY='No' AND (BLS IS NULL OR BLF IS NULL)"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = oRecordset.RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore <= 0.05 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_06A505a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  '06A505a - In-Progress Tasks Have AS
+  strMetric = "06A505a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  'myDECM_Frm.lboMetrics.Value = "06A505a"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "In-Progress Tasks w/o Actual Start"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  DoEvents
+  'X = count of in-progress tasks/activities & milestones with no actual start date
+  'Y = count of in-progress tasks/activities & milestones
+  'X/Y <= 5%
+  strSQL = "SELECT UID,EVP,[AS] FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE SUMMARY='No' AND EVP<100 AND EVP>0 "
+  With oRecordset
+    If .State Then .Close
+    .Open strSQL, strCon, adOpenKeyset
+    lngY = oRecordset.RecordCount
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  strSQL = "SELECT UID,EVP,[AS] FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE SUMMARY='No' AND EVP<100 AND EVP>0 "
+  strSQL = strSQL & "AND [AS] IS NULL"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore <= 0.05 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_06A505b(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  '06A505b - Complete Tasks Have AF
+  strMetric = "06A505b"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  'myDECM_Frm.lboMetrics.Value = "06A505b"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Complete Tasks w/o Actual Finish"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  DoEvents
+  'X = count of complete tasks/activities & milestones with no actual finish date
+  'Y = count of complete tasks/activities & milestones
+  'X/Y <= 5%
+  strSQL = "SELECT UID,EVP,AF FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE SUMMARY='No' AND EVP=100 "
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngY = oRecordset.RecordCount
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  strSQL = "SELECT UID,EVP,AF FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE SUMMARY='No' AND EVP=100 AND AF IS NULL"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = oRecordset.RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore <= 0.05 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_06A506a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean, dtStatus As Date)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  '06A506a - bogus actuals
+  strMetric = "06A506a"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Bogus Actuals"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y <= 5%"
+  'myDECM_Frm.lboMetrics.Value = "06A506a"
+  DoEvents
+  'X = count of tasks/activities & milestones with either actual start or actual finish after status date
+  'Y = count of tasks/activities & milestones with an actual start date
+  'X/Y <= 5%
+  strSQL = "SELECT UID,[AS],AF FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE [AS] IS NOT NULL OR AF IS NOT NULL"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngY = oRecordset.RecordCount
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  strSQL = "SELECT UID,[AS],AF FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE ([AS]>#" & dtStatus & "# OR AF>#" & dtStatus & "#)"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = Round(lngX / IIf(lngY = 0, 1, lngY), 2)
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = Format(dblScore, "0%")
+  If dblScore <= 0.05 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
+Sub DECM_06A506b(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean, dtStatus As Date)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  '06A506b - invalid forecast
+  strMetric = "06A506b"
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  'myDECM_Frm.lboMetrics.Value = "06A506b"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Invalid Forecast"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  DoEvents
+  'X = Count of incomplete tasks/activities & milestones with either forecast start or forecast finish before the status date
+  'X = 0
+  strSQL = "SELECT UID,FS,FF FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE ((FS<#" & dtStatus & "# AND [AS] IS NULL) "
+  strSQL = strSQL & "OR (FF<#" & dtStatus & "# AND AF IS NULL))"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 4) = lngX there is no Y
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
+  If lngX = 0 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
 End Sub
 
 Function DECM(ByRef myDECM_frm As cptDECM_frm, strDECM As String, Optional blnNotify As Boolean = False) As Double
@@ -2807,7 +3100,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
               oWorksheet.[A3].CopyFromRecordset oRecordset
               oRecordset.Close
             End If
-            oWorksheet.[c2].Value = "NOT IN EV TOOL:"
+            oWorksheet.[C2].Value = "NOT IN EV TOOL:"
             If Dir(strDir & "\wp-not-in-ev.csv") <> vbNullString Then
               Set oRecordset = CreateObject("ADODB.Recordset")
               strSQL = "SELECT * FROM [wp-not-in-ev.csv]"
