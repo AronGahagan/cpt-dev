@@ -7,6 +7,7 @@ Sub cptShowFilterByClipboard_frm()
   Dim myFilterByClipboard_frm As cptFilterByClipboard_frm
   'strings
   Dim strMsg As String
+  Dim strFreeField As String
   'longs
   Dim lngFreeField As Long
   'integers
@@ -46,9 +47,29 @@ Sub cptShowFilterByClipboard_frm()
     .chkFilter = True
   End With
   
-  lngFreeField = cptGetFreeField(myFilterByClipboard_frm, "Number")
+  strFreeField = cptGetSetting("FilterByClipboard", "cboFreeField")
+  If Len(strFreeField) > 0 Then
+    'is it named cptFilterByClipboard?
+    If CustomFieldGetName(CLng(strFreeField)) = "cptFilterByClipboard" Then
+      lngFreeField = CLng(strFreeField)
+    Else 'remove it
+      cptDeleteSetting "FilterByClipboard", "cboFreeField"
+      lngFreeField = cptGetFreeField(myFilterByClipboard_frm, "Number")
+    End If
+  Else
+    lngFreeField = cptGetFreeField(myFilterByClipboard_frm, "Number")
+  End If
 
-  If lngFreeField = 0 Then
+  If lngFreeField > 0 Then
+    With myFilterByClipboard_frm.cboFreeField
+      .Clear
+      .AddItem
+      .List(0, 0) = lngFreeField
+      .List(0, 1) = FieldConstantToFieldName(lngFreeField)
+      .Value = lngFreeField
+      .Locked = True
+    End With
+  ElseIf lngFreeField = 0 Then
     strMsg = "Since there are no custom task number fields available*, filtered tasks will not appear in the same order as pasted."
     strMsg = strMsg & vbCrLf & vbCrLf
     strMsg = strMsg & "* 'available' means:" & vbCrLf
@@ -64,7 +85,7 @@ Sub cptShowFilterByClipboard_frm()
       .Value = 0
       .Locked = True
     End With
-  ElseIf lngFreeField = -1 Then
+  ElseIf lngFreeField = -1 Then 'user hit cancel
     GoTo exit_here
   End If
   
@@ -341,6 +362,7 @@ Function cptGetFreeField(ByRef myFilterByClipboard_frm As cptFilterByClipboard_f
   Dim rstFree As Object 'ADODB.Recordset
   Dim oTask As MSProject.Task
   'strings
+  Dim strFreeField As String
   Dim strNum As String
   'longs
   Dim lngResponse As Long
@@ -356,6 +378,13 @@ Function cptGetFreeField(ByRef myFilterByClipboard_frm As cptFilterByClipboard_f
   'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+
+  lngFreeField = cptCustomFieldExists("cptFilterByClipboard")
+  If lngFreeField > 0 Then
+    cptSaveSetting "FilterByClipboard", "cboFreeField", lngFreeField
+    cptGetFreeField = lngFreeField
+    GoTo exit_here
+  End If
 
   Calculation = pjManual
   
@@ -425,13 +454,7 @@ next_task:
     If rstFree(1) = True Then
       lngResponse = MsgBox("Looks like " & FieldConstantToFieldName(rstFree(0)) & " isn't in use." & vbCrLf & vbCrLf & "OK to temporarily borrow it for this?", vbQuestion + vbYesNoCancel, "Wanted: Custom Number Field")
       If lngResponse = vbYes Then
-        With myFilterByClipboard_frm.cboFreeField
-          .AddItem rstFree(0)
-          .List(myFilterByClipboard_frm.cboFreeField.ListCount - 1, 1) = FieldConstantToFieldName(rstFree(0))
-          .Value = rstFree(0)
-          .Locked = True
-          lngFreeField = rstFree(0)
-        End With
+        lngFreeField = rstFree(0)
         Exit Do
       ElseIf lngResponse = vbCancel Then
         lngFreeField = -1
@@ -469,6 +492,7 @@ Sub cptClearFreeField(ByRef myFilterByClipboard_frm As cptFilterByClipboard_frm)
   'objects
   Dim oTask As MSProject.Task
   'strings
+  Dim strMsg As String
   'longs
   Dim lngFreeField As Long
   Dim lngTasks As Long
@@ -484,9 +508,22 @@ Sub cptClearFreeField(ByRef myFilterByClipboard_frm As cptFilterByClipboard_frm)
   blnMaster = ActiveProject.Subprojects.Count > 0
   Calculation = pjManual
   ScreenUpdating = False
+  If IsNull(myFilterByClipboard_frm.cboFreeField) Then GoTo exit_here
   If myFilterByClipboard_frm.cboFreeField = "" Then GoTo exit_here
   lngFreeField = myFilterByClipboard_frm.cboFreeField.Value
   If lngFreeField > 0 Then
+    strMsg = "Save '" & FieldConstantToFieldName(lngFreeField) & "' for next time?" & vbCrLf & vbCrLf
+    If ActiveProject.Subprojects.Count > 0 Then
+      strMsg = strMsg & "Local Custom Field '" & FieldConstantToFieldName(lngFreeField) & "' will be renamed 'cptFilterByClipboard' in '" & ActiveProject.Name & "' only."
+    Else
+      strMsg = strMsg & "Local Custom Field '" & FieldConstantToFieldName(lngFreeField) & "' will be renamed 'cptFilterByClipboard'."
+    End If
+    If MsgBox(strMsg, vbQuestion + vbYesNo, "Save Local Custom Number Field?") = vbYes Then
+      CustomFieldRename lngFreeField, "cptFilterByClipboard"
+      cptSaveSetting "FilterByClipboard", "cboFreeField", lngFreeField
+    Else
+      cptDeleteSetting "FilterByClipboard", "cboFreeField"
+    End If
     lngTasks = ActiveProject.Tasks.Count
     For Each oTask In ActiveProject.Tasks
       If Not oTask Is Nothing Then
