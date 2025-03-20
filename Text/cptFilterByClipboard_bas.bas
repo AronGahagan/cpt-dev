@@ -12,10 +12,13 @@ Sub cptShowFilterByClipboard_frm()
   'integers
   'doubles
   'booleans
+  Dim blnMaster As Boolean
   'variants
   'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnMaster = ActiveProject.Subprojects.Count > 0
   
   Set myFilterByClipboard_frm = New cptFilterByClipboard_frm
   
@@ -26,6 +29,7 @@ Sub cptShowFilterByClipboard_frm()
     .lboHeader.Clear
     .lboHeader.AddItem
     .optUID = True
+    .optID.Enabled = Not blnMaster
     .lboHeader.List(.lboHeader.ListCount - 1, 0) = "UID"
     .lboHeader.List(.lboHeader.ListCount - 1, 1) = "Task Name"
     .lboHeader.Width = .lboFilter.Width
@@ -60,6 +64,8 @@ Sub cptShowFilterByClipboard_frm()
       .Value = 0
       .Locked = True
     End With
+  ElseIf lngFreeField = -1 Then
+    GoTo exit_here
   End If
   
   myFilterByClipboard_frm.Show False
@@ -121,11 +127,14 @@ Sub cptUpdateClipboard(ByRef myFilterByClipboard_frm As cptFilterByClipboard_frm
   'integers
   'doubles
   'booleans
+  Dim blnMaster As Boolean
   'variants
   Dim vUID As Variant
   'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnMaster = ActiveProject.Subprojects.Count > 0
   
   cptSpeed True
   
@@ -143,7 +152,11 @@ Sub cptUpdateClipboard(ByRef myFilterByClipboard_frm As cptFilterByClipboard_frm
     For Each oTask In ActiveProject.Tasks
       If oTask Is Nothing Then GoTo next_task
       If oTask.ExternalTask Then GoTo next_task
-      If lngFreeField > 0 Then oTask.SetField lngFreeField, 0
+      If lngFreeField > 0 Then
+        If CLng(oTask.GetField(lngFreeField)) > 0 Then
+          oTask.SetField lngFreeField, 0
+        End If
+      End If
 next_task:
       lngTask = lngTask + 1
       Application.StatusBar = "Resetting number field...(" & Format(lngTask / IIf(lngTasks = 0, 1, lngTasks), "0%") & ")"
@@ -174,7 +187,7 @@ next_task:
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If Not oTask Is Nothing Then
       'add to autofilter
-      strFilter = strFilter & oTask.UniqueID & vbTab 'vbTab = Chr$(9)
+      strFilter = strFilter & lngUID & vbTab
       myFilterByClipboard_frm.lboFilter.List(myFilterByClipboard_frm.lboFilter.ListCount - 1, 1) = oTask.Name
       If lngFreeField > 0 Then oTask.SetField lngFreeField, CStr(lngItem + 1)
       Set oTask = Nothing
@@ -248,10 +261,10 @@ Function cptGuessDelimiter(ByRef vData As Variant, strRegEx As String) As Long
 
   Set RE = CreateObject("vbscript.regexp")
   With RE
-      .MultiLine = True
-      .Global = True
-      .IgnoreCase = True
-      .Pattern = strRegEx
+    .MultiLine = True
+    .Global = True
+    .IgnoreCase = True
+    .Pattern = strRegEx
   End With
   
   Set dScores = CreateObject("Scripting.Dictionary")
@@ -330,6 +343,7 @@ Function cptGetFreeField(ByRef myFilterByClipboard_frm As cptFilterByClipboard_f
   'strings
   Dim strNum As String
   'longs
+  Dim lngResponse As Long
   Dim lngFreeField As Long
   Dim lngField As Long
   Dim lngItems As Long
@@ -409,7 +423,8 @@ next_task:
   rstFree.MoveFirst
   Do While Not rstFree.EOF
     If rstFree(1) = True Then
-      If MsgBox("Looks like " & FieldConstantToFieldName(rstFree(0)) & " isn't in use." & vbCrLf & vbCrLf & "OK to temporarily borrow it for this?", vbQuestion + vbYesNo, "Wanted: Custom Number Field") = vbYes Then
+      lngResponse = MsgBox("Looks like " & FieldConstantToFieldName(rstFree(0)) & " isn't in use." & vbCrLf & vbCrLf & "OK to temporarily borrow it for this?", vbQuestion + vbYesNoCancel, "Wanted: Custom Number Field")
+      If lngResponse = vbYes Then
         With myFilterByClipboard_frm.cboFreeField
           .AddItem rstFree(0)
           .List(myFilterByClipboard_frm.cboFreeField.ListCount - 1, 1) = FieldConstantToFieldName(rstFree(0))
@@ -417,6 +432,9 @@ next_task:
           .Locked = True
           lngFreeField = rstFree(0)
         End With
+        Exit Do
+      ElseIf lngResponse = vbCancel Then
+        lngFreeField = -1
         Exit Do
       Else
         lngFreeField = 0
@@ -427,7 +445,7 @@ next_task:
   rstFree.Close
   
 return_value:
-  If lngFreeField > 0 Then
+  If lngFreeField <> 0 Then
     cptGetFreeField = lngFreeField
   Else
     cptGetFreeField = 0
@@ -458,11 +476,12 @@ Sub cptClearFreeField(ByRef myFilterByClipboard_frm As cptFilterByClipboard_frm)
   'integers
   'doubles
   'booleans
+  Dim blnMaster As Boolean
   'variants
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
+  blnMaster = ActiveProject.Subprojects.Count > 0
   Calculation = pjManual
   ScreenUpdating = False
   If myFilterByClipboard_frm.cboFreeField = "" Then GoTo exit_here
@@ -470,13 +489,13 @@ Sub cptClearFreeField(ByRef myFilterByClipboard_frm As cptFilterByClipboard_frm)
   If lngFreeField > 0 Then
     lngTasks = ActiveProject.Tasks.Count
     For Each oTask In ActiveProject.Tasks
-      If Not oTask Is Nothing Then oTask.SetField lngFreeField, 0
-      lngTask = lngTask + 1
-      If ActiveProject.Subprojects.Count = 0 Then
-        Application.StatusBar = "Clearing " & FieldConstantToFieldName(lngFreeField) & "...(" & Format(lngTask / lngTasks, "0%") & ")"
-      Else
-        Application.StatusBar = "Clearing " & FieldConstantToFieldName(lngFreeField) & "...(" & Format(lngTask, "#,##0") & ")"
+      If Not oTask Is Nothing Then
+        If CLng(oTask.GetField(lngFreeField)) > 0 Then
+          oTask.SetField lngFreeField, 0
+        End If
       End If
+      lngTask = lngTask + 1
+      Application.StatusBar = "Clearing " & FieldConstantToFieldName(lngFreeField) & "...(" & Format(lngTask / lngTasks, "0%") & ")"
     Next oTask
   End If
   
