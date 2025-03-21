@@ -1043,7 +1043,7 @@ next_task:
   
 exit_here:
   On Error Resume Next
-  If lngDefaultDateFormat > 0 And Application.DefaultDateFormat <> lngDefaultDateFormate Then
+  If lngDefaultDateFormat > 0 And Application.DefaultDateFormat <> lngDefaultDateFormat Then
     Application.DefaultDateFormat = lngDefaultDateFormat
   End If
   Set myDECM_frm = Nothing
