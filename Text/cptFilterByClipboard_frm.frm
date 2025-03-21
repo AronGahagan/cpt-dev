@@ -354,6 +354,6 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
 End Sub
 
 Private Sub UserForm_Terminate()
-  cptClearFreeField Me
+  cptClearFreeField Me, True
   Unload Me
 End Sub
