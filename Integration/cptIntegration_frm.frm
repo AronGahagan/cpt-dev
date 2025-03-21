@@ -459,6 +459,8 @@ Private Sub cmdConfirm_Click()
   Dim blnValid As Boolean
   Dim oControl As MSForms.Control
   Dim strConstants As String
+  Dim strKey As String
+  Dim strValue As String
   
   blnValid = True
   For Each oControl In Me.Controls
@@ -467,8 +469,28 @@ Private Sub cmdConfirm_Click()
     If oControl.BorderColor = 192 Then
       blnValid = False
       Exit For
+    Else
+      If Left(oControl.Name, 3) = "cbo" Then
+        If IsNull(oControl.Value) Then GoTo next_control
+        If oControl.Value = "" Then GoTo next_control
+        strKey = Replace(oControl.Name, "cbo", "")
+        If oControl.Name = "cboLOE" Then
+          strValue = oControl.Value
+        ElseIf oControl.Name = "cboPP" Then
+          strValue = oControl.Value
+        Else
+          strValue = CustomFieldGetName(oControl.Value)
+          If Len(strValue) = 0 Then
+            strValue = FieldConstantToFieldName(oControl.Value)
+          End If
+          strValue = oControl.Value & "|" & strValue
+        End If
+        cptSaveSetting "Integration", strKey, strValue
+      End If
     End If
 next_control:
+    strKey = ""
+    strValue = ""
   Next oControl
   'todo: if blnValid and me.chkSyncWithCOBRA and master/sub -> flowdown oCDPs?
 '  todo: PMB missing data quicklook?
