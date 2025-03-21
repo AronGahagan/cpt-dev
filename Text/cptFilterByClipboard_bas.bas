@@ -488,7 +488,7 @@ err_here:
   Resume exit_here
 End Function
 
-Sub cptClearFreeField(ByRef myFilterByClipboard_frm As cptFilterByClipboard_frm)
+Sub cptClearFreeField(ByRef myFilterByClipboard_frm As cptFilterByClipboard_frm, Optional blnPromptToSave As Boolean = False)
   'objects
   Dim oTask As MSProject.Task
   'strings
@@ -511,7 +511,7 @@ Sub cptClearFreeField(ByRef myFilterByClipboard_frm As cptFilterByClipboard_frm)
   If IsNull(myFilterByClipboard_frm.cboFreeField) Then GoTo exit_here
   If myFilterByClipboard_frm.cboFreeField = "" Then GoTo exit_here
   lngFreeField = myFilterByClipboard_frm.cboFreeField.Value
-  If lngFreeField > 0 Then
+  If lngFreeField > 0 And blnPromptToSave Then
     strMsg = "Save '" & FieldConstantToFieldName(lngFreeField) & "' for next time?" & vbCrLf & vbCrLf
     If ActiveProject.Subprojects.Count > 0 Then
       strMsg = strMsg & "Local Custom Field '" & FieldConstantToFieldName(lngFreeField) & "' will be renamed 'cptFilterByClipboard' in '" & ActiveProject.Name & "' only."
