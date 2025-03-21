@@ -585,6 +585,46 @@ err_here:
 
 End Sub
 
+Private Sub cmdDn_Click()
+  Dim lngExport As Long
+  Dim lngField As Long, strField As String, strField2 As String
+  Dim blnSelected As Boolean
+
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  blnSelected = False
+  For lngExport = Me.lboExport.ListCount - 1 To 0 Step -1
+    If lngExport < Me.lboExport.ListCount - 1 Then
+      If Me.lboExport.Selected(lngExport) Then
+        blnSelected = True
+        'capture values
+        lngField = Me.lboExport.List(lngExport + 1, 0)
+        strField = Me.lboExport.List(lngExport + 1, 1)
+        strField2 = Me.lboExport.List(lngExport + 1, 2)
+        'move selected values
+        Me.lboExport.List(lngExport + 1, 0) = Me.lboExport.List(lngExport, 0)
+        Me.lboExport.List(lngExport + 1, 1) = Me.lboExport.List(lngExport, 1)
+        Me.lboExport.List(lngExport + 1, 2) = Me.lboExport.List(lngExport, 2)
+        Me.lboExport.Selected(lngExport + 1) = True
+        Me.lboExport.List(lngExport, 0) = lngField
+        Me.lboExport.List(lngExport, 1) = strField
+        Me.lboExport.List(lngExport, 2) = strField2
+        Me.lboExport.Selected(lngExport) = False
+      End If
+    End If
+  Next lngExport
+
+  If blnSelected Then cptRefreshStatusTable Me
+
+exit_here:
+  On Error Resume Next
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_frm", "cmdDn_Click", Err, Erl)
+  Resume exit_here
+End Sub
+
 Private Sub cmdRemove_Click()
   Dim lngExport As Long
 

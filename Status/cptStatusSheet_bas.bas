@@ -3272,6 +3272,7 @@ next_task:
   'report results
   If lngUnstatused > 0 Then
     strUnstatused = Left(strUnstatused, Len(strUnstatused) - 1) 'hack off trailing tab
+    ActiveWindow.TopPane.Activate
     FilterClear
     GroupClear
     Sort "ID", , , , , , False, True
