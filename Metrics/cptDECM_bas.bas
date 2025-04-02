@@ -2977,7 +2977,7 @@ err_here:
 End Sub
 
 Sub opencsv(strFile)
-  Shell "C:\Windows\notepad.exe '" & Environ("tmp") & "\" & strFile & "'", vbNormalFocus
+  Shell "notepad.exe """ & Environ("tmp") & "\" & strFile & """", vbNormalFocus
 End Sub
 
 Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolean = False)

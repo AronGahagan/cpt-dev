@@ -665,7 +665,7 @@ next_task:
   cptGetMetric = dblResult
   If blnVerbose Then
     Close #lngFile
-    Shell "C:\Windows\notepad.exe '" & strVerbose & "'", vbNormalFocus
+    Shell "notepad.exe """ & strVerbose & """", vbNormalFocus
   End If
 
 exit_here:

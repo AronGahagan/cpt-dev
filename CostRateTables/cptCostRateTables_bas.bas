@@ -383,7 +383,7 @@ cost_rate_tables:
       Print #lngFile, Split(oDict.Keys(lngItem), "|")(0) & "," & Chr(34) & Split(oDict.Keys(lngItem), "|")(1) & Chr(34) & "," & Chr(34) & oDict.Items(lngItem) & Chr(34)
     Next lngItem
     Close #lngFile
-    Shell "notepad.exe '" & strFile & "'", vbNormalFocus
+    Shell "notepad.exe """ & strFile & """", vbNormalFocus
   End If
   
   With myCostRateTables_frm

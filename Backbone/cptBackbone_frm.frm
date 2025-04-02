@@ -188,7 +188,7 @@ Private Sub cmdImport_Click()
           Application.StatusBar = "Backing up " & strOutlineCode & " pick-list...(" & Format(lngItem / lngItems, "0%") & ")"
         Next lngItem
         Close #lngFile
-        Shell "notepad.exe '" & strFile & "'", vbMinimizedNoFocus
+        Shell "notepad.exe """ & strFile & """", vbMinimizedNoFocus
         Application.StatusBar = ""
         
         'backup task data
@@ -212,7 +212,7 @@ next_task:
           Application.StatusBar = "Backing up task data...(" & Format(lngItem / lngItems, "0%") & ")"
         Next oTask
         Close #lngFile
-        Shell "notepad.exe '" & strFile & "'", vbMinimizedNoFocus
+        Shell "notepad.exe """ & strFile & """", vbMinimizedNoFocus
         Application.StatusBar = ""
         
         'delete lookup table and start fresh

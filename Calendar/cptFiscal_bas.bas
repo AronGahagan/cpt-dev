@@ -366,7 +366,7 @@ next_record:
   
   'kick out an error report
   If lngErrorCount > 0 Then
-    Shell "notepad.exe '" & strFile & "'", vbNormalFocus
+    Shell "notepad.exe """ & strFile & """", vbNormalFocus
   End If
   
 exit_here:
