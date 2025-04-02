@@ -417,7 +417,7 @@ Sub cptGetReferences()
   Next oRef
   Reset
   
-  Shell "C:\Windows\notepad.exe '" & strFile & "'", vbNormalFocus
+  Shell "notepad.exe """ & strFile & """", vbNormalFocus
   
 End Sub
 
@@ -1892,7 +1892,7 @@ err_here:
 End Function
 
 Sub cptOpenSettingsFile()
-  Shell "notepad.exe '" & cptDir & "\settings\cpt-settings.ini" & "'"
+  Shell "notepad.exe """ & cptDir & "\settings\cpt-settings.ini" & """"""
 End Sub
 
 Function cptGetMyHeaders(strTitle As String, Optional blnRequired As Boolean = False) As String

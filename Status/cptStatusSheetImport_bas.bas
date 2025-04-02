@@ -1055,7 +1055,7 @@ exit_here:
   Reset 'closes all active files opened by the Open statement and writes the contents of all file buffers to disk.
   Close #lngDeconflictionFile
   If Dir(strImportLog) <> vbNullString And blnImportLog Then 'open log in notepad
-    Shell "notepad.exe " & strImportLog, vbNormalFocus
+    Shell "notepad.exe """ & strImportLog & """", vbNormalFocus
   End If
   If Dir(Environ("tmp") & "\Schema.ini") <> vbNullString Then Kill Environ("tmp") & "\Schema.ini"
   If Dir(Environ("tmp") & "\imported.csv") <> vbNullString Then Kill Environ("tmp") & "\imported.csv"

@@ -867,7 +867,7 @@ next_task:
         Print #1, "COMBINED UID LIST: " & Replace(strFilter, vbTab, ",")
   '    End If
       Close #1
-      Shell "notepad.exe '" & strFile & "'", vbNormalFocus
+      Shell "notepad.exe """ & strFile & """", vbNormalFocus
     End If
   End If
   

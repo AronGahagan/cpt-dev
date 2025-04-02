@@ -160,7 +160,7 @@ Public Sub lboMetrics_AfterUpdate()
           strMsg = strMsg & "I appreciate your assistance. Please let me know if you have any questions."
           oFile.Write strMsg
           oFile.Close
-          Shell "C:\Windows\notepad.exe '" & strDir & "\wp-ev.sql.txt" & "'", vbNormalFocus
+          Shell "notepad.exe """ & strDir & "\wp-ev.sql.txt" & """", vbNormalFocus
           GoTo exit_here
         Else
           Me.txtTitle.Value = Me.txtTitle.Text & vbCrLf & "please paste data here (w/o headers):" & vbCrLf

@@ -982,7 +982,7 @@ next_task_single:
   Print #lngFile, "-> The location of this file is " & strFile & vbCrLf
   Print #lngFile, strMsg
   Close #lngFile
-  Shell "notepad.exe '" & strFile & "'", vbNormalFocus
+  Shell "notepad.exe """ & strFile & """", vbNormalFocus
   Application.StatusBar = "Opening https://clearplan.happyfox.com/new..."
   Application.FollowHyperlink "https://clearplan.happyfox.com/new/"
   

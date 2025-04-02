@@ -1291,7 +1291,7 @@ Sub cptExportOutlineCodeForMPM(ByRef myBackbone_frm As cptBackbone_frm, lngOutli
   Close #lngFile
   
   'open it in notepad
-  Shell "C:\Windows\notepad.exe '" & strDir & strFile & "'", vbNormalFocus
+  Shell "notepad.exe """ & strDir & strFile & """", vbNormalFocus
   
 exit_here:
   On Error Resume Next
@@ -1420,7 +1420,7 @@ Sub cptExportOutlineCodeForCOBRA(ByRef myBackbone_frm As cptBackbone_frm, lngOut
 
   Close #lngFile
   
-  Shell "C:\Windows\notepad.exe '" & strFile & "'", vbNormalFocus
+  Shell "notepad.exe """ & strFile & """", vbNormalFocus
 
 exit_here:
   On Error Resume Next

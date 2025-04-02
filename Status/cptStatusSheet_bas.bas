@@ -3592,7 +3592,7 @@ Sub cptFindCompleteThrough()
 '  Print #lngFile, "TIP: if the graphical progress bar is causing confusion, set it to run from [Actual Start] through [Stop] instead of from [Actual Start] through [CompleteThrough]."
 '  Print #lngFile, String(20, "-")
   Close #lngFile
-  Shell "notepad.exe '" & strFile & "'", vbNormalFocus
+  Shell "notepad.exe """ & strFile & """", vbNormalFocus
   
 exit_here:
   On Error Resume Next
@@ -3718,7 +3718,7 @@ next_task:
     End If
     Print #lngFile, "NOTE: Resources can have the same name in MS Project. Confirm Resource Unique ID before deleting."
     Close #lngFile
-    Shell "notepad.exe '" & strFile & "'", vbNormalFocus
+    Shell "notepad.exe """ & strFile & """", vbNormalFocus
     SetAutoFilter "Unique ID", pjAutoFilterIn, "contains", Join(oDict.Keys, vbTab)
   Else
     MsgBox "There are ZERO assignments without remaining work!", vbInformation + vbOKOnly, "Well Done"
