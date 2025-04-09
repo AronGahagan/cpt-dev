@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.4.3</cpt_version>
+'<cpt_version>v3.4.4</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -171,7 +171,7 @@ Sub Export_IMS()
         On Error GoTo CleanUp
         ErrMsg = "Please try again, or contact the developer if this message repeats."
         '********************************************
-        'On Error GoTo 0 '**Used for Debugging ONLY**
+        On Error GoTo 0 '**Used for Debugging ONLY**
         '********************************************
 
         .Show
@@ -1290,7 +1290,7 @@ Private Sub CSV_Export(ByVal curProj As Project)
         fAssignPcnt = docProps("fAssignPcnt").Value 'v3.3.0
     End If
     fResID = docProps("fResID").Value
-    fProject = docProps("fProject").Value 'v3.4.3
+    If subprojectIDs Then fProject = docProps("fProject").Value 'v3.4.3, v3.4.4
 
     BCR_Error = False
 
@@ -1632,7 +1632,8 @@ Private Sub BCWP_Export(ByVal curProj As Project)
                                     X = X + 1
                                     ActFound = True
 
-                                ElseIf EVT = "E" Or EVT = "F" Or EVT = "G" Or EVT = "H" Or EVT = "E 50/50" Or EVT = "F 0/100" Or EVT = "G 100/0" Or EVT = "H User Defined" Then
+                                ElseIf EVT = "E" Or EVT = "F" Or EVT = "G" Or EVT = "H" Or EVT = "E 50/50" Or EVT = "F 0/100" Or _
+                                    EVT = "G 100/0" Or EVT = "H User Defined" Or EVT = "A" Or EVT = "A Level of Effort" Or EVT = "O" Or EVT = "O Earned As Spent" Then '3.4.4
 
                                     'store ACT info
                                     'WP Data
@@ -1991,7 +1992,8 @@ nrBCWP_WP_Match_A:
                                 X = X + 1
                                 ActFound = True
 
-                            ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or EVT = "H" Or EVT = "H User Defined" Then
+                            ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or _
+                                EVT = "H" Or EVT = "H User Defined" Or EVT = "A" Or EVT = "A Level of Effort" Or EVT = "O" Or EVT = "O Earned As Spent" Then '3.4.4
 
                                 'store ACT info
                                 'WP Data
@@ -2554,7 +2556,8 @@ Next_Assign_A:
                                     X = X + 1
                                     ActFound = True
 
-                                ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or EVT = "H" Or EVT = "H User Defined" Then
+                                ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or _
+                                    EVT = "H" Or EVT = "H User Defined" Or EVT = "A" Or EVT = "A Level of Effort" Or EVT = "O" Or EVT = "O Earned As Spent" Then '3.4.4
 
                                     'store ACT info
                                     'WP Data
@@ -3054,7 +3057,8 @@ Next_Assign_B:
                                 X = X + 1
                                 ActFound = True
 
-                            ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or EVT = "H" Or EVT = "H User Defined" Then
+                            ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or _
+                                EVT = "H" Or EVT = "H User Defined" Or EVT = "A" Or EVT = "A Level of Effort" Or EVT = "O" Or EVT = "O Earned As Spent" Then '3.4.4
 
                                 'store ACT info
                                 'WP Data
