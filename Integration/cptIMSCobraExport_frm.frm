@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIMSCobraExport_frm 
-   Caption         =   "IMS Export Utility v3.4.2"
+   Caption         =   "IMS Export Utility v3.4.3"
    ClientHeight    =   9060.001
    ClientLeft      =   120
    ClientTop       =   468
@@ -13,12 +13,14 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v3.4.2</cpt_version>
+
+
+'<cpt_version>v3.4.3/cpt_version>
 Private Sub AsgnPcntBox_Change() 'v3.3.1
     
     If isIMSfield(AsgnPcntBox.Value) = False And AsgnPcntBox.Value <> "" And AsgnPcntBox.Value <> "<None>" Then
         MsgBox "Please select a valid IMS Field."
-        bcrBox.Value = ""
+        AsgnPcntBox.Value = "" 'v3.4.3
         Exit Sub
     End If
     
@@ -831,6 +833,46 @@ PropMissing:
     Resume PropFound
 End Sub
 
+Private Sub projBox_Change()
+
+    If checkDuplicate(projBox) = True Then
+        MsgBox "Please select a unique IMS Field."
+        projBox.Value = ""
+        Exit Sub
+    End If
+    
+    If isIMSfield(projBox.Value) = False And projBox.Value <> "" And projBox.Value <> "<None>" Then
+        MsgBox "Please select a valid IMS Field."
+        projBox.Value = ""
+        Exit Sub
+    End If
+    
+    Dim docProps As DocumentProperties
+    Dim curProj As Project
+    
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
+    
+    On Error GoTo PropMissing
+    
+    docProps("fProject").Value = Me.projBox.Value
+
+PropFound:
+
+    Me.TabButtons(1).Tag = VerifyCustFieldUsage
+    
+    Set docProps = Nothing
+    Set curProj = Nothing
+    
+    Exit Sub
+    
+PropMissing:
+
+    docProps.Add "fProject", False, msoPropertyTypeString, Me.projBox.Value
+    Resume PropFound
+
+End Sub
+
 Private Sub resBox_Change()
     
     Dim docProps As DocumentProperties
@@ -1047,7 +1089,7 @@ Private Function PopulateCustFieldUsage() As Boolean
     Dim curProj As Project
     Dim docProp As DocumentProperty
     Dim docProps As DocumentProperties
-    Dim fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fEVT, fCAID2, fCAID2t, fMSID, fMSW, fBCR, fWhatIf, fPCNT, fAssignPcnt, fResID, dateFmt As Boolean 'v3.3.0, v3.3.5
+    Dim fProject, fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fEVT, fCAID2, fCAID2t, fMSID, fMSW, fBCR, fWhatIf, fPCNT, fAssignPcnt, fResID, dateFmt As Boolean 'v3.3.0, v3.3.5, v3.4.3
     Dim nameTest As Double
     
     Set curProj = ActiveProject
@@ -1178,6 +1220,17 @@ Private Function PopulateCustFieldUsage() As Boolean
                     nameTest = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
                     fBCR = True
                     Me.bcrBox.Value = docProp.Value
+                End If
+                
+            Case "fProject"
+            
+                If docProp.Value = "<None>" Then
+                    fProject = True
+                    Me.projBox.Value = docProp.Value
+                Else
+                    nametets = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                    fProject = True
+                    Me.projBox.Value = docProp.Value
                 End If
                 
             Case "fWhatIf" 'v3.2
