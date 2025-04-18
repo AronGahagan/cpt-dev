@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.4.4</cpt_version>
+'<cpt_version>v3.4.5</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -171,7 +171,7 @@ Sub Export_IMS()
         On Error GoTo CleanUp
         ErrMsg = "Please try again, or contact the developer if this message repeats."
         '********************************************
-        On Error GoTo 0 '**Used for Debugging ONLY**
+        'On Error GoTo 0 '**Used for Debugging ONLY**
         '********************************************
 
         .Show
@@ -3910,11 +3910,11 @@ ETC_WP_Match:
 
                                             Case pjResourceTypeWork
 
-                                            If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                            If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
-                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork / 60 & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork / 60 & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
-                                            ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                            ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
                                                 Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work / 60 & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
@@ -3922,11 +3922,12 @@ ETC_WP_Match:
 
                                         Case pjResourceTypeCost
 
-                                            If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                            If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingCost <> 0 Then 'v3.4.5
 
-                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingCost & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingCost & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
+                                                
 
-                                            ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                            ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingCost <> 0 Then 'v3.4.5
 
                                                 Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Cost & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
@@ -3934,11 +3935,11 @@ ETC_WP_Match:
 
                                         Case pjResourceTypeMaterial
 
-                                            If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                            If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
-                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
-                                            ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                            ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
                                                 Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
@@ -4153,18 +4154,18 @@ ETC_WP_Match_B:
                                 If TimeScaleExport = True Then
 
                                     ExportTimeScaleResources ShortID, t, tAssign, 2, "ETC"
-
+                                    
                                 Else
 
                                     Select Case tAssign.ResourceType
 
                                         Case pjResourceTypeWork
 
-                                        If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                        If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
-                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork / 60 & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork / 60 & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
-                                        ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                        ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
                                             Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work / 60 & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
@@ -4172,11 +4173,11 @@ ETC_WP_Match_B:
 
                                     Case pjResourceTypeCost
 
-                                        If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                        If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingCost <> 0 Then 'v3.4.5
 
-                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingCost & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingCost & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
-                                        ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                        ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingCost <> 0 Then 'v3.4.5
 
                                             Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Cost & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
@@ -4184,11 +4185,11 @@ ETC_WP_Match_B:
 
                                     Case pjResourceTypeMaterial
 
-                                        If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                        If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
-                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
-                                        ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                        ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
                                             Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
@@ -6373,6 +6374,7 @@ Private Function SetDirectory(ByVal ProjName As String) As String
     Dim pathDesktop As String
 
     pathDesktop = BrowseForFolder 'CreateObject("WScript.Shell").SpecialFolders("Desktop")) 'v3.4.2
+    
     newDir = pathDesktop & "\" & RemoveIllegalCharacters(ProjName) & "_" & Format(Now, "YYYYMMDD HHMMSS")
 
     If Len(newDir) > 220 Then 'v3.4.1
@@ -6867,7 +6869,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
     Dim tsv As TimeScaleValue
     Dim tsvs As TimeScaleValues
     Dim tsvsa As TimeScaleValues
-    Dim tsva As TimeScaleValue
+    Dim tsvA As TimeScaleValue
     Dim tempWork As Double
 
     Select Case exportType
@@ -6878,24 +6880,24 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                 Case pjResourceTypeWork
 
-                    If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                    If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then 'v3.4.5
 
                         If TsvScale = "Weekly" Then 'v3.4
-                            Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
-                            Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks)
+                            Set tsvs = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks) 'v3.4.5
+                            Set tsvsa = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks) 'v3.4.5
                         Else
-                            Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleMonths) 'v3.4
-                            Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleMonths) 'v3.4
+                            Set tsvs = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleMonths) 'v3.4, v3.4.5
+                            Set tsvsa = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleMonths) 'v3.4, v3.4.5
                         End If
                         
                         For Each tsv In tsvs
 
-                            Set tsva = tsvsa(tsv.Index)
+                            Set tsvA = tsvsa(tsv.Index)
 
                             tempWork = 0
 
-                            If tsva <> "" Then
-                                tempWork = CDbl(tsv.Value) - CDbl(tsva.Value) 'v3.3.6
+                            If tsvA <> "" Then
+                                tempWork = CDbl(tsv.Value) - CDbl(tsvA.Value) 'v3.3.6
                             ElseIf tsv.Value <> "" Then
                                 tempWork = CDbl(tsv.Value)
                             End If
@@ -6904,7 +6906,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                 If tsvs.Count = 1 Then
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
                                 Else
 
@@ -6912,7 +6914,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                         Case 1
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt) 'v3.4.5
 
                                         Case tsvs.Count
 
@@ -6932,7 +6934,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                         Exit Sub
 
-                    ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                    ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 Then 'v3.4.5
 
                         If TsvScale = "Weekly" Then 'v3.4
                             Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
@@ -6978,24 +6980,24 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
             Case pjResourceTypeCost
 
-                If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then 'v3.4.5
 
                     If TsvScale = "Weekly" Then 'v3.4
-                        Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
-                        Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleWeeks)
+                        Set tsvs = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks) 'v3.4.5
+                        Set tsvsa = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleWeeks) 'v3.4.5
                     Else
-                        Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleMonths) 'v3.4
-                        Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleMonths) 'v3.4
+                        Set tsvs = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleMonths) 'v3.4, v3.4.5
+                        Set tsvsa = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleMonths) 'v3.4, v3.4.5
                     End If
                     
                     For Each tsv In tsvs
 
-                        Set tsva = tsvsa(tsv.Index)
+                        Set tsvA = tsvsa(tsv.Index)
 
                         tempWork = 0
 
-                        If tsva <> "" Then
-                            tempWork = CDbl(tsv.Value) - CDbl(tsva.Value) 'v3.3.6
+                        If tsvA <> "" Then
+                            tempWork = CDbl(tsv.Value) - CDbl(tsvA.Value) 'v3.3.6
                         ElseIf tsv.Value <> "" Then
                             tempWork = CDbl(tsv.Value)
                         End If
@@ -7004,7 +7006,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                             If tsvs.Count = 1 Then
 
-                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
                             Else
 
@@ -7012,7 +7014,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                     Case 1
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt) 'v3.4.5
 
                                     Case tsvs.Count
 
@@ -7032,7 +7034,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                     Exit Sub
 
-                ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 Then 'v3.4.5
 
                     If TsvScale = "Weekly" Then 'v3.4
                         Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
@@ -7078,24 +7080,24 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
             Case pjResourceTypeMaterial
 
-                If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then 'v3.4.5
 
                         If TsvScale = "Weekly" Then 'v3.4
-                            Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
-                            Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks)
+                            Set tsvs = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks) 'v3.4.5
+                            Set tsvsa = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks) 'v3.4.5
                         Else
-                            Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleMonths) 'v3.4
-                            Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleMonths) 'v3.4
+                            Set tsvs = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleMonths) 'v3.4, v3.4.5
+                            Set tsvsa = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleMonths) 'v3.4, v3.4.5
                         End If
 
                         For Each tsv In tsvs
 
-                            Set tsva = tsvsa(tsv.Index)
+                            Set tsvA = tsvsa(tsv.Index)
 
                             tempWork = 0
 
-                            If tsva <> "" Then
-                                tempWork = CDbl(tsv.Value) - CDbl(tsva.Value) 'v3.3.6
+                            If tsvA <> "" Then
+                                tempWork = CDbl(tsv.Value) - CDbl(tsvA.Value) 'v3.3.6
                             ElseIf tsv.Value <> "" Then
                                 tempWork = CDbl(tsv.Value)
                             End If
@@ -7104,7 +7106,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                 If tsvs.Count = 1 Then
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
                                 Else
 
@@ -7112,7 +7114,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                         Case 1
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt) 'v3.4.5
 
                                         Case tsvs.Count
 
@@ -7132,7 +7134,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                         Exit Sub
 
-                    ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                    ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 Then 'v3.4.5
 
                         If TsvScale = "Weekly" Then 'v3.4
                             Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
@@ -7505,5 +7507,32 @@ Invalid:
         BrowseForFolder = False
 End Function
 
+Private Function AssignmentResumeDate(ByVal tAssign As Assignment) As Variant 'v3.4.5
 
+    Dim tsvW As TimeScaleValues
+    Dim tsvA As TimeScaleValues
+    Dim i As Integer
+    
+    If tAssign.ResourceType <> pjResourceTypeCost Then
+        'evaluate labor and material resources
+        Set tsvW = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleDays)
+        Set tsvA = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleDays)
+    
+    Else
+        'evaluate cost resources
+        Set tsvW = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleDays)
+        Set tsvA = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleDays)
+    
+    End If
+
+    For i = 1 To tsvA.Count
+        If tsvA(i).Value = "" And tsvW(i).Value <> "" Then
+            AssignmentResumeDate = tsvW(i).StartDate
+            Exit Function
+        End If
+    Next i
+    
+    AssignmentResumeDate = "NA"
+           
+End Function
 
