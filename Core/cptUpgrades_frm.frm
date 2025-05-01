@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.5.2</cpt_version>
+'<cpt_version>v1.5.3</cpt_version>
 '/===== IMPORTANT =====\
 'ALL CODE IN THIS MODULE MUST BE SELF-CONTAINED
 'DO NOT BUMP THE VERSION WHILE DEVELOPING OR IT WILL GET OVERWRITTEN NEXT TIME YOU OPEN THE FORM
@@ -203,7 +203,8 @@ Private Sub cmdUpgradeSelected_Click()
   For lngItem = 0 To Me.lboModules.ListCount - 1
 
     If Me.lboModules.Selected(lngItem) Then
-      
+      'scroll to selected
+      Me.lboModules.TopIndex = lngItem
       '<issue33> trap invalid use of null error?
       If IsNull(Me.lboModules.List(lngItem, 0)) Then
         MsgBox "Unable to download upgrades.", vbExclamation + vbOKOnly, "Can't Connect"
@@ -246,7 +247,7 @@ get_frx:
         oStream.SaveToFile cptDirUpgrade & "\" & strFileName
         oStream.Close
       Else
-        MsgBox "Download failed. Please contact cpt@ClearPlanConsulting.com for help.", vbCritical + vbOKOnly, "XML Error"
+        MsgBox "Download failed. Please contact help@ClearPlanConsulting.com for help.", vbCritical + vbOKOnly, "XML Error"
         Me.lboModules.List(lngItem, 3) = "<failed>"
         GoTo exit_here
       End If
@@ -381,6 +382,7 @@ next_module:     '</issue25>
   strMsg = strMsg + vbCrLf & "<mso:ribbon startFromScratch=""false"" >"
   strMsg = strMsg + vbCrLf & "<mso:tabs>"
   strMsg = strMsg + cptBuildRibbonTab()
+  'todo: need to get any additions made also...
   strMsg = strMsg + vbCrLf & "</mso:tabs>"
   strMsg = strMsg + vbCrLf & "</mso:ribbon>"
   strMsg = strMsg + vbCrLf & "</mso:customUI>"
@@ -407,11 +409,11 @@ err_here:
 End Sub
 
 Private Sub lblTitle_Click()
-  Me.txtDevMode = Val(Me.txtDevMode) + 1
+  Me.txtDevMode.Value = Val(Me.txtDevMode.Value) + 1
   If Val(Me.txtDevMode) > 5 Then
-    Me.txtDevMode = 0
+    Me.txtDevMode.Value = 0
     Me.cboBranches.Visible = False
-  ElseIf Val(Me.txtDevMode) = 5 Then
+  ElseIf Val(Me.txtDevMode.Value) = 5 Then
     Me.cboBranches.Visible = True
   Else
     Me.cboBranches.Visible = False
@@ -460,13 +462,25 @@ Private Sub cptHandleErrUpgrade(strModule As String, strProcedure As String, obj
   'common error handling prompt
   Dim strMsg As String
 
-  strMsg = "Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
+  strMsg = "Please contact help@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
   strMsg = strMsg & "Error " & Err.Number & ": " & Err.Description & vbCrLf & vbCrLf
   strMsg = strMsg & "Source: " & strModule & "." & strProcedure
   If lngErl > 0 Then
     strMsg = strMsg & ":" & lngErl
   End If
   MsgBox strMsg, vbExclamation + vbOKOnly, "Error"
+  Dim strFile As String
+  Dim lngFile As Long
+  strFile = Environ("tmp") & "\cptUpgradeError.txt"
+  Open strFile For Output As #lngFile
+  Print #lngFile, "Please send the following text to help@ClearPlanConsulting.com:"
+  Print #lngFile, "Error: " & Err.Number & ": " & Err.Description
+  Print #lngFile, "Source: " & strModule & "." & strProcedure
+  If lngErl > 0 Then
+    Print #lngFile, "Line: " & lngErl
+  End If
+  Close #lngFile
+  Shell "notepad.exe """ & strFile & """", vbNormalFocus
 
 End Sub
 
