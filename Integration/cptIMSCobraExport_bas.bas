@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.4.3</cpt_version>
+'<cpt_version>v3.4.6</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -15,7 +15,7 @@ Private BCR_WP() As String
 Private BCR_ID As String
 Private BCRxport As Boolean
 Private BCR_Error As Boolean
-Private fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fPCNT, fAssignPcnt, fEVT, fCAID2, fCAID2t, fMilestone, fMilestoneWeight, fBCR, fWhatIf, fResID As String 'v3.3.0
+Private fProject, fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fPCNT, fAssignPcnt, fEVT, fCAID2, fCAID2t, fMilestone, fMilestoneWeight, fBCR, fWhatIf, fResID As String 'v3.3.0, v3.4.3
 Private dateFmt As String 'v3.3.5
 Private CustTextFields() As String
 Private EntFields() As String
@@ -33,11 +33,13 @@ Private ErrMsg As String
 Private WPDescArray() As WP_Descriptions
 Private WPDescCount As Integer
 Private ActIDCounter As Integer 'v3.3.5
+Private subprojectIDs As Boolean 'v3.4.3
 Private Type WP_Descriptions
     WP_ID As String
     Desc As String
 End Type
 Private Type ACTrowWP
+    SubProject As String 'v3.4.3
     CAID1 As String
     CAID3 As String
     CAID2 As String
@@ -143,7 +145,7 @@ Sub Export_IMS()
         Dim vArray As Variant
         vArray = Split(Join(CustTextFields, ",") & "," & Join(CustOLCodeFields, ",") & "," & Join(EntFields, ","), ",") 'v3.3.9
         If vArray(UBound(vArray)) = "" Then ReDim Preserve vArray(UBound(vArray) - 1) 'v3.3.10
-        QuickSort vArray, 0, UBound(vArray)
+        Call QuickSort(vArray, 0, UBound(vArray))
         .caID1Box.List = Split("WBS," & Join(vArray, ","), ",")
         .caID2Box.List = Split("<None>," & Join(vArray, ","), ",")
         .caID3Box.List = Split("<None>," & Join(vArray, ","), ",")
@@ -152,12 +154,13 @@ Sub Export_IMS()
         .evtBox.List = vArray
         .mswBox.List = Split("<None>,BaselineWork,BaselineCost,Work,Cost," & Join(CustNumFields, ",") & "," & Join(vArray, ","), ",") 'v3.3.9
         .bcrBox.List = Split("<None>," & Join(vArray, ","), ",")
+        .projBox.List = Split("<None>," & Join(vArray, ","), ",") 'v3.4.3
         .whatifBox.List = Split("<None>," & Join(vArray, ","), ",")
         vArray = Split(Join(CustTextFields, ",") & "," & Join(CustNumFields, ",") & "," & Join(CustOLCodeFields, ",") & "," & Join(EntFields, ","), ",") 'v3.3.9
         If vArray(UBound(vArray)) = "" Then ReDim Preserve vArray(UBound(vArray) - 1) 'v3.3.10
-        QuickSort vArray, 0, UBound(vArray)
+        Call QuickSort(vArray, 0, UBound(vArray))
         .msidBox.List = Split("<None>,UniqueID," & Join(vArray, ","), ",")
-        QuickSort CustNumFields, 1, UBound(CustNumFields)
+        Call QuickSort(CustNumFields, 1, UBound(CustNumFields))
         .PercentBox.List = Split("Physical % Complete,% Complete," & Join(CustNumFields, ","), ",")
         .AsgnPcntBox.List = Split("<None>," & Join(CustNumFields, ","), ",")
         .DateFormat_Combobox.List = Split("M/D/YYYY,D/M/YYYY", ",") 'v3.3.5
@@ -212,6 +215,11 @@ Sub Export_IMS()
                 Milestones_Used = False
             Else
                 Milestones_Used = True
+            End If
+            If .projBox.Value = "<None>" Or .projBox.Value = "" Then 'v3.4.3
+                subprojectIDs = False
+            Else
+                subprojectIDs = True
             End If
             If .AsgnPcntBox = "<None>" Or .AsgnPcntBox = "" Then
                 AssignmentPCNT_Used = False
@@ -316,7 +324,7 @@ Private Sub DataChecks(ByVal curProj As Project)
     Dim tAssBFin As String
     Dim tAssBWork As String
     Dim tempID As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim wpCount As Integer
@@ -1197,7 +1205,7 @@ End Sub
 
 Private Sub MPP_Export(ByVal curProj As Project)
 
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
 
     destFolder = SetDirectory(curProj.ProjectSummaryTask.Project)
@@ -1224,7 +1232,7 @@ Private Sub MPP_Export(ByVal curProj As Project)
 End Sub
 Private Sub XML_Export(ByVal curProj As Project)
 
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
 
     destFolder = SetDirectory(curProj.ProjectSummaryTask.Project)
@@ -1282,6 +1290,7 @@ Private Sub CSV_Export(ByVal curProj As Project)
         fAssignPcnt = docProps("fAssignPcnt").Value 'v3.3.0
     End If
     fResID = docProps("fResID").Value
+    If subprojectIDs Then fProject = docProps("fProject").Value 'v3.4.3, v3.4.4
 
     BCR_Error = False
 
@@ -1358,9 +1367,9 @@ Private Sub BCWP_Export(ByVal curProj As Project)
     Dim t As Task
     Dim tAss As Assignments
     Dim tAssign As Assignment
-    Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, ResName, MSWeight, ID, PCNT As String 'v3.3.0
+    Dim ProjID, CAID1, CAID3, WP, CAM, EVT, UID, CAID2, ResName, MSWeight, ID, PCNT As String 'v3.3.0, v3.4.3
     Dim Milestone As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -1369,22 +1378,33 @@ Private Sub BCWP_Export(ByVal curProj As Project)
     Dim aStartString As String
     Dim aFinishString As String
     Dim tempID As String 'v3.3.3
+    Dim headerStr As String 'v3.4.3
+    Dim outputStr As String 'v3.4.3
 
     If ResourceLoaded = False Then
 
         ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
-
+        
+        'v3.4.3 - refactored header output code
+        headerStr = ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete,"
+        
         If CAID3_Used = True And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID3t & "," & fCAID2t & ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete"
+            headerStr = fCAID1t & "," & fCAID2t & "," & fCAID3t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID2t & ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete"
+            headerStr = fCAID1t & "," & fCAID2t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = False Then
-            Print #1, fCAID1t & ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete"
+            headerStr = fCAID1t & headerStr
         End If
+        
+        If subprojectIDs Then 'v3.4.3
+            headerStr = "Project," & headerStr
+        End If
+        
+        Print #1, headerStr
 
         X = 1
         ActFound = False
@@ -1406,6 +1426,9 @@ Private Sub BCWP_Export(ByVal curProj As Project)
 
                             If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
+                                If subprojectIDs Then 'v3.4.3
+                                    ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                                End If
                                 CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
                                 If CAID3_Used = True Then
                                     CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
@@ -1433,18 +1456,28 @@ Private Sub BCWP_Export(ByVal curProj As Project)
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
                                     Err.Raise 1
                                 End If
-
+                                
+                                'v3.4.3 - refactored data output code
+                                
                                 If EVT = "B" Or EVT = "N" Or EVT = "B Milestone" Or EVT = "N Earning Rules" Then
 
+                                    outputStr = WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & ","
+
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                        outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                        outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                        outputStr = CAID1 & "," & outputStr
                                     End If
+                                    
+                                    If subprojectIDs Then 'v3.4.3
+                                        outputStr = ProjID & "," & outputStr
+                                    End If
+                                    
+                                    Print #1, outputStr
 
                                 ElseIf EVT = "C" Or EVT = "C % Work Complete" Then
 
@@ -1471,6 +1504,9 @@ Private Sub BCWP_Export(ByVal curProj As Project)
                                         ACTarray(X).FStart = t.Start
                                         If CAID2_Used = True Then
                                             ACTarray(X).CAID2 = CAID2
+                                        End If
+                                        If subprojectIDs Then 'v3.4.3
+                                            ACTarray(X).SubProject = ProjID
                                         End If
                                         ACTarray(X).WP = WP
                                         If t.ActualStart <> "NA" Then
@@ -1574,6 +1610,9 @@ Private Sub BCWP_Export(ByVal curProj As Project)
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
                                     End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
+                                    End If
                                     ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
                                         ACTarray(X).AStart = t.ActualStart
@@ -1593,7 +1632,8 @@ Private Sub BCWP_Export(ByVal curProj As Project)
                                     X = X + 1
                                     ActFound = True
 
-                                ElseIf EVT = "E" Or EVT = "F" Or EVT = "G" Or EVT = "H" Or EVT = "E 50/50" Or EVT = "F 0/100" Or EVT = "G 100/0" Or EVT = "H User Defined" Then
+                                ElseIf EVT = "E" Or EVT = "F" Or EVT = "G" Or EVT = "H" Or EVT = "E 50/50" Or EVT = "F 0/100" Or _
+                                    EVT = "G 100/0" Or EVT = "H User Defined" Or EVT = "A" Or EVT = "A Level of Effort" Or EVT = "O" Or EVT = "O Earned As Spent" Then '3.4.4
 
                                     'store ACT info
                                     'WP Data
@@ -1618,6 +1658,9 @@ Private Sub BCWP_Export(ByVal curProj As Project)
                                         ACTarray(X).FStart = t.Start
                                         If CAID2_Used = True Then
                                             ACTarray(X).CAID2 = CAID2
+                                        End If
+                                        If subprojectIDs Then 'v3.4.3
+                                            ACTarray(X).SubProject = ProjID
                                         End If
                                         ACTarray(X).WP = WP
                                         If t.ActualStart <> "NA" Then
@@ -1704,6 +1747,9 @@ Private Sub BCWP_Export(ByVal curProj As Project)
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
                                     End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
+                                    End If
                                     ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
                                         ACTarray(X).AStart = t.ActualStart
@@ -1742,6 +1788,9 @@ nrBCWP_WP_Match_A:
                         If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
                             CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                            If subprojectIDs Then 'v3.4.3
+                                ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                            End If
                             If CAID3_Used = True Then
                                 CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                             End If
@@ -1769,17 +1818,27 @@ nrBCWP_WP_Match_A:
                                 Err.Raise 1
                             End If
 
+                            'v3.4.3 - refactored data output code
+
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earning Rules" Then
 
+                                outputStr = WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & ","
+
                                 If CAID3_Used = True And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                    outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                 End If
                                 If CAID3_Used = False And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                    outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                 End If
                                 If CAID3_Used = False And CAID2_Used = False Then
-                                    Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT)))
+                                    outputStr = CAID1 & "," & outputStr
                                 End If
+                                
+                                If subprojectIDs Then 'v3.4.3
+                                    outputStr = ProjID & "," & outputStr
+                                End If
+                                
+                                Print #1, outputStr
 
                             ElseIf EVT = "C" Or EVT = "C % Work Complete" Then
 
@@ -1806,6 +1865,9 @@ nrBCWP_WP_Match_A:
                                     ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
+                                    End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
                                     End If
                                     ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
@@ -1908,6 +1970,9 @@ nrBCWP_WP_Match_A:
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
                                 End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
+                                End If
                                 ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
                                     ACTarray(X).AStart = t.ActualStart
@@ -1927,7 +1992,8 @@ nrBCWP_WP_Match_A:
                                 X = X + 1
                                 ActFound = True
 
-                            ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or EVT = "H" Or EVT = "H User Defined" Then
+                            ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or _
+                                EVT = "H" Or EVT = "H User Defined" Or EVT = "A" Or EVT = "A Level of Effort" Or EVT = "O" Or EVT = "O Earned As Spent" Then '3.4.4
 
                                 'store ACT info
                                 'WP Data
@@ -1952,6 +2018,9 @@ nrBCWP_WP_Match_A:
                                     ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
+                                    End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
                                     End If
                                     ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
@@ -2038,6 +2107,9 @@ nrBCWP_WP_Match_A:
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
                                 End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
+                                End If
                                 ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
                                     ACTarray(X).AStart = t.ActualStart
@@ -2069,15 +2141,25 @@ nrBCWP_WP_Match_B:
                 If ACTarray(i).AStart = 0 Then aStartString = "NA" Else aStartString = Format(ACTarray(i).AStart, dateFmt)
                 If ACTarray(i).AFinish = 0 Or ACTarray(i).AFinish < ACTarray(i).FFinish Then aFinishString = "NA" Else aFinishString = Format(ACTarray(i).AFinish, dateFmt)
 
+                'v3.4.3 - refactored data output code
+                
+                outputStr = ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog & ","
+
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog
+                    outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAID3 & "," & outputStr
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog
+                    outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & outputStr
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog
+                    outputStr = ACTarray(i).CAID1 & "," & outputStr
                 End If
+                
+                If subprojectIDs Then 'v3.4.3
+                    outputStr = ACTarray(i).SubProject & "," & outputStr
+                End If
+                
+                Print #1, outputStr
 
             Next i
         End If
@@ -2089,16 +2171,25 @@ nrBCWP_WP_Match_B:
         ACTfilename = destFolder & "\BCWP ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
-
+        
+        'v3.4.3 - refactored header output code
+        headerStr = ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete,Resource,"
+        
         If CAID3_Used = True And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID3t & "," & fCAID2t & ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete,Resource" 'v3.3.0
+            headerStr = fCAID1t & "," & fCAID2t & "," & fCAID3t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID2t & ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete,Resource" 'v3.3.0
+            headerStr = fCAID1t & "," & fCAID2t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = False Then
-            Print #1, fCAID1t & ",WP,Milestone,Forecast Start Date,Forecast Finish Date,Actual Start Date,Actual Finish Date,Percent Complete,Resource" 'v3.3.0
+            headerStr = fCAID1t & headerStr
         End If
+        
+        If subprojectIDs Then 'v3.4.3
+            headerStr = "Project," & headerStr
+        End If
+        
+        Print #1, headerStr
 
         X = 1
         ActFound = False
@@ -2121,6 +2212,9 @@ nrBCWP_WP_Match_B:
                             If t.BaselineWork > 0 Or t.BaselineCost > 0 Then
 
                                 CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                                If subprojectIDs Then 'v3.4.3
+                                    ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                                End If
                                 If CAID3_Used = True Then
                                     CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                                 End If
@@ -2149,18 +2243,27 @@ nrBCWP_WP_Match_B:
                                     Err.Raise 1
                                 End If
                                 
+                                'v3.4.3 - refactored data output code
 
                                 If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
 
+                                    outputStr = WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & ","
+
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & "," 'v3.3.7
+                                        outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & "," 'v3.3.7
+                                        outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & "," 'v3.3.7
+                                        outputStr = CAID1 & "," & outputStr
                                     End If
+                                    
+                                    If subprojectIDs Then 'v3.4.3
+                                        outputStr = ProjID & "," & outputStr
+                                    End If
+                                    
+                                    Print #1, outputStr
     
                                 ElseIf EVT = "L" Or EVT = "L Assignment % Complete" Then 'v3.3.0
                                 
@@ -2188,6 +2291,9 @@ nrBCWP_WP_Match_B:
                                             ACTarray(X).EVT = EVT
                                             If CAID2_Used = True Then
                                                 ACTarray(X).CAID2 = CAID2
+                                            End If
+                                            If subprojectIDs Then 'v3.4.3
+                                                ACTarray(X).SubProject = ProjID
                                             End If
                                             ACTarray(X).WP = WP
                                             ACTarray(X).FFinish = tAssign.Finish
@@ -2269,6 +2375,9 @@ nrBCWP_WP_Match_B:
                                         If CAID2_Used = True Then
                                             ACTarray(X).CAID2 = CAID2
                                         End If
+                                        If subprojectIDs Then 'v3.4.3
+                                            ACTarray(X).SubProject = ProjID
+                                        End If
                                         ACTarray(X).WP = WP
                                         If tAssign.ActualStart <> "NA" Then
                                             ACTarray(X).AStart = tAssign.ActualStart
@@ -2319,6 +2428,9 @@ Next_Assign_A:
                                         ACTarray(X).FStart = t.Start
                                         If CAID2_Used = True Then
                                             ACTarray(X).CAID2 = CAID2
+                                        End If
+                                        If subprojectIDs Then 'v3.4.3
+                                            ACTarray(X).SubProject = ProjID
                                         End If
                                         ACTarray(X).WP = WP
                                         If t.ActualStart <> "NA" Then
@@ -2422,6 +2534,9 @@ Next_Assign_A:
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
                                     End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
+                                    End If
                                     ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
                                         ACTarray(X).AStart = t.ActualStart
@@ -2441,7 +2556,8 @@ Next_Assign_A:
                                     X = X + 1
                                     ActFound = True
 
-                                ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or EVT = "H" Or EVT = "H User Defined" Then
+                                ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or _
+                                    EVT = "H" Or EVT = "H User Defined" Or EVT = "A" Or EVT = "A Level of Effort" Or EVT = "O" Or EVT = "O Earned As Spent" Then '3.4.4
 
                                     'store ACT info
                                     'WP Data
@@ -2466,6 +2582,9 @@ Next_Assign_A:
                                         ACTarray(X).FStart = t.Start
                                         If CAID2_Used = True Then
                                             ACTarray(X).CAID2 = CAID2
+                                        End If
+                                        If subprojectIDs Then 'v3.4.3
+                                            ACTarray(X).SubProject = ProjID
                                         End If
                                         ACTarray(X).WP = WP
                                         If t.ActualStart <> "NA" Then
@@ -2552,6 +2671,9 @@ Next_Assign_A:
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
                                     End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
+                                    End If
                                     ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
                                         ACTarray(X).AStart = t.ActualStart
@@ -2590,6 +2712,9 @@ BCWP_WP_Match_A:
                         If t.BaselineWork > 0 Or t.BaselineCost > 0 Then
 
                             CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                            If subprojectIDs Then 'v3.4.3
+                                ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                            End If
                             If CAID3_Used = True Then
                                 CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                             End If
@@ -2620,15 +2745,25 @@ BCWP_WP_Match_A:
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
 
+                                'v3.4.3 - refactored data output code
+                                
+                                outputStr = WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & ","
+
                                 If CAID3_Used = True And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & "," 'v3.3.7
+                                    outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                 End If
                                 If CAID3_Used = False And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID2 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & "," 'v3.3.7
+                                    outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                 End If
                                 If CAID3_Used = False And CAID2_Used = False Then
-                                    Print #1, CAID1 & "," & WP & "," & UID & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & "," & Format(t.ActualStart, dateFmt) & "," & Format(t.ActualFinish, dateFmt) & "," & PercentfromString(t.GetField(FieldNameToFieldConstant(fPCNT))) & "," 'v3.3.7
+                                    outputStr = CAID1 & "," & outputStr
                                 End If
+                                
+                                If subprojectIDs Then 'v3.4.3
+                                    outputStr = ProjID & "," & outputStr
+                                End If
+                                
+                                Print #1, outputStr
                                 
                             ElseIf EVT = "L" Or EVT = "L Assignment % Complete" Then 'v3.3.0
                                 
@@ -2656,6 +2791,9 @@ BCWP_WP_Match_A:
                                         ACTarray(X).EVT = EVT
                                         If CAID2_Used = True Then
                                             ACTarray(X).CAID2 = CAID2
+                                        End If
+                                        If subprojectIDs Then 'v3.4.3
+                                            ACTarray(X).SubProject = ProjID
                                         End If
                                         ACTarray(X).WP = WP
                                         ACTarray(X).FFinish = tAssign.Finish
@@ -2739,6 +2877,9 @@ BCWP_WP_Match_A:
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
                                     End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
+                                    End If
                                     ACTarray(X).WP = WP
                                     If tAssign.ActualStart <> "NA" Then
                                         ACTarray(X).AStart = tAssign.ActualStart
@@ -2789,6 +2930,9 @@ Next_Assign_B:
                                     ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
+                                    End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
                                     End If
                                     ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
@@ -2891,6 +3035,9 @@ Next_Assign_B:
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
                                 End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
+                                End If
                                 ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
                                     ACTarray(X).AStart = t.ActualStart
@@ -2910,7 +3057,8 @@ Next_Assign_B:
                                 X = X + 1
                                 ActFound = True
 
-                            ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or EVT = "H" Or EVT = "H User Defined" Then
+                            ElseIf EVT = "E" Or EVT = "E 50/50" Or EVT = "F" Or EVT = "F 0/100" Or EVT = "G" Or EVT = "G 100/0" Or _
+                                EVT = "H" Or EVT = "H User Defined" Or EVT = "A" Or EVT = "A Level of Effort" Or EVT = "O" Or EVT = "O Earned As Spent" Then '3.4.4
 
                                 'store ACT info
                                 'WP Data
@@ -2935,6 +3083,9 @@ Next_Assign_B:
                                     ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
+                                    End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
                                     End If
                                     ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
@@ -3021,6 +3172,9 @@ Next_Assign_B:
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
                                 End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
+                                End If
                                 ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
                                     ACTarray(X).AStart = t.ActualStart
@@ -3052,15 +3206,25 @@ BCWP_WP_Match_B:
                 If ACTarray(i).AStart = 0 Then aStartString = "NA" Else aStartString = Format(ACTarray(i).AStart, dateFmt)
                 If ACTarray(i).AFinish = 0 Or ACTarray(i).AFinish < ACTarray(i).FFinish Then aFinishString = "NA" Else aFinishString = Format(ACTarray(i).AFinish, dateFmt)
 
+                'v3.4.3 - refactored data output code
+                
+                outputStr = ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog & "," & ACTarray(i).Resource & ","
+
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog & "," & ACTarray(i).Resource 'v3.3.0
+                    outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAID3 & "," & outputStr
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog & "," & ACTarray(i).Resource 'v3.3.0
+                    outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & outputStr
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).WP & "," & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & "," & aStartString & "," & aFinishString & "," & ACTarray(i).Prog & "," & ACTarray(i).Resource 'v3.3.0
+                    outputStr = ACTarray(i).CAID1 & "," & outputStr
                 End If
+                
+                If subprojectIDs Then 'v3.4.3
+                    outputStr = ACTarray(i).SubProject & "," & outputStr
+                End If
+                
+                Print #1, outputStr
 
             Next i
         End If
@@ -3076,9 +3240,9 @@ Private Sub ETC_Export(ByVal curProj As Project)
     Dim t As Task
     Dim tAss As Assignments
     Dim tAssign As Assignment
-    Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT, ShortID As String 'v3.3.5
+    Dim ProjID, CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, PCNT, ShortID As String 'v3.3.5, v3.4.3
     Dim Milestone As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -3086,6 +3250,8 @@ Private Sub ETC_Export(ByVal curProj As Project)
     Dim i As Integer
     Dim aStartString As String
     Dim aFinishString As String
+    Dim headerStr As String 'v3.4.3
+    Dim outputStr As String 'v3.4.3
 
     '*******************
     '****ETC Export****
@@ -3098,16 +3264,25 @@ Private Sub ETC_Export(ByVal curProj As Project)
         ACTfilename = destFolder & "\ETC ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
-
+        
+        'v3.4.3 - refactored header output code
+        headerStr = ",CAM,WP,ID,Forecast Start Date,Forecast Finish Date,"
+        
         If CAID3_Used = True And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID3t & "," & fCAID2t & ",CAM,WP,ID,Forecast Start Date,Forecast Finish Date"
+            headerStr = fCAID1t & "," & fCAID2t & "," & fCAID3t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID2t & ",CAM,WP,ID,Forecast Start Date,Forecast Finish Date"
+            headerStr = fCAID1t & "," & fCAID2t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = False Then
-            Print #1, fCAID1t & ",CAM,WP,ID,Forecast Start Date,Forecast Finish Date"
+            headerStr = fCAID1t & headerStr
         End If
+        
+        If subprojectIDs Then 'v3.4.3
+            headerStr = "Project," & headerStr
+        End If
+        
+        Print #1, headerStr
 
         X = 1
         ActFound = False
@@ -3130,6 +3305,9 @@ Private Sub ETC_Export(ByVal curProj As Project)
                             If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
                                 CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                                If subprojectIDs Then 'v3.4.3
+                                    ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                                End If
                                 If CAID3_Used = True Then
                                     CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                                 End If
@@ -3172,6 +3350,9 @@ Private Sub ETC_Export(ByVal curProj As Project)
                                     ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
+                                    End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
                                     End If
                                     ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
@@ -3257,6 +3438,9 @@ Private Sub ETC_Export(ByVal curProj As Project)
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
                                 End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
+                                End If
                                 ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
                                     ACTarray(X).AStart = t.ActualStart
@@ -3296,6 +3480,9 @@ nrETC_WP_Match:
                         If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
                             CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                            If subprojectIDs Then 'v3.4.3
+                                ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                            End If
                             If CAID3_Used = True Then
                                 CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                             End If
@@ -3338,6 +3525,9 @@ nrETC_WP_Match:
                                 ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
+                                End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
                                 End If
                                 ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
@@ -3424,6 +3614,9 @@ nrETC_WP_Match:
                             If CAID2_Used = True Then
                                 ACTarray(X).CAID2 = CAID2
                             End If
+                            If subprojectIDs Then 'v3.4.3
+                                ACTarray(X).SubProject = ProjID
+                            End If
                             ACTarray(X).WP = WP
                             If t.ActualStart <> "NA" Then
                                 ACTarray(X).AStart = t.ActualStart
@@ -3453,16 +3646,26 @@ nrETC_WP_Match_B:
                 If ACTarray(i).AStart = 0 Then aStartString = "NA" Else aStartString = Format(ACTarray(i).AStart, dateFmt)
                 If ACTarray(i).AFinish = 0 Or ACTarray(i).AFinish < ACTarray(i).FFinish Then aFinishString = "NA" Else aFinishString = Format(ACTarray(i).AFinish, dateFmt)
 
+                'v3.4.3 - refactored data output code
+                
+                outputStr = ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & ","
+
                 If aFinishString = "NA" Then
                     If CAID3_Used = True And CAID2_Used = True Then
-                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt)
+                        outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAID3 & "," & outputStr
                     End If
                     If CAID3_Used = False And CAID2_Used = True Then
-                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt)
+                        outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & outputStr
                     End If
                     If CAID3_Used = False And CAID2_Used = False Then
-                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt)
+                        outputStr = ACTarray(i).CAID1 & "," & outputStr
                     End If
+                    
+                    If subprojectIDs Then 'v3.4.3
+                        outputStr = ACTarray(i).SubProject & "," & outputStr
+                    End If
+                    
+                    Print #1, outputStr
                 End If
 
             Next i
@@ -3478,15 +3681,25 @@ nrETC_WP_Match_B:
         Open ACTfilename For Output As #1
         Open RESfilename For Output As #2
 
+        'v3.4.3 - refactored header output code
+        headerStr = ",CAM,WP,ID,Forecast Start Date,Forecast Finish Date,"
+        
         If CAID3_Used = True And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID3t & "," & fCAID2t & ",CAM,WP,ID,Forecast Start Date,Forecast Finish Date"
+            headerStr = fCAID1t & "," & fCAID2t & "," & fCAID3t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID2t & ",CAM,WP,ID,Forecast Start Date,Forecast Finish Date"
+            headerStr = fCAID1t & "," & fCAID2t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = False Then
-            Print #1, fCAID1t & ",CAM,WP,ID,Forecast Start Date,Forecast Finish Date"
+            headerStr = fCAID1t & headerStr
         End If
+        
+        If subprojectIDs Then 'v3.4.3
+            headerStr = "Project," & headerStr
+        End If
+        
+        Print #1, headerStr
+
         Print #2, "Cobra ID,Resource,Amount,From Date,To Date"
 
         X = 1
@@ -3510,6 +3723,9 @@ nrETC_WP_Match_B:
                             If t.Work > 0 Or t.Cost > 0 Then
 
                                 CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                                If subprojectIDs Then 'v3.4.3
+                                    ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                                End If
                                 If CAID3_Used = True Then
                                     CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                                 End If
@@ -3554,6 +3770,9 @@ nrETC_WP_Match_B:
                                     ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
+                                    End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
                                     End If
                                     ACTarray(X).WP = WP
                                     If t.ActualStart <> "NA" Then
@@ -3650,6 +3869,9 @@ nrETC_WP_Match_B:
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
                                 End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
+                                End If
                                 ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
                                     ACTarray(X).AStart = t.ActualStart
@@ -3688,11 +3910,11 @@ ETC_WP_Match:
 
                                             Case pjResourceTypeWork
 
-                                            If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                            If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
-                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork / 60 & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork / 60 & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
-                                            ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                            ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
                                                 Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work / 60 & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
@@ -3700,11 +3922,12 @@ ETC_WP_Match:
 
                                         Case pjResourceTypeCost
 
-                                            If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                            If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingCost <> 0 Then 'v3.4.5
 
-                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingCost & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingCost & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
+                                                
 
-                                            ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                            ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingCost <> 0 Then 'v3.4.5
 
                                                 Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Cost & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
@@ -3712,11 +3935,11 @@ ETC_WP_Match:
 
                                         Case pjResourceTypeMaterial
 
-                                            If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                            If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
-                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                                Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
-                                            ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                            ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
                                                 Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
@@ -3751,6 +3974,9 @@ ETC_WP_Match:
                         If t.Work > 0 Or t.Cost > 0 Then
 
                             CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                            If subprojectIDs Then 'v3.4.3
+                                ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                            End If
                             If CAID3_Used = True Then
                                 CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                             End If
@@ -3794,6 +4020,9 @@ ETC_WP_Match:
                                 ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
+                                End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
                                 End If
                                 ACTarray(X).WP = WP
                                 If t.ActualStart <> "NA" Then
@@ -3883,13 +4112,15 @@ ETC_WP_Match:
                             End If
                             ACTarray(X).CAM = CAM
                             ACTarray(X).ID = ID
-                            
                             ACTarray(X).CAID1 = CAID1
                             ACTarray(X).EVT = EVT
                             ACTarray(X).FFinish = t.Finish
                             ACTarray(X).FStart = t.Start
                             If CAID2_Used = True Then
                                 ACTarray(X).CAID2 = CAID2
+                            End If
+                            If subprojectIDs Then 'v3.4.3
+                                ACTarray(X).SubProject = ProjID
                             End If
                             ACTarray(X).WP = WP
                             If t.ActualStart <> "NA" Then
@@ -3923,18 +4154,18 @@ ETC_WP_Match_B:
                                 If TimeScaleExport = True Then
 
                                     ExportTimeScaleResources ShortID, t, tAssign, 2, "ETC"
-
+                                    
                                 Else
 
                                     Select Case tAssign.ResourceType
 
                                         Case pjResourceTypeWork
 
-                                        If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                        If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
-                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork / 60 & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork / 60 & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
-                                        ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                        ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
                                             Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work / 60 & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
@@ -3942,11 +4173,11 @@ ETC_WP_Match_B:
 
                                     Case pjResourceTypeCost
 
-                                        If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                        If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingCost <> 0 Then 'v3.4.5
 
-                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingCost & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingCost & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
-                                        ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                        ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingCost <> 0 Then 'v3.4.5
 
                                             Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Cost & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
@@ -3954,11 +4185,11 @@ ETC_WP_Match_B:
 
                                     Case pjResourceTypeMaterial
 
-                                        If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                        If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
-                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                            Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.RemainingWork & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
-                                        ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                                        ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 And tAssign.RemainingWork <> 0 Then 'v3.4.5
 
                                             Print #2, ShortID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tAssign.Work & "," & Format(tAssign.Start, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
 
@@ -3986,16 +4217,26 @@ ETC_WP_Match_B:
                 If ACTarray(i).AStart = 0 Then aStartString = "NA" Else aStartString = Format(ACTarray(i).AStart, dateFmt)
                 If ACTarray(i).AFinish = 0 Or ACTarray(i).AFinish < ACTarray(i).FFinish Then aFinishString = "NA" Else aFinishString = Format(ACTarray(i).AFinish, dateFmt)
 
+                'v3.4.3 - refactored data output code
+                
+                outputStr = ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt) & ","
+
                 If aFinishString = "NA" Then
                     If CAID3_Used = True And CAID2_Used = True Then
-                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt)
+                        outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAID3 & "," & outputStr
                     End If
                     If CAID3_Used = False And CAID2_Used = True Then
-                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt)
+                        outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & outputStr
                     End If
                     If CAID3_Used = False And CAID2_Used = False Then
-                        Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & Format(ACTarray(i).FStart, dateFmt) & "," & Format(ACTarray(i).FFinish, dateFmt)
+                        outputStr = ACTarray(i).CAID1 & "," & outputStr
                     End If
+                    
+                    If subprojectIDs Then 'v3.4.3
+                        outputStr = ACTarray(i).SubProject & "," & outputStr
+                    End If
+                    
+                    Print #1, outputStr
                 End If
 
             Next i
@@ -4012,9 +4253,9 @@ Private Sub BCWS_Export(ByVal curProj As Project)
     Dim t As Task
     Dim tAss As Assignments
     Dim tAssign As Assignment
-    Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, ShortID, PCNT As String 'v3.3.5
+    Dim ProjID, CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, ShortID, PCNT As String 'v3.3.5, v3.4.3
     Dim Milestone As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -4023,6 +4264,8 @@ Private Sub BCWS_Export(ByVal curProj As Project)
     Dim i As Integer
     Dim aStartString As String
     Dim aFinishString As String
+    Dim headerStr As String 'v3.4.3
+    Dim outputStr As String 'v3.4.3
 
     '*******************
     '****BCWS Export****
@@ -4039,16 +4282,25 @@ Private Sub BCWS_Export(ByVal curProj As Project)
         ACTfilename = destFolder & "\BCWS ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
-
+        
+        'v3.4.3 - refactored header output code
+        headerStr = ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique,"
+        
         If CAID3_Used = True And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID3t & "," & fCAID2t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+            headerStr = fCAID1t & "," & fCAID2t & "," & fCAID3t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID2t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+            headerStr = fCAID1t & "," & fCAID2t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = False Then
-            Print #1, fCAID1t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+            headerStr = fCAID1t & headerStr
         End If
+        
+        If subprojectIDs Then 'v3.4.3
+            headerStr = "Project," & headerStr
+        End If
+        
+        Print #1, headerStr
 
         X = 1
         ActFound = False
@@ -4071,6 +4323,9 @@ Private Sub BCWS_Export(ByVal curProj As Project)
                             If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
                                 CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                                If subprojectIDs Then 'v3.4.3
+                                    ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                                End If
                                 If CAID3_Used = True Then
                                     CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                                 End If
@@ -4121,6 +4376,9 @@ Private Sub BCWS_Export(ByVal curProj As Project)
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
                                     End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
+                                    End If
                                     ACTarray(X).ID = ID
                                     ACTarray(X).CAM = CAM
                                     ACTarray(X).CAID1 = CAID1
@@ -4167,6 +4425,9 @@ Private Sub BCWS_Export(ByVal curProj As Project)
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
                                 End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
+                                End If
                                 ACTarray(X).ID = ID
                                 ACTarray(X).CAM = CAM
                                 ACTarray(X).CAID1 = CAID1
@@ -4183,16 +4444,26 @@ Private Sub BCWS_Export(ByVal curProj As Project)
 nrWP_Match:
 
                                 If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
+                                
+                                    'v3.4.3 - refactored data output code
+                                
+                                    outputStr = CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
 
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & outputStr
                                     End If
+                                    
+                                    If subprojectIDs Then 'v3.4.3
+                                        outputStr = ProjID & "," & outputStr
+                                    End If
+                                    
+                                    Print #1, outputStr
 
                                 End If
 
@@ -4220,6 +4491,9 @@ Next_nrSProj_Task:
                         If t.GetField(FieldNameToFieldConstant(fWP)) <> "" Then
 
                             CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                            If subprojectIDs Then 'v3.4.3
+                                ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                            End If
                             If CAID3_Used = True Then
                                 CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                             End If
@@ -4270,6 +4544,9 @@ Next_nrSProj_Task:
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
                                 End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
+                                End If
                                 ACTarray(X).ID = ID
                                 ACTarray(X).CAM = CAM
                                 ACTarray(X).CAID1 = CAID1
@@ -4315,6 +4592,9 @@ Next_nrSProj_Task:
                             If CAID2_Used = True Then
                                 ACTarray(X).CAID2 = CAID2
                             End If
+                            If subprojectIDs Then 'v3.4.3
+                                ACTarray(X).SubProject = ProjID
+                            End If
                             ACTarray(X).CAM = CAM
                             ACTarray(X).CAID1 = CAID1
                             ACTarray(X).EVT = EVT
@@ -4331,15 +4611,26 @@ Next_nrSProj_Task:
 nrWP_Match_B:
 
                             If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
+                            
+                                'v3.4.3 - refactored data output code
+                                
+                                outputStr = CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                            
                                 If CAID3_Used = True And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                    outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                 End If
                                 If CAID3_Used = False And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                    outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                 End If
                                 If CAID3_Used = False And CAID2_Used = False Then
-                                    Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                    outputStr = CAID1 & "," & outputStr
                                 End If
+                                
+                                If subprojectIDs Then 'v3.4.3
+                                    outputStr = ProjID & "," & outputStr
+                                End If
+                                
+                                Print #1, outputStr
                             End If
 
                         End If
@@ -4359,16 +4650,26 @@ Next_nrTask:
                 If DescExport = True Then
                     ACTarray(i).Desc = WP_Desc(ACTarray(i).ID)
                 End If
+                
+                'v3.4.3 - refactored data output code
+                
+                outputStr = ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT & ","
 
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
+                    outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAID3 & "," & outputStr
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
+                    outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & outputStr
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
+                    outputStr = ACTarray(i).CAID1 & "," & outputStr
                 End If
+                
+                If subprojectIDs Then 'v3.4.3
+                    outputStr = ACTarray(i).SubProject & "," & outputStr
+                End If
+                
+                Print #1, outputStr
 
             Next i
         End If
@@ -4382,16 +4683,26 @@ Next_nrTask:
 
         Open ACTfilename For Output As #1
         Open RESfilename For Output As #2
-
+        
+        'v3.4.3 - refactored header output code
+        headerStr = ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique,"
+        
         If CAID3_Used = True And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID3t & "," & fCAID2t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+            headerStr = fCAID1t & "," & fCAID2t & "," & fCAID3t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID2t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+            headerStr = fCAID1t & "," & fCAID2t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = False Then
-            Print #1, fCAID1t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+            headerStr = fCAID1t & headerStr
         End If
+        
+        If subprojectIDs Then 'v3.4.3
+            headerStr = "Project," & headerStr
+        End If
+        
+        Print #1, headerStr
+
         Print #2, "Cobra ID,Resource,Amount,From Date,To Date"
 
         X = 1
@@ -4415,6 +4726,9 @@ Next_nrTask:
                             If t.BaselineWork > 0 Or t.BaselineCost > 0 Then
 
                                 CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                                If subprojectIDs Then 'v3.4.3
+                                    ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                                End If
                                 If CAID3_Used = True Then
                                     CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                                 End If
@@ -4472,6 +4786,9 @@ Next_nrTask:
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
                                     End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
+                                    End If
                                     ACTarray(X).WP = WP
                                     'v3.3.5 - check for ID length limit
                                     If Len(ID) > 58 Then
@@ -4528,6 +4845,9 @@ Next_nrTask:
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
                                 End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
+                                End If
                                 ACTarray(X).WP = WP
                                 'v3.3.5 - check for ID length limit
                                 If Len(ID) > 58 Then
@@ -4546,16 +4866,26 @@ Next_nrTask:
 WP_Match:
 
                                 If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
+                                
+                                    'v3.4.3 - refactored data output code
+                                    
+                                    outputStr = CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
 
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & outputStr
                                     End If
+                                    
+                                    If subprojectIDs Then 'v3.4.3
+                                        outputStr = ProjID & "," & outputStr
+                                    End If
+                                    
+                                    Print #1, outputStr
 
                                 End If
 
@@ -4617,6 +4947,9 @@ Next_SProj_Task:
                         If t.BaselineWork > 0 Or t.BaselineCost > 0 Then
 
                             CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                            If subprojectIDs Then 'v3.4.3
+                                ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                            End If
                             If CAID3_Used = True Then
                                 CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                             End If
@@ -4665,7 +4998,6 @@ Next_SProj_Task:
                                     ACTarray(X).CAID3 = CAID3
                                 End If
                                 ACTarray(X).ID = ID
-                                
                                 ACTarray(X).CAM = CAM
                                 ACTarray(X).CAID1 = CAID1
                                 ACTarray(X).EVT = EVT
@@ -4673,6 +5005,9 @@ Next_SProj_Task:
                                 ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
+                                End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
                                 End If
                                 ACTarray(X).WP = WP
                                 'v3.3.5 - check for ID length limit
@@ -4723,11 +5058,13 @@ Next_SProj_Task:
                             ACTarray(X).CAID1 = CAID1
                             ACTarray(X).EVT = EVT
                             ACTarray(X).ID = ID
-
                             ACTarray(X).FFinish = t.Finish
                             ACTarray(X).FStart = t.Start
                             If CAID2_Used = True Then
                                 ACTarray(X).CAID2 = CAID2
+                            End If
+                            If subprojectIDs Then 'v3.4.3
+                                ACTarray(X).SubProject = ProjID
                             End If
                             ACTarray(X).WP = WP
                             'v3.3.5 - check for ID length limit
@@ -4747,15 +5084,26 @@ Next_SProj_Task:
 WP_Match_B:
 
                             If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
+                            
+                                'v3.4.3 - refactored data output code
+                                
+                                outputStr = CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                            
                                 If CAID3_Used = True And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                    outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                 End If
                                 If CAID3_Used = False And CAID2_Used = True Then
-                                    Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                    outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                 End If
                                 If CAID3_Used = False And CAID2_Used = False Then
-                                    Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                    outputStr = CAID1 & "," & outputStr
                                 End If
+                                
+                                If subprojectIDs Then 'v3.4.3
+                                    outputStr = ProjID & "," & outputStr
+                                End If
+                                
+                                Print #1, outputStr
                             End If
 
                             Set tAss = t.Assignments
@@ -4809,16 +5157,26 @@ next_task:
                 If DescExport = True Then
                     ACTarray(i).Desc = WP_Desc(ACTarray(i).ID)
                 End If
+                
+                'v3.4.3 - refactored data output code
+                
+                outputStr = ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT & ","
 
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
+                    outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAID3 & "," & outputStr
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
+                    outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & outputStr
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
+                    outputStr = ACTarray(i).CAID1 & "," & outputStr
                 End If
+                
+                If subprojectIDs Then 'v3.4.3
+                    outputStr = ACTarray(i).SubProject & "," & outputStr
+                End If
+                
+                Print #1, outputStr
 
             Next i
         End If
@@ -4835,9 +5193,9 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
     Dim t As Task
     Dim tAss As Assignments
     Dim tAssign As Assignment
-    Dim CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, ShortID, PCNT As String 'v3.3.5
+    Dim ProjID, CAID1, CAID3, WP, CAM, EVT, UID, CAID2, MSWeight, ID, ShortID, PCNT As String 'v3.3.5, v3.4.3
     Dim Milestone As String
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim subProjs As Subprojects
     Dim curSProj As Project
     Dim ACTarray() As ACTrowWP
@@ -4846,6 +5204,8 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
     Dim i As Integer
     Dim aStartString As String
     Dim aFinishString As String
+    Dim headerStr As String 'v3.4.3
+    Dim outputStr As String 'v3.4.3
 
     '*******************
     '**What-if Export***
@@ -4862,16 +5222,25 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
         ACTfilename = destFolder & "\WhatIf ACT_" & RemoveIllegalCharacters(curProj.ProjectSummaryTask.Project) & "_" & Format(Now, "YYYYMMDD HHMM") & ".csv"
 
         Open ACTfilename For Output As #1
-
+        
+        'v3.4.3 - refactored header output code
+        headerStr = ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique,"
+        
         If CAID3_Used = True And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID3t & "," & fCAID2t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+            headerStr = fCAID1t & "," & fCAID2t & "," & fCAID3t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID2t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+            headerStr = fCAID1t & "," & fCAID2t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = False Then
-            Print #1, fCAID1t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+            headerStr = fCAID1t & headerStr
         End If
+        
+        If subprojectIDs Then 'v3.4.3
+            headerStr = "Project," & headerStr
+        End If
+        
+        Print #1, headerStr
 
         X = 1
         ActFound = False
@@ -4894,6 +5263,9 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
                             If t.GetField(FieldNameToFieldConstant(fWP)) <> "" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "D" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "d" Then
 
                                 CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                                If subprojectIDs Then 'v3.4.3
+                                    ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                                End If
                                 If CAID3_Used = True Then
                                     CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                                 End If
@@ -4948,6 +5320,9 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
                                     End If
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
+                                    End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
                                     End If
                                     ACTarray(X).ID = ID
                                     ACTarray(X).CAM = CAM
@@ -5015,6 +5390,9 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
                                 End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
+                                End If
                                 ACTarray(X).ID = ID
                                 ACTarray(X).CAM = CAM
                                 ACTarray(X).CAID1 = CAID1
@@ -5031,26 +5409,45 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
 nrWP_Match:
 
                                 If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
+                                    'v3.4.3 - refactored data output code
                                     If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                    
+                                        outputStr = CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                    
                                         If CAID3_Used = True And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                            outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                         End If
                                         If CAID3_Used = False And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                            outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                         End If
                                         If CAID3_Used = False And CAID2_Used = False Then
-                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                            outputStr = CAID1 & "," & outputStr
                                         End If
+                                        
+                                        If subprojectIDs Then 'v3.4.3
+                                            outputStr = ProjID & "," & outputStr
+                                        End If
+                                        
+                                        Print #1, outputStr
                                     Else
+                                    
+                                        outputStr = CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                    
                                         If CAID3_Used = True And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                            outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                         End If
                                         If CAID3_Used = False And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                            outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                         End If
                                         If CAID3_Used = False And CAID2_Used = False Then
-                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                            outputStr = CAID1 & "," & outputStr
                                         End If
+                                        
+                                        If subprojectIDs Then 'v3.4.3
+                                            outputStr = ProjID & "," & outputStr
+                                        End If
+                                        
+                                        Print #1, outputStr
                                     End If
 
                                 End If
@@ -5078,6 +5475,9 @@ Next_nrSProj_Task:
                         If t.GetField(FieldNameToFieldConstant(fWP)) <> "" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "D" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "d" Then
 
                             CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                            If subprojectIDs Then 'v3.4.3
+                                ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                            End If
                             If CAID3_Used = True Then
                                 CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                             End If
@@ -5132,6 +5532,9 @@ Next_nrSProj_Task:
                                 End If
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
+                                End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
                                 End If
                                 ACTarray(X).ID = ID
                                 ACTarray(X).CAM = CAM
@@ -5198,6 +5601,9 @@ Next_nrSProj_Task:
                             If CAID2_Used = True Then
                                 ACTarray(X).CAID2 = CAID2
                             End If
+                            If subprojectIDs Then 'v3.4.3
+                                ACTarray(X).SubProject = ProjID
+                            End If
                             ACTarray(X).CAM = CAM
                             ACTarray(X).CAID1 = CAID1
                             ACTarray(X).EVT = EVT
@@ -5214,26 +5620,45 @@ Next_nrSProj_Task:
 nrWP_Match_B:
 
                             If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
+                                'v3.4.3 - refactored data output code
                                 If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
+                                
+                                    outputStr = CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & outputStr
                                     End If
+                                    
+                                    If subprojectIDs Then 'v3.4.3
+                                        outputStr = ProjID & "," & outputStr
+                                    End If
+                                    
+                                    Print #1, outputStr
                                 Else
+                                    
+                                    outputStr = CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & outputStr
                                     End If
+                                    
+                                    If subprojectIDs Then 'v3.4.3
+                                        outputStr = ProjID & "," & outputStr
+                                    End If
+                                    
+                                    Print #1, outputStr
                                 End If
                             End If
 
@@ -5255,15 +5680,25 @@ Next_nrTask:
                     ACTarray(i).Desc = WP_Desc(ACTarray(i).ID)
                 End If
 
+                'v3.4.3 - refactored data output code
+                
+                outputStr = ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT & ","
+
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
+                    outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAID3 & "," & outputStr
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
+                    outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & outputStr
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
+                    outputStr = ACTarray(i).CAID1 & "," & outputStr
                 End If
+                
+                If subprojectIDs Then 'v3.4.3
+                    outputStr = ACTarray(i).SubProject & "," & outputStr
+                End If
+                
+                Print #1, outputStr
 
             Next i
         End If
@@ -5277,16 +5712,26 @@ Next_nrTask:
 
         Open ACTfilename For Output As #1
         Open RESfilename For Output As #2
-
+        
+        'v3.4.3 - refactored header output code
+        headerStr = ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique,"
+        
         If CAID3_Used = True And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID3t & "," & fCAID2t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+            headerStr = fCAID1t & "," & fCAID2t & "," & fCAID3t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = True Then
-            Print #1, fCAID1t & "," & fCAID2t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+            headerStr = fCAID1t & "," & fCAID2t & headerStr
         End If
         If CAID3_Used = False And CAID2_Used = False Then
-            Print #1, fCAID1t & ",CAM,WP,ID,Milestone,Milestone Weight,Description,Baseline Start Date,Baseline Finish Date,Progress Technique"
+            headerStr = fCAID1t & headerStr
         End If
+        
+        If subprojectIDs Then 'v3.4.3
+            headerStr = "Project," & headerStr
+        End If
+        
+        Print #1, headerStr
+
         Print #2, "Cobra ID,Resource,Amount,From Date,To Date"
 
         X = 1
@@ -5314,6 +5759,9 @@ Next_nrTask:
                             (t.GetField(FieldNameToFieldConstant(fWhatIf)) = "R" Or t.GetField(FieldNameToFieldConstant(fWhatIf)) = "r")) Then
 
                                 CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                                If subprojectIDs Then 'v3.4.3
+                                    ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                                End If
                                 If CAID3_Used = True Then
                                     CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                                 End If
@@ -5367,7 +5815,6 @@ Next_nrTask:
                                         ACTarray(X).CAID3 = CAID3
                                     End If
                                     ACTarray(X).ID = ID
-                                    
                                     ACTarray(X).CAM = CAM
                                     ACTarray(X).CAID1 = CAID1
                                     ACTarray(X).EVT = EVT
@@ -5375,6 +5822,9 @@ Next_nrTask:
                                     ACTarray(X).FStart = t.Start
                                     If CAID2_Used = True Then
                                         ACTarray(X).CAID2 = CAID2
+                                    End If
+                                    If subprojectIDs Then 'v3.4.3
+                                        ACTarray(X).SubProject = ProjID
                                     End If
                                     ACTarray(X).WP = WP
                                     'v3.3.5 - check for ID length limit
@@ -5438,7 +5888,6 @@ Next_nrTask:
                                     ACTarray(X).CAID3 = CAID3
                                 End If
                                 ACTarray(X).ID = ID
-                                
                                 ACTarray(X).CAM = CAM
                                 ACTarray(X).CAID1 = CAID1
                                 ACTarray(X).EVT = EVT
@@ -5446,6 +5895,9 @@ Next_nrTask:
                                 ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
+                                End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
                                 End If
                                 ACTarray(X).WP = WP
                                 'v3.3.5 - check for ID length limit
@@ -5465,29 +5917,46 @@ Next_nrTask:
 WP_Match:
 
                                 If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
+                                    'v3.4.3 - refactored data output code
                                     If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
                                         
+                                        outputStr = CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                        
                                         If CAID3_Used = True And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                            outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                         End If
                                         If CAID3_Used = False And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                            outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                         End If
                                         If CAID3_Used = False And CAID2_Used = False Then
-                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                            outputStr = CAID1 & "," & outputStr
                                         End If
+                                        
+                                        If subprojectIDs Then 'v3.4.3
+                                            outputStr = ProjID & "," & outputStr
+                                        End If
+                                        
+                                        Print #1, outputStr
                                         
                                     Else
                                         
+                                        outputStr = CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                        
                                         If CAID3_Used = True And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                            outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                         End If
                                         If CAID3_Used = False And CAID2_Used = True Then
-                                            Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                            outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                         End If
                                         If CAID3_Used = False And CAID2_Used = False Then
-                                            Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                            outputStr = CAID1 & "," & outputStr
                                         End If
+                                        
+                                        If subprojectIDs Then 'v3.4.3
+                                            outputStr = ProjID & "," & outputStr
+                                        End If
+                                        
+                                        Print #1, outputStr
                                         
                                     End If
                                 End If
@@ -5585,6 +6054,9 @@ Next_SProj_Task:
                         (t.GetField(FieldNameToFieldConstant(fWhatIf)) = "R" Or t.GetField(FieldNameToFieldConstant(fWhatIf)) = "r")) Then
 
                             CAID1 = t.GetField(FieldNameToFieldConstant(fCAID1))
+                            If subprojectIDs Then 'v3.4.3
+                                ProjID = t.GetField(FieldNameToFieldConstant(fProject))
+                            End If
                             If CAID3_Used = True Then
                                 CAID3 = t.GetField(FieldNameToFieldConstant(fCAID3))
                             End If
@@ -5638,7 +6110,6 @@ Next_SProj_Task:
                                     ACTarray(X).CAID3 = CAID3
                                 End If
                                 ACTarray(X).ID = ID
-                                
                                 ACTarray(X).CAM = CAM
                                 ACTarray(X).CAID1 = CAID1
                                 ACTarray(X).EVT = EVT
@@ -5646,6 +6117,9 @@ Next_SProj_Task:
                                 ACTarray(X).FStart = t.Start
                                 If CAID2_Used = True Then
                                     ACTarray(X).CAID2 = CAID2
+                                End If
+                                If subprojectIDs Then 'v3.4.3
+                                    ACTarray(X).SubProject = ProjID
                                 End If
                                 ACTarray(X).WP = WP
                                 'v3.3.5 - check for ID length limit
@@ -5711,11 +6185,13 @@ Next_SProj_Task:
                             ACTarray(X).CAID1 = CAID1
                             ACTarray(X).EVT = EVT
                             ACTarray(X).ID = ID
-                            
                             ACTarray(X).FFinish = t.Finish
                             ACTarray(X).FStart = t.Start
                             If CAID2_Used = True Then
                                 ACTarray(X).CAID2 = CAID2
+                            End If
+                            If subprojectIDs Then 'v3.4.3
+                                ACTarray(X).SubProject = ProjID
                             End If
                             ACTarray(X).WP = WP
                             'v3.3.5 - check for ID length limit
@@ -5735,29 +6211,46 @@ Next_SProj_Task:
 WP_Match_B:
 
                             If (EVT = "B" Or EVT = "B Milestone") And ExportMilestones Then
+                                'v3.4.3 - refactored data output code
                                 If t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "R" And t.GetField(FieldNameToFieldConstant(fWhatIf)) <> "r" Then
                                         
+                                    outputStr = CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                        
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.BaselineStart, dateFmt) & "," & Format(t.BaselineFinish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & outputStr
                                     End If
+                                    
+                                    If subprojectIDs Then 'v3.4.3
+                                        outputStr = ProjID & "," & outputStr
+                                    End If
+                                    
+                                    Print #1, outputStr
                                     
                                 Else
                                     
+                                    outputStr = CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                    
                                     If CAID3_Used = True And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID3 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & CAID2 & "," & CAID3 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = True Then
-                                        Print #1, CAID1 & "," & CAID2 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & CAID2 & "," & outputStr
                                     End If
                                     If CAID3_Used = False And CAID2_Used = False Then
-                                        Print #1, CAID1 & "," & CAM & "," & WP & "," & "," & UID & "," & MSWeight & "," & Replace(t.Name, ",", "") & "," & Format(t.Start, dateFmt) & "," & Format(t.Finish, dateFmt) & ","
+                                        outputStr = CAID1 & "," & outputStr
                                     End If
+                                    
+                                    If subprojectIDs Then 'v3.4.3
+                                        outputStr = ProjID & "," & outputStr
+                                    End If
+                                    
+                                    Print #1, outputStr
                                     
                                 End If
                             End If
@@ -5846,15 +6339,25 @@ next_task:
                     ACTarray(i).Desc = WP_Desc(ACTarray(i).ID)
                 End If
 
+                'v3.4.3 - refactored data output code
+                
+                outputStr = ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT & ","
+
                 If CAID3_Used = True And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID3 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
+                    outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAID3 & "," & outputStr
                 End If
                 If CAID3_Used = False And CAID2_Used = True Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
+                    outputStr = ACTarray(i).CAID1 & "," & ACTarray(i).CAID2 & "," & outputStr
                 End If
                 If CAID3_Used = False And CAID2_Used = False Then
-                    Print #1, ACTarray(i).CAID1 & "," & ACTarray(i).CAM & "," & ACTarray(i).WP & "," & ACTarray(i).ShortID & "," & "," & "," & ACTarray(i).Desc & "," & Format(ACTarray(i).BStart, dateFmt) & "," & Format(ACTarray(i).BFinish, dateFmt) & "," & ACTarray(i).EVT
+                    outputStr = ACTarray(i).CAID1 & "," & outputStr
                 End If
+                
+                If subprojectIDs Then 'v3.4.3
+                    outputStr = ACTarray(i).SubProject & "," & outputStr
+                End If
+                
+                Print #1, outputStr
 
             Next i
         End If
@@ -5871,6 +6374,7 @@ Private Function SetDirectory(ByVal ProjName As String) As String
     Dim pathDesktop As String
 
     pathDesktop = BrowseForFolder 'CreateObject("WScript.Shell").SpecialFolders("Desktop")) 'v3.4.2
+    
     newDir = pathDesktop & "\" & RemoveIllegalCharacters(ProjName) & "_" & Format(Now, "YYYYMMDD HHMMSS")
 
     If Len(newDir) > 220 Then 'v3.4.1
@@ -5930,7 +6434,7 @@ Private Sub Get_WP_Descriptions(ByVal curProj As Project)
     Dim X As Integer
     '<issue47>
     Dim subProjs As Subprojects
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim curSProj As Project
     Dim t As Task '</issue47>
 
@@ -6120,7 +6624,7 @@ Private Function Find_BCRs(ByVal curProj As Project, ByVal fWP As String, ByVal 
     Dim X As Integer
     Dim tempBCRstr As String
     Dim subProjs As Subprojects
-    Dim subProj As Subproject
+    Dim subProj As SubProject
     Dim curSProj As Project
 
     i = 0
@@ -6365,7 +6869,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
     Dim tsv As TimeScaleValue
     Dim tsvs As TimeScaleValues
     Dim tsvsa As TimeScaleValues
-    Dim tsva As TimeScaleValue
+    Dim tsvA As TimeScaleValue
     Dim tempWork As Double
 
     Select Case exportType
@@ -6376,24 +6880,24 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                 Case pjResourceTypeWork
 
-                    If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                    If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then 'v3.4.5
 
                         If TsvScale = "Weekly" Then 'v3.4
-                            Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
-                            Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks)
+                            Set tsvs = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks) 'v3.4.5
+                            Set tsvsa = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks) 'v3.4.5
                         Else
-                            Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleMonths) 'v3.4
-                            Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleMonths) 'v3.4
+                            Set tsvs = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleMonths) 'v3.4, v3.4.5
+                            Set tsvsa = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleMonths) 'v3.4, v3.4.5
                         End If
                         
                         For Each tsv In tsvs
 
-                            Set tsva = tsvsa(tsv.Index)
+                            Set tsvA = tsvsa(tsv.Index)
 
                             tempWork = 0
 
-                            If tsva <> "" Then
-                                tempWork = CDbl(tsv.Value) - CDbl(tsva.Value) 'v3.3.6
+                            If tsvA <> "" Then
+                                tempWork = CDbl(tsv.Value) - CDbl(tsvA.Value) 'v3.3.6
                             ElseIf tsv.Value <> "" Then
                                 tempWork = CDbl(tsv.Value)
                             End If
@@ -6402,7 +6906,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                 If tsvs.Count = 1 Then
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
                                 Else
 
@@ -6410,7 +6914,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                         Case 1
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(t.Resume, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork / 60 & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt) 'v3.4.5
 
                                         Case tsvs.Count
 
@@ -6430,7 +6934,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                         Exit Sub
 
-                    ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                    ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 Then 'v3.4.5
 
                         If TsvScale = "Weekly" Then 'v3.4
                             Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
@@ -6476,24 +6980,24 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
             Case pjResourceTypeCost
 
-                If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then 'v3.4.5
 
                     If TsvScale = "Weekly" Then 'v3.4
-                        Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
-                        Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleWeeks)
+                        Set tsvs = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks) 'v3.4.5
+                        Set tsvsa = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleWeeks) 'v3.4.5
                     Else
-                        Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleMonths) 'v3.4
-                        Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleMonths) 'v3.4
+                        Set tsvs = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleMonths) 'v3.4, v3.4.5
+                        Set tsvsa = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleMonths) 'v3.4, v3.4.5
                     End If
                     
                     For Each tsv In tsvs
 
-                        Set tsva = tsvsa(tsv.Index)
+                        Set tsvA = tsvsa(tsv.Index)
 
                         tempWork = 0
 
-                        If tsva <> "" Then
-                            tempWork = CDbl(tsv.Value) - CDbl(tsva.Value) 'v3.3.6
+                        If tsvA <> "" Then
+                            tempWork = CDbl(tsv.Value) - CDbl(tsvA.Value) 'v3.3.6
                         ElseIf tsv.Value <> "" Then
                             tempWork = CDbl(tsv.Value)
                         End If
@@ -6502,7 +7006,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                             If tsvs.Count = 1 Then
 
-                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
                             Else
 
@@ -6510,7 +7014,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                     Case 1
 
-                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
+                                        Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt) 'v3.4.5
 
                                     Case tsvs.Count
 
@@ -6530,7 +7034,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                     Exit Sub
 
-                ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 Then 'v3.4.5
 
                     If TsvScale = "Weekly" Then 'v3.4
                         Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleWeeks)
@@ -6576,24 +7080,24 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
             Case pjResourceTypeMaterial
 
-                If t.Resume <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                If CStr(AssignmentResumeDate(tAssign)) <> "NA" And t.ActualFinish = "NA" And tAssign.PercentWorkComplete <> 100 Then 'v3.4.5
 
                         If TsvScale = "Weekly" Then 'v3.4
-                            Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
-                            Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks)
+                            Set tsvs = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks) 'v3.4.5
+                            Set tsvsa = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleWeeks) 'v3.4.5
                         Else
-                            Set tsvs = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleMonths) 'v3.4
-                            Set tsvsa = tAssign.TimeScaleData(t.Resume, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleMonths) 'v3.4
+                            Set tsvs = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleMonths) 'v3.4, v3.4.5
+                            Set tsvsa = tAssign.TimeScaleData(AssignmentResumeDate(tAssign), tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleMonths) 'v3.4, v3.4.5
                         End If
 
                         For Each tsv In tsvs
 
-                            Set tsva = tsvsa(tsv.Index)
+                            Set tsvA = tsvsa(tsv.Index)
 
                             tempWork = 0
 
-                            If tsva <> "" Then
-                                tempWork = CDbl(tsv.Value) - CDbl(tsva.Value) 'v3.3.6
+                            If tsvA <> "" Then
+                                tempWork = CDbl(tsv.Value) - CDbl(tsvA.Value) 'v3.3.6
                             ElseIf tsv.Value <> "" Then
                                 tempWork = CDbl(tsv.Value)
                             End If
@@ -6602,7 +7106,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                 If tsvs.Count = 1 Then
 
-                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, dateFmt) & "," & Format(tAssign.Finish, dateFmt)
+                                    Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tAssign.Finish, dateFmt) 'v3.4.5
 
                                 Else
 
@@ -6610,7 +7114,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                                         Case 1
 
-                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(t.Resume, dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt)
+                                            Print #2, ID & "," & tAssign.Resource.GetField(FieldNameToFieldConstant(fResID, pjResource)) & "," & tempWork & "," & Format(AssignmentResumeDate(tAssign), dateFmt) & "," & Format(tsv.EndDate - 1, dateFmt) 'v3.4.5
 
                                         Case tsvs.Count
 
@@ -6630,7 +7134,7 @@ Private Sub ExportTimeScaleResources(ByVal ID As String, ByVal t As Task, ByVal 
 
                         Exit Sub
 
-                    ElseIf t.Resume = "NA" And tAssign.PercentWorkComplete <> 100 Then
+                    ElseIf CStr(AssignmentResumeDate(tAssign)) = "NA" And tAssign.PercentWorkComplete <> 100 Then 'v3.4.5
 
                         If TsvScale = "Weekly" Then 'v3.4
                             Set tsvs = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleWeeks)
@@ -7003,5 +7507,32 @@ Invalid:
         BrowseForFolder = False
 End Function
 
+Private Function AssignmentResumeDate(ByVal tAssign As Assignment) As Variant 'v3.4.5
 
+    Dim tsvW As TimeScaleValues
+    Dim tsvA As TimeScaleValues
+    Dim i As Integer
+    
+    If tAssign.ResourceType <> pjResourceTypeCost Then
+        'evaluate labor and material resources
+        Set tsvW = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledWork, pjTimescaleDays)
+        Set tsvA = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledActualWork, pjTimescaleDays)
+    
+    Else
+        'evaluate cost resources
+        Set tsvW = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledCost, pjTimescaleDays)
+        Set tsvA = tAssign.TimeScaleData(tAssign.Start, tAssign.Finish, pjAssignmentTimescaledActualCost, pjTimescaleDays)
+    
+    End If
+
+    For i = 1 To tsvA.Count
+        If tsvA(i).Value = "" And tsvW(i).Value <> "" Then
+            AssignmentResumeDate = tsvW(i).StartDate
+            Exit Function
+        End If
+    Next i
+    
+    AssignmentResumeDate = "NA"
+           
+End Function
 
