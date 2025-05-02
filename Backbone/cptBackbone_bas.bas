@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 
 Sub cptImportCWBSFromExcel(lngOutlineCode As Long)
@@ -1225,7 +1225,7 @@ Sub cptExportOutlineCodeForMPM(lngOutlineCode As Long)
   Close #lngFile
   
   'open it in notepad
-  Shell "C:\Windows\notepad.exe '" & strDir & strFile & "'", vbNormalFocus
+  Shell "notepad.exe """ & strDir & strFile & """", vbNormalFocus
   
 exit_here:
   On Error Resume Next
@@ -1350,7 +1350,7 @@ Sub cptExportOutlineCodeForCOBRA(lngOutlineCode)
 
   Close #lngFile
   
-  Shell "C:\Windows\notepad.exe '" & strFile & "'", vbNormalFocus
+  Shell "notepad.exe """ & strFile & """", vbNormalFocus
 
 exit_here:
   On Error Resume Next

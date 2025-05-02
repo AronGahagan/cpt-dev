@@ -14,7 +14,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-'<cpt_version>v1.3.0</cpt_version>
+'<cpt_version>v1.3.1</cpt_version>
 Option Explicit
 
 Private Sub cmdDone_Click()
@@ -29,7 +29,7 @@ Dim strMsg As String
   If MsgBox(strMsg, vbCritical + vbYesNo, "Do Not Attempt This...") = vbYes Then
     Unload Me
     MsgBox "...you've been warned.", vbInformation + vbOKOnly, "OK"
-    Shell "C:\Windows\notepad.exe '" & cptDir & "\settings\cpt-settings.ini" & "'", vbNormalFocus
+    Shell "notepad.exe """ & cptDir & "\settings\cpt-settings.ini""", vbNormalFocus
   End If
 End Sub
 
