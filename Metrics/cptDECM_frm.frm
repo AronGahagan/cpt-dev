@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v0.0.4</cpt_version>
+'<cpt_version>v0.0.5</cpt_version>
 Option Explicit
 
 Private Sub cmdDone_Click()
@@ -127,7 +127,7 @@ Public Sub lboMetrics_AfterUpdate()
         strMsg = strMsg & "I appreciate your assistance. Please let me know if you have any questions."
         oFile.Write strMsg
         oFile.Close
-        Shell "C:\Windows\notepad.exe '" & strDir & "\wp-ev.sql.txt" & "'", vbNormalFocus
+        Shell "notepad.exe """ & strDir & "\wp-ev.sql.txt""", vbNormalFocus
         GoTo exit_here
       Else
         Me.txtTitle.Value = Me.txtTitle.Text & vbCrLf & "please paste data here (w/o headers):" & vbCrLf

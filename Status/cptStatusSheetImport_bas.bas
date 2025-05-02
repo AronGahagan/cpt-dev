@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheetImport_bas"
-'<cpt_version>v1.2.4</cpt_version>
+'<cpt_version>v1.2.5</cpt_version>
 Option Explicit
 
 Sub cptShowStatusSheetImport_frm()
@@ -834,7 +834,7 @@ exit_here:
     End If
     Close #lngFile
     'open log in notepad
-    Shell "C:\WINDOWS\notepad.exe " & strImportLog, vbNormalFocus
+    Shell "notepad.exe """ & strImportLog & """", vbNormalFocus
   End If
   cptStatusSheetImport_frm.lblStatus.Caption = "Ready..."
   cptSpeed False

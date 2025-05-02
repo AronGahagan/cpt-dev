@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptMetrics_bas"
-'<cpt_version>v1.4.3</cpt_version>
+'<cpt_version>v1.4.4</cpt_version>
 Option Explicit
 
 Sub cptGetBAC()
@@ -652,7 +652,7 @@ next_task:
   cptGetMetric = dblResult
   If blnVerbose Then
     Close #lngFile
-    Shell "C:\Windows\notepad.exe '" & strVerbose & "'", vbNormalFocus
+    Shell "notepad.exe """ & strVerbose & """", vbNormalFocus
   End If
 
 exit_here:

@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDECM_bas"
-'<cpt_version>v0.0.4</cpt_version>
+'<cpt_version>v0.0.5</cpt_version>
 Option Explicit
 
 Private strWBS As String
@@ -2149,7 +2149,7 @@ err_here:
 End Sub
 
 Sub opencsv(strFile)
-  Shell "C:\Windows\notepad.exe '" & Environ("tmp") & "\" & strFile & "'", vbNormalFocus
+  Shell "notepad.exe """ & Environ("tmp") & "\" & strFile & """", vbNormalFocus
 End Sub
 
 Sub cptDECM_EXPORT(Optional blnDetail As Boolean = False)
