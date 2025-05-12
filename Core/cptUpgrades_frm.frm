@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.5.2</cpt_version> 'DO NOT BUMP THE VERSION WHILE DEVELOPING OR IT WILL GET OVERWRITTEN NEXT TIME YOU OPEN THE FORM
+'<cpt_version>v1.5.3</cpt_version> 'DO NOT BUMP THE VERSION WHILE DEVELOPING OR IT WILL GET OVERWRITTEN NEXT TIME YOU OPEN THE FORM
 Option Explicit
 Private Const BLN_TRAP_ERRORS As Boolean = True
 'If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
@@ -44,7 +44,7 @@ Private Sub cboBranches_Change()
   'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-  If Not cptUpgrades_frm.Visible Then Exit Sub
+  If Not Me.Visible Then Exit Sub
   'set up the recordset
   Set rstStatus = CreateObject("ADODB.Recordset")
   rstStatus.Fields.Append "Module", 200, 200
@@ -116,23 +116,23 @@ Private Sub cboBranches_Change()
     Else
       strInstVer = "<not installed>"
     End If
-    cptUpgrades_frm.lboModules.AddItem
-    cptUpgrades_frm.lboModules.List(lngItem, 0) = rstStatus(0) 'module name
-    cptUpgrades_frm.lboModules.List(lngItem, 1) = rstStatus(1) 'directory
-    cptUpgrades_frm.lboModules.List(lngItem, 2) = strCurVer 'current version
-    cptUpgrades_frm.lboModules.List(lngItem, 3) = strInstVer 'installed version
+    Me.lboModules.AddItem
+    Me.lboModules.List(lngItem, 0) = rstStatus(0) 'module name
+    Me.lboModules.List(lngItem, 1) = rstStatus(1) 'directory
+    Me.lboModules.List(lngItem, 2) = strCurVer 'current version
+    Me.lboModules.List(lngItem, 3) = strInstVer 'installed version
     
     Select Case strInstVer
       Case Is = strCurVer
-        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< ok >"
+        Me.lboModules.List(lngItem, 4) = "< ok >"
       Case Is = "<not installed>"
-        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< install >"
+        Me.lboModules.List(lngItem, 4) = "< install >"
       Case Is <> strCurVer
-        cptUpgrades_frm.lboModules.List(lngItem, 4) = "< " & cptVersionStatus(strInstVer, strCurVer) & " >"
+        Me.lboModules.List(lngItem, 4) = "< " & cptVersionStatus(strInstVer, strCurVer) & " >"
     End Select
     'capture the type while we're at it - could have just pulled the FileName
-    Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + cptUpgrades_frm.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
-    cptUpgrades_frm.lboModules.List(lngItem, 5) = FindRecord.Text
+    Set FindRecord = xmlDoc.SelectSingleNode("//Name[text()='" + Me.lboModules.List(lngItem, 0) + "']").ParentNode.SelectSingleNode("Type")
+    Me.lboModules.List(lngItem, 5) = FindRecord.Text
 next_lngItem:
     lngItem = lngItem + 1
     rstStatus.MoveNext
@@ -171,54 +171,60 @@ Dim lngItem As Long
 End Sub
 
 Private Sub cmdUpgradeSelected_Click()
-'do not call out of this module
-'objects
-Dim rstCode As Object 'ADODB.Recordset
-Dim cmCptThisProject As Object 'VBCodeModule
-Dim cmThisProject As Object 'VBCodeModule
-Dim Project As Object
-Dim vbComponent As Object 'vbComponent
-Dim xmlHttpDoc As Object
-Dim oStream As Object 'ADODB.Stream
-'strings
-Dim strFileType As String
-Dim lngEvent As String
-Dim strVersion As String
-Dim strMsg As String
-Dim strCptFileName As String
-Dim strDirectory As String
-Dim strModule As String, strFileName As String, strURL As String
-'longs
-Dim lngLine As Long
-Dim lngItem As Long
-'integers
-'booleans
-'variants
-Dim vEvent As Variant
-'dates
+  'do not call out of this module
+  'objects
+  Dim rstCode As Object 'ADODB.Recordset
+  Dim cmCptThisProject As Object 'VBCodeModule
+  Dim cmThisProject As Object 'VBCodeModule
+  Dim Project As Object
+  Dim vbComponent As Object 'vbComponent
+  Dim xmlHttpDoc As Object
+  Dim oStream As Object 'ADODB.Stream
+  'strings
+  Dim strFileType As String
+  Dim lngEvent As String
+  Dim strVersion As String
+  Dim strMsg As String
+  Dim strCptFileName As String
+  Dim strDirectory As String
+  Dim strModule As String, strFileName As String, strURL As String
+  'longs
+  Dim lngLine As Long
+  Dim lngItem As Long
+  'integers
+  'booleans
+  'variants
+  Dim vEvent As Variant
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   For lngItem = 0 To Me.lboModules.ListCount - 1
 
     If Me.lboModules.Selected(lngItem) Then
-      
+      'scroll to selected
+      Me.lboModules.TopIndex = lngItem 
       '<issue33> trap invalid use of null error?
       If IsNull(Me.lboModules.List(lngItem, 0)) Then
         MsgBox "Unable to download upgrades.", vbExclamation + vbOKOnly, "Can't Connect"
         GoTo exit_here
       End If '</issue33>
       
-      Me.lboModules.List(lngItem, 4) = "<installing...>"
-
+      Me.lboModules.ListIndex = lngItem
       strModule = Me.lboModules.List(lngItem, 0)
+      If strModule = "cptUpgrades_frm" Then
+        Me.lboModules.List(lngItem,4) = "<skipped>"
+        GoTo next_module
+      Else
+        Me.lboModules.List(lngItem, 4) = "<installing...>"
+      End If
       Application.StatusBar = "installing " & strModule & "..."
 
       'get the module name
       'get the repo directory
       'get the filename
       Set xmlHttpDoc = CreateObject("Microsoft.XMLHTTP")
-      strDirectory = cptUpgrades_frm.lboModules.List(lngItem, 1)
+      strDirectory = Me.lboModules.List(lngItem, 1)
       strFileType = Me.lboModules.List(lngItem, 5)
       strFileName = strModule & Switch(strFileType = "1", ".bas", _
                                   strFileType = "2", ".cls", _
@@ -399,7 +405,7 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErrUpgrade("cptUpgrades_frm", "cmdUpdate_Click", err, Erl)
-  Me.lboModules.List(lngItem - 1, 3) = "<error>" '</issue25>
+  Me.lboModules.List(lngItem, 3) = "<error>" '</issue25>
   Resume exit_here
 
 End Sub
