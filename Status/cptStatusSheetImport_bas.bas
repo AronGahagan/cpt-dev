@@ -249,7 +249,7 @@ Sub cptStatusSheetImport(ByRef myStatusSheetImport_frm As cptStatusSheetImport_f
   Dim oDict As Scripting.Dictionary
   Dim oShell As Object
   Dim oRecordset As ADODB.Recordset
-  Dim oSubproject As MSProject.Subproject
+  Dim oSubproject As MSProject.SubProject
   Dim oTask As MSProject.Task
   Dim oResource As MSProject.Resource
   Dim oAssignment As MSProject.Assignment
@@ -695,6 +695,7 @@ skip_ns:
                 oWorksheet.Cells(lngRow, lngNFCol).NumberFormat = "m/d/yyyy" 'restore date format
                 If Len(oWorksheet.Cells(lngRow, lngNFCol).Value) > 0 And Not IsDate(oWorksheet.Cells(lngRow, lngNFCol).Value) Then
                   Print #lngFile, "UID " & oTask.UniqueID & " - invalid New Finish Date " & String(10, "<")
+                  oWorksheet.Cells(lngRow, lngNFCol).Style = "Bad"
                 ElseIf oWorksheet.Cells(lngRow, lngNFCol).Value > 0 Then
                   dtNewDate = FormatDateTime(CDate(oWorksheet.Cells(lngRow, lngNFCol)), vbShortDate)
                   'determine actual or forecast
