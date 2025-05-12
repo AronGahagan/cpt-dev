@@ -1892,7 +1892,7 @@ err_here:
 End Function
 
 Sub cptOpenSettingsFile()
-  Shell "notepad.exe """ & cptDir & "\settings\cpt-settings.ini" & """"""
+  Shell "notepad.exe """ & cptDir & "\settings\cpt-settings.ini""", vbNormalFocus
 End Sub
 
 Function cptGetMyHeaders(strTitle As String, Optional blnRequired As Boolean = False) As String

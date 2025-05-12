@@ -27,7 +27,7 @@ Dim strMsg As String
   strMsg = strMsg & "Do you still wish to venture forth?"
   If MsgBox(strMsg, vbCritical + vbYesNo, "Do Not Attempt This...") = vbYes Then
     MsgBox "...you've been warned.", vbInformation + vbOKOnly, "OK"
-    Shell "notepad.exe """ & cptDir & "\settings\cpt-settings.ini" & """", vbNormalFocus
+    Shell "notepad.exe """ & cptDir & "\settings\cpt-settings.ini"""", vbNormalFocus
   End If
 End Sub
 
