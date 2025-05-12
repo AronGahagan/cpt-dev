@@ -62,7 +62,7 @@ Sub cptSetup()
   If InStr(ThisProject.FullName, "Global") = 0 Then
     strMsg = "The CPT can only be installed in one of the following:" & vbCrLf
     strMsg = strMsg & "> Global.MPT" & vbCrLf
-    strMsg = strMsg & "> Global (+ non-cached Enterprise) for testing purposes only" & vbCrLf
+    strMsg = strMsg & "> Global (+ non-cached Enterprise) temporarily and for testing purposes only" & vbCrLf
     strMsg = strMsg & "> Checked-out Enterprise Global (when ready to release to Enterprise user base)" & vbCrLf & vbCrLf
     strMsg = strMsg & "(Do not install to a *.mpp file.)"
     MsgBox strMsg, vbCritical + vbOKOnly, "Faulty Installation"
@@ -562,10 +562,18 @@ Public Function cptBuildRibbonTab()
   If cptModuleExists("cptStatusSheetImport_bas") And cptModuleExists("cptStatusSheetImport_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheetImport"" label=""Import Status Sheet(s)"" imageMso=""ImportExcel"" onAction=""cptShowStatusSheetImport_frm"" visible=""true"" supertip=""Just what it sounds like. (Note: Assignment ETC is at the Assignment level, so use the Task Usage view to review after import.)"" />"
   End If
+  
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mScheduleUtilities"" label=""Utilities"" imageMso=""CheckWorkflow"" visible=""true"" >"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Status Utilities"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  
   If cptModuleExists("cptSmartDuration_frm") And cptModuleExists("cptSmartDuration_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSmartDuration"" label=""Smart Duration"" imageMso=""CalendarToolSelectDate"" onAction=""cptShowSmartDuration_frm"" visible=""true"" supertip=""We've all been there: how many days between Time Now and the finish date the CAM just gave me? No more guess work: click here and improve your life."" />"
   End If
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUnstatused"" label=""Find Unstatused"" imageMso=""UpdateAsScheduled"" onAction=""cptFindUnstatusedTasks"" visible=""true"" supertip=""Find tasks not statused through 'Time Now'."" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bRetainETC"" label=""Mark On Track (Retain ETC)"" imageMso=""UpdateAsScheduled"" onAction=""cptMarkOnTrackRetainETC"" visible=""true"" supertip=""Mark on Track and Retain Remaining Work (ETC)."" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bRespread"" label=""Respread Assignments"" imageMso=""UpdateAsScheduled"" onAction=""cptRespreadAssignmentWork"" visible=""true"" supertip=""Respread Assignment Work/Cost so that Assignment Finish Dates match Task Finish Date."" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAssignmentsNoETC"" label=""Find Assignments without ETC"" imageMso=""UpdateAsScheduled"" onAction=""cptFindAssignmentsWithoutWork"" supertip=""Find Assignments on incomplete tasks with zero remaining work. These can lead to odd task start times."" />"
+  ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""After Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBlameReport"" label=""The Blame Report"" imageMso=""ContactProperties"" onAction=""cptBlameReport"" visible=""true"" supertip=""Find out which tasks slipped from last period."" />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCaptureWeek2"" label=""Capture Week"" imageMso=""RefreshWebView"" onAction=""cptCaptureWeek"" visible=""true"" supertip=""Capture the Current Schedule after updates to compare against past and future weeks during execution. This is required for certain metrics (e.g., CEI, all Trending) to run properly."" />"
@@ -710,7 +718,7 @@ Public Function cptBuildRibbonTab()
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bRequest"" label=""Submit a Feature Request"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitRequest"" visible=""true"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFeedback"" label=""Submit Other Feedback"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitFeedback"" visible=""true"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Settings"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSettings"" label=""View All Settings"" imageMso=""Settings"" onAction=""cptShowSettings_frm"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSettingsCPT"" label=""View CPT Settings"" imageMso=""Settings"" onAction=""cptShowSettings_frm"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Uninstall"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUninstall"" label=""Uninstall ClearPlan Toolbar"" imageMso=""TasksUnlink"" onAction=""cptUninstall"" visible=""true"" />"
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
@@ -719,39 +727,18 @@ Public Function cptBuildRibbonTab()
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
   ribbonXML = ribbonXML + vbCrLf & "</mso:tab>"
-  
-'  If cptModuleExists("cptCostRateTables_bas") And cptModuleExists("cptCostRateTables_frm") Then
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:tab idMso=""TabResource"">"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""ClearPlan"" label=""ClearPlan"" visible=""true"">"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCostRateTables2"" label=""Cost Rate Tables"" imageMso=""DataTypeCurrency"" onAction=""cptShowCostRateTables_frm""  size=""large"" visible=""true"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
-'    ribbonXML = ribbonXML + vbCrLf & "</mso:tab>"
-'  End If
-  
+    
   'Debug.Print "<mso:customUI ""xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui"" >" & ribbonXML
   cptBuildRibbonTab = ribbonXML
 
 End Function
 
-Sub cptHandleErrOld(strModule As String, strProcedure As String, objErr As ErrObject, Optional lngErl As Long, Optional strStep As String)
-  'common error handling prompt
-  Dim strMsg As String
-
-  strMsg = "Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
-  strMsg = strMsg & "Error " & Err.Number & ": " & Err.Description & vbCrLf & vbCrLf
-  strMsg = strMsg & "Source: " & strModule & "." & strProcedure
-  If lngErl > 0 Then
-    strMsg = strMsg & ":" & lngErl
-  End If
-  MsgBox strMsg, vbExclamation + vbOKOnly, Err.Description
-
-End Sub
-
-Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObject, Optional lngErl As Long)
+Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObject, Optional lngErl As Long, Optional strProcessStep As String)
   'common error handling prompt
   'objects
+  Dim oLink As MSProject.TaskDependency
   Dim oTask As MSProject.Task
-  Dim oSubproject As MSProject.Subproject
+  Dim oSubproject As MSProject.SubProject
   Dim oProfile As MSProject.Profile
   Dim oShell As Object
   'strings
@@ -771,20 +758,22 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
   'integers
   'doubles
   'booleans
+  Dim blnMaster As Boolean
+  Dim blnInactive As Boolean
+  Dim blnCPL As Boolean
   Dim blnErrorTrapping As Boolean
   Dim blnResourceLoaded As Boolean
   Dim blnBeta As Boolean
   'variants
   'dates
-  
+    
   strErrNumber = CStr(Err.Number)
   strErrDescription = Err.Description
   strErrSource = Err.Source
-  
+
   blnErrorTrapping = cptErrorTrapping
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
-  'todo: trim down options on ticket form
   'todo: has the code been modified?
   'todo: not until CurrentVersions.xml is revised
   
@@ -801,7 +790,15 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
   If InStr(strStatus, "upgrade") > 0 Then 'please upgrade, try again
     strMsg = "An error has occurred in module '" & strModule & "-" & strInstalled & "." & vbCrLf
     strMsg = strMsg & "An upgrade is available: " & strModule & "-" & strLatest & "." & vbCrLf & vbCrLf
-    strMsg = strMsg & strErrNumber & ": " & strErrDescription & vbCrLf & vbCrLf
+    strMsg = strMsg & strErrNumber & ": " & strErrDescription & vbCrLf
+    strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf
+    If Len(strProcessStep) > 0 Then
+      strMsg = strMsg & "Process Step: " & strProcessStep & vbCrLf
+    End If
+    If lngErl > 0 Then
+      strMsg = strMsg & "Line: " & ThisProject.VBProject.VBComponents(strModule).CodeModule.Lines(lngErl, 1) & vbCrLf
+    End If
+    strMsg = strMsg & vbCrLf
     strMsg = strMsg & "Would you like to upgrade to '" & strModule & "' (" & strLatest & ") now?"
     If MsgBox(strMsg, vbInformation + vbYesNo, "CPT Error") = vbYes Then
       cptShowUpgrades_frm
@@ -813,9 +810,17 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
     strMsg = "Thank you for being a beta tester!" & vbCrLf & vbCrLf
     strMsg = strMsg & "An error has occurred in module " & strModule & "-" & strInstalled & "." & vbCrLf
     strMsg = strMsg & "Latest release version is " & strModule & "-" & strLatest & "." & vbCrLf & vbCrLf
-    strMsg = strMsg & strErrNumber & ": " & strErrDescription & vbCrLf & vbCrLf
-    strMsg = strMsg & "Please submit a ticket with the information on the note that follows this prompt."
-    MsgBox strMsg, vbExclamation + vbOKOnly, "CPT Error"
+    strMsg = strMsg & strErrNumber & ": " & strErrDescription & vbCrLf
+    strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf
+    If Len(strProcessStep) > 0 Then
+      strMsg = strMsg & "Process Step: " & strProcessStep & vbCrLf
+    End If
+    If lngErl > 0 Then
+      strMsg = strMsg & "Line: " & ThisProject.VBProject.VBComponents(strModule).CodeModule.Lines(lngErl, 1) & vbCrLf
+    End If
+    strMsg = strMsg & vbCrLf
+    strMsg = strMsg & "Would you like to submit a ticket? (Click 'No' to keep testing...)"
+    If MsgBox(strMsg, vbInformation + vbYesNo, "CPT Error") = vbNo Then GoTo exit_here
   Else 'strStatus = "unavailable" or "ok" or "error" then submit ticket
     strMsg = "An error has occurred in module " & strModule & "-" & strInstalled & "." & vbCrLf
     If strStatus = "ok" Then
@@ -823,7 +828,15 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
     Else
       strMsg = strMsg & "Unable to query github.com for latest version of this module." & vbCrLf & vbCrLf
     End If
-    strMsg = strMsg & strErrNumber & ": " & strErrDescription & vbCrLf & vbCrLf
+    strMsg = strMsg & strErrNumber & ": " & strErrDescription & vbCrLf
+    strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf
+    If Len(strProcessStep) > 0 Then
+      strMsg = strMsg & "Process Step: " & strProcessStep & vbCrLf
+    End If
+    If lngErl > 0 Then
+      strMsg = strMsg & "Line: " & ThisProject.VBProject.VBComponents(strModule).CodeModule.Lines(lngErl, 1) & vbCrLf
+    End If
+    strMsg = strMsg & vbCrLf
     strMsg = strMsg & "Would you like to submit a support ticket?"
     If MsgBox(strMsg, vbExclamation + vbYesNo, "CPT Error") = vbNo Then GoTo exit_here
   End If
@@ -842,15 +855,17 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
   strMsg = strMsg & String(80, "-") & vbCrLf
   strMsg = strMsg & "[Please REPLACE THIS LINE with any notes or comments you'd like to add.]" & vbCrLf
   strMsg = strMsg & "EXAMPLE: I'm trying to run Status Sheets and I keep getting this error..." & vbCrLf
-  strMsg = strMsg & "A screenshot with your dialog selections (e.g., Status Sheet) would also be helpful (see ticket page where it says 'drag and drop file'." & vbCrLf & vbCrLf
+  strMsg = strMsg & "A screenshot with your dialog selections (e.g., Status Sheet) would also be helpful (see ticket page where it says 'drag and drop file')." & vbCrLf & vbCrLf
   
+  'FILE
+  blnMaster = ActiveProject.Subprojects.Count > 0
   strMsg = strMsg & "--- FILE ---" & vbCrLf 'most likely culprit
   If Left(ActiveProject.Path, 2) = "<>" Or Left(ActiveProject.Path, 4) = "http" Then
     strMsg = strMsg & "Type: Cloud/PWA" & vbCrLf
   Else
     strMsg = strMsg & "Type: Local or Network (*.mpp)" & vbCrLf
   End If
-  If ActiveProject.Subprojects.Count > 0 Then
+  If blnMaster Then
     strMsg = strMsg & "Subprojects: " & ActiveProject.Subprojects.Count & vbCrLf
     strMsg = strMsg & "Master Project: " & Format(ActiveProject.Tasks.Count, "#,##0") & " tasks; " & Format(ActiveProject.ResourceCount, "#,##0") & " resources" & vbCrLf
     lngTotalTasks = ActiveProject.Tasks.Count
@@ -865,8 +880,9 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
     strMsg = strMsg & "Tasks: " & Format(ActiveProject.Tasks.Count, "#,##0") & vbCrLf
     strMsg = strMsg & "Resources: " & Format(ActiveProject.ResourceCount, "#,##0") & vbCrLf
   End If
+  strMsg = strMsg & "Baselined: " & IsDate(ActiveProject.BaselineSavedDate(pjBaseline)) & vbCrLf
   blnResourceLoaded = False
-  If ActiveProject.Subprojects.Count > 0 Then
+  If blnMaster Then
     For Each oSubproject In ActiveProject.Subprojects
       For Each oTask In oSubproject.SourceProject.Tasks
         If oTask Is Nothing Then GoTo next_task_master
@@ -890,14 +906,67 @@ next_task_single:
     End If
   End If
   strMsg = strMsg & "Resource Loaded: " & blnResourceLoaded & vbCrLf
-  strMsg = strMsg & "Baselined: " & IsDate(ActiveProject.BaselineSavedDate(pjBaseline)) & vbCrLf
+  blnCPL = False
+  If blnMaster Then
+    For Each oSubproject In ActiveProject.Subprojects
+      For Each oTask In oSubproject.SourceProject.Tasks
+        If Not oTask Is Nothing Then
+          For Each oLink In oTask.TaskDependencies
+            If oLink.To = oTask Then
+              If oLink.From.ExternalTask Then
+                blnCPL = True
+                Exit For
+              End If
+            End If
+            If oLink.From = oTask Then
+              If oLink.To.ExternalTask Then
+                blnCPL = True
+                Exit For
+              End If
+            End If
+          Next oLink
+          If blnCPL Then Exit For
+        End If
+      Next oTask
+      If blnCPL Then Exit For
+    Next oSubproject
+  Else
+    For Each oTask In ActiveProject.Tasks
+      If Not oTask Is Nothing Then
+        For Each oLink In oTask.TaskDependencies
+          If oLink.To = oTask Then
+            If oLink.From.ExternalTask Then
+              blnCPL = True
+              Exit For
+            End If
+          End If
+          If oLink.From = oTask Then
+            If oLink.To.ExternalTask Then
+              blnCPL = True
+              Exit For
+            End If
+          End If
+        Next oLink
+        If blnCPL Then Exit For
+      End If
+    Next oTask
+  End If
+  strMsg = strMsg & "Cross-Project Links: " & blnCPL & vbCrLf
   
+  'CPT
   strMsg = strMsg & "--- CPT ---" & vbCrLf 'slightly less likely culprit
   strMsg = strMsg & "Installed to: " & ThisProject.Name & vbCrLf
   strMsg = strMsg & "Error Number: " & strErrNumber & vbCrLf
   strMsg = strMsg & "Error Description: " & strErrDescription & vbCrLf
   strMsg = strMsg & "Error Source: " & strErrSource & vbCrLf
-  strMsg = strMsg & "Module: " & strModule & "-" & strInstalled
+  If Len(strProcessStep) > 0 Then
+    strMsg = strMsg & "Process Step: " & strProcessStep & vbCrLf
+  End If
+  If lngErl > 0 Then
+    strMsg = strMsg & "Error Line: " & lngErl & vbCrLf
+    'todo: go get the error line...LOL
+  End If
+  strMsg = strMsg & "Installed: " & strModule & "-" & strInstalled
   If blnBeta Then
     strMsg = strMsg & " -> NOTE: USER IS RUNNING A BETA VERSION" & vbCrLf
   Else
@@ -909,6 +978,7 @@ next_task_single:
     strMsg = strMsg & "Line: " & lngErl & vbCrLf
   End If
   
+  'PROFILE
   strMsg = strMsg & "--- PROFILE ---" & vbCrLf 'even less likely culprit
   Set oProfile = Application.Profiles.ActiveProfile
   With oProfile
@@ -924,14 +994,41 @@ next_task_single:
     End If
   End With
   
+  'APPLICATION
   strMsg = strMsg & "--- APPLICATION ---" & vbCrLf 'even less likely culprit
   strMsg = strMsg & "Name: " & Application.Name & " " & Choose(Application.Edition + 1, "Standard", "Professional") & " (" & Application.Build & ")" & vbCrLf
+  blnInactive = False
   If Application.Edition = pjEditionProfessional Then
     If Application.IsOffline Then
       strMsg = strMsg & "PWA Status: Offline" & vbCrLf
     Else
       strMsg = strMsg & "PWA Status: Connected" & vbCrLf
     End If
+  ElseIf Application.Edition = pjEditionStandard Then 'check for inactive tasks
+    If blnMaster Then
+      For Each oSubproject In ActiveProject.Subprojects
+        For Each oTask In oSubproject.SourceProject.Tasks
+          If Not oTask Is Nothing Then
+            If Not oTask.Active Then
+              blnInactive = True
+              Exit For
+            End If
+          End If
+        Next oTask
+      Next oSubproject
+    Else
+      If ActiveProject.ResourceCount > 0 Then
+        For Each oTask In ActiveProject.Tasks
+          If Not oTask Is Nothing Then
+            If Not oTask.Active Then
+              blnInactive = True
+              Exit For
+            End If
+          End If
+        Next oTask
+      End If
+    End If
+    If blnInactive Then strMsg = strMsg & "WARNING: INACTIVE TASKS FOUND" & vbCrLf
   End If
   strMsg = strMsg & "Calculation: " & IIf(Application.Calculation = pjAutomatic, "On", "Off") & vbCrLf
   #If Win64 Then
@@ -946,6 +1043,7 @@ next_task_single:
   #End If
   strMsg = strMsg & "VBE Version: " & VBE.Version & vbCrLf
   
+  'OS
   strMsg = strMsg & "--- OS ---" & vbCrLf 'least likely culprit, but might be releveant
   strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProductName" 'Windows 10 Pro
   strMsg = strMsg & "Name: " & oShell.RegRead(strKey)
@@ -971,7 +1069,7 @@ next_task_single:
   strMsg = strMsg & "=== FINAL STEPS ===" & vbCrLf
   strMsg = strMsg & "-> Enter your name (required)." & vbCrLf
   strMsg = strMsg & "-> Enter your email address (required)." & vbCrLf
-  strMsg = strMsg & "-> Enter your phone number (optional). (It is more likely we'll set up a Teams meeting." & vbCrLf
+  strMsg = strMsg & "-> Enter your phone number (optional). (It is more likely we'll set up a Teams meeting.)" & vbCrLf
   strMsg = strMsg & "-> Enter an alternate email address (optional)." & vbCrLf
   strMsg = strMsg & "-> Pass the [I AM NOT ROBOT] test." & vbCrLf
   strMsg = strMsg & "-> Click [Create Ticket]."
@@ -988,6 +1086,7 @@ next_task_single:
   
 exit_here:
   On Error Resume Next
+  Set oLink = Nothing
   Application.StatusBar = ""
   Set oTask = Nothing
   Set oSubproject = Nothing
@@ -1122,7 +1221,8 @@ Sub cptUninstall()
   If MsgBox("Are you sure?", vbCritical + vbYesNo, "Uninstall CPT") = vbNo Then GoTo exit_here
 
   strMsg = "1. Please delete the module 'cptSetup_bas' manually after this process completes." & vbCrLf & vbCrLf
-  strMsg = strMsg & "2. If you have made modifications to the ThisProject codemodule, you may need to review it." & vbCrLf & vbCrLf
+  strMsg = strMsg & "2. If you have made modifications to the 'ThisProject' module, you may need to review it." & vbCrLf & vbCrLf
+  strMsg = strMsg & "3. This process will NOT delete your historical data and saved settings which are stored in '" & strDir & "'. Please do this manually - and fully aware that this cannot be undone." & vbCrLf & vbCrLf
   strMsg = strMsg & "Alternatively, if you would like to reinstall, re-run cptSetup() and then install updates."
   If MsgBox(strMsg, vbInformation + vbOKCancel, "Thank You!") = vbCancel Then GoTo exit_here
 

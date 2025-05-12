@@ -3610,7 +3610,7 @@ End Sub
 
 Function cptGetEarliestStart() As Date
   Dim dtStart As Date
-  Dim oSubproject As Subproject
+  Dim oSubproject As SubProject
   dtStart = #12/31/2149#
   For Each oSubproject In ActiveProject.Subprojects
     If oSubproject.InsertedProjectSummary.Start < dtStart Then
@@ -3737,6 +3737,468 @@ exit_here:
   Exit Sub
 err_here:
   cptHandleErr "cptStatusSheet_bas", "cptAssignmentsWithoutWork", Err, Erl
+  Resume exit_here
+End Sub
+
+Sub cptRespreadAssignmentWork()
+  'purpose: to spread assignment finish dates to task finish dates
+  'use: run macro
+  'objects
+  Dim oRemainingWork As Scripting.Dictionary
+  Dim oAssignment As MSProject.Assignment
+  Dim oTask As MSProject.Task
+  Dim oTasks As MSProject.Tasks
+  'strings
+  'longs
+  Dim lngMismatched As Long
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  Dim lngItem As Long
+  Dim lngRemainingDuration As Long
+  Dim lngRemainingWork As Long
+  Dim lngTaskType As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnErrorTrapping As Boolean
+  Dim blnMismatch As Boolean
+  Dim blnEffortDriven As Boolean
+  'variants
+  'dates
+
+  Application.OpenUndoTransaction "cptRespreadAssignments"
+
+  blnErrorTrapping = cptErrorTrapping
+  
+  On Error Resume Next
+  'OPTIONAL: Change 'ActiveSelection' to 'ActiveProject' in the next line to execute on ALL tasks
+  Set oTasks = ActiveSelection.Tasks
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If oTasks Is Nothing Then
+    MsgBox "No tasks selected.", vbCritical + vbOKOnly, "Error"
+    GoTo exit_here
+  End If
+  If oTasks.Count = 0 Then
+    MsgBox "No tasks selected.", vbCritical + vbOKOnly, "Error"
+    GoTo exit_here
+  End If
+  
+  'provide user feedback in StatusBar
+  lngTasks = oTasks.Count
+  lngTask = 0
+
+  Set oRemainingWork = CreateObject("Scripting.Dictionary")
+  For Each oTask In oTasks
+    If oTask Is Nothing Then GoTo next_task 'skip blank task lines
+    If oTask.Summary Then GoTo next_task 'skip summary tasks
+    If Not oTask.Active Then GoTo next_task 'skip inactive tasks
+    If oTask.ExternalTask Then GoTo next_task 'skip external tasks
+    If oTask.Assignments.Count = 0 Then GoTo next_task 'skip SVTs, Milestones, Schedule Margin, etc.
+    blnMismatch = False
+    For Each oAssignment In oTask.Assignments
+      'todo: test on work, material, and cost
+      'todo: if cost, then account for AccrueAt
+      If oAssignment.Finish <> oTask.Finish Then
+        blnMismatch = True
+        Exit For
+      End If
+    Next oAssignment
+    If Not blnMismatch Then GoTo next_task
+    lngMismatched = lngMismatched + 1
+    'capture task settings
+    lngTaskType = oTask.Type
+    blnEffortDriven = oTask.EffortDriven
+    'capture remaining duration
+    lngRemainingDuration = oTask.RemainingDuration
+    lngRemainingWork = oTask.RemainingWork
+    'clear the dictionary before capturing task assignments
+    If oRemainingWork.Count > 0 Then oRemainingWork.RemoveAll
+    'capture remaining work
+    For Each oAssignment In oTask.Assignments
+      oRemainingWork.Add oAssignment.ResourceName, oAssignment.RemainingWork
+    Next oAssignment
+    'set to fixed duration
+    oTask.Type = pjFixedDuration
+    oTask.EffortDriven = False
+    'set remaining duration to 0
+    oTask.RemainingDuration = 0
+    'restore remaining duration
+    oTask.RemainingDuration = lngRemainingDuration
+    'restore remaining work
+    For Each oAssignment In oTask.Assignments
+      oAssignment.RemainingWork = oRemainingWork(oAssignment.ResourceName)
+    Next oAssignment
+    'restore task settings
+    If lngTaskType <> pjFixedDuration Then oTask.Type = lngTaskType
+    If oTask.Type <> pjFixedWork Then oTask.EffortDriven = blnEffortDriven
+next_task:
+    'provide user feedback
+    Application.StatusBar = "Fixing tasks...(" & Format(lngTask / lngTasks, "0%") & ")"
+    DoEvents
+  Next oTask
+
+  If lngMismatched > 0 Then
+    MsgBox Format(lngMismatched, "#,##0") & " mismatched task(s) respread.", vbInformation + vbOKOnly, "Complete"
+  Else
+    MsgBox "No mismatched task/assignment finish dates found.", vbInformation + vbOKOnly, "Complete"
+  End If
+
+  'provide user feedback
+  Application.StatusBar = "Complete."
+
+exit_here:
+  On Error Resume Next
+  Application.CloseUndoTransaction
+  Application.StatusBar = ""
+  Set oRemainingWork = Nothing
+  Set oAssignment = Nothing
+  Set oTask = Nothing
+  Set oTasks = Nothing
+
+  Exit Sub
+err_here:
+  cptHandleErr "cptStatusSheet_bas", "cptRespreadAssignmentWork", Err, Erl
+  Resume exit_here
+End Sub
+
+Sub cptMarkOnTrackRetainETC()
+  'objects
+  Dim oDict As Scripting.Dictionary
+  Dim oAssignment As MSProject.Assignment
+  Dim oTask As MSProject.Task
+  Dim oTasks As MSProject.Tasks
+  'strings
+  Dim strMsg As String
+  Dim strChangeApplicationSettings As String
+  Dim strChangeProjectSettings As String
+  'longs
+  Dim lngTaskType As Long
+  Dim lngTask As Long
+  Dim lngTasks As Long
+  'integers
+  'doubles
+  Dim dblRemainingDuration  As Double
+  Dim dblRemainingWork As Double
+  'booleans
+  Dim blnSpreadCostsToStatusDate As Boolean
+  Dim blnShowTaskWarnings As Boolean
+  Dim blnShowTaskSuggestions As Boolean
+  Dim blnSpreadPercentCompleteToStatusDate As Boolean
+  Dim blnAndMoveRemaining As Boolean
+  Dim blnMoveCompleted As Boolean
+  Dim blnAndMoveCompleted As Boolean
+  Dim blnMoveRemaining As Boolean
+  Dim blnAutoCalcCosts As Boolean
+  Dim blnAutoTrack As Boolean
+  Dim blnDisplayWizardUsage As Boolean
+  Dim blnDisplayWizardScheduling As Boolean
+  Dim blnDisplayWizardErrors As Boolean
+  Dim blnDisplayScheduleMessages As Boolean
+  Dim blnDisplayAlerts As Boolean
+  Dim blnEffortDriven As Boolean
+  Dim blnErrorTrapping As Boolean
+  'variants
+  'dates
+  Dim dtFinish As Date
+  Dim dtStatus As Date
+  
+  'ensure status date
+  If Not IsDate(ActiveProject.StatusDate) Then
+    MsgBox "Please enter a Status Date.", vbExclamation + vbOKOnly, "Status Date Required"
+    If Not Application.ChangeStatusDate Then
+      GoTo exit_here
+    Else
+      dtStatus = ActiveProject.StatusDate
+    End If
+  Else
+    dtStatus = ActiveProject.StatusDate
+  End If
+  If Not IsDate(dtStatus) Then GoTo exit_here
+  
+  cptSpeed True
+  
+  Application.StatusBar = "Capturing settings..."
+  DoEvents
+  'Application Settings:
+  blnDisplayAlerts = Application.DisplayAlerts
+  If blnDisplayAlerts Then
+    strChangeApplicationSettings = strChangeApplicationSettings & "> Display Alerts: True -> False" & vbCrLf
+  End If
+  blnDisplayScheduleMessages = Application.DisplayScheduleMessages
+  If blnDisplayScheduleMessages Then
+    strChangeApplicationSettings = strChangeApplicationSettings & "> Display Schedule Messages: True -> False" & vbCrLf
+  End If
+  blnDisplayWizardErrors = Application.DisplayWizardErrors
+  If blnDisplayWizardErrors Then
+    strChangeApplicationSettings = strChangeApplicationSettings & "> Display Wizard Errors: True -> False" & vbCrLf
+  End If
+  blnDisplayWizardScheduling = Application.DisplayWizardScheduling
+  If blnDisplayWizardScheduling Then
+    strChangeApplicationSettings = strChangeApplicationSettings & "> Display Wizard Scheduling: True -> False" & vbCrLf
+  End If
+  blnDisplayWizardUsage = Application.DisplayWizardUsage
+  If blnDisplayWizardUsage Then
+    strChangeApplicationSettings = strChangeApplicationSettings & "> Display Wizard Usage: True -> False" & vbCrLf
+  End If
+  If Len(strChangeApplicationSettings) > 0 Then
+    strChangeApplicationSettings = "Application Settings:" & vbCrLf & strChangeApplicationSettings
+  End If
+  
+  'Current Project Settings
+  'Schedule Settings:
+  blnAutoTrack = ActiveProject.AutoTrack
+  If blnAutoTrack = False Then
+    strChangeProjectSettings = strChangeProjectSettings & "> Schedule.AutoTrack: False -> True" & vbCrLf
+  End If
+  blnAutoCalcCosts = ActiveProject.AutoCalcCosts
+  If blnAutoCalcCosts = False Then
+    strChangeProjectSettings = strChangeProjectSettings & "> Schedule.AutoCalcCosts: False -> True" & vbCrLf
+  End If
+  'Advanced Settings:
+  blnMoveRemaining = ActiveProject.MoveRemaining
+  If blnMoveRemaining = False Then
+    strChangeProjectSettings = strChangeProjectSettings & "> Advanced.MoveRemaining: False -> True" & vbCrLf
+  End If
+  blnAndMoveCompleted = ActiveProject.AndMoveCompleted
+  If blnAndMoveCompleted = False Then
+    strChangeProjectSettings = strChangeProjectSettings & "> Advanced.AndMoveCompleted: False -> True" & vbCrLf
+  End If
+  blnMoveCompleted = ActiveProject.MoveCompleted
+  If blnMoveCompleted = False Then
+    strChangeProjectSettings = strChangeProjectSettings & "> Advanced.MoveCompleted: False -> True" & vbCrLf
+  End If
+  blnAndMoveRemaining = ActiveProject.AndMoveRemaining
+  If blnAndMoveRemaining = False Then
+    strChangeProjectSettings = strChangeProjectSettings & "> Advanced.AndMoveRemaining: False -> True" & vbCrLf
+  End If
+  blnSpreadPercentCompleteToStatusDate = ActiveProject.SpreadPercentCompleteToStatusDate
+  If blnSpreadPercentCompleteToStatusDate = False Then
+    strChangeProjectSettings = strChangeProjectSettings & "> Advanced.SpreadPercentCompleteToStatusDate: False -> True" & vbCrLf
+  End If
+  blnShowTaskSuggestions = ActiveProject.ShowTaskSuggestions
+  If blnShowTaskSuggestions Then
+    strChangeProjectSettings = strChangeProjectSettings & "> Advanced.ShowTaskSuggestions: True -> False" & vbCrLf
+  End If
+  blnShowTaskWarnings = ActiveProject.ShowTaskWarnings
+  If blnShowTaskWarnings Then
+    strChangeProjectSettings = strChangeProjectSettings & "> Advanced.ShowTaskWarnings: True -> False" & vbCrLf
+  End If
+  blnSpreadCostsToStatusDate = ActiveProject.SpreadCostsToStatusDate
+  If blnSpreadCostsToStatusDate = False Then
+    strChangeProjectSettings = strChangeProjectSettings & "> Advanced.SpreadCostsToStatusDate: True -> False" & vbCrLf
+  End If
+  If Len(strChangeProjectSettings) > 0 Then
+    strChangeProjectSettings = "Settings for this file (" & ActiveProject.Name & "):" & vbCrLf & strChangeProjectSettings
+  End If
+  
+  If Len(strChangeApplicationSettings) > 0 Or Len(strChangeProjectSettings) > 0 Then
+    'do something?
+  End If
+  
+  'maybe I don't care, I'll just do it, eh?
+  Application.StatusBar = "Applying temporary settings..."
+  DoEvents
+  Application.DisplayAlerts = False
+  Application.DisplayScheduleMessages = False
+  Application.DisplayWizardErrors = False
+  Application.DisplayWizardScheduling = False
+  Application.DisplayWizardUsage = False
+  ActiveProject.AutoTrack = True
+  ActiveProject.AutoCalcCosts = True
+  ActiveProject.MoveRemaining = True
+  ActiveProject.AndMoveCompleted = True
+  ActiveProject.MoveCompleted = True
+  ActiveProject.AndMoveRemaining = True
+  ActiveProject.SpreadPercentCompleteToStatusDate = True
+  ActiveProject.ShowTaskSuggestions = False
+  ActiveProject.ShowTaskWarnings = False
+  ActiveProject.SpreadCostsToStatusDate = True
+
+  'catch and fix a non-working day
+  If Not ActiveProject.Calendar.Period(dtStatus).Working Then
+    'align status date to the most previous workday
+    'to compare against a task's stop date
+    Do While ActiveProject.Calendar.Period(dtStatus).Working = False
+      dtStatus = DateAdd("h", -1, dtStatus)
+    Loop
+    'align the time to default finish time
+    dtStatus = CDate(FormatDateTime(dtStatus, vbShortDate) & " " & ActiveProject.DefaultFinishTime)
+  End If
+  
+  On Error Resume Next
+  Set oTasks = ActiveSelection.Tasks
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If oTasks Is Nothing Then
+    MsgBox "Please select a task (or tasks).", vbExclamation + vbOKOnly, "No Task(s) Selected"
+    GoTo exit_here
+  End If
+  If oTasks.Count = 0 Then GoTo exit_here
+  
+  'prep to capture assignment remaining work
+  Set oDict = CreateObject("Scripting.Dictionary")
+  
+  Application.OpenUndoTransaction "cpt Mark On Track - Retain ETC"
+  
+  lngTasks = oTasks.Count
+  For Each oTask In oTasks
+    If oTask Is Nothing Then GoTo next_task
+    If oTask.ExternalTask Then GoTo next_task
+    If oTask.Summary Then GoTo next_task
+    If Not oTask.Active Then GoTo next_task
+    If IsDate(oTask.ActualFinish) Then GoTo next_task
+    ActiveWindow.TopPane.Activate
+    EditGoTo , dtStatus
+    
+    'mark complete if should have finished
+    If oTask.Finish <= dtStatus Then
+      If MsgBox("Mark Complete?", vbQuestion + vbYesNo, "Confirm") = vbYes Then
+        oTask.ActualFinish = oTask.Finish
+      Else
+        GoTo next_task
+      End If
+    End If
+    
+    'mark started if should have started
+    Application.ScreenUpdating = True
+    If oTask.Start < dtStatus And Not IsDate(oTask.ActualStart) Then
+      UpdateProject All:=False, UpdateDate:=dtStatus, Action:=0 'AS or AF only
+    End If
+    
+    'capture forecast finish
+    dtFinish = oTask.Finish
+    dblRemainingWork = oTask.RemainingWork
+    dblRemainingDuration = oTask.RemainingDuration
+    
+    'capture task settings
+    lngTaskType = oTask.Type
+    blnEffortDriven = oTask.EffortDriven
+    oDict.RemoveAll 'start fresh with each task
+    For Each oAssignment In oTask.Assignments
+      Application.StatusBar = "Capturing " & oAssignment.ResourceName & "..."
+      DoEvents
+      If oAssignment.WorkContour <> pjFlat Then
+        strMsg = "Task UID " & oTask.UniqueID & " - " & oTask.Name & vbCrLf
+        strMsg = strMsg & "Resource Assignment '" & oAssignment.ResourceName & "' has a non-standard Work Contour (" & cptGetConstantName("WorkContour", oAssignment.WorkContour) & ")." & vbCrLf & vbCrLf
+        strMsg = strMsg & "> Click YES to override manual edits" & vbCrLf
+        strMsg = strMsg & "> Click NO to skip this Assignment"
+        If MsgBox(strMsg, vbQuestion + vbYesNo, "Override Manual Work Contour?") = vbYes Then
+          Calculation = pjAutomatic
+          oAssignment.WorkContour = pjFlat
+          CalculateProject
+          Calculation = pjManual
+        Else
+          GoTo next_assignment
+        End If
+      End If
+      If oAssignment.ResourceType <> pjResourceTypeCost Then
+        oDict.Add oAssignment.UniqueID, oAssignment.RemainingWork
+      Else
+        If oAssignment.Resource.AccrueAt = pjStart Then
+          Calculation = pjAutomatic
+          UpdateProject All:=False, UpdateDate:=dtStatus, Action:=1
+          CalculateProject
+          Calculation = pjManual
+        ElseIf oAssignment.Resource.AccrueAt = pjEnd Then
+          Calculation = pjAutomatic
+          UpdateProject All:=False, UpdateDate:=dtStatus, Action:=1
+          CalculateProject
+          Calculation = pjManual
+        ElseIf oAssignment.Resource.AccrueAt = pjProrated Then
+          oDict.Add oAssignment.UniqueID, oAssignment.RemainingCost
+        End If
+      End If
+      'todo: deal with misaligned dates
+next_assignment:
+    Next oAssignment
+    'change task type to remaining duration
+    'Application.ScreenUpdating = True
+    If oTask.Type <> pjFixedDuration Then oTask.Type = pjFixedDuration
+    If oTask.EffortDriven Then oTask.EffortDriven = False
+    'update as scheduled
+    If oTask.Stop <> dtStatus Then 'rebuild the task
+      Application.StatusBar = "Rebuilding UID " & oTask.UniqueID & "..."
+      DoEvents
+      Calculation = pjAutomatic
+      oTask.ActualFinish = ActiveProject.StatusDate 'dtStatus
+      oTask.RemainingDuration = Application.DateDifference(dtStatus, dtFinish, ActiveProject.Calendar)
+      Calculation = pjManual
+    End If
+    'retain ETC
+    For Each oAssignment In oTask.Assignments
+      If oDict.Exists(oAssignment.UniqueID) Then
+        Application.StatusBar = "Restoring " & oAssignment.ResourceName & "..."
+        DoEvents
+        If oAssignment.ResourceType = pjResourceTypeWork Then
+          Do While oAssignment.RemainingWork <> oDict(oAssignment.UniqueID)
+            oAssignment.RemainingWork = 0
+            oAssignment.RemainingWork = oDict(oAssignment.UniqueID)
+          Loop
+        ElseIf oAssignment.ResourceType = pjResourceTypeMaterial Then
+          oAssignment.RemainingWork = oDict(oAssignment.UniqueID) * 60
+        ElseIf oAssignment.ResourceType = pjResourceTypeCost Then
+          If oAssignment.Resource.AccrueAt = pjStart Then
+            'take no action
+          ElseIf oAssignment.Resource.AccrueAt = pjEnd Then
+            'take no action
+          ElseIf oAssignment.Resource.AccrueAt = pjProrated Then
+            oAssignment.Cost = oAssignment.ActualCost + oDict(oAssignment.UniqueID)
+          End If
+        End If
+      Else
+        Application.StatusBar = "Skipping " & oAssignment.ResourceName & "..."
+        DoEvents
+      End If
+    Next oAssignment
+    'restore task settings
+    oTask.Type = lngTaskType
+    If lngTaskType <> pjFixedWork Then oTask.EffortDriven = blnEffortDriven
+    'todo: ok, what could go wrong?
+next_task:
+    lngTask = lngTask + 1
+    Application.StatusBar = "Marking on track (retaining ETC)...(" & Format(lngTask / lngTasks, "0%") & ")"
+    DoEvents
+  Next oTask
+  
+  Application.CloseUndoTransaction
+  
+  Application.StatusBar = "Restoring settings..."
+  DoEvents
+  
+  'restore application/project settings
+  Application.DisplayAlerts = blnDisplayAlerts
+  Application.DisplayScheduleMessages = blnDisplayScheduleMessages
+  If blnDisplayScheduleMessages Then
+    Application.DisplayWizardErrors = blnDisplayWizardErrors
+    Application.DisplayWizardScheduling = blnDisplayWizardScheduling
+    Application.DisplayWizardUsage = blnDisplayWizardUsage
+  End If
+  ActiveProject.AutoTrack = blnAutoTrack
+  ActiveProject.AutoCalcCosts = blnAutoCalcCosts
+  ActiveProject.MoveRemaining = blnMoveRemaining
+  ActiveProject.AndMoveCompleted = blnAndMoveCompleted
+  ActiveProject.MoveCompleted = blnMoveCompleted
+  ActiveProject.AndMoveRemaining = blnAndMoveRemaining
+  ActiveProject.SpreadPercentCompleteToStatusDate = blnSpreadPercentCompleteToStatusDate
+  ActiveProject.ShowTaskSuggestions = blnShowTaskSuggestions
+  ActiveProject.ShowTaskWarnings = blnShowTaskWarnings
+  ActiveProject.SpreadCostsToStatusDate = blnSpreadCostsToStatusDate
+
+  Application.StatusBar = "...complete."
+  
+exit_here:
+  On Error Resume Next
+  Application.StatusBar = ""
+  cptSpeed False
+  Application.CloseUndoTransaction
+  Set oAssignment = Nothing
+  Set oDict = Nothing
+  Set oTask = Nothing
+  Set oTasks = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheet_bas", "cptMarkOnTrackRetainETC", Err, Erl)
   Resume exit_here
 End Sub
 
