@@ -24,7 +24,7 @@ Private oSubMap As Scripting.Dictionary
 Sub cptDECM_GET_DATA()
   'Optional blnIncompleteOnly As Boolean = True, Optional blnDiscreteOnly As Boolean = True
   'objects
-  Dim oSubproject As MSProject.Subproject
+  Dim oSubproject As MSProject.SubProject
   Dim myDECM_frm As cptDECM_frm
   Dim oException As MSProject.Exception
   Dim oTasks As MSProject.Tasks
@@ -313,7 +313,7 @@ next_mapping_task:
   
   Set myDECM_frm = New cptDECM_frm
   With myDECM_frm
-    .Caption = "DECM v6.0 (cpt " & cptGetVersion("cptDECM_bas") & ")"
+    .Caption = "DECM v7.0 (cpt " & cptGetVersion("cptDECM_bas") & ")"
     .lboOOS.Visible = False
     lngItem = 0
     .lboHeader.Clear
@@ -349,7 +349,7 @@ next_mapping_task:
     'If oTask.Summary Then GoTo next_task
 '    If blnIncompleteOnly Then If IsDate(oTask.ActualFinish) Then GoTo next_task 'todo: what was this for?
 '    If blnDiscreteOnly Then If oTask.GetField(lngEVT) = "A" Then GoTo next_task 'todo: what else is non-discrete? apportioned?
-    'todo: why is WPM required for the DECM?
+    
     For Each vField In Array(lngUID, lngWBS, lngOBS, lngCA, lngCAM, lngWP, lngWPM, lngEVT, lngEVP, lngFS, lngFF, lngBLS, lngBLF, lngAS, lngAF, lngBDur, lngDur, lngSummary, lngConst, lngTS, lngTaskName)
       If vField = 0 Then
         strRecord = strRecord & "," 'account for empty WPM
@@ -472,22 +472,24 @@ next_task:
   'ad hoc todo: destroy on form close
   Set oDECM = CreateObject("Scripting.Dictionary")
   
+  'check for missing metadata
+  If Not DECM_CPT01(oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel) Then GoTo exit_here 'missing metadata
   '===== EVMS =====
   DECM_05A101a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '05A101a - 1 CA : 1 OBS
   DECM_05A102a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '05A102a - 1 CA : 1 CAM
   DECM_05A103a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '05A103a - 1 CA : 1 WBS
-  DECM_1WP1CA oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel 'bonus - 1 WP : 1 CA
+  DECM_CPT02 oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel 'bonus - 1 WP : 1 CA
   DECM_10A102a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '10A102a - 1 WP : 1 EVT
   DECM_10A103a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel, blnFiscalExists '10A103a - 0/100 EVTs in one fiscal period
   DECM_10A109b oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '10A109b - all WPs have budget
   DECM_10A302b oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '10A302b - PPs with progress
   DECM_10A303a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '10A303a - all PPs have duration?
   DECM_11A101a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '11A101a - CA BAC = SUM(WP BAC)?
-  
   '===== SCHEDULE =====
   DECM_06A101a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A101a - WPs Missing between IMS vs EV
   DECM_06A204b oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A204b - Dangling Logic
   DECM_06A205a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A205a - Lags (what about leads?)
+  DECM_CPT03 oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel  'bonus - leads
   DECM_06A208a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A208a - summary tasks with logic
   DECM_06A209a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A209a - hard constraints
   DECM_06A210a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '06A210a - LOE Driving Discrete
@@ -1073,6 +1075,93 @@ err_here:
  Resume exit_here
 End Sub
 
+Function DECM_CPT01(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean) As Boolean
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  Dim blnProceed As Boolean
+  
+  'missing metadata
+  myDECM_frm.lblStatus.Caption = "Checking for missing metadata..."
+  Application.StatusBar = "Checking for missing metadata..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = "CPT01"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "MISSING METADATA"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  DoEvents
+  strSQL = "SELECT T1.UID,"
+  strSQL = strSQL & "IIF(ISNULL(WBS),'MISSING',WBS) AS [WBS],"
+  strSQL = strSQL & "IIF(ISNULL(OBS),'MISSING',OBS) AS [OBS],"
+  strSQL = strSQL & "IIF(ISNULL(CA),'MISSING',CA) AS [CA],"
+  strSQL = strSQL & "IIF(ISNULL(CAM),'MISSING',CAM) AS [CAM],"
+  strSQL = strSQL & "IIF(ISNULL(WP),'MISSING',WP) AS [WP],"
+  strSQL = strSQL & "IIF(ISNULL(EVT),'MISSING',EVT) AS [EVT],"
+  strSQL = strSQL & "EVP,BLS,BLF,[AS],AF,SUM(T2.BLW)/60 AS [BLW],SUM(T2.BLC) AS [BLC] "
+  strSQL = strSQL & "FROM [tasks.csv] T1 INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
+  strSQL = strSQL & "WHERE WBS IS NULL "
+  strSQL = strSQL & "OR OBS IS NULL "
+  strSQL = strSQL & "OR CA IS NULL "
+  strSQL = strSQL & "OR CAM IS NULL "
+  strSQL = strSQL & "OR WP IS NULL "
+  strSQL = strSQL & "OR EVT IS NULL "
+  strSQL = strSQL & "GROUP BY T1.UID,WBS,OBS,CA,CAM,WP,EVT,EVP,BLS,BLF,[AS],AF "
+  strSQL = strSQL & "HAVING SUM(T2.BLW)>0 OR SUM(T2.BLC)>0 "
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    lngX = .RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
+    '.Close
+  End With
+  'lngY = 100
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  'myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  dblScore = lngX
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
+  If dblScore = 0 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = "MISSING METADATA"
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add "CPT01", strList
+  myDECM_frm.lblStatus.Caption = "Checking for missing metadata...done."
+  Application.StatusBar = "Checking for missing metadata...done."
+  
+  If lngX > 0 Then
+    cptDECM_UPDATE_VIEW "CPT01", strList
+    If MsgBox(Format(lngX, "#,##0") & " PMB task(s) have missing metadata!" & vbCrLf & vbCrLf & "Proceed anyway?", vbCritical + vbYesNo, "Missing Metadata") = vbNo Then
+      blnProceed = False
+      DumpRecordsetToExcel oRecordset
+      GoTo exit_here
+    Else
+      blnProceed = True
+      DumpRecordsetToExcel oRecordset
+    End If
+  End If
+  
+exit_here:
+  On Error Resume Next
+  DECM_CPT01 = blnProceed
+  oRecordset.Close
+  DoEvents
+  Exit Function
+err_here:
+  Call cptHandleErr("cptDECM_bas", "DECM_CPT01", Err, Erl)
+  Resume exit_here
+  
+End Function
+
 Sub DECM_05A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
   Dim strMetric As String
   Dim strSQL As String
@@ -1140,6 +1229,7 @@ Sub DECM_05A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   Dim strSQL As String
   Dim strList As String
   Dim lngX As Long
+  Dim lngY As Long
   Dim dblScore As Double
   
   '05A102a - 1 CA : 1 CAM
@@ -1155,7 +1245,12 @@ Sub DECM_05A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   'X = Count of CAs that have more than one CAM or no CAM assigned
   'Y = Total count of CAs
   'X/Y <= 5%
-  'we already have lngY...
+   strSQL = "SELECT DISTINCT CA FROM tasks.csv WHERE CA IS NOT NULL"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngY = .RecordCount
+    .Close
+  End With
   strSQL = "SELECT CA,COUNT(CAM) AS CountOfCAM "
   strSQL = strSQL & "FROM (SELECT DISTINCT CA,CAM FROM [tasks.csv]) "
   strSQL = strSQL & "WHERE CA IS NOT NULL "
@@ -1197,6 +1292,7 @@ Sub DECM_05A103a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   Dim strSQL As String
   Dim strList As String
   Dim lngX As Long
+  Dim lngY As Long
   Dim dblScore As Double
   
   '05A103a - 1 CA : 1 WBS
@@ -1212,7 +1308,12 @@ Sub DECM_05A103a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   'X = Count of CAs with more than one WBS element or no WBS elements assigned
   'Y = Total count of CAs
   'X/Y = 0%
-  'we already have lngY...
+  strSQL = "SELECT DISTINCT CA FROM tasks.csv WHERE CA IS NOT NULL"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngY = .RecordCount
+    .Close
+  End With
   strSQL = "SELECT CA,COUNT(WBS) AS CountOfWBS "
   strSQL = strSQL & "FROM (SELECT DISTINCT CA,WBS FROM [tasks.csv]) "
   strSQL = strSQL & "WHERE CA IS NOT NULL "
@@ -1249,7 +1350,7 @@ Sub DECM_05A103a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   DoEvents
 End Sub
 
-Sub DECM_1WP1CA(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+Sub DECM_CPT02(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
   Dim strMetric As String
   Dim strSQL As String
   Dim strList As String
@@ -1257,11 +1358,11 @@ Sub DECM_1WP1CA(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM
   Dim dblScore As Double
   
   'bonus: 1 WP : 1 CA
-  myDECM_frm.lblStatus.Caption = "Getting bonus metric 1wp_1ca..."
-  Application.StatusBar = "Getting bonus metric 1wp_1ca..."
+  myDECM_frm.lblStatus.Caption = "Getting bonus metric CPT02..."
+  Application.StatusBar = "Getting bonus metric CPT02..."
   myDECM_frm.lboMetrics.AddItem
   myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = "1wp_1ca"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = "CPT02"
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "1 WP : 1 CA"
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
@@ -1303,11 +1404,11 @@ Sub DECM_1WP1CA(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM
   Else
     myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
   End If
-  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription("1wp_1ca")
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription("CPT02")
   'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
-  oDECM.Add "1wp_1ca", strList
-  myDECM_frm.lblStatus.Caption = "Getting bonus metric 1wp_1ca...done."
-  Application.StatusBar = "Getting bonus metric 1wp_1ca...done."
+  oDECM.Add "CPT02", strList
+  myDECM_frm.lblStatus.Caption = "Getting bonus metric CPT02...done."
+  Application.StatusBar = "Getting bonus metric CPT02...done."
   DoEvents
 End Sub
 
@@ -1315,8 +1416,13 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   Dim strMetric As String
   Dim strSQL As String
   Dim strList As String
+  Dim lngY As Long
   Dim lngX As Long
   Dim dblScore As Double
+  Dim oExcel As Excel.Application
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
+  Dim oListObject As Excel.ListObject
   
   '10A102a - 1 WP : 1 EVT
   strMetric = "10A102a"
@@ -1331,8 +1437,11 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   'X = count of incomplete WPs that have more than one EVT or no EVT assigned
   'Y = count of incomplete WPs
   'X/Y <= 5%
-  
+
   'limit to incomplete WPs with PMB and either mixed or missing EVTs
+  'discrete WPs are complete if BAC and BCWP are within $100 (or 1h)
+  'LOE WPs are complete if BAC and BCWP are within $100 (or 1h) AND ETC < $100 (or 1h)
+  'PPs and SLPPs are not included
   strSQL = "SELECT DISTINCT WP "
   strSQL = strSQL & "FROM("
   strSQL = strSQL & "    SELECT WP, Count(EVT) AS CountOfEVT" 'WP has mixed EVTs
@@ -1350,25 +1459,42 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   strSQL = strSQL & "    SELECT WP,Count(EVT) " 'WP has no EVTs
   strSQL = strSQL & "    FROM [tasks.csv] AS T "
   strSQL = strSQL & "    INNER JOIN [assignments.csv] AS A ON A.TASK_UID=T.UID"
-  strSQL = strSQL & "    WHERE T.EVT IS NULL"
+  strSQL = strSQL & "    WHERE WP IS NOT NULL AND T.EVT IS NULL"
   strSQL = strSQL & "    GROUP BY WP"
-  strSQL = strSQL & ") AS [10a102a]"
-  
+  strSQL = strSQL & ") AS [10A102a]"
+
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
-    lngX = .RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("WP") & ","
-        .MoveNext
-      Loop
+    If Not .EOF Then
+      lngX = .RecordCount
+      strList = ""
+      If lngX > 0 Then
+        'create report workbook
+        On Error Resume Next
+        Set oExcel = GetObject(, "Excel.Application")
+        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
+        Set oWorkbook = oExcel.Workbooks.Add
+        Set oWorksheet = oWorkbook.Sheets(1)
+        oWorksheet.Name = strMetric
+        .MoveFirst
+        Do While Not .EOF
+          strList = strList & .Fields("WP") & ","
+          .MoveNext
+        Loop
+        oWorksheet.[A1] = "X"
+        oWorksheet.[A2] = lngX
+        oWorksheet.[A3] = "WP(X)"
+        oWorksheet.[A4].CopyFromRecordset oRecordset
+      End If
+      If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     End If
-    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
   'limit to incomplete WPs with PMB
+  'discrete WPs are complete if BAC and BCWP are within $100
+  'LOE WPs are complete if BAC and BCWP are within $100 AND ETC < $100
+  'PPs and SLPPs are not included
   strSQL = "SELECT T.WP,SUM(A.BLW+A.BLC) AS BAC "
   strSQL = strSQL & "FROM [tasks.csv] AS T "
   strSQL = strSQL & "INNER JOIN [assignments.csv] AS A ON A.TASK_UID = T.UID "
@@ -1378,6 +1504,18 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngY = .RecordCount
+    If Not oExcel Is Nothing Then
+      oWorksheet.[B1] = "Y"
+      oWorksheet.[B2] = lngY
+      oWorksheet.[B3] = "WP(Y)"
+      oWorksheet.[B4].CopyFromRecordset oRecordset
+      oWorksheet.Columns(3).Clear
+      oWorksheet.[C2].FormulaR1C1 = "=R2C1/R2C2"
+      oWorksheet.[C2].Style = "percent"
+      oWorksheet.[A1:C2].HorizontalAlignment = xlCenter
+      oWorkbook.SaveAs Environ("tmp") & "\" & strMetric & ".xlsx"
+      'oWorkbook.Close True 'keep open?
+    End If
     If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
@@ -1396,6 +1534,18 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
+  
+exit_here:
+  On Error Resume Next
+  Set oListObject = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
+  Exit Sub
+err_here:
+  cptHandleErr "cptDECM_bas", "DECM_10A102a", Err, Erl
+  Resume exit_here
+  
 End Sub
 
 Sub DECM_10A103a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean, blnFiscalExists As Boolean)
@@ -1439,8 +1589,7 @@ Sub DECM_10A103a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
       Set oWorksheet = oWorkbook.Sheets(1)
       Set oListObject = oWorksheet.ListObjects(1)
       lngY = oListObject.DataBodyRange.Rows.Count
-      oListObject.Range.AutoFilter Field:=6, Criteria1:=">1", Operator:=xlAnd
-      lngX = oListObject.DataBodyRange.SpecialCells(xlCellTypeVisible).Rows.Count
+      lngX = oWorksheet.Evaluate("COUNTIFS(Table1[FiscalPeriods],"">1"")")
       strList = ""
       If lngX > 0 Then
         For Each oCell In oListObject.ListColumns("WP").DataBodyRange.SpecialCells(xlCellTypeVisible).Cells
@@ -1880,6 +2029,9 @@ Sub DECM_11A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
 End Sub
 
 Sub DECM_06A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+'TODO: UPDATE FOR v7.0
+'TODO: LIMIT TO WHERE BAC>0
+'todo: BCWP-BAC +/- 1h or $100 then 'complete'
   Dim strMetric As String
   Dim strSQL As String
   Dim strList As String
@@ -1947,7 +2099,6 @@ Sub DECM_06A204b(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   Dim vField As Variant
   
   '06A204b - Dangling Logic
-  '06A204b - todo: ignore first/last milestone - how?
   strMetric = "06A204b"
   myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
@@ -2143,6 +2294,62 @@ Sub DECM_06A205a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   Application.StatusBar = "Getting " & strMetric & "...done."
   DoEvents
 End Sub
+
+Sub DECM_CPT03(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
+  Dim strMetric As String
+  Dim strSQL As String
+  Dim strList As String
+  Dim strLOE As String
+  Dim lngX As Long
+  Dim dblScore As Double
+  
+  'CPT03 - leads
+  strMetric = "CPT03"
+  strLOE = cptGetSetting("Integration", "LOE")
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
+  Application.StatusBar = "Getting " & strMetric & "..."
+  myDECM_frm.lboMetrics.AddItem
+  myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 0) = strMetric
+  'myDECM_Frm.lboMetrics.Value = "06A205a"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "Leads"
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
+  DoEvents
+  'X = count of incomplete tasks/activities & milestones with at least one lead (negative lag) in the pred logic
+  'Y = not used
+  strSQL = "SELECT t.UID FROM [tasks.csv] t "
+  strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TO FROM [links.csv] WHERE LAG<0) p ON p.TO=t.UID " 'todo
+  strSQL = strSQL & "WHERE t.SUMMARY='No' AND t.AF IS NULL AND (t.EVT<>'" & strLOE & "' OR t.EVT IS NULL) "
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset
+    lngX = oRecordset.RecordCount
+    strList = ""
+    If lngX > 0 Then
+      .MoveFirst
+      Do While Not .EOF
+        strList = strList & .Fields("UID") & ","
+        .MoveNext
+      Loop
+    End If
+    If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
+    .Close
+  End With
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 3) = lngX
+  'myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 4) = lngY
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 5) = lngX
+  If lngX = 0 Then
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strPass
+  Else
+    myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 6) = strFail
+  End If
+  myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
+  'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+  oDECM.Add strMetric, strList
+  myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
+  Application.StatusBar = "Getting " & strMetric & "...done."
+  DoEvents
+End Sub
+
 
 Sub DECM_06A208a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
   Dim strMetric As String
@@ -2954,6 +3161,7 @@ Private Sub DumpRecordsetToExcel(ByRef oRecordset As ADODB.Recordset)
     oWorksheet.Cells(1, lngItem + 1) = oRecordset.Fields(lngItem).Name
   Next lngItem
   oWorksheet.[A2].Select
+  oRecordset.MoveFirst
   oWorksheet.[A2].CopyFromRecordset oRecordset
   oExcel.ActiveWindow.Zoom = 85
   oExcel.ActiveWindow.SplitRow = 1
@@ -2976,12 +3184,13 @@ err_here:
 
 End Sub
 
-Sub opencsv(strFile)
-  Shell "notepad.exe """ & Environ("tmp") & "\" & strFile & """", vbNormalFocus
+Sub opencsv(strFileName)
+  Shell "notepad.exe """ & Environ("tmp") & "\" & strFileName & """", vbNormalFocus
 End Sub
 
 Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolean = False)
   'objects
+  Dim o06A101a As Excel.Workbook
   Dim o10A103a As Excel.Workbook
   Dim oRecordset As ADODB.Recordset
   Dim oTasks As MSProject.Tasks
@@ -2994,9 +3203,12 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
   Dim strDir As String
   Dim strCon As String
   Dim strSQL As String
+  Dim strLOE As String
   'longs
   Dim lngItem As Long
   Dim lngField As Long
+  Dim lngFirstRow As Long
+  Dim lngLastRow As Long
   'integers
   'doubles
   'booleans
@@ -3019,9 +3231,10 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
   End If
   
   Set oWorkbook = oExcel.Workbooks.Add
-  Set oWorksheet = oWorkbook.Sheets(1)
-  oExcel.WindowState = xlMinimized 'xlMaximized
   oExcel.Visible = True 'just in case
+  oExcel.WindowState = xlMinimized 'xlMaximized
+  oWorkbook.Activate
+  Set oWorksheet = oWorkbook.Sheets(1)
   oWorksheet.Name = "DECM Dashboard"
   oWorksheet.[A1:I1] = myDECM_frm.lboHeader.List
   oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].Offset(myDECM_frm.lboMetrics.ListCount - 1, myDECM_frm.lboMetrics.ColumnCount - 1)) = myDECM_frm.lboMetrics.List
@@ -3030,11 +3243,10 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
     .Zoom = 85
     .SplitRow = 1
     .SplitColumn = 0
-    
   End With
   oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
   oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).HorizontalAlignment = xlLeft
-  With oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown))
+  With oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1048576].End(xlUp))
     .Font.Name = "Calibri"
     .Font.Size = 11
     .HorizontalAlignment = xlCenter
@@ -3047,7 +3259,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
   'oWorksheet.Columns(8).HorizontalAlignment = xlLeft
   oWorksheet.Columns("H:I").Delete
   
-  With oWorksheet.Range(oWorksheet.[G2], oWorksheet.[G2].End(xlDown))
+  With oWorksheet.Range(oWorksheet.[G2], oWorksheet.[G1048576].End(xlUp))
     .Replace what:=strPass, Replacement:="2", lookat:=xlWhole, _
         SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
         ReplaceFormat:=False, FormulaVersion:=xlReplaceFormula2
@@ -3090,31 +3302,51 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
         oExcel.ActiveWindow.Zoom = 85
         If .lboMetrics.List(lngItem) = "06A101a" Then
           If .lboMetrics.List(lngItem, 6) = strFail Then
-            oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
-            'run queries
-            oWorksheet.[A2].Value = "NOT IN IMS:"
-            If Dir(strDir & "\wp-not-in-ims.csv") <> vbNullString Then
-              Set oRecordset = CreateObject("ADODB.Recordset")
-              strSQL = "SELECT * FROM [wp-not-in-ims.csv]"
-              oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-              oWorksheet.[A3].CopyFromRecordset oRecordset
-              oRecordset.Close
+            On Error Resume Next
+            Set o06A101a = oExcel.Workbooks(oExcel.Windows("06A101a.xlsx").Index)
+            If o06A101a Is Nothing Then
+              Set o06A101a = oExcel.Workbooks.Open(strDir & "\06A101a.xlsx")
             End If
-            oWorksheet.[C2].Value = "NOT IN EV TOOL:"
-            If Dir(strDir & "\wp-not-in-ev.csv") <> vbNullString Then
-              Set oRecordset = CreateObject("ADODB.Recordset")
-              strSQL = "SELECT * FROM [wp-not-in-ev.csv]"
-              oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-              oWorksheet.[C3].CopyFromRecordset oRecordset
-              oRecordset.Close
+            If o06A101a Is Nothing Then
+              oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
+              'run queries
+              oWorksheet.[A2].Value = "NOT IN IMS:"
+              If Dir(strDir & "\wp-not-in-ims.csv") <> vbNullString Then
+                Set oRecordset = CreateObject("ADODB.Recordset")
+                strSQL = "SELECT * FROM [wp-not-in-ims.csv]"
+                oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+                oWorksheet.[A3].CopyFromRecordset oRecordset
+                oRecordset.Close
+              End If
+              oWorksheet.[C2].Value = "NOT IN EV TOOL:"
+              If Dir(strDir & "\wp-not-in-ev.csv") <> vbNullString Then
+                Set oRecordset = CreateObject("ADODB.Recordset")
+                strSQL = "SELECT * FROM [wp-not-in-ev.csv]"
+                oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+                oWorksheet.[C3].CopyFromRecordset oRecordset
+                oRecordset.Close
+              End If
+              oWorksheet.Cells.Font.Name = "Calibri"
+              oWorksheet.Cells.Font.Size = 11
+              oWorksheet.Cells.WrapText = False
+              oWorksheet.[B3].Select
+              oExcel.ActiveWindow.FreezePanes = True
+              oWorksheet.Columns.AutoFit
+              oWorksheet.Tab.Color = 192
+            Else
+              If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+              'replace current worksheet with worksheet from saved workbook
+              oExcel.DisplayAlerts = False
+              oWorksheet.Delete
+              oExcel.DisplayAlerts = True
+              o06A101a.Sheets(1).Copy After:=oWorkbook.Sheets(oWorkbook.Sheets.Count)
+              o06A101a.Close True
+              Set oWorksheet = oWorkbook.Sheets("06A101a")
+              oWorksheet.Rows("1:2").Insert
+              oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
+              oWorksheet.[A2].Value = "WPs in IMS vs EV Tool"
+              oWorksheet.Tab.Color = 192
             End If
-            oWorksheet.Cells.Font.Name = "Calibri"
-            oWorksheet.Cells.Font.Size = 11
-            oWorksheet.Cells.WrapText = False
-            oWorksheet.[B3].Select
-            oExcel.ActiveWindow.FreezePanes = True
-            oWorksheet.Columns.AutoFit
-            oWorksheet.Tab.Color = 192
           End If
           GoTo next_item
         ElseIf .lboMetrics.List(lngItem) = "06A504a" Then
@@ -3249,6 +3481,8 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
           GoTo next_item
         Else
           .lboMetrics_AfterUpdate
+          Debug.Print "FIX " & .lboMetrics.List(lngItem)
+          'todo: SELECT UID,DURATION,TS FROM [tasks.csv] WHERE UID IN (" & array & ")" ...?
         End If
         ActiveWindow.TopPane.Activate
         SelectAll
@@ -3282,11 +3516,146 @@ next_item:
     'create hyperlinks
     Set oWorksheet = oWorkbook.Sheets("DECM Dashboard")
     oWorksheet.Activate
-    Set oRange = oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].End(xlDown))
+    Set oRange = oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A1048576].End(xlUp))
     For Each oCell In oRange.Cells
       oWorksheet.Hyperlinks.Add Anchor:=oCell, Address:="", SubAddress:="'" & CStr(oCell.Value) & "'!A1", TextToDisplay:=CStr(oCell.Value), ScreenTip:="Jump to " & CStr(oCell.Value)
     Next oCell
   End If
+  
+  'get general stats
+  oExcel.WindowState = xlNormal
+  oWorkbook.Activate
+  Set oRecordset = CreateObject("ADODB.Recordset")
+  'count of complete, incomplete, total CA, by CAM
+  strSQL = "SELECT T1.CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
+  strSQL = strSQL & "FROM ("
+  strSQL = strSQL & "SELECT T1.CAM,T1.CA,IIF(AVG(T1.EVP)<100,1,0) AS [INCOMPLETE],IIF(AVG(T1.EVP)=100,1,0) AS [COMPLETE] "
+  strSQL = strSQL & "FROM [tasks.csv] T1 "
+  strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
+  strSQL = strSQL & "GROUP BY T1.CAM,T1.CA "
+  strSQL = strSQL & "HAVING SUM(BLW)>0 OR SUM(BLC)>0) GROUP BY T1.CAM "
+  oRecordset.Open strSQL, strCon, adOpenKeyset
+  If Not oRecordset.EOF Then
+    oWorksheet.[I1:L1].Merge True
+    oWorksheet.[I1] = "CONTROL ACCOUNTS"
+    oWorksheet.[I1].HorizontalAlignment = xlCenter
+    oWorksheet.[I2:L2] = Split("CAM,INCOMPLETE,COMPLETE,TOTAL", ",")
+    oWorksheet.[I3].CopyFromRecordset oRecordset
+    lngFirstRow = oWorksheet.[L1048576].End(xlUp).Row + 1
+    lngLastRow = oWorksheet.[I1048576].End(xlUp).Row + 1
+    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 12), oWorksheet.Cells(lngLastRow - 1, 12)).FormulaR1C1 = "=SUM(RC[-2]:RC[-1])"
+    oWorksheet.Cells(lngLastRow, 9) = "TOTAL:"
+    oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlRight
+    oWorksheet.Range(oWorksheet.Cells(lngLastRow, 10), oWorksheet.Cells(lngLastRow, 12)).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R" & lngLastRow - 1 & "C)"
+    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 10), oWorksheet.Cells(lngLastRow, 12)).NumberFormat = "#,##0"
+  End If
+  oRecordset.Close
+  'checksum
+  strSQL = "SELECT DISTINCT CA FROM [tasks.csv] WHERE CA IS NOT NULL"
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  If Not oRecordset.EOF Then
+    oWorksheet.[L1048576].End(xlUp).Offset(0, 1) = oRecordset.RecordCount
+  End If
+  oRecordset.Close
+  'todo: gumball
+  
+  'todo: capture filename and date/time run by user
+  
+  'count of complete, incomplete, total WP, by CAM *only includes WPs in the IMS
+  strLOE = cptGetSetting("Integration", "LOE")
+  strSQL = "SELECT T1.CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
+  strSQL = strSQL & "FROM ("
+  strSQL = strSQL & "SELECT T1.CAM,T1.WP,IIF(AVG(T1.EVP)<100,1,0) AS [INCOMPLETE],IIF(AVG(T1.EVP)=100,1,0) AS [COMPLETE] "
+  strSQL = strSQL & "FROM [tasks.csv] T1 "
+  strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
+  strSQL = strSQL & "WHERE T1.EVT<>'" & strLOE & "' "
+  strSQL = strSQL & "GROUP BY T1.CAM,T1.WP "
+  strSQL = strSQL & "HAVING SUM(BLW)>0 OR SUM(BLC)>0) "
+  strSQL = strSQL & "GROUP BY T1.CAM"
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  If Not oRecordset.EOF Then
+    lngLastRow = oWorksheet.[I1048576].End(xlUp).Row + 2
+    oWorksheet.Range(oWorksheet.Cells(lngLastRow, 9), oWorksheet.Cells(lngLastRow, 12)).Merge True
+    oWorksheet.Cells(lngLastRow, 9).Value = "DISCRETE WORK PACKAGES"
+    oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlCenter
+    oWorksheet.Range(oWorksheet.Cells(lngLastRow + 1, 9), oWorksheet.Cells(lngLastRow + 1, 12)) = Split("CAM,INCOMPLETE,COMPLETE,TOTAL", ",")
+    oWorksheet.Cells(lngLastRow + 2, 9).CopyFromRecordset oRecordset
+    lngFirstRow = oWorksheet.[L1048576].End(xlUp).Row + 1
+    lngLastRow = oWorksheet.[I1048576].End(xlUp).Row + 1
+    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 12), oWorksheet.Cells(lngLastRow - 1, 12)).FormulaR1C1 = "=SUM(RC[-2]:RC[-1])"
+    oWorksheet.Cells(lngLastRow, 9) = "TOTAL:"
+    oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlRight
+    oWorksheet.Range(oWorksheet.Cells(lngLastRow, 10), oWorksheet.Cells(lngLastRow, 12)).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R" & lngLastRow - 1 & "C)"
+    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 10), oWorksheet.Cells(lngLastRow, 12)).NumberFormat = "#,##0"
+  End If
+  oRecordset.Close
+  'checksum
+  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE WP IS NOT NULL "
+  strSQL = strSQL & "AND EVT<>'" & strLOE & "'"
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  If Not oRecordset.EOF Then
+    oWorksheet.[L1048576].End(xlUp).Offset(0, 1) = oRecordset.RecordCount
+  End If
+  oRecordset.Close
+  'todo: formula=ABS(Nx-Lx)
+  'todo: gumball: reverse order; icon only; green when <=0; etc.
+  
+  'count of complete, incomplete, total PMB tasks, by CAM
+  strSQL = "SELECT CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
+  strSQL = strSQL & "FROM [tasks.csv] t INNER JOIN "
+  strSQL = strSQL & "("
+  strSQL = strSQL & "SELECT T1.UID,IIF(T1.AF IS NULL,1,0) AS [INCOMPLETE],IIF(T1.AF IS NOT NULL,1,0) AS [COMPLETE], SUM(T2.BLW),SUM(T2.BLC) "
+  strSQL = strSQL & "FROM [tasks.csv] T1 "
+  strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
+  strSQL = strSQL & "GROUP BY T1.UID,T1.AF "
+  strSQL = strSQL & "HAVING SUM(T2.BLW)>0 OR SUM(T2.BLC)>0 ) AS s ON s.UID=t.UID "
+  strSQL = strSQL & "WHERE t.EVT IS NOT NULL AND t.EVT<>'" & strLOE & "' "
+  strSQL = strSQL & "GROUP BY CAM"
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  If Not oRecordset.EOF Then
+    lngLastRow = oWorksheet.[I1048576].End(xlUp).Row + 2
+    oWorksheet.Range(oWorksheet.Cells(lngLastRow, 9), oWorksheet.Cells(lngLastRow, 12)).Merge True
+    oWorksheet.Cells(lngLastRow, 9).Value = "DISCRETE PMB TASKS"
+    oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlCenter
+    oWorksheet.Range(oWorksheet.Cells(lngLastRow + 1, 9), oWorksheet.Cells(lngLastRow + 1, 12)) = Split("CAM,INCOMPLETE,COMPLETE,TOTAL", ",")
+    oWorksheet.Cells(lngLastRow + 2, 9).CopyFromRecordset oRecordset
+    'get total
+    lngFirstRow = oWorksheet.[L1048576].End(xlUp).Row + 1
+    lngLastRow = oWorksheet.[I1048576].End(xlUp).Row + 1
+    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 12), oWorksheet.Cells(lngLastRow - 1, 12)).FormulaR1C1 = "=SUM(RC[-2]:RC[-1])"
+    oWorksheet.Cells(lngLastRow, 9) = "TOTAL:"
+    oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlRight
+    oWorksheet.Range(oWorksheet.Cells(lngLastRow, 10), oWorksheet.Cells(lngLastRow, 12)).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R" & lngLastRow - 1 & "C)"
+    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 10), oWorksheet.Cells(lngLastRow, 12)).NumberFormat = "#,##0"
+  End If
+  oRecordset.Close
+  
+  'count of relationship FS, SS, FF, SF
+  strSQL = "SELECT TYPE,COUNT(TYPE) FROM [links.csv] GROUP BY TYPE"
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  If Not oRecordset.EOF Then
+    lngLastRow = oWorksheet.[I1048576].End(xlUp).Row + 2
+    oWorksheet.Range(oWorksheet.Cells(lngLastRow, 9), oWorksheet.Cells(lngLastRow, 11)).Merge True
+    oWorksheet.Cells(lngLastRow, 9).Value = "RELATIONSHIPS"
+    oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlCenter
+    oWorksheet.Range(oWorksheet.Cells(lngLastRow + 1, 9), oWorksheet.Cells(lngLastRow + 1, 11)) = Split("TYPE,COUNT,PERCENT", ",")
+    oWorksheet.Cells(lngLastRow + 2, 9).CopyFromRecordset oRecordset
+    'get total
+    lngLastRow = oWorksheet.[J1048576].End(xlUp).Row + 1
+    oWorksheet.Cells(lngLastRow, 9).Value = "TOTAL:"
+    oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlRight
+    lngFirstRow = oWorksheet.[K1048576].End(xlUp).Row + 1
+    oWorksheet.Cells(lngLastRow, 10).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R[-1]C"
+    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 10), oWorksheet.Cells(lngLastRow, 10)).NumberFormat = "#,##0"
+    'get percentages
+    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 11), oWorksheet.Cells(lngLastRow, 11)).FormulaR1C1 = "=RC[-1]/R" & lngLastRow & "C[-1]"
+    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 11), oWorksheet.Cells(lngLastRow, 11)).NumberFormat = "0%"
+    oWorksheet.Columns("I:L").AutoFit
+  End If
+  oRecordset.Close
+  
+  'todo: borders and shading
   
   oExcel.WindowState = xlMaximized
   oExcel.ActiveWindow.FreezePanes = True
@@ -3294,6 +3663,7 @@ next_item:
 
 exit_here:
   On Error Resume Next
+  Set o06A101a = Nothing
   Set o10A103a = Nothing
   Set oRecordset = Nothing
   Set oTasks = Nothing
@@ -3394,7 +3764,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
         
-    Case "1wp_1ca"
+    Case "CPT02"
       If Len(strList) > 0 Then
         strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
         SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "equals", strList
@@ -3511,7 +3881,7 @@ Function cptGetOutOfSequence(ByRef myDECM_frm As cptDECM_frm) As String
   Dim oAssignment As MSProject.Assignment
   Dim oOOS As Scripting.Dictionary
   Dim oCalendar As MSProject.Calendar
-  Dim oSubproject As MSProject.Subproject
+  Dim oSubproject As MSProject.SubProject
   'Dim oSubMap As Scripting.Dictionary
   Dim oTask As MSProject.Task
   Dim oLink As MSProject.TaskDependency
@@ -4020,6 +4390,9 @@ Private Function cptGetEVTAnalysis() As Excel.Workbook
   oListObject.TableStyle = ""
   oWorksheet.[A1].AutoFilter
   oWorksheet.Columns.AutoFit
+  On Error Resume Next
+  oExcel.Windows("10A103a.xlsx").Close False
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Dir(Environ("tmp") & "\10A103a.xlsx") <> vbNullString Then Kill Environ("tmp") & "\10A103a.xlsx"
   oWorkbook.SaveAs Environ("tmp") & "\10A103a.xlsx", 51
   Set cptGetEVTAnalysis = oWorkbook
@@ -4134,8 +4507,8 @@ Function cptGetDECMDescription(strDECM As String) As String
     
     Case "06A101a"
       strDescription = "Does each discrete WP, PP, SLPP have task(s) represented in the IMS and EV Cost Tool?" & vbCrLf
-      strDescription = strDescription & "X = Count of incomplete discrete WPs, PPs, SLPPs in the EV Cost Tool that are not in the IMS and count of incomplete discrete WPs, PPs, SLPPs in the IMS that are not in the EV Cost Tool" & vbCrLf
-      strDescription = strDescription & "Y = Total count of all incomplete discrete WPs, PPs, SLPPs in the EV Cost Tool"
+      strDescription = strDescription & "X = Count of incomplete discrete WPs, PPs, SLPPs in the EV Cost Tool that are not in the IMS + Count of incomplete discrete WPs, PPs, SLPPs in the IMS that are not in the EV Cost Tool" & vbCrLf
+      strDescription = strDescription & "Y = Total count of all incomplete discrete WPs, PPs, SLPPs in either the IMS or the EV Cost Tool"
     
     Case "06A204b"
       strDescription = "Are there open starts or finishes (“dangling logic”) in the schedule?" & vbCrLf
@@ -4215,15 +4588,17 @@ Function cptGetDECMDescription(strDECM As String) As String
     
     Case "06I201a"
       strDescription = "Are Schedule Visibility Tasks (SVTs) identified and controlled in the IMS?" & vbCrLf
-      strDescription = strDescription & "X = Count of incomplete tasks/activities and millstones that are not properly identified and controlled  as SVTs in the IMS"
+      strDescription = strDescription & "X = Count of incomplete tasks/activities and [milestones] that are not properly identified and controlled as SVTs in the IMS"
     
     Case "10A102a"
-      strDescription = "Is each Work Package assigned a single EVT?" & vbCrLf
+      strDescription = "NOTIONAL ONLY: RUN IN EV COST TOOL" & vbCrLf
+      strDescription = strDescription & "Is each Work Package assigned a single EVT?" & vbCrLf
       strDescription = strDescription & "X = Count of incomplete WPs that have more than one EVT or no EVT assigned" & vbCrLf
       strDescription = strDescription & "Y = Total count of incomplete WPs"
     
     Case "10A103a"
-      strDescription = "Are 0-100 EVTs applied to incomplete WPs with one accounting period of budget?" & vbCrLf
+      strDescription = "NOTIONAL ONLY: RUN IN EV COST TOOL" & vbCrLf
+      strDescription = strDescription & "Are 0-100 EVTs applied to incomplete WPs with one accounting period of budget?" & vbCrLf
       strDescription = strDescription & "X = Count of 0-100 EVT incomplete WPs with more than one accounting period of budget" & vbCrLf
       strDescription = strDescription & "Y = Total count of 0-100 EVT incomplete WPs"
     
@@ -4252,10 +4627,19 @@ Function cptGetDECMDescription(strDECM As String) As String
       strDescription = strDescription & "X = Count of PPs/SLPPs where baseline start precedes the next rolling wave cycle" & vbCrLf
       strDescription = strDescription & "Y = Total count of PPs/SLPPs"
     
-    Case "1wp_1ca"
-      strDescription = "Is each Work Package assigned a single CA?" & vbCrLf
+    Case "CPT01"
+      strDescription = "Do all PMB Tasks (where Baseline Work > 0h or Baseline Cost > $0) have appropriate metadata?" & vbCrLf
+      strDescription = strDescription & "X = Count of PMB Tasks with missing WBS, OBS, CA, CAM, WP, or EVT" & vbCrLf
+      strDescription = strDescription & "Y = (not used)"
+      
+    Case "CPT02"
+      strDescription = "Is each Work Package assigned a single Control Account?" & vbCrLf
       strDescription = strDescription & "X = Count of incomplete WPs that are assigned to more than one CA or no CA assigned" & vbCrLf
       strDescription = strDescription & "Y = Total count incomplete WPs"
+    
+    Case "CPT03"
+      strDescription = "Are there any leads (negative lags)?" & vbCrLf
+      strDescription = strDescription & "X = Count of dependencies with leads (negative lag)"
       
     Case Else
       strDescription = "No Description provided."

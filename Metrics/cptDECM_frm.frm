@@ -13,6 +13,9 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
+
+
+
 '<cpt_version>v0.0.5</cpt_version>
 Option Explicit
 
@@ -31,15 +34,26 @@ Private Sub chkUpdateView_Click()
 End Sub
 
 Private Sub cmdDone_Click()
+  Dim oExcel As Excel.Application
   Dim vFile As Variant
   Dim strFile As String
   Dim vGroup As Variant
   Dim strGroups As String
+  Dim blnErrorTrapping As Boolean
   
+  blnErrorTrapping = cptErrorTrapping
   Me.Hide
+  On Error Resume Next
+  Set oExcel = GetObject(, "Excel.Application")
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   'then clean up after yourself
-  For Each vFile In Split("Schema.ini,tasks.csv,targets.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv,06A504a.csv,06A504b.csv,segregated.csv,itemized.csv,06A212a.xlsm", ",")
+  For Each vFile In Split("Schema.ini,tasks.csv,targets.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv,06A504a.csv,06A504b.csv,segregated.csv,itemized.csv,06A101a.xlsx,06A212a.xlsm,10A102a.xlsx,10A103a.xlsx", ",")
     strFile = Environ("tmp") & "\" & vFile
+    If Not oExcel Is Nothing Then
+      On Error Resume Next
+      oExcel.Windows(vFile).Close False
+      If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    End If
     If Dir(strFile) <> vbNullString Then Kill strFile
   Next vFile
   cptResetAll
@@ -50,8 +64,16 @@ Private Sub cmdDone_Click()
     If cptGroupExists(CStr(vGroup)) Then ActiveProject.TaskGroups2(vGroup).Delete
   Next vGroup
   
+exit_here:
+  On Error Resume Next
+  Set oExcel = Nothing
   Set oDECM = Nothing
   Set oSubMap = Nothing
+  Exit Sub
+err_here:
+  cptHandleErr "cptDECM_frm", "cmdDone_Click", Err, Erl
+  Resume exit_here
+  
   
 End Sub
 
@@ -160,7 +182,7 @@ Public Sub lboMetrics_AfterUpdate()
           strMsg = strMsg & "I appreciate your assistance. Please let me know if you have any questions."
           oFile.Write strMsg
           oFile.Close
-          Shell "notepad.exe """ & strDir & "\wp-ev.sql.txt" & """", vbNormalFocus
+          Shell "C:\Windows\notepad.exe """ & strDir & "\wp-ev.sql.txt""", vbNormalFocus
           GoTo exit_here
         Else
           Me.txtTitle.Value = Me.txtTitle.Text & vbCrLf & "please paste data here (w/o headers):" & vbCrLf
@@ -265,6 +287,12 @@ Public Sub lboMetrics_AfterUpdate()
       If Len(strRollingWaveDate) > 0 Then
         strDescription = strDescription & vbCrLf & vbCrLf & "Rolling Wave Date: " & FormatDateTime(CDate(strRollingWaveDate), vbShortDate)
       End If
+      strDescription = strDescription & vbCrLf & vbCrLf & cptGetDECMDescription(strMetric)
+    Case "CPT01"
+      strDescription = strDescription & "SCORE: " & lngX
+      strDescription = strDescription & vbCrLf & vbCrLf & cptGetDECMDescription(strMetric)
+    Case "CPT02"
+      strDescription = strDescription & "SCORE: " & lngX
       strDescription = strDescription & vbCrLf & vbCrLf & cptGetDECMDescription(strMetric)
     Case Else
       strDescription = strDescription & "SCORE: " & lngX & "/" & lngY & " = " & strScore & vbCrLf & vbCrLf
@@ -455,7 +483,7 @@ Private Sub txtTitle_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, By
   End If
   oFile.Close
   oRecordset.Close
-  Me.txtTitle.Text = Me.txtTitle.Text & lngX & " total"
+  Me.txtTitle.Text = Me.txtTitle.Text & lngX & " total mismatches"
   MsgBox "Analysis complete.", vbInformation + vbOKOnly, strMetric
   
   'create a report
@@ -504,8 +532,10 @@ Private Sub txtTitle_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, By
       Set oListObject = oWorksheet.ListObjects.Add(xlSrcRange, oWorksheet.Range(oWorksheet.[A2].End(xlDown), oWorksheet.[A2].End(xlToRight)), , xlYes)
       oListObject.TableStyle = ""
       oWorksheet.[A1].FormulaR1C1 = "=COUNTA(Table1[ALL])"
+      lngY = oWorksheet.[A1].Value
       oWorksheet.[B1].FormulaR1C1 = "=COUNTBLANK(Table1[IMS])"
       oWorksheet.[C1].FormulaR1C1 = "=COUNTBLANK(Table1[EV])"
+      lngX = oWorksheet.[B1].Value + oWorksheet.[C1].Value
       oWorksheet.[D1].FormulaR1C1 = "=SUM(RC[-2]:RC[-1])/RC[-3]"
       oWorksheet.[D1].Style = "Percent"
       cptAddBorders oWorksheet.[A1:D1]
@@ -528,31 +558,32 @@ Private Sub txtTitle_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, By
         .FormatConditions.AddIconSetCondition
         With .FormatConditions(1)
           .SetFirstPriority
-          .ReverseOrder = False
+          .ReverseOrder = True
           .ShowIconOnly = False
           .IconSet = oWorkbook.IconSets(xl3Symbols)
           With .IconCriteria(2)
             .Type = xlConditionValueNumber
-            .Value = 0.001
-            .Operator = 7
+            .Value = 0
+            .Operator = 5
           End With
           With .IconCriteria(3)
             .Type = xlConditionValueNumber
-            .Value = 0.002
-            .Operator = 7
+            .Value = 0
+            .Operator = 5
           End With
         End With
       End With
       strFile = Environ("tmp") & "\" & strMetric & ".xlsx"
       If Dir(strFile) <> vbNullString Then Kill strFile
       oWorkbook.SaveAs strFile, 51
-      oWorkbook.Close
+      'oWorkbook.Close 'todo: keep open
       .Close
     End If
   End With
   
   'update the listbox
   Me.lboMetrics.List(Me.lboMetrics.ListIndex, 3) = lngX
+  Me.lboMetrics.List(Me.lboMetrics.ListIndex, 4) = lngY
   dblScore = Round(lngX / lngY, 2)
   Me.lboMetrics.List(Me.lboMetrics.ListIndex, 5) = Format(dblScore, "0%")
   strPass = "[+]"
@@ -581,8 +612,11 @@ Private Sub txtTitle_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, By
   strDescription = strDescription & vbCrLf & vbCrLf & Me.lboMetrics.List(Me.lboMetrics.ListIndex, 7)
   
   Me.txtTitle.Text = strDescription
-  If oDECM.Exists("06A101a") Then oDECM.Remove "06A101a"
-  oDECM.Add "06A101a", lngX & "|" & lngY
+  If oDECM.Exists("06A101a") Then 'oDECM.Remove "06A101a"
+    oDECM("06A101a") = lngX & "|" & lngY
+  Else
+    oDECM.Add "06A101a", lngX & "|" & lngY
+  End If
   'todo: user can re-paste data
     
 exit_here:
