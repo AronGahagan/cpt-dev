@@ -212,9 +212,14 @@ Private Sub cmdUpgradeSelected_Click()
       End If '</issue33>
       
       Me.lboModules.ListIndex = lngItem
-      Me.lboModules.List(lngItem, 4) = "<installing...>"
 
       strModule = Me.lboModules.List(lngItem, 0)
+      If strModule = "cptUpgrades_frm" Then
+        Me.lboModules.List(lngItem, 4) = "<skipped>"
+        GoTo next_module
+      Else
+        Me.lboModules.List(lngItem, 4) = "<installing...>"
+      End if
       Application.StatusBar = "installing " & strModule & "..."
 
       'get the module name
