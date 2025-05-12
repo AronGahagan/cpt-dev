@@ -3146,12 +3146,13 @@ Private Sub DumpRecordsetToExcel(ByRef oRecordset As ADODB.Recordset)
   'variants
   'dates
   
-  On Error GoTo err_here
+  On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.APplication")
   End If
+  oExcel.Visible = True
   
   Set oExcel = GetObject(, "Excel.Application")
   Set oWorkbook = oExcel.Workbooks.Add

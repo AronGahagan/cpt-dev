@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.5.3</cpt_version>
+'<cpt_version>v1.5.4</cpt_version>
 '/===== IMPORTANT =====\
 'ALL CODE IN THIS MODULE MUST BE SELF-CONTAINED
 'DO NOT BUMP THE VERSION WHILE DEVELOPING OR IT WILL GET OVERWRITTEN NEXT TIME YOU OPEN THE FORM
@@ -408,7 +408,7 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErrUpgrade("cptUpgrades_frm", "cmdUpdate_Click", Err, Erl)
-  Me.lboModules.List(lngItem - 1, 3) = "<error>" '</issue25>
+  Me.lboModules.List(lngItem, 3) = "<error>" '</issue25>
   Resume exit_here
 
 End Sub

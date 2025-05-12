@@ -13,7 +13,6 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
 '<cpt_version>v0.0.7</cpt_version>
 Option Explicit
 Public lngTargetTaskUID As Long
@@ -86,7 +85,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDECMTargetUID_frm", "txtTaskName_Change", err, Erl)
+  Call cptHandleErr("cptDECMTargetUID_frm", "txtTaskName_Change", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -138,7 +137,7 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptDECMTargetUID_frm", "txtUID_Change", err, Erl)
+  Call cptHandleErr("cptDECMTargetUID_frm", "txtUID_Change", Err, Erl)
   Resume exit_here
 End Sub
 
