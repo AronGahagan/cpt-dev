@@ -345,6 +345,7 @@ next_mapping_task:
       If oTask.Assignments.Count = 0 Then GoTo next_task
       If oTask.BaselineWork + oTask.BaselineCost = 0 Then GoTo next_task
     End If
+
     'todo: what about NOT blnMaster AND External Tasks?
     'If oTask.Summary Then GoTo next_task
 '    If blnIncompleteOnly Then If IsDate(oTask.ActualFinish) Then GoTo next_task 'todo: what was this for?
@@ -1148,6 +1149,8 @@ Function DECM_CPT01(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cpt
       blnProceed = True
       DumpRecordsetToExcel oRecordset
     End If
+  Else
+    blnProceed = True
   End If
   
 exit_here:
