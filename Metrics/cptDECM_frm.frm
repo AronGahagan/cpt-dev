@@ -16,7 +16,7 @@ Attribute VB_Exposed = False
 
 
 
-'<cpt_version>v0.0.5</cpt_version>
+'<cpt_version>v0.0.7</cpt_version>
 Option Explicit
 
 Private Sub chkUpdateView_Click()
