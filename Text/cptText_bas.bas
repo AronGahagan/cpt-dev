@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptText_bas"
-'<cpt_version>v1.5.2</cpt_version>
+'<cpt_version>v1.5.3</cpt_version>
 Option Explicit
 
 Sub cptReplicateProcess()

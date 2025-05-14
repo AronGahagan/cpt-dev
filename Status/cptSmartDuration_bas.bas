@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSmartDuration_bas"
-'<cpt_version>v2.0.2</cpt_version>
+'<cpt_version>v2.0.3</cpt_version>
 
 Sub cptShowSmartDuration_frm()
   'objects
