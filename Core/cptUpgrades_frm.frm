@@ -201,10 +201,13 @@ Private Sub cmdUpgradeSelected_Click()
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
   For lngItem = 0 To Me.lboModules.ListCount - 1
-
-    If Me.lboModules.Selected(lngItem) Then
-      'scroll to selected
+    'scroll to selected
+    If lngItem > 1 Then
+      Me.lboModules.TopIndex = lngItem - 2
+    Else
       Me.lboModules.TopIndex = lngItem
+    End If
+    If Me.lboModules.Selected(lngItem) Then
       '<issue33> trap invalid use of null error?
       If IsNull(Me.lboModules.List(lngItem, 0)) Then
         MsgBox "Unable to download upgrades.", vbExclamation + vbOKOnly, "Can't Connect"
@@ -212,14 +215,13 @@ Private Sub cmdUpgradeSelected_Click()
       End If '</issue33>
       
       Me.lboModules.ListIndex = lngItem
-
       strModule = Me.lboModules.List(lngItem, 0)
       If strModule = "cptUpgrades_frm" Then
         Me.lboModules.List(lngItem, 4) = "<skipped>"
         GoTo next_module
       Else
         Me.lboModules.List(lngItem, 4) = "<installing...>"
-      End if
+      End If
       Application.StatusBar = "installing " & strModule & "..."
 
       'get the module name
