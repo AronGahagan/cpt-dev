@@ -89,7 +89,7 @@ End Sub
 
 Private Sub cboEVT_Change()
   'objects
-  Dim oSubproject As MSProject.Subproject
+  Dim oSubproject As MSProject.SubProject
   Dim oCDP As DocumentProperty
   Dim oDict As Scripting.Dictionary
   Dim oTask As MSProject.Task
@@ -505,7 +505,15 @@ next_control:
 '    cptCheckMetadata strConstants, "strMissing"
 '  End If
   Me.blnValidIntegrationMap = blnValid
-  Me.Hide
+  If Not blnValid Then
+    If MsgBox("Cancel?", vbExclamation + vbYesNo, "Mapping Incomplete") = vbNo Then
+      Exit Sub
+    Else
+      Me.Hide
+    End If
+  Else
+    Me.Hide
+  End If
 End Sub
 
 Private Sub UpdateIntegrationSettings()

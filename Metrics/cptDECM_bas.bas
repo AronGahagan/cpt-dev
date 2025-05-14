@@ -45,8 +45,8 @@ Sub cptDECM_GET_DATA()
   Dim strMetric As String
   Dim strRollingWaveDate As String
   Dim strUpdateView As String
-  Dim strProgramAcroymn As String
   Dim strProgramAcronym As String
+  Dim strRequiredFields As String
   Dim strLinks  As String
   Dim strPE As String
   Dim strSE As String
@@ -127,7 +127,8 @@ Sub cptDECM_GET_DATA()
   dtStatus = ActiveProject.StatusDate 'GetField returns mm/dd/yyyy hh:nn AMPM
   'todo: if blnSubprojects then ensure status dates all in sync?
   
-  If Not cptValidMap(blnConfirmationRequired:=True) Then GoTo exit_here
+  strRequiredFields = "WBS,OBS,CA,CAM,WP,EVT,LOE,PP,EVP"
+  If Not cptValidMap(strRequiredFields:=strRequiredFields, blnConfirmationRequired:=True) Then GoTo exit_here
   'todo: disable Confirm button until all reds are gone; forcing 'cancel'?
   
   strProgramAcronym = cptGetProgramAcronym
@@ -501,8 +502,15 @@ next_task:
     
   'confirm cpt-cei.adtg exists and convert it to csv for easy querying
   'needed for: 06A504a; 06A504b;
+  myDECM_frm.lblStatus.Caption = "Task history file..."
+  Application.StatusBar = "Task history file..."
+  DoEvents
   strFile = cptDir & "\settings\cpt-cei.adtg"
   If Dir(strFile) <> vbNullString Then
+    myDECM_frm.lblStatus.Caption = "Task history file found. Querying..."
+    Application.StatusBar = "Task history file found. Querying..."
+    DoEvents
+    
     'copy cpt-cei.adtg to tmp dir
     FileCopy strFile, strDir & "\cpt-cei.adtg"
     
@@ -545,6 +553,10 @@ next_task:
       Kill strDir & "\cpt-cei.adtg"
       oFile.Close
     End If
+  Else
+    myDECM_frm.lblStatus.Caption = "Task history file...not found."
+    Application.StatusBar = "Task history...not found."
+    DoEvents
   End If
   
   If Dir(strDir & "\cpt-cei.csv") <> vbNullString And blnFiscalExists Then
@@ -601,6 +613,15 @@ next_task:
       oRecordset.Close
     End If
   End If
+  
+  If blnTaskHistoryExists Then
+    myDECM_frm.lblStatus.Caption = "Previous period found."
+    Application.StatusBar = "Previous period found."
+  Else
+    myDECM_frm.lblStatus.Caption = "Previous period not found."
+    Application.StatusBar = "Previous period not found."
+  End If
+  DoEvents
   
   '06A504a - AS changed - only if task history otherwise notify to 'use capture period'
   strMetric = "06A504a"

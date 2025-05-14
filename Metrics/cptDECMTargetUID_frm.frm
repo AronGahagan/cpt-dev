@@ -78,7 +78,7 @@ Private Sub txtTaskName_Change()
     Loop
     .Close
   End With
-    
+  
 exit_here:
   On Error Resume Next
   Set oRecordset = Nothing
@@ -130,7 +130,7 @@ Private Sub txtUID_Change()
     Loop
     .Close
   End With
-    
+
 exit_here:
   On Error Resume Next
   Set oRecordset = Nothing
