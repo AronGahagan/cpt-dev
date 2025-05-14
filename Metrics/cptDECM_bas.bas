@@ -88,7 +88,7 @@ Sub cptDECM_GET_DATA()
   Dim lngCA As Long
   Dim lngCAM As Long
   Dim lngWP As Long
-  Dim lngWPM As Long 'todo: why is WPM required for the DECM?
+  Dim lngWPM As Long
   Dim lngEVT As Long
   Dim lngEVP As Long
   Dim lngFile As Long
@@ -129,7 +129,6 @@ Sub cptDECM_GET_DATA()
   
   strRequiredFields = "WBS,OBS,CA,CAM,WP,EVT,LOE,PP,EVP"
   If Not cptValidMap(strRequiredFields:=strRequiredFields, blnConfirmationRequired:=True) Then GoTo exit_here
-  'todo: disable Confirm button until all reds are gone; forcing 'cancel'?
   
   strProgramAcronym = cptGetProgramAcronym
   
@@ -379,7 +378,6 @@ next_mapping_task:
 next_field:
     Next vField
     Print #lngTaskFile, strRecord
-    'todo: kick out PMB tasks (BAC>0) where metadata is missing?
     For Each oLink In oTask.TaskDependencies
       'todo: convert lag to effective days?
       If oTask.Guid = oLink.To.Guid Then 'get predecessors
@@ -1002,7 +1000,7 @@ next_task:
     
     strSQL = "SELECT DISTINCT WP "
     strSQL = strSQL & "FROM [tasks.csv] "
-    strSQL = strSQL & "WHERE EVT='K'" 'todo: SLPP
+    strSQL = strSQL & "WHERE EVT='K'" 'K = PP and SLPP
     Set oRecordset = CreateObject("ADODB.Recordset")
     strList = ""
     oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
@@ -1465,7 +1463,7 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   'limit to incomplete WPs with PMB and either mixed or missing EVTs
   'discrete WPs are complete if BAC and BCWP are within $100 (or 1h)
   'LOE WPs are complete if BAC and BCWP are within $100 (or 1h) AND ETC < $100 (or 1h)
-  'PPs and SLPPs are not included
+  'PPs and SLPPs are not included todo: unless a WP has a K and something else
   strSQL = "SELECT DISTINCT WP "
   strSQL = strSQL & "FROM("
   strSQL = strSQL & "    SELECT WP, Count(EVT) AS CountOfEVT" 'WP has mixed EVTs
@@ -1473,7 +1471,7 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   strSQL = strSQL & "        SELECT T.WP, Iif(Isnull(T.EVT),'',T.EVT) AS EVT, SUM(A.BLW+A.BLC) AS BAC "
   strSQL = strSQL & "        FROM [tasks.csv] AS T "
   strSQL = strSQL & "        INNER JOIN [assignments.csv] AS A ON A.TASK_UID=T.UID "
-  strSQL = strSQL & "        WHERE T.WP IS NOT NULL AND T.AF IS NULL "
+  strSQL = strSQL & "        WHERE T.WP IS NOT NULL AND T.AF IS NULL " 'todo: AND T.EVT IS NOT NULL AND T.EVT<>'K' " 'K = PP and SLPP
   strSQL = strSQL & "        GROUP BY T.WP, T.EVT "
   strSQL = strSQL & "        HAVING SUM(A.BLW+A.BLC)>0 "
   strSQL = strSQL & "    )  AS PMB"
@@ -1522,7 +1520,7 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   strSQL = "SELECT T.WP,SUM(A.BLW+A.BLC) AS BAC "
   strSQL = strSQL & "FROM [tasks.csv] AS T "
   strSQL = strSQL & "INNER JOIN [assignments.csv] AS A ON A.TASK_UID = T.UID "
-  strSQL = strSQL & "WHERE T.WP IS NOT NULL AND T.AF IS NULL "
+  strSQL = strSQL & "WHERE T.WP IS NOT NULL AND T.AF IS NULL " ' todo: AND T.EVT<>'K'
   strSQL = strSQL & "GROUP BY T.WP "
   strSQL = strSQL & "HAVING SUM(A.BLW+A.BLC)>0"
   With oRecordset
@@ -4561,6 +4559,7 @@ Function cptGetDECMDescription(strDECM As String) As String
     
     Case "06A211a"
       strDescription = "Is high total float rationale/justification acceptable?" & vbCrLf
+      strDescription = "NOTE: X must be determined manually." & vbCrLf
       strDescription = strDescription & "X = Count of high total float (>44 days) non-LOE tasks/activities & milestones sampled with inadequate rationale" & vbCrLf
       strDescription = strDescription & "Y = Total count of high total float non-LOE tasks/activities & milestones sampled"
     
