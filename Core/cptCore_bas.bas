@@ -134,21 +134,6 @@ Function cptGetBreadcrumbs(strModule As String, strProcedure As String, strBread
   End If
 End Function
 
-Function cptGetVersion(strModule As String) As String
-  Dim vbComponent As Object, strVersion As String
-  If Not cptModuleExists(strModule) Then
-    cptGetVersion = "<uninstalled>"
-  Else
-    Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
-    If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
-      strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
-      strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
-    End If
-    cptGetVersion = strVersion
-  End If
-  
-End Function
-
 Function cptGetVersions() As String
   'requires reference: Microsoft Scripting Runtime
   Dim vbComponent As Object, strVersion As String
@@ -310,6 +295,8 @@ Sub cptShowAbout_frm()
   'myAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR
   'myAbout_frm.lblScoreBoard.Caption = "t0 : b7" 'EWR > SAV
   myAbout_frm.lblScoreBoard.Caption = "t0 : b8" 'EWR > SAV
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b9" 'EWR > DFW
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b10" 'DFW > EWR
   
   myAbout_frm.Caption = "The ClearPlan Toolbar - " & cptGetVersion("cptAbout_frm")
   myAbout_frm.Show '<issue19>
@@ -2623,7 +2610,9 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
   oRequiredFields("PP") = False
   For Each vRequired In Split(strRequiredFields, ",")
     oRequiredFields(vRequired) = True
-  Next
+  Next vRequired
+  'todo: LOE and PP must have selection, even if it's just '<unused>'
+  'todo: in DECM, wherever LOE is filtered out, account for '<unused>'
   
   blnECF = False 'default
   For Each vControl In Split(strDefaultFields, ",")
@@ -2796,7 +2785,7 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
         Next lngItem
         If IsEmpty(oComboBox.List(oComboBox.ListCount - 1, 0)) Then oComboBox.RemoveItem (oComboBox.ListCount - 1)
       End If
-      If lngField > 0 And InStr(strSetting, "|") > 0 And oRequiredFields(vControl) Then
+      If lngField > 0 And InStr(strSetting, "|") > 0 Then
         If lngField > 188776000 And FieldConstantToFieldName(lngField) = "<Unavailable>" Then 'this happens when it's an ECF; but offline
           MsgBox "The saved mapping field for element '" & vControl & "' is an Enterprise Custom Field (ECF) named '" & Split(strSetting, "|")(1) & "' but ECFs are only available when connected to PWA." & vbCrLf & vbCrLf & "Import of saved field mapping for '" & vControl & "' will be skipped.", vbExclamation + vbOKOnly, "Integration: " & vControl
         ElseIf InStr(strSetting, "|") > 0 Then
@@ -3172,130 +3161,6 @@ Function cptCustomFieldExists(strCustomFieldName As String) As Variant
 err_here:
 End Function
 
-Function cptGetLatest(strModule As String) As String
-  'objects
-  Dim xmlDoc As Object
-  Dim xmlNode As Object
-  Dim oFile As Scripting.File
-  Dim oFSO As Scripting.FileSystemObject
-  Dim oRecordset As ADODB.Recordset
-  'strings
-  Dim strLatest As String
-  Dim strURL As String
-  Dim strFile As String
-  Dim strDir As String
-  'longs
-  'integers
-  'doubles
-  'booleans
-  Dim blnStale As Boolean
-  Dim blnErrorTrapping
-  'variants
-  'dates
-  
-  'todo: prompt the user no more than once a week if an update is available
-  'todo: use it as a basis for the upgrades form?
-  
-  If Not cptInternetIsConnected Then GoTo exit_here
-  blnErrorTrapping = cptErrorTrapping
-  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  strDir = cptDir
-  
-  strFile = strDir & "\cpt-latest.adtg"
-  blnStale = True
-  'does file exist?
-  If Dir(strFile) <> vbNullString Then
-    'is it stale?
-    Set oFSO = CreateObject("Scripting.FileSystemObject")
-    Set oFile = oFSO.GetFile(strFile)
-    'todo: use DateModified? DateCreated? notified as date or boolean?
-    'todo: what if a file is installed that gets removed from the package?
-    'todo: if a module gets removed then <cpt_version>remove</cpt_version>
-    If oFile.DateCreated > DateAdd("d", -7, Now()) Then
-      blnStale = False
-    End If
-    Set oFile = Nothing
-    Set oFSO = Nothing
-    If blnStale Then
-      Kill strFile
-    End If
-  End If
-  
-  'todo: if update is available then notify user and mark 'notified=true
-  
-  If blnStale Then
-    'set up the recordset
-    Set oRecordset = CreateObject("ADODB.Recordset")
-    oRecordset.Fields.Append "Module", 200, 200 '200=adVarChar
-    oRecordset.Fields.Append "Directory", 200, 200 '200=adVarChar
-    oRecordset.Fields.Append "Current", 200, 200 '200=adVarChar
-    oRecordset.Fields.Append "Notified", 11 '11=adBoolean
-    oRecordset.Fields.Append "Installed", 200, 200 '200=adVarChar
-    oRecordset.Fields.Append "Status", 200, 200 '200=adVarChar
-    oRecordset.Open
-
-    'get current versions
-    Application.StatusBar = "Fetching latest versions..."
-    DoEvents
-    Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
-    xmlDoc.async = False
-    xmlDoc.validateOnParse = False
-    xmlDoc.SetProperty "SelectionLanguage", "XPath"
-    xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
-    strURL = strGitHub & "CurrentVersions.xml"
-    If Not xmlDoc.Load(strURL) Then
-      'MsgBox xmlDoc.parseError.errorcode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
-      cptGetLatest = "error"
-      GoTo exit_here
-    Else
-      For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
-        oRecordset.AddNew
-        oRecordset(0) = xmlNode.SelectSingleNode("Name").Text '>Module
-        oRecordset(1) = xmlNode.SelectSingleNode("Directory").Text '>Directory
-        oRecordset(2) = xmlNode.SelectSingleNode("Version").Text '>Latest
-        oRecordset(3) = False
-        If cptModuleExists(xmlNode.SelectSingleNode("Name").Text) Then
-          oRecordset(4) = cptGetVersion(xmlNode.SelectSingleNode("Name").Text)
-          oRecordset(5) = cptVersionStatus(cptGetVersion(xmlNode.SelectSingleNode("Name").Text), xmlNode.SelectSingleNode("Version").Text)
-        End If
-        oRecordset.Update
-      Next xmlNode
-    End If
-    oRecordset.Save strFile, adPersistADTG
-    oRecordset.Close
-  End If
-  
-  'now check latest version
-  Set oRecordset = CreateObject("ADODB.REcordset")
-  oRecordset.Open strFile
-  oRecordset.Filter = "Module='" & strModule & "'"
-  If Not oRecordset.EOF Then
-    strLatest = oRecordset(2)
-    'note: updating a record will affect LastModified...
-  End If
-  oRecordset.Filter = 0
-  oRecordset.Close
-  
-  cptGetLatest = strLatest
-
-exit_here:
-  On Error Resume Next
-  Set xmlNode = Nothing
-  Set xmlDoc = Nothing
-  Set oFile = Nothing
-  Set oFSO = Nothing
-  If oRecordset.State Then
-    oRecordset.Filter = 0
-    oRecordset.Close
-  End If
-  Set oRecordset = Nothing
-
-  Exit Function
-err_here:
-  Call cptHandleErr("cptCore_bas", "cptGetLatest", Err, Erl)
-  Resume exit_here
-End Function
-
 Function cptCalendarExists(strCalendar As String) As Boolean
   Dim oCalendar As MSProject.Calendar
   Dim strMsg As String
@@ -3407,7 +3272,6 @@ err_here:
   Resume exit_here
 End Sub
 
-
 Sub cptAddBorders(ByRef rng As Excel.Range, Optional blnHorizontal As Boolean = True)
   rng.Borders(xlDiagonalDown).LineStyle = xlNone
   rng.Borders(xlDiagonalUp).LineStyle = xlNone
@@ -3451,4 +3315,121 @@ Sub cptAddBorders(ByRef rng As Excel.Range, Optional blnHorizontal As Boolean = 
     rng.Borders(xlInsideHorizontal).LineStyle = xlNone
   End If
 End Sub
+
+Function cptGetConstantName(strProperty As String, lngValue As Long) As String
+  Dim strConstantName As String
+  Select Case strProperty
+    Case "CurrencySymbolPosition"
+      strConstantName = Choose(lngValue + 1, _
+                  "0 - pjBefore", _
+                  "1 - pjAfter", _
+                  "2 - pjBeforeWithSpace", _
+                  "3 - pjAfterWithSpace")
+    Case "DefaultDurationUnits"
+      Select Case lngValue
+        Case 3
+          strConstantName = "3 - pjMinute"
+        Case 5
+          strConstantName = "5 - pjHour"
+        Case 7
+          strConstantName = "7 - pjDay"
+        Case 9
+          strConstantName = "9 - pjWeek"
+        Case 11
+          strConstantName = "11 - pjMonthUnit"
+      End Select
+    Case "EarnedValueBaseline"
+      strConstantName = lngValue & " - pjBaseline" & IIf(lngValue > 0, lngValue, "")
+    Case "TrackingMethod"
+      strConstantName = Choose(lngValue + 1, _
+                  "0 - pjTrackingMethodDefault", _
+                  "1 - pjTrackingMethodSpecifyHours", _
+                  "2 - pjTrackingMethodPercentComplete", _
+                  "3 - pjTrackingMethodTotalAndRemaining")
+    Case "Type"
+      strConstantName = Choose(lngValue + 1, _
+                  "0 - pjProjectTypeUnsaved", _
+                  "1 - pjProjectTypeNonEnterprise", _
+                  "2 - pjProjectTypeEnterpriseCheckedOut", _
+                  "3 - pjProjectTypeEnterpriseReadOnly", _
+                  "4 - pjProjectTypeEnterpriseGlobalCheckedOut", _
+                  "5 - pjProjectTypeEnterpriseGlobalInMemory", _
+                  "6 - pjProjectTypeEnterpriseGlobalLocal", _
+                  "7 - pjProjectTypeEnterpriseResourcesCheckedOut", _
+                  "8 - pjProjectTypeBasicProjectSite")
+    Case "DefaultDateFormat"
+      If lngValue = 255 Then
+        strConstantName = "255 - pjDateDefault"
+      Else
+        strConstantName = Choose(lngValue + 1, _
+                    "0 - pjDate_mm_dd_yy_hh_mmAM", _
+                    "1 - pjDate_mm_dd_yy", _
+                    "2 - pjDate_mmmm_dd_yyyy_hh_mmAM", _
+                    "3 - pjDate_mmmm_dd_yyyy", _
+                    "4 - pjDate_mmm_dd_hh_mmAM", _
+                    "5 - pjDate_mmm_dd_yyy", _
+                    "6 - pjDate_mmmm_dd", _
+                    "7 - pjDate_mmm_dd", _
+                    "8 - pjDate_ddd_mm_dd_yy_hh_mmAM", _
+                    "9 - pjDate_ddd_mm_dd_yy", _
+                    "10 - pjDate_ddd_mmm_dd_yyy", _
+                    "11 - pjDate_ddd_hh_mmAM", _
+                    "12 - pjDate_mm_dd", _
+                    "13 - pjDate_dd", _
+                    "14 - pjDate_hh_mmAM", _
+                    "15 - pjDate_ddd_mmm_dd", _
+                    "16 - pjDate_ddd_mm_dd", _
+                    "17 - pjDate_ddd_dd", _
+                    "18 - pjDate_Www_dd", _
+                    "19 - pjDate_Www_dd_yy_hh_mmAM", _
+                    "20 - pjDate_mm_dd_yyyy")
+      End If
+    Case "LevelPeriodBasis"
+      strConstantName = Choose(lngValue + 1, _
+                  "0 - pjMinuteByMinute", _
+                  "1 - pjHourByHour", _
+                  "2 - pjDayByDay", _
+                  "3 - pjWeekByWeek", _
+                  "4 - pjMonthByMonth")
+    Case "StartWeekOn"
+      strConstantName = Choose(lngValue, _
+                  "1 - pjSunday", _
+                  "2 - pjMonday", _
+                  "3 - pjTuesday", _
+                  "4 - pjWednesday", _
+                  "5 - pjThursday", _
+                  "6 - pjFriday", _
+                  "7 - pjSaturday")
+                  
+    Case "StartYearIn"
+      strConstantName = Choose(lngValue, _
+                  "1 - pjJanuary", _
+                  "2 - pjFebruary", _
+                  "3 - pjMarch", _
+                  "4 - pjApril", _
+                  "5 - pjMay", _
+                  "6 - pjJune", _
+                  "7 - pjJuly", _
+                  "8 - pjAugust", _
+                  "9 - pjSeptember", _
+                  "10 - pjOctober", _
+                  "11 - pjNovember", _
+                  "12 - pjDecember")
+                  
+    Case "WorkContour"
+      strConstantName = Choose(lngValue + 1, _
+                  "0 - pjFlat", _
+                  "1 - pjBackLoaded", _
+                  "2 - pjFrontLoaded", _
+                  "3 - pjDoublePeak", _
+                  "4 - pjEarlyPeak", _
+                  "5 - pjLatePeak", _
+                  "6 - pjBell", _
+                  "7 - pjTurtle", _
+                  "8 - pjContour")
+    Case Else
+      strConstantName = ""
+  End Select
+  cptGetConstantName = strConstantName
+End Function
 

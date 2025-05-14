@@ -3,7 +3,7 @@ Attribute VB_Name = "cptSetup_bas"
 Option Explicit
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = True 'keep this: cptErrorTrapping() lives in cptCore_bas
 #If Win64 And VBA7 Then
   Private Declare PtrSafe Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As LongPtr, _
                                                                         ByVal lpszConnectionName As String, _
@@ -372,6 +372,7 @@ Public Function cptBuildRibbonTab()
 
   'common tools
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""custom_view"" label=""View"" visible=""true"">"
+
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:OutlineSymbolsShow"" visible=""true""/>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:SummaryTasks"" visible=""true""/>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:NameIndent"" visible=""true""/>"
@@ -702,7 +703,7 @@ Public Function cptBuildRibbonTab()
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBuilder"" imageMso=""CustomFieldDialog"" label=""Field Builder"" onAction=""cptShowFieldBuilder_frm"" supertip=""A little help building common custom field pick lists, etc."" />" 'size=""large""
     End If
     If cptModuleExists("cptSaveLocal_bas") And cptModuleExists("cptSaveLocal_frm") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bECFtoLCF"" imageMso=""CustomFieldDialog"" label=""ECF to LCF"" onAction=""cptShowSaveLocal_frm"" supertip=""Save Enterprise Custom Fields (ECF) and data to Local Custom Fields (LCF). Settings are saved (by project) between sessions."" />" 'size=""large""
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bECFtoLCF"" imageMso=""CustomFieldDialog"" label=""ECF to LCF"" onAction=""cptShowSaveLocal_frm"" supertip=""Save Enterprise Custom Field (ECF) settings (and, optionally, task-level data) to Local Custom Fields (LCF). Settings are saved (by project) between sessions."" />" 'size=""large""
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
@@ -733,6 +734,143 @@ Public Function cptBuildRibbonTab()
 
 End Function
 
+Function cptGetLatest(strModule As String) As String
+  'objects
+  Dim xmlDoc As Object
+  Dim xmlNode As Object
+  Dim oFile As Scripting.File
+  Dim oFSO As Scripting.FileSystemObject
+  Dim oRecordset As ADODB.Recordset
+  'strings
+  Dim strLatest As String
+  Dim strURL As String
+  Dim strFile As String
+  Dim strDir As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  Dim blnStale As Boolean
+  'variants
+  'dates
+  
+  'todo: prompt the user no more than once a week if an update is available
+  'todo: use it as a basis for the upgrades form?
+  
+  If Not cptInternetIsConnected Then GoTo exit_here
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  strDir = cptDir
+  
+  strFile = strDir & "\cpt-latest.adtg"
+  blnStale = True
+  'does file exist?
+  If Dir(strFile) <> vbNullString Then
+    'is it stale?
+    Set oFSO = CreateObject("Scripting.FileSystemObject")
+    Set oFile = oFSO.GetFile(strFile)
+    'todo: use DateModified? DateCreated? notified as date or boolean?
+    'todo: what if a file is installed that gets removed from the package?
+    'todo: if a module gets removed then <cpt_version>remove</cpt_version>
+    If oFile.DateCreated > DateAdd("d", -7, Now()) Then
+      blnStale = False
+    End If
+    Set oFile = Nothing
+    Set oFSO = Nothing
+    If blnStale Then
+      Kill strFile
+    End If
+  End If
+  
+  'todo: if update is available then notify user and mark 'notified=true
+  
+  If blnStale Then
+    'set up the recordset
+    Set oRecordset = CreateObject("ADODB.Recordset")
+    oRecordset.Fields.Append "Module", 200, 200 '200=adVarChar
+    oRecordset.Fields.Append "Directory", 200, 200 '200=adVarChar
+    oRecordset.Fields.Append "Current", 200, 200 '200=adVarChar
+    oRecordset.Fields.Append "Notified", 11 '11=adBoolean
+    oRecordset.Fields.Append "Installed", 200, 200 '200=adVarChar
+    oRecordset.Fields.Append "Status", 200, 200 '200=adVarChar
+    oRecordset.Open
+
+    'get current versions
+    Application.StatusBar = "Fetching latest versions..."
+    DoEvents
+    Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
+    xmlDoc.async = False
+    xmlDoc.validateOnParse = False
+    xmlDoc.SetProperty "SelectionLanguage", "XPath"
+    xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
+    strURL = strGitHub & "CurrentVersions.xml"
+    If Not xmlDoc.Load(strURL) Then
+      'MsgBox xmlDoc.parseError.errorcode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
+      cptGetLatest = "error"
+      GoTo exit_here
+    Else
+      For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
+        oRecordset.AddNew
+        oRecordset(0) = xmlNode.SelectSingleNode("Name").Text '>Module
+        oRecordset(1) = xmlNode.SelectSingleNode("Directory").Text '>Directory
+        oRecordset(2) = xmlNode.SelectSingleNode("Version").Text '>Latest
+        oRecordset(3) = False
+        If cptModuleExists(xmlNode.SelectSingleNode("Name").Text) Then
+          oRecordset(4) = cptGetVersion(xmlNode.SelectSingleNode("Name").Text)
+          oRecordset(5) = cptVersionStatus(cptGetVersion(xmlNode.SelectSingleNode("Name").Text), xmlNode.SelectSingleNode("Version").Text)
+        End If
+        oRecordset.Update
+      Next xmlNode
+    End If
+    oRecordset.Save strFile, adPersistADTG
+    oRecordset.Close
+  End If
+  
+  'now check latest version
+  Set oRecordset = CreateObject("ADODB.REcordset")
+  oRecordset.Open strFile
+  oRecordset.Filter = "Module='" & strModule & "'"
+  If Not oRecordset.EOF Then
+    strLatest = oRecordset(2)
+    'note: updating a record will affect LastModified...
+  End If
+  oRecordset.Filter = 0
+  oRecordset.Close
+  
+  cptGetLatest = strLatest
+
+exit_here:
+  On Error Resume Next
+  Set xmlNode = Nothing
+  Set xmlDoc = Nothing
+  Set oFile = Nothing
+  Set oFSO = Nothing
+  If oRecordset.State Then
+    oRecordset.Filter = 0
+    oRecordset.Close
+  End If
+  Set oRecordset = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptSetup_bas", "cptGetLatest", Err, Erl)
+  Resume exit_here
+End Function
+
+Function cptGetVersion(strModule As String) As String
+  Dim vbComponent As Object, strVersion As String
+  If Not cptModuleExists(strModule) Then
+    cptGetVersion = "<uninstalled>"
+  Else
+    Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
+    If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
+      strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
+      strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
+    End If
+    cptGetVersion = strVersion
+  End If
+  
+End Function
+
 Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObject, Optional lngErl As Long, Optional strProcessStep As String)
   'common error handling prompt
   'objects
@@ -761,7 +899,6 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
   Dim blnMaster As Boolean
   Dim blnInactive As Boolean
   Dim blnCPL As Boolean
-  Dim blnErrorTrapping As Boolean
   Dim blnResourceLoaded As Boolean
   Dim blnBeta As Boolean
   'variants
@@ -771,8 +908,7 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
   strErrDescription = Err.Description
   strErrSource = Err.Source
 
-  blnErrorTrapping = cptErrorTrapping
-  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
   
   'todo: has the code been modified?
   'todo: not until CurrentVersions.xml is revised
@@ -1098,7 +1234,6 @@ err_here:
   Call cptHandleErr("cptCore_bas", "cptHandleErr2", Err, Erl)
   Resume exit_here
 End Sub
-
 
 Function cptIncrement(ByRef lngCleanUp As Long) As Long
   lngCleanUp = lngCleanUp + 1
