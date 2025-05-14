@@ -3316,6 +3316,26 @@ Sub cptAddBorders(ByRef rng As Excel.Range, Optional blnHorizontal As Boolean = 
   End If
 End Sub
 
+Sub cptAddShading(ByRef oRange As Excel.Range, Optional blnLight = False)
+  If blnLight Then
+    With oRange.Interior
+      .Pattern = xlSolid
+      .PatternColorIndex = xlAutomatic
+      .ThemeColor = xlThemeColorDark1
+      .TintAndShade = -4.99893185216834E-02
+      .PatternTintAndShade = 0
+    End With
+  Else
+    With oRange.Interior
+      .Pattern = xlSolid
+      .PatternColorIndex = xlAutomatic
+      .ThemeColor = xlThemeColorDark1
+      .TintAndShade = -0.149998474074526
+      .PatternTintAndShade = 0
+    End With
+  End If
+End Sub
+
 Function cptGetConstantName(strProperty As String, lngValue As Long) As String
   Dim strConstantName As String
   Select Case strProperty

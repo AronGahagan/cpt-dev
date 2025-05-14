@@ -1907,6 +1907,7 @@ Sub DECM_11A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   If oRecordset.EOF Then
     myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...skipped."
     Application.StatusBar = "Getting " & strMetric & "...skipped."
+    oRecordset.Close
     Exit Sub 'was goto decm_schedule
   Else
     myDECM_frm.lboMetrics.AddItem
@@ -2075,15 +2076,19 @@ Sub DECM_06A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs IMS vs EV Tool"
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
-  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE WP IS NOT NULL AND AF IS NULL AND EVT<>'" & strLOE & "' AND SUMMARY='No'"
+  strSQL = "SELECT DISTINCT T1.WP "
+  strSQL = strSQL & "FROM [tasks.csv] T1 "
+  strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
+  strSQL = strSQL & "WHERE T1.EVP<100 AND T1.EVT<>'" & strLOE & "' AND T1.SUMMARY='No' "
+  strSQL = strSQL & "GROUP BY T1.WP "
+  strSQL = strSQL & "HAVING Sum(T2.BLW + T2.BLC) > 0"
   oRecordset.Open strSQL, strCon, adOpenKeyset
   lngX = oRecordset.RecordCount 'pending upload
   lngY = oRecordset.RecordCount 'pending upload
   Set oFSO = CreateObject("Scripting.FileSystemObject")
   strDir = Environ("tmp")
   Set oFile = oFSO.CreateTextFile(strDir & "\wp-ims.csv", True)
-  oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
+  If Not oRecordset.EOF Then oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
   oRecordset.Close
   oFile.Close
   FileCopy strDir & "\wp-ims.csv", strDir & "\wp-not-in-ev.csv"
@@ -3559,11 +3564,11 @@ next_item:
   strSQL = strSQL & "HAVING SUM(BLW)>0 OR SUM(BLC)>0) GROUP BY T1.CAM "
   oRecordset.Open strSQL, strCon, adOpenKeyset
   If Not oRecordset.EOF Then
-    oWorksheet.[I1:L1].Merge True
-    oWorksheet.[I1] = "CONTROL ACCOUNTS"
-    oWorksheet.[I1].HorizontalAlignment = xlCenter
-    oWorksheet.[I2:L2] = Split("CAM,INCOMPLETE,COMPLETE,TOTAL", ",")
-    oWorksheet.[I3].CopyFromRecordset oRecordset
+    oWorksheet.[I2:L2].Merge True
+    oWorksheet.[I2] = "CONTROL ACCOUNTS"
+    oWorksheet.[I2].HorizontalAlignment = xlCenter
+    oWorksheet.[I3:L3] = Split("CAM,INCOMPLETE,COMPLETE,TOTAL", ",")
+    oWorksheet.[I4].CopyFromRecordset oRecordset
     lngFirstRow = oWorksheet.[L1048576].End(xlUp).Row + 1
     lngLastRow = oWorksheet.[I1048576].End(xlUp).Row + 1
     oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 12), oWorksheet.Cells(lngLastRow - 1, 12)).FormulaR1C1 = "=SUM(RC[-2]:RC[-1])"
@@ -3573,13 +3578,28 @@ next_item:
     oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 10), oWorksheet.Cells(lngLastRow, 12)).NumberFormat = "#,##0"
   End If
   oRecordset.Close
-  'checksum
-  strSQL = "SELECT DISTINCT CA FROM [tasks.csv] WHERE CA IS NOT NULL"
-  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-  If Not oRecordset.EOF Then
-    oWorksheet.[L1048576].End(xlUp).Offset(0, 1) = oRecordset.RecordCount
-  End If
-  oRecordset.Close
+'  'checksum
+'  strSQL = "SELECT T1.CA, T1.CAM,SUM(T2.BLW+T2.BLC) AS BAC "
+'  strSQL = strSQL & "FROM [tasks.csv] AS T1 INNER JOIN [assignments.csv] AS T2 ON T2.TASK_UID=T1.UID "
+'  strSQL = strSQL & "GROUP BY T1.CA,T1.CAM "
+'  strSQL = strSQL & "HAVING SUM(T2.BLW+T2.BLC)<=0"
+'  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+'  If Not oRecordset.EOF Then
+'    oWorksheet.[L1048576].End(xlUp).Offset(0, 1) = oRecordset.RecordCount
+'    'todo: gumball red if >0
+'    'todo: ALL CAs, or ONLY CAs
+'  End If
+'  oRecordset.Close
+  cptAddBorders oWorksheet.Range(oWorksheet.[I2], oWorksheet.[I2].End(xlDown).Offset(0, 3))
+  'section header
+  oWorksheet.[I2].Font.Bold = True
+  cptAddShading oWorksheet.[I2]
+  'column header
+  oWorksheet.[I3:L3].Font.Bold = True
+  cptAddShading oWorksheet.[I3:L3]
+  'total
+  oWorksheet.Range(oWorksheet.[I2].End(xlDown), oWorksheet.[I3].End(xlDown).Offset(0, 3)).Font.Bold = True
+  cptAddShading oWorksheet.Range(oWorksheet.[I2].End(xlDown), oWorksheet.[I3].End(xlDown).Offset(0, 3))
   'todo: gumball
   
   'todo: capture filename and date/time run by user
@@ -3597,30 +3617,41 @@ next_item:
   strSQL = strSQL & "GROUP BY T1.CAM"
   oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
   If Not oRecordset.EOF Then
-    lngLastRow = oWorksheet.[I1048576].End(xlUp).Row + 2
-    oWorksheet.Range(oWorksheet.Cells(lngLastRow, 9), oWorksheet.Cells(lngLastRow, 12)).Merge True
-    oWorksheet.Cells(lngLastRow, 9).Value = "DISCRETE WORK PACKAGES"
-    oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlCenter
-    oWorksheet.Range(oWorksheet.Cells(lngLastRow + 1, 9), oWorksheet.Cells(lngLastRow + 1, 12)) = Split("CAM,INCOMPLETE,COMPLETE,TOTAL", ",")
-    oWorksheet.Cells(lngLastRow + 2, 9).CopyFromRecordset oRecordset
-    lngFirstRow = oWorksheet.[L1048576].End(xlUp).Row + 1
-    lngLastRow = oWorksheet.[I1048576].End(xlUp).Row + 1
-    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 12), oWorksheet.Cells(lngLastRow - 1, 12)).FormulaR1C1 = "=SUM(RC[-2]:RC[-1])"
-    oWorksheet.Cells(lngLastRow, 9) = "TOTAL:"
-    oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlRight
-    oWorksheet.Range(oWorksheet.Cells(lngLastRow, 10), oWorksheet.Cells(lngLastRow, 12)).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R" & lngLastRow - 1 & "C)"
-    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 10), oWorksheet.Cells(lngLastRow, 12)).NumberFormat = "#,##0"
+    oWorksheet.[N2:Q2].Merge True
+    oWorksheet.[N2].Value = "DISCRETE WORK PACKAGES"
+    oWorksheet.[N2].HorizontalAlignment = xlCenter
+    oWorksheet.[N3:Q3] = Split("CAM,INCOMPLETE,COMPLETE,TOTAL", ",")
+    oWorksheet.[N4].CopyFromRecordset oRecordset
+    lngFirstRow = oWorksheet.[Q1048576].End(xlUp).Row + 1
+    lngLastRow = oWorksheet.[N1048576].End(xlUp).Row + 1
+    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 17), oWorksheet.Cells(lngLastRow - 1, 17)).FormulaR1C1 = "=SUM(RC[-2]:RC[-1])"
+    oWorksheet.Cells(lngLastRow, 14) = "TOTAL:"
+    oWorksheet.Cells(lngLastRow, 14).HorizontalAlignment = xlRight
+    oWorksheet.Range(oWorksheet.Cells(lngLastRow, 15), oWorksheet.Cells(lngLastRow, 17)).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R" & lngLastRow - 1 & "C)"
+    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 15), oWorksheet.Cells(lngLastRow, 17)).NumberFormat = "#,##0"
   End If
   oRecordset.Close
-  'checksum
-  strSQL = "SELECT DISTINCT WP FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE WP IS NOT NULL "
-  strSQL = strSQL & "AND EVT<>'" & strLOE & "'"
-  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-  If Not oRecordset.EOF Then
-    oWorksheet.[L1048576].End(xlUp).Offset(0, 1) = oRecordset.RecordCount
-  End If
-  oRecordset.Close
+'  'checksum
+'  strSQL = "SELECT T1.CAM, T1.WP,SUM(T2.BLW+T2.BLC) AS BAC "
+'  strSQL = strSQL & "FROM [tasks.csv] AS T1 INNER JOIN [assignments.csv] AS T2 ON T2.TASK_UID=T1.UID "
+'  strSQL = strSQL & "GROUP BY T1.CAM,T1.WP "
+'  strSQL = strSQL & "HAVING SUM(T2.BLW+T2.BLC)<=0"
+'  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+'  If Not oRecordset.EOF Then
+'    oWorksheet.[L1048576].End(xlUp).Offset(0, 1) = oRecordset.RecordCount
+'    'todo: red gumball if >0
+'  End If
+'  oRecordset.Close
+  'section header
+  oWorksheet.[N1048576].End(xlUp).End(xlUp).Font.Bold = True
+  cptAddShading oWorksheet.[N1048576].End(xlUp).End(xlUp)
+  'column header
+  oWorksheet.Range(oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 3)).Font.Bold = True
+  cptAddShading oWorksheet.Range(oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 3))
+  'total
+  oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).Offset(0, 3)).Font.Bold = True
+  cptAddShading oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).Offset(0, 3))
+  cptAddBorders oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).Offset(0, 3).End(xlUp).Offset(-1, 0))
   'todo: formula=ABS(Nx-Lx)
   'todo: gumball: reverse order; icon only; green when <=0; etc.
   
@@ -3653,35 +3684,58 @@ next_item:
     oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 10), oWorksheet.Cells(lngLastRow, 12)).NumberFormat = "#,##0"
   End If
   oRecordset.Close
+  'section header
+  oWorksheet.[I1048576].End(xlUp).End(xlUp).Font.Bold = True
+  cptAddShading oWorksheet.[I1048576].End(xlUp).End(xlUp)
+  'column header
+  oWorksheet.Range(oWorksheet.[I1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[I1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 3)).Font.Bold = True
+  cptAddShading oWorksheet.Range(oWorksheet.[I1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[I1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 3))
+  'total
+  oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), oWorksheet.[I1048576].End(xlUp).End(xlToRight)).Font.Bold = True
+  cptAddShading oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), oWorksheet.[I1048576].End(xlUp).End(xlToRight))
+  cptAddBorders oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), oWorksheet.[I1048576].End(xlUp).Offset(0, 3).End(xlUp).Offset(-1, 0))
   
   'count of relationship FS, SS, FF, SF
   strSQL = "SELECT TYPE,COUNT(TYPE) FROM [links.csv] GROUP BY TYPE"
   oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
   If Not oRecordset.EOF Then
-    lngLastRow = oWorksheet.[I1048576].End(xlUp).Row + 2
-    oWorksheet.Range(oWorksheet.Cells(lngLastRow, 9), oWorksheet.Cells(lngLastRow, 11)).Merge True
-    oWorksheet.Cells(lngLastRow, 9).Value = "RELATIONSHIPS"
-    oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlCenter
-    oWorksheet.Range(oWorksheet.Cells(lngLastRow + 1, 9), oWorksheet.Cells(lngLastRow + 1, 11)) = Split("TYPE,COUNT,PERCENT", ",")
-    oWorksheet.Cells(lngLastRow + 2, 9).CopyFromRecordset oRecordset
+    lngLastRow = oWorksheet.[N1048576].End(xlUp).Row + 2
+    oWorksheet.Range(oWorksheet.Cells(lngLastRow, 14), oWorksheet.Cells(lngLastRow, 16)).Merge True
+    oWorksheet.Cells(lngLastRow, 14).Value = "RELATIONSHIPS"
+    oWorksheet.Cells(lngLastRow, 14).HorizontalAlignment = xlCenter
+    oWorksheet.Range(oWorksheet.Cells(lngLastRow + 1, 14), oWorksheet.Cells(lngLastRow + 1, 16)) = Split("TYPE,COUNT,PERCENT", ",")
+    oWorksheet.Cells(lngLastRow + 2, 14).CopyFromRecordset oRecordset
     'get total
-    lngLastRow = oWorksheet.[J1048576].End(xlUp).Row + 1
-    oWorksheet.Cells(lngLastRow, 9).Value = "TOTAL:"
-    oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlRight
-    lngFirstRow = oWorksheet.[K1048576].End(xlUp).Row + 1
-    oWorksheet.Cells(lngLastRow, 10).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R[-1]C"
-    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 10), oWorksheet.Cells(lngLastRow, 10)).NumberFormat = "#,##0"
+    lngLastRow = oWorksheet.[O1048576].End(xlUp).Row + 1
+    oWorksheet.Cells(lngLastRow, 14).Value = "TOTAL:"
+    oWorksheet.Cells(lngLastRow, 14).HorizontalAlignment = xlRight
+    lngFirstRow = oWorksheet.[P1048576].End(xlUp).Row + 1
+    oWorksheet.Cells(lngLastRow, 15).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R[-1]C"
+    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 15), oWorksheet.Cells(lngLastRow, 15)).NumberFormat = "#,##0"
     'get percentages
-    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 11), oWorksheet.Cells(lngLastRow, 11)).FormulaR1C1 = "=RC[-1]/R" & lngLastRow & "C[-1]"
-    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 11), oWorksheet.Cells(lngLastRow, 11)).NumberFormat = "0%"
-    oWorksheet.Columns("I:L").AutoFit
+    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 16), oWorksheet.Cells(lngLastRow, 16)).FormulaR1C1 = "=RC[-1]/R" & lngLastRow & "C[-1]"
+    oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 16), oWorksheet.Cells(lngLastRow, 16)).NumberFormat = "0%"
+    oWorksheet.Columns("I:Q").AutoFit
   End If
   oRecordset.Close
+  'section header
+  oWorksheet.[N1048576].End(xlUp).End(xlUp).Font.Bold = True
+  cptAddShading oWorksheet.[N1048576].End(xlUp).End(xlUp)
+  'column header
+  oWorksheet.Range(oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 2)).Font.Bold = True
+  cptAddShading oWorksheet.Range(oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 2))
+  'total
+  oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).End(xlToRight)).Font.Bold = True
+  cptAddShading oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).End(xlToRight))
+  cptAddBorders oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).Offset(0, 2).End(xlUp).Offset(-1, 0))
   
-  'todo: borders and shading
+  'DECM results
+  cptAddBorders oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown))
+  cptAddShading oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight))
   
   oExcel.WindowState = xlMaximized
   oExcel.ActiveWindow.FreezePanes = True
+  oExcel.ActiveWindow.DisplayGridlines = False
   Application.ActivateMicrosoftApp pjMicrosoftExcel
 
 exit_here:
