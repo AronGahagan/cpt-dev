@@ -425,7 +425,7 @@ next_field:
     For Each oAssignment In oTask.Assignments
       Print #lngAssignmentFile, Join(Array(oTask.UniqueID, oAssignment.ResourceUniqueID, oAssignment.BaselineWork, oAssignment.BaselineCost, oAssignment.RemainingWork, oAssignment.RemainingCost), ",")
     Next
-    If oTask.Duration = 0 Or oTask.Milestone Then
+    If (oTask.Duration = 0 Or oTask.Milestone) And Not oTask.ExternalTask Then
       Print #lngTargetFile, Join(Array(oTask.UniqueID, Replace(Replace(oTask.Name, ",", ""), Chr(34), "'")), ",")
     End If
 next_task:
@@ -3576,6 +3576,19 @@ next_item:
     oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlRight
     oWorksheet.Range(oWorksheet.Cells(lngLastRow, 10), oWorksheet.Cells(lngLastRow, 12)).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R" & lngLastRow - 1 & "C)"
     oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 10), oWorksheet.Cells(lngLastRow, 12)).NumberFormat = "#,##0"
+    'section header
+    oWorksheet.[I2].Font.Bold = True
+    cptAddShading oWorksheet.[I2]
+    'column header
+    oWorksheet.[I3:L3].Font.Bold = True
+    cptAddShading oWorksheet.[I3:L3]
+    'total
+    oWorksheet.Range(oWorksheet.[I2].End(xlDown), oWorksheet.[I3].End(xlDown).Offset(0, 3)).Font.Bold = True
+    cptAddShading oWorksheet.Range(oWorksheet.[I2].End(xlDown), oWorksheet.[I3].End(xlDown).Offset(0, 3))
+    cptAddBorders oWorksheet.Range(oWorksheet.[I2], oWorksheet.[I2].End(xlDown).Offset(0, 3))
+    'todo: gumball
+  Else
+    'todo: handle when no assignments...
   End If
   oRecordset.Close
 '  'checksum
@@ -3590,17 +3603,6 @@ next_item:
 '    'todo: ALL CAs, or ONLY CAs
 '  End If
 '  oRecordset.Close
-  cptAddBorders oWorksheet.Range(oWorksheet.[I2], oWorksheet.[I2].End(xlDown).Offset(0, 3))
-  'section header
-  oWorksheet.[I2].Font.Bold = True
-  cptAddShading oWorksheet.[I2]
-  'column header
-  oWorksheet.[I3:L3].Font.Bold = True
-  cptAddShading oWorksheet.[I3:L3]
-  'total
-  oWorksheet.Range(oWorksheet.[I2].End(xlDown), oWorksheet.[I3].End(xlDown).Offset(0, 3)).Font.Bold = True
-  cptAddShading oWorksheet.Range(oWorksheet.[I2].End(xlDown), oWorksheet.[I3].End(xlDown).Offset(0, 3))
-  'todo: gumball
   
   'todo: capture filename and date/time run by user
   
@@ -3629,6 +3631,20 @@ next_item:
     oWorksheet.Cells(lngLastRow, 14).HorizontalAlignment = xlRight
     oWorksheet.Range(oWorksheet.Cells(lngLastRow, 15), oWorksheet.Cells(lngLastRow, 17)).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R" & lngLastRow - 1 & "C)"
     oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 15), oWorksheet.Cells(lngLastRow, 17)).NumberFormat = "#,##0"
+    'section header
+    oWorksheet.[N1048576].End(xlUp).End(xlUp).Font.Bold = True
+    cptAddShading oWorksheet.[N1048576].End(xlUp).End(xlUp)
+    'column header
+    oWorksheet.Range(oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 3)).Font.Bold = True
+    cptAddShading oWorksheet.Range(oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 3))
+    'total
+    oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).Offset(0, 3)).Font.Bold = True
+    cptAddShading oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).Offset(0, 3))
+    cptAddBorders oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).Offset(0, 3).End(xlUp).Offset(-1, 0))
+    'todo: formula=ABS(Nx-Lx)
+    'todo: gumball: reverse order; icon only; green when <=0; etc.
+  Else
+    'todo: handle when no assignments...
   End If
   oRecordset.Close
 '  'checksum
@@ -3642,18 +3658,6 @@ next_item:
 '    'todo: red gumball if >0
 '  End If
 '  oRecordset.Close
-  'section header
-  oWorksheet.[N1048576].End(xlUp).End(xlUp).Font.Bold = True
-  cptAddShading oWorksheet.[N1048576].End(xlUp).End(xlUp)
-  'column header
-  oWorksheet.Range(oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 3)).Font.Bold = True
-  cptAddShading oWorksheet.Range(oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 3))
-  'total
-  oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).Offset(0, 3)).Font.Bold = True
-  cptAddShading oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).Offset(0, 3))
-  cptAddBorders oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).Offset(0, 3).End(xlUp).Offset(-1, 0))
-  'todo: formula=ABS(Nx-Lx)
-  'todo: gumball: reverse order; icon only; green when <=0; etc.
   
   'count of complete, incomplete, total PMB tasks, by CAM
   strSQL = "SELECT CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
@@ -3682,18 +3686,20 @@ next_item:
     oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlRight
     oWorksheet.Range(oWorksheet.Cells(lngLastRow, 10), oWorksheet.Cells(lngLastRow, 12)).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R" & lngLastRow - 1 & "C)"
     oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 10), oWorksheet.Cells(lngLastRow, 12)).NumberFormat = "#,##0"
+    'section header
+    oWorksheet.[I1048576].End(xlUp).End(xlUp).Font.Bold = True
+    cptAddShading oWorksheet.[I1048576].End(xlUp).End(xlUp)
+    'column header
+    oWorksheet.Range(oWorksheet.[I1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[I1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 3)).Font.Bold = True
+    cptAddShading oWorksheet.Range(oWorksheet.[I1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[I1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 3))
+    'total
+    oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), oWorksheet.[I1048576].End(xlUp).End(xlToRight)).Font.Bold = True
+    cptAddShading oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), oWorksheet.[I1048576].End(xlUp).End(xlToRight))
+    cptAddBorders oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), oWorksheet.[I1048576].End(xlUp).Offset(0, 3).End(xlUp).Offset(-1, 0))
+  Else
+    'todo: handle when no assignments...
   End If
   oRecordset.Close
-  'section header
-  oWorksheet.[I1048576].End(xlUp).End(xlUp).Font.Bold = True
-  cptAddShading oWorksheet.[I1048576].End(xlUp).End(xlUp)
-  'column header
-  oWorksheet.Range(oWorksheet.[I1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[I1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 3)).Font.Bold = True
-  cptAddShading oWorksheet.Range(oWorksheet.[I1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[I1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 3))
-  'total
-  oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), oWorksheet.[I1048576].End(xlUp).End(xlToRight)).Font.Bold = True
-  cptAddShading oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), oWorksheet.[I1048576].End(xlUp).End(xlToRight))
-  cptAddBorders oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), oWorksheet.[I1048576].End(xlUp).Offset(0, 3).End(xlUp).Offset(-1, 0))
   
   'count of relationship FS, SS, FF, SF
   strSQL = "SELECT TYPE,COUNT(TYPE) FROM [links.csv] GROUP BY TYPE"
@@ -3716,18 +3722,20 @@ next_item:
     oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 16), oWorksheet.Cells(lngLastRow, 16)).FormulaR1C1 = "=RC[-1]/R" & lngLastRow & "C[-1]"
     oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 16), oWorksheet.Cells(lngLastRow, 16)).NumberFormat = "0%"
     oWorksheet.Columns("I:Q").AutoFit
+    'section header
+    oWorksheet.[N1048576].End(xlUp).End(xlUp).Font.Bold = True
+    cptAddShading oWorksheet.[N1048576].End(xlUp).End(xlUp)
+    'column header
+    oWorksheet.Range(oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 2)).Font.Bold = True
+    cptAddShading oWorksheet.Range(oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 2))
+    'total
+    oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).End(xlToRight)).Font.Bold = True
+    cptAddShading oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).End(xlToRight))
+    cptAddBorders oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).Offset(0, 2).End(xlUp).Offset(-1, 0))
+  Else
+    'todo: handle when no assignments...
   End If
   oRecordset.Close
-  'section header
-  oWorksheet.[N1048576].End(xlUp).End(xlUp).Font.Bold = True
-  cptAddShading oWorksheet.[N1048576].End(xlUp).End(xlUp)
-  'column header
-  oWorksheet.Range(oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 2)).Font.Bold = True
-  cptAddShading oWorksheet.Range(oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0), oWorksheet.[N1048576].End(xlUp).End(xlUp).Offset(1, 0).Offset(0, 2))
-  'total
-  oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).End(xlToRight)).Font.Bold = True
-  cptAddShading oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).End(xlToRight))
-  cptAddBorders oWorksheet.Range(oWorksheet.[N1048576].End(xlUp), oWorksheet.[N1048576].End(xlUp).Offset(0, 2).End(xlUp).Offset(-1, 0))
   
   'DECM results
   cptAddBorders oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1].End(xlDown))

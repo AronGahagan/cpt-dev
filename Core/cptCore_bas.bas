@@ -2789,8 +2789,8 @@ Function cptValidMap(Optional strRequiredFields As String, Optional blnFiscalReq
         If lngField > 188776000 And FieldConstantToFieldName(lngField) = "<Unavailable>" Then 'this happens when it's an ECF; but offline
           MsgBox "The saved mapping field for element '" & vControl & "' is an Enterprise Custom Field (ECF) named '" & Split(strSetting, "|")(1) & "' but ECFs are only available when connected to PWA." & vbCrLf & vbCrLf & "Import of saved field mapping for '" & vControl & "' will be skipped.", vbExclamation + vbOKOnly, "Integration: " & vControl
         ElseIf InStr(strSetting, "|") > 0 Then
-          If FieldConstantToFieldName(lngField) <> Split(strSetting, "|")(1) Then
-            If CustomFieldGetName(lngField) <> Split(strSetting, "|")(1) Then
+          If LCase(FieldConstantToFieldName(lngField)) <> LCase(Split(strSetting, "|")(1)) Then
+            If LCase(CustomFieldGetName(lngField)) <> LCase(Split(strSetting, "|")(1)) Then
               If MsgBox("The saved mapping field for element '" & vControl & "' is named '" & Split(strSetting, "|")(1) & "' but in this file that field is named '" & CustomFieldGetName(lngField) & "'." & vbCrLf & vbCrLf & "Import saved mapping field anyway?", vbQuestion + vbYesNo, "Integration: " & vControl) = vbYes Then
                 oComboBox.Value = lngField
               End If
