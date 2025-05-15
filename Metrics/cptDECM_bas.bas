@@ -1159,6 +1159,7 @@ Function DECM_CPT01(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cpt
   Application.StatusBar = "Checking for missing metadata...done."
   
   If lngX > 0 Then
+    If Dir(Environ("tmp") & "\decm-cpt01.adtg") <> vbNullString Then Kill Environ("tmp") & "\decm-cpt01.adtg"
     oRecordset.Save Environ("tmp") & "\decm-cpt01.adtg", adPersistADTG
     'todo: delete \decm-cpt01.adtg on form close
     cptDECM_UPDATE_VIEW "CPT01", strList
@@ -1176,8 +1177,8 @@ Function DECM_CPT01(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cpt
   
 exit_here:
   On Error Resume Next
-  DECM_CPT01 = blnProceed
   oRecordset.Close
+  DECM_CPT01 = blnProceed
   DoEvents
   Exit Function
 err_here:
@@ -3268,10 +3269,10 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
   oExcel.WindowState = xlMinimized 'xlMaximized
   oWorkbook.Activate
   Set oWorksheet = oWorkbook.Sheets(1)
+  oWorksheet.Activate
   oWorksheet.Name = "DECM Dashboard"
   oWorksheet.[A1:I1] = myDECM_frm.lboHeader.List
   oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].Offset(myDECM_frm.lboMetrics.ListCount - 1, myDECM_frm.lboMetrics.ColumnCount - 1)) = myDECM_frm.lboMetrics.List
-  'oWorksheet.[A2].Select
   oExcel.ActiveWindow.Zoom = 85
   oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
   oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).HorizontalAlignment = xlLeft
@@ -3326,6 +3327,10 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
         .lboMetrics.ListIndex = lngItem
         strMetric = .lboMetrics.List(lngItem)
         strResult = .lboMetrics.List(lngItem, 6)
+        Application.StatusBar = "Exporting " & strMetric & "..."
+        .lblStatus.Caption = "Exporting " & strMetric & "..."
+        .lblProgress.Width = (lngItem / .lboMetrics.ListCount) * .lblStatus.Width
+        DoEvents
         Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
         oWorksheet.Activate
         oWorksheet.Name = strMetric
@@ -3334,15 +3339,12 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
         oWorksheet.Cells.Font.Name = "Calibri"
         oWorksheet.Cells.Font.Size = 11
         oWorksheet.Cells.WrapText = False
-        
-        
         If strResult = strFail Then
           oWorksheet.Tab.Color = 192
         Else
           oWorksheet.Tab.Color = 5287936
         End If
         oExcel.ActiveWindow.Zoom = 85
-        
         If strMetric = "CPT01" Then
           If strResult = strFail Then
             If Dir(Environ("tmp") & "\decm-cpt01.adtg") <> vbNullString Then
@@ -3700,7 +3702,12 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
         oWorksheet.Columns.AutoFit
 next_item:
         Set oTasks = Nothing
+        Application.StatusBar = "Exporting " & strMetric & "...done."
+        .lblStatus.Caption = "Exporting " & strMetric & "...done."
+        .lblProgress.Width = ((lngItem + 1) / .lboMetrics.ListCount) * .lblStatus.Width
+        DoEvents
       Next lngItem
+      .lblStatus.Caption = "Export Complete."
       .lboMetrics.Value = .lboMetrics.List(0)
       .lboMetrics.Selected(0) = True
       .lboMetrics.ListIndex = 0
