@@ -231,6 +231,8 @@ Private Sub chkECF_Click()
   'objects
   Dim oComboBox As MSForms.ComboBox
   'strings
+  Dim strLOE As String
+  Dim strPP As String
   'longs
   Dim lngItem As Long
   Dim lngKeep As Long
@@ -254,6 +256,8 @@ Private Sub chkECF_Click()
   cptSaveSetting "Integration", "chkECF", IIf(Me.chkECF, "1", "0")
   
   'update WBS,OBS,CA,WP,EVT,EVTMS
+  If Me.cboLOE <> "" Then strLOE = Me.cboLOE.Value
+  If Me.cboPP <> "" Then strPP = Me.cboPP.Value
   vFields = cptSortedArray(cptGetCustomFields("t", "Outline Code,Text", "c,cfn,loc", blnECF), 1)
   For Each vControl In Split("WBS,OBS,CA,WP,EVT,EVTMS", ",")
     Set oComboBox = Me.Controls("cbo" & vControl)
@@ -276,6 +280,12 @@ Private Sub chkECF_Click()
       If blnECF Then oComboBox.List(oComboBox.ListCount - 1, 2) = vFields(lngItem, 2)
     Next lngItem
     If lngKeep > 0 Then oComboBox.Value = lngKeep
+    If vControl = "EVT" Then
+      On Error Resume Next
+      Me.cboLOE.Value = strLOE
+      Me.cboPP.Value = strPP
+      If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    End If
   Next vControl
   
   'update CAM,WPM
@@ -306,7 +316,7 @@ Private Sub chkECF_Click()
     Next lngItem
     If lngKeep > 0 Then oComboBox.Value = lngKeep
   Next vControl
- 
+  
   'update EV%
   Set oComboBox = Me.cboEVP
   lngKeep = 0
