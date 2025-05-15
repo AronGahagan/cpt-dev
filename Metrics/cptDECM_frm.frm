@@ -44,7 +44,7 @@ Private Sub cmdDone_Click()
   Set oExcel = GetObject(, "Excel.Application")
   If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   'then clean up after yourself
-  For Each vFile In Split("Schema.ini,tasks.csv,targets.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv,06A504a.csv,06A504b.csv,segregated.csv,itemized.csv,06A101a.xlsx,06A212a.xlsm,10A102a.xlsx,10A103a.xlsx", ",")
+  For Each vFile In Split("Schema.ini,tasks.csv,targets.csv,assignments.csv,links.csv,wp-ims.csv,wp-ev.csv,wp-not-in-ims.csv,wp-not-in-ev.csv,10A302b-x.csv,decm-cpt01.adtg,10A303a-x.csv,fiscal.csv,cpt-cei.csv,06A506c-x.csv,06A504a.csv,06A504b.csv,segregated.csv,itemized.csv,06A101a.xlsx,06A212a.xlsm,10A102a.xlsx,10A103a.xlsx", ",")
     strFile = Environ("tmp") & "\" & vFile
     If Not oExcel Is Nothing Then
       On Error Resume Next

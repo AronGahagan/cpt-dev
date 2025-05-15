@@ -1159,6 +1159,8 @@ Function DECM_CPT01(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cpt
   Application.StatusBar = "Checking for missing metadata...done."
   
   If lngX > 0 Then
+    oRecordset.Save Environ("tmp") & "\decm-cpt01.adtg", adPersistADTG
+    'todo: delete \decm-cpt01.adtg on form close
     cptDECM_UPDATE_VIEW "CPT01", strList
     If MsgBox(Format(lngX, "#,##0") & " PMB task(s) have missing metadata!" & vbCrLf & vbCrLf & "Proceed anyway?", vbCritical + vbYesNo, "Missing Metadata") = vbNo Then
       blnProceed = False
@@ -3229,6 +3231,8 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
   Dim oRange As Excel.Range
   Dim oCell As Excel.Range
   'strings
+  Dim strMetric As String
+  Dim strResult As String
   Dim strDir As String
   Dim strCon As String
   Dim strSQL As String
@@ -3267,7 +3271,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
   oWorksheet.Name = "DECM Dashboard"
   oWorksheet.[A1:I1] = myDECM_frm.lboHeader.List
   oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A2].Offset(myDECM_frm.lboMetrics.ListCount - 1, myDECM_frm.lboMetrics.ColumnCount - 1)) = myDECM_frm.lboMetrics.List
-  oWorksheet.[A2].Select
+  'oWorksheet.[A2].Select
   oExcel.ActiveWindow.Zoom = 85
   oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
   oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).HorizontalAlignment = xlLeft
@@ -3294,70 +3298,99 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
     .FormatConditions.AddIconSetCondition
     .FormatConditions(.FormatConditions.Count).SetFirstPriority
     With .FormatConditions(1)
-        .ReverseOrder = False
-        .ShowIconOnly = True
-        .IconSet = oWorkbook.IconSets(xl3Symbols)
+      .ReverseOrder = False
+      .ShowIconOnly = True
+      .IconSet = oWorkbook.IconSets(xl3Symbols)
     End With
     With .FormatConditions(1).IconCriteria(2)
-        .Type = xlConditionValueNumber
-        .Value = 1
-        .Operator = 7
+      .Type = xlConditionValueNumber
+      .Value = 1
+      .Operator = 7
     End With
     With .FormatConditions(1).IconCriteria(3)
-        .Type = xlConditionValueNumber
-        .Value = 2
-        .Operator = 7
+      .Type = xlConditionValueNumber
+      .Value = 2
+      .Operator = 7
     End With
   End With
   
   If blnDetail And Not myDECM_frm.chkUpdateView Then myDECM_frm.chkUpdateView = True
   strDir = Environ("tmp")
   strCon = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source='" & strDir & "';Extended Properties='text;HDR=Yes;FMT=Delimited';"
-  
+  Set oRecordset = CreateObject("ADODB.Recordset")
   If blnDetail Then
     With myDECM_frm
       For lngItem = 0 To .lboMetrics.ListCount - 1
         .lboMetrics.Value = .lboMetrics.List(lngItem)
         .lboMetrics.Selected(lngItem) = True
         .lboMetrics.ListIndex = lngItem
+        strMetric = .lboMetrics.List(lngItem)
+        strResult = .lboMetrics.List(lngItem, 6)
         Set oWorksheet = oWorkbook.Sheets.Add(After:=oWorkbook.Sheets(oWorkbook.Sheets.Count))
         oWorksheet.Activate
-        oWorksheet.Name = .lboMetrics.List(lngItem)
-        oWorksheet.Tab.Color = 5287936
+        oWorksheet.Name = strMetric
+        oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
+        oWorksheet.[A2] = strMetric & ": " & .lboMetrics.List(lngItem, 1)
+        oWorksheet.Cells.Font.Name = "Calibri"
+        oWorksheet.Cells.Font.Size = 11
+        oWorksheet.Cells.WrapText = False
+        
+        
+        If strResult = strFail Then
+          oWorksheet.Tab.Color = 192
+        Else
+          oWorksheet.Tab.Color = 5287936
+        End If
         oExcel.ActiveWindow.Zoom = 85
-        If .lboMetrics.List(lngItem) = "06A101a" Then
-          If .lboMetrics.List(lngItem, 6) = strFail Then
-            On Error Resume Next
-            Set o06A101a = oExcel.Workbooks(oExcel.Windows("06A101a.xlsx").Index)
-            If o06A101a Is Nothing Then
-              Set o06A101a = oExcel.Workbooks.Open(strDir & "\06A101a.xlsx")
+        
+        If strMetric = "CPT01" Then
+          If strResult = strFail Then
+            If Dir(Environ("tmp") & "\decm-cpt01.adtg") <> vbNullString Then
+              oRecordset.Open Environ("tmp") & "\decm-cpt01.adtg"
+              For lngField = 0 To oRecordset.Fields.Count - 1
+                oWorksheet.Cells(3, lngField + 1) = oRecordset.Fields(lngField).Name
+              Next lngField
+              oWorksheet.[A4].CopyFromRecordset oRecordset
+              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+              oRecordset.Close
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).FormatConditions.Add xlCellValue, xlEqual, "=""MISSING"""
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).FormatConditions(1).SetFirstPriority
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).FormatConditions(1).Font.Color = -16383844
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).FormatConditions(1).Font.TintAndShade = 0
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).FormatConditions(1).Interior.PatternColorIndex = xlAutomatic
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).FormatConditions(1).Interior.Color = 13551615
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).FormatConditions(1).Interior.TintAndShade = 0
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              oExcel.ActiveWindow.DisplayGridlines = False
             End If
+          End If
+          GoTo next_item
+        ElseIf strMetric = "06A101a" Then
+          If strResult = strFail Then
+            Set o06A101a = Nothing
+            On Error Resume Next
+            Set o06A101a = oExcel.Workbooks.Open(strDir & "\06A101a.xlsx")
+            If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
             If o06A101a Is Nothing Then
-              oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
               'run queries
-              oWorksheet.[A2].Value = "NOT IN IMS:"
+              oWorksheet.[A3].Value = "NOT IN IMS:"
               If Dir(strDir & "\wp-not-in-ims.csv") <> vbNullString Then
-                Set oRecordset = CreateObject("ADODB.Recordset")
                 strSQL = "SELECT * FROM [wp-not-in-ims.csv]"
                 oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-                oWorksheet.[A3].CopyFromRecordset oRecordset
+                oWorksheet.[A4].CopyFromRecordset oRecordset
                 oRecordset.Close
               End If
-              oWorksheet.[C2].Value = "NOT IN EV TOOL:"
+              oWorksheet.[C3].Value = "NOT IN EV TOOL:"
               If Dir(strDir & "\wp-not-in-ev.csv") <> vbNullString Then
-                Set oRecordset = CreateObject("ADODB.Recordset")
                 strSQL = "SELECT * FROM [wp-not-in-ev.csv]"
                 oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-                oWorksheet.[C3].CopyFromRecordset oRecordset
+                oWorksheet.[C4].CopyFromRecordset oRecordset
                 oRecordset.Close
               End If
-              oWorksheet.Cells.Font.Name = "Calibri"
-              oWorksheet.Cells.Font.Size = 11
-              oWorksheet.Cells.WrapText = False
-              oWorksheet.[B3].Select
-              oExcel.ActiveWindow.FreezePanes = True
               oWorksheet.Columns.AutoFit
-              oWorksheet.Tab.Color = 192
             Else
               If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
               'replace current worksheet with worksheet from saved workbook
@@ -3369,80 +3402,71 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
               Set oWorksheet = oWorkbook.Sheets("06A101a")
               oWorksheet.Rows("1:2").Insert
               oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
-              oWorksheet.[A2].Value = "WPs in IMS vs EV Tool"
-              oWorksheet.Tab.Color = 192
+              oWorksheet.[A2].Value = strMetric & ": WPs in IMS vs EV Tool"
             End If
           End If
           GoTo next_item
-        ElseIf .lboMetrics.List(lngItem) = "06A504a" Then
-          If .lboMetrics.List(lngItem, 6) = strFail Then
-            oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
-            oWorksheet.[A2].Value = "Changed Actual Starts"
+        ElseIf strMetric = "06A504a" Then
+          '06A504a - Changed Actual Start
+          If strResult = strFail Then
             If Dir(strDir & "\06A504a.csv") <> vbNullString Then
-              Set oRecordset = CreateObject("ADODB.Recordset")
               strSQL = "SELECT * FROM [06A504a.csv]"
               For lngField = 0 To oRecordset.Fields.Count - 1
-                oWorksheet.Cells(4, lngField + 1).Value = oRecordset.Fields(lngField).Name
+                oWorksheet.Cells(3, lngField + 1).Value = oRecordset.Fields(lngField).Name
               Next lngField
-              oWorksheet.[A5].CopyFromRecordset oRecordset
+              oWorksheet.[A4].CopyFromRecordset oRecordset
+              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
               oRecordset.Close
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              oExcel.ActiveWindow.DisplayGridlines = False
             End If
-            oWorksheet.Cells.Font.Name = "Calibri"
-            oWorksheet.Cells.Font.Size = 11
-            oWorksheet.Cells.WrapText = False
-            oWorksheet.[B4].Select
-            oExcel.ActiveWindow.FreezePanes = True
-            oWorksheet.Columns.AutoFit
-            oWorksheet.Tab.Color = 192
           End If
           GoTo next_item
-        ElseIf .lboMetrics.List(lngItem) = "06A504b" Then
-          If .lboMetrics.List(lngItem, 6) = strFail Then
-            oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
-            oWorksheet.[A2].Value = "Changed Actual Finishes"
+        ElseIf strMetric = "06A504b" Then
+          '06A504b - Changed Actual Finish
+          If strResult = strFail Then
             If Dir(strDir & "\06A504b.csv") <> vbNullString Then
               Set oRecordset = CreateObject("ADODB.Recordset")
               strSQL = "SELECT * FROM [06A504b.csv]"
               For lngField = 0 To oRecordset.Fields.Count - 1
-                oWorksheet.Cells(4, lngField + 1).Value = oRecordset.Fields(lngField).Name
+                oWorksheet.Cells(3, lngField + 1).Value = oRecordset.Fields(lngField).Name
               Next lngField
-              oWorksheet.[A5].CopyFromRecordset oRecordset
+              oWorksheet.[A4].CopyFromRecordset oRecordset
+              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
               oRecordset.Close
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              oExcel.ActiveWindow.DisplayGridlines = False
             End If
-            oWorksheet.Cells.Font.Name = "Calibri"
-            oWorksheet.Cells.Font.Size = 11
-            oWorksheet.Cells.WrapText = False
-            oWorksheet.[B4].Select
-            oExcel.ActiveWindow.FreezePanes = True
-            oWorksheet.Columns.AutoFit
-            oWorksheet.Tab.Color = 192
           End If
           GoTo next_item
-        ElseIf .lboMetrics.List(lngItem) = "06A506c" Then
-          If .lboMetrics.List(lngItem, 6) = strFail Then
-            oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
-            oWorksheet.[A2].Value = "Riding the Status Date"
+        ElseIf strMetric = "06A506c" Then
+          '06A506c - Riding the Status Date
+          If strResult = strFail Then
             If Dir(strDir & "\06A506c-x.csv") <> vbNullString Then
-              Set oRecordset = CreateObject("ADODB.Recordset")
               strSQL = "SELECT * FROM [06A506c-x.csv]"
               oRecordset.Open strSQL, strCon, adOpenKeyset
               For lngField = 0 To oRecordset.Fields.Count - 1
-                oWorksheet.Cells(4, lngField + 1).Value = oRecordset.Fields(lngField).Name
+                oWorksheet.Cells(3, lngField + 1).Value = oRecordset.Fields(lngField).Name
               Next lngField
-              oWorksheet.[A5].CopyFromRecordset oRecordset
+              oWorksheet.[A4].CopyFromRecordset oRecordset
+              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
               oRecordset.Close
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              oExcel.ActiveWindow.DisplayGridlines = False
             End If
-            oWorksheet.Cells.Font.Name = "Calibri"
-            oWorksheet.Cells.Font.Size = 11
-            oWorksheet.Cells.WrapText = False
-            oWorksheet.[B5].Select
-            oExcel.ActiveWindow.FreezePanes = True
-            oWorksheet.Columns.AutoFit
-            oWorksheet.Tab.Color = 192
           End If
           GoTo next_item
-        ElseIf .lboMetrics.List(lngItem) = "10A103a" Then '0/100 in >1 fiscal period
-          If .lboMetrics.List(lngItem, 6) = strFail Then
+        ElseIf strMetric = "10A103a" Then '0/100 in >1 fiscal period
+          If strResult = strFail Then
             On Error Resume Next
             Set o10A103a = oExcel.Workbooks(oExcel.Windows("10A103a.xlsx").Index)
             If o10A103a Is Nothing Then
@@ -3461,54 +3485,206 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
               Set oWorksheet = oWorkbook.Sheets("10A103a")
               oWorksheet.Rows("1:2").Insert
               oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
-              oWorksheet.[A2].Value = "0/100 WPs in more than 1 fiscal period"
-              oWorksheet.Tab.Color = 192
+              oWorksheet.[A2].Value = strMetric & ": 0/100 WPs in more than 1 fiscal period"
             End If
           End If
           GoTo next_item
-        ElseIf .lboMetrics.List(lngItem) = "10A302b" Then
-          If .lboMetrics.List(lngItem, 6) = strFail Then
-            oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
-            'run query
-            oWorksheet.[A2].Value = "PPs with EVP>0"
-            Set oRecordset = CreateObject("ADODB.Recordset")
+        ElseIf strMetric = "10A302b" Then
+          '10A302b - PPs w/EVP > 0
+          If strResult = strFail Then
+            'todo: fix this
             strSQL = "SELECT * FROM [10A302b-x.csv]"
             oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-            oWorksheet.[C3].CopyFromRecordset oRecordset
+            For lngField = 0 To oRecordset.Fields.Count - 1
+              oWorksheet.Cells(3, lngField + 1).Value = oRecordset.Fields(lngField).Name
+            Next lngField
+            oWorksheet.[C4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
             oRecordset.Close
-            oWorksheet.Cells.Font.Name = "Calibri"
-            oWorksheet.Cells.Font.Size = 11
-            oWorksheet.Cells.WrapText = False
-            oWorksheet.[B3].Select
-            oExcel.ActiveWindow.FreezePanes = True
-            oWorksheet.Columns.AutoFit
-            oWorksheet.Tab.Color = 192
+            oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            oExcel.ActiveWindow.DisplayGridlines = False
           End If
           GoTo next_item
-        ElseIf .lboMetrics.List(lngItem) = "10A303a" Then
-          If .lboMetrics.List(lngItem, 6) = strFail Then
-            oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
-            'run query
-            oWorksheet.[A2].Value = "PPs with Duration = 0"
-            Set oRecordset = CreateObject("ADODB.Recordset")
+        ElseIf strMetric = "10A303a" Then
+          If strResult = strFail Then
             strSQL = "SELECT * FROM [10A303a-x.csv]"
             oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-            oWorksheet.[C3].CopyFromRecordset oRecordset
+            For lngField = 0 To oRecordset.Fields.Count - 1
+              oWorksheet.Cells(3, lngField + 1).Value = oRecordset.Fields(lngField).Name
+            Next lngField
+            oWorksheet.[C4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
             oRecordset.Close
-            oWorksheet.Cells.Font.Name = "Calibri"
-            oWorksheet.Cells.Font.Size = 11
-            oWorksheet.Cells.WrapText = False
-            oWorksheet.[B3].Select
-            oExcel.ActiveWindow.FreezePanes = True
-            oWorksheet.Columns.AutoFit
-            oWorksheet.Tab.Color = 192
+            oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            oExcel.ActiveWindow.DisplayGridlines = False
+          End If
+          GoTo next_item
+        ElseIf strMetric = "10A109b" Then
+          '10A109b - list of WPCNs
+          If strResult = strFail Then
+            If Len(oDECM(strMetric)) > 0 Then
+              'todo: add BLW,BLC,RW,RC to tasks.csv
+              'todo: FilterByClipboard add fields
+              strSQL = "SELECT DISTINCT CAM,WP,0 AS BLW,0 AS BLC FROM [tasks.csv] "
+              strSQL = strSQL & "WHERE WP IN (" & Chr(34) & Replace(oDECM(strMetric), ",", Chr(34) & "," & Chr(34)) & Chr(34) & ") "
+              strSQL = strSQL & "ORDER BY CAM,WP"
+              oRecordset.Open strSQL, strCon, adOpenKeyset
+              oWorksheet.[A3:D3] = Split("CAM,WP,BLW,BLC", ",")
+              oWorksheet.[A4].CopyFromRecordset oRecordset
+              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+              oRecordset.Close
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              oExcel.ActiveWindow.DisplayGridlines = False
+            End If
+          End If
+          GoTo next_item
+        ElseIf strMetric = "06A204b" Then
+          '06A204b - list of UIDs
+          If strResult = strFail Then
+            If Len(oDECM(strMetric)) > 0 Then
+              strSQL = "SELECT CAM,UID,TASK_NAME FROM [tasks.csv] "
+              strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
+              strSQL = strSQL & "ORDER BY CAM"
+              oRecordset.Open strSQL, strCon, adOpenKeyset
+              oWorksheet.[A3:C3] = Split("CAM,UID,TASK_NAME", ",")
+              oWorksheet.[A4].CopyFromRecordset oRecordset
+              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+              oRecordset.Close
+              oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              oExcel.ActiveWindow.DisplayGridlines = False
+            End If
+          End If
+          GoTo next_item
+        ElseIf strMetric = "06A210a" Then
+          '06A210a - LOE Driving Discrete
+          If strResult = strFail Then
+            If Len(oDECM(strMetric)) > 0 Then
+              strSQL = "SELECT DISTINCT T1.[FROM],T2.TASK_NAME,T2.EVT,T1.TO,T3.TASK_NAME,T3.EVT "
+              strSQL = strSQL & "FROM ([links.csv] T1 "
+              strSQL = strSQL & "LEFT JOIN [tasks.csv] T2 ON T2.UID=T1.[FROM]) "
+              strSQL = strSQL & "LEFT JOIN [tasks.csv] T3 ON T3.UID=T1.TO "
+              strSQL = strSQL & "WHERE [FROM] IN (" & oDECM(strMetric) & ") "
+              strSQL = strSQL & "AND T2.EVT='" & cptGetSetting("Integration", "LOE") & "' "
+              oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+              oWorksheet.[A3:F3] = Split("FROM UID,FROM TASK NAME,FROM EVT,TO UID,TO TASK NAME,TO EVT", ",")
+              oWorksheet.[A4].CopyFromRecordset oRecordset
+              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+              oRecordset.Close
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              oExcel.ActiveWindow.DisplayGridlines = False
+            End If
+          End If
+          GoTo next_item
+          'todo: dashboard X should be formulae so users can refine/correct
+        ElseIf strMetric = "06A211a" Then
+          '06A211a - list of UIDs - UID,TASK_NAME,TS
+          If strResult = strFail Then
+            If Len(oDECM(strMetric)) > 0 Then
+              strSQL = "SELECT CAM,UID,TASK_NAME,TS/480 FROM [tasks.csv] "
+              strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
+              strSQL = strSQL & "ORDER BY CAM"
+              oRecordset.Open strSQL, strCon, adOpenKeyset
+              oWorksheet.[A3:D3] = Split("CAM,UID,TASK_NAME,TOTAL SLACK", ",")
+              oWorksheet.[A4].CopyFromRecordset oRecordset
+              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+              oRecordset.Close
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              oExcel.ActiveWindow.DisplayGridlines = False
+            End If
+          End If
+          GoTo next_item
+        ElseIf strMetric = "06A401a" Then
+          '06A401a - target UID|list of UIDs - UID,TASK_NAME; SORTBY FINISH; END WITH TARGET
+          'todo: add AD,RD to tasks.csv
+          If strResult = strFail Then
+            If Len(oDECM(strMetric)) > 0 Then
+              oWorksheet.[A3].Value = "TARGET:"
+              oWorksheet.[B3].Value = Split(oDECM(strMetric), "|")(0)
+              oWorksheet.[C3].Value = ActiveProject.Tasks.UniqueID(Split(oDECM(strMetric), "|")(0)).Name
+              strSQL = "SELECT CAM,UID,TASK_NAME,TS/480,FF FROM [tasks.csv] "
+              strSQL = strSQL & "WHERE UID IN (" & Split(oDECM(strMetric), "|")(1) & ") "
+              strSQL = strSQL & "ORDER BY FF,DUR DESC"
+              oRecordset.Open strSQL, strCon, adOpenKeyset
+              oWorksheet.[A4:E4] = Split("CAM,UID,TASK_NAME,TOTAL SLACK,FORECAST FINISH", ",")
+              oWorksheet.[A5].CopyFromRecordset oRecordset
+              oWorksheet.[A4].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+              oRecordset.Close
+              oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight).End(xlDown)).Columns.AutoFit
+              cptAddBorders oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight).End(xlDown))
+              cptAddBorders oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight))
+              cptAddShading oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight))
+              oExcel.ActiveWindow.DisplayGridlines = False
+            End If
+          End If
+          GoTo next_item
+        ElseIf strMetric = "06A501a" Then
+          '06A501a - list of UIDs - UID,TASK_NAME,BLS,BLF
+          If strResult = strFail Then
+            If Len(oDECM(strMetric)) > 0 Then
+              strSQL = "SELECT CAM,WP,UID,TASK_NAME,BLS,BLF "
+              strSQL = strSQL & "FROM [tasks.csv] "
+              strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
+              strSQL = strSQL & "ORDER BY CAM"
+              oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+              oWorksheet.[A3:F3] = Split("CAM,WP,UID,TASK NAME,BLS,BLF", ",")
+              oWorksheet.[A4].CopyFromRecordset oRecordset
+              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+              oRecordset.Close
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              oExcel.ActiveWindow.DisplayGridlines = False
+            End If
+          End If
+          GoTo next_item
+        ElseIf strMetric = "06A506b" Then
+          '06A506b - list of UIDs - Invalid Forecast - UID,CAM,TASK_NAME,FS,FF,STATUS_DATE
+          oWorksheet.[A3].Value = "Status Date:"
+          oWorksheet.[B3].Value = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
+          If strResult = strFail Then
+            If Len(oDECM(strMetric)) > 0 Then
+              strSQL = "SELECT CAM,UID,TASK_NAME,FS,FF "
+              strSQL = strSQL & "FROM [tasks.csv] "
+              strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
+              strSQL = strSQL & "ORDER BY CAM"
+              oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+              oWorksheet.[A4:E4] = Split("CAM,UID,TASK NAME,FORECAST START,FORECAST FINISH", ",")
+              oWorksheet.[A5].CopyFromRecordset oRecordset
+              oWorksheet.[A4].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+              oRecordset.Close
+              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A4].End(xlToRight).End(xlDown)).Columns.AutoFit
+              cptAddBorders oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight).End(xlDown))
+              cptAddBorders oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight))
+              cptAddShading oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight))
+              oExcel.ActiveWindow.DisplayGridlines = False
+            End If
           End If
           GoTo next_item
         Else
           .lboMetrics_AfterUpdate
-          Debug.Print "FIX " & .lboMetrics.List(lngItem)
-          'todo: SELECT UID,DURATION,TS FROM [tasks.csv] WHERE UID IN (" & array & ")" ...?
+          Debug.Print "FIX " & strMetric & ": " & oDECM(strMetric)
         End If
+        oWorksheet.[B4].Select
+        
         ActiveWindow.TopPane.Activate
         SelectAll
         EditCopy
@@ -3517,20 +3693,11 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
         If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If oTasks Is Nothing Then GoTo next_item
         If oTasks.Count = 0 Then GoTo next_item
-        oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
-        oWorksheet.[A2] = .lboMetrics.List(lngItem, 1)
         oWorksheet.[A3].Select
         oWorksheet.PasteSpecial Format:="HTML", Link:=False, DisplayAsIcon:=False
-        oWorksheet.Cells.Font.Name = "Calibri"
-        oWorksheet.Cells.Font.Size = 11
-        oWorksheet.Cells.WrapText = False
-        oWorksheet.[B4].Select
         oExcel.WindowState = xlNormal
         oExcel.ActiveWindow.FreezePanes = True
         oWorksheet.Columns.AutoFit
-        If .lboMetrics.List(lngItem, 6) = strFail Then
-          oWorksheet.Tab.Color = 192
-        End If
 next_item:
         Set oTasks = Nothing
       Next lngItem
@@ -3841,7 +4008,7 @@ next_item:
   End If
   oWorksheet.[A1].Font.Size = 18
   oWorksheet.[A1].Font.Bold = True
-  oWorksheet.[B2].Value = CStr(Format(Now, "m/d/yyyy hh:nn ampm"))
+  oWorksheet.[B2].Value = CStr(Format(Now, "m/d/yyyy hh:nn AM/PM"))
   oWorksheet.[A2].Value = Application.UserName
   
   oExcel.WindowState = xlMaximized
