@@ -186,40 +186,51 @@ Sub cptDECM_GET_DATA()
     Print #lngFile, "ColNameHeader=False"
     Print #lngFile, "Col1=WP text"
   Next vFile
-  Print #1, "[06A506c-x.csv]"
-  Print #1, "ColNameHeader=True"
-  Print #1, "Format=CSVDelimited"
-  Print #1, "Col1=UID integer"
-  Print #1, "Col2=P1_TASK_FINISH date"
-  Print #1, "Col3=P1_STATUS_DATE date"
-  Print #1, "Col4=P1_DELTA Double"
-  Print #1, "Col5=P2_TASK_FINISH date"
-  Print #1, "Col6=P2_STATUS_DATE date"
-  Print #1, "Col7=P2_DELTA Double"
-  Print #1, "[fiscal.csv]"
-  Print #1, "ColNameHeader=True"
-  Print #1, "Format=CSVDelimited"
-  Print #1, "Col1=FISCAL_END date"
-  Print #1, "Col2=LABEL text"
-  Print #1, "[targets.csv]"
-  Print #1, "ColNameHeader=True"
-  Print #1, "Format=CSVDelimited"
-  Print #1, "Col1=UID integer"
-  Print #1, "Col2=TASK_NAME text"
-  Print #1, "[segregated.csv]"
-  Print #1, "ColNameHeader=True"
-  Print #1, "Format=CSVDelimited"
-  Print #1, "Col1=CA text"
-  Print #1, "Col2=WP text"
-  Print #1, "Col3=WP_BLW double"
-  Print #1, "[itemized.csv]"
-  Print #1, "ColNameHeader=True"
-  Print #1, "Format=CSVDelimited"
-  Print #1, "Col1=CA text"
-  Print #1, "Col2=CA_BAC double"
-  Print #1, "Col3=WP_BAC double"
-  Print #1, "Col4=discrepancy double"
-  
+  Print #lngFile, "[06A506c-x.csv]"
+  Print #lngFile, "ColNameHeader=True"
+  Print #lngFile, "Format=CSVDelimited"
+  Print #lngFile, "Col1=UID integer"
+  Print #lngFile, "Col2=P1_TASK_FINISH date"
+  Print #lngFile, "Col3=P1_STATUS_DATE date"
+  Print #lngFile, "Col4=P1_DELTA Double"
+  Print #lngFile, "Col5=P2_TASK_FINISH date"
+  Print #lngFile, "Col6=P2_STATUS_DATE date"
+  Print #lngFile, "Col7=P2_DELTA Double"
+  Print #lngFile, "[fiscal.csv]"
+  Print #lngFile, "ColNameHeader=True"
+  Print #lngFile, "Format=CSVDelimited"
+  Print #lngFile, "Col1=FISCAL_END date"
+  Print #lngFile, "Col2=LABEL text"
+  Print #lngFile, "[targets.csv]"
+  Print #lngFile, "ColNameHeader=True"
+  Print #lngFile, "Format=CSVDelimited"
+  Print #lngFile, "Col1=UID integer"
+  Print #lngFile, "Col2=TASK_NAME text"
+  Print #lngFile, "[segregated.csv]"
+  Print #lngFile, "ColNameHeader=True"
+  Print #lngFile, "Format=CSVDelimited"
+  Print #lngFile, "Col1=CA text"
+  Print #lngFile, "Col2=WP text"
+  Print #lngFile, "Col3=WP_BLW double"
+  Print #lngFile, "[itemized.csv]"
+  Print #lngFile, "ColNameHeader=True"
+  Print #lngFile, "Format=CSVDelimited"
+  Print #lngFile, "Col1=CA text"
+  Print #lngFile, "Col2=CA_BAC double"
+  Print #lngFile, "Col3=WP_BAC double"
+  Print #lngFile, "Col4=discrepancy double"
+  Print #lngFile, "[06A504a.csv]"
+  Print #lngFile, "ColNameHeader=False"
+  Print #lngFile, "Format=CSVDelimited"
+  Print #lngFile, "Col1=UID integer"
+  Print #lngFile, "Col2=AS_WAS date"
+  Print #lngFile, "Col3=AS_IS date"
+  Print #lngFile, "[06A504b.csv]"
+  Print #lngFile, "ColNameHeader=False"
+  Print #lngFile, "Format=CSVDelimited"
+  Print #lngFile, "Col1=UID integer"
+  Print #lngFile, "Col2=AF_WAS date"
+  Print #lngFile, "Col3=AF_IS date"
   Close #lngFile
   
   lngTaskFile = FreeFile
@@ -638,10 +649,14 @@ next_task:
   
   If blnTaskHistoryExists Then
   
+    'todo: requires cptFiscal
+    'todo: confirm previous month end [list of status dates in cpt-cei where project, order desc]
+    'todo: confirm current month end against fiscal
+  
     'get Y
     strSQL = "SELECT TASK_UID,TASK_AS FROM [cpt-cei.csv] "
     strSQL = strSQL & "WHERE PROJECT='" & strProgramAcronym & "' AND TASK_AS IS NOT NULL "
-    strSQL = strSQL & "AND STATUS_DATE = #" & dtCurrent & "#"
+    strSQL = strSQL & "AND STATUS_DATE = #" & dtPrevious & "#"
     oRecordset.Open strSQL, strCon, adOpenKeyset
     If Not oRecordset.EOF Then lngY = oRecordset.RecordCount Else lngY = 1
     oRecordset.Close
@@ -671,9 +686,16 @@ next_task:
     strSQL = strSQL & "    AND T1.TASK_AS <> T2.TASK_AS_WAS; "
     oRecordset.Open strSQL, strCon, adOpenKeyset
     If Not oRecordset.EOF Then lngX = oRecordset.RecordCount Else lngX = 0
+    strList = ""
     If lngX > 0 Then
-      'save results for later - todo: add to export if 06A504a.csv exists
+      oRecordset.MoveFirst
+      Do While Not oRecordset.EOF
+        strList = strList & oRecordset(0) & ","
+        oRecordset.MoveNext
+      Loop
+      'save results for later
       Set oFile = oFSO.CreateTextFile(strDir & "\06A504a.csv", True)
+      oRecordset.MoveFirst
       oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
       oFile.Close
     End If
@@ -690,6 +712,7 @@ next_task:
     End If
     myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
     'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+    oDECM.Add strMetric, strList
     myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
     Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
@@ -727,7 +750,7 @@ next_task:
     'get Y
     strSQL = "SELECT TASK_UID,TASK_AF FROM [cpt-cei.csv] "
     strSQL = strSQL & "WHERE PROJECT='" & strProgramAcronym & "' AND TASK_AF IS NOT NULL "
-    strSQL = strSQL & "AND STATUS_DATE = #" & dtCurrent & "#"
+    strSQL = strSQL & "AND STATUS_DATE = #" & dtPrevious & "#"
     oRecordset.Open strSQL, strCon, adOpenKeyset
     If Not oRecordset.EOF Then lngY = oRecordset.RecordCount Else lngY = 1
     oRecordset.Close
@@ -757,9 +780,16 @@ next_task:
     strSQL = strSQL & "    AND T1.TASK_AF <> T2.TASK_AF_WAS; "
     oRecordset.Open strSQL, strCon, adOpenKeyset
     If Not oRecordset.EOF Then lngX = oRecordset.RecordCount Else lngX = 0
+    strList = ""
     If lngX > 0 Then
-      'save results for later - todo: add to export if 06A504a.csv exists
+      oRecordset.MoveFirst
+      Do While Not oRecordset.EOF
+        strList = strList & oRecordset(0) & ","
+        oRecordset.MoveNext
+      Loop
+      'save results for later
       Set oFile = oFSO.CreateTextFile(strDir & "\06A504b.csv", True)
+      oRecordset.MoveFirst
       oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
       oFile.Close
     End If
@@ -777,6 +807,7 @@ next_task:
     End If
     myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 7) = cptGetDECMDescription(strMetric)
     'myDECM_Frm.lboMetrics.List(myDECM_Frm.lboMetrics.ListCount - 1, 8) = strList
+    oDECM.Add strMetric, strList
     myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...done."
     Application.StatusBar = "Getting " & strMetric & "...done."
     DoEvents
@@ -1254,7 +1285,7 @@ Sub DECM_05A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   Dim strSQL As String
   Dim strList As String
   Dim lngX As Long
-  Dim lngY As Long
+  'Dim lngY As Long
   Dim dblScore As Double
   
   '05A102a - 1 CA : 1 CAM
@@ -1317,7 +1348,7 @@ Sub DECM_05A103a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   Dim strSQL As String
   Dim strList As String
   Dim lngX As Long
-  Dim lngY As Long
+  'Dim lngY As Long
   Dim dblScore As Double
   
   '05A103a - 1 CA : 1 WBS
@@ -1441,7 +1472,7 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   Dim strMetric As String
   Dim strSQL As String
   Dim strList As String
-  Dim lngY As Long
+  'Dim lngY As Long
   Dim lngX As Long
   Dim dblScore As Double
   Dim oExcel As Excel.Application
@@ -1510,6 +1541,7 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
         oWorksheet.[A1] = "X"
         oWorksheet.[A2] = lngX
         oWorksheet.[A3] = "WP(X)"
+        oRecordset.MoveFirst
         oWorksheet.[A4].CopyFromRecordset oRecordset
       End If
       If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
@@ -1538,8 +1570,9 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
       oWorksheet.[C2].FormulaR1C1 = "=R2C1/R2C2"
       oWorksheet.[C2].Style = "percent"
       oWorksheet.[A1:C2].HorizontalAlignment = xlCenter
+      If Dir(Environ("tmp") & "\" & strMetric & ".xlsx") <> vbNullString Then Kill Environ("tmp") & "\" & strMetric & ".xlsx"
       oWorkbook.SaveAs Environ("tmp") & "\" & strMetric & ".xlsx"
-      'oWorkbook.Close True 'keep open?
+      oWorkbook.Close True
     End If
     If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
@@ -1621,6 +1654,7 @@ Sub DECM_10A103a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
           If InStr(strList, oCell.Value) = 0 Then strList = strList & oCell.Value & vbTab
         Next oCell
       End If
+      oWorkbook.Close True
     Else 'blnFiscalExists
       lngX = lngY 'triggers failure
     End If
@@ -1769,6 +1803,7 @@ Sub DECM_10A302b(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
         Set oFSO = CreateObject("Scripting.FileSystemObject")
         strDir = Environ("tmp")
         Set oFile = oFSO.CreateTextFile(strDir & "\10A302b-x.csv", True)
+        oRecordset.MoveFirst
         oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
         oFile.Close
       End If
@@ -1822,10 +1857,10 @@ Sub DECM_10A303a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
     dblScore = 0
     strList = ""
   Else
-    strSQL = "SELECT WP,IIF(SUM(DUR)>0,TRUE,FALSE) AS HasProgress  FROM [tasks.csv] "
+    strSQL = "SELECT WP,SUM(DUR) FROM [tasks.csv] "
     strSQL = strSQL & "WHERE EVT='K' "
     strSQL = strSQL & "GROUP BY WP "
-    strSQL = strSQL & "HAVING SUM(EVP)>0"
+    strSQL = strSQL & "HAVING SUM(DUR)=0"
     oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
     strList = ""
     If oRecordset.EOF Then
@@ -1840,7 +1875,9 @@ Sub DECM_10A303a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
         Loop
       End With
       Set oFSO = CreateObject("Scripting.FileSystemObject")
+      strDir = Environ("tmp")
       Set oFile = oFSO.CreateTextFile(strDir & "\10A303a-x.csv", True)
+      oRecordset.MoveFirst
       oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
       oFile.Close
     End If
@@ -2289,7 +2326,7 @@ Sub DECM_06A205a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   'X = count of incomplete tasks/activities & milestones with at least one lag in the pred logic
   'Y = count of incomplete tasks/activities & milestones in the IMS
   'X/Y <=10%
-  'we already have lngY...
+  'we already have lngY
   strSQL = "SELECT t.UID FROM [tasks.csv] t "
   strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TO FROM [links.csv] WHERE LAG>0) p ON p.TO=t.UID " 'todo
   'todo: to include leads replace above with strSQL = strSQL & "INNER JOIN (SELECT DISTINCT TO FROM [links.csv] WHERE LAG<>0) p ON p.TO=t.UID "
@@ -2380,7 +2417,6 @@ Sub DECM_CPT03(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_
   DoEvents
 End Sub
 
-
 Sub DECM_06A208a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
   Dim strMetric As String
   Dim strSQL As String
@@ -2401,19 +2437,40 @@ Sub DECM_06A208a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   DoEvents
   'X = Count of summary tasks/activities with logic applied (# predecessors > 0 or # successors > 0)
   'X = 0
-  strSQL = "SELECT t.UID FROM [tasks.csv] t "
-  strSQL = strSQL & "INNER JOIN [links.csv] l ON L.TO=t.UID "
-  strSQL = strSQL & "WHERE t.SUMMARY='Yes'"
+  strSQL = "SELECT DISTINCT T1.UID FROM [tasks.csv] T1 "
+  strSQL = strSQL & "INNER JOIN [links.csv] T2 ON T2.FROM=T1.UID "
+  strSQL = strSQL & "WHERE T1.SUMMARY='Yes'"
+  lngX = 0
   With oRecordset
-    .Open strSQL, strCon, adOpenKeyset
-    lngX = .RecordCount
-    strList = ""
-    If lngX > 0 Then
-      .MoveFirst
-      Do While Not .EOF
-        strList = strList & .Fields("UID") & ","
-        .MoveNext
-      Loop
+    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    If .RecordCount > 0 Then
+      lngX = .RecordCount
+      strList = ""
+      If lngX > 0 Then
+        .MoveFirst
+        Do While Not .EOF
+          strList = strList & .Fields("UID") & ","
+          .MoveNext
+        Loop
+      End If
+    End If
+    .Close
+  End With
+  'summary with successors
+  strSQL = "SELECT DISTINCT T1.UID FROM [tasks.csv] T1 "
+  strSQL = strSQL & "INNER JOIN [links.csv] T2 ON T2.TO=T1.UID "
+  strSQL = strSQL & "WHERE T1.SUMMARY='Yes'"
+  With oRecordset
+    .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+    If .RecordCount > 0 Then
+      lngX = lngX + .RecordCount
+      If lngX > 0 Then
+        .MoveFirst
+        Do While Not .EOF
+          strList = strList & .Fields("UID") & ","
+          .MoveNext
+        Loop
+      End If
     End If
     .Close
   End With
@@ -2455,9 +2512,9 @@ Sub DECM_06A209a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   'X = count of incomplete tasks/activities & milestones with hard constraints
   'Y = count of incomplete tasks/activities & milestones
   'X/Y = 0%
-  'we already have lngY...
+  'we already have lngY
   strSQL = "SELECT UID FROM [tasks.csv] "
-  strSQL = strSQL & "WHERE SUMMARY='No' AND AF IS NULL AND (EVT<>'" & strLOE & "' OR EVT IS NULL) "
+  strSQL = strSQL & "WHERE SUMMARY='No' AND AF IS NULL " 'AND (EVT<>'" & strLOE & "' OR EVT IS NULL) "
   strSQL = strSQL & "AND (CONST='SNLT' OR CONST='FNLT' OR CONST='MSO' OR CONST='MFO')"
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
@@ -3069,7 +3126,6 @@ Function DECM(ByRef myDECM_frm As cptDECM_frm, strDECM As String, Optional blnNo
   Dim oLinks As Scripting.Dictionary
   Dim oLink As TaskDependency
   Dim lngX As Long
-  Dim lngY As Long
   Dim strLinks As String
   
   'If Not cptValidMap Then GoTo exit_here
@@ -3280,7 +3336,6 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
     .Font.Name = "Calibri"
     .Font.Size = 11
     .HorizontalAlignment = xlCenter
-    .Columns.AutoFilter
     .Columns.AutoFit
   End With
   
@@ -3345,7 +3400,8 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
           oWorksheet.Tab.Color = 5287936
         End If
         oExcel.ActiveWindow.Zoom = 85
-        If strMetric = "CPT01" Then
+        oExcel.ActiveWindow.DisplayGridlines = False
+        If strMetric = "CPT01" Then 'missing metadata
           If strResult = strFail Then
             If Dir(Environ("tmp") & "\decm-cpt01.adtg") <> vbNullString Then
               oRecordset.Open Environ("tmp") & "\decm-cpt01.adtg"
@@ -3366,116 +3422,93 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
               cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
               cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
               cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              oExcel.ActiveWindow.DisplayGridlines = False
             End If
           End If
-          GoTo next_item
-        ElseIf strMetric = "06A101a" Then
-          If strResult = strFail Then
-            Set o06A101a = Nothing
-            On Error Resume Next
-            Set o06A101a = oExcel.Workbooks.Open(strDir & "\06A101a.xlsx")
-            If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-            If o06A101a Is Nothing Then
-              'run queries
-              oWorksheet.[A3].Value = "NOT IN IMS:"
-              If Dir(strDir & "\wp-not-in-ims.csv") <> vbNullString Then
-                strSQL = "SELECT * FROM [wp-not-in-ims.csv]"
-                oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-                oWorksheet.[A4].CopyFromRecordset oRecordset
-                oRecordset.Close
-              End If
-              oWorksheet.[C3].Value = "NOT IN EV TOOL:"
-              If Dir(strDir & "\wp-not-in-ev.csv") <> vbNullString Then
-                strSQL = "SELECT * FROM [wp-not-in-ev.csv]"
-                oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-                oWorksheet.[C4].CopyFromRecordset oRecordset
-                oRecordset.Close
-              End If
-              oWorksheet.Columns.AutoFit
-            Else
-              If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-              'replace current worksheet with worksheet from saved workbook
-              oExcel.DisplayAlerts = False
-              oWorksheet.Delete
-              oExcel.DisplayAlerts = True
-              o06A101a.Sheets(1).Copy After:=oWorkbook.Sheets(oWorkbook.Sheets.Count)
-              o06A101a.Close True
-              Set oWorksheet = oWorkbook.Sheets("06A101a")
-              oWorksheet.Rows("1:2").Insert
-              oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
-              oWorksheet.[A2].Value = strMetric & ": WPs in IMS vs EV Tool"
-            End If
+        ElseIf strMetric = "05A101a" Then '1 CA : 1 OBS
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT CA,CAM,OBS FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE CA IN (" & Chr(34) & Replace(oDECM(strMetric), ",", Chr(34) & "," & Chr(34)) & Chr(34) & ") "
+            strSQL = strSQL & "ORDER BY CA"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:C3] = Split("CA,CAM,OBS", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = .lboMetrics.List(lngItem, 3)
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
           End If
-          GoTo next_item
-        ElseIf strMetric = "06A504a" Then
-          '06A504a - Changed Actual Start
-          If strResult = strFail Then
-            If Dir(strDir & "\06A504a.csv") <> vbNullString Then
-              strSQL = "SELECT * FROM [06A504a.csv]"
-              For lngField = 0 To oRecordset.Fields.Count - 1
-                oWorksheet.Cells(3, lngField + 1).Value = oRecordset.Fields(lngField).Name
-              Next lngField
-              oWorksheet.[A4].CopyFromRecordset oRecordset
-              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
-              oRecordset.Close
-              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              oExcel.ActiveWindow.DisplayGridlines = False
-            End If
+        ElseIf strMetric = "05A102a" Then '1 CA : 1 CAM
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT CA,CAM FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE CA IN (" & Chr(34) & Replace(oDECM(strMetric), ",", Chr(34) & "," & Chr(34)) & Chr(34) & ") "
+            strSQL = strSQL & "ORDER BY CA"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:B3] = Split("CA,CAM", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = .lboMetrics.List(lngItem, 3)
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
           End If
-          GoTo next_item
-        ElseIf strMetric = "06A504b" Then
-          '06A504b - Changed Actual Finish
-          If strResult = strFail Then
-            If Dir(strDir & "\06A504b.csv") <> vbNullString Then
-              Set oRecordset = CreateObject("ADODB.Recordset")
-              strSQL = "SELECT * FROM [06A504b.csv]"
-              For lngField = 0 To oRecordset.Fields.Count - 1
-                oWorksheet.Cells(3, lngField + 1).Value = oRecordset.Fields(lngField).Name
-              Next lngField
-              oWorksheet.[A4].CopyFromRecordset oRecordset
-              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
-              oRecordset.Close
-              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              oExcel.ActiveWindow.DisplayGridlines = False
-            End If
+        ElseIf strMetric = "05A103a" Then '1 CA : 1 WBS
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT CA,CAM,WBS FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE CA IN (" & Chr(34) & Replace(oDECM(strMetric), ",", Chr(34) & "," & Chr(34)) & Chr(34) & ") "
+            strSQL = strSQL & "ORDER BY CA"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:C3] = Split("CA,CAM,WBS", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = .lboMetrics.List(lngItem, 3)
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
           End If
-          GoTo next_item
-        ElseIf strMetric = "06A506c" Then
-          '06A506c - Riding the Status Date
-          If strResult = strFail Then
-            If Dir(strDir & "\06A506c-x.csv") <> vbNullString Then
-              strSQL = "SELECT * FROM [06A506c-x.csv]"
-              oRecordset.Open strSQL, strCon, adOpenKeyset
-              For lngField = 0 To oRecordset.Fields.Count - 1
-                oWorksheet.Cells(3, lngField + 1).Value = oRecordset.Fields(lngField).Name
-              Next lngField
-              oWorksheet.[A4].CopyFromRecordset oRecordset
-              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
-              oRecordset.Close
-              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              oExcel.ActiveWindow.DisplayGridlines = False
-            End If
+        ElseIf strMetric = "CPT02" Then '1 WP : 1 CA
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT DISTINCT WP,CA,CAM "
+            strSQL = strSQL & "FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE WP IN (" & Chr(34) & Replace(oDECM(strMetric), ",", Chr(34) & "," & Chr(34)) & Chr(34) & ") "
+            strSQL = strSQL & "ORDER BY WP"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:C3] = Split("WP,CA,CAM", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = .lboMetrics.List(lngItem, 3)
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
           End If
-          GoTo next_item
+        ElseIf strMetric = "10A102a" Then '1 WP : 1 EVT
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT DISTINCT CAM,WP,EVT "
+            strSQL = strSQL & "FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE WP IN (" & Chr(34) & Replace(oDECM(strMetric), ",", Chr(34) & "," & Chr(34)) & Chr(34) & ") "
+            strSQL = strSQL & "ORDER BY CAM"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:C3] = Split("CAM,WP,EVT", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = .lboMetrics.List(lngItem, 3)
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+          End If
         ElseIf strMetric = "10A103a" Then '0/100 in >1 fiscal period
-          If strResult = strFail Then
+          If Len(oDECM(strMetric)) > 0 Then
             On Error Resume Next
-            Set o10A103a = oExcel.Workbooks(oExcel.Windows("10A103a.xlsx").Index)
-            If o10A103a Is Nothing Then
-              Set o10A103a = oExcel.Workbooks.Open(strDir & "\10A103a.xlsx")
-            End If
+            Set o10A103a = oExcel.Workbooks.Open(strDir & "\10A103a.xlsx")
+            If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
             If o10A103a Is Nothing Then
               'todo: what if it doesn't exist?
+              strSQL = "SELECT CAM,WP,EVT,MIN(BLS),MAX(BLF) FROM [tasks.csv] WHERE WP IN () ORDER BY CAM"
             Else
               If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
               'replace current worksheet with worksheet from saved workbook
@@ -3488,19 +3521,63 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
               oWorksheet.Rows("1:2").Insert
               oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
               oWorksheet.[A2].Value = strMetric & ": 0/100 WPs in more than 1 fiscal period"
+              oExcel.ActiveWindow.Zoom = 85
+              oExcel.ActiveWindow.DisplayGridlines = False
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3].End(xlDown), oWorksheet.[A3].End(xlToRight))
+              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+              cptAddBorders oWorksheet.Range(oWorksheet.[H3].End(xlDown), oWorksheet.[H3].End(xlToRight))
+              cptAddBorders oWorksheet.Range(oWorksheet.[H3], oWorksheet.[H3].End(xlToRight))
+              cptAddShading oWorksheet.Range(oWorksheet.[H3], oWorksheet.[H3].End(xlToRight))
+              If strResult = strFail Then
+                oWorksheet.Tab.Color = 192
+              Else
+                oWorksheet.Tab.Color = 5287936
+              End If
             End If
           End If
-          GoTo next_item
-        ElseIf strMetric = "10A302b" Then
-          '10A302b - PPs w/EVP > 0
-          If strResult = strFail Then
-            'todo: fix this
-            strSQL = "SELECT * FROM [10A302b-x.csv]"
+        ElseIf strMetric = "10A109b" Then 'WPs w/o budgets
+          If Len(oDECM(strMetric)) > 0 Then
+            'todo: add BLW,BLC,RW,RC to tasks.csv
+            'todo: FilterByClipboard add fields
+            strSQL = "SELECT DISTINCT CAM,WP,0 AS BLW,0 AS BLC FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE WP IN (" & Chr(34) & Replace(oDECM(strMetric), ",", Chr(34) & "," & Chr(34)) & Chr(34) & ") "
+            strSQL = strSQL & "ORDER BY CAM,WP"
+            oRecordset.Open strSQL, strCon, adOpenKeyset
+            oWorksheet.[A3:D3] = Split("CAM,WP,BLW,BLC", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+          End If
+        ElseIf strMetric = "10A302b" Then 'PPs w/EVP > 0
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT CAM,WP,EVT,EVP "
+            strSQL = strSQL & "FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE WP IN (" & Chr(34) & Replace(oDECM(strMetric), ",", Chr(34) & "," & Chr(34)) & Chr(34) & ") "
+            strSQL = strSQL & "ORDER BY CAM"
             oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-            For lngField = 0 To oRecordset.Fields.Count - 1
-              oWorksheet.Cells(3, lngField + 1).Value = oRecordset.Fields(lngField).Name
-            Next lngField
-            oWorksheet.[C4].CopyFromRecordset oRecordset
+            oWorksheet.[A3:D3] = Split("CAM,WP,EVT,EVP", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+          End If
+        ElseIf strMetric = "10A303a" Then 'PPs duration = 0
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT CAM,WP,EVT,DUR "
+            strSQL = strSQL & "FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE WP IN (" & Chr(34) & Replace(oDECM(strMetric), ",", Chr(34) & "," & Chr(34)) & Chr(34) & ") "
+            strSQL = strSQL & "ORDER BY CAM"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:D3] = Split("CAM,WP,EVT,DUR", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
             oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
             oRecordset.Close
             oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
@@ -3509,198 +3586,395 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
             cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
             oExcel.ActiveWindow.DisplayGridlines = False
           End If
-          GoTo next_item
-        ElseIf strMetric = "10A303a" Then
-          If strResult = strFail Then
-            strSQL = "SELECT * FROM [10A303a-x.csv]"
+        ElseIf strMetric = "11A101a" Then 'CA BAC = Sum(WP BAC)
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT CAM,CA,SUM(T2.BLW)/60,SUM(T2.BLC) FROM [tasks.csv] T1 "
+            strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
+            strSQL = strSQL & "WHERE CA IN(" & Chr(34) & Replace(Split(oDECM(strMetric), ";")(0), ",", Chr(34) & "," & Chr(34)) & Chr(34) & ")"
+            strSQL = strSQL & "GROUP BY CAM,CA "
+            strSQL = strSQL & "ORDER BY CAM,CA"
             oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-            For lngField = 0 To oRecordset.Fields.Count - 1
-              oWorksheet.Cells(3, lngField + 1).Value = oRecordset.Fields(lngField).Name
-            Next lngField
-            oWorksheet.[C4].CopyFromRecordset oRecordset
+            oWorksheet.[A3:D3] = Split("CAM,CA,BLW,BLC", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
             oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
             oRecordset.Close
             oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
             cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
             cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
             cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-            oExcel.ActiveWindow.DisplayGridlines = False
+            'todo: highlight duplicate CA
+            oWorksheet.Columns(5).ColumnWidth = 1
+            strSQL = "SELECT CAM,CA,WP,SUM(T2.BLW)/60,SUM(T2.BLC) FROM [tasks.csv] T1 "
+            strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
+            strSQL = strSQL & "WHERE CA IN(" & Chr(34) & Replace(Split(oDECM(strMetric), ";")(0), ",", Chr(34) & "," & Chr(34)) & Chr(34) & ")"
+            strSQL = strSQL & "GROUP BY CAM,CA,WP "
+            strSQL = strSQL & "ORDER BY CAM,CA,WP"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[F3:J3] = Split("CAM,CA,WP,BLW,BLC", ",")
+            oWorksheet.[F4].CopyFromRecordset oRecordset
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[F3], oWorksheet.[F3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[F3], oWorksheet.[F3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[F3], oWorksheet.[F3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[F3], oWorksheet.[F3].End(xlToRight))
           End If
-          GoTo next_item
-        ElseIf strMetric = "10A109b" Then
-          '10A109b - list of WPCNs
-          If strResult = strFail Then
-            If Len(oDECM(strMetric)) > 0 Then
-              'todo: add BLW,BLC,RW,RC to tasks.csv
-              'todo: FilterByClipboard add fields
-              strSQL = "SELECT DISTINCT CAM,WP,0 AS BLW,0 AS BLC FROM [tasks.csv] "
-              strSQL = strSQL & "WHERE WP IN (" & Chr(34) & Replace(oDECM(strMetric), ",", Chr(34) & "," & Chr(34)) & Chr(34) & ") "
-              strSQL = strSQL & "ORDER BY CAM,WP"
-              oRecordset.Open strSQL, strCon, adOpenKeyset
-              oWorksheet.[A3:D3] = Split("CAM,WP,BLW,BLC", ",")
-              oWorksheet.[A4].CopyFromRecordset oRecordset
-              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
-              oRecordset.Close
-              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              oExcel.ActiveWindow.DisplayGridlines = False
-            End If
-          End If
-          GoTo next_item
-        ElseIf strMetric = "06A204b" Then
-          '06A204b - list of UIDs
-          If strResult = strFail Then
-            If Len(oDECM(strMetric)) > 0 Then
-              strSQL = "SELECT CAM,UID,TASK_NAME FROM [tasks.csv] "
-              strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
-              strSQL = strSQL & "ORDER BY CAM"
-              oRecordset.Open strSQL, strCon, adOpenKeyset
-              oWorksheet.[A3:C3] = Split("CAM,UID,TASK_NAME", ",")
-              oWorksheet.[A4].CopyFromRecordset oRecordset
-              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
-              oRecordset.Close
-              oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              oExcel.ActiveWindow.DisplayGridlines = False
-            End If
-          End If
-          GoTo next_item
-        ElseIf strMetric = "06A210a" Then
-          '06A210a - LOE Driving Discrete
-          If strResult = strFail Then
-            If Len(oDECM(strMetric)) > 0 Then
-              strSQL = "SELECT DISTINCT T1.[FROM],T2.TASK_NAME,T2.EVT,T1.TO,T3.TASK_NAME,T3.EVT "
-              strSQL = strSQL & "FROM ([links.csv] T1 "
-              strSQL = strSQL & "LEFT JOIN [tasks.csv] T2 ON T2.UID=T1.[FROM]) "
-              strSQL = strSQL & "LEFT JOIN [tasks.csv] T3 ON T3.UID=T1.TO "
-              strSQL = strSQL & "WHERE [FROM] IN (" & oDECM(strMetric) & ") "
-              strSQL = strSQL & "AND T2.EVT='" & cptGetSetting("Integration", "LOE") & "' "
+        ElseIf strMetric = "06A101a" Then 'WPs IMS vs EV Tool
+          Set o06A101a = Nothing
+          On Error Resume Next
+          Set o06A101a = oExcel.Workbooks.Open(strDir & "\06A101a.xlsx")
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If o06A101a Is Nothing Then
+            'run queries
+            oWorksheet.[A3].Value = "NOT IN IMS:"
+            If Dir(strDir & "\wp-not-in-ims.csv") <> vbNullString Then
+              strSQL = "SELECT * FROM [wp-not-in-ims.csv]"
               oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-              oWorksheet.[A3:F3] = Split("FROM UID,FROM TASK NAME,FROM EVT,TO UID,TO TASK NAME,TO EVT", ",")
               oWorksheet.[A4].CopyFromRecordset oRecordset
-              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
               oRecordset.Close
-              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              oExcel.ActiveWindow.DisplayGridlines = False
             End If
+            oWorksheet.[C3].Value = "NOT IN EV TOOL:"
+            If Dir(strDir & "\wp-not-in-ev.csv") <> vbNullString Then
+              strSQL = "SELECT * FROM [wp-not-in-ev.csv]"
+              oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+              oWorksheet.[C4].CopyFromRecordset oRecordset
+              oRecordset.Close
+            End If
+            oWorksheet.Columns.AutoFit
+          Else
+            If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+            'replace current worksheet with worksheet from saved workbook
+            oExcel.DisplayAlerts = False
+            oWorksheet.Delete
+            oExcel.DisplayAlerts = True
+            o06A101a.Sheets(1).Copy After:=oWorkbook.Sheets(oWorkbook.Sheets.Count)
+            o06A101a.Close True
+            Set oWorksheet = oWorkbook.Sheets("06A101a")
+            oWorksheet.Rows("1:2").Insert
+            oWorksheet.Hyperlinks.Add Anchor:=oWorksheet.[A1], Address:="", SubAddress:="'DECM Dashboard'!A2", TextToDisplay:="Dashboard", ScreenTip:="Return to Dashboard"
+            oWorksheet.[A2].Value = strMetric & ": WPs in IMS vs EV Tool"
           End If
-          GoTo next_item
+        ElseIf strMetric = "06A204b" Then 'Dangling Logic
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT UID,CAM,TASK_NAME FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
+            strSQL = strSQL & "ORDER BY CAM"
+            oRecordset.Open strSQL, strCon, adOpenKeyset
+            oWorksheet.[A3:C3] = Split("UID,CAM,TASK_NAME", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+          End If
+        ElseIf strMetric = "06A205a" Then 'Lags
+          If Len(oDECM(strMetric)) > 0 Then 'returns successor UID
+            strSQL = "SELECT DISTINCT T2.CAM,T1.[FROM],T2.TASK_NAME,T1.LAG/480,T1.TO,T3.TASK_NAME "
+            strSQL = strSQL & "FROM ([links.csv] T1 "
+            strSQL = strSQL & "LEFT JOIN [tasks.csv] T2 ON T2.UID=T1.[FROM]) "
+            strSQL = strSQL & "LEFT JOIN [tasks.csv] T3 ON T3.UID=T1.TO "
+            strSQL = strSQL & "WHERE T1.To IN (" & oDECM(strMetric) & ") "
+            strSQL = strSQL & "ORDER BY T2.CAM"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:F3] = Split("CAM,FROM UID,FROM TASK,LAG,TO UID,TO TASK", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            oExcel.ActiveWindow.DisplayGridlines = False
+          End If
+        ElseIf strMetric = "CPT03" Then 'Leads
+          If Len(oDECM(strMetric)) > 0 Then 'returns successor UID
+            strSQL = "SELECT DISTINCT T2.CAM,T1.[FROM],T2.TASK_NAME,T1.LAG/480,T1.TO,T3.TASK_NAME "
+            strSQL = strSQL & "FROM ([links.csv] T1 "
+            strSQL = strSQL & "LEFT JOIN [tasks.csv] T2 ON T2.UID=T1.[FROM]) "
+            strSQL = strSQL & "LEFT JOIN [tasks.csv] T3 ON T3.UID=T1.TO "
+            strSQL = strSQL & "WHERE T1.To IN (" & oDECM(strMetric) & ") "
+            strSQL = strSQL & "ORDER BY T2.CAM"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:F3] = Split("CAM,FROM UID,FROM TASK,LAG,TO UID,TO TASK", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A2], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+          End If
+        ElseIf strMetric = "06A208a" Then 'Summary Logic
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT UID,CAM,TASK_NAME,SUMMARY,'','' FROM [tasks.csv] WHERE UID IN (" & oDECM(strMetric) & ") "
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:F3] = Split("UID,CAM,TASK NAME,SUMMARY,UID PREDS,UID SUCCS", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.MoveFirst
+            Do While Not oRecordset.EOF
+              oWorksheet.Cells(oRecordset.AbsolutePosition + 3, 5) = Replace(ActiveProject.Tasks.UniqueID(oRecordset(0)).UniqueIDPredecessors, ",", ";")
+              oWorksheet.Cells(oRecordset.AbsolutePosition + 3, 6) = Replace(ActiveProject.Tasks.UniqueID(oRecordset(0)).UniqueIDSuccessors, ",", ";")
+              oRecordset.MoveNext
+            Loop
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3].End(xlToRight), oWorksheet.[A3].End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+          End If
+        ElseIf strMetric = "06A209a" Then 'Hard Constraints
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT UID,CAM,TASK_NAME,CONST "
+            strSQL = strSQL & "FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
+            strSQL = strSQL & "ORDER BY CAM"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:D3] = Split("UID,CAM,TASK NAME,CONSTRAINT", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3].End(xlToRight), oWorksheet.[A3].End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+          End If
+        ElseIf strMetric = "06A210a" Then 'LOE Driving Discrete
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT DISTINCT T1.[FROM],T2.TASK_NAME,T2.EVT,T1.TO,T3.TASK_NAME,T3.EVT "
+            strSQL = strSQL & "FROM ([links.csv] T1 "
+            strSQL = strSQL & "LEFT JOIN [tasks.csv] T2 ON T2.UID=T1.[FROM]) "
+            strSQL = strSQL & "LEFT JOIN [tasks.csv] T3 ON T3.UID=T1.TO "
+            strSQL = strSQL & "WHERE [FROM] IN (" & oDECM(strMetric) & ") "
+            strSQL = strSQL & "AND T2.EVT='" & cptGetSetting("Integration", "LOE") & "' "
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:F3] = Split("FROM UID,FROM TASK NAME,FROM EVT,TO UID,TO TASK NAME,TO EVT", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3].End(xlToRight), oWorksheet.[A3].End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+          End If
           'todo: dashboard X should be formulae so users can refine/correct
-        ElseIf strMetric = "06A211a" Then
-          '06A211a - list of UIDs - UID,TASK_NAME,TS
-          If strResult = strFail Then
-            If Len(oDECM(strMetric)) > 0 Then
-              strSQL = "SELECT CAM,UID,TASK_NAME,TS/480 FROM [tasks.csv] "
-              strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
-              strSQL = strSQL & "ORDER BY CAM"
-              oRecordset.Open strSQL, strCon, adOpenKeyset
-              oWorksheet.[A3:D3] = Split("CAM,UID,TASK_NAME,TOTAL SLACK", ",")
-              oWorksheet.[A4].CopyFromRecordset oRecordset
-              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
-              oRecordset.Close
-              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              oExcel.ActiveWindow.DisplayGridlines = False
-            End If
+        ElseIf strMetric = "06A211a" Then 'High Float
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT UID,CAM,TASK_NAME,TS/480 FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
+            strSQL = strSQL & "ORDER BY CAM"
+            oRecordset.Open strSQL, strCon, adOpenKeyset
+            oWorksheet.[A3:D3] = Split("UID,CAM,TASK_NAME,TOTAL SLACK", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A3].End(xlDown), oWorksheet.[A3].End(xlToRight)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3].End(xlDown), oWorksheet.[A3].End(xlToRight))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
           End If
-          GoTo next_item
-        ElseIf strMetric = "06A401a" Then
-          '06A401a - target UID|list of UIDs - UID,TASK_NAME; SORTBY FINISH; END WITH TARGET
+        ElseIf strMetric = "06A212a" Then 'Out of Sequence
+          If Len(oDECM(strMetric)) > 0 Then
+            oWorksheet.[A3:I3] = Split("CAM,TYPE,LAG,UID,TASK NAME,FORECAST START,ACTUAL START,FORECAST FINISH,ACTUAL FINISH", ",")
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = UBound(Split(oDECM(strMetric), ";"))
+            cptAddBorders oWorksheet.[A3:I3]
+            cptAddShading oWorksheet.[A3:I3]
+            Dim vLink As Variant
+            For Each vLink In Split(oDECM(strMetric), ";")
+              If vLink <> "" Then
+                strSQL = "SELECT CAM,'','',UID,TASK_NAME,FS,[AS],FF,AF FROM [tasks.csv] WHERE UID=" & Split(vLink, ",")(0)
+                oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+                lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
+                oWorksheet.Cells(lngLastRow, 1).CopyFromRecordset oRecordset
+                oRecordset.Close
+                cptAddShading oWorksheet.Range(oWorksheet.Cells(lngLastRow, 2), oWorksheet.Cells(lngLastRow, 3)), True
+                strSQL = "SELECT CAM,'','',UID,TASK_NAME,FS,[AS],FF,AF FROM [tasks.csv] WHERE UID=" & Split(vLink, ",")(1)
+                oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+                lngLastRow = oWorksheet.[A1048576].End(xlUp).Row + 1
+                oWorksheet.Cells(lngLastRow, 1).CopyFromRecordset oRecordset
+                oRecordset.Close
+                strSQL = "SELECT DISTINCT TYPE,LAG/480 FROM [links.csv] WHERE [FROM]=" & Split(vLink, ",")(0) & " AND TO=" & Split(vLink, ",")(1)
+                oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+                oWorksheet.Cells(lngLastRow, 2).CopyFromRecordset oRecordset
+                oRecordset.Close
+                'todo: highlight dates in conflict
+                'todo: if FS then Pred FF/AF and Succ AS/FS, etc.
+                cptAddBorders oWorksheet.Range(oWorksheet.Cells(lngLastRow - 1, 1), oWorksheet.Cells(lngLastRow, 9))
+              End If
+            Next vLink
+            oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+          End If
+        ElseIf strMetric = "06A401a" Then 'Critical path
           'todo: add AD,RD to tasks.csv
-          If strResult = strFail Then
-            If Len(oDECM(strMetric)) > 0 Then
-              oWorksheet.[A3].Value = "TARGET:"
-              oWorksheet.[B3].Value = Split(oDECM(strMetric), "|")(0)
-              oWorksheet.[C3].Value = ActiveProject.Tasks.UniqueID(Split(oDECM(strMetric), "|")(0)).Name
-              strSQL = "SELECT CAM,UID,TASK_NAME,TS/480,FF FROM [tasks.csv] "
-              strSQL = strSQL & "WHERE UID IN (" & Split(oDECM(strMetric), "|")(1) & ") "
-              strSQL = strSQL & "ORDER BY FF,DUR DESC"
-              oRecordset.Open strSQL, strCon, adOpenKeyset
-              oWorksheet.[A4:E4] = Split("CAM,UID,TASK_NAME,TOTAL SLACK,FORECAST FINISH", ",")
-              oWorksheet.[A5].CopyFromRecordset oRecordset
-              oWorksheet.[A4].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
-              oRecordset.Close
-              oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight).End(xlDown)).Columns.AutoFit
-              cptAddBorders oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight).End(xlDown))
-              cptAddBorders oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight))
-              cptAddShading oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight))
-              oExcel.ActiveWindow.DisplayGridlines = False
-            End If
+          If Len(oDECM(strMetric)) > 0 Then
+            oWorksheet.[A3].Value = "TARGET:"
+            oWorksheet.[B3].Value = Split(oDECM(strMetric), "|")(0)
+            oWorksheet.[C3].Value = ActiveProject.Tasks.UniqueID(Split(oDECM(strMetric), "|")(0)).Name
+            strSQL = "SELECT UID,CAM,TASK_NAME,TS/480,FF FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE UID IN (" & Split(oDECM(strMetric), "|")(1) & ") "
+            strSQL = strSQL & "ORDER BY FF,DUR DESC"
+            oRecordset.Open strSQL, strCon, adOpenKeyset
+            oWorksheet.[A4:E4] = Split("UID,CAM,TASK_NAME,TOTAL SLACK,FORECAST FINISH", ",")
+            oWorksheet.[A5].CopyFromRecordset oRecordset
+            oWorksheet.[A4].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A4].End(xlDown), oWorksheet.[A4].End(xlToRight)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A4].End(xlDown), oWorksheet.[A4].End(xlToRight))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight))
           End If
-          GoTo next_item
-        ElseIf strMetric = "06A501a" Then
-          '06A501a - list of UIDs - UID,TASK_NAME,BLS,BLF
-          If strResult = strFail Then
-            If Len(oDECM(strMetric)) > 0 Then
-              strSQL = "SELECT CAM,WP,UID,TASK_NAME,BLS,BLF "
-              strSQL = strSQL & "FROM [tasks.csv] "
-              strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
-              strSQL = strSQL & "ORDER BY CAM"
-              oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-              oWorksheet.[A3:F3] = Split("CAM,WP,UID,TASK NAME,BLS,BLF", ",")
-              oWorksheet.[A4].CopyFromRecordset oRecordset
-              oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
-              oRecordset.Close
-              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
-              cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
-              oExcel.ActiveWindow.DisplayGridlines = False
-            End If
+        ElseIf strMetric = "06A501a" Then 'Baselines
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT UID,CAM,WP,TASK_NAME,BLS,BLF "
+            strSQL = strSQL & "FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
+            strSQL = strSQL & "ORDER BY CAM"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:F3] = Split("UID,CAM,WP,TASK NAME,BLS,BLF", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A3].End(xlDown), oWorksheet.[A3].End(xlToRight)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3].End(xlDown), oWorksheet.[A3].End(xlToRight))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
           End If
-          GoTo next_item
-        ElseIf strMetric = "06A506b" Then
-          '06A506b - list of UIDs - Invalid Forecast - UID,CAM,TASK_NAME,FS,FF,STATUS_DATE
-          oWorksheet.[A3].Value = "Status Date:"
-          oWorksheet.[B3].Value = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
-          If strResult = strFail Then
-            If Len(oDECM(strMetric)) > 0 Then
-              strSQL = "SELECT CAM,UID,TASK_NAME,FS,FF "
-              strSQL = strSQL & "FROM [tasks.csv] "
-              strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
-              strSQL = strSQL & "ORDER BY CAM"
-              oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
-              oWorksheet.[A4:E4] = Split("CAM,UID,TASK NAME,FORECAST START,FORECAST FINISH", ",")
-              oWorksheet.[A5].CopyFromRecordset oRecordset
-              oWorksheet.[A4].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
-              oRecordset.Close
-              oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A4].End(xlToRight).End(xlDown)).Columns.AutoFit
-              cptAddBorders oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight).End(xlDown))
-              cptAddBorders oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight))
-              cptAddShading oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight))
-              oExcel.ActiveWindow.DisplayGridlines = False
-            End If
+        ElseIf strMetric = "06A504a" Then 'Changed Actual Start
+          If Dir(strDir & "\06A504a.csv") <> vbNullString Then
+            strSQL = "SELECT T1.UID,T2.CAM,T2.TASK_NAME,T1.AS_WAS,T1.AS_IS "
+            strSQL = strSQL & "FROM [06A504a.csv] T1 "
+            strSQL = strSQL & "INNER JOIN [tasks.csv] T2 ON T2.UID=T1.UID "
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:E3] = Split("UID,CAM,TASK NAME,ACTUAL START WAS,ACTUAL START IS", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
           End If
-          GoTo next_item
+        ElseIf strMetric = "06A504b" Then 'Changed Actual Finish
+          If Dir(strDir & "\06A504b.csv") <> vbNullString Then
+            strSQL = "SELECT T1.UID,T2.CAM,T2.TASK_NAME,T1.AF_WAS,T1.AF_IS "
+            strSQL = strSQL & "FROM [06A504b.csv] T1 "
+            strSQL = strSQL & "INNER JOIN [tasks.csv] T2 ON T2.UID=T1.UID "
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:E3] = Split("UID,CAM,TASK NAME,ACTUAL FINISH WAS,ACTUAL FINISH IS", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+          End If
+        ElseIf strMetric = "06A505a" Then 'In-Progress Tasks w/o Actual Start
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT UID,CAM,TASK_NAME,FS,[AS],EVP "
+            strSQL = strSQL & "FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
+            strSQL = strSQL & "ORDER BY CAM"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:F3] = Split("UID,CAM,TASK NAME,FORECAST START,ACTUAL START,EV%", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A3].End(xlDown), oWorksheet.[A3].End(xlToRight)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3].End(xlDown), oWorksheet.[A3].End(xlToRight))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+          End If
+        ElseIf strMetric = "06A505b" Then 'Complete Tasks w/o Actual Finish
+          'todo: UID always first
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT UID,CAM,TASK_NAME,FF,AF,EVP "
+            strSQL = strSQL & "FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
+            strSQL = strSQL & "ORDER BY CAM"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A3:F3] = Split("UID,CAM,TASK NAME,FORECAST FINISH,ACTUAL FINISH,EV%", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A3].End(xlDown), oWorksheet.[A3].End(xlToRight)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+          End If
+        ElseIf strMetric = "06A506a" Then 'Bogus Actuals
+          If Len(oDECM(strMetric)) > 0 Then
+            oWorksheet.[A3] = "STATUS DATE:"
+            oWorksheet.[B3] = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
+            strSQL = "SELECT UID,CAM,TASK_NAME,[AS],AF "
+            strSQL = strSQL & "FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
+            strSQL = strSQL & "ORDER BY CAM"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A4:E4] = Split("UID,CAM,TASK NAME,ACTUAL START,ACTUAL FINISH", ",")
+            oWorksheet.[A5].CopyFromRecordset oRecordset
+            oWorksheet.[A4].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A4].End(xlDown), oWorksheet.[A4].End(xlToRight)).Columns.AutoFit
+            oWorksheet.[A3:B3].Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A4].End(xlDown), oWorksheet.[A4].End(xlToRight))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight))
+          End If
+        ElseIf strMetric = "06A506b" Then 'Invalid Forecast
+          If Len(oDECM(strMetric)) > 0 Then
+            oWorksheet.[A3].Value = "Status Date:"
+            oWorksheet.[B3].Value = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
+            strSQL = "SELECT UID,CAM,TASK_NAME,FS,FF "
+            strSQL = strSQL & "FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
+            strSQL = strSQL & "ORDER BY CAM"
+            oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+            oWorksheet.[A4:E4] = Split("UID,CAM,TASK NAME,FORECAST START,FORECAST FINISH", ",")
+            oWorksheet.[A5].CopyFromRecordset oRecordset
+            oWorksheet.[A4].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A4].End(xlDown), oWorksheet.[A4].End(xlToRight)).Columns.AutoFit
+            oWorksheet.[A3:B3].Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A4].End(xlDown), oWorksheet.[A4].End(xlToRight))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A4], oWorksheet.[A4].End(xlToRight))
+          End If
+        ElseIf strMetric = "06A506c" Then 'Riding the Status Date
+          If Dir(strDir & "\06A506c-x.csv") <> vbNullString Then
+            strSQL = "SELECT * FROM [06A506c-x.csv]"
+            oRecordset.Open strSQL, strCon, adOpenKeyset
+            For lngField = 0 To oRecordset.Fields.Count - 1
+              oWorksheet.Cells(3, lngField + 1).Value = oRecordset.Fields(lngField).Name
+            Next lngField
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight).End(xlDown))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+          End If
+        ElseIf strMetric = "06I201a" Then 'SVTs
+          If Len(oDECM(strMetric)) > 0 Then
+            strSQL = "SELECT UID,CAM,TASK_NAME,SUM(BLW),SUM(BLC) "
+            strSQL = strSQL & "FROM [tasks.csv] "
+            strSQL = strSQL & "WHERE UID IN (" & oDECM(strMetric) & ") "
+            strSQL = strSQL & "ORDER BY CAM"
+            oRecordset.Open strSQL, strCon, adOpenKeyset
+            oWorksheet.[A3:E3] = Split("UID,CAM,TASK NAME,BLW,BLC", ",")
+            oWorksheet.[A4].CopyFromRecordset oRecordset
+            oWorksheet.[A3].End(xlToRight).Offset(-1, 0) = oRecordset.RecordCount
+            oRecordset.Close
+            oWorksheet.Range(oWorksheet.[A3].End(xlDown), oWorksheet.[A3].End(xlToRight)).Columns.AutoFit
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3].End(xlDown), oWorksheet.[A3].End(xlToRight))
+            cptAddBorders oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+            cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
+          End If
         Else
-          .lboMetrics_AfterUpdate
-          Debug.Print "FIX " & strMetric & ": " & oDECM(strMetric)
+          Debug.Print "MISSING: " & strMetric & ": " & oDECM(strMetric)
         End If
-        oWorksheet.[B4].Select
-        
-        ActiveWindow.TopPane.Activate
-        SelectAll
-        EditCopy
-        On Error Resume Next
-        Set oTasks = ActiveSelection.Tasks
-        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-        If oTasks Is Nothing Then GoTo next_item
-        If oTasks.Count = 0 Then GoTo next_item
-        oWorksheet.[A3].Select
-        oWorksheet.PasteSpecial Format:="HTML", Link:=False, DisplayAsIcon:=False
-        oExcel.WindowState = xlNormal
-        oExcel.ActiveWindow.FreezePanes = True
-        oWorksheet.Columns.AutoFit
-next_item:
         Set oTasks = Nothing
         Application.StatusBar = "Exporting " & strMetric & "...done."
         .lblStatus.Caption = "Exporting " & strMetric & "...done."
@@ -3789,11 +4063,11 @@ next_item:
     oWorksheet.[I3:L3].Font.Bold = True
     Set oShading = oExcel.Union(oShading, oWorksheet.[I3:L3])
     'total
-    oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), [I1048576].End(xlUp).Offset(0, 3)).Font.Bold = True
-    Set oShading = oExcel.Union(oShading, oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), [I1048576].End(xlUp).Offset(0, 3)))
+    oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), oWorksheet.[I1048576].End(xlUp).Offset(0, 3)).Font.Bold = True
+    Set oShading = oExcel.Union(oShading, oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), oWorksheet.[I1048576].End(xlUp).Offset(0, 3)))
     Set oBorders = oExcel.Union(oBorders, oWorksheet.Range(oWorksheet.[I2], oWorksheet.[I1048576].End(xlUp).Offset(0, 3)))
   End If
-'  'checksum
+'  'todo: CA checksum
 '  strSQL = "SELECT T1.CA, T1.CAM,SUM(T2.BLW+T2.BLC) AS BAC "
 '  strSQL = strSQL & "FROM [tasks.csv] AS T1 INNER JOIN [assignments.csv] AS T2 ON T2.TASK_UID=T1.UID "
 '  strSQL = strSQL & "GROUP BY T1.CA,T1.CAM "
@@ -3877,7 +4151,7 @@ next_item:
     'todo: formula=ABS(Nx-Lx)
     'todo: gumball: reverse order; icon only; green when <=0; etc.
   End If
-'  'checksum
+'  'todo: WP checksum
 '  strSQL = "SELECT T1.CAM, T1.WP,SUM(T2.BLW+T2.BLC) AS BAC "
 '  strSQL = strSQL & "FROM [tasks.csv] AS T1 INNER JOIN [assignments.csv] AS T2 ON T2.TASK_UID=T1.UID "
 '  strSQL = strSQL & "GROUP BY T1.CAM,T1.WP "
@@ -3970,7 +4244,7 @@ next_item:
   If Not oRecordset.EOF Then
     lngLastRow = oWorksheet.[N1048576].End(xlUp).Row + 2
     oWorksheet.Range(oWorksheet.Cells(lngLastRow, 14), oWorksheet.Cells(lngLastRow, 16)).Merge True
-    oWorksheet.Cells(lngLastRow, 14).Value = "RELATIONSHIPS"
+    oWorksheet.Cells(lngLastRow, 14).Value = "LOGIC RELATIONSHIPS"
     oWorksheet.Cells(lngLastRow, 14).HorizontalAlignment = xlCenter
     oWorksheet.Range(oWorksheet.Cells(lngLastRow + 1, 14), oWorksheet.Cells(lngLastRow + 1, 16)) = Split("TYPE,COUNT,PERCENT", ",")
     oWorksheet.Cells(lngLastRow + 2, 14).CopyFromRecordset oRecordset
@@ -4015,7 +4289,8 @@ next_item:
   End If
   oWorksheet.[A1].Font.Size = 18
   oWorksheet.[A1].Font.Bold = True
-  oWorksheet.[B2].Value = CStr(Format(Now, "m/d/yyyy hh:nn AM/PM"))
+  oWorksheet.[B2].Value = Now
+  oWorksheet.[B2].NumberFormat = "[$-en-US]m/d/yyyy h:mm AM/PM;@"
   oWorksheet.[A2].Value = Application.UserName
   
   oExcel.WindowState = xlMaximized
@@ -4052,7 +4327,7 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
   Sort "ID", renumber:=False, Outline:=True
   OptionsViewEx DisplaySummaryTasks:=True
   OutlineShowAllTasks
-  OptionsViewEx DisplaySummaryTasks:=False
+  If strMetric <> "06A208a" Then OptionsViewEx DisplaySummaryTasks:=False
 
   Select Case strMetric
     Case "05A101a" '1 CA : 1 OBS
@@ -4188,7 +4463,30 @@ Sub cptDECM_UPDATE_VIEW(strMetric As String, Optional strList As String)
       Else
         SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
       End If
-        
+    Case "10A302a" 'same as 29A601a
+      If Len(strList) > 0 Then
+        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "contains", strList
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
+      End If
+    
+    Case "10A302b" 'same as 29A601a
+      If Len(strList) > 0 Then
+        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "contains", strList
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
+      End If
+
+    Case "10A303a"
+      If Len(strList) > 0 Then
+        strList = Left(Replace(strList, ",", vbTab), Len(strList) - 1) 'remove last comma
+        SetAutoFilter FieldConstantToFieldName(Split(cptGetSetting("Integration", "WP"), "|")(0)), pjAutoFilterIn, "contains", strList
+      Else
+        SetAutoFilter "Name", pjAutoFilterIn, "equals", "<< zero results >>"
+      End If
+      
     Case "11A101a" 'CA BAC = Sum(WP BAC)
       If Len(strList) > 0 Then
         Dim strCAList As String

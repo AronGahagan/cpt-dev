@@ -48,7 +48,7 @@ Dim lngItems As Long
           oUserForm.Controls("lboOutput").List(lngItem, 1) = oTask.Name
           lngItem = lngItem + 1
         Next oTask
-        Application.Run "cptUpdatePreview"
+        Application.Run "cptUpdatePreview", oUserForm
       End If
     End If
   End If

@@ -111,6 +111,7 @@ Public Sub lboMetrics_AfterUpdate()
   Dim lngX As Long
   Dim lngY As Long
   Dim lngItem As Long
+  Dim lngResponse As Long
   'integers
   'doubles
   Dim dblScore As Double
@@ -155,7 +156,8 @@ Public Sub lboMetrics_AfterUpdate()
         strDescription = "needed: wp-ims.csv [+]" & vbCrLf
         strDescription = strDescription & "needed: wp-ev.csv  <?>" & vbCrLf
         Me.txtTitle.Value = strDescription
-        If MsgBox("Has the EV Analyst sent you the list of discrete, incomplete WPs in the EV Tool?", vbQuestion + vbYesNo, "06A101a - WP Mismatches") = vbNo Then
+        lngResponse = MsgBox("Has the EV Analyst sent you the list of discrete, incomplete WPs in the EV Tool?", vbQuestion + vbYesNoCancel, "06A101a - WP Mismatches")
+        If lngResponse = vbNo Then
           MsgBox "Please send the following query to your EV Analyst...", vbOKOnly + vbInformation, "Data Needed"
           Set oFSO = CreateObject("Scripting.FileSystemObject")
           strDir = Environ("tmp")
@@ -181,7 +183,7 @@ Public Sub lboMetrics_AfterUpdate()
           oFile.Close
           Shell "C:\Windows\notepad.exe """ & strDir & "\wp-ev.sql.txt""", vbNormalFocus
           GoTo exit_here
-        Else
+        ElseIf lngResponse = vbYes Then
           Me.txtTitle.Value = Me.txtTitle.Text & vbCrLf & "please paste data here (w/o headers):" & vbCrLf
           Me.txtTitle.SetFocus
           Me.txtTitle.SelStart = 0
@@ -190,6 +192,8 @@ Public Sub lboMetrics_AfterUpdate()
           Me.txtTitle.CurLine = Me.txtTitle.LineCount - 3
           Me.txtTitle.SelLength = 65535
           
+          GoTo exit_here
+        ElseIf lngResponse = vbCancel Then
           GoTo exit_here
         End If
       Else
@@ -301,11 +305,11 @@ Public Sub lboMetrics_AfterUpdate()
   If blnUpdateView Then
     If Len(oDECM(strMetric)) > 0 Then
       If strMetric = "06A212a" Then
-        cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), Replace(Replace(Left(oDECM(strMetric), Len(oDECM(strMetric)) - 1), ",", vbTab), ";", vbTab)
+        cptDECM_UPDATE_VIEW strMetric, Replace(Replace(Left(oDECM(strMetric), Len(oDECM(strMetric)) - 1), ",", vbTab), ";", vbTab)
       ElseIf strMetric = "06A401a" Then
-        cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), CStr(Split(oDECM(strMetric), "|")(1))
+        cptDECM_UPDATE_VIEW strMetric, CStr(Split(oDECM(strMetric), "|")(1))
       Else
-        cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), oDECM(strMetric)
+        cptDECM_UPDATE_VIEW strMetric, oDECM(strMetric)
       End If
     Else
       cptDECM_UPDATE_VIEW Me.lboMetrics.List(Me.lboMetrics.ListIndex, 0), oDECM(strMetric) 'todo: huh?

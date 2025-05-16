@@ -295,7 +295,9 @@ Sub cptShowAbout_frm()
   'myAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR
   'myAbout_frm.lblScoreBoard.Caption = "t0 : b7" 'EWR > SAV
   myAbout_frm.lblScoreBoard.Caption = "t0 : b8" 'EWR > SAV
-  'myAbout_frm.lblScoreBoard.Caption = "t0 : b9" 'EWR > DFW
+  If Now > #5/17/2025 12:00:00 PM# Then
+    myAbout_frm.lblScoreBoard.Caption = "t0 : b9" 'EWR > DFW
+  End If
   'myAbout_frm.lblScoreBoard.Caption = "t0 : b10" 'DFW > EWR
   
   myAbout_frm.Caption = "The ClearPlan Toolbar - " & cptGetVersion("cptAbout_frm")
