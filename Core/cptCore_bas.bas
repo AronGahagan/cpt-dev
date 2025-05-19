@@ -286,19 +286,16 @@ Sub cptShowAbout_frm()
   myAbout_frm.txtGitHub.Value = strAbout '<issue19>
 
   'show/hide
-  myAbout_frm.lblScoreBoard.Visible = IIf(Now <= #10/25/2019#, False, True) '<issue19>
-  'myAbout_frm.lblScoreBoard.Caption = "t0 : b1" EWR > MSY
-  'myAbout_frm.lblScoreBoard.Caption = "t0 : b2" MSY > EWR
-  'myAbout_frm.lblScoreBoard.Caption = "t0 : b3" 'EWR > SAN
-  'myAbout_frm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR
-  'myAbout_frm.lblScoreBoard.Caption = "t0 : b5" 'EWR > NAS
-  'myAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR
-  'myAbout_frm.lblScoreBoard.Caption = "t0 : b7" 'EWR > SAV
-  myAbout_frm.lblScoreBoard.Caption = "t0 : b8" 'EWR > SAV
-  If Now > #5/17/2025 12:00:00 PM# Then
-    myAbout_frm.lblScoreBoard.Caption = "t0 : b9" 'EWR > DFW
-  End If
-  'myAbout_frm.lblScoreBoard.Caption = "t0 : b10" 'DFW > EWR
+  'myAbout_frm.lblScoreBoard.Visible = IIf(Now <= #10/25/2019#, False, True) '<issue19>
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b1" EWR > MSY '3/22/19 = 1
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b2" MSY > EWR '3/24/19 = 2
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b3" 'EWR > SAN '10/25/19 = 3
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b4" 'SAN > EWR '10/27/19 = 4
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b5" 'EWR > NAS '2/17/20 = 5
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR '2/20/20 = 6
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b7" 'EWR > SAV '6/3/22 = 7
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b8" 'EWR > SAV '6/5/22 = 8
+  myAbout_frm.lblScoreBoard.Caption = "t0 : b9" 'EWR > DFW '5/16/25 = 9     v1.9.0
   
   myAbout_frm.Caption = "The ClearPlan Toolbar - " & cptGetVersion("cptAbout_frm")
   myAbout_frm.Show '<issue19>
