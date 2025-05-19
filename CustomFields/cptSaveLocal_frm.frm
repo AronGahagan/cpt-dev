@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.1.7</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 
 Private Sub cboECF_Change()
@@ -32,18 +32,18 @@ Private Sub chkAutoSwitch_Click()
 End Sub
 
 Private Sub cmdAutoMap_Click()
-  Call cptAutoMap
+  cptAutoMap Me
 End Sub
 
 Private Sub cmdCancel_Click()
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub cmdCustomFields_Click()
-'long
-Dim lngSelected As Long
-'string
-Dim strDescription As String
+  'long
+  Dim lngSelected As Long
+  'string
+  Dim strDescription As String
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -58,27 +58,27 @@ exit_here:
 
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "cmdCustomFields_Click()", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "cmdCustomFields_Click", Err, Erl)
   Resume exit_here
   
 End Sub
 
 Private Sub cmdExportMap_Click()
-  Call cptExportCFMap
+  cptExportCFMap
 End Sub
 
 Private Sub cmdImportMap_Click()
-  Call cptImportCFMap
+  cptImportCFMap Me
 End Sub
 
 Private Sub cmdMap_Click()
   If Not IsNull(Me.lboECF) And Not IsNull(Me.lboLCF) Then
-    Call cptMapECFtoLCF(Me.lboECF, Me.lboLCF)
+    Call cptMapECFtoLCF(Me, Me.lboECF, Me.lboLCF)
   End If
 End Sub
 
 Private Sub cmdSaveLocal_Click()
-  Call cptSaveLocal
+  cptSaveLocal Me
 End Sub
 
 Private Sub cmdUnmap_Click()
@@ -176,7 +176,7 @@ Private Sub lblSelectAll_Click()
       Me.lboECF.Selected(lngItem) = True
     End If
   Next lngItem
-  Call cptAnalyzeAutoMap
+  cptAnalyzeAutoMap Me
 End Sub
 
 Private Sub lblSelectNone_Click()
@@ -184,7 +184,7 @@ Private Sub lblSelectNone_Click()
   For lngItem = 0 To Me.lboECF.ListCount - 1
     Me.lboECF.Selected(lngItem) = False
   Next lngItem
-  Call cptAnalyzeAutoMap
+  cptAnalyzeAutoMap Me
 End Sub
 
 Private Sub lblShowFormula_Click()
@@ -229,7 +229,7 @@ Private Sub lboECF_Change()
           If Me.lboECF.Selected(lngItem) Then lngItems = lngItems + 1
         Next lngItem
         Me.lblStatus.Caption = lngItems & " ECFs selected."
-        Call cptAnalyzeAutoMap
+        cptAnalyzeAutoMap Me
       Else
         If Me.chkAutoSwitch Then
           If Me.lboECF.List(Me.lboECF.ListIndex, 2) = "" Then
@@ -349,13 +349,13 @@ End Sub
 Private Sub optResources_Click()
   cptUpdateECF Me.txtFilterECF
   cptUpdateLCF Me.txtFilterLCF
-  cptUpdateSaveLocalView
+  cptUpdateSaveLocalView Me
 End Sub
 
 Private Sub optTasks_Click()
   cptUpdateECF Me.txtFilterECF
   cptUpdateLCF Me.txtFilterLCF
-  cptUpdateSaveLocalView
+  cptUpdateSaveLocalView Me
 End Sub
 
 Private Sub tglAutoMap_Click()
@@ -378,7 +378,7 @@ Private Sub tglAutoMap_Click()
         Me.lboECF.Selected(lngItem) = True
       End If
     Next lngItem
-    Call cptAnalyzeAutoMap
+    cptAnalyzeAutoMap Me
     Me.lboLCF.Visible = False
     Me.txtAutoMap.Visible = True
     Me.lblStatus.Caption = Me.lboECF.ListCount & " ECFs selected."
@@ -406,11 +406,18 @@ err_here:
 End Sub
 
 Private Sub txtFilterECF_Change()
-  Call cptUpdateECF(Me.txtFilterECF.Text)
+  Call cptUpdateECF(Me, Me.txtFilterECF.Text)
 End Sub
 
 Private Sub txtFilterLCF_Change()
-  Call cptUpdateLCF(Me.txtFilterLCF.Text)
+  Call cptUpdateLCF(Me, Me.txtFilterLCF.Text)
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
 End Sub
 
 Private Sub UserForm_Terminate()
@@ -443,9 +450,10 @@ Private Sub UserForm_Terminate()
   
 exit_here:
   On Error Resume Next
-
+  Unload Me
+  
   Exit Sub
 err_here:
-  Call cptHandleErr("cptSaveLocal_frm", "Terminate", Err, Erl)
+  Call cptHandleErr("cptSaveLocal_frm", "UserForm_Terminate", Err, Erl)
   Resume exit_here
 End Sub

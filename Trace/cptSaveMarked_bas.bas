@@ -1,9 +1,10 @@
 Attribute VB_Name = "cptSaveMarked_bas"
-'<cpt_version>v1.0.7</cpt_version>
+'<cpt_version>v1.0.8</cpt_version>
 Option Explicit
 
 Sub cptShowSaveMarked_frm()
   'objects
+  Dim mySaveMarked_frm As cptSaveMarked_frm
   'strings
   Dim strFileName As String
   Dim strApplyFilter As String
@@ -16,9 +17,10 @@ Sub cptShowSaveMarked_frm()
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
-  Call cptUpdateMarked
-  With cptSaveMarked_frm
+  
+  Set mySaveMarked_frm = New cptSaveMarked_frm
+  cptUpdateMarked mySaveMarked_frm
+  With mySaveMarked_frm
     .Caption = "Import Marked (" & cptGetVersion("cptSaveMarked_frm") & ")"
     strApplyFilter = cptGetSetting("SaveMarked", "chkApplyFilter")
     If Len(strApplyFilter) > 0 Then
@@ -39,17 +41,19 @@ Sub cptShowSaveMarked_frm()
 
 exit_here:
   On Error Resume Next
-
+  Set mySaveMarked_frm = Nothing
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptSaveMarked_bas", "cptShowSaveMarked_frm", Err, Erl)
   Resume exit_here
 End Sub
 
-Sub cptUpdateMarked(Optional strFilter As String)
+Sub cptUpdateMarked(ByRef mySaveMarked_frm As cptSaveMarked_frm, Optional strFilter As String)
   'objects
   Dim rstMarked As Object 'ADODB.Recordset 'Object
   'strings
+  Dim strDir As String
   Dim strProject As String
   Dim strMarked As String
   'longs
@@ -61,6 +65,7 @@ Sub cptUpdateMarked(Optional strFilter As String)
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  strDir = cptDir
   strProject = cptGetProgramAcronym
   If Len(strProject) = 0 Then
     MsgBox "Program Acronym is required for this feature.", vbExclamation + vbOKOnly, "Program Acronym Needed"
@@ -68,7 +73,7 @@ Sub cptUpdateMarked(Optional strFilter As String)
   End If
   
   'clear listboxes and reset headers
-  With cptSaveMarked_frm
+  With mySaveMarked_frm
     .cboProjects.Clear
     .lboMarked.Clear
     .lboMarked.AddItem
@@ -84,7 +89,7 @@ Sub cptUpdateMarked(Optional strFilter As String)
   
   'get list of marked sets
   'todo: filter for where PROJECT=cptGetProgramAcronym?
-  strMarked = cptDir & "\cpt-marked.adtg"
+  strMarked = strDir & "\cpt-marked.adtg"
   If Dir(strMarked) = vbNullString Then
     MsgBox "No marked tasks saved.", vbCritical + vbOKOnly, "Nada"
     GoTo exit_here
@@ -101,7 +106,7 @@ Sub cptUpdateMarked(Optional strFilter As String)
     If .RecordCount > 0 Then
       .MoveFirst
       Do While Not .EOF
-        With cptSaveMarked_frm
+        With mySaveMarked_frm
           .lboMarked.AddItem
           .lboMarked.List(.lboMarked.ListCount - 1, 0) = rstMarked(1)
           .lboMarked.List(.lboMarked.ListCount - 1, 1) = rstMarked(2)
@@ -114,9 +119,9 @@ Sub cptUpdateMarked(Optional strFilter As String)
     .Close
     
     'get marked task count
-    strMarked = cptDir & "\cpt-marked-details.adtg"
+    strMarked = strDir & "\cpt-marked-details.adtg"
     rstMarked.Open strMarked
-    With cptSaveMarked_frm
+    With mySaveMarked_frm
       For lngItem = 1 To .lboMarked.ListCount - 1
         rstMarked.Filter = "TSTAMP=#" & CDate(.lboMarked.List(lngItem, 0)) & "#"
         .lboMarked.List(lngItem, 3) = rstMarked.RecordCount
@@ -138,6 +143,7 @@ End Sub
 
 Sub cptSaveMarked()
   'objects
+  Dim mySaveMarked_frm As cptSaveMarked_frm
   Dim oTask As MSProject.Task
   Dim rstMarked As Object 'ADODB.Recordset
   'strings
@@ -146,7 +152,7 @@ Sub cptSaveMarked()
   Dim strDescription As String
   Dim strMarked As String
   'longs
-  Dim lngSelected As Long
+  Dim lngMarked As Long
   'integers
   'doubles
   'booleans
@@ -155,7 +161,20 @@ Sub cptSaveMarked()
   Dim dtTimestamp As Date
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
+  
+  For Each oTask In ActiveProject.Tasks
+    If oTask Is Nothing Then GoTo next_one
+    If oTask.ExternalTask Then GoTo next_one
+    If Not oTask.Active Then GoTo next_one
+    If oTask.Marked Then lngMarked = lngMarked + 1
+next_one:
+  Next oTask
+  
+  If lngMarked = 0 Then
+    MsgBox "There are no Marked Tasks.", vbExclamation + vbOKOnly, "What happened?"
+    GoTo exit_here
+  End If
+  
   Set rstMarked = CreateObject("ADODB.Recordset")
   strMarked = cptDir & "\cpt-marked.adtg"
   If Dir(strMarked) = vbNullString Then
@@ -196,9 +215,9 @@ Sub cptSaveMarked()
     rstMarked.Fields.Append "TSTAMP", adDBTimeStamp
     rstMarked.Fields.Append "UID", adInteger
     rstMarked.Open
-    rstMarked.Save strMarked, adPersistADTG
+  Else
+    rstMarked.Open strMarked
   End If
-  If rstMarked.State <> 1 Then rstMarked.Open strMarked
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If oTask.Marked Then
@@ -211,10 +230,11 @@ next_task:
   rstMarked.Close
   
   dtTimestamp = 0
-  If cptSaveMarked_frm.Visible Then
-    If Not IsNull(cptSaveMarked_frm.lboMarked.Value) Then dtTimestamp = cptSaveMarked_frm.lboMarked.Value
-    cptUpdateMarked
-    If dtTimestamp > 0 Then cptSaveMarked_frm.lboMarked.Value = dtTimestamp
+  If Not cptGetUserForm("cptSaveMarked_frm") Is Nothing Then
+    Set mySaveMarked_frm = cptGetUserForm("cptSaveMarked_frm")
+    If Not IsNull(mySaveMarked_frm.lboMarked.Value) Then dtTimestamp = mySaveMarked_frm.lboMarked.Value
+    cptUpdateMarked mySaveMarked_frm
+    If dtTimestamp > 0 Then mySaveMarked_frm.lboMarked.Value = dtTimestamp
   End If
 
 exit_here:

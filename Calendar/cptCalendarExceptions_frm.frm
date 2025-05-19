@@ -13,10 +13,21 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.7</cpt_version>
+'<cpt_version>v1.0.8</cpt_version>
 Option Explicit
+
+Private Sub cmdCancel_Click()
+  Me.Hide
+End Sub
 
 Private Sub cmdExport_Click()
   cptSaveSetting "CalendarDetails", "optDetailed", IIf(Me.optDetailed, 1, 0)
-  Call cptExportCalendarExceptionsMain(Me.optDetailed)
+  Call cptExportCalendarExceptionsMain(Me, Me.optDetailed)
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
 End Sub

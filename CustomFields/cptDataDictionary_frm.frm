@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.4.0</cpt_version>
+'<cpt_version>v1.4.1</cpt_version>
 Option Explicit
 
 Private Sub cboOpenWorkbooks_Change()
@@ -25,28 +25,28 @@ Private Sub cboOpenWorkbooks_Change()
     Case "Open another workbook..."
       Me.cmdImport.SetFocus
       Me.cboOpenWorkbooks.Visible = False
-      Call cptImportDataDictionary
+      cptImportDataDictionary Me
     Case "------------"
       Me.cmdImport.SetFocus
       Me.cboOpenWorkbooks.Visible = False
     Case Else
       Me.cmdImport.SetFocus
       Me.cboOpenWorkbooks.Visible = False
-      Call cptImportDataDictionary(Me.cboOpenWorkbooks.Value)
+      cptImportDataDictionary Me, Me.cboOpenWorkbooks.Value
   End Select
 
 End Sub
 
 Private Sub chkIgnore_Click()
-'objects
-'strings
-Dim strProject As String
-'longs
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  'strings
+  Dim strProject As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If Me.ActiveControl.Name <> "chkIgnore" Then GoTo exit_here
 
@@ -82,24 +82,26 @@ err_here:
 End Sub
 
 Private Sub cmdClose_Click()
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub cmdCustomFields_Click()
-'long
-Dim lngSelected As Long
-Dim lngItem As Long
-'string
-Dim strDescription As String
+  'long
+  Dim lngSelected As Long
+  Dim lngItem As Long
+  'string
+  Dim strDescription As String
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Not IsNull(Me.lboCustomFields.Value) Then
     lngSelected = Me.lboCustomFields.Value
   End If
+  Me.lblStatus = "Refreshing..."
   Application.CustomizeField
+  DoEvents
   Me.lboCustomFields.ListIndex = Null
-  cptRefreshDictionary
+  cptRefreshDictionary Me
   If lngSelected > 0 Then
     For lngItem = 0 To Me.lboCustomFields.ListCount - 1
       If Me.lboCustomFields.List(lngItem, 0) = lngSelected Then
@@ -121,7 +123,7 @@ err_here:
 End Sub
 
 Private Sub cmdExport_Click()
-  Call cptExportDataDictionary
+  cptExportDataDictionary Me
   'todo: refresh cboOpenWorkbooks
 End Sub
 
@@ -140,42 +142,42 @@ Private Sub cmdFormShrink_Click()
 End Sub
 
 Private Sub cmdImport_Click()
-'objects
-Dim xlApp As Object 'Excel.Application
-Dim Workbook As Object 'Workbook
-Dim Worksheet As Object 'Worksheet
-'strings
-'longs
-Dim lngItem As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim oExcel As Excel.Application
+  Dim oWorkbook As Excel.Workbook
+  Dim oWorksheet As Excel.Worksheet
+  'strings
+  'longs
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   On Error Resume Next
-  Set xlApp = GetObject(, "Excel.Application")
+  Set oExcel = GetObject(, "Excel.Application")
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  If Not xlApp Is Nothing Then
+  If Not oExcel Is Nothing Then
     Me.cboOpenWorkbooks.Clear
-    For lngItem = 1 To xlApp.Workbooks.Count
-      Me.cboOpenWorkbooks.AddItem xlApp.Workbooks(lngItem).Name
+    For lngItem = 1 To oExcel.Workbooks.Count
+      Me.cboOpenWorkbooks.AddItem oExcel.Workbooks(lngItem).Name
     Next
     Me.cboOpenWorkbooks.AddItem "------------"
-    Me.cboOpenWorkbooks.AddItem "Open another workbook..."
+    Me.cboOpenWorkbooks.AddItem "Open another Workbook..."
     Me.cboOpenWorkbooks.AddItem "Cancel"
     
     Me.cboOpenWorkbooks.Visible = True
     Me.cboOpenWorkbooks.DropDown
   Else
-    Call cptImportDataDictionary
+    cptImportDataDictionary Me
   End If
 
 exit_here:
   On Error Resume Next
-  Set Worksheet = Nothing
-  Set Workbook = Nothing
-  Set xlApp = Nothing
+  Set oWorksheet = Nothing
+  Set oWorkbook = Nothing
+  Set oExcel = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptDataDictionary_frm", "cmdImport_Click", Err, Erl)
@@ -206,7 +208,7 @@ err_here:
 End Sub
 
 Private Sub lboCustomFields_AfterUpdate()
-Dim strMsg As String
+  Dim strMsg As String
   
   'todo: allow user to multi-select
   'todo: and ignore in bulk
@@ -246,15 +248,15 @@ Dim strMsg As String
 End Sub
 
 Private Sub txtDescription_AfterUpdate()
-'objects
-'strings
-Dim strProject As String
-'longs
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  'strings
+  Dim strProject As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -304,18 +306,18 @@ Private Sub txtDescription_Exit(ByVal Cancel As MSForms.ReturnBoolean)
 End Sub
 
 Private Sub txtFilter_Change()
-'objects
-Dim rst As Object 'ADODB.Recordset
-'strings
-Dim strDictionary As String, strFilter As String, strText As String, strProject As String
-'longs
-Dim lngSelected As Long
-Dim lngItem As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim rst As Object 'ADODB.Recordset
+  'strings
+  Dim strDictionary As String, strFilter As String, strText As String, strProject As String
+  'longs
+  Dim lngSelected As Long
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -400,4 +402,15 @@ exit_here:
 err_here:
   Call cptHandleErr("cptDataDictionary_frm", "txtFilter_Change()", Err, Erl)
   Resume exit_here
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
+Private Sub UserForm_Terminate()
+  Unload Me
 End Sub

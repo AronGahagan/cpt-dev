@@ -45,16 +45,15 @@
 
 ## Prerequisites
 1. Microsoft Project Standard or Professional 2013+ (32-bit or 64-bit, but must match Office version for some features to work properly)
-1. Microsoft Office (Outlook, Excel, Word, PowerPoint) (32-bit or 64-bit, but must match MS Project version for some features to work propertly)
+1. Microsoft Office (Outlook, Excel, Word, PowerPoint) (32-bit or 64-bit, but must match MS Project version for some features to work properly)
 1. Internet Connection preferred, but not required
-1. Some features may require that `.NET 3.5` be enabled. From your start menu, search for 'Turn Windows Features On or Off' (a control panel setting) and be sure `.NET 3.5` is enabled.
 
 [[top]](#table-of-contents)
 
 ---
 
 ## Installation
-_Note: this tool is not currently designed (nor has it been tested) for use with Microsoft Project Server. Contact <a href="mailto:cpt@ClearPlanConsulting.com">cpt@ClearPlanConsulting.com</a> for further information or if you would like to explore a custom installation for your Server environment._
+_Note: this tool is not designed to run "out of the box" on Microsoft Project Server/Online. Contact <a href="mailto:help@ClearPlanConsulting.com">help@ClearPlanConsulting.com</a> for further information or if you would like to explore a custom installation for your Server/Online environment._
 
 1. Enable Macros
     1. Open Microsoft Project, go to File > Options > Trust Center > Trust Center Settings...
@@ -66,12 +65,11 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
     1. Completely exit, and then restart, Microsoft Project (this makes the settings above 'stick')
 1. Download and open the [latest release](https://github.com/AronGahagan/cpt-dev/releases/latest) (download the cpt_\*.mpp file).
 1. Open the **Organizer** and select the **Modules** tab:
-    1. **If you have an internet connection:** copy the `cptSetup_bas` module into your Global.MPT
-    1. **If you do not have an internet connection:** copy **all** modules prefixed with `cpt` into your Global.MPT
+1. Copy **all** modules prefixed with `cpt` into your Global.MPT
 1. On the Ribbon, click **View** > **Macros** > **View Macros** > and run the macro `cptSetup()`
     1. This macro installs necessary core modules if they are not already installed
     1. Changes will be made to your ThisProject module, but if you have existing code it will not be overwritten. cpt-related code will be inserted at the very top of the procedures **Project_Activate** and **Project_Open** and each line is appended with `'</cpt>` for reference.
-1. The ClearPlan Toolbar will be added. Click **ClearPlan** > **Help** > **Help** > **Check for Upgrades** to download the latest hotfixes. If you do not have an internet connection, please contact [cpt@ClearPlanConsulting.com](mailto:cpt@ClearPlanConsulting.com) for the latest hotfixes.
+1. The ClearPlan Toolbar will be added. Click **ClearPlan** > **Help** > **Help** > **Check for Upgrades** at any time to download the latest version(s). If you do not have an internet connection, please contact [help@ClearPlanConsulting.com](mailto:help@ClearPlanConsulting.com) for the latest hotfixes.
     
 [[top]](#table-of-contents)
 

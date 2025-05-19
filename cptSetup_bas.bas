@@ -1,9 +1,9 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.8.28</cpt_version>
+'<cpt_version>v1.9.0</cpt_version>
 Option Explicit
 Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
 'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
-Private Const BLN_TRAP_ERRORS As Boolean = True
+Private Const BLN_TRAP_ERRORS As Boolean = True 'keep this: cptErrorTrapping() lives in cptCore_bas
 #If Win64 And VBA7 Then
   Private Declare PtrSafe Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As LongPtr, _
                                                                         ByVal lpszConnectionName As String, _
@@ -15,7 +15,6 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
                                                                         ByVal dwNameLen As Integer, _
                                                                         ByVal dwReserved As Long) As Long
 #End If
-
 #If VBA7 Then
     Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As LongPtr)
 #Else
@@ -23,44 +22,47 @@ Private Const BLN_TRAP_ERRORS As Boolean = True
 #End If
 
 Sub cptSetup()
-'setup only needs to be run once
-'objects
-Dim Project As Object
-Dim vbComponent As Object 'vbComponent
-Dim rstCode As Object 'ADODB.Recordset
-Dim cmThisProject As Object 'CodeModule
-Dim cmCptThisProject As Object 'CodeModule
-Dim oStream As Object 'ADODB.Stream
-Dim xmlHttpDoc As Object
-Dim xmlNode As Object
-Dim xmlDoc As Object
-Dim rstCore As Object 'ADODB.Recordset
-'strings
-Dim strMsg As String
-Dim strError As String
-Dim strCptFileName As String
-Dim strVersion As String
-Dim strFileName As String
-Dim strModule As String
-Dim strURL As String
-'longs
-Dim lngLine As Long
-Dim lngEvent As Long
-'integers
-'booleans
-Dim blnImportModule As Boolean
-Dim blnExists As Boolean
-'variants
-Dim vEvent As Variant
-'dates
+  'setup only needs to be run once
+  'objects
+  Dim Project As Object
+  Dim vbComponent As Object 'vbComponent
+  Dim rstCode As Object 'ADODB.Recordset
+  Dim cmThisProject As Object 'CodeModule
+  Dim cmCptThisProject As Object 'CodeModule
+  Dim oStream As Object 'ADODB.Stream
+  Dim xmlHttpDoc As Object
+  Dim xmlNode As Object
+  Dim xmlDoc As Object
+  Dim rstCore As Object 'ADODB.Recordset
+  'strings
+  Dim strDir As String
+  Dim strMsg As String
+  Dim strError As String
+  Dim strCptFileName As String
+  Dim strVersion As String
+  Dim strFileName As String
+  Dim strModule As String
+  Dim strURL As String
+  'longs
+  Dim lngLine As Long
+  Dim lngEvent As Long
+  'integers
+  'booleans
+  Dim blnImportModule As Boolean
+  Dim blnExists As Boolean
+  'variants
+  Dim vEvent As Variant
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
-
+  
+  strDir = cptDir
+  
   '<issue61> ensure proper installation
   If InStr(ThisProject.FullName, "Global") = 0 Then
     strMsg = "The CPT can only be installed in one of the following:" & vbCrLf
     strMsg = strMsg & "> Global.MPT" & vbCrLf
-    strMsg = strMsg & "> Global (+ non-cached Enterprise) for testing purposes only" & vbCrLf
+    strMsg = strMsg & "> Global (+ non-cached Enterprise) temporarily and for testing purposes only" & vbCrLf
     strMsg = strMsg & "> Checked-out Enterprise Global (when ready to release to Enterprise user base)" & vbCrLf & vbCrLf
     strMsg = strMsg & "(Do not install to a *.mpp file.)"
     MsgBox strMsg, vbCritical + vbOKOnly, "Faulty Installation"
@@ -101,8 +103,12 @@ Dim vEvent As Variant
     Else
       strMsg = "We're having trouble downloading modules:" & vbCrLf & vbCrLf  '</issue35>
       strMsg = strMsg & xmlDoc.parseError.errorcode & ": " & xmlDoc.parseError.reason & vbCrLf & vbCrLf '</issue35>
-      strMsg = strMsg & "If the ClearPlan ribbon doesn't show up, please contact cpt@ClearPlanConsulting.com for assistance." '</issue35>
-      MsgBox strMsg, vbExclamation + vbOKOnly, "XML Error" '</issue35>
+      strMsg = strMsg & "Please try the manual installation method instead." & vbCrLf & vbCrLf & "Would you like to open the online instructions now?"  '</issue35>
+      If MsgBox(strMsg, vbExclamation + vbYesNo, "XML Error") = vbYes Then
+        If Not Application.FollowHyperlink("https://github.com/AronGahagan/cpt-dev#installation") Then
+          MsgBox "Your organization appears to have blocked this url." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for further assistance.", vbCritical + vbOKOnly, "Apologies!"
+        End If
+      End If
     End If
     GoTo this_project
   Else
@@ -132,8 +138,8 @@ frx:
           oStream.Open
           oStream.Type = 1 'adTypeBinary
           oStream.Write xmlHttpDoc.responseBody
-          If Dir(cptDir & "\" & strFileName) <> vbNullString Then Kill cptDir & "\" & strFileName
-          oStream.SaveToFile cptDir & "\" & strFileName
+          If Dir(strDir & "\" & strFileName) <> vbNullString Then Kill strDir & "\" & strFileName
+          oStream.SaveToFile strDir & "\" & strFileName
           oStream.Close
           'need to fetch the .frx first
           If Right(strURL, 4) = ".frm" Then
@@ -170,7 +176,7 @@ frx:
         If strModule <> "ThisProject" Then
           Application.StatusBar = "Importing " & strFileName & "..."
           'Debug.Print Application.StatusBar
-          ThisProject.VBProject.VBComponents.Import cptDir & "\" & strFileName
+          ThisProject.VBProject.VBComponents.Import strDir & "\" & strFileName
           '<issue19> added
           DoEvents '</issue19>
 
@@ -195,7 +201,7 @@ this_project:
 
   '<issue35>
   'update user's ThisProject - if it downloaded correctly, or was copied in correctly
-  strFileName = cptDir & "\ThisProject.cls"
+  strFileName = strDir & "\ThisProject.cls"
   If Dir(strFileName) <> vbNullString Then 'it was downloaded, import it
     'rename the file and import it
     strCptFileName = Replace(strFileName, "ThisProject", "cptThisProject_cls")
@@ -358,14 +364,15 @@ err_here:
 End Sub
 
 Public Function cptBuildRibbonTab()
-Dim ribbonXML As String
-Dim lngCleanUp As Long
+  Dim ribbonXML As String
+  Dim lngCleanUp As Long
 
   'build ClearPlan Ribbon Tab XML
   ribbonXML = ribbonXML + vbCrLf & "<mso:tab id=""tCommon"" label=""ClearPlan"" >" 'insertBeforeQ=""mso:TabTask"">"
 
   'common tools
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""custom_view"" label=""View"" visible=""true"">"
+
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:OutlineSymbolsShow"" visible=""true""/>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:SummaryTasks"" visible=""true""/>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:control idQ=""mso:NameIndent"" visible=""true""/>"
@@ -466,7 +473,7 @@ Dim lngCleanUp As Long
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bMyReplace"" label=""MyReplace"" imageMso=""ReplaceDialog"" onAction=""cptMyReplace"" visible=""true"" supertip=""Find/Replace only on selected tasks, in the selected field."" />"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bEnumerate"" label=""Enumerate"" imageMso=""NumberingRestart"" onAction=""cptEnumerate"" visible=""true"" supertip=""Select a group of tasks, and then enumerate them."" />"
       ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrimText"" label=""Trim Task Names"" imageMso=""TextEffectsClear"" onAction=""cptTrimTaskNames"" visible=""true"" supertip=""For the 'Type A' folks out there, this trims leading and trailing spaces (and multiple spaces) in your task names (e.g., after pasting them in from Excel--cool, right?)."" />"
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTrimText"" label=""Trim Task Names"" imageMso=""TextEffectsClear"" onAction=""cptTrimTaskNames"" visible=""true"" supertip=""For the 'Type A' folks out there, this trims leading and trailing spaces (and multiple spaces) in your task names (e.g., after pasting them in from Excel--cool, right?). Note: this applies to all non-external tasks in the project."" />"
       'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bReplicateProcess"" label=""Replicate A Process (WIP)"" imageMso=""DuplicateSelectedSlides"" onAction=""cptReplicateProcess"" visible=""true"" />"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindDuplicates"" label=""Find Duplicate Task Names"" imageMso=""RemoveDuplicates"" onAction=""cptFindDuplicateTaskNames"" visible=""true"" supertip=""Clearly worded tasks represent well-defined tasks and are important for estimating and providing status. Click to find duplicate task names and create a report in Excel. Remember: Noun and Verb!"" />"
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bResetRowHeight"" label=""Reset Row Height"" imageMso=""RowHeight"" onAction=""cptResetRowHeight"" visible=""true"" supertip=""Another one for our fellow 'Type A' folks out there--reset all row heights after they get all jacked up. Give it a go; you'll like it."" />"
@@ -523,20 +530,27 @@ Dim lngCleanUp As Long
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
-
+  
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gIntegration2"" visible=""true"" >"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIntegrationSettings3"" label=""Field Mapping"" imageMso=""Settings"" screentip=""Integration Settings"" onAction=""cptGetValidMap"" size=""large"" />"
+'  ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
+  
   'schedule
   ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""gStatus"" label=""Schedule"" visible=""true"" >"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mHealth"" label=""Health"" imageMso=""CheckWorkflow"" visible=""true"" size=""large"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DECM (v5.0)"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDECM"" label=""DECM Dashboard"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DECM Dashboard (Aligned to DECM 06A212a v5.0)"" />"
+   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DCMA EVMS Compliance Metric (DECM)"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDECM"" label=""DECM Dashboard (v7.0)"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DECM Dashboard (v7.0)"" />"
+   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIntegrationSettings1"" label=""Integration Settings"" imageMso=""Settings"" onAction=""cptGetValidMap"" visible=""true"" supertip=""Set, edit, and confirm Integration Settings"" />"
 '  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""DCMA 14"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDCMA14"" label=""DCMA 01"" imageMso=""CheckWorkflow"" onAction=""cptDECM_GET_DATA"" visible=""true"" supertip=""DCMA 14-pt Analysis"" />"
+'  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bDCMA14"" label=""DCMA 01"" imageMso=""CheckWorkflow"" onAction=""cptDCMA14_GET_DATA"" visible=""true"" supertip=""DCMA 14-pt Analysis"" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mStatus"" label=""Status"" imageMso=""UpdateAsScheduled"" visible=""true"" size=""large"" >"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Before Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""General"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   If cptModuleExists("cptQBD_frm") And cptModuleExists("cptQBD_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bQBD"" label=""Quantifiable Backup Data (QBD)"" imageMso=""ExportExcel"" onAction=""cptShowQBD_frm"" visible=""true"" supertip=""Yes, Quantifiable Backup Data."" />"
   End If
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Before Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cpt_bAdvanceStatusDate"" label=""Advance Status Date"" imageMso=""CalendarToolSelectDate"" onAction=""cptAdvanceStatusDate"" visible=""true"" supertip=""Advance the Status Date prior to kicking off a status cycle."" />"
   If cptModuleExists("cptAgeDates_bas") And cptModuleExists("cptAgeDates_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cpt_bAgeDates"" label=""Age Dates"" imageMso=""CalendarToolSelectDate"" onAction=""cptShowAgeDates_frm"" visible=""true"" supertip=""Keep a rolling history of the current schedule.""  />"
@@ -549,17 +563,28 @@ Dim lngCleanUp As Long
   If cptModuleExists("cptStatusSheetImport_bas") And cptModuleExists("cptStatusSheetImport_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bStatusSheetImport"" label=""Import Status Sheet(s)"" imageMso=""ImportExcel"" onAction=""cptShowStatusSheetImport_frm"" visible=""true"" supertip=""Just what it sounds like. (Note: Assignment ETC is at the Assignment level, so use the Task Usage view to review after import.)"" />"
   End If
+  
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menu id=""mScheduleUtilities"" label=""Utilities"" imageMso=""CheckWorkflow"" visible=""true"" >"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Status Utilities"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  
   If cptModuleExists("cptSmartDuration_frm") And cptModuleExists("cptSmartDuration_bas") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSmartDuration"" label=""Smart Duration"" imageMso=""CalendarToolSelectDate"" onAction=""cptShowSmartDuration_frm"" visible=""true"" supertip=""We've all been there: how many days between Time Now and the finish date the CAM just gave me? No more guess work: click here and improve your life."" />"
   End If
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUnstatused"" label=""Find Unstatused"" imageMso=""UpdateAsScheduled"" onAction=""cptFindUnstatusedTasks"" visible=""true"" supertip=""Find tasks not statused through 'Time Now'."" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bRetainETC"" label=""Mark On Track (Retain ETC)"" imageMso=""UpdateAsScheduled"" onAction=""cptMarkOnTrackRetainETC"" visible=""true"" supertip=""Mark on Track and Retain Remaining Work (ETC)."" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bRespread"" label=""Respread Assignments"" imageMso=""UpdateAsScheduled"" onAction=""cptRespreadAssignmentWork"" visible=""true"" supertip=""Respread Assignment Work/Cost so that Assignment Finish Dates match Task Finish Date."" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAssignmentsNoETC"" label=""Find Assignments without ETC"" imageMso=""UpdateAsScheduled"" onAction=""cptFindAssignmentsWithoutWork"" supertip=""Find Assignments on incomplete tasks with zero remaining work. These can lead to odd task start times."" />"
+  ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""After Status"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBlameReport"" label=""The Blame Report"" imageMso=""ContactProperties"" onAction=""cptBlameReport"" visible=""true"" supertip=""Find out which tasks slipped from last period."" />"
   ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCaptureWeek2"" label=""Capture Week"" imageMso=""RefreshWebView"" onAction=""cptCaptureWeek"" visible=""true"" supertip=""Capture the Current Schedule after updates to compare against past and future weeks during execution. This is required for certain metrics (e.g., CEI, all Trending) to run properly."" />"
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCompletedWork"" label=""Export Completed WPCNs"" imageMso=""DisconnectFromServer"" onAction=""cptExportCompletedWork"" visible=""true"" supertip=""Export Completed WPCNs for closure in Time system (uses COBRA Export Tool field settings)."" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCompletedWork"" label=""Export Completed WPCNs"" imageMso=""DisconnectFromServer"" onAction=""cptExportCompletedWork"" visible=""true"" supertip=""Export Completed WPCNs for closure in the time card system."" />"
   If cptModuleExists("cptTaskHistory_bas") And cptModuleExists("cptTaskHistory_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bTaskHistory"" label=""Task History"" imageMso=""Archive"" onAction=""cptShowTaskHistory_frm"" visible=""true"" supertip=""Explore selected task history, take notes, export history, etc. Requires consistent use of Capture Week."" />"
   End If
+  ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator title=""Analyze"" id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFindCompleteThrough"" label=""Analyze CompleteThrough"" imageMso=""UpdateAsScheduled"" onAction=""cptFindCompleteThrough"" visible=""true"" supertip=""Analyze unexpected 'CompleteThrough' progress bar in Gantt Chart."" />"
+  
   'todo: account for EV Tool in cptValidateEVP
   'ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bValidateEVT"" enabled=""false"" label=""Validate EVT"" imageMso=""RefreshWebView"" onAction=""cptAnalyzeEVT"" visible=""true"" supertip=""Validate EVT - e.g., ensure incomplete 50/50 tasks with Actual Start are marked as 50% EV % complete."" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
@@ -610,8 +635,8 @@ Dim lngCleanUp As Long
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptEditMetricsData"" label=""View &amp;&amp; Edit Metrics Data"" imageMso=""DataValidation"" onAction=""cptShowMetricsData_frm"" visible=""true"" supertip=""Review and delete metrics records for this program."" />"
     End If
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptExportAllData"" label=""Export Metrics Data"" imageMso=""ExportExcel"" onAction=""cptExportMetricsData"" visible=""true"" supertip=""Export stored metrics data for this program to Excel."" />"
-    If cptModuleExists("cptMetricsSettings_frm") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptMetricsSettings"" label=""Metrics Settings"" imageMso=""Settings"" onAction=""cptShowMetricsSettings_frm"" visible=""true"" supertip=""Settings required for some EV-ish metrics."" />"
+    If cptModuleExists("cptIntegration_frm") Then
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""cptMetricsSettings"" label=""Metrics Settings"" imageMso=""Settings"" onAction=""cptGetValidMap"" visible=""true"" supertip=""Settings required for some EV-ish metrics."" />"
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
 '    ribbonXML = ribbonXML + vbCrLf & "<mso:dialogBoxLauncher>"
@@ -640,7 +665,7 @@ Dim lngCleanUp As Long
   
   If cptModuleExists("cptCostRateTables_bas") And cptModuleExists("cptCostRateTables_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:separator id=""cleanup_" & cptIncrement(lngCleanUp) & """ />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCostRateTables"" onAction=""cptShowCostRateTables_frm""  size=""large"" visible=""true""  label=""Cost Rate Tables"" imageMso=""DataTypeCurrency"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCostRateTables"" label=""Cost Rate Tables"" imageMso=""DataTypeCurrency"" onAction=""cptShowCostRateTables_frm""  size=""large"" visible=""true"" />"
   End If
   
   'mpm
@@ -648,7 +673,7 @@ Dim lngCleanUp As Long
   'integration settings
   If cptModuleExists("cptIntegration_frm") Then
     ribbonXML = ribbonXML + vbCrLf & "<mso:dialogBoxLauncher>"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIntegrationSettings"" screentip=""Integration Settings"" onAction=""cptGetValidMap"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bIntegrationSettings2"" screentip=""Integration Settings"" onAction=""cptGetValidMap"" />"
     ribbonXML = ribbonXML + vbCrLf & "</mso:dialogBoxLauncher>"
   End If
   
@@ -678,7 +703,7 @@ Dim lngCleanUp As Long
       ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bBuilder"" imageMso=""CustomFieldDialog"" label=""Field Builder"" onAction=""cptShowFieldBuilder_frm"" supertip=""A little help building common custom field pick lists, etc."" />" 'size=""large""
     End If
     If cptModuleExists("cptSaveLocal_bas") And cptModuleExists("cptSaveLocal_frm") Then
-      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bECFtoLCF"" imageMso=""CustomFieldDialog"" label=""ECF to LCF"" onAction=""cptShowSaveLocal_frm"" supertip=""Save Enterprise Custom Fields (ECF) and data to Local Custom Fields (LCF). Settings are saved (by project) between sessions."" />" 'size=""large""
+      ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bECFtoLCF"" imageMso=""CustomFieldDialog"" label=""ECF to LCF"" onAction=""cptShowSaveLocal_frm"" supertip=""Save Enterprise Custom Field (ECF) settings (and, optionally, task-level data) to Local Custom Fields (LCF). Settings are saved (by project) between sessions."" />" 'size=""large""
     End If
     ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
   End If
@@ -694,41 +719,520 @@ Dim lngCleanUp As Long
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bRequest"" label=""Submit a Feature Request"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitRequest"" visible=""true"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bFeedback"" label=""Submit Other Feedback"" imageMso=""SubmitFormInfoPath"" onAction=""cptSubmitFeedback"" visible=""true"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Settings"" />"
-    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSettings"" label=""View All Settings"" imageMso=""Settings"" onAction=""cptShowSettings_frm"" />"
+    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bSettingsCPT"" label=""View CPT Settings"" imageMso=""Settings"" onAction=""cptShowSettings_frm"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:menuSeparator id=""cleanup_" & cptIncrement(lngCleanUp) & """ title=""Uninstall"" />"
     ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bUninstall"" label=""Uninstall ClearPlan Toolbar"" imageMso=""TasksUnlink"" onAction=""cptUninstall"" visible=""true"" />"
     ribbonXML = ribbonXML + vbCrLf & "</mso:menu>"
   End If
-  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAbout"" onAction=""cptShowAbout_frm""  size=""large"" visible=""true""  label=""About"" imageMso=""Info"" />"
+  ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bAbout"" label=""About"" imageMso=""Info"" onAction=""cptShowAbout_frm""  size=""large"" visible=""true"" />"
   ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
 
   ribbonXML = ribbonXML + vbCrLf & "</mso:tab>"
-  
-'  If cptModuleExists("cptCostRateTables_bas") And cptModuleExists("cptCostRateTables_frm") Then
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:tab idMso=""TabResource"">"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:group id=""ClearPlan"" label=""ClearPlan"" visible=""true"">"
-'    ribbonXML = ribbonXML + vbCrLf & "<mso:button id=""bCostRateTables2"" onAction=""cptShowCostRateTables_frm""  size=""large"" visible=""true""  label=""Cost Rate Tables"" imageMso=""DataTypeCurrency"" />"
-'    ribbonXML = ribbonXML + vbCrLf & "</mso:group>"
-'    ribbonXML = ribbonXML + vbCrLf & "</mso:tab>"
-'  End If
-  
+    
   'Debug.Print "<mso:customUI ""xmlns:mso=""http://schemas.microsoft.com/office/2009/07/customui"" >" & ribbonXML
   cptBuildRibbonTab = ribbonXML
 
 End Function
 
-Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObject, Optional lngErl As Long)
-'common error handling prompt
-Dim strMsg As String
-
-    strMsg = "Please contact cpt@ClearPlanConsulting.com for assistance if needed." & vbCrLf & vbCrLf
-    strMsg = strMsg & "Error " & Err.Number & ": " & Err.Description & vbCrLf & vbCrLf
-    strMsg = strMsg & "Source: " & strModule & "." & strProcedure
-    If lngErl > 0 Then
-      strMsg = strMsg & ":" & lngErl
+Function cptGetLatest(strModule As String) As String
+  'objects
+  Dim xmlDoc As Object
+  Dim xmlNode As Object
+  Dim oFile As Scripting.File
+  Dim oFSO As Scripting.FileSystemObject
+  Dim oRecordset As ADODB.Recordset
+  'strings
+  Dim strLatest As String
+  Dim strURL As String
+  Dim strFile As String
+  Dim strDir As String
+  'longs
+  'integers
+  'doubles
+  'booleans
+  Dim blnStale As Boolean
+  'variants
+  'dates
+  
+  'todo: prompt the user no more than once a week if an update is available
+  'todo: use it as a basis for the upgrades form?
+  
+  If Not cptInternetIsConnected Then GoTo exit_here
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  strDir = cptDir
+  
+  strFile = strDir & "\cpt-latest.adtg"
+  blnStale = True
+  'does file exist?
+  If Dir(strFile) <> vbNullString Then
+    'is it stale?
+    Set oFSO = CreateObject("Scripting.FileSystemObject")
+    Set oFile = oFSO.GetFile(strFile)
+    'todo: use DateModified? DateCreated? notified as date or boolean?
+    'todo: what if a file is installed that gets removed from the package?
+    'todo: if a module gets removed then <cpt_version>remove</cpt_version>
+    If oFile.DateCreated > DateAdd("d", -7, Now()) Then
+      blnStale = False
     End If
-    MsgBox strMsg, vbExclamation + vbOKOnly, Err.Description
+    Set oFile = Nothing
+    Set oFSO = Nothing
+    If blnStale Then
+      Kill strFile
+    End If
+  End If
+  
+  'todo: if update is available then notify user and mark 'notified=true
+  
+  If blnStale Then
+    'set up the recordset
+    Set oRecordset = CreateObject("ADODB.Recordset")
+    oRecordset.Fields.Append "Module", 200, 200 '200=adVarChar
+    oRecordset.Fields.Append "Directory", 200, 200 '200=adVarChar
+    oRecordset.Fields.Append "Current", 200, 200 '200=adVarChar
+    oRecordset.Fields.Append "Notified", 11 '11=adBoolean
+    oRecordset.Fields.Append "Installed", 200, 200 '200=adVarChar
+    oRecordset.Fields.Append "Status", 200, 200 '200=adVarChar
+    oRecordset.Open
 
+    'get current versions
+    Application.StatusBar = "Fetching latest versions..."
+    DoEvents
+    Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
+    xmlDoc.async = False
+    xmlDoc.validateOnParse = False
+    xmlDoc.SetProperty "SelectionLanguage", "XPath"
+    xmlDoc.SetProperty "SelectionNamespaces", "xmlns:d='http://schemas.microsoft.com/ado/2007/08/dataservices' xmlns:m='http://schemas.microsoft.com/ado/2007/08/dataservices/metadata'"
+    strURL = strGitHub & "CurrentVersions.xml"
+    If Not xmlDoc.Load(strURL) Then
+      'MsgBox xmlDoc.parseError.errorcode & ": " & xmlDoc.parseError.reason, vbExclamation + vbOKOnly, "XML Error"
+      cptGetLatest = "error"
+      GoTo exit_here
+    Else
+      For Each xmlNode In xmlDoc.SelectNodes("/Modules/Module")
+        oRecordset.AddNew
+        oRecordset(0) = xmlNode.SelectSingleNode("Name").Text '>Module
+        oRecordset(1) = xmlNode.SelectSingleNode("Directory").Text '>Directory
+        oRecordset(2) = xmlNode.SelectSingleNode("Version").Text '>Latest
+        oRecordset(3) = False
+        If cptModuleExists(xmlNode.SelectSingleNode("Name").Text) Then
+          oRecordset(4) = cptGetVersion(xmlNode.SelectSingleNode("Name").Text)
+          oRecordset(5) = cptVersionStatus(cptGetVersion(xmlNode.SelectSingleNode("Name").Text), xmlNode.SelectSingleNode("Version").Text)
+        End If
+        oRecordset.Update
+      Next xmlNode
+    End If
+    oRecordset.Save strFile, adPersistADTG
+    oRecordset.Close
+  End If
+  
+  'now check latest version
+  Set oRecordset = CreateObject("ADODB.REcordset")
+  oRecordset.Open strFile
+  oRecordset.Filter = "Module='" & strModule & "'"
+  If Not oRecordset.EOF Then
+    strLatest = oRecordset(2)
+    'note: updating a record will affect LastModified...
+  End If
+  oRecordset.Filter = 0
+  oRecordset.Close
+  
+  cptGetLatest = strLatest
+
+exit_here:
+  On Error Resume Next
+  Set xmlNode = Nothing
+  Set xmlDoc = Nothing
+  Set oFile = Nothing
+  Set oFSO = Nothing
+  If oRecordset.State Then
+    oRecordset.Filter = 0
+    oRecordset.Close
+  End If
+  Set oRecordset = Nothing
+
+  Exit Function
+err_here:
+  Call cptHandleErr("cptSetup_bas", "cptGetLatest", Err, Erl)
+  Resume exit_here
+End Function
+
+Function cptGetVersion(strModule As String) As String
+  Dim vbComponent As Object, strVersion As String
+  If Not cptModuleExists(strModule) Then
+    cptGetVersion = "<uninstalled>"
+  Else
+    Set vbComponent = ThisProject.VBProject.VBComponents(strModule)
+    If vbComponent.CodeModule.Find("<cpt_version>", 1, 1, vbComponent.CodeModule.CountOfLines, 25) = True Then
+      strVersion = cptRegEx(vbComponent.CodeModule.Lines(1, vbComponent.CodeModule.CountOfLines), "<cpt_version>.*</cpt_version>")
+      strVersion = Replace(Replace(strVersion, "<cpt_version>", ""), "</cpt_version>", "")
+    End If
+    cptGetVersion = strVersion
+  End If
+  
+End Function
+
+Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObject, Optional lngErl As Long, Optional strProcessStep As String)
+  'common error handling prompt
+  'objects
+  Dim oLink As MSProject.TaskDependency
+  Dim oTask As MSProject.Task
+  Dim oSubproject As MSProject.SubProject
+  Dim oProfile As MSProject.Profile
+  Dim oShell As Object
+  'strings
+  Dim strFile As String
+  Dim strErrNumber As String
+  Dim strErrDescription As String
+  Dim strErrSource As String
+  Dim strInstalled As String
+  Dim strLatest As String
+  Dim strStatus As String
+  Dim strMsg As String
+  Dim strKey As String
+  'longs
+  Dim lngTotalResources As Long
+  Dim lngTotalTasks As Long
+  Dim lngFile As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnMaster As Boolean
+  Dim blnInactive As Boolean
+  Dim blnCPL As Boolean
+  Dim blnResourceLoaded As Boolean
+  Dim blnBeta As Boolean
+  'variants
+  'dates
+    
+  strErrNumber = CStr(Err.Number)
+  strErrDescription = Err.Description
+  strErrSource = Err.Source
+
+  If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  
+  'todo: has the code been modified?
+  'todo: not until CurrentVersions.xml is revised
+  
+  'is an upgrade available?
+  strInstalled = cptGetVersion(strModule)
+  strLatest = cptGetLatest(strModule)
+  If strLatest = "error" Or strLatest = "" Then
+    strStatus = "unavailable"
+    strLatest = "unavailable"
+  Else
+    strStatus = cptVersionStatus(strInstalled, strLatest)
+  End If
+  blnBeta = False
+  If InStr(strStatus, "upgrade") > 0 Then 'please upgrade, try again
+    strMsg = "An error has occurred in module '" & strModule & "-" & strInstalled & "." & vbCrLf
+    strMsg = strMsg & "An upgrade is available: " & strModule & "-" & strLatest & "." & vbCrLf & vbCrLf
+    strMsg = strMsg & strErrNumber & ": " & strErrDescription & vbCrLf
+    strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf
+    If Len(strProcessStep) > 0 Then
+      strMsg = strMsg & "Process Step: " & strProcessStep & vbCrLf
+    End If
+    If lngErl > 0 Then
+      strMsg = strMsg & "Line: " & ThisProject.VBProject.VBComponents(strModule).CodeModule.Lines(lngErl, 1) & vbCrLf
+    End If
+    strMsg = strMsg & vbCrLf
+    strMsg = strMsg & "Would you like to upgrade to '" & strModule & "' (" & strLatest & ") now?"
+    If MsgBox(strMsg, vbInformation + vbYesNo, "CPT Error") = vbYes Then
+      cptShowUpgrades_frm
+    Else
+      Exit Sub
+    End If
+  ElseIf InStr(strStatus, "downgrade") > 0 Then 'beta tester, tell us, thank you
+    blnBeta = True
+    strMsg = "Thank you for being a beta tester!" & vbCrLf & vbCrLf
+    strMsg = strMsg & "An error has occurred in module " & strModule & "-" & strInstalled & "." & vbCrLf
+    strMsg = strMsg & "Latest release version is " & strModule & "-" & strLatest & "." & vbCrLf & vbCrLf
+    strMsg = strMsg & strErrNumber & ": " & strErrDescription & vbCrLf
+    strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf
+    If Len(strProcessStep) > 0 Then
+      strMsg = strMsg & "Process Step: " & strProcessStep & vbCrLf
+    End If
+    If lngErl > 0 Then
+      strMsg = strMsg & "Line: " & ThisProject.VBProject.VBComponents(strModule).CodeModule.Lines(lngErl, 1) & vbCrLf
+    End If
+    strMsg = strMsg & vbCrLf
+    strMsg = strMsg & "Would you like to submit a ticket? (Click 'No' to keep testing...)"
+    If MsgBox(strMsg, vbInformation + vbYesNo, "CPT Error") = vbNo Then GoTo exit_here
+  Else 'strStatus = "unavailable" or "ok" or "error" then submit ticket
+    strMsg = "An error has occurred in module " & strModule & "-" & strInstalled & "." & vbCrLf
+    If strStatus = "ok" Then
+      strMsg = strMsg & "You are running the latest version of this module." & vbCrLf & vbCrLf
+    Else
+      strMsg = strMsg & "Unable to query github.com for latest version of this module." & vbCrLf & vbCrLf
+    End If
+    strMsg = strMsg & strErrNumber & ": " & strErrDescription & vbCrLf
+    strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf
+    If Len(strProcessStep) > 0 Then
+      strMsg = strMsg & "Process Step: " & strProcessStep & vbCrLf
+    End If
+    If lngErl > 0 Then
+      strMsg = strMsg & "Line: " & ThisProject.VBProject.VBComponents(strModule).CodeModule.Lines(lngErl, 1) & vbCrLf
+    End If
+    strMsg = strMsg & vbCrLf
+    strMsg = strMsg & "Would you like to submit a support ticket?"
+    If MsgBox(strMsg, vbExclamation + vbYesNo, "CPT Error") = vbNo Then GoTo exit_here
+  End If
+  
+  Set oShell = CreateObject("WScript.Shell")
+  
+  'get error and system details
+  Application.StatusBar = "Collecting anonymous error information..."
+  strMsg = "-> Your browser will open to our ticketing system: https://clearplan.happyfox.com/new" & vbCrLf & vbCrLf
+  strMsg = strMsg & "-> The below information will help you submit a support ticket..." & vbCrLf & vbCrLf
+  strMsg = strMsg & "-> === TICKET DETAILS ===" & vbCrLf
+  strMsg = strMsg & "-> CATEGORY: ClearPlan Toolbar CPT" & vbCrLf
+  strMsg = strMsg & "-> CPT Issue Type: (select one: installation; use; other)" & vbCrLf
+  strMsg = strMsg & "-> SUBJECT: " & strModule & "-" & strInstalled & IIf(blnBeta, " (beta)", "") & " (Error: " & strErrNumber & ")" & vbCrLf
+  strMsg = strMsg & "-> MESSAGE: (COPY & PASTE EVERYTHING BETWEEN THIS LINE AND THE ONE BELOW; SEE FINAL STEPS AT BOTTOM)" & vbCrLf
+  strMsg = strMsg & String(80, "-") & vbCrLf
+  strMsg = strMsg & "[Please REPLACE THIS LINE with any notes or comments you'd like to add.]" & vbCrLf
+  strMsg = strMsg & "EXAMPLE: I'm trying to run Status Sheets and I keep getting this error..." & vbCrLf
+  strMsg = strMsg & "A screenshot with your dialog selections (e.g., Status Sheet) would also be helpful (see ticket page where it says 'drag and drop file')." & vbCrLf & vbCrLf
+  
+  'FILE
+  blnMaster = ActiveProject.Subprojects.Count > 0
+  strMsg = strMsg & "--- FILE ---" & vbCrLf 'most likely culprit
+  If Left(ActiveProject.Path, 2) = "<>" Or Left(ActiveProject.Path, 4) = "http" Then
+    strMsg = strMsg & "Type: Cloud/PWA" & vbCrLf
+  Else
+    strMsg = strMsg & "Type: Local or Network (*.mpp)" & vbCrLf
+  End If
+  If blnMaster Then
+    strMsg = strMsg & "Subprojects: " & ActiveProject.Subprojects.Count & vbCrLf
+    strMsg = strMsg & "Master Project: " & Format(ActiveProject.Tasks.Count, "#,##0") & " tasks; " & Format(ActiveProject.ResourceCount, "#,##0") & " resources" & vbCrLf
+    lngTotalTasks = ActiveProject.Tasks.Count
+    lngTotalResources = ActiveProject.ResourceCount
+    For Each oSubproject In ActiveProject.Subprojects
+      strMsg = strMsg & "- Subproject " & oSubproject.Index & ": " & Format(oSubproject.SourceProject.Tasks.Count, "#,##0") & " tasks; " & Format(oSubproject.SourceProject.ResourceCount, "#,##0") & " resources" & vbCrLf
+      lngTotalTasks = lngTotalTasks + oSubproject.SourceProject.Tasks.Count
+      lngTotalResources = lngTotalResources + oSubproject.SourceProject.ResourceCount
+    Next oSubproject
+    strMsg = strMsg & "Total: " & Format(lngTotalTasks, "#,##0") & " tasks; " & Format(lngTotalResources, "#,##0") & " resources" & vbCrLf
+  Else
+    strMsg = strMsg & "Tasks: " & Format(ActiveProject.Tasks.Count, "#,##0") & vbCrLf
+    strMsg = strMsg & "Resources: " & Format(ActiveProject.ResourceCount, "#,##0") & vbCrLf
+  End If
+  strMsg = strMsg & "Baselined: " & IsDate(ActiveProject.BaselineSavedDate(pjBaseline)) & vbCrLf
+  blnResourceLoaded = False
+  If blnMaster Then
+    For Each oSubproject In ActiveProject.Subprojects
+      For Each oTask In oSubproject.SourceProject.Tasks
+        If oTask Is Nothing Then GoTo next_task_master
+        If oTask.Assignments.Count > 0 Then
+          blnResourceLoaded = True
+          Exit For
+        End If
+next_task_master:
+      Next oTask
+    Next oSubproject
+  Else
+    If ActiveProject.ResourceCount > 0 Then
+      For Each oTask In ActiveProject.Tasks
+        If oTask Is Nothing Then GoTo next_task_single
+        If oTask.Assignments.Count > 0 Then
+          blnResourceLoaded = True
+          Exit For
+        End If
+next_task_single:
+      Next oTask
+    End If
+  End If
+  strMsg = strMsg & "Resource Loaded: " & blnResourceLoaded & vbCrLf
+  blnCPL = False
+  If blnMaster Then
+    For Each oSubproject In ActiveProject.Subprojects
+      For Each oTask In oSubproject.SourceProject.Tasks
+        If Not oTask Is Nothing Then
+          For Each oLink In oTask.TaskDependencies
+            If oLink.To = oTask Then
+              If oLink.From.ExternalTask Then
+                blnCPL = True
+                Exit For
+              End If
+            End If
+            If oLink.From = oTask Then
+              If oLink.To.ExternalTask Then
+                blnCPL = True
+                Exit For
+              End If
+            End If
+          Next oLink
+          If blnCPL Then Exit For
+        End If
+      Next oTask
+      If blnCPL Then Exit For
+    Next oSubproject
+  Else
+    For Each oTask In ActiveProject.Tasks
+      If Not oTask Is Nothing Then
+        For Each oLink In oTask.TaskDependencies
+          If oLink.To = oTask Then
+            If oLink.From.ExternalTask Then
+              blnCPL = True
+              Exit For
+            End If
+          End If
+          If oLink.From = oTask Then
+            If oLink.To.ExternalTask Then
+              blnCPL = True
+              Exit For
+            End If
+          End If
+        Next oLink
+        If blnCPL Then Exit For
+      End If
+    Next oTask
+  End If
+  strMsg = strMsg & "Cross-Project Links: " & blnCPL & vbCrLf
+  
+  'CPT
+  strMsg = strMsg & "--- CPT ---" & vbCrLf 'slightly less likely culprit
+  strMsg = strMsg & "Installed to: " & ThisProject.Name & vbCrLf
+  strMsg = strMsg & "Error Number: " & strErrNumber & vbCrLf
+  strMsg = strMsg & "Error Description: " & strErrDescription & vbCrLf
+  strMsg = strMsg & "Error Source: " & strErrSource & vbCrLf
+  If Len(strProcessStep) > 0 Then
+    strMsg = strMsg & "Process Step: " & strProcessStep & vbCrLf
+  End If
+  If lngErl > 0 Then
+    strMsg = strMsg & "Error Line: " & lngErl & vbCrLf
+    'todo: go get the error line...LOL
+  End If
+  strMsg = strMsg & "Installed: " & strModule & "-" & strInstalled
+  If blnBeta Then
+    strMsg = strMsg & " -> NOTE: USER IS RUNNING A BETA VERSION" & vbCrLf
+  Else
+    strMsg = strMsg & vbCrLf
+  End If
+  strMsg = strMsg & "Latest: " & strModule & "-" & strLatest & vbCrLf
+  strMsg = strMsg & "Procedure: " & strProcedure & vbCrLf
+  If lngErl > 0 Then
+    strMsg = strMsg & "Line: " & lngErl & vbCrLf
+  End If
+  
+  'PROFILE
+  strMsg = strMsg & "--- PROFILE ---" & vbCrLf 'even less likely culprit
+  Set oProfile = Application.Profiles.ActiveProfile
+  With oProfile
+    strMsg = strMsg & "Name: " & .Name & vbCrLf
+    strMsg = strMsg & "Type: " & Choose(.Type + 1, "pjLocalProfile", "pjServerProfile") & " (" & .Type & ")" & vbCrLf
+    strMsg = strMsg & "LoginType: " & Choose(.LoginType, "pjProjectServerLogin", "pjWindowsLogin") & " (" & .LoginType & ")" & vbCrLf
+    If .Type = pjServerProfile Then
+      strMsg = strMsg & "ConnectionState: " & Choose(.ConnectionState + 1, "pjProfileOffline", "pjProfileOnline") & " (" & .ConnectionState & ")" & vbCrLf
+      strMsg = strMsg & "Server: " & .Server & vbCrLf
+      strMsg = strMsg & "SiteId: " & .SiteId & vbCrLf
+      'strMsg = strMsg & "Username: " & .UserName & vbCrLf 'keep it anonymous, though they'll type in their own name and email...
+      strMsg = strMsg & "IsOffline: " & Application.IsOffline & vbCrLf
+    End If
+  End With
+  
+  'APPLICATION
+  strMsg = strMsg & "--- APPLICATION ---" & vbCrLf 'even less likely culprit
+  strMsg = strMsg & "Name: " & Application.Name & " " & Choose(Application.Edition + 1, "Standard", "Professional") & " (" & Application.Build & ")" & vbCrLf
+  blnInactive = False
+  If Application.Edition = pjEditionProfessional Then
+    If Application.IsOffline Then
+      strMsg = strMsg & "PWA Status: Offline" & vbCrLf
+    Else
+      strMsg = strMsg & "PWA Status: Connected" & vbCrLf
+    End If
+  ElseIf Application.Edition = pjEditionStandard Then 'check for inactive tasks
+    If blnMaster Then
+      For Each oSubproject In ActiveProject.Subprojects
+        For Each oTask In oSubproject.SourceProject.Tasks
+          If Not oTask Is Nothing Then
+            If Not oTask.Active Then
+              blnInactive = True
+              Exit For
+            End If
+          End If
+        Next oTask
+      Next oSubproject
+    Else
+      If ActiveProject.ResourceCount > 0 Then
+        For Each oTask In ActiveProject.Tasks
+          If Not oTask Is Nothing Then
+            If Not oTask.Active Then
+              blnInactive = True
+              Exit For
+            End If
+          End If
+        Next oTask
+      End If
+    End If
+    If blnInactive Then strMsg = strMsg & "WARNING: INACTIVE TASKS FOUND" & vbCrLf
+  End If
+  strMsg = strMsg & "Calculation: " & IIf(Application.Calculation = pjAutomatic, "On", "Off") & vbCrLf
+  #If Win64 Then
+    strMsg = strMsg & "Win64: True" & vbCrLf
+  #Else
+    strMsg = strMsg & "Win64: False" & vbCrLf
+  #End If
+  #If VBA7 Then
+    strMsg = strMsg & "VBA7: True" & vbCrLf
+  #Else
+    strMsg = strMsg & "VBA7: False" & vbCrLf
+  #End If
+  strMsg = strMsg & "VBE Version: " & VBE.Version & vbCrLf
+  
+  'OS
+  strMsg = strMsg & "--- OS ---" & vbCrLf 'least likely culprit, but might be releveant
+  strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProductName" 'Windows 10 Pro
+  strMsg = strMsg & "Name: " & oShell.RegRead(strKey)
+  If Len(Environ("ProgramW6432")) > 0 Then
+    strMsg = strMsg & " (64-bit)" & vbCrLf
+  Else
+    strMsg = strMsg & " (32-bit)" & vbCrLf
+  End If
+  strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\DisplayVersion" '22H2
+  strMsg = strMsg & "Version: " & oShell.RegRead(strKey) & " (OS Build "
+  strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\CurrentMajorVersionNumber" '10
+  strMsg = strMsg & oShell.RegRead(strKey) & "."
+  strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\CurrentMinorVersionNumber" '0
+  strMsg = strMsg & oShell.RegRead(strKey) & "."
+  strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\CurrentBuildNumber" '19045
+  strMsg = strMsg & oShell.RegRead(strKey) & "."
+  strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\UBR" '3930
+  strMsg = strMsg & oShell.RegRead(strKey) & ")" & vbCrLf
+  strKey = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\EditionID" 'Professional
+  strMsg = strMsg & "Edition: " & oShell.RegRead(strKey) & vbCrLf
+  
+  strMsg = strMsg & String(80, "-") & vbCrLf
+  strMsg = strMsg & "=== FINAL STEPS ===" & vbCrLf
+  strMsg = strMsg & "-> Enter your name (required)." & vbCrLf
+  strMsg = strMsg & "-> Enter your email address (required)." & vbCrLf
+  strMsg = strMsg & "-> Enter your phone number (optional). (It is more likely we'll set up a Teams meeting.)" & vbCrLf
+  strMsg = strMsg & "-> Enter an alternate email address (optional)." & vbCrLf
+  strMsg = strMsg & "-> Pass the [I AM NOT ROBOT] test." & vbCrLf
+  strMsg = strMsg & "-> Click [Create Ticket]."
+  strMsg = strMsg & "-> Thank you! We will contact you ASAP..."
+  lngFile = FreeFile
+  strFile = Environ("tmp") & "\cpt-err-" & Format(Now, "yyyy-mm-dd-_hh-mm-ss") & ".txt"
+  Open strFile For Output As #lngFile
+  Print #lngFile, "-> The location of this file is " & strFile & vbCrLf
+  Print #lngFile, strMsg
+  Close #lngFile
+  Shell "notepad.exe """ & strFile & """", vbNormalFocus
+  Application.StatusBar = "Opening https://clearplan.happyfox.com/new..."
+  Application.FollowHyperlink "https://clearplan.happyfox.com/new/"
+  
+exit_here:
+  On Error Resume Next
+  Set oLink = Nothing
+  Application.StatusBar = ""
+  Set oTask = Nothing
+  Set oSubproject = Nothing
+  Set oShell = Nothing
+  Set oProfile = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptCore_bas", "cptHandleErr2", Err, Erl)
+  Resume exit_here
 End Sub
 
 Function cptIncrement(ByRef lngCleanUp As Long) As Long
@@ -738,36 +1242,36 @@ End Function
 
 Public Function cptInternetIsConnected() As Boolean
 
-    cptInternetIsConnected = InternetGetConnectedStateEx(0, "", 254, 0)
+  cptInternetIsConnected = InternetGetConnectedStateEx(0, "", 254, 0)
 
 End Function
 
-Function cptRegEx(strText As String, strRegEx As String, Optional blnMultiline As Boolean = False) As String
-Dim RE As Object, REMatch As Variant, REMatches As Object
-Dim strMatch As String
+Function cptRegEx(strText As String, strRegEx As String, Optional blnMultiLine As Boolean = False, Optional blnIgnoreCase As Boolean = True) As String
+  Dim RE As Object, REMatch As Variant, REMatches As Object
+  Dim strMatch As String
 
-    On Error GoTo err_here
+  On Error GoTo err_here
 
-    Set RE = CreateObject("vbscript.regexp")
-    With RE
-      .MultiLine = blnMultiline
-      .Global = True
-      .IgnoreCase = True
-      .Pattern = strRegEx
-    End With
+  Set RE = CreateObject("vbscript.regexp")
+  With RE
+    .MultiLine = blnMultiLine
+    .Global = True
+    .IgnoreCase = blnIgnoreCase
+    .Pattern = strRegEx
+  End With
 
-    Set REMatches = RE.Execute(strText)
-    For Each REMatch In REMatches
-      strMatch = REMatch
-      Exit For
-    Next
-    cptRegEx = strMatch
+  Set REMatches = RE.Execute(strText)
+  For Each REMatch In REMatches
+    strMatch = REMatch
+    Exit For
+  Next
+  cptRegEx = strMatch
 
 exit_here:
-    On Error Resume Next
-    Set RE = Nothing
-    Set REMatches = Nothing
-    Exit Function
+  On Error Resume Next
+  Set RE = Nothing
+  Set REMatches = Nothing
+  Exit Function
 err_here:
   If Err.Number = 5 Then
     cptRegEx = ""
@@ -777,7 +1281,7 @@ err_here:
 End Function
 
 Function cptDir() As String
-Dim strPath As String
+  Dim strPath As String
 
   'confirm existence of cpt settings and backup modules file
 
@@ -800,12 +1304,12 @@ Dim strPath As String
 End Function
 
 Function cptModuleExists(strModule As String) As Boolean
-'objects
-Dim vbComponent As Object
-'booleans
-Dim blnExists As Boolean
-'strings
-Dim strError As String
+  'objects
+  Dim vbComponent As Object
+  'booleans
+  Dim blnExists As Boolean
+  'strings
+  Dim strError As String
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
 
@@ -830,27 +1334,30 @@ err_here:
 End Function
 
 Sub cptUninstall()
-'objects
-Dim vEvent As Object
-Dim Project As Object
-Dim vbComponent As Object
-Dim cmThisProject As Object
-'strings
-Dim strMsg As String
-'longs
-Dim lngLine As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim vEvent As Object
+  Dim Project As Object
+  Dim vbComponent As Object
+  Dim cmThisProject As Object
+  'strings
+  Dim strDir As String
+  Dim strMsg As String
+  'longs
+  Dim lngLine As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If BLN_TRAP_ERRORS Then On Error GoTo err_here Else On Error GoTo 0
+  strDir = cptDir
 
   If MsgBox("Are you sure?", vbCritical + vbYesNo, "Uninstall CPT") = vbNo Then GoTo exit_here
 
   strMsg = "1. Please delete the module 'cptSetup_bas' manually after this process completes." & vbCrLf & vbCrLf
-  strMsg = strMsg & "2. If you have made modifications to the ThisProject codemodule, you may need to review it." & vbCrLf & vbCrLf
+  strMsg = strMsg & "2. If you have made modifications to the 'ThisProject' module, you may need to review it." & vbCrLf & vbCrLf
+  strMsg = strMsg & "3. This process will NOT delete your historical data and saved settings which are stored in '" & strDir & "'. Please do this manually - and fully aware that this cannot be undone." & vbCrLf & vbCrLf
   strMsg = strMsg & "Alternatively, if you would like to reinstall, re-run cptSetup() and then install updates."
   If MsgBox(strMsg, vbInformation + vbOKCancel, "Thank You!") = vbCancel Then GoTo exit_here
 
@@ -890,8 +1397,8 @@ Dim lngLine As Long
     If Left(vbComponent.Name, 3) = "cpt" And vbComponent.Name <> "cptSetup_bas" Then
       If vbComponent.Name = "cptAdmin_bas" Then GoTo next_component
       Application.StatusBar = "Purging module " & vbComponent.Name & "..."
-      If Dir(cptDir & "\modules\", vbDirectory) = vbNullString Then MkDir cptDir & "\modules"
-      vbComponent.Export cptDir & "\modules\" & vbComponent.Name
+      If Dir(strDir & "\modules\", vbDirectory) = vbNullString Then MkDir strDir & "\modules"
+      vbComponent.Export strDir & "\modules\" & vbComponent.Name
       ThisProject.VBProject.VBComponents.Remove vbComponent
     End If
 next_component:

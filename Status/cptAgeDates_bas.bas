@@ -1,9 +1,10 @@
 Attribute VB_Name = "cptAgeDates_bas"
-'<cpt_version>v1.0.1</cpt_version>
+'<cpt_version>v1.1.0</cpt_version>
 Option Explicit
 
 Sub cptShowAgeDates_frm()
   'objects
+  Dim myAgeDates_frm As cptAgeDates_frm
   'strings
   Dim strSetting As String
   'longs
@@ -42,12 +43,14 @@ Sub cptShowAgeDates_frm()
   strSetting = cptGetSetting("StatusSheetImport", "cboFF")
   If Len(strSetting) > 0 Then lngFF = CLng(strSetting) Else lngFF = 0
   
-  With cptAgeDates_frm
+  Set myAgeDates_frm = New cptAgeDates_frm
+  With myAgeDates_frm
     .Caption = "Age Dates (" & cptGetVersion("cptAgeDates_frm") & ")"
     .lblStatus = "(" & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & ")"
     .cboWeeks.Clear
     For lngWeek = 1 To 10
-      .cboWeeks.AddItem lngWeek & IIf(lngWeek = 1, " week", " weeks")
+      .cboWeeks.AddItem
+      .cboWeeks.List(.cboWeeks.ListCount - 1, 0) = lngWeek & IIf(lngWeek = 1, " week", " weeks")
       For lngControl = 1 To 10
         With .Controls("cboWeek" & lngControl)
           .AddItem
@@ -57,7 +60,6 @@ Sub cptShowAgeDates_frm()
         End With
       Next lngControl
     Next lngWeek
-    
     strSetting = cptGetSetting("AgeDates", "cboWeeks")
     If Len(strSetting) > 0 Then
       .cboWeeks.Value = strSetting
@@ -88,14 +90,15 @@ Sub cptShowAgeDates_frm()
   
 exit_here:
   On Error Resume Next
-
+  Set myAgeDates_frm = Nothing
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptAgeDates_bas", "cptShowAgeDates_frm", Err, Erl)
   Resume exit_here
 End Sub
 
-Sub cptAgeDates()
+Sub cptAgeDates(ByRef myAgeDates_frm As cptAgeDates_frm)
   'run this immediately prior to a status meeting
   'objects
   Dim oTask As MSProject.Task
@@ -110,25 +113,27 @@ Sub cptAgeDates()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   Dim dtStatus As Date
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   Application.Calculation = pjManual
   Application.OpenUndoTransaction "Age Dates"
-  dtStatus = Format(ActiveProject.StatusDate, "mm/dd/yy")
+  dtStatus = FormatDateTime(ActiveProject.StatusDate, vbShortDate)
   
   On Error Resume Next
   lngTest = FieldNameToFieldConstant("Start (" & FormatDateTime(ActiveProject.StatusDate, vbShortDate) & ")")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If lngTest > 0 Then
-    MsgBox "Dates already aged for status date " & Format(dtStatus, "mm/dd/yyyy") & ".", vbExclamation + vbOKOnly, "Age Dates"
+    MsgBox "Dates already aged for status date " & FormatDateTime(dtStatus, vbShortDate) & ".", vbExclamation + vbOKOnly, "Age Dates"
     GoTo exit_here
   End If
 
-  With cptAgeDates_frm
+  With myAgeDates_frm
     
     For lngControl = 10 To 1 Step -1
       If .Controls("cboWeek" & lngControl).Enabled Then
@@ -228,6 +233,7 @@ Sub cptBlameReport()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   Dim vMyHeader As Variant
   Dim vBorder As Variant
@@ -237,7 +243,8 @@ Sub cptBlameReport()
   Dim dtCurr As Date
   Dim dtPrev As Date
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   Application.StatusBar = "Gettings saved settings..."
   DoEvents
@@ -267,7 +274,7 @@ Sub cptBlameReport()
   
   On Error Resume Next
   'Set oExcel = GetObject(, "Excel.Application")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If
@@ -446,7 +453,7 @@ next_task:
   oWorksheet.[A1].Font.Size = 24
   oWorksheet.[A2] = ActiveProject.Name
   oWorksheet.[A3] = "Status Date: " & FormatDateTime(ActiveProject.StatusDate, vbShortDate)
-  oExcel.ActiveWindow.DisplayGridLines = False
+  oExcel.ActiveWindow.DisplayGridlines = False
   oExcel.Calculation = xlCalculationAutomatic
   
   Application.StatusBar = "Determining worst offender..."
@@ -456,8 +463,8 @@ next_task:
   For Each vColumn In Array("START DELTA", "DURATION DELTA", "FINISH DELTA")
     If lngMin = oExcel.WorksheetFunction.Min(oListObject.ListColumns(vColumn).DataBodyRange) Then
       oListObject.Sort.SortFields.Clear
-      oListObject.Sort.SortFields.Add key:=oListObject.ListColumns(vColumn).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
-      oListObject.Sort.SortFields.Add key:=oListObject.ListColumns("CURRENT " & Replace(vColumn, " DELTA", "")).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add Key:=oListObject.ListColumns(vColumn).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
+      oListObject.Sort.SortFields.Add Key:=oListObject.ListColumns("CURRENT " & Replace(vColumn, " DELTA", "")).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:=xlSortNormal
       With oListObject.Sort
         .Header = xlYes
         .MatchCase = False

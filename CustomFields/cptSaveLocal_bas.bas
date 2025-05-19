@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptSaveLocal_bas"
-'<cpt_version>v1.1.7</cpt_version>
+'<cpt_version>v1.2.0</cpt_version>
 Option Explicit
 Public strStartView As String
 Public strStartTable As String
@@ -7,48 +7,50 @@ Public strStartFilter As String
 Public strStartGroup As String
 
 Sub cptShowSaveLocal_frm()
-'objects
-Dim oRange As Excel.Range
-Dim oListObject As ListObject
-Dim rstProjects As Object 'ADODB.Recordset
-Dim oSubProject As MSProject.Subproject
-Dim oMasterProject As MSProject.Project
-Dim oWorksheet As Excel.Worksheet
-Dim oWorkbook As Excel.Workbook
-Dim oExcel As Excel.Application
-Dim oTask As MSProject.Task
-Dim rstSavedMap As Object 'ADODB.Recordset
-Dim dTypes As Scripting.Dictionary
-Dim rstECF As Object 'ADODB.Recordset
-'strings
-Dim strURL As String
-Dim strSaved As String
-Dim strEntity As String
-Dim strGUID As String
-Dim strECF As String
-'longs
-Dim lngECF As Long
-Dim lngLCF As Long
-Dim lngMismatchCount As Long
-Dim lngLastRow As Long
-Dim lngSubproject As Long
-Dim lngProject As Long
-Dim lngSubprojectCount As Long
-Dim lngField As Long
-Dim lngFields As Long
-Dim lngType As Long
-Dim lngECFCount As Long
-'integers
-'doubles
-'booleans
-'variants
-Dim vLine As Variant
-Dim vEntity As Variant
-Dim vType As Variant
-'dates
+  'objects
+  Dim mySaveLocal_frm As cptSaveLocal_frm
+  Dim oRange As Excel.Range
+  Dim oListObject As ListObject
+  Dim rstProjects As Object 'ADODB.Recordset
+  Dim oSubProject As MSProject.SubProject
+  Dim oMasterProject As MSProject.Project
+  Dim oWorksheet As Excel.Worksheet
+  Dim oWorkbook As Excel.Workbook
+  Dim oExcel As Excel.Application
+  Dim oTask As MSProject.Task
+  Dim rstSavedMap As Object 'ADODB.Recordset
+  Dim dTypes As Scripting.Dictionary
+  Dim rstECF As Object 'ADODB.Recordset
+  'strings
+  Dim strDir As String
+  Dim strURL As String
+  Dim strSaved As String
+  Dim strEntity As String
+  Dim strGUID As String
+  Dim strECF As String
+  'longs
+  Dim lngECF As Long
+  Dim lngLCF As Long
+  Dim lngMismatchCount As Long
+  Dim lngLastRow As Long
+  Dim lngSubProject As Long
+  Dim lngProject As Long
+  Dim lngSubProjectCount As Long
+  Dim lngField As Long
+  Dim lngFields As Long
+  Dim lngType As Long
+  Dim lngECFCount As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  Dim vLine As Variant
+  Dim vEntity As Variant
+  Dim vType As Variant
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-  
+  strDir = cptDir
   'get server URL
   If Projects.Count = 0 Then GoTo exit_here
   If Len(ActiveProject.ServerURL) = 0 Then
@@ -69,9 +71,9 @@ Dim vType As Variant
   dTypes.Add "Text", 30
   
   'if master/sub then ensure LCFs match
-  lngSubprojectCount = ActiveProject.Subprojects.Count
-  If lngSubprojectCount > 0 Then
-    If MsgBox(lngSubprojectCount & " subproject(s) found." & vbCrLf & vbCrLf & "It is highly recommended that you analyze master/sub LCF matches." & vbCrLf & vbCrLf & "Do it now?", vbExclamation + vbYesNo, "Master/Sub Detected") = vbNo Then GoTo skip_it
+  lngSubProjectCount = ActiveProject.Subprojects.Count
+  If lngSubProjectCount > 0 Then
+    If MsgBox(lngSubProjectCount & " subproject(s) found." & vbCrLf & vbCrLf & "It is highly recommended that you analyze master/sub LCF matches." & vbCrLf & vbCrLf & "Do it now?", vbExclamation + vbYesNo, "Master/Sub Detected") = vbNo Then GoTo skip_it
     Set oMasterProject = ActiveProject
     Application.StatusBar = "Setting up Excel..."
     'set up Excel
@@ -228,7 +230,7 @@ skip_it:
   strStartGroup = ActiveProject.CurrentGroup
   
   'apply the ECF to LCF view
-  cptUpdateSaveLocalView
+  cptUpdateSaveLocalView mySaveLocal_frm
   
   'prepare to capture all ECFs
   Set rstECF = CreateObject("ADODB.Recordset")
@@ -247,7 +249,7 @@ skip_it:
   Application.CalculateProject
   
   'populate field types
-  With cptSaveLocal_frm
+  With mySaveLocal_frm
     .Caption = "Save Local (" & cptGetVersion("cptSaveLocal_frm") & ")"
     .cboLCF.Clear
     .cboECF.Clear
@@ -300,11 +302,11 @@ next_type:
   
     oTask.Delete
   
-    If Dir(cptDir & "\settings\cpt-ecf.adtg") <> vbNullString Then
-      Kill cptDir & "\settings\cpt-ecf.adtg"
+    If Dir(strDir & "\settings\cpt-ecf.adtg") <> vbNullString Then
+      Kill strDir & "\settings\cpt-ecf.adtg"
     End If
     rstECF.Sort = "ECF_Name"
-    rstECF.Save cptDir & "\settings\cpt-ecf.adtg"
+    rstECF.Save strDir & "\settings\cpt-ecf.adtg"
     rstECF.Close
   
     'trigger lboECF refresh
@@ -315,7 +317,7 @@ next_type:
       If Not IsNull(.lboECF.List(lngField, 3)) Then
         lngECF = .lboECF.List(lngField, 0)
         lngLCF = .lboECF.List(lngField, 3)
-        cptUpdateSaveLocalView lngECF, lngLCF
+        cptUpdateSaveLocalView mySaveLocal_frm, lngECF, lngLCF
       End If
     Next lngField
         
@@ -331,6 +333,7 @@ next_type:
 
 exit_here:
   On Error Resume Next
+  Set mySaveLocal_frm = Nothing
   Set oRange = Nothing
   Set oListObject = Nothing
   Set rstProjects = Nothing
@@ -360,29 +363,29 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptSaveLocal()
-'objects
-Dim rstSavedMap As Object 'ADODB.Recordset
-Dim oTasks As MSProject.Tasks
-Dim oTask As MSProject.Task
-Dim oResources As Resources
-Dim oResource As Resource
-'strings
-Dim strErrors As String
-Dim strGUID As String
-Dim strSavedMap As String
-Dim strMsg As String
-'longs
-Dim lngType As Long
-Dim lngItems As Long
-Dim lngLCF As Long
-Dim lngECF As Long
-Dim lngItem As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+Sub cptSaveLocal(ByRef mySaveLocal_frm As cptSaveLocal_frm)
+  'objects
+  Dim rstSavedMap As Object 'ADODB.Recordset
+  Dim oTasks As MSProject.Tasks
+  Dim oTask As MSProject.Task
+  Dim oResources As Resources
+  Dim oResource As Resource
+  'strings
+  Dim strErrors As String
+  Dim strGUID As String
+  Dim strSavedMap As String
+  Dim strMsg As String
+  'longs
+  Dim lngType As Long
+  Dim lngItems As Long
+  Dim lngLCF As Long
+  Dim lngECF As Long
+  Dim lngItem As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -412,12 +415,12 @@ Dim lngItem As Long
   'get total task count
   ActiveWindow.TopPane.Activate
   'determine whether we're working with tasks or resources
-  If cptSaveLocal_frm.optTasks Then
+  If mySaveLocal_frm.optTasks Then
     lngType = pjTask
     If ActiveProject.CurrentView <> ".cptSaveLocal Task View" Then
       ViewApply ".cptSaveLocal Task View"
     End If
-  ElseIf cptSaveLocal_frm.optResources Then
+  ElseIf mySaveLocal_frm.optResources Then
     lngType = pjResource
     If ActiveProject.CurrencyCode <> ".cptSaveLocal Resource View" Then
       ViewApply ".cptSaveLocal Resource View"
@@ -454,7 +457,7 @@ Dim lngItem As Long
     End If
   End If
   
-  With cptSaveLocal_frm
+  With mySaveLocal_frm
     If lngType = pjTask Then
       For Each oTask In ActiveProject.Tasks
         If oTask Is Nothing Then GoTo next_task
@@ -772,7 +775,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptAnalyzeAutoMap()
+Sub cptAnalyzeAutoMap(ByRef mySaveLocal_frm As cptSaveLocal_frm)
   'objects
   Dim rstAvailable As Object 'ADODB.Recordset
   Dim dTypes As Scripting.Dictionary
@@ -830,12 +833,12 @@ Sub cptAnalyzeAutoMap()
     Next lngItem
     
     'get total ECF
-    For lngItem = 0 To cptSaveLocal_frm.lboECF.ListCount - 1
-      If cptSaveLocal_frm.lboECF.Selected(lngItem) Then
+    For lngItem = 0 To mySaveLocal_frm.lboECF.ListCount - 1
+      If mySaveLocal_frm.lboECF.Selected(lngItem) Then
         .MoveFirst
-        .Find "TYPE='" & Replace(cptSaveLocal_frm.lboECF.List(lngItem, 2), "Maybe", "") & "'"
+        .Find "TYPE='" & Replace(mySaveLocal_frm.lboECF.List(lngItem, 2), "Maybe", "") & "'"
         If Not .EOF Then
-          If IsNull(cptSaveLocal_frm.lboECF.List(cptSaveLocal_frm.lboECF.ListIndex, 3)) Then
+          If IsNull(mySaveLocal_frm.lboECF.List(mySaveLocal_frm.lboECF.ListIndex, 3)) Then
             'only count unmapped
             .Fields(1) = .Fields(1) + 1
           End If
@@ -863,21 +866,21 @@ Sub cptAnalyzeAutoMap()
       .MoveNext
     Loop
     strMsg = strMsg & String(34, "-") & vbCrLf
-    cptSaveLocal_frm.cmdAutoMap.Enabled = False
+    mySaveLocal_frm.cmdAutoMap.Enabled = False
     If InStr(strMsg, "  X ") > 0 Then
       strMsg = strMsg & "AutoMap is NOT available." & vbCrLf
       strMsg = strMsg & "Free up some fields and try again."
     Else
       strMsg = strMsg & "AutoMap IS available." & vbCrLf
       strMsg = strMsg & "Click GO! to AutoMap now."
-      If cptSaveLocal_frm.tglAutoMap Then
-        cptSaveLocal_frm.cmdAutoMap.Enabled = True
+      If mySaveLocal_frm.tglAutoMap Then
+        mySaveLocal_frm.cmdAutoMap.Enabled = True
       Else
-        cptSaveLocal_frm.cmdAutoMap.Enabled = False
+        mySaveLocal_frm.cmdAutoMap.Enabled = False
       End If
     End If
     
-    cptSaveLocal_frm.txtAutoMap.Value = strMsg
+    mySaveLocal_frm.txtAutoMap.Value = strMsg
     
     .Close
     
@@ -895,7 +898,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptAutoMap()
+Sub cptAutoMap(ByRef mySaveLocal_frm As cptSaveLocal_frm)
   'objects
   'strings
   'longs
@@ -915,7 +918,7 @@ Sub cptAutoMap()
   'todo: hide analysis after AutoMap; cptRefreshLCF
   'todo: for dates > 10 cycle through date, start, finish
 
-  With cptSaveLocal_frm
+  With mySaveLocal_frm
     .lblStatus.Caption = "AutoMapping..."
     'loop through ECFs looking for selected ECFs to map
     For lngECFs = 0 To .lboECF.ListCount - 1
@@ -927,10 +930,10 @@ Sub cptAutoMap()
         For lngLCFs = 0 To .lboLCF.ListCount - 1
           lngLCF = .lboLCF.List(lngLCFs, 0)
           If Len(CustomFieldGetName(lngLCF)) = 0 Then
-            Call cptMapECFtoLCF(lngECF, lngLCF)
+            Call cptMapECFtoLCF(mySaveLocal_frm, lngECF, lngLCF)
             .lboECF.List(lngECFs, 3) = lngLCF
             .lboECF.List(lngECFs, 4) = CustomFieldGetName(lngLCF)
-            Call cptAnalyzeAutoMap
+            cptAnalyzeAutoMap mySaveLocal_frm
             Exit For
           End If
         Next lngLCFs
@@ -955,7 +958,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
+Sub cptMapECFtoLCF(ByRef mySaveLocal_frm As cptSaveLocal_frm, lngECF As Long, lngLCF As Long)
   'objects
   Dim rstSavedMap As Object 'ADODB.Recordset
   Dim oLookupTableEntry As LookupTableEntry
@@ -987,7 +990,7 @@ Sub cptMapECFtoLCF(lngECF As Long, lngLCF As Long)
 
   'todo: deletecustomfield if overwriting
 
-  With cptSaveLocal_frm
+  With mySaveLocal_frm
     'if already mapped then prompt with ECF name and ask to remap
     For lngItem = 0 To .lboECF.ListCount - 1
       If .lboECF.List(lngItem, 3) = lngLCF Then
@@ -1065,9 +1068,9 @@ skip_rename:
 next_formula_field:
       Next vField
       If Not blnProceed Then
-        MsgBox "ECF relies on the following unmapped ECF fields:" & vbCrLf & strUnmapped & vbCrLf & "Please map source ECF fields first.", vbInformation + vbOKOnly, "Not yet..."
+        MsgBox "ECF '" & FieldConstantToFieldName(lngECF) & "' contains a formula:" & vbCrLf & vbCrLf & strCustomFormula & vbCrLf & vbCrLf & "Please map dependent ECFs first:" & vbCrLf & strUnmapped, vbInformation + vbOKOnly, "Not yet..."
         CustomFieldDelete lngLCF
-        cptUpdateLCF
+        cptUpdateLCF mySaveLocal_frm
         GoTo exit_here
       Else
         CustomFieldPropertiesEx lngLCF, pjFieldAttributeFormula
@@ -1163,7 +1166,7 @@ next_formula_field:
   rstSavedMap.Close
   
   'update the table
-  cptUpdateSaveLocalView lngECF, lngLCF
+  cptUpdateSaveLocalView mySaveLocal_frm, lngECF, lngLCF
   
 exit_here:
   On Error Resume Next
@@ -1251,7 +1254,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptImportCFMap()
+Sub cptImportCFMap(ByRef mySaveLocal_frm As cptSaveLocal_frm)
   'objects
   Dim rstSavedMap As Object 'ADODB.Recordset
   Dim oStream As Scripting.TextStream
@@ -1260,6 +1263,7 @@ Sub cptImportCFMap()
   Dim oExcel As Excel.Application
   Dim oFileDialog As Object 'FileDialog
   'strings
+  Dim strDir As String
   Dim strGUID As String
   Dim strConn As String
   Dim strSavedMapImport As String
@@ -1272,7 +1276,7 @@ Sub cptImportCFMap()
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-    
+  strDir = cptDir
   'get guid
   If CLng(Left(Application.Build, 2)) < 12 Then
     strGUID = ActiveProject.DatabaseProjectUniqueID
@@ -1305,14 +1309,14 @@ Sub cptImportCFMap()
   'open user's saved map
   Set rstSavedMap = CreateObject("ADODB.Recordset")
   With rstSavedMap
-    If Dir(cptDir & "\settings\cpt-save-local.adtg") = vbNullString Then 'create it
+    If Dir(strDir & "\settings\cpt-save-local.adtg") = vbNullString Then 'create it
       .Fields.Append "ServerURL", adVarChar, 255
       .Fields.Append "GUID", adGUID
       .Fields.Append "ECF", adInteger
       .Fields.Append "LCF", adInteger
       .Save strSavedMapImport, adPersistADTG
     End If
-    .Open cptDir & "\settings\cpt-save-local.adtg", "Provider=MSPersist", , , adCmdFile
+    .Open strDir & "\settings\cpt-save-local.adtg", "Provider=MSPersist", , , adCmdFile
     
     Do Until oStream.AtEndOfStream
       aLine = Split(oStream.ReadLine, ",")
@@ -1328,9 +1332,9 @@ Sub cptImportCFMap()
             MsgBox "The imported ECF (" & CLng(aLine(2)) & ") is <Unavailable> on this server.", vbCritical + vbOKOnly, "Invalid ECF"
           Else
             'todo: ensure same ECF settings?
-            cptSaveLocal_frm.lboECF.Value = CLng(aLine(2))
-            cptSaveLocal_frm.lboLCF.Value = CLng(aLine(3))
-            Call cptMapECFtoLCF(CLng(aLine(2)), CLng(aLine(3)))
+            mySaveLocal_frm.lboECF.Value = CLng(aLine(2))
+            mySaveLocal_frm.lboLCF.Value = CLng(aLine(3))
+            Call cptMapECFtoLCF(mySaveLocal_frm, CLng(aLine(2)), CLng(aLine(3)))
           End If
         End If
       End If
@@ -1354,11 +1358,12 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptUpdateECF(Optional strFilter As String)
+Sub cptUpdateECF(ByRef mySaveLocal_frm As cptSaveLocal_frm, Optional strFilter As String)
   'objects
   Dim rstECF As Object 'ADODB.Recordset
   Dim rstSavedMap As Object 'ADODB.Recordset
   'strings
+  Dim strDir As String
   Dim strGUID As String
   Dim strSavedMap As String
   'longs
@@ -1370,6 +1375,7 @@ Sub cptUpdateECF(Optional strFilter As String)
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  strDir = cptDir
   
   'get project guid
   If CLng(Left(Application.Build, 2)) < 12 Then
@@ -1379,12 +1385,12 @@ Sub cptUpdateECF(Optional strFilter As String)
   End If
   
   'open the ecf recordset
-  If Dir(cptDir & "\settings\cpt-ecf.adtg") = vbNullString Then GoTo exit_here
+  If Dir(strDir & "\settings\cpt-ecf.adtg") = vbNullString Then GoTo exit_here
   Set rstECF = CreateObject("ADODB.Recordset")
-  rstECF.Open cptDir & "\settings\cpt-ecf.adtg"
+  rstECF.Open strDir & "\settings\cpt-ecf.adtg"
     
   'check for saved map
-  strSavedMap = cptDir & "\settings\cpt-save-local.adtg"
+  strSavedMap = strDir & "\settings\cpt-save-local.adtg"
   blnExists = Dir(strSavedMap) <> vbNullString
   If blnExists Then
     Set rstSavedMap = CreateObject("ADODB.Recordset")
@@ -1392,7 +1398,7 @@ Sub cptUpdateECF(Optional strFilter As String)
   End If
   
   'populate the form - defaults to task ECFs, text
-  With cptSaveLocal_frm
+  With mySaveLocal_frm
     'populate map
     .lboECF.Clear
     If rstECF.RecordCount = 0 Then
@@ -1453,24 +1459,24 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptUpdateLCF(Optional strFilter As String)
-'objects
-'strings
-Dim strCustomName As String
-Dim strFieldName As String
-'longs
-Dim lngFieldID As Long
-Dim lngFields As Long
-Dim lngField As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+Sub cptUpdateLCF(ByRef mySaveLocal_frm As cptSaveLocal_frm, Optional strFilter As String)
+  'objects
+  'strings
+  Dim strCustomName As String
+  Dim strFieldName As String
+  'longs
+  Dim lngFieldID As Long
+  Dim lngFields As Long
+  Dim lngField As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  With cptSaveLocal_frm
+  With mySaveLocal_frm
     .lboLCF.Clear
     lngFields = .cboLCF.Column(1)
     For lngField = 1 To lngFields
@@ -1502,7 +1508,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptUpdateSaveLocalView(Optional lngECF As Long, Optional lngLCF As Long)
+Sub cptUpdateSaveLocalView(ByRef mySaveLocal_frm As cptSaveLocal_frm, Optional lngECF As Long, Optional lngLCF As Long)
   'objects
   'strings
   'longs
@@ -1515,7 +1521,7 @@ Sub cptUpdateSaveLocalView(Optional lngECF As Long, Optional lngLCF As Long)
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  With cptSaveLocal_frm
+  With mySaveLocal_frm
     If Not .Visible Then
       'create/overwrite the tables
       cptSpeed True
@@ -1588,7 +1594,7 @@ Function cptLocalCustomFieldsMatch() As Boolean
   Dim oListObject As Excel.ListObject
   Dim dTypes As Scripting.Dictionary
   Dim oMasterProject As MSProject.Project
-  Dim oSubProject As MSProject.Subproject
+  Dim oSubProject As MSProject.SubProject
   Dim rstProjects As ADODB.Recordset
   Dim oWorksheet As Excel.Worksheet
   Dim oWorkbook As Excel.Workbook

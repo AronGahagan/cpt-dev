@@ -1,13 +1,17 @@
-*.mpp
-*.docx
 !ClearPlan IMS Export Utility_*.docx
-*.pdf
+*.accdb
 *.bak
 *.csv
-*.xlsm
+*.diff
+*.docx
+*.json
+*.mpp
+*.pdf
 *.plx
-todo.txt
 *.sh
+*.xlsm
 *.xlsx
+CurrentVersions.txt
 cpt-macro-map.txt
 cpt-ribbon.xml
+todo.txt

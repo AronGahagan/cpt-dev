@@ -13,17 +13,17 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.0.1</cpt_version>
+'<cpt_version>v1.1.0</cpt_version>
 Option Explicit
 Public lngTaskHistoryUID As Long
 
 Private Sub cmdDone_Click()
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub cmdExport_Click()
   If IsNumeric(CLng(Me.lngTaskHistoryUID)) Then
-    Call cptExportTaskHistory(CLng(Me.lngTaskHistoryUID))
+    Call cptExportTaskHistory(Me, CLng(Me.lngTaskHistoryUID))
   End If
 End Sub
 
@@ -45,14 +45,14 @@ End Sub
 Private Sub lboTaskHistory_Click()
   If IsNull(Me.lboTaskHistory.Value) Then Exit Sub
   If Me.ActiveControl.Name <> "lboTaskHistory" Then Exit Sub
-  Call cptGetTaskHistoryNote(CDate(Me.lboTaskHistory.Value), CLng(Me.lngTaskHistoryUID))
+  Call cptGetTaskHistoryNote(Me, CDate(Me.lboTaskHistory.Value), CLng(Me.lngTaskHistoryUID))
 End Sub
 
 Private Sub optAllHistory_Click()
   If Me.optAllHistory Then
     Me.optAllHistory.Value = False
     Me.tglExport = False
-    Call cptExportTaskHistory
+    cptExportTaskHistory Me
   End If
 End Sub
 
@@ -61,7 +61,7 @@ Private Sub optCurrentNotes_Click()
     If IsDate(ActiveProject.StatusDate) Then
       Me.lblWarning.Visible = False
       Me.tglExport.Value = False
-      Call cptExportTaskHistory(blnNotesOnly:=True)
+      Call cptExportTaskHistory(Me, blnNotesOnly:=True)
     Else
       Me.optCurrentNotes.Value = False
       Me.lblWarning.Caption = "No Status Date."
@@ -75,7 +75,7 @@ Private Sub optTaskHistory_Click()
     If IsNumeric(Me.lngTaskHistoryUID) Then
       Me.lblWarning.Visible = False
       Me.tglExport.Value = False
-      Call cptExportTaskHistory(lngUID:=CLng(Me.lngTaskHistoryUID))
+      Call cptExportTaskHistory(Me, lngUID:=CLng(Me.lngTaskHistoryUID))
     Else
       Me.optTaskHistory.Value = False
       Me.lblWarning.Caption = "No task selected."
@@ -114,7 +114,7 @@ Private Sub txtVariance_Change()
     Exit Sub
   Else
     Me.lblWarning.Visible = False
-    Call cptUpdateTaskHistoryNote(CLng(Me.lngTaskHistoryUID), Me.lboTaskHistory.Value, Me.txtVariance.Text)
+    Call cptUpdateTaskHistoryNote(Me, CLng(Me.lngTaskHistoryUID), Me.lboTaskHistory.Value, Me.txtVariance.Text)
     'todo: update character limit caption
   End If
 End Sub
@@ -124,10 +124,18 @@ Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, 
 End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
+Private Sub UserForm_Terminate()
   If oTaskHistory.State Then
     oTaskHistory.Filter = 0
     oTaskHistory.Save cptDir & "\settings\cpt-cei.adtg", adPersistADTG
     oTaskHistory.Close
     Set oTaskHistory = Nothing
   End If
+  Unload Me
 End Sub

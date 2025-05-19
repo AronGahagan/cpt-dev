@@ -13,7 +13,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.2.2</cpt_version>
+
+'<cpt_version>v1.2.3</cpt_version>
 Option Explicit
 
 Private Sub cboExport_Change()
@@ -82,40 +83,41 @@ Private Sub cboOutlineCodes_Change()
   Me.txtReplace.Text = ""
   Me.txtReplacement.Text = ""
   Me.lboOutlineCode.Clear
+  DoEvents
   If Not IsNull(Me.cboOutlineCodes.Value) Then
     If Len(CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))) > 0 Then
-      Call cptRefreshOutlineCodePreview(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 1))
+      Call cptRefreshOutlineCodePreview(Me, Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 1))
     End If
     Me.txtNameIt = CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))
   End If
 End Sub
 
 Private Sub cmdCancel_Click()
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub cmdExport_Click()
-'objects
-'strings
-'longs
-Dim lngOutlineCode As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  'strings
+  'longs
+  Dim lngOutlineCode As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   lngOutlineCode = Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0)
   Select Case Me.cboExport
     Case "To Excel Workbook"
-      Call cptExportOutlineCodeToExcel(lngOutlineCode)
+      Call cptExportOutlineCodeToExcel(Me, lngOutlineCode)
     Case "To CSV for MPM"
-      Call cptExportOutlineCodeForMPM(lngOutlineCode)
+      Call cptExportOutlineCodeForMPM(Me, lngOutlineCode)
     Case "To CSV for COBRA"
-      Call cptExportOutlineCodeForCOBRA(lngOutlineCode)
+      Call cptExportOutlineCodeForCOBRA(Me, lngOutlineCode)
     Case "To DI-MGMT-81334D Template"
-      Call cptExport81334D(lngOutlineCode)
+      Call cptExport81334D(Me, lngOutlineCode)
   End Select
 
 exit_here:
@@ -132,16 +134,24 @@ Private Sub cmdExportTemplate_Click()
 End Sub
 
 Private Sub cmdImport_Click()
-'objects
-'strings
-Dim strOutlineCode As String
-'longs
-Dim lngOutlineCode As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim oTask As MSProject.Task
+  Dim oOutlineCode As MSProject.OutlineCode
+  'strings
+  Dim strFile As String
+  Dim strMsg As String
+  Dim strOutlineCode As String
+  'longs
+  Dim lngItem As Long
+  Dim lngItems As Long
+  Dim lngFile As Long
+  Dim lngResponse As Long
+  Dim lngOutlineCode As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -153,6 +163,66 @@ Dim lngOutlineCode As Long
     strOutlineCode = Me.txtNameIt
   End If
   lngOutlineCode = Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0)
+  CustomFieldRename lngOutlineCode, strOutlineCode
+  Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
+  'does a lookuptable already exist?
+  If oOutlineCode.LookupTable.Count > 0 Then 'what does user want us to do? ask:
+    strMsg = "Outline Code '" & strOutlineCode & "' already has a lookup table." & vbCrLf & vbCrLf
+    strMsg = strMsg & "Would you like to OVERWRITE this Outline Code?" & vbCrLf & vbCrLf
+    strMsg = strMsg & "(If you click Yes, task-level selections may be lost!)" & vbCrLf
+    lngResponse = MsgBox(strMsg, vbExclamation + vbYesNo, "Warning...")
+    If lngResponse = vbNo Then 'NOPE THE HECK RIGHT OUTTA HERE
+      GoTo exit_here
+    ElseIf lngResponse = vbYes Then 'OVERWRITE
+      If MsgBox("Are you sure?", vbCritical + vbYesNo, "CONFIRM TASK DATA LOSS") = vbYes Then
+        'backup outline code
+        lngFile = FreeFile
+        strFile = Environ("tmp") & "\" & strOutlineCode & "-was.csv"
+        Open strFile For Output As #lngFile
+        Print #lngFile, "BACKUP OF CUSTOM FIELD '" & UCase(strOutlineCode) & "' (" & FieldConstantToFieldName(lngOutlineCode) & ")"
+        Print #lngFile, String(50, "-")
+        Print #lngFile, "CODE,LEVEL,DESCRIPTION"
+        lngItems = oOutlineCode.LookupTable.Count
+        For lngItem = 1 To lngItems
+          Print #lngFile, oOutlineCode.LookupTable(lngItem).FullName & "," & oOutlineCode.LookupTable(lngItem).Level & "," & oOutlineCode.LookupTable(lngItem).Description
+          Application.StatusBar = "Backing up " & strOutlineCode & " pick-list...(" & Format(lngItem / lngItems, "0%") & ")"
+        Next lngItem
+        Close #lngFile
+        Shell "notepad.exe """ & strFile & """", vbMinimizedNoFocus
+        Application.StatusBar = ""
+        
+        'backup task data
+        lngFile = FreeFile
+        strFile = Environ("tmp") & "\" & strOutlineCode & "-task-data.csv"
+        Open strFile For Output As #lngFile
+        Print #lngFile, "BACKUP OF TASK DATA FOR CUSTOM FIELD '" & UCase(strOutlineCode) & "' (" & FieldConstantToFieldName(lngOutlineCode) & ")"
+        Print #lngFile, String(50, "-")
+        lngItems = ActiveProject.Tasks.Count
+        lngItem = 0
+        Print #lngFile, "Unique ID," & strOutlineCode
+        For Each oTask In ActiveProject.Tasks
+          If oTask Is Nothing Then GoTo next_task
+          If oTask.ExternalTask Then GoTo next_task
+          If Not oTask.Active Then GoTo next_task
+          If Len(oTask.GetField(lngOutlineCode)) > 0 Then
+            Print #lngFile, oTask.UniqueID & "," & oTask.GetField(lngOutlineCode)
+          End If
+next_task:
+          lngItem = lngItem + 1
+          Application.StatusBar = "Backing up task data...(" & Format(lngItem / lngItems, "0%") & ")"
+        Next oTask
+        Close #lngFile
+        Shell "notepad.exe """ & strFile & """", vbMinimizedNoFocus
+        Application.StatusBar = ""
+        
+        'delete lookup table and start fresh
+        For lngItem = oOutlineCode.LookupTable.Count To 1 Step -1
+          oOutlineCode.LookupTable(lngItem).Delete
+        Next lngItem
+        CustomOutlineCodeEditEx FieldID:=lngOutlineCode, OnlyLookUpTableCodes:=False, OnlyLeaves:=True, LookupDefault:=False, SortOrder:=0
+      End If
+    End If
+  End If
   
   'ensure toppane is selected
   If Not ActiveWindow.BottomPane Is Nothing Then WindowActivate TopPane:=True
@@ -168,24 +238,26 @@ Dim lngOutlineCode As Long
   CustomFieldRename lngOutlineCode, strOutlineCode
   Select Case Me.cboImport
     Case "From Excel Workbook"
-      Call cptImportCWBSFromExcel(lngOutlineCode)
+      Call cptImportCWBSFromExcel(Me, lngOutlineCode)
       
     Case "From MSP Server Outline Code Export"
-      Call cptImportCWBSFromServer(lngOutlineCode)
+      Call cptImportCWBSFromServer(Me, lngOutlineCode)
     
     Case "From MIL-STD-881D Appendix B"
-      Call cptImportAppendixB(lngOutlineCode)
+      Call cptImportAppendixB(Me, lngOutlineCode)
       
     Case "From MIL-STD-881D Appendix E"
-      Call cptImportAppendixE(lngOutlineCode)
+      Call cptImportAppendixE(Me, lngOutlineCode)
       
     Case "From Existing Tasks"
-      Call cptCreateCode(lngOutlineCode)
+      Call cptCreateCode(Me, lngOutlineCode)
   
   End Select
   
 exit_here:
   On Error Resume Next
+  Set oTask = Nothing
+  Set oOutlineCode = Nothing
   
   Exit Sub
 
@@ -196,11 +268,11 @@ err_here:
 End Sub
 
 Private Sub cmdReplace_Click()
-Dim strOutlineCode As String
+  Dim strOutlineCode As String
 
   If Len(Me.txtReplace) > 0 And Len(Me.txtReplacement) > 0 Then
     strOutlineCode = CustomFieldGetName(Me.cboOutlineCodes.Column(0))
-    Call cptRenameInsideOutlineCode(strOutlineCode, Me.txtReplace, Me.txtReplacement)
+    Call cptRenameInsideOutlineCode(Me, strOutlineCode, Me.txtReplace, Me.txtReplacement)
   End If
 
 End Sub
@@ -222,31 +294,31 @@ err_here:
 End Sub
 
 Private Sub optExport_Click()
-  Call cptBackboneHideControls
+  cptBackboneHideControls Me
   Me.cboExport.SetFocus
   Me.cboExport.DropDown
 End Sub
 
 Private Sub optImport_Click()
-  Call cptBackboneHideControls
+  cptBackboneHideControls Me
   Me.cboImport.SetFocus
   Me.cboImport.DropDown
 End Sub
 
 Private Sub optOutlineCode_Click()
-  Call cptBackboneHideControls
+  cptBackboneHideControls Me
   Me.cboOutlineCodes.SetFocus
   Me.cboOutlineCodes.DropDown
 End Sub
 
 Private Sub optReplace_Click()
-  Call cptBackboneHideControls
+  cptBackboneHideControls Me
   Me.txtReplace.SetFocus
 End Sub
 
 Private Sub txtReplace_Change()
-Dim lngEntry As Long
-Dim lngSelected As Long
+  Dim lngEntry As Long
+  Dim lngSelected As Long
 
   lngSelected = 0
   For lngEntry = 0 To Me.lboOutlineCode.ListCount - 1
@@ -264,26 +336,28 @@ Dim lngSelected As Long
 End Sub
 
 Private Sub txtReplacement_Change()
-'objects
-Dim oOutlineCode As Object 'OutlineCode
-Dim oLookupTable As Object 'LookupTable
-'strings
-Dim strOutlineCode As String
-'long
-Dim lngEntry As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  'objects
+  Dim oOutlineCode As Object 'OutlineCode
+  Dim oLookupTable As Object 'LookupTable
+  'strings
+  Dim strOutlineCode As String
+  'long
+  Dim lngEntry As Long
+  'integers
+  'doubles
+  'booleans
+  Dim blnErrorTrapping As Boolean
+  'variants
+  'dates
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   strOutlineCode = CustomFieldGetName(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0))
   Set oOutlineCode = ActiveProject.OutlineCodes(strOutlineCode)
   On Error Resume Next
   Set oLookupTable = oOutlineCode.LookupTable
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oLookupTable Is Nothing Then GoTo exit_here
   If Len(Me.txtReplace.Text) > 0 Then
     If Len(Me.txtReplacement.Text) > 0 Then
@@ -308,10 +382,13 @@ err_here:
 End Sub
 
 Private Sub txtNameIt_Change()
-'longs
-Dim lngField As Long
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  'longs
+  Dim lngField As Long
+  'booleans
+  Dim blnErrorTrapping As Boolean
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   'reset to default
   Me.txtNameIt.BorderColor = -2147483642
@@ -322,7 +399,7 @@ Dim lngField As Long
   lngField = 0
   On Error Resume Next
   lngField = FieldNameToFieldConstant(Me.txtNameIt.Text)
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If lngField <> 0 Then 'exists
     If FieldNameToFieldConstant(Me.txtNameIt.Text) <> CLng(Me.cboOutlineCodes.List(Me.cboOutlineCodes.Value, 0)) Then
       Me.txtNameIt.BorderColor = 255
@@ -342,22 +419,22 @@ err_here:
 End Sub
 
 Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
-'objects
-Dim oOutlineCode As Object 'OutlineCode
-Dim oLookupTable As Object 'LookupTable
-'strings
-Dim strNewName As String
-Dim strCustomName As String
-Dim strOutlineCode As String
-'longs
-Dim lngItem As Long
-Dim lngOutlineCode As Long
-Dim lngSelected As Long
-'integers
-'doubles
-'booleans
-'variants
-'dates
+  'objects
+  Dim oOutlineCode As Object 'OutlineCode
+  Dim oLookupTable As Object 'LookupTable
+  'strings
+  Dim strNewName As String
+  Dim strCustomName As String
+  Dim strOutlineCode As String
+  'longs
+  Dim lngItem As Long
+  Dim lngOutlineCode As Long
+  Dim lngSelected As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
@@ -397,7 +474,7 @@ Dim lngSelected As Long
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oLookupTable Is Nothing Then
     If Me.lboOutlineCode.ListCount = 0 Then
-      Call cptRefreshOutlineCodePreview(strOutlineCode)
+      Call cptRefreshOutlineCodePreview(Me, strOutlineCode)
     Else
       For lngItem = 1 To oLookupTable.Count
         If Me.lboOutlineCode.List(lngItem - 1, 2) <> oLookupTable.Item(lngItem).FullName & " - " & oLookupTable.Item(lngItem).Description Then
@@ -417,4 +494,11 @@ err_here:
   Call cptHandleErr("cptBackbone_frm", "UserForm_MouseMove", Err, Erl)
   Resume exit_here
 
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
 End Sub

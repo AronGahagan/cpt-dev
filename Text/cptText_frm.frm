@@ -6,7 +6,6 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptText_frm
    ClientTop       =   465
    ClientWidth     =   11400
    OleObjectBlob   =   "cptText_frm.frx":0000
-   ShowModal       =   0   'False
    StartUpPosition =   1  'CenterOwner
 End
 Attribute VB_Name = "cptText_frm"
@@ -14,12 +13,11 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-'<cpt_version>v1.5.2</cpt_version>
+'<cpt_version>v1.5.3</cpt_version>
 Option Explicit
 
 Private Sub cboScope_Change()
-    cptUpdatePreview
+    cptUpdatePreview Me
 End Sub
 
 Private Sub cmdApply_Click()
@@ -44,12 +42,12 @@ Dim lngItem As Long
   
   Application.OpenUndoTransaction "Advanced Text Action"
   For lngItem = 0 To Me.lboOutput.ListCount - 1
-    If IsNull(cptText_frm.lboOutput.List(lngItem, 0)) Then GoTo exit_here
+    If IsNull(Me.lboOutput.List(lngItem, 0)) Then GoTo exit_here
     On Error Resume Next
     Set oTask = ActiveProject.Tasks.UniqueID(Me.lboOutput.List(lngItem, 0))
     If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     If oTask Is Nothing Then
-      If MsgBox("UID " & cptText_frm.lboOutput.List(lngItem, 0) & " not found in Project: '" & ActiveProject.Name & "'! Proceed?", vbCritical + vbYesNo, "Task Not Found") = vbNo Then
+      If MsgBox("UID " & Me.lboOutput.List(lngItem, 0) & " not found in Project: '" & ActiveProject.Name & "'! Proceed?", vbCritical + vbYesNo, "Task Not Found") = vbNo Then
         Err.Clear
         GoTo exit_here
       Else
@@ -112,7 +110,7 @@ Dim lngItem As Long
   For lngItem = 0 To Me.lboOutput.ListCount - 1
     Me.lboOutput.List(lngItem, 1) = ActiveProject.Tasks.UniqueID(Me.lboOutput.List(lngItem, 0)).Name
   Next
-  Call cptUpdatePreview
+  cptUpdatePreview Me
 
 exit_here:
   On Error Resume Next
@@ -148,9 +146,9 @@ Dim lngItem As Long
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.txtAppend.Text) > 0 Then
-    Call cptUpdatePreview(strAppend:=Me.txtAppend.Text)
+    cptUpdatePreview Me, strAppend:=Me.txtAppend.Text
   Else
-    Call cptUpdatePreview
+    cptUpdatePreview Me
   End If
   Exit Sub
   
@@ -184,12 +182,12 @@ Dim strCharacters As String
     Me.txtCharacters.Text = strCharacters
     Me.chkIsDirty = True
     If Len(strCharacters) > 0 Then
-      Call cptUpdatePreview(lngCharacters:=CLng(strCharacters))
+      cptUpdatePreview Me, lngCharacters:=CLng(strCharacters)
     Else
-      Call cptUpdatePreview
+      cptUpdatePreview Me
     End If
   Else
-    Call cptUpdatePreview
+    cptUpdatePreview Me
   End If
   Me.chkIsDirty = CheckDirty
 
@@ -213,12 +211,12 @@ Dim strCountBy As String
     Me.txtCountBy.Text = strCountBy
     Me.chkIsDirty = True
     If Len(strCountBy) > 0 Then
-      Call cptUpdatePreview(lngCountBy:=CLng(strCountBy))
+      cptUpdatePreview Me, lngCountBy:=CLng(strCountBy)
     Else
-      Call cptUpdatePreview
+      cptUpdatePreview Me
     End If
   Else
-    Call cptUpdatePreview
+    cptUpdatePreview Me
   End If
   Me.chkIsDirty = CheckDirty
 
@@ -236,10 +234,10 @@ Private Sub txtPrefix_Change()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.txtPrefix.Text) > 0 Then
-    Call cptUpdatePreview(strPrefix:=Me.txtPrefix.Text)
+    cptUpdatePreview Me, strPrefix:=Me.txtPrefix.Text
     Me.chkIsDirty = True
   Else
-    Call cptUpdatePreview
+    cptUpdatePreview Me
   End If
   Me.chkIsDirty = CheckDirty
 
@@ -258,7 +256,7 @@ Dim lngItem As Long
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  Call cptUpdatePreview(strPrepend:=Me.txtPrepend.Text)
+  cptUpdatePreview Me, strPrepend:=Me.txtPrepend.Text
   Exit Sub
 
   If Len(Me.txtPrepend.Text) > 0 Then
@@ -286,9 +284,9 @@ Private Sub txtReplaceWhat_Change()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.txtReplaceWhat.Text) > 0 Then
-    Call cptUpdatePreview(strReplaceWhat:=Me.txtReplaceWhat.Text, strReplaceWith:=Me.txtReplaceWith)
+    cptUpdatePreview Me, strReplaceWhat:=Me.txtReplaceWhat.Text, strReplaceWith:=Me.txtReplaceWith
   Else
-    Call cptUpdatePreview
+    cptUpdatePreview Me
   End If
   Me.chkIsDirty = CheckDirty
 
@@ -306,9 +304,9 @@ Private Sub txtReplaceWith_Change()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.txtReplaceWith.Text) > 0 Then
-    Call cptUpdatePreview(strReplaceWhat:=Me.txtReplaceWhat, strReplaceWith:=Me.txtReplaceWith.Text)
+    cptUpdatePreview Me, strReplaceWhat:=Me.txtReplaceWhat, strReplaceWith:=Me.txtReplaceWith.Text
   Else
-    Call cptUpdatePreview
+    cptUpdatePreview Me
   End If
   Me.chkIsDirty = CheckDirty
   
@@ -331,12 +329,12 @@ Dim strStartAt As String
     strStartAt = cptRegEx(Me.txtStartAt.Text, "[0-9]*")
     Me.txtStartAt.Text = strStartAt
     If Len(strStartAt) > 0 Then
-      Call cptUpdatePreview(lngStartAt:=CLng(strStartAt))
+      cptUpdatePreview Me, lngStartAt:=CLng(strStartAt)
     Else
-      Call cptUpdatePreview
+      cptUpdatePreview Me
     End If
   Else
-    Call cptUpdatePreview
+    cptUpdatePreview Me
   End If
   Me.chkIsDirty = CheckDirty
 
@@ -355,9 +353,9 @@ Private Sub txtSuffix_Change()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
   If Len(Me.txtSuffix.Text) > 0 Then
-    Call cptUpdatePreview(strSuffix:=Me.txtSuffix.Text)
+    cptUpdatePreview Me, strSuffix:=Me.txtSuffix.Text
   Else
-    Call cptUpdatePreview
+    cptUpdatePreview Me
   End If
   Me.chkIsDirty = CheckDirty
 
@@ -399,4 +397,15 @@ End Function
 
 Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
   Call cptCore_bas.cptStartEvents
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
+Private Sub UserForm_Terminate()
+  Unload Me
 End Sub

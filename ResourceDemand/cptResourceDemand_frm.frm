@@ -13,8 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-'<cpt_version>v1.4.3</cpt_version>
+'<cpt_version>v1.4.4</cpt_version>
 Option Explicit
 Private Const adVarChar As Long = 200
 
@@ -57,27 +56,27 @@ Private Sub chkCosts_AfterUpdate()
 End Sub
 
 Private Sub cmdAdd_Click()
-Dim lgField As Long, lgExport As Long, lgExists As Long
+Dim lngField As Long, lngExport As Long, lngExists As Long
 Dim blnExists As Boolean
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  For lgField = 0 To Me.lboFields.ListCount - 1
-    If Me.lboFields.Selected(lgField) Then
+  For lngField = 0 To Me.lboFields.ListCount - 1
+    If Me.lboFields.Selected(lngField) Then
       'ensure doesn't already exist
       blnExists = False
-      For lgExists = 0 To Me.lboExport.ListCount - 1
-        If Me.lboExport.List(lgExists, 0) = Me.lboFields.List(lgField) Then
+      For lngExists = 0 To Me.lboExport.ListCount - 1
+        If Me.lboExport.List(lngExists, 0) = Me.lboFields.List(lngField) Then
           GoTo next_item
         End If
-      Next lgExists
+      Next lngExists
       Me.lboExport.AddItem
-      lgExport = Me.lboExport.ListCount - 1
-      Me.lboExport.List(lgExport, 0) = Me.lboFields.List(lgField, 0)
-      Me.lboExport.List(lgExport, 1) = Me.lboFields.List(lgField, 1)
+      lngExport = Me.lboExport.ListCount - 1
+      Me.lboExport.List(lngExport, 0) = Me.lboFields.List(lngField, 0)
+      Me.lboExport.List(lngExport, 1) = Me.lboFields.List(lngField, 1)
     End If
 next_item:
-  Next lgField
+  Next lngField
 
 exit_here:
   On Error Resume Next
@@ -111,7 +110,7 @@ End Sub
 Private Sub cmdExport_Click()
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  Call cptExportResourceDemand
+  cptExportResourceDemand Me
 
 exit_here:
   On Error Resume Next
@@ -207,4 +206,11 @@ err_here:
   Call cptHandleErr("cptResourceDemand_frm", "stxtSearch_Change", Err, Erl)
   Resume exit_here
   
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
 End Sub
