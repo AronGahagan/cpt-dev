@@ -61,7 +61,7 @@ Private Sub cmdSetProgramAcronym_Click()
     strOld = oDocProp.Value
     strNew = Me.txtProgramAcronym
     oDocProp.Value = strNew
-    lngResponse = MsgBox("Also replace all instances of '" & strOld & "' with '" & strNew & "' in stored program data and settings (CEI, Data Dictionary, Marked tasks, Metrics, and QBD)?" & vbCrLf & vbCrLf & "Hit Cancel to ignore all updates.", vbQuestion + vbYesNoCancel, "Confirm Overwrite")
+    lngResponse = MsgBox("Also replace all instances of '" & strOld & "' with '" & strNew & "' in stored program data and settings (CEI, Data Dictionary, Marked tasks, and Metrics)?" & vbCrLf & vbCrLf & "Hit Cancel to ignore all updates.", vbQuestion + vbYesNoCancel, "Confirm Overwrite")
     Select Case lngResponse
       Case vbYes
         Set oRecordset = CreateObject("ADODB.Recordset")
@@ -162,7 +162,7 @@ Private Sub cmdSetProgramAcronym_Click()
         End If
         MsgBox strUpdated, vbInformation + vbOKOnly, "Data Files Updated"
       Case vbNo
-        If MsgBox("CEI, Data Dictionary, Marked tasks, Metrics, and QBD entries associated with '" & strOld & "' will be disconnected from this project file. Are you sure you wish to proceed?", vbQuestion + vbYesNo) = vbNo Then
+        If MsgBox("CEI, Data Dictionary, Marked tasks, and Metrics entries associated with '" & strOld & "' will be disconnected from this project file. Are you sure you wish to proceed?", vbQuestion + vbYesNo) = vbNo Then
           oDocProp.Value = strOld
           Me.txtProgramAcronym.Value = strOld
         End If

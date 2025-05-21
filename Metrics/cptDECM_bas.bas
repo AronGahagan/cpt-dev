@@ -3274,6 +3274,7 @@ End Sub
 Sub opencsv(strFileName)
   Shell "notepad.exe """ & Environ("tmp") & "\" & strFileName & """", vbNormalFocus
 End Sub
+
 Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolean = False)
   'objects
   Dim oShading As Object
@@ -5172,7 +5173,7 @@ Function cptGetDECMDescription(strDECM As String) As String
       strDescription = strDescription & "Y = Total count of all incomplete discrete WPs, PPs, SLPPs in either the IMS or the EV Cost Tool"
     
     Case "06A204b"
-      strDescription = "Are there open starts or finishes (“dangling logic”) in the schedule?" & vbCrLf
+      strDescription = "Are there open starts or finishes ('dangling logic') in the schedule?" & vbCrLf
       strDescription = strDescription & "X = Count of incomplete Non-LOE tasks/activities & milestones with open starts or finishes" & vbCrLf
       strDescription = strDescription & "Y = Total count of incomplete Non-LOE tasks/activities & milestones"
     
@@ -5207,7 +5208,7 @@ Function cptGetDECMDescription(strDECM As String) As String
     
     Case "06A401a"
       strDescription = "Does the schedule tool produce a critical path that represents the longest total duration with the least amount of total float?" & vbCrLf
-      strDescription = strDescription & "X = Count of tasks/activities & milestones on the constraint method critical path that are not on the contractor’s critical path"
+      strDescription = strDescription & "X = Count of tasks/activities & milestones on the constraint method critical path that are not on the contractor's critical path"
     
     Case "06A501a"
       strDescription = "In the IMS, do all of the tasks/activities & milestones have baseline start and baseline finish dates?" & vbCrLf
@@ -5281,7 +5282,7 @@ Function cptGetDECMDescription(strDECM As String) As String
     
     Case "11A101a"
       strDescription = "For all CAs, does the BAC value for the CA equate to the sum of the WP and PP budgets within the CA?" & vbCrLf
-      strDescription = strDescription & "X = Sum of the absolute values of (CA BAC – the sum of its WP and PP budgets)" & vbCrLf
+      strDescription = strDescription & "X = Sum of the absolute values of (CA BAC - the sum of its WP and PP budgets)" & vbCrLf
       strDescription = strDescription & "Y = Total program BAC"
     
     Case "29A601a"
