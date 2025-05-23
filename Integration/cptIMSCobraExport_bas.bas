@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptIMSCobraExport_bas"
-'<cpt_version>v3.4.5</cpt_version>
+'<cpt_version>v3.4.6</cpt_version>
 Option Explicit
 Private destFolder As String
 Private BCWSxport As Boolean
@@ -408,8 +408,16 @@ Private Sub DataChecks(ByVal curProj As Project)
                                 .MSID = t.GetField(FieldNameToFieldConstant(fMilestone))
                                 .MSWeight = t.GetField(FieldNameToFieldConstant(fMilestoneWeight))
                             End If
-                            .BWork = t.BaselineWork / 60 'v3.3.2
-                            .BCost = t.BaselineCost
+                            If t.GetField(pjTaskBaselineWork) <> "" Then 'v3.4.6
+                                .BWork = t.BaselineWork / 60 'v3.3.2
+                            Else
+                                .BWork = 0
+                            End If
+                            If t.GetField(pjTaskBaselineCost) <> "" Then 'v3.4.6
+                                .BCost = t.BaselineCost
+                            Else
+                                .BCost = 0
+                            End If
                             .FWork = t.Work / 60 'v3.3.2
                             .FCost = t.Cost 'v3.3.0
                             .CAM = t.GetField(FieldNameToFieldConstant(fCAM))
@@ -534,8 +542,16 @@ Private Sub DataChecks(ByVal curProj As Project)
                                 .MSID = t.GetField(FieldNameToFieldConstant(fMilestone))
                                 .MSWeight = t.GetField(FieldNameToFieldConstant(fMilestoneWeight))
                             End If
-                            .BWork = t.BaselineWork / 60 'v3.3.2
-                            .BCost = t.BaselineCost
+                            If t.GetField(pjTaskBaselineWork) <> "" Then 'v3.4.6
+                                .BWork = t.BaselineWork / 60 'v3.3.2
+                            Else
+                                .BWork = 0
+                            End If
+                            If t.GetField(pjTaskBaselineCost) <> "" Then 'v3.4.6
+                                .BCost = t.BaselineCost
+                            Else
+                                .BCost = 0
+                            End If
                             .FWork = t.Work / 60 'v3.3.2
                             .FCost = t.Cost 'v3.3.0
                             .CAM = t.GetField(FieldNameToFieldConstant(fCAM))
@@ -1454,7 +1470,7 @@ Private Sub BCWP_Export(ByVal curProj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
                                 
                                 'v3.4.3 - refactored data output code
@@ -1815,7 +1831,7 @@ nrBCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             'v3.4.3 - refactored data output code
@@ -2240,7 +2256,7 @@ nrBCWP_WP_Match_B:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
                                 
                                 'v3.4.3 - refactored data output code
@@ -2740,7 +2756,7 @@ BCWP_WP_Match_A:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If EVT = "B" Or EVT = "B Milestone" Or EVT = "N" Or EVT = "N Earned Rules" Then
@@ -4359,7 +4375,7 @@ Private Sub BCWS_Export(ByVal curProj As Project)
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -4521,7 +4537,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -4756,7 +4772,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -4977,7 +4993,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5299,7 +5315,7 @@ Private Sub WhatIf_Export(ByVal curProj As Project) 'v3.2
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 'store ACT info
@@ -5505,7 +5521,7 @@ Next_nrSProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
@@ -5789,7 +5805,7 @@ Next_nrTask:
 
                                 If EVT = "B" And Milestones_Used = False Then
                                     ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                    Err.Raise 1
+                                    err.Raise 1
                                 End If
 
                                 If BCRxport = True Then
@@ -6084,7 +6100,7 @@ Next_SProj_Task:
 
                             If EVT = "B" And Milestones_Used = False Then
                                 ErrMsg = "Error: Found EVT = B, missing Milestone Field Maps"
-                                Err.Raise 1
+                                err.Raise 1
                             End If
 
                             If BCRxport = True Then
