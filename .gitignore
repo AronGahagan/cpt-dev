@@ -1,5 +1,6 @@
 !ClearPlan IMS Export Utility_*.docx
 *.accdb
+*.laccdb
 *.bak
 *.csv
 *.diff
