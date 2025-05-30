@@ -38,14 +38,14 @@
 	<Module>
 		<Name>cptBackbone_bas</Name>
 		<FileName>cptBackbone_bas.bas</FileName>
-		<Version>v1.2.3</Version>
+		<Version>v1.2.4</Version>
 		<Type>1</Type>
 		<Directory>Backbone</Directory>
 	</Module>
 	<Module>
 		<Name>cptBackbone_frm</Name>
 		<FileName>cptBackbone_frm.frm</FileName>
-		<Version>v1.2.3</Version>
+		<Version>v1.2.4</Version>
 		<Type>3</Type>
 		<Directory>Backbone</Directory>
 	</Module>
