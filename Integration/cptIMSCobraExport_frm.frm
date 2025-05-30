@@ -3,8 +3,8 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIMSCobraExport_frm
    Caption         =   "IMS Export Utility v3.4.6"
    ClientHeight    =   9060.001
    ClientLeft      =   120
-   ClientTop       =   465
-   ClientWidth     =   4395
+   ClientTop       =   468
+   ClientWidth     =   4392
    OleObjectBlob   =   "cptIMSCobraExport_frm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
