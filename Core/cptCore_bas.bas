@@ -3271,7 +3271,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptAddBorders(ByRef rng As Excel.Range, Optional blnHorizontal As Boolean = True)
+Sub cptAddBorders(ByRef rng As Object, Optional blnHorizontal As Boolean = True)
   rng.Borders(xlDiagonalDown).LineStyle = xlNone
   rng.Borders(xlDiagonalUp).LineStyle = xlNone
   With rng.Borders(xlEdgeLeft)
@@ -3315,7 +3315,7 @@ Sub cptAddBorders(ByRef rng As Excel.Range, Optional blnHorizontal As Boolean = 
   End If
 End Sub
 
-Sub cptAddShading(ByRef oRange As Excel.Range, Optional blnLight = False)
+Sub cptAddShading(ByRef oRange As Object, Optional blnLight = False)
   If blnLight Then
     With oRange.Interior
       .Pattern = xlSolid
