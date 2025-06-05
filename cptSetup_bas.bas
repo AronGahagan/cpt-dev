@@ -1,8 +1,7 @@
 Attribute VB_Name = "cptSetup_bas"
 '<cpt_version>v1.9.1</cpt_version>
 Option Explicit
-Public Const strGitHub = "https://raw.githubusercontent.com/AronGahagan/cpt-dev/master/"
-'Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
+Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
 Private Const BLN_TRAP_ERRORS As Boolean = True 'keep this: cptErrorTrapping() lives in cptCore_bas
 #If Win64 And VBA7 Then
   Private Declare PtrSafe Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As LongPtr, _
@@ -105,7 +104,7 @@ Sub cptSetup()
       strMsg = strMsg & xmlDoc.parseError.errorcode & ": " & xmlDoc.parseError.reason & vbCrLf & vbCrLf '</issue35>
       strMsg = strMsg & "Please try the manual installation method instead." & vbCrLf & vbCrLf & "Would you like to open the online instructions now?"  '</issue35>
       If MsgBox(strMsg, vbExclamation + vbYesNo, "XML Error") = vbYes Then
-        If Not Application.FollowHyperlink("https://github.com/AronGahagan/cpt-dev#installation") Then
+        If Not Application.FollowHyperlink("https://github.com/clearplan/cpt#installation") Then
           MsgBox "Your organization appears to have blocked this url." & vbCrLf & vbCrLf & "Please contact cpt@ClearPlanConsulting.com for further assistance.", vbCritical + vbOKOnly, "Apologies!"
         End If
       End If

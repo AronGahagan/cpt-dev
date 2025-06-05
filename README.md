@@ -6,11 +6,6 @@
 
 ---
 
-[![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/AronGahagan/cpt-dev.svg)](http://isitmaintained.com/project/AronGahagan/cpt-dev "Average time to resolve an issue")
-[![Percentage of issues still open](http://isitmaintained.com/badge/open/AronGahagan/cpt-dev.svg)](http://isitmaintained.com/project/AronGahagan/cpt-dev "Percentage of issues still open")
-
----
-
 ## Purpose
 * The purpose of this project is to provide schedulers with a time-saving and error-free tool _to be used in support of industry best practices and **solid processes**_. (Read: don't be like the TSA conveyor belt.)
 * It is **not** the purpose of this project to absolve schedulers of the duty to build, analyze, and maintain good schedules. No tool, and no automation, can replace the mind, experience, judgment, and instincts of a living, breathing human being. Therefore:
@@ -63,7 +58,7 @@ _Note: this tool is not designed to run "out of the box" on Microsoft Project Se
     ![installation-02](/images/installation-02.PNG?raw=true)
     1. Click **OK** a couple of times to close the dialogs
     1. Completely exit, and then restart, Microsoft Project (this makes the settings above 'stick')
-1. Download and open the [latest release](https://github.com/AronGahagan/cpt-dev/releases/latest) (download the cpt_\*.mpp file).
+1. Download and open the [latest release](https://github.com/clearplan/cpt/releases/latest) (download the cpt_\*.mpp file).
 1. Open the **Organizer** and select the **Modules** tab:
 1. Copy **all** modules prefixed with `cpt` into your Global.MPT
 1. On the Ribbon, click **View** > **Macros** > **View Macros** > and run the macro `cptSetup()`
@@ -218,7 +213,7 @@ This feature helps you set up and manage Outline Codes (e.g., CWBS, IMP).
     1. The existing summary/task structure in the active project. This will use the native WBS field as the code, and the Task Name as the Description.
     1. If the selected local custom Outline Code is not yet named, provide a name for it (e.g., "CWBS").
     1. Once you have made your selections, click **Import**.
-1. Select the **Export Code** option to export the selected local custom Outline Code into: An Excel Workbook; "WBS Descriptive" CSV file for import to MPM; a CSV Code file for import to COBRA; or import into pre-formatted DI-MGMT-81334D for update. Note: the [DI-MGMT-81334D Template](https://github.com/AronGahagan/cpt-dev/blob/develop/Templates/81334D_CWBS_TEMPLATE.xltm) is required; install it to your Microsoft Templates directory (usually located at C:\Users\\[username]\AppData\Roaming\Microsoft\Templates\).
+1. Select the **Export Code** option to export the selected local custom Outline Code into: An Excel Workbook; "WBS Descriptive" CSV file for import to MPM; a CSV Code file for import to COBRA; or import into pre-formatted DI-MGMT-81334D for update. Note: the [DI-MGMT-81334D Template](https://github.com/clearplan/cpt/blob/develop/Templates/81334D_CWBS_TEMPLATE.xltm) is required; install it to your Microsoft Templates directory (usually located at C:\Users\\[username]\AppData\Roaming\Microsoft\Templates\).
 1. Select the **Find/Replace** option to find and replace multiple instances of a word in the selected local custom Outline Code descriptions.
 
 [[up]](#use) | [[toc]](#table-of-contents)
@@ -228,7 +223,7 @@ This feature helps you set up and manage Outline Codes (e.g., CWBS, IMP).
 ### Integration Tools
 ![integration](/images/integration.png?raw=true)
 
-1. _**Export IMS to COBRA**_ - Creates the CSV-formatted import files for Baseline, Forecast, and Status for upload to COBRA. See the [Help Doc](https://github.com/AronGahagan/cpt-dev/blob/develop/Trace/ClearPlan_IMS_Export_Utility_r3.1.0.docx) for more information.
+1. _**Export IMS to COBRA**_ - Creates the CSV-formatted import files for Baseline, Forecast, and Status for upload to COBRA. See the [Help Doc](https://github.com/clearplan/cpt/blob/develop/Trace/ClearPlan_IMS_Export_Utility_r3.1.0.docx) for more information.
 
 [[up]](#use) | [[toc]](#table-of-contents)
 
