@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptDECM_bas"
-'<cpt_version>v7.0.0</cpt_version>
+'<cpt_version>v7.0.1</cpt_version>
 Option Explicit
 Private strWBS As String
 Private strOBS As String
@@ -18,6 +18,7 @@ Private lngWP As Long
 Private lngEVT As Long
 Private lngEVP As Long
 Private lngY As Long
+Private blnResourceLoaded As Boolean
 Public oDECM As Scripting.Dictionary
 Private oSubMap As Scripting.Dictionary
 
@@ -94,6 +95,10 @@ Sub cptDECM_GET_DATA()
   Dim lngFile As Long
   Dim lngTasks As Long
   Dim lngItem As Long
+  Dim lngBLW As Long
+  Dim lngBLC As Long
+  Dim lngRW As Long
+  Dim lngRC As Long
   'integers
   'doubles
   Dim dblScore As Double
@@ -163,6 +168,10 @@ Sub cptDECM_GET_DATA()
   Print #lngFile, "Col19=CONST text"
   Print #lngFile, "Col20=TS integer"
   Print #lngFile, "Col21=TASK_NAME text"
+  Print #lngFile, "Col22=BLW double"
+  Print #lngFile, "Col23=BLC double"
+  Print #lngFile, "Col24=RW double"
+  Print #lngFile, "Col25=RC double"
   Print #lngFile, "[links.csv]"
   Print #lngFile, "Format=CSVDelimited"
   Print #lngFile, "ColNameHeader=True"
@@ -315,9 +324,13 @@ next_mapping_task:
   lngConst = FieldNameToFieldConstant("Constraint Type")
   lngTS = FieldNameToFieldConstant("Total Slack")
   lngTaskName = FieldNameToFieldConstant("Name", pjTask)
+  lngBLW = FieldNameToFieldConstant("Baseline Work", pjTask)
+  lngBLC = FieldNameToFieldConstant("Baseline Cost", pjTask)
+  lngRW = FieldNameToFieldConstant("Remaining Work", pjTask)
+  lngRC = FieldNameToFieldConstant("Remaining Cost", pjTask)
   
   'headers
-  Print #lngTaskFile, "UID,WBS,OBS,CA,CAM,WP,WPM,EVT,EVP,FS,FF,BLS,BLF,AS,AF,BDUR,DUR,SUMMARY,CONST,TS,TASK_NAME," 'note: WPM is not required for DECM and is skipped
+  Print #lngTaskFile, "UID,WBS,OBS,CA,CAM,WP,WPM,EVT,EVP,FS,FF,BLS,BLF,AS,AF,BDUR,DUR,SUMMARY,CONST,TS,TASK_NAME,BLW,BLC,RW,RC," 'note: WPM is not required for DECM and is skipped
   Print #lngLinkFile, "FROM,TO,TYPE,LAG,"
   Print #lngAssignmentFile, "TASK_UID,RESOURCE_UID,BLW,BLC,RW,RC,"
   Print #lngTargetFile, "UID,TASK_NAME,"
@@ -340,6 +353,8 @@ next_mapping_task:
     Else
       .chkUpdateView = True 'default
     End If
+    .cmdExport.Enabled = False
+    .cmdDone.Enabled = False
     .Show False
   End With
   
@@ -349,6 +364,7 @@ next_mapping_task:
   If lngDefaultDateFormat <> pjDate_mm_dd_yyyy Then
     Application.DefaultDateFormat = pjDate_mm_dd_yyyy
   End If
+  blnResourceLoaded = False
   For Each oTask In ActiveProject.Tasks
     If oTask Is Nothing Then GoTo next_task
     If Not oTask.Active Then GoTo next_task
@@ -362,7 +378,7 @@ next_mapping_task:
 '    If blnIncompleteOnly Then If IsDate(oTask.ActualFinish) Then GoTo next_task 'todo: what was this for?
 '    If blnDiscreteOnly Then If oTask.GetField(lngEVT) = "A" Then GoTo next_task 'todo: what else is non-discrete? apportioned?
     
-    For Each vField In Array(lngUID, lngWBS, lngOBS, lngCA, lngCAM, lngWP, lngWPM, lngEVT, lngEVP, lngFS, lngFF, lngBLS, lngBLF, lngAS, lngAF, lngBDur, lngDur, lngSummary, lngConst, lngTS, lngTaskName)
+    For Each vField In Array(lngUID, lngWBS, lngOBS, lngCA, lngCAM, lngWP, lngWPM, lngEVT, lngEVP, lngFS, lngFF, lngBLS, lngBLF, lngAS, lngAF, lngBDur, lngDur, lngSummary, lngConst, lngTS, lngTaskName, lngBLW, lngBLC, lngRW, lngRC)
       If vField = 0 Then
         strRecord = strRecord & "," 'account for empty WPM
         GoTo next_field
@@ -382,12 +398,41 @@ next_mapping_task:
       ElseIf Len(cptRegEx(FieldConstantToFieldName(vField), "Start|Finish")) > 0 And IsDate(oTask.GetField(vField)) Then 'convert text to date if field name as 'start' or 'finish')
         strRecord = strRecord & FormatDateTime(oTask.GetField(CLng(vField)), vbShortDate) & ","
       ElseIf vField = lngTaskName Then
-        strRecord = strRecord & Replace(Replace(oTask.Name, Chr(34), "'"), ",", "-")
+        strRecord = strRecord & Replace(Replace(oTask.Name, Chr(34), "'"), ",", "-") & ","
+      ElseIf FieldConstantToFieldName(vField) = "Baseline Work" Then
+        'strRecord = strRecord & Replace(cptRegEx(oTask.GetField(vField), "[0-9.,]{1,}"), ",", "") & ","
+        If oTask.Summary Then
+          strRecord = strRecord & "0,"
+        Else
+          strRecord = strRecord & oTask.BaselineWork & ","
+        End If
+      ElseIf FieldConstantToFieldName(vField) = "Baseline Cost" Then
+        'strRecord = strRecord & Replace(cptRegEx(oTask.GetField(vField), "[0-9.,]{1,}"), ",", "") & ","
+        If oTask.Summary Then
+          strRecord = strRecord & "0,"
+        Else
+          strRecord = strRecord & oTask.BaselineCost & ","
+        End If
+      ElseIf FieldConstantToFieldName(vField) = "Remaining Work" Then
+        'strRecord = strRecord & Replace(cptRegEx(oTask.GetField(vField), "[0-9.,]{1,}"), ",", "") & ","
+        If oTask.Summary Then
+          strRecord = strRecord & "0,"
+        Else
+          strRecord = strRecord & oTask.RemainingWork & ","
+        End If
+      ElseIf FieldConstantToFieldName(vField) = "Remaining Cost" Then
+        'strRecord = strRecord & Replace(cptRegEx(oTask.GetField(vField), "[0-9.,]{1,}"), ",", "") & ","
+        If oTask.Summary Then
+          strRecord = strRecord & "0,"
+        Else
+          strRecord = strRecord & Replace(cptRegEx(oTask.GetField(vField), "[0-9.,]{1,}"), ",", "") & ","
+        End If
       Else
         strRecord = strRecord & oTask.GetField(CLng(vField)) & ","
       End If
 next_field:
     Next vField
+    strRecord = Left(strRecord, Len(strRecord) - 1) 'hack off last comma
     Print #lngTaskFile, strRecord
     For Each oLink In oTask.TaskDependencies
       'todo: convert lag to effective days?
@@ -434,9 +479,11 @@ next_field:
       Print #lngLinkFile, lngFromUID & "," & lngToUID & "," & Choose(oLink.Type + 1, "FF", "FS", "SF", "SS") & "," & oLink.Lag & ","
     Next oLink
     For Each oAssignment In oTask.Assignments
+      blnResourceLoaded = True
       Print #lngAssignmentFile, Join(Array(oTask.UniqueID, oAssignment.ResourceUniqueID, oAssignment.BaselineWork, oAssignment.BaselineCost, oAssignment.RemainingWork, oAssignment.RemainingCost), ",")
     Next
-    If (oTask.Duration = 0 Or oTask.Milestone) And Not oTask.ExternalTask Then
+    'only capture incomplete milestones as targets
+    If (oTask.Duration = 0 Or oTask.Milestone) And Not oTask.ExternalTask And Not IsDate(oTask.ActualFinish) Then
       Print #lngTargetFile, Join(Array(oTask.UniqueID, Replace(Replace(oTask.Name, ",", ""), Chr(34), "'")), ",")
     End If
 next_task:
@@ -484,7 +531,7 @@ next_task:
   Set oDECM = CreateObject("Scripting.Dictionary")
   
   'check for missing metadata
-  If Not DECM_CPT01(oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel) Then GoTo exit_here 'missing metadata
+  If Not DECM_CPT01(oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel) Then GoTo exit_here 'bonus - missing metadata
   '===== EVMS =====
   DECM_05A101a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '05A101a - 1 CA : 1 OBS
   DECM_05A102a oDECM, myDECM_frm, strCon, oRecordset, blnDumpToExcel '05A102a - 1 CA : 1 CAM
@@ -905,6 +952,7 @@ next_task:
       Else
         lngX = .RecordCount
         Set oFile = oFSO.CreateTextFile(strDir & "\06A506c-x.csv", True)
+        oRecordset.MoveFirst
         oFile.Write oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
         oFile.Close
       End If
@@ -1089,6 +1137,8 @@ next_task:
   End If 'Len(strRollingWaveDate) > 0
   
   myDECM_frm.lboMetrics.ListIndex = 0
+  myDECM_frm.cmdExport.Enabled = True
+  myDECM_frm.cmdDone.Enabled = True
   
   Application.StatusBar = "DECM Scoring Complete"
   myDECM_frm.lblStatus.Caption = "DECM Scoring Complete"
@@ -1143,23 +1193,43 @@ Function DECM_CPT01(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cpt
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "MISSING METADATA"
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X = 0"
   DoEvents
-  strSQL = "SELECT T1.UID,"
-  strSQL = strSQL & "IIF(ISNULL(WBS),'MISSING',WBS) AS [WBS],"
-  strSQL = strSQL & "IIF(ISNULL(OBS),'MISSING',OBS) AS [OBS],"
-  strSQL = strSQL & "IIF(ISNULL(CA),'MISSING',CA) AS [CA],"
-  strSQL = strSQL & "IIF(ISNULL(CAM),'MISSING',CAM) AS [CAM],"
-  strSQL = strSQL & "IIF(ISNULL(WP),'MISSING',WP) AS [WP],"
-  strSQL = strSQL & "IIF(ISNULL(EVT),'MISSING',EVT) AS [EVT],"
-  strSQL = strSQL & "EVP,BLS,BLF,[AS],AF,SUM(T2.BLW)/60 AS [BLW],SUM(T2.BLC) AS [BLC] "
-  strSQL = strSQL & "FROM [tasks.csv] T1 INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
-  strSQL = strSQL & "WHERE WBS IS NULL "
-  strSQL = strSQL & "OR OBS IS NULL "
-  strSQL = strSQL & "OR CA IS NULL "
-  strSQL = strSQL & "OR CAM IS NULL "
-  strSQL = strSQL & "OR WP IS NULL "
-  strSQL = strSQL & "OR EVT IS NULL "
-  strSQL = strSQL & "GROUP BY T1.UID,WBS,OBS,CA,CAM,WP,EVT,EVP,BLS,BLF,[AS],AF "
-  strSQL = strSQL & "HAVING SUM(T2.BLW)>0 OR SUM(T2.BLC)>0 "
+  If blnResourceLoaded Then
+    strSQL = "SELECT T1.UID,"
+    strSQL = strSQL & "IIF(ISNULL(WBS),'MISSING',WBS) AS [WBS],"
+    strSQL = strSQL & "IIF(ISNULL(OBS),'MISSING',OBS) AS [OBS],"
+    strSQL = strSQL & "IIF(ISNULL(CA),'MISSING',CA) AS [CA],"
+    strSQL = strSQL & "IIF(ISNULL(CAM),'MISSING',CAM) AS [CAM],"
+    strSQL = strSQL & "IIF(ISNULL(WP),'MISSING',WP) AS [WP],"
+    strSQL = strSQL & "IIF(ISNULL(EVT),'MISSING',EVT) AS [EVT],"
+    strSQL = strSQL & "EVP,BLS,BLF,[AS],AF,SUM(T2.BLW)/60 AS [BLW],SUM(T2.BLC) AS [BLC] "
+    strSQL = strSQL & "FROM [tasks.csv] T1 INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
+    strSQL = strSQL & "WHERE WBS IS NULL "
+    strSQL = strSQL & "OR OBS IS NULL "
+    strSQL = strSQL & "OR CA IS NULL "
+    strSQL = strSQL & "OR CAM IS NULL "
+    strSQL = strSQL & "OR WP IS NULL "
+    strSQL = strSQL & "OR EVT IS NULL "
+    strSQL = strSQL & "GROUP BY T1.UID,WBS,OBS,CA,CAM,WP,EVT,EVP,BLS,BLF,[AS],AF "
+    strSQL = strSQL & "HAVING SUM(T2.BLW)>0 OR SUM(T2.BLC)>0 "
+  Else
+    strSQL = "SELECT UID,"
+    strSQL = strSQL & "IIF(ISNULL(WBS),'MISSING',WBS) AS [WBS],"
+    strSQL = strSQL & "IIF(ISNULL(OBS),'MISSING',OBS) AS [OBS],"
+    strSQL = strSQL & "IIF(ISNULL(CA),'MISSING',CA) AS [CA],"
+    strSQL = strSQL & "IIF(ISNULL(CAM),'MISSING',CAM) AS [CAM],"
+    strSQL = strSQL & "IIF(ISNULL(WP),'MISSING',WP) AS [WP],"
+    strSQL = strSQL & "IIF(ISNULL(EVT),'MISSING',EVT) AS [EVT], "
+    strSQL = strSQL & "BLW/60 AS [BLW],BLC,'Yes' AS PMB "
+    strSQL = strSQL & "FROM [tasks.csv] "
+    strSQL = strSQL & "WHERE SUMMARY='No' "
+    strSQL = strSQL & "AND (BLW>0 OR BLC>0) "
+    strSQL = strSQL & "AND (WBS IS NULL "
+    strSQL = strSQL & "OR OBS IS NULL "
+    strSQL = strSQL & "OR CA IS NULL "
+    strSQL = strSQL & "OR CAM IS NULL "
+    strSQL = strSQL & "OR WP IS NULL "
+    strSQL = strSQL & "OR EVT IS NULL) "
+  End If
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset, adLockReadOnly
     lngX = .RecordCount
@@ -1191,10 +1261,11 @@ Function DECM_CPT01(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cpt
   
   If lngX > 0 Then
     If Dir(Environ("tmp") & "\decm-cpt01.adtg") <> vbNullString Then Kill Environ("tmp") & "\decm-cpt01.adtg"
-    oRecordset.Save Environ("tmp") & "\decm-cpt01.adtg", adPersistADTG
-    'todo: delete \decm-cpt01.adtg on form close
+    oRecordset.Save Environ("tmp") & "\decm-cpt01.adtg", adPersistADTG 'maybe just save as a csv instead
     cptDECM_UPDATE_VIEW "CPT01", strList
     If MsgBox(Format(lngX, "#,##0") & " PMB task(s) have missing metadata!" & vbCrLf & vbCrLf & "Proceed anyway?", vbCritical + vbYesNo, "Missing Metadata") = vbNo Then
+      myDECM_frm.cmdDone.Enabled = True
+      myDECM_frm.cmdExport.Enabled = True
       blnProceed = False
       DumpRecordsetToExcel oRecordset
       GoTo exit_here
@@ -1472,6 +1543,7 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   Dim strMetric As String
   Dim strSQL As String
   Dim strList As String
+  Dim strPP As String
   'Dim lngY As Long
   Dim lngX As Long
   Dim dblScore As Double
@@ -1479,6 +1551,8 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   Dim oWorkbook As Excel.Workbook
   Dim oWorksheet As Excel.Worksheet
   Dim oListObject As Excel.ListObject
+  
+  strPP = cptGetSetting("Integration", "PP")
   
   '10A102a - 1 WP : 1 EVT
   strMetric = "10A102a"
@@ -1502,19 +1576,17 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   strSQL = strSQL & "FROM("
   strSQL = strSQL & "    SELECT WP, Count(EVT) AS CountOfEVT" 'WP has mixed EVTs
   strSQL = strSQL & "    FROM ("
-  strSQL = strSQL & "        SELECT T.WP, Iif(Isnull(T.EVT),'',T.EVT) AS EVT, SUM(A.BLW+A.BLC) AS BAC "
+  strSQL = strSQL & "        SELECT T.WP, Iif(Isnull(T.EVT),'',T.EVT) AS EVT, SUM(T.BLW+T.BLC) AS BAC "
   strSQL = strSQL & "        FROM [tasks.csv] AS T "
-  strSQL = strSQL & "        INNER JOIN [assignments.csv] AS A ON A.TASK_UID=T.UID "
-  strSQL = strSQL & "        WHERE T.WP IS NOT NULL AND T.AF IS NULL " 'todo: AND T.EVT IS NOT NULL AND T.EVT<>'K' " 'K = PP and SLPP
+  strSQL = strSQL & "        WHERE T.WP IS NOT NULL AND T.AF IS NULL AND T.EVT<>'" & strPP & "' "
   strSQL = strSQL & "        GROUP BY T.WP, T.EVT "
-  strSQL = strSQL & "        HAVING SUM(A.BLW+A.BLC)>0 "
+  strSQL = strSQL & "        HAVING SUM(T.BLW+T.BLC)>0 "
   strSQL = strSQL & "    )  AS PMB"
   strSQL = strSQL & "    GROUP BY WP"
   strSQL = strSQL & "    HAVING Count(EVT)>1"
   strSQL = strSQL & "    UNION"
   strSQL = strSQL & "    SELECT WP,Count(EVT) " 'WP has no EVTs
   strSQL = strSQL & "    FROM [tasks.csv] AS T "
-  strSQL = strSQL & "    INNER JOIN [assignments.csv] AS A ON A.TASK_UID=T.UID"
   strSQL = strSQL & "    WHERE WP IS NOT NULL AND T.EVT IS NULL"
   strSQL = strSQL & "    GROUP BY WP"
   strSQL = strSQL & ") AS [10A102a]"
@@ -1552,12 +1624,11 @@ Sub DECM_10A102a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   'discrete WPs are complete if BAC and BCWP are within $100
   'LOE WPs are complete if BAC and BCWP are within $100 AND ETC < $100
   'PPs and SLPPs are not included
-  strSQL = "SELECT T.WP,SUM(A.BLW+A.BLC) AS BAC "
+  strSQL = "SELECT T.WP,SUM(T.BLW+T.BLC) AS BAC "
   strSQL = strSQL & "FROM [tasks.csv] AS T "
-  strSQL = strSQL & "INNER JOIN [assignments.csv] AS A ON A.TASK_UID = T.UID "
-  strSQL = strSQL & "WHERE T.WP IS NOT NULL AND T.AF IS NULL " ' todo: AND T.EVT<>'K'
+  strSQL = strSQL & "WHERE T.WP IS NOT NULL AND T.AF IS NULL AND (T.EVT<>'" & strPP & "' OR T.EVT IS NULL) "
   strSQL = strSQL & "GROUP BY T.WP "
-  strSQL = strSQL & "HAVING SUM(A.BLW+A.BLC)>0"
+  strSQL = strSQL & "HAVING SUM(T.BLW+T.BLC)>0"
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngY = .RecordCount
@@ -1714,11 +1785,10 @@ Sub DECM_10A109b(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
     If blnDumpToExcel Then DumpRecordsetToExcel oRecordset
     .Close
   End With
-  strSQL = "SELECT t.WP,SUM(a.BLW) AS [BLW],SUM(a.BLC) AS [BLC] FROM [tasks.csv] t "
-  strSQL = strSQL & "INNER JOIN [assignments.csv] a on a.TASK_UID=t.UID "
-  strSQL = strSQL & "WHERE t.WP IS NOT NULL "
-  strSQL = strSQL & "GROUP BY t.WP "
-  strSQL = strSQL & "HAVING SUM(a.BLW)=0 AND SUM(a.BLC)=0"
+  strSQL = "SELECT WP,SUM(BLW) AS [BLW],SUM(BLC) AS [BLC] FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE WP IS NOT NULL "
+  strSQL = strSQL & "GROUP BY WP "
+  strSQL = strSQL & "HAVING SUM(BLW)=0 AND SUM(BLC)=0"
   With oRecordset
     .Open strSQL, strCon, adOpenKeyset
     lngX = .RecordCount
@@ -1915,40 +1985,45 @@ Sub DECM_11A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   Dim dblScore As Double
   
   '11A101a - CA BAC = SUM(WP BAC)?
-  'this one is a bit different - need to skip if no assignments
   strMetric = "11A101a"
   myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "..."
   Application.StatusBar = "Getting " & strMetric & "..."
   'X = Sum of the absolute values of (CA BAC - the sum of its WP and PP budgets)
   'Y = Total program BAC
   'create segregated.csv
-  strSQL = "SELECT "
-  strSQL = strSQL & "    DISTINCT t1.ca, "
-  strSQL = strSQL & "    t1.wp, "
-  strSQL = strSQL & "    sum(t3.[wp blw]) AS [WP_BLW] "
-  strSQL = strSQL & "FROM "
-  strSQL = strSQL & "    ( "
-  strSQL = strSQL & "        tasks.csv t1 "
-  strSQL = strSQL & "        INNER JOIN assignments.csv t2 ON t2.task_uid = t1.uid "
-  strSQL = strSQL & "    ) "
-  strSQL = strSQL & "    INNER JOIN ( "
-  strSQL = strSQL & "        SELECT "
-  strSQL = strSQL & "            task_uid, "
-  strSQL = strSQL & "            sum(blw / 60) AS [wp blw] "
-  strSQL = strSQL & "        FROM "
-  strSQL = strSQL & "            assignments.csv "
-  strSQL = strSQL & "        GROUP BY "
-  strSQL = strSQL & "            task_uid "
-  strSQL = strSQL & "    ) AS t3 ON t3.task_uid = t1.uid "
-  strSQL = strSQL & "GROUP BY "
-  strSQL = strSQL & "    t1.ca, "
-  strSQL = strSQL & "    t1.wp "
+  If blnResourceLoaded Then
+    strSQL = "SELECT "
+    strSQL = strSQL & "    T1.CA, "
+    strSQL = strSQL & "    T1.WP, "
+    strSQL = strSQL & "    SUM(T3.[WP BLW]) AS [WP_BLW] "
+    strSQL = strSQL & "FROM "
+    strSQL = strSQL & "    ( "
+    strSQL = strSQL & "        [tasks.csv] T1 "
+    strSQL = strSQL & "        INNER JOIN assignments.csv T2 ON T2.task_uid = T1.uid "
+    strSQL = strSQL & "    ) "
+    strSQL = strSQL & "    INNER JOIN ( "
+    strSQL = strSQL & "        SELECT "
+    strSQL = strSQL & "            task_uid, "
+    strSQL = strSQL & "            sum(blw / 60) AS [wp blw] "
+    strSQL = strSQL & "        FROM "
+    strSQL = strSQL & "            assignments.csv "
+    strSQL = strSQL & "        GROUP BY "
+    strSQL = strSQL & "            task_uid "
+    strSQL = strSQL & "    ) AS t3 ON t3.task_uid = t1.uid "
+    strSQL = strSQL & "GROUP BY "
+    strSQL = strSQL & "    t1.ca, "
+    strSQL = strSQL & "    t1.wp "
+  Else
+    strSQL = "SELECT CA,WP,SUM(BLW/60) AS [WP_BLW] "
+    strSQL = strSQL & "FROM [tasks.csv] "
+    strSQL = strSQL & "GROUP BY CA,WP"
+  End If
   oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
   If oRecordset.EOF Then
     myDECM_frm.lblStatus.Caption = "Getting " & strMetric & "...skipped."
     Application.StatusBar = "Getting " & strMetric & "...skipped."
     oRecordset.Close
-    Exit Sub 'was goto decm_schedule
+    Exit Sub
   Else
     myDECM_frm.lboMetrics.AddItem
     myDECM_frm.lboMetrics.TopIndex = myDECM_frm.lboMetrics.ListCount - 1
@@ -1962,6 +2037,7 @@ Sub DECM_11A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   If Dir(strFile) <> vbNullString Then Kill strFile
   Open strFile For Output As #lngFile
   Print #lngFile, "CA,WP,WP_BLW,"
+  oRecordset.MoveFirst
   Print #lngFile, oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
   Close #lngFile
   oRecordset.Close
@@ -2007,6 +2083,7 @@ Sub DECM_11A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   Open strFile For Output As #lngFile
   Print #lngFile, "CA,CA_BAC,WP_BAC,discrepancy,"
   If oRecordset.RecordCount > 0 Then
+    oRecordset.MoveFirst
     Print #lngFile, oRecordset.GetString(adClipString, , ",", vbCrLf, vbNullString)
     Close #lngFile
     oRecordset.Close
@@ -2065,7 +2142,11 @@ Sub DECM_11A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   oRecordset.Close
   
   'get total as Y
-  strSQL = "SELECT SUM(BLW/60) FROM assignments.csv"
+  If blnResourceLoaded Then
+    strSQL = "SELECT SUM(BLW/60) FROM assignments.csv"
+  Else
+    strSQL = "SELECT SUM(BLW/60) FROM tasks.csv"
+  End If
   oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
   If oRecordset.RecordCount > 0 Then
     lngY = Round(oRecordset(0), 0)
@@ -2092,9 +2173,9 @@ Sub DECM_11A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
 End Sub
 
 Sub DECM_06A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDECM_frm, strCon As String, ByRef oRecordset As ADODB.Recordset, blnDumpToExcel As Boolean)
-'TODO: UPDATE FOR v7.0
-'TODO: LIMIT TO WHERE BAC>0
-'todo: BCWP-BAC +/- 1h or $100 then 'complete'
+  'LIMIT TO WHERE BAC>0
+  'BCWP-BAC +/- 1h or $100 then 'complete'
+  'note: due to the complications in calculating BCWP this metric relies on EVP<100
   Dim strMetric As String
   Dim strSQL As String
   Dim strList As String
@@ -2116,12 +2197,11 @@ Sub DECM_06A101a(ByRef oDECM As Scripting.Dictionary, ByRef myDECM_frm As cptDEC
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 1) = "WPs IMS vs EV Tool"
   myDECM_frm.lboMetrics.List(myDECM_frm.lboMetrics.ListCount - 1, 2) = "X/Y = 0%"
   DoEvents
-  strSQL = "SELECT DISTINCT T1.WP "
-  strSQL = strSQL & "FROM [tasks.csv] T1 "
-  strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
-  strSQL = strSQL & "WHERE T1.EVP<100 AND T1.EVT<>'" & strLOE & "' AND T1.SUMMARY='No' "
-  strSQL = strSQL & "GROUP BY T1.WP "
-  strSQL = strSQL & "HAVING Sum(T2.BLW + T2.BLC) > 0"
+  strSQL = "SELECT WP "
+  strSQL = strSQL & "FROM [tasks.csv] "
+  strSQL = strSQL & "WHERE EVP<100 AND EVT<>'" & strLOE & "' AND SUMMARY='No' "
+  strSQL = strSQL & "GROUP BY WP "
+  strSQL = strSQL & "HAVING Sum(BLW + BLC) > 0"
   oRecordset.Open strSQL, strCon, adOpenKeyset
   lngX = oRecordset.RecordCount 'pending upload
   lngY = oRecordset.RecordCount 'pending upload
@@ -3274,7 +3354,6 @@ End Sub
 Sub opencsv(strFileName)
   Shell "notepad.exe """ & Environ("tmp") & "\" & strFileName & """", vbNormalFocus
 End Sub
-
 Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolean = False)
   'objects
   Dim oShading As Object
@@ -3304,7 +3383,9 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
   'doubles
   'booleans
   Dim blnErrorTrapping As Boolean
+  Dim blnResourceAssignments As Boolean
   'variants
+  Dim vSetting As Variant
   'dates
   
   cptSpeed True
@@ -3333,6 +3414,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
   oExcel.ActiveWindow.Zoom = 85
   oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).Font.Bold = True
   oWorksheet.Range(oWorksheet.[A1], oWorksheet.[A1].End(xlToRight)).HorizontalAlignment = xlLeft
+  oWorksheet.[G1].Value = "RESULT"
   With oWorksheet.Range(oWorksheet.[A1].End(xlToRight), oWorksheet.[A1048576].End(xlUp))
     .Font.Name = "Calibri"
     .Font.Size = 11
@@ -3344,7 +3426,6 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
   oWorksheet.Columns(2).HorizontalAlignment = xlLeft
   'oWorksheet.Columns(8).HorizontalAlignment = xlLeft
   oWorksheet.Columns("H:I").Delete
-  oWorksheet.[G1].Value = "RESULT"
   With oWorksheet.Range(oWorksheet.[G2], oWorksheet.[G1048576].End(xlUp))
     .Replace what:=strPass, Replacement:="2", lookat:=xlWhole, _
         SearchOrder:=xlByRows, MatchCase:=False, SearchFormat:=False, _
@@ -3402,6 +3483,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
         End If
         oExcel.ActiveWindow.Zoom = 85
         oExcel.ActiveWindow.DisplayGridlines = False
+        strLOE = cptGetSetting("Integration", "LOE")
         If strMetric = "CPT01" Then 'missing metadata
           If strResult = strFail Then
             If Dir(Environ("tmp") & "\decm-cpt01.adtg") <> vbNullString Then
@@ -3589,8 +3671,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
           End If
         ElseIf strMetric = "11A101a" Then 'CA BAC = Sum(WP BAC)
           If Len(oDECM(strMetric)) > 0 Then
-            strSQL = "SELECT CAM,CA,SUM(T2.BLW)/60,SUM(T2.BLC) FROM [tasks.csv] T1 "
-            strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
+            strSQL = "SELECT CAM,CA,SUM(BLW)/60,SUM(BLC) FROM [tasks.csv] "
             strSQL = strSQL & "WHERE CA IN(" & Chr(34) & Replace(Split(oDECM(strMetric), ";")(0), ",", Chr(34) & "," & Chr(34)) & Chr(34) & ")"
             strSQL = strSQL & "GROUP BY CAM,CA "
             strSQL = strSQL & "ORDER BY CAM,CA"
@@ -3605,8 +3686,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
             cptAddShading oWorksheet.Range(oWorksheet.[A3], oWorksheet.[A3].End(xlToRight))
             'todo: highlight duplicate CA
             oWorksheet.Columns(5).ColumnWidth = 1
-            strSQL = "SELECT CAM,CA,WP,SUM(T2.BLW)/60,SUM(T2.BLC) FROM [tasks.csv] T1 "
-            strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
+            strSQL = "SELECT CAM,CA,WP,SUM(BLW)/60,SUM(BLC) FROM [tasks.csv] "
             strSQL = strSQL & "WHERE CA IN(" & Chr(34) & Replace(Split(oDECM(strMetric), ";")(0), ",", Chr(34) & "," & Chr(34)) & Chr(34) & ")"
             strSQL = strSQL & "GROUP BY CAM,CA,WP "
             strSQL = strSQL & "ORDER BY CAM,CA,WP"
@@ -3748,7 +3828,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
             strSQL = strSQL & "LEFT JOIN [tasks.csv] T2 ON T2.UID=T1.[FROM]) "
             strSQL = strSQL & "LEFT JOIN [tasks.csv] T3 ON T3.UID=T1.TO "
             strSQL = strSQL & "WHERE [FROM] IN (" & oDECM(strMetric) & ") "
-            strSQL = strSQL & "AND T2.EVT='" & cptGetSetting("Integration", "LOE") & "' "
+            strSQL = strSQL & "AND T2.EVT='" & strLOE & "' "
             oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
             oWorksheet.[A3:F3] = Split("FROM UID,FROM TASK NAME,FROM EVT,TO UID,TO TASK NAME,TO EVT", ",")
             oWorksheet.[A4].CopyFromRecordset oRecordset
@@ -4004,18 +4084,31 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
   oWorkbook.Activate
   Set oRecordset = CreateObject("ADODB.Recordset")
   'count of complete, incomplete, total CA, by CAM
-  'first try to limit by PMB tasks (assuming resource assignments)
-  lngItem = 0
-  strSQL = "SELECT T1.CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
-  strSQL = strSQL & "FROM ("
-  strSQL = strSQL & "SELECT T1.CAM,T1.CA,IIF(AVG(T1.EVP)<100,1,0) AS [INCOMPLETE],IIF(AVG(T1.EVP)=100,1,0) AS [COMPLETE] "
-  strSQL = strSQL & "FROM [tasks.csv] T1 "
-  strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
-  strSQL = strSQL & "GROUP BY T1.CAM,T1.CA "
-  strSQL = strSQL & "HAVING SUM(BLW)>0 OR SUM(BLC)>0) GROUP BY T1.CAM "
+  'limit to PMB tasks
+  'determine if resource assignments
+  strSQL = "SELECT * FROM [assignments.csv]"
+  oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
+  blnResourceAssignments = Not oRecordset.EOF
+  oRecordset.Close
+  If blnResourceAssignments Then
+    strSQL = "SELECT T1.CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
+    strSQL = strSQL & "FROM ("
+    strSQL = strSQL & "SELECT T1.CAM,T1.CA,IIF(AVG(T1.EVP)<100,1,0) AS [INCOMPLETE],IIF(AVG(T1.EVP)=100,1,0) AS [COMPLETE] "
+    strSQL = strSQL & "FROM [tasks.csv] T1 "
+    strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
+    strSQL = strSQL & "GROUP BY T1.CAM,T1.CA "
+    strSQL = strSQL & "HAVING SUM(T2.BLW)>0 OR SUM(T2.BLC)>0) GROUP BY T1.CAM "
+  Else
+    strSQL = "SELECT T1.CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
+    strSQL = strSQL & "FROM ("
+    strSQL = strSQL & "SELECT T1.CAM,T1.CA,IIF(AVG(T1.EVP)<100,1,0) AS [INCOMPLETE],IIF(AVG(T1.EVP)=100,1,0) AS [COMPLETE] "
+    strSQL = strSQL & "FROM [tasks.csv] T1 "
+    strSQL = strSQL & "GROUP BY T1.CAM,T1.CA "
+    strSQL = strSQL & "HAVING SUM(T1.BLW)>0 OR SUM(T1.BLC)>0 "
+    strSQL = strSQL & ") GROUP BY T1.CAM "
+  End If
   oRecordset.Open strSQL, strCon, adOpenKeyset
   If Not oRecordset.EOF Then
-    lngItem = oRecordset.RecordCount
     oWorksheet.[I2:L2].Merge True
     oWorksheet.[I2] = "CONTROL ACCOUNTS"
     oWorksheet.[I2].HorizontalAlignment = xlCenter
@@ -4028,35 +4121,6 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
     oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlRight
     oWorksheet.Range(oWorksheet.Cells(lngLastRow, 10), oWorksheet.Cells(lngLastRow, 12)).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R" & lngLastRow - 1 & "C)"
     oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 10), oWorksheet.Cells(lngLastRow, 12)).NumberFormat = "#,##0"
-  Else
-    'next limit by tasks with BLS and BLF
-    oRecordset.Close
-    strSQL = "SELECT T1.CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
-    strSQL = strSQL & "FROM ("
-    strSQL = strSQL & "SELECT T1.CAM,T1.CA,IIF(AVG(T1.EVP)<100,1,0) AS [INCOMPLETE],IIF(AVG(T1.EVP)=100,1,0) AS [COMPLETE] "
-    strSQL = strSQL & "FROM [tasks.csv] T1 "
-    'strSQL = strSQL & "WHERE IsDate(T1.BLS) AND IsDate(T1.BLF) "
-    strSQL = strSQL & "GROUP BY T1.CAM,T1.CA "
-    strSQL = strSQL & ") GROUP BY T1.CAM "
-    oRecordset.Open strSQL, strCon, adOpenKeyset
-    If Not oRecordset.EOF Then
-      lngItem = oRecordset.RecordCount
-      oWorksheet.[I2:L2].Merge True
-      oWorksheet.[I2] = "CONTROL ACCOUNTS"
-      oWorksheet.[I2].HorizontalAlignment = xlCenter
-      oWorksheet.[I3:L3] = Split("CAM,INCOMPLETE,COMPLETE,TOTAL", ",")
-      oWorksheet.[I4].CopyFromRecordset oRecordset
-      lngFirstRow = oWorksheet.[L1048576].End(xlUp).Row + 1
-      lngLastRow = oWorksheet.[I1048576].End(xlUp).Row + 1
-      oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 12), oWorksheet.Cells(lngLastRow - 1, 12)).FormulaR1C1 = "=SUM(RC[-2]:RC[-1])"
-      oWorksheet.Cells(lngLastRow, 9) = "TOTAL:"
-      oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlRight
-      oWorksheet.Range(oWorksheet.Cells(lngLastRow, 10), oWorksheet.Cells(lngLastRow, 12)).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R" & lngLastRow - 1 & "C)"
-      oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 10), oWorksheet.Cells(lngLastRow, 12)).NumberFormat = "#,##0"
-    End If
-  End If
-  oRecordset.Close
-  If lngItem > 0 Then
     'section header
     oWorksheet.[I2].Font.Bold = True
     Set oShading = oExcel.Union(oShading, oWorksheet.[I2])
@@ -4068,6 +4132,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
     Set oShading = oExcel.Union(oShading, oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), oWorksheet.[I1048576].End(xlUp).Offset(0, 3)))
     Set oBorders = oExcel.Union(oBorders, oWorksheet.Range(oWorksheet.[I2], oWorksheet.[I1048576].End(xlUp).Offset(0, 3)))
   End If
+  oRecordset.Close
 '  'todo: CA checksum
 '  strSQL = "SELECT T1.CA, T1.CAM,SUM(T2.BLW+T2.BLC) AS BAC "
 '  strSQL = strSQL & "FROM [tasks.csv] AS T1 INNER JOIN [assignments.csv] AS T2 ON T2.TASK_UID=T1.UID "
@@ -4083,20 +4148,28 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
    
   'count of complete, incomplete, total WP, by CAM *only includes WPs in the IMS
   'first try to limit by PMB tasks (assuming resource assignments)
-  lngItem = 0
-  strLOE = cptGetSetting("Integration", "LOE")
-  strSQL = "SELECT T1.CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
-  strSQL = strSQL & "FROM ("
-  strSQL = strSQL & "SELECT T1.CAM,T1.WP,IIF(AVG(T1.EVP)<100,1,0) AS [INCOMPLETE],IIF(AVG(T1.EVP)=100,1,0) AS [COMPLETE] "
-  strSQL = strSQL & "FROM [tasks.csv] T1 "
-  strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
-  strSQL = strSQL & "WHERE T1.EVT<>'" & strLOE & "' "
-  strSQL = strSQL & "GROUP BY T1.CAM,T1.WP "
-  strSQL = strSQL & "HAVING SUM(BLW)>0 OR SUM(BLC)>0) "
-  strSQL = strSQL & "GROUP BY T1.CAM"
+  If blnResourceLoaded Then
+    strSQL = "SELECT T1.CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
+    strSQL = strSQL & "FROM ("
+    strSQL = strSQL & "SELECT T1.CAM,T1.WP,IIF(AVG(T1.EVP)<100,1,0) AS [INCOMPLETE],IIF(AVG(T1.EVP)=100,1,0) AS [COMPLETE] "
+    strSQL = strSQL & "FROM [tasks.csv] T1 "
+    strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
+    strSQL = strSQL & "WHERE T1.EVT<>'" & strLOE & "' "
+    strSQL = strSQL & "GROUP BY T1.CAM,T1.WP "
+    strSQL = strSQL & "HAVING SUM(T2.BLW)>0 OR SUM(T2.BLC)>0) "
+    strSQL = strSQL & "GROUP BY T1.CAM"
+  Else
+    strSQL = "SELECT T1.CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
+    strSQL = strSQL & "FROM ("
+    strSQL = strSQL & "SELECT T1.CAM,T1.WP,IIF(AVG(T1.EVP)<100,1,0) AS [INCOMPLETE],IIF(AVG(T1.EVP)=100,1,0) AS [COMPLETE] "
+    strSQL = strSQL & "FROM [tasks.csv] T1 "
+    strSQL = strSQL & "WHERE T1.EVT<>'" & strLOE & "' "
+    'strSQL = strSQL & "AND IsDate(T1.BLS) AND IsDate(T1.BLF) "
+    strSQL = strSQL & "GROUP BY T1.CAM,T1.WP) "
+    strSQL = strSQL & "GROUP BY T1.CAM"
+  End If
   oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
   If Not oRecordset.EOF Then
-    lngItem = oRecordset.RecordCount
     oWorksheet.[N2:Q2].Merge True
     oWorksheet.[N2].Value = "DISCRETE WORK PACKAGES"
     oWorksheet.[N2].HorizontalAlignment = xlCenter
@@ -4109,36 +4182,6 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
     oWorksheet.Cells(lngLastRow, 14).HorizontalAlignment = xlRight
     oWorksheet.Range(oWorksheet.Cells(lngLastRow, 15), oWorksheet.Cells(lngLastRow, 17)).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R" & lngLastRow - 1 & "C)"
     oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 15), oWorksheet.Cells(lngLastRow, 17)).NumberFormat = "#,##0"
-  Else
-    'next try to limit by where BLS and BLF
-    oRecordset.Close
-    strSQL = "SELECT T1.CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
-    strSQL = strSQL & "FROM ("
-    strSQL = strSQL & "SELECT T1.CAM,T1.WP,IIF(AVG(T1.EVP)<100,1,0) AS [INCOMPLETE],IIF(AVG(T1.EVP)=100,1,0) AS [COMPLETE] "
-    strSQL = strSQL & "FROM [tasks.csv] T1 "
-    strSQL = strSQL & "WHERE T1.EVT<>'" & strLOE & "' "
-    'strSQL = strSQL & "AND IsDate(T1.BLS) AND IsDate(T1.BLF) "
-    strSQL = strSQL & "GROUP BY T1.CAM,T1.WP) "
-    strSQL = strSQL & "GROUP BY T1.CAM"
-    oRecordset.Open strSQL, strCon, adOpenKeyset
-    If Not oRecordset.EOF Then
-      lngItem = oRecordset.RecordCount
-      oWorksheet.[N2:Q2].Merge True
-      oWorksheet.[N2].Value = "DISCRETE WORK PACKAGES"
-      oWorksheet.[N2].HorizontalAlignment = xlCenter
-      oWorksheet.[N3:Q3] = Split("CAM,INCOMPLETE,COMPLETE,TOTAL", ",")
-      oWorksheet.[N4].CopyFromRecordset oRecordset
-      lngFirstRow = oWorksheet.[Q1048576].End(xlUp).Row + 1
-      lngLastRow = oWorksheet.[N1048576].End(xlUp).Row + 1
-      oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 17), oWorksheet.Cells(lngLastRow - 1, 17)).FormulaR1C1 = "=SUM(RC[-2]:RC[-1])"
-      oWorksheet.Cells(lngLastRow, 14) = "TOTAL:"
-      oWorksheet.Cells(lngLastRow, 14).HorizontalAlignment = xlRight
-      oWorksheet.Range(oWorksheet.Cells(lngLastRow, 15), oWorksheet.Cells(lngLastRow, 17)).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R" & lngLastRow - 1 & "C)"
-      oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 15), oWorksheet.Cells(lngLastRow, 17)).NumberFormat = "#,##0"
-    End If
-  End If
-  oRecordset.Close
-  If lngItem > 0 Then
     'section header
     oWorksheet.[N1048576].End(xlUp).End(xlUp).Font.Bold = True
     Set oShading = oExcel.Union(oShading, oWorksheet.[N1048576].End(xlUp).End(xlUp))
@@ -4152,6 +4195,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
     'todo: formula=ABS(Nx-Lx)
     'todo: gumball: reverse order; icon only; green when <=0; etc.
   End If
+  oRecordset.Close
 '  'todo: WP checksum
 '  strSQL = "SELECT T1.CAM, T1.WP,SUM(T2.BLW+T2.BLC) AS BAC "
 '  strSQL = strSQL & "FROM [tasks.csv] AS T1 INNER JOIN [assignments.csv] AS T2 ON T2.TASK_UID=T1.UID "
@@ -4166,20 +4210,29 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
   
   'count of complete, incomplete, total PMB tasks, by CAM
   'first try to limit by PMB tasks (assumes resource assignments)
-  lngItem = 0
-  strSQL = "SELECT CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
-  strSQL = strSQL & "FROM [tasks.csv] t INNER JOIN "
-  strSQL = strSQL & "("
-  strSQL = strSQL & "SELECT T1.UID,IIF(T1.AF IS NULL,1,0) AS [INCOMPLETE],IIF(T1.AF IS NOT NULL,1,0) AS [COMPLETE], SUM(T2.BLW),SUM(T2.BLC) "
-  strSQL = strSQL & "FROM [tasks.csv] T1 "
-  strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
-  strSQL = strSQL & "GROUP BY T1.UID,T1.AF "
-  strSQL = strSQL & "HAVING SUM(T2.BLW)>0 OR SUM(T2.BLC)>0 ) AS s ON s.UID=t.UID "
-  strSQL = strSQL & "WHERE t.EVT IS NOT NULL AND t.EVT<>'" & strLOE & "' "
-  strSQL = strSQL & "GROUP BY CAM"
+  If blnResourceLoaded Then
+    strSQL = "SELECT CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
+    strSQL = strSQL & "FROM [tasks.csv] t INNER JOIN "
+    strSQL = strSQL & "("
+    strSQL = strSQL & "SELECT T1.UID,IIF(T1.AF IS NULL,1,0) AS [INCOMPLETE],IIF(T1.AF IS NOT NULL,1,0) AS [COMPLETE], SUM(T2.BLW),SUM(T2.BLC) "
+    strSQL = strSQL & "FROM [tasks.csv] T1 "
+    strSQL = strSQL & "INNER JOIN [assignments.csv] T2 ON T2.TASK_UID=T1.UID "
+    strSQL = strSQL & "GROUP BY T1.UID,T1.AF "
+    strSQL = strSQL & "HAVING SUM(T2.BLW)>0 OR SUM(T2.BLC)>0 ) AS s ON s.UID=t.UID "
+    strSQL = strSQL & "WHERE t.EVT IS NOT NULL AND t.EVT<>'" & strLOE & "' "
+    strSQL = strSQL & "GROUP BY CAM"
+  Else
+    strSQL = "SELECT CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
+    strSQL = strSQL & "FROM [tasks.csv] T INNER JOIN "
+    strSQL = strSQL & "("
+    strSQL = strSQL & "SELECT T1.UID,IIF(T1.AF IS NULL,1,0) AS [INCOMPLETE],IIF(T1.AF IS NOT NULL,1,0) AS [COMPLETE] "
+    strSQL = strSQL & "FROM [tasks.csv] T1 "
+    strSQL = strSQL & ") AS S ON S.UID=T.UID "
+    strSQL = strSQL & "WHERE T.EVT IS NOT NULL AND T.EVT<>'" & strLOE & "' "
+    strSQL = strSQL & "GROUP BY CAM"
+  End If
   oRecordset.Open strSQL, strCon, adOpenKeyset, adLockReadOnly
   If Not oRecordset.EOF Then
-    lngItem = oRecordset.RecordCount
     lngLastRow = oWorksheet.[I1048576].End(xlUp).Row + 2
     oWorksheet.Range(oWorksheet.Cells(lngLastRow, 9), oWorksheet.Cells(lngLastRow, 12)).Merge True
     oWorksheet.Cells(lngLastRow, 9).Value = "DISCRETE PMB TASKS"
@@ -4194,39 +4247,6 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
     oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlRight
     oWorksheet.Range(oWorksheet.Cells(lngLastRow, 10), oWorksheet.Cells(lngLastRow, 12)).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R" & lngLastRow - 1 & "C)"
     oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 10), oWorksheet.Cells(lngLastRow, 12)).NumberFormat = "#,##0"
-  Else
-    'next limit by where tasks have BLS and BLF
-    oRecordset.Close
-    strSQL = "SELECT CAM,SUM(INCOMPLETE) AS [_INCOMPLETE],SUM(COMPLETE) AS [_COMPLETE] "
-    strSQL = strSQL & "FROM [tasks.csv] T INNER JOIN "
-    strSQL = strSQL & "("
-    strSQL = strSQL & "SELECT T1.UID,IIF(T1.AF IS NULL,1,0) AS [INCOMPLETE],IIF(T1.AF IS NOT NULL,1,0) AS [COMPLETE] "
-    strSQL = strSQL & "FROM [tasks.csv] T1 "
-    strSQL = strSQL & ") AS S ON S.UID=T.UID "
-    strSQL = strSQL & "WHERE T.EVT IS NOT NULL AND T.EVT<>'" & strLOE & "' "
-    'strSQL = strSQL & "AND IsDate(T.BLS) AND IsDate(T.BLF) "
-    strSQL = strSQL & "GROUP BY CAM"
-    oRecordset.Open strSQL, strCon, adOpenKeyset
-    If Not oRecordset.EOF Then
-      lngItem = oRecordset.RecordCount
-      lngLastRow = oWorksheet.[I1048576].End(xlUp).Row + 2
-      oWorksheet.Range(oWorksheet.Cells(lngLastRow, 9), oWorksheet.Cells(lngLastRow, 12)).Merge True
-      oWorksheet.Cells(lngLastRow, 9).Value = "DISCRETE PMB TASKS"
-      oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlCenter
-      oWorksheet.Range(oWorksheet.Cells(lngLastRow + 1, 9), oWorksheet.Cells(lngLastRow + 1, 12)) = Split("CAM,INCOMPLETE,COMPLETE,TOTAL", ",")
-      oWorksheet.Cells(lngLastRow + 2, 9).CopyFromRecordset oRecordset
-      'get total
-      lngFirstRow = oWorksheet.[L1048576].End(xlUp).Row + 1
-      lngLastRow = oWorksheet.[I1048576].End(xlUp).Row + 1
-      oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 12), oWorksheet.Cells(lngLastRow - 1, 12)).FormulaR1C1 = "=SUM(RC[-2]:RC[-1])"
-      oWorksheet.Cells(lngLastRow, 9) = "TOTAL:"
-      oWorksheet.Cells(lngLastRow, 9).HorizontalAlignment = xlRight
-      oWorksheet.Range(oWorksheet.Cells(lngLastRow, 10), oWorksheet.Cells(lngLastRow, 12)).FormulaR1C1 = "=SUM(R" & lngFirstRow & "C:R" & lngLastRow - 1 & "C)"
-      oWorksheet.Range(oWorksheet.Cells(lngFirstRow, 10), oWorksheet.Cells(lngLastRow, 12)).NumberFormat = "#,##0"
-    End If
-  End If
-  oRecordset.Close
-  If lngItem > 0 Then
     'section header
     oWorksheet.[I1048576].End(xlUp).End(xlUp).Font.Bold = True
     Set oShading = oExcel.Union(oShading, oWorksheet.[I1048576].End(xlUp).End(xlUp))
@@ -4238,6 +4258,7 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
     Set oShading = oExcel.Union(oShading, oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), oWorksheet.[I1048576].End(xlUp).End(xlToRight)))
     Set oBorders = oExcel.Union(oBorders, oWorksheet.Range(oWorksheet.[I1048576].End(xlUp), oWorksheet.[I1048576].End(xlUp).Offset(0, 3).End(xlUp).Offset(-1, 0)))
   End If
+  oRecordset.Close
   
   'count of relationship FS, SS, FF, SF
   strSQL = "SELECT TYPE,COUNT(TYPE) FROM [links.csv] GROUP BY TYPE"
@@ -4290,9 +4311,41 @@ Sub cptDECM_EXPORT(ByRef myDECM_frm As cptDECM_frm, Optional blnDetail As Boolea
   End If
   oWorksheet.[A1].Font.Size = 18
   oWorksheet.[A1].Font.Bold = True
+  oWorksheet.[A2].Value = "Date:"
   oWorksheet.[B2].Value = Now
   oWorksheet.[B2].NumberFormat = "[$-en-US]m/d/yyyy h:mm AM/PM;@"
-  oWorksheet.[A2].Value = Application.UserName
+  oWorksheet.[A3].Value = "Analyst:"
+  oWorksheet.[B3].Value = Application.UserName
+  
+  'dump out the integration settings used
+  oWorksheet.[S4:U4].Merge True
+  oWorksheet.[S4].Value = "INTEGRATION SETTINGS"
+  oWorksheet.[S4].HorizontalAlignment = xlCenter
+  oWorksheet.[S4].Font.Bold = True
+  
+  For Each vSetting In Split("WBS,OBS,CA,CAM,WP,EVP,EVT,LOE,PP", ",")
+    lngLastRow = oWorksheet.[S1048576].End(xlUp).Row + 1
+    oWorksheet.Cells(lngLastRow, 19).Value = vSetting
+    If vSetting = "LOE" Then
+      oWorksheet.Cells(lngLastRow, 20) = FieldConstantToFieldName(Split(cptGetSetting("Integration", "EVT"), "|")(0))
+      oWorksheet.Cells(lngLastRow, 21) = "EVT='" & cptGetSetting("Integration", CStr(vSetting)) & "'"
+    ElseIf vSetting = "PP" Then
+      oWorksheet.Cells(lngLastRow, 20) = FieldConstantToFieldName(Split(cptGetSetting("Integration", "EVT"), "|")(0))
+      oWorksheet.Cells(lngLastRow, 21) = "EVT='" & cptGetSetting("Integration", CStr(vSetting)) & "'"
+    Else
+      lngField = CLng(Split(cptGetSetting("Integration", CStr(vSetting)), "|")(0))
+      oWorksheet.Cells(lngLastRow, 20).Value = FieldConstantToFieldName(lngField)
+      If Len(CustomFieldGetName(lngField)) > 0 Then
+        oWorksheet.Cells(lngLastRow, 21).Value = CustomFieldGetName(lngField)
+      Else
+        oWorksheet.Cells(lngLastRow, 21).Value = FieldConstantToFieldName(lngField)
+      End If
+    End If
+  Next vSetting
+  cptAddShading oWorksheet.[S4]
+  cptAddBorders oWorksheet.Range(oWorksheet.[S4], oWorksheet.[S4].End(xlDown).Offset(0, 2))
+  cptAddBorders oWorksheet.[S4:U4]
+  oWorksheet.Range(oWorksheet.[S4], oWorksheet.[S4].End(xlDown).Offset(0, 2)).Columns.AutoFit
   
   oExcel.WindowState = xlMaximized
   oExcel.ActiveWindow.DisplayGridlines = False
