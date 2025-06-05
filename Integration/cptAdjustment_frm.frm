@@ -13,13 +13,12 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-'<cpt_version>v0.0.2</cpt_version>
+'<cpt_version>v0.0.3</cpt_version>
 Option Explicit
 
 Private Sub cboResources_Change()
   
-  If Me.Visible Then Call cptRefreshAdjustment
+  If Me.Visible Then Call cptRefreshAdjustment(Me)
   
 End Sub
 
@@ -32,32 +31,36 @@ Private Sub cmdApply_Click()
     Exit Sub
   End If
   
-  Call cptApplyAdjustment
-  Call cptRefreshAdjustment
+  cptApplyAdjustment Me
+  cptRefreshAdjustment Me
     
+End Sub
+
+Private Sub cmdCancel_Click()
+  Me.Hide
 End Sub
 
 Private Sub cmdUndo_Click()
   Application.Undo
-  cptRefreshAdjustment
+  cptRefreshAdjustment Me
 End Sub
 
 Private Sub optDelta_Click()
   Me.txtAmount.ControlTipText = "Add/Reduce by set number of hours"
   'stick to apportioning by remaining work
-  cptRefreshAdjustment
+  cptRefreshAdjustment Me
 End Sub
 
 Private Sub optPercent_Click()
   Me.txtAmount.ControlTipText = "Please use decimal format"
   'stick to apportioning by remaining work
-  cptRefreshAdjustment
+  cptRefreshAdjustment Me
 End Sub
 
 Private Sub optTarget_Click()
   Me.txtAmount.ControlTipText = "Apportion to hit Target"
   'stick to apportioning by remaining work
-  If Me.Visible Then cptRefreshAdjustment
+  If Me.Visible Then cptRefreshAdjustment Me
 End Sub
 
 Private Sub txtAmount_Change()
@@ -97,7 +100,7 @@ Private Sub txtAmount_Change()
       Me.txtAmount.Text = cptRegEx(strAmount, "(-)?([0-9]{1,})?(\.[0-9]{1,})?")
     End If
   End If
-  cptRefreshAdjustment
+  cptRefreshAdjustment Me
 
 exit_here:
   On Error Resume Next
@@ -106,4 +109,15 @@ exit_here:
 err_here:
   Call cptHandleErr("cptAdjustment_frm", "txtAmount_Change", Err, Erl)
   Resume exit_here
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
+Private Sub UserForm_Terminate()
+  Unload Me
 End Sub

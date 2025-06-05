@@ -13,12 +13,11 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-'<cpt_version>v1.3.0</cpt_version>
+'<cpt_version>v1.3.1</cpt_version>
 Option Explicit
 
 Private Sub cmdDone_Click()
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub cmdEdit_Click()
@@ -27,9 +26,8 @@ Dim strMsg As String
   strMsg = strMsg & "Contact cpt@ClearPlanConsulting.com if you need help." & vbCrLf & vbCrLf
   strMsg = strMsg & "Do you still wish to venture forth?"
   If MsgBox(strMsg, vbCritical + vbYesNo, "Do Not Attempt This...") = vbYes Then
-    Unload Me
     MsgBox "...you've been warned.", vbInformation + vbOKOnly, "OK"
-    Shell "C:\Windows\notepad.exe '" & cptDir & "\settings\cpt-settings.ini" & "'", vbNormalFocus
+    Shell "notepad.exe """ & cptDir & "\settings\cpt-settings.ini""", vbNormalFocus
   End If
 End Sub
 
@@ -39,6 +37,7 @@ Private Sub cmdSetProgramAcronym_Click()
   Dim oDocProp As DocumentProperty
   Dim oDocProps As DocumentProperties
   'strings
+  Dim strDir As String
   Dim strUpdated As String
   Dim strFile As String
   Dim strOld As String, strNew As String
@@ -55,6 +54,7 @@ Private Sub cmdSetProgramAcronym_Click()
   On Error Resume Next
   Set oDocProp = oDocProps("cptProgramAcronym")
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  strDir = cptDir
   If oDocProp Is Nothing Then
     oDocProps.Add "cptProgramAcronym", False, msoPropertyTypeString, Me.txtProgramAcronym.Value, False
    Else
@@ -66,7 +66,7 @@ Private Sub cmdSetProgramAcronym_Click()
       Case vbYes
         Set oRecordset = CreateObject("ADODB.Recordset")
         '\settings\cpt-cei.adtg
-        strFile = cptDir & "\settings\cpt-cei.adtg"
+        strFile = strDir & "\settings\cpt-cei.adtg"
         lngUpdated = 0
         If Dir(strFile) <> vbNullString Then
           With oRecordset
@@ -85,7 +85,7 @@ Private Sub cmdSetProgramAcronym_Click()
           strUpdated = Format(lngUpdated, "#,##0") & " record(s) updated in CEI data." & vbCrLf
         End If
         'settings\cpt-data-dictionary.adtg
-        strFile = cptDir & "\settings\cpt-data-dictionary.adtg"
+        strFile = strDir & "\settings\cpt-data-dictionary.adtg"
         lngUpdated = 0
         If Dir(strFile) <> vbNullString Then
           With oRecordset
@@ -104,7 +104,7 @@ Private Sub cmdSetProgramAcronym_Click()
           strUpdated = strUpdated & Format(lngUpdated, "#,##0") & " record(s) updated in Data Dictionary." & vbCrLf
         End If
         '\cpt-marked.adtg
-        strFile = cptDir & "\cpt-marked.adtg"
+        strFile = strDir & "\cpt-marked.adtg"
         lngUpdated = 0
         If Dir(strFile) <> vbNullString Then
           With oRecordset
@@ -123,7 +123,7 @@ Private Sub cmdSetProgramAcronym_Click()
           strUpdated = strUpdated & Format(lngUpdated, "#,##0") & " record(s) updated in Marked tasks data." & vbCrLf
         End If
         '\settings\cpt-metrics.adtg
-        strFile = cptDir & "\settings\cpt-metrics.adtg"
+        strFile = strDir & "\settings\cpt-metrics.adtg"
         lngUpdated = 0
         If Dir(strFile) <> vbNullString Then
           With oRecordset
@@ -142,7 +142,7 @@ Private Sub cmdSetProgramAcronym_Click()
           strUpdated = strUpdated & Format(lngUpdated, "#,##0") & " record(s) updated in Metrics data." & vbCrLf
         End If
         '\settings\cpt-qbd.adtg
-        strFile = cptDir & "\settings\cpt-qbd.adtg"
+        strFile = strDir & "\settings\cpt-qbd.adtg"
         lngUpdated = 0
         If Dir(strFile) <> vbNullString Then
           With oRecordset
@@ -255,10 +255,18 @@ Sub tglErrorTrapping_Click()
   End If
 End Sub
 
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
 Private Sub UserForm_Terminate()
   Dim strFile As String
   strFile = cptDir & "\settings\cpt-settings.adtg"
   If Dir(strFile) <> vbNullString Then Kill strFile
+  Unload Me
 End Sub
 
 Sub cptUpdateSetting(strFeature As String, strKey As String, strVal As String)

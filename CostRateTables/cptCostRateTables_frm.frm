@@ -16,8 +16,20 @@ Attribute VB_Exposed = False
 '<cpt_version>v1.0.2</cpt_version>
 Option Explicit
 
+Private Sub cboStatusField_AfterUpdate()
+  cptSaveSetting "CostRateTables", "cboStatusField", Me.cboStatusField.Value
+End Sub
+
 Private Sub cboStatusField_KeyPress(ByVal KeyAscii As MSForms.ReturnInteger)
-  If KeyAscii = 27 Then Unload Me
+  If KeyAscii = 27 Then Me.Hide
+End Sub
+
+Private Sub chkAddNew_Click()
+  cptSaveSetting "CostRateTables", "chkAddNew", CBool(Me.chkAddNew.Value)
+End Sub
+
+Private Sub chkOverwrite_Click()
+  cptSaveSetting "CostRateTables", "chkOverwrite", CBool(Me.chkOverwrite.Value)
 End Sub
 
 Private Sub cmdGo_Click()
@@ -29,25 +41,26 @@ Private Sub cmdGo_Click()
       Me.txtCostRateTables.BorderColor = 192
       Me.txtCostRateTables.SetFocus
     Else
-      Call cptExportCostRateTables(Me.txtCostRateTables)
+      Call cptExportCostRateTables(Me, Me.txtCostRateTables)
     End If
   ElseIf Me.tglImport Then
     If IsNull(Me.cboStatusField.Value) Or Me.cboStatusField.Value = "" Then
       Me.cboStatusField.BorderColor = 192
       Me.cboStatusField.SetFocus
     Else
-      Call cptImportCostRateTables(Me.cboStatusField.Value)
+      Call cptImportCostRateTables(Me, Me.cboStatusField.Value)
     End If
   End If
   'save user settings
   cptSaveSetting "CostRateTables", "txtCostRateTables", Me.txtCostRateTables.Text
+  cptSaveSetting "CostRateTables", "cboStatusField", Me.cboStatusField.Value
   cptSaveSetting "CostRateTables", "chkAddNew", IIf(Me.chkAddNew, "1", "0")
   cptSaveSetting "CostRateTables", "chkOverwrite", IIf(Me.chkOverwrite, "1", "0")
 
 End Sub
 
 Private Sub cmdGo_KeyPress(ByVal KeyAscii As MSForms.ReturnInteger)
-  If KeyAscii = 27 Then Unload Me
+  If KeyAscii = 27 Then Me.Hide
 End Sub
 
 Private Sub tglExport_Click()
@@ -68,7 +81,7 @@ Private Sub tglExport_Click()
 End Sub
 
 Private Sub tglExport_KeyPress(ByVal KeyAscii As MSForms.ReturnInteger)
-  If KeyAscii = 27 Then Unload Me
+  If KeyAscii = 27 Then Me.Hide
 End Sub
 
 Private Sub tglImport_Click()
@@ -86,10 +99,16 @@ Private Sub tglImport_Click()
     Me.cboStatusField.SetFocus
     Me.cboStatusField.DropDown
   End If
+  'get saved setting
+  Dim strStatusField As String
+  strStatusField = cptGetSetting("CostRateTables", "cboStatusField")
+  If Len(strStatusField) > 0 Then
+    Me.cboStatusField.Value = CLng(strStatusField)
+  End If
 End Sub
 
 Private Sub tglImport_KeyPress(ByVal KeyAscii As MSForms.ReturnInteger)
-  If KeyAscii = 27 Then Unload Me
+  If KeyAscii = 27 Then Me.Hide
 End Sub
 
 Private Sub txtCostRateTables_Change()
@@ -97,5 +116,12 @@ Private Sub txtCostRateTables_Change()
 End Sub
 
 Private Sub txtCostRateTables_KeyPress(ByVal KeyAscii As MSForms.ReturnInteger)
-  If KeyAscii = 27 Then Unload Me
+  If KeyAscii = 27 Then Me.Hide
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
 End Sub

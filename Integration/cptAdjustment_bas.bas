@@ -1,9 +1,10 @@
 Attribute VB_Name = "cptAdjustment_bas"
-'<cpt_version>v0.0.2</cpt_version>
+'<cpt_version>v0.0.3</cpt_version>
 Option Explicit
 
 Sub cptShowAdjustment_frm()
   'objects
+  Dim myAdjustment_frm As cptAdjustment_frm
   Dim oResources As Object 'Scripting.Dictionary
   Dim oResource As MSProject.Resource
   'strings
@@ -33,13 +34,14 @@ Sub cptShowAdjustment_frm()
   strResources = Left(strResources, Len(strResources) - 1)
   vResources = Split(strResources, ",")
   
-  Call cptQuickSort(vResources, 0, UBound(vResources))
+  cptQuickSort vResources, 0, UBound(vResources)
   
   'vResources = Split("All Resources," & Join(vResources, ","), ",")
   
   cptStartEvents
   
-  With cptAdjustment_frm
+  Set myAdjustment_frm = New cptAdjustment_frm
+  With myAdjustment_frm
     .Caption = "ETC Adjustment (" & cptGetVersion("cptAdjustment_frm") & ")"
     .lboHeader.Clear
     .lboHeader.AddItem
@@ -67,14 +69,14 @@ Sub cptShowAdjustment_frm()
     Else
       .chkIgnoreTaskType = True 'defaults to true
     End If
-    cptRefreshAdjustment
+    cptRefreshAdjustment myAdjustment_frm
     .Show False
   End With
   
 exit_here:
   On Error Resume Next
   Set oResources = Nothing
-
+  Set myAdjustment_frm = Nothing
   Exit Sub
 err_here:
   Call cptHandleErr("cptAdjustment_bas", "cptShowAdjustment_frm", Err)
@@ -82,7 +84,7 @@ err_here:
 
 End Sub
 
-Sub cptApplyAdjustment()
+Sub cptApplyAdjustment(ByRef myAdjustment_frm As cptAdjustment_frm)
   'objects
   Dim oAssignment As MSProject.Assignment
   Dim oTask As MSProject.Task
@@ -107,10 +109,10 @@ Sub cptApplyAdjustment()
   blnRefreshStatusBar = False
   If InStr(Application.StatusBar, "Remaining Work") > 0 Then
     blnRefreshStatusBar = True
-    strStatusBar = Replace(Application.StatusBar, cptAdjustment_frm.lboTotal.List(0, 2), cptAdjustment_frm.lboTotal.List(0, 3))
+    strStatusBar = Replace(Application.StatusBar, myAdjustment_frm.lboTotal.List(0, 2), myAdjustment_frm.lboTotal.List(0, 3))
   End If
   
-  With cptAdjustment_frm
+  With myAdjustment_frm
     blnIgnoreTaskType = .chkIgnoreTaskType
     cptSaveSetting "ETCAdjustment", "chkIgnoreTaskType", IIf(.chkIgnoreTaskType, "1", "0")
     If Not blnIgnoreTaskType Then
@@ -159,7 +161,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptRefreshAdjustment()
+Sub cptRefreshAdjustment(ByRef myAdjustment_frm As cptAdjustment_frm)
   'objects
   Dim oTasks As MSProject.Tasks
   Dim oAssignment As MSProject.Assignment
@@ -183,7 +185,7 @@ Sub cptRefreshAdjustment()
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
-  With cptAdjustment_frm
+  With myAdjustment_frm
     .lboAdjustmentPreview.Clear
     For Each oTask In ActiveSelection.Tasks
       If oTask Is Nothing Then GoTo next_task

@@ -1,10 +1,12 @@
 Attribute VB_Name = "cptCostRateTables_bas"
-'<cpt_version>v1.0.1</cpt_version>
+'<cpt_version>v1.0.2</cpt_version>
 Option Explicit
 
 Sub cptShowCostRateTables_frm()
   'objects
+  Dim myCostRateTables_frm As cptCostRateTables_frm
   'strings
+  Dim strStatusField As String
   Dim strOverwrite As String
   Dim strAddNew As String
   Dim strCustomFieldName As String
@@ -18,8 +20,9 @@ Sub cptShowCostRateTables_frm()
   'dates
   
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
-
-  With cptCostRateTables_frm
+  
+  Set myCostRateTables_frm = New cptCostRateTables_frm
+  With myCostRateTables_frm
     .Caption = "Cost Rate Tables (" & cptGetVersion("cptCostRateTables_frm") & ")"
     .lblProgress.Width = .lblStatus.Width
     .lblStatus.Caption = "Ready..."
@@ -38,11 +41,18 @@ Sub cptShowCostRateTables_frm()
           .List(lngItem - 1, 1) = "Text" & lngItem
         End If
       Next lngItem
+      .AddItem
+      .List(.ListCount - 1, 0) = 0
+      .List(.ListCount - 1, 1) = "TO CSV"
     End With
     If ActiveProject.ResourceCount > 0 Then
       .tglExport = True
     Else
       .tglImport = True
+    End If
+    strStatusField = cptGetSetting("CostRateTables", "cboStatusField")
+    If Len(strStatusField) > 0 Then
+      .cboStatusField.Value = CLng(strStatusField)
     End If
     strOverwrite = cptGetSetting("CostRateTables", "chkOverwrite")
     If Len(strOverwrite) > 0 Then
@@ -61,14 +71,15 @@ Sub cptShowCostRateTables_frm()
 
 exit_here:
   On Error Resume Next
-
+  Unload myCostRateTables_frm
+  
   Exit Sub
 err_here:
   Call cptHandleErr("cptCostRateTables_bas", "cptShowCostRateTables_frm", Err, Erl)
   Resume exit_here
 End Sub
 
-Sub cptExportCostRateTables(strCostRateTables As String)
+Sub cptExportCostRateTables(ByRef myCostRateTables_frm As cptCostRateTables_frm, strCostRateTables As String)
   'objects
   Dim oPayRate As PayRate
   Dim oCostRateTable As CostRateTable
@@ -92,7 +103,7 @@ Sub cptExportCostRateTables(strCostRateTables As String)
   Dim vCostRateTable As Variant
   'dates
   
-  cptCostRateTables_frm.lblStatus.Caption = "Getting Excel..."
+  myCostRateTables_frm.lblStatus.Caption = "Getting Excel..."
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
   If oExcel Is Nothing Then
@@ -103,7 +114,7 @@ Sub cptExportCostRateTables(strCostRateTables As String)
   oExcel.Calculation = xlCalculationManual
   oExcel.ScreenUpdating = False
   Set oWorksheet = oWorkbook.Sheets(1)
-  cptCostRateTables_frm.lblStatus.Caption = "Creating Header..."
+  myCostRateTables_frm.lblStatus.Caption = "Creating Header..."
   oWorksheet.[A1:G1] = Split(("RESOURCE,TYPE,RATE TABLE,EFFECTIVE DATE,STANDARD RATE,OVERTIME RATE,COST PER USE"), ",")
   
   lngResourceCount = ActiveProject.ResourceCount
@@ -129,12 +140,12 @@ Sub cptExportCostRateTables(strCostRateTables As String)
 next_cost_rate_table:
     Next vCostRateTable
     Application.StatusBar = Format(lngResource, "#,##0") & "/" & Format(lngResourceCount, "#,##0") & "...(" & Format(lngResource / lngResourceCount, "0%") & ")"
-    cptCostRateTables_frm.lblStatus.Caption = Format(lngResource, "#,##0") & "/" & Format(lngResourceCount, "#,##0") & "...(" & Format(lngResource / lngResourceCount, "0%") & ")"
-    cptCostRateTables_frm.lblProgress.Width = (lngResource / lngResourceCount) * cptCostRateTables_frm.lblStatus.Width
+    myCostRateTables_frm.lblStatus.Caption = Format(lngResource, "#,##0") & "/" & Format(lngResourceCount, "#,##0") & "...(" & Format(lngResource / lngResourceCount, "0%") & ")"
+    myCostRateTables_frm.lblProgress.Width = (lngResource / lngResourceCount) * myCostRateTables_frm.lblStatus.Width
     DoEvents
   Next oResource
 
-  With cptCostRateTables_frm
+  With myCostRateTables_frm
     .lblProgress.Width = .lblStatus.Width
     .lblStatus = "Complete."
   End With
@@ -168,7 +179,7 @@ err_here:
   Resume exit_here
 End Sub
 
-Sub cptImportCostRateTables(lngField As Long)
+Sub cptImportCostRateTables(ByRef myCostRateTables_frm As cptCostRateTables_frm, lngField As Long)
   'objects
   Dim oPayRate As MSProject.PayRate
   Dim oCostRateTable As MSProject.CostRateTable
@@ -177,16 +188,23 @@ Sub cptImportCostRateTables(lngField As Long)
   Dim oWorkbook As Object 'Excel.Workbook
   Dim oWorksheet As Object 'Excel.Worksheet
   'strings
+  Dim strFile As String
+  Dim strOverwrite As String
+  Dim strAddResources As String
   Dim strCostRateTable As String
   Dim strType As String
   Dim strWorkbook As String
   'longs
+  Dim lngItem As Long
+  Dim lngFile As Long
   Dim lngCostRateTable As Long
   Dim lngRow As Long
   Dim lngLastRow As Long
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
+  Dim blnImportStatus As Boolean
   Dim blnOverwrite As Boolean
   Dim blnAddResources As Boolean
   'variants
@@ -196,6 +214,9 @@ Sub cptImportCostRateTables(lngField As Long)
   Dim vEffectiveDate As Variant
   'dates
   
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
   Application.ActiveWindow.TopPane.Activate
   ViewApply "Resource Sheet"
   FilterClear
@@ -203,17 +224,19 @@ Sub cptImportCostRateTables(lngField As Long)
   'clear out the field
   Application.ScreenUpdating = True
   Application.Calculation = pjAutomatic
-  cptCostRateTables_frm.lblStatus.Caption = "Clearing Field..."
-  For Each oResource In ActiveProject.Resources
-    EditGoTo oResource.ID
-    oResource.SetField lngField, ""
-  Next oResource
-  DoEvents
+  If lngField > 0 Then
+    myCostRateTables_frm.lblStatus.Caption = "Clearing Field..."
+    For Each oResource In ActiveProject.Resources
+      EditGoTo oResource.ID
+      oResource.SetField lngField, ""
+    Next oResource
+    DoEvents
+  End If
   
-  cptCostRateTables_frm.lblStatus.Caption = "Getting Excel..."
+  myCostRateTables_frm.lblStatus.Caption = "Getting Excel..."
   On Error Resume Next
   Set oExcel = GetObject(, "Excel.Application")
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If oExcel Is Nothing Then
     Set oExcel = CreateObject("Excel.Application")
   End If
@@ -226,17 +249,36 @@ Sub cptImportCostRateTables(lngField As Long)
     .Show
     If .SelectedItems.Count > 0 Then
       strWorkbook = .SelectedItems(1)
-      blnAddResources = MsgBox("Add Resources in Workbook but not in this project?", vbQuestion + vbYesNo, "Confirm Add New Resources") = vbYes
-      blnOverwrite = MsgBox("Overwrite existing Cost Rate Tables?", vbQuestion + vbYesNo, "Confirm Overwrite Cost Rate Tables") = vbYes
     Else
-      cptCostRateTables_frm.lblStatus.Caption = "Ready..."
+      myCostRateTables_frm.lblStatus.Caption = "Ready..."
       GoTo exit_here
     End If
   End With
-
+  
+  'get / create saved settings
+  strOverwrite = cptGetSetting("CostRateTables", "chkOverwrite")
+  If Len(strOverwrite) > 0 Then
+    blnOverwrite = CBool(strOverwrite)
+  Else
+    blnOverwrite = MsgBox("Overwrite existing Cost Rate Tables?", vbQuestion + vbYesNo, "Confirm Overwrite Cost Rate Tables") = vbYes
+    cptSaveSetting "CostRateTables", "chkOverwrite", CBool(blnOverwrite)
+  End If
+  strAddResources = cptGetSetting("CostRateTables", "chkAddNew")
+  If Len(strAddResources) > 0 Then
+    blnAddResources = CBool(strAddResources)
+  Else
+    blnAddResources = MsgBox("Add Resources in Workbook but not in this project?", vbQuestion + vbYesNo, "Confirm Add New Resources") = vbYes
+    cptSaveSetting "CostRateTables", "chkAddNew", CBool(blnAddResources)
+  End If
+  blnImportStatus = lngField > 0
+  If Not blnImportStatus Then
+    Dim oDict As Scripting.Dictionary
+    Set oDict = CreateObject("Scripting.Dictionary")
+  End If
+  
   Application.Calculation = pjManual
   Application.ScreenUpdating = False
-  cptCostRateTables_frm.lblStatus.Caption = "Opening Workbook..."
+  myCostRateTables_frm.lblStatus.Caption = "Opening Workbook..."
   Set oWorkbook = oExcel.Workbooks.Open(strWorkbook)
   Set oWorksheet = oWorkbook.Sheets(1)
       
@@ -246,13 +288,13 @@ Sub cptImportCostRateTables(lngField As Long)
     If lngRow = 2 Then
       On Error Resume Next
       Set oResource = ActiveProject.Resources(oWorksheet.Cells(lngRow, 1).Value)
-      If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+      If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     Else
       If oResource.Name <> oWorksheet.Cells(lngRow, 1).Value Then
         Set oResource = Nothing
         On Error Resume Next
         Set oResource = ActiveProject.Resources(oWorksheet.Cells(lngRow, 1).Value)
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
       Else
         GoTo cost_rate_tables
       End If
@@ -262,11 +304,25 @@ Sub cptImportCostRateTables(lngField As Long)
         Set oResource = ActiveProject.Resources.Add(oWorksheet.Cells(lngRow, 1).Value)
         strType = oWorksheet.Cells(lngRow, 2).Value
         oResource.Type = Switch(strType = "WORK", pjResourceTypeWork, strType = "COST", pjResourceTypeCost, strType = "MATERIAL", pjResourceTypeMaterial)
-        oResource.SetField lngField, "ADDED"
+        If blnImportStatus Then
+          oResource.SetField lngField, "ADDED"
+        Else
+          If Not oDict.Exists(oResource.UniqueID & "|" & oResource.Name) Then
+            oDict.Add oResource.UniqueID & "|" & oResource.Name, "ADDED"
+          End If
+        End If
         GoTo cost_rate_tables
       End If
     Else
-      oResource.SetField lngField, "UPDATED: "
+      If blnImportStatus Then
+        oResource.SetField lngField, "UPDATED: "
+      Else
+        If Not oDict.Exists(oResource.UniqueID & "|" & oResource.Name) Then
+          oDict.Add oResource.UniqueID & "|" & oResource.Name, "UPDATED: "
+        Else
+          oDict.Items(oResource.UniqueID & "|" & oResource.Name) = "UPDATED: "
+        End If
+      End If
     End If
         
     'get cost rate table
@@ -286,7 +342,15 @@ cost_rate_tables:
               oPayRate.Delete
             End If
           Next oPayRate
-          oResource.SetField lngField, oResource.GetField(lngField) & strCostRateTable & IIf(strCostRateTable <> "E", ",", "")
+          If blnImportStatus Then
+            oResource.SetField lngField, oResource.GetField(lngField) & strCostRateTable & IIf(strCostRateTable <> "E", ",", "")
+          Else
+            If Not oDict.Exists(oResource.UniqueID & "|" & oResource.Name) Then
+              oDict.Add oResource.UniqueID & "|" & oResource.Name, "UPDATE: " & strCostRateTable & IIf(strCostRateTable <> "E", ",", "")
+            Else
+              oDict(oResource.UniqueID & "|" & oResource.Name) = oDict(oResource.UniqueID & "|" & oResource.Name) & strCostRateTable & IIf(strCostRateTable <> "E", ",", "")
+            End If
+          End If
         Else
           'todo: allow append vs overwrite?
         End If
@@ -305,12 +369,24 @@ cost_rate_tables:
     If Not IsEmpty(vOvtRate) Then oPayRate.OvertimeRate = vOvtRate
     If Not IsEmpty(vCostPerUse) Then oPayRate.CostPerUse = vCostPerUse
     Application.StatusBar = Format(lngRow, "#,##0") & "/" & Format(lngLastRow, "#,##0") & "...(" & Format(lngRow / lngLastRow, "0%") & ")"
-    cptCostRateTables_frm.lblStatus.Caption = Format(lngRow, "#,##0") & "/" & Format(lngLastRow, "#,##0") & "...(" & Format(lngRow / lngLastRow, "0%") & ")"
-    cptCostRateTables_frm.lblProgress.Width = (lngRow / lngLastRow) * cptCostRateTables_frm.lblStatus.Width
+    myCostRateTables_frm.lblStatus.Caption = Format(lngRow, "#,##0") & "/" & Format(lngLastRow, "#,##0") & "...(" & Format(lngRow / lngLastRow, "0%") & ")"
+    myCostRateTables_frm.lblProgress.Width = (lngRow / lngLastRow) * myCostRateTables_frm.lblStatus.Width
     DoEvents
   Next lngRow
-    
-  With cptCostRateTables_frm
+  
+  If Not blnImportStatus Then
+    lngFile = FreeFile
+    strFile = Environ("tmp") & "\cpt-CostRateTableImportStatus.csv"
+    Open strFile For Output As #lngFile
+    Print #lngFile, "UID,RESOURCE,STATUS_NOTE"
+    For lngItem = 0 To oDict.Count - 1
+      Print #lngFile, Split(oDict.Keys(lngItem), "|")(0) & "," & Chr(34) & Split(oDict.Keys(lngItem), "|")(1) & Chr(34) & "," & Chr(34) & oDict.Items(lngItem) & Chr(34)
+    Next lngItem
+    Close #lngFile
+    Shell "notepad.exe """ & strFile & """", vbNormalFocus
+  End If
+  
+  With myCostRateTables_frm
     .lblProgress.Width = .lblStatus.Width
     .lblStatus.Caption = "Complete."
   End With
@@ -320,6 +396,8 @@ cost_rate_tables:
   
 exit_here:
   On Error Resume Next
+  Set oDict = Nothing
+  Reset
   Application.StatusBar = ""
   Application.ScreenUpdating = True
   Application.Calculation = pjAutomatic

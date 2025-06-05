@@ -6,11 +6,6 @@
 
 ---
 
-[![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/AronGahagan/cpt-dev.svg)](http://isitmaintained.com/project/AronGahagan/cpt-dev "Average time to resolve an issue")
-[![Percentage of issues still open](http://isitmaintained.com/badge/open/AronGahagan/cpt-dev.svg)](http://isitmaintained.com/project/AronGahagan/cpt-dev "Percentage of issues still open")
-
----
-
 ## Purpose
 * The purpose of this project is to provide schedulers with a time-saving and error-free tool _to be used in support of industry best practices and **solid processes**_. (Read: don't be like the TSA conveyor belt.)
 * It is **not** the purpose of this project to absolve schedulers of the duty to build, analyze, and maintain good schedules. No tool, and no automation, can replace the mind, experience, judgment, and instincts of a living, breathing human being. Therefore:
@@ -45,16 +40,15 @@
 
 ## Prerequisites
 1. Microsoft Project Standard or Professional 2013+ (32-bit or 64-bit, but must match Office version for some features to work properly)
-1. Microsoft Office (Outlook, Excel, Word, PowerPoint) (32-bit or 64-bit, but must match MS Project version for some features to work propertly)
+1. Microsoft Office (Outlook, Excel, Word, PowerPoint) (32-bit or 64-bit, but must match MS Project version for some features to work properly)
 1. Internet Connection preferred, but not required
-1. Some features may require that `.NET 3.5` be enabled. From your start menu, search for 'Turn Windows Features On or Off' (a control panel setting) and be sure `.NET 3.5` is enabled.
 
 [[top]](#table-of-contents)
 
 ---
 
 ## Installation
-_Note: this tool is not currently designed (nor has it been tested) for use with Microsoft Project Server. Contact <a href="mailto:cpt@ClearPlanConsulting.com">cpt@ClearPlanConsulting.com</a> for further information or if you would like to explore a custom installation for your Server environment._
+_Note: this tool is not designed to run "out of the box" on Microsoft Project Server/Online. Contact <a href="mailto:help@ClearPlanConsulting.com">help@ClearPlanConsulting.com</a> for further information or if you would like to explore a custom installation for your Server/Online environment._
 
 1. Enable Macros
     1. Open Microsoft Project, go to File > Options > Trust Center > Trust Center Settings...
@@ -64,14 +58,13 @@ _Note: this tool is not currently designed (nor has it been tested) for use with
     ![installation-02](/images/installation-02.PNG?raw=true)
     1. Click **OK** a couple of times to close the dialogs
     1. Completely exit, and then restart, Microsoft Project (this makes the settings above 'stick')
-1. Download and open the [latest release](https://github.com/AronGahagan/cpt-dev/releases/latest) (download the cpt_\*.mpp file).
+1. Download and open the [latest release](https://github.com/clearplan/cpt/releases/latest) (download the cpt_\*.mpp file).
 1. Open the **Organizer** and select the **Modules** tab:
-    1. **If you have an internet connection:** copy the `cptSetup_bas` module into your Global.MPT
-    1. **If you do not have an internet connection:** copy **all** modules prefixed with `cpt` into your Global.MPT
+1. Copy **all** modules prefixed with `cpt` into your Global.MPT
 1. On the Ribbon, click **View** > **Macros** > **View Macros** > and run the macro `cptSetup()`
     1. This macro installs necessary core modules if they are not already installed
     1. Changes will be made to your ThisProject module, but if you have existing code it will not be overwritten. cpt-related code will be inserted at the very top of the procedures **Project_Activate** and **Project_Open** and each line is appended with `'</cpt>` for reference.
-1. The ClearPlan Toolbar will be added. Click **ClearPlan** > **Help** > **Help** > **Check for Upgrades** to download the latest hotfixes. If you do not have an internet connection, please contact [cpt@ClearPlanConsulting.com](mailto:cpt@ClearPlanConsulting.com) for the latest hotfixes.
+1. The ClearPlan Toolbar will be added. Click **ClearPlan** > **Help** > **Help** > **Check for Upgrades** at any time to download the latest version(s). If you do not have an internet connection, please contact [help@ClearPlanConsulting.com](mailto:help@ClearPlanConsulting.com) for the latest hotfixes.
     
 [[top]](#table-of-contents)
 
@@ -220,7 +213,7 @@ This feature helps you set up and manage Outline Codes (e.g., CWBS, IMP).
     1. The existing summary/task structure in the active project. This will use the native WBS field as the code, and the Task Name as the Description.
     1. If the selected local custom Outline Code is not yet named, provide a name for it (e.g., "CWBS").
     1. Once you have made your selections, click **Import**.
-1. Select the **Export Code** option to export the selected local custom Outline Code into: An Excel Workbook; "WBS Descriptive" CSV file for import to MPM; a CSV Code file for import to COBRA; or import into pre-formatted DI-MGMT-81334D for update. Note: the [DI-MGMT-81334D Template](https://github.com/AronGahagan/cpt-dev/blob/develop/Templates/81334D_CWBS_TEMPLATE.xltm) is required; install it to your Microsoft Templates directory (usually located at C:\Users\\[username]\AppData\Roaming\Microsoft\Templates\).
+1. Select the **Export Code** option to export the selected local custom Outline Code into: An Excel Workbook; "WBS Descriptive" CSV file for import to MPM; a CSV Code file for import to COBRA; or import into pre-formatted DI-MGMT-81334D for update. Note: the [DI-MGMT-81334D Template](https://github.com/clearplan/cpt/blob/develop/Templates/81334D_CWBS_TEMPLATE.xltm) is required; install it to your Microsoft Templates directory (usually located at C:\Users\\[username]\AppData\Roaming\Microsoft\Templates\).
 1. Select the **Find/Replace** option to find and replace multiple instances of a word in the selected local custom Outline Code descriptions.
 
 [[up]](#use) | [[toc]](#table-of-contents)
@@ -230,7 +223,7 @@ This feature helps you set up and manage Outline Codes (e.g., CWBS, IMP).
 ### Integration Tools
 ![integration](/images/integration.png?raw=true)
 
-1. _**Export IMS to COBRA**_ - Creates the CSV-formatted import files for Baseline, Forecast, and Status for upload to COBRA. See the [Help Doc](https://github.com/AronGahagan/cpt-dev/blob/develop/Trace/ClearPlan_IMS_Export_Utility_r3.1.0.docx) for more information.
+1. _**Export IMS to COBRA**_ - Creates the CSV-formatted import files for Baseline, Forecast, and Status for upload to COBRA. See the [Help Doc](https://github.com/clearplan/cpt/blob/develop/Trace/ClearPlan_IMS_Export_Utility_r3.1.0.docx) for more information.
 
 [[up]](#use) | [[toc]](#table-of-contents)
 

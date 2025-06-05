@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIMSCobraExport_frm 
-   Caption         =   "IMS Export Utility v3.3.12"
-   ClientHeight    =   7308
+   Caption         =   "IMS Export Utility v3.4.7"
+   ClientHeight    =   9060.001
    ClientLeft      =   120
    ClientTop       =   468
    ClientWidth     =   4392
@@ -14,13 +14,12 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 
-
-'<cpt_version>v3.3.12</cpt_version>
+'<cpt_version>v3.4.6</cpt_version>
 Private Sub AsgnPcntBox_Change() 'v3.3.1
     
     If isIMSfield(AsgnPcntBox.Value) = False And AsgnPcntBox.Value <> "" And AsgnPcntBox.Value <> "<None>" Then
         MsgBox "Please select a valid IMS Field."
-        bcrBox.Value = ""
+        AsgnPcntBox.Value = "" 'v3.4.3
         Exit Sub
     End If
     
@@ -171,14 +170,18 @@ Private Sub BCWS_Checkbox_Change()
         End If
         Me.exportDescCheckBox.Enabled = True
         Me.exportTPhaseCheckBox.Enabled = True
+        Me.Milestone_CheckBox.Enabled = True 'v3.4.1
     Else
-        Me.TotalProjBtn.Enabled = False
-        Me.BcrBtn.Enabled = False
-        BCR_ID_TextBox.Enabled = False
+        If Me.WhatIf_CheckBox.Value = False Then 'v3.3.15
+            Me.BcrBtn.Enabled = False
+            Me.TotalProjBtn.Enabled = False
+            Me.BCR_ID_TextBox.Enabled = False
+        End If
         Me.exportDescCheckBox.Enabled = False
         If Me.ETC_Checkbox.Value = False And Me.WhatIf_CheckBox.Value = False Then
             Me.exportTPhaseCheckBox.Enabled = False
         End If
+        Me.Milestone_CheckBox.Enabled = False 'v3.4.1
     End If
 
 End Sub
@@ -537,8 +540,17 @@ Private Sub CSVBtn_Change()
         Me.ETC_Checkbox.Enabled = True
         Me.WhatIf_CheckBox.Enabled = True 'v3.2
         Me.ResExportCheckbox.Enabled = True
+        Me.Milestone_CheckBox.Enabled = True 'v3.4
         If Me.ResExportCheckbox.Value = True Then
             Me.exportTPhaseCheckBox.Enabled = True
+            If Me.exportTPhaseCheckBox.Value = True Then 'v3.4
+                Me.ScaleCombobox.Enabled = True
+                Me.ScaleLabel.Enabled = True
+                If Me.ScaleCombobox.Value = "Weekly" Then
+                    Me.WeekStartCombobox.Enabled = True
+                    Me.WeekStartLabel.Enabled = True
+                End If
+            End If
         Else
             Me.exportTPhaseCheckBox.Enabled = False
         End If
@@ -559,6 +571,11 @@ Private Sub CSVBtn_Change()
         Me.BcrBtn.Enabled = False
         Me.BCR_ID_TextBox.Enabled = False
         Me.exportDescCheckBox.Enabled = False
+        Me.Milestone_CheckBox.Enabled = False 'v3.4
+        Me.WeekStartCombobox.Enabled = False
+        Me.ScaleCombobox.Enabled = False 'v3.4
+        Me.ScaleLabel.Enabled = False 'v3.4
+        Me.WeekStartLabel.Enabled = False 'v3.4
     End If
     
     If BCWS_Checkbox.Value = False And BCWP_Checkbox.Value = False And ETC_Checkbox.Value = False And WhatIf_CheckBox.Value = False Then 'v3.2
@@ -688,11 +705,13 @@ Private Sub exportTPhaseCheckBox_Click() 'v3.3.6
     If exportTPhaseCheckBox.Value = True Then
         'if exporting timescaled data
         'increase visibility of MSP's week start day
-        WeekStartLabel.Enabled = True
-        WeekStartCombobox.Enabled = True
+        ScaleLabel.Enabled = True
+        ScaleCombobox.Enabled = True
     Else
         WeekStartLabel.Enabled = False
         WeekStartCombobox.Enabled = False
+        ScaleLabel.Enabled = False 'v3.4
+        ScaleCombobox.Enabled = False 'v3.4
     End If
 End Sub
 
@@ -813,6 +832,46 @@ PropMissing:
     Resume PropFound
 End Sub
 
+Private Sub projBox_Change()
+
+    If checkDuplicate(projBox) = True Then
+        MsgBox "Please select a unique IMS Field."
+        projBox.Value = ""
+        Exit Sub
+    End If
+    
+    If isIMSfield(projBox.Value) = False And projBox.Value <> "" And projBox.Value <> "<None>" Then
+        MsgBox "Please select a valid IMS Field."
+        projBox.Value = ""
+        Exit Sub
+    End If
+    
+    Dim docProps As DocumentProperties
+    Dim curProj As Project
+    
+    Set curProj = ActiveProject
+    Set docProps = curProj.CustomDocumentProperties
+    
+    On Error GoTo PropMissing
+    
+    docProps("fProject").Value = Me.projBox.Value
+
+PropFound:
+
+    Me.TabButtons(1).Tag = VerifyCustFieldUsage
+    
+    Set docProps = Nothing
+    Set curProj = Nothing
+    
+    Exit Sub
+    
+PropMissing:
+
+    docProps.Add "fProject", False, msoPropertyTypeString, Me.projBox.Value
+    Resume PropFound
+
+End Sub
+
 Private Sub resBox_Change()
     
     Dim docProps As DocumentProperties
@@ -858,6 +917,18 @@ Private Sub RunDataBtn_Click()
     
 End Sub
 
+Private Sub ScaleCombobox_Change() 'v3.4
+
+    If ScaleCombobox.Value = "Weekly" Then
+        WeekStartCombobox.Enabled = True
+        WeekStartLabel.Enabled = True
+    Else
+        WeekStartCombobox.Enabled = False
+        WeekStartLabel.Enabled = False
+    End If
+
+End Sub
+
 Private Sub TabButtons_Click(ByVal Index As Long)
     If Index <> 1 And Me.TabButtons(1).Tag = False Then
         Me.TabButtons.Value = 1
@@ -890,17 +961,43 @@ Private Sub UserForm_Initialize()
         Me.BCWP_Checkbox.Enabled = True
         Me.ETC_Checkbox.Enabled = True
         Me.WhatIf_CheckBox.Enabled = True 'v3.2
-        Me.TotalProjBtn.Enabled = True
-        Me.BcrBtn.Enabled = True
         Me.ResExportCheckbox.Enabled = True
+        Me.Milestone_CheckBox.Enabled = True 'v3.4
+        If Me.ResExportCheckbox.Value = True Then
+            Me.exportTPhaseCheckBox.Enabled = True
+            If Me.exportTPhaseCheckBox.Value = True Then 'v3.4
+                Me.ScaleCombobox.Enabled = True
+                Me.ScaleLabel.Enabled = True
+                If Me.ScaleCombobox.Value = "Weekly" Then
+                    Me.WeekStartCombobox.Enabled = True
+                    Me.WeekStartLabel.Enabled = True
+                End If
+            End If
+        Else
+            Me.exportTPhaseCheckBox.Enabled = False
+        End If
+        If Me.BCWS_Checkbox = True Then
+            Me.TotalProjBtn.Enabled = True
+            Me.BcrBtn.Enabled = True
+            Me.exportDescCheckBox.Enabled = True
+            If Me.BcrBtn = True Then Me.BCR_ID_TextBox.Enabled = True
+        End If
     Else
         Me.BCWS_Checkbox.Enabled = False
         Me.BCWP_Checkbox.Enabled = False
         Me.ETC_Checkbox.Enabled = False
         Me.WhatIf_CheckBox.Enabled = False 'v3.2
         Me.TotalProjBtn.Enabled = False
-        Me.BcrBtn.Enabled = False
         Me.ResExportCheckbox.Enabled = False
+        Me.exportTPhaseCheckBox.Enabled = False
+        Me.BcrBtn.Enabled = False
+        Me.BCR_ID_TextBox.Enabled = False
+        Me.exportDescCheckBox.Enabled = False
+        Me.Milestone_CheckBox.Enabled = False 'v3.4
+        Me.WeekStartCombobox.Enabled = False
+        Me.WeekStartLabel.Enabled = False 'v3.4
+        Me.ScaleCombobox.Enabled = False 'v3.4
+        Me.ScaleLabel.Enabled = False 'v3.4
     End If
     
     If Me.TotalProjBtn = False And Me.BcrBtn = False Then
@@ -991,7 +1088,7 @@ Private Function PopulateCustFieldUsage() As Boolean
     Dim curProj As Project
     Dim docProp As DocumentProperty
     Dim docProps As DocumentProperties
-    Dim fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fEVT, fCAID2, fCAID2t, fMSID, fMSW, fBCR, fWhatIf, fPCNT, fAssignPcnt, fResID, dateFmt As Boolean 'v3.3.0, v3.3.5
+    Dim fProject, fCAID1, fCAID1t, fCAID3, fCAID3t, fWP, fCAM, fEVT, fCAID2, fCAID2t, fMSID, fMSW, fBCR, fWhatIf, fPCNT, fAssignPcnt, fResID, dateFmt As Boolean 'v3.3.0, v3.3.5, v3.4.3
     Dim nameTest As Double
     
     Set curProj = ActiveProject
@@ -1124,6 +1221,17 @@ Private Function PopulateCustFieldUsage() As Boolean
                     Me.bcrBox.Value = docProp.Value
                 End If
                 
+            Case "fProject"
+            
+                If docProp.Value = "<None>" Then
+                    fProject = True
+                    Me.projBox.Value = docProp.Value
+                Else
+                    nametets = ActiveProject.Application.FieldNameToFieldConstant(docProp.Value)
+                    fProject = True
+                    Me.projBox.Value = docProp.Value
+                End If
+                
             Case "fWhatIf" 'v3.2
             
                 If docProp.Value = "<None>" Then
@@ -1180,14 +1288,24 @@ Private Sub WeekStartCombobox_Change() 'v3.3.6
     Dim curProj As Project
     Set curProj = ActiveProject
     curProj.StartWeekOn = WeekStartCombobox.ListIndex + 1
+    
+    Set curProj = Nothing 'v3.4
+    
 End Sub
 
 Private Sub WhatIf_CheckBox_Click() 'v3.2
     If Me.WhatIf_CheckBox.Value = True Then
         Me.exportTPhaseCheckBox.Enabled = True
+        Me.BcrBtn.Enabled = True 'v3.3.15
+        Me.TotalProjBtn.Enabled = True 'v3.3.15
+        Me.Milestone_CheckBox.Enabled = True 'v3.4.1
     Else
-        If Me.BCWS_Checkbox.Value = False And Me.ETC_Checkbox.Value = False Then
+        If Me.BCWS_Checkbox.Value = False Then
             Me.exportTPhaseCheckBox.Enabled = False
+            Me.BcrBtn.Enabled = False 'v3.3.15
+            Me.TotalProjBtn.Enabled = False 'v3.3.15
+            Me.BCR_ID_TextBox.Enabled = False 'v3.3.15
+            Me.Milestone_CheckBox.Enabled = False 'v3.4.1
         End If
     End If
 End Sub

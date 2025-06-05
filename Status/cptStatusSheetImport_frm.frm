@@ -17,49 +17,61 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Private Sub cboAF_Change()
-  Call cptRefreshStatusImportTable
+  If Me.Visible Then
+    If Me.ActiveControl.Name = "cboAF" Then Call cptRefreshStatusImportTable(Me)
+  End If
 End Sub
 
 Private Sub cboAS_Change()
-  Call cptRefreshStatusImportTable
+  If Me.Visible Then
+    If Me.ActiveControl.Name = "cboAS" Then Call cptRefreshStatusImportTable(Me)
+  End If
 End Sub
 
 Private Sub cboETC_Change()
-  
-  'ensure user didn't select the same field for New EVP and New ETC
-  '-2147483630 = Black
-  Me.lblEV.ForeColor = -2147483630
-  Me.lblETC.ForeColor = -2147483630
-  If Me.cboEV.Value = Me.cboETC.Value Then
-    Me.lblEV.ForeColor = 192
-    Me.lblETC.ForeColor = 192
-  Else
-    Call cptRefreshStatusImportTable
+  If Me.Visible Then
+    If Me.ActiveControl.Name = "cboETC" Then
+      'ensure user didn't select the same field for New EVP and New ETC
+      '-2147483630 = Black
+      Me.lblEV.ForeColor = -2147483630
+      Me.lblETC.ForeColor = -2147483630
+      If Me.cboEV.Value = Me.cboETC.Value Then
+        Me.lblEV.ForeColor = 192
+        Me.lblETC.ForeColor = 192
+      Else
+        Call cptRefreshStatusImportTable(Me)
+      End If
+    End If
   End If
-  
 End Sub
 
 Private Sub cboEV_Change()
-
-  'ensure user didn't select the same field for New EVP and New ETC
-  '-2147483630 = Black
-  Me.lblEV.ForeColor = -2147483630
-  Me.lblETC.ForeColor = -2147483630
-  If Me.cboEV.Value = Me.cboETC.Value Then
-    Me.lblEV.ForeColor = 192
-    Me.lblETC.ForeColor = 192
-  Else
-    Call cptRefreshStatusImportTable
+  If Me.Visible Then
+    If Me.ActiveControl.Name = "cboEV" Then
+      'ensure user didn't select the same field for New EVP and New ETC
+      '-2147483630 = Black
+      Me.lblEV.ForeColor = -2147483630
+      Me.lblETC.ForeColor = -2147483630
+      If Me.cboEV.Value = Me.cboETC.Value Then
+        Me.lblEV.ForeColor = 192
+        Me.lblETC.ForeColor = 192
+      Else
+        Call cptRefreshStatusImportTable(Me)
+      End If
+    End If
   End If
-  
 End Sub
 
 Private Sub cboFF_Change()
-  Call cptRefreshStatusImportTable
+  If Me.Visible Then
+    If Me.ActiveControl.Name = "cboFF" Then Call cptRefreshStatusImportTable(Me)
+  End If
 End Sub
 
 Private Sub cboFS_Change()
-  Call cptRefreshStatusImportTable
+  If Me.Visible Then
+    If Me.ActiveControl.Name = "cboFS" Then Call cptRefreshStatusImportTable(Me)
+  End If
 End Sub
 
 Private Sub chkAppend_Click()
@@ -67,7 +79,7 @@ Private Sub chkAppend_Click()
 End Sub
 
 Private Sub cmdDone_Click()
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub cmdImport_Click()
@@ -96,7 +108,7 @@ Private Sub cmdImport_Click()
     End If
     cptSaveSetting "StatusSheetImport", "optTaskUsage", IIf(Me.optAbove, "above", "below")
     
-    Call cptStatusSheetImport
+    cptStatusSheetImport Me
   End If
   
 End Sub
@@ -136,6 +148,54 @@ exit_here:
   Exit Sub
 err_here:
   Call cptHandleErr("cptStatusSheetImport_frm", "cmdRemove_Click", Err, Erl)
+  Resume exit_here
+End Sub
+
+Private Sub cmdRename_Click()
+  'objects
+  Dim oDict As Scripting.Dictionary
+  Dim oComboBox As MSForms.ComboBox
+  'strings
+  Dim strFieldName As String
+  'longs
+  Dim lngItem As Long
+  Dim lngLCF As Long
+  'integers
+  'doubles
+  'booleans
+  'variants
+  'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  
+  cptSpeed True
+  
+  Set oDict = CreateObject("Scripting.Dictionary")
+  oDict.Add "cboAS", "New Actual Start"
+  oDict.Add "cboAF", "New Actual Finish"
+  oDict.Add "cboFS", "New Forecast Start"
+  oDict.Add "cboFF", "New Forecast Finish"
+  oDict.Add "cboEV", "New EV%"
+  oDict.Add "cboETC", "New ETC"
+  
+  For lngItem = 0 To oDict.Count - 1
+    Set oComboBox = Me.Controls(oDict.Keys(lngItem))
+    If oComboBox.Value > 0 Then
+      lngLCF = Me.Controls(oDict.Keys(lngItem)).Value
+      strFieldName = FieldConstantToFieldName(lngLCF)
+      CustomFieldRename lngLCF, oDict.Items(lngItem)
+      oComboBox.List(oComboBox.ListIndex, 1) = strFieldName & " (" & oDict.Items(lngItem) & ")"
+    End If
+  Next lngItem
+  
+exit_here:
+  On Error Resume Next
+  cptSpeed False
+  Set oDict = Nothing
+
+  Exit Sub
+err_here:
+  Call cptHandleErr("cptStatusSheetImport_frm", "cmdRename_Click", Err, Erl)
   Resume exit_here
 End Sub
 
@@ -182,9 +242,9 @@ Private Sub cmdSelectFiles_Click()
         For lngItem = 1 To .SelectedItems.Count
           strFile = .SelectedItems(lngItem)
           If Dir(strFile) <> vbNullString Then
-            cptStatusSheetImport_frm.lboStatusSheets.AddItem
-            cptStatusSheetImport_frm.lboStatusSheets.List(cptStatusSheetImport_frm.lboStatusSheets.ListCount - 1, 0) = Replace(strFile, Dir(strFile), "")
-            cptStatusSheetImport_frm.lboStatusSheets.List(cptStatusSheetImport_frm.lboStatusSheets.ListCount - 1, 1) = Dir(strFile)
+            Me.lboStatusSheets.AddItem
+            Me.lboStatusSheets.List(Me.lboStatusSheets.ListCount - 1, 0) = Replace(strFile, Dir(strFile), "")
+            Me.lboStatusSheets.List(Me.lboStatusSheets.ListCount - 1, 1) = Dir(strFile)
           End If
         Next lngItem
       End If
@@ -240,10 +300,12 @@ Private Sub lboStatusSheets_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Me.lboStatusSheets.ListCount > 0 Then
     For lngItem = 0 To Me.lboStatusSheets.ListCount - 1
@@ -252,7 +314,7 @@ Private Sub lboStatusSheets_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
         If Dir(strPath) <> vbNullString Then
           On Error Resume Next
           Set oExcel = GetObject(, "Excel.Application")
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           If oExcel Is Nothing Then Set oExcel = CreateObject("Excel.Application")
           oExcel.Workbooks.Open strPath
           oExcel.Visible = True
@@ -274,9 +336,20 @@ err_here:
 End Sub
 
 Private Sub optAbove_Click()
-  Call cptRefreshStatusImportTable(Me.optBelow)
+  If Me.Visible Then Call cptRefreshStatusImportTable(Me, Me.optBelow)
 End Sub
 
 Private Sub optBelow_Click()
-  Call cptRefreshStatusImportTable(Me.optBelow)
+  If Me.Visible Then Call cptRefreshStatusImportTable(Me, Me.optBelow)
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
+Private Sub UserForm_Terminate()
+  Unload Me
 End Sub

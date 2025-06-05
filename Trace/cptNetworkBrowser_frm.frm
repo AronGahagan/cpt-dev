@@ -6,7 +6,6 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptNetworkBrowser_frm
    ClientTop       =   330
    ClientWidth     =   9885.001
    OleObjectBlob   =   "cptNetworkBrowser_frm.frx":0000
-   ShowModal       =   0   'False
    StartUpPosition =   1  'CenterOwner
 End
 Attribute VB_Name = "cptNetworkBrowser_frm"
@@ -18,28 +17,38 @@ Attribute VB_Exposed = False
 Option Explicit
 
 Private Sub cboSortPredecessorsBy_Change()
-  cptSaveSetting "NetworkBrowser", "cboSortPredecessorsBy", Me.cboSortPredecessorsBy.Value
-  cptSortNetworkBrowserLinks "p", Me.chkSortPredDescending.Value
+  If Me.Visible Then
+    cptSaveSetting "NetworkBrowser", "cboSortPredecessorsBy", Me.cboSortPredecessorsBy.Value
+    cptSortNetworkBrowserLinks Me, "p", Me.chkSortPredDescending.Value
+  End If
 End Sub
 
 Private Sub cboSortSuccessorsBy_Change()
-  cptSaveSetting "NetworkBrowser", "cboSortSuccessorsBy", Me.cboSortSuccessorsBy.Value
-  cptSortNetworkBrowserLinks "s", Me.chkSortSuccDescending.Value
+  If Me.Visible Then
+    cptSaveSetting "NetworkBrowser", "cboSortSuccessorsBy", Me.cboSortSuccessorsBy.Value
+    cptSortNetworkBrowserLinks Me, "s", Me.chkSortSuccDescending.Value
+  End If
 End Sub
 
 Private Sub chkHideInactive_Click()
-  cptSaveSetting "NetworkBrowser", "chkHideInactive", IIf(Me.chkHideInactive, 1, 0)
-  Call cptShowPreds
+  If Me.Visible Then
+    cptSaveSetting "NetworkBrowser", "chkHideInactive", IIf(Me.chkHideInactive, 1, 0)
+    cptShowPreds Me
+  End If
 End Sub
 
 Private Sub chkSortPredDescending_Click()
-  cptSaveSetting "NetworkBrowser", "chkSortPredDescending", IIf(Me.chkSortPredDescending, "1", "0")
-  cptSortNetworkBrowserLinks "p", Me.chkSortPredDescending.Value
+  If Me.Visible Then
+    cptSaveSetting "NetworkBrowser", "chkSortPredDescending", IIf(Me.chkSortPredDescending, "1", "0")
+    cptSortNetworkBrowserLinks Me, "p", Me.chkSortPredDescending.Value
+  End If
 End Sub
 
 Private Sub chkSortSuccDescending_Click()
-  cptSaveSetting "NetworkBrowser", "chkSortSuccDescending", IIf(Me.chkSortSuccDescending, "1", "0")
-  cptSortNetworkBrowserLinks "s", Me.chkSortSuccDescending.Value
+  If Me.Visible Then
+    cptSaveSetting "NetworkBrowser", "chkSortSuccDescending", IIf(Me.chkSortSuccDescending, "1", "0")
+    cptSortNetworkBrowserLinks Me, "s", Me.chkSortSuccDescending.Value
+  End If
 End Sub
 
 Private Sub cmdBack_Click()
@@ -50,10 +59,11 @@ Private Sub cmdBack_Click()
   
   If IsNull(Me.lboHistory.Value) Then Me.lboHistory.ListIndex = -1
 
-  If Me.lboHistory.ListCount > 0 Then
-    'todo: fix this
-    Me.lboHistory.ListIndex = Me.lboHistory.ListIndex + 1
-    Call cptHistoryDoubleClick
+  If Me.lboHistory.ListCount > 1 Then
+    If Me.lboHistory.ListIndex < Me.lboHistory.ListCount - 1 Then
+      Me.lboHistory.ListIndex = Me.lboHistory.ListIndex + 1
+      cptHistoryDoubleClick Me
+    End If
   End If
 
 exit_here:
@@ -76,7 +86,7 @@ End Sub
 
 Private Sub cmdClose_Click()
   Set oSubMap = Nothing
-  Unload Me
+  Me.Hide
 End Sub
 
 Private Sub cmdFwd_Click()
@@ -89,7 +99,7 @@ Private Sub cmdFwd_Click()
 
   If Me.lboHistory.ListCount > 0 And Me.lboHistory.ListIndex > 0 Then
     Me.lboHistory.ListIndex = Me.lboHistory.ListIndex - 1
-    Call cptHistoryDoubleClick
+    cptHistoryDoubleClick Me
   End If
 
 exit_here:
@@ -116,6 +126,8 @@ Private Sub cmdMark_Click()
   'booleans
   'variants
   'dates
+  
+  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'cptSpeed True
   If ActiveSelection.Tasks.Count = 1 Then
@@ -277,13 +289,15 @@ err_here:
 End Sub
 
 Sub lboHistory_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
-  Call cptHistoryDoubleClick
+  cptHistoryDoubleClick Me
 End Sub
 
 Sub lboPredecessors_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
-Dim lngTaskUID As Long
-
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  Dim lngTaskUID As Long
+  Dim blnErrorTrapping As Boolean
+  
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   If Me.lboPredecessors.ListIndex <= 0 Then GoTo exit_here
   With Me.lboHistory
@@ -308,7 +322,7 @@ Dim lngTaskUID As Long
             GoTo exit_here
           End If
         End If
-        If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+        If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
         If Not Find("Unique ID", "equals", lngTaskUID) Then
           MsgBox "Task not found.", vbExclamation + vbOKOnly, "Missing Task?"
         End If
@@ -318,7 +332,7 @@ Dim lngTaskUID As Long
     End If
     Me.lboHistory.AddItem lngTaskUID, 0
     Me.lboHistory.ListIndex = Me.lboHistory.TopIndex
-    Call cptShowPreds
+    cptShowPreds Me
   End If
   
 exit_here:
@@ -329,7 +343,7 @@ err_here:
 End Sub
 
 Private Sub lboSuccessors_DblClick(ByVal Cancel As MSForms.ReturnBoolean)
-Dim lngTaskUID As Long, oTask As MSProject.Task
+  Dim lngTaskUID As Long, oTask As MSProject.Task
 
   On Error Resume Next
   If Me.lboSuccessors.ListIndex <= 0 Then GoTo exit_here
@@ -378,7 +392,7 @@ Dim lngTaskUID As Long, oTask As MSProject.Task
   End If
   Me.lboHistory.AddItem lngTaskUID, 0
   Me.lboHistory.ListIndex = Me.lboHistory.TopIndex
-  Call cptShowPreds
+  cptShowPreds Me
   
 exit_here:
   On Error Resume Next
@@ -410,6 +424,37 @@ Private Sub tglTrace_Click()
   End If
 End Sub
 
+Private Sub UserForm_Initialize()
+  
+  Call cptResizeWindowSettings(Me, True)
+  
+End Sub
+
 Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
   Call cptCore_bas.cptStartEvents
+End Sub
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
+Private Sub UserForm_Resize()
+  
+  If Me.Width < 506.25 Then 'protect minimum width
+    Me.Width = 506.25
+  Else
+    Me.lboPredecessors.Width = 416 + (Me.Width - 506.25)
+    Me.lboSuccessors.Width = 416 + (Me.Width - 506.25)
+  End If
+  If Me.Height <> 345.75 Then 'protect height (for now)
+    Me.Height = 345.75
+  End If
+  
+End Sub
+
+Private Sub UserForm_Terminate()
+  Unload Me
 End Sub

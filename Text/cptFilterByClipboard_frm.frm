@@ -13,8 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-'<cpt_version>v1.2.1</cpt_version>
+'<cpt_version>v1.2.2</cpt_version>
 Option Explicit
 
 Private Sub chkFilter_Click()
@@ -33,9 +32,13 @@ Private Sub cmdClear_Click()
   Me.txtFilter.Text = ""
   Me.txtFilter.Visible = True
   Me.lboFilter.Visible = False
-  Call cptClearFreeField
-  Call cptUpdateClipboard
+  cptClearFreeField Me
+  cptUpdateClipboard Me
   Me.txtFilter.SetFocus
+End Sub
+
+Private Sub cmdClose_Click()
+  Me.Hide
 End Sub
 
 Private Sub lblURL_Click()
@@ -65,6 +68,7 @@ Private Sub lboFilter_Click()
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   'dates
   Dim dtGoTo As Date
@@ -79,7 +83,8 @@ Private Sub lboFilter_Click()
     Set oTask = ActiveProject.Tasks.Item(lngUID)
     strField = "ID"
   End If
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   If Not oTask Is Nothing Then
     
     If IsDate(oTask.Stop) Then
@@ -102,7 +107,7 @@ Private Sub lboFilter_Click()
             Sort "ID", , , , , , False, True
             OutlineShowAllTasks
           End If
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           ScreenUpdating = True
           If Not EditGoTo(oTask.ID, dtGoTo) Then
             MsgBox "An unknown error has occured--can't find it!", vbCritical + vbOKOnly, "Still can't find it"
@@ -123,7 +128,7 @@ Private Sub lboFilter_Click()
             Sort "ID", , , , , , False, True
             OutlineShowAllTasks
           End If
-          If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+          If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
           ScreenUpdating = True
           If Not FindEx(strField, "equals", lngUID) Then
             MsgBox "An unknown error has occured--can't find it!", vbCritical + vbOKOnly, "Still can't find it"
@@ -155,7 +160,7 @@ Private Sub optID_Click()
   Me.txtFilter.Value = strFilter
   Me.lboHeader.List(0, 0) = "ID"
   FilterClear
-  Call cptUpdateClipboard
+  cptUpdateClipboard Me
 End Sub
 
 Private Sub optUID_Click()
@@ -166,7 +171,7 @@ Private Sub optUID_Click()
   Me.lboHeader.List(0, 0) = "UID"
   ActiveWindow.TopPane.Activate
   FilterClear
-  Call cptUpdateClipboard
+  cptUpdateClipboard Me
 End Sub
 
 Private Sub tglEdit_Click()
@@ -206,16 +211,15 @@ Private Sub txtFilter_BeforeDropOrPaste(ByVal Cancel As MSForms.ReturnBoolean, B
   'integers
   'doubles
   'booleans
+  Dim blnErrorTrapping As Boolean
   'variants
   Dim vRecord As Variant
   Dim strNewList As Variant
   Dim vData As Variant
   'dates
 
-  'FilterClear
-  
-  'todo: why no error trapping here?
-  If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+  blnErrorTrapping = cptErrorTrapping
+  If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
   
   'scrub the incoming data
   vData = Split(Data.GetText, vbCrLf)
@@ -239,7 +243,7 @@ next_record:
     
   Else 'user pasted single line of delimited values, possibly including ranges
 
-    If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
+    If blnErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     
     strFilter = Data.GetText
        
@@ -316,16 +320,16 @@ End Sub
 Private Sub txtFilter_Change()
   If Me.txtFilter.Visible Then
     Me.lboFilter.Clear
-    If Right(Me.txtFilter.Text, 1) = "," Then Call cptUpdateClipboard
+    If Right(Me.txtFilter.Text, 1) = "," Then cptUpdateClipboard Me
   End If
 End Sub
 
 Private Sub txtFilter_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
-  If Len(Me.txtFilter.Text) > 0 Then Call cptClipboardJump
+  If Len(Me.txtFilter.Text) > 0 Then cptClipboardJump Me
 End Sub
 
 Private Sub txtFilter_MouseUp(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
-  If Len(Me.txtFilter.Text) > 0 Then Call cptClipboardJump
+  If Len(Me.txtFilter.Text) > 0 Then cptClipboardJump Me
 End Sub
 
 Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, ByVal X As Single, ByVal Y As Single)
@@ -342,6 +346,14 @@ Private Sub UserForm_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, 
   End If
 End Sub
 
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+  If CloseMode = VbQueryClose.vbFormControlMenu Then
+    Me.Hide
+    Cancel = True
+  End If
+End Sub
+
 Private Sub UserForm_Terminate()
-  Call cptClearFreeField
+  cptClearFreeField Me, True
+  Unload Me
 End Sub
