@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.14.0</cpt_version>
+'<cpt_version>v1.14.1</cpt_version>
 Option Explicit
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
@@ -295,7 +295,8 @@ Sub cptShowAbout_frm()
   'myAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR '2/20/20 = 6
   'myAbout_frm.lblScoreBoard.Caption = "t0 : b7" 'EWR > SAV '6/3/22 = 7
   'myAbout_frm.lblScoreBoard.Caption = "t0 : b8" 'EWR > SAV '6/5/22 = 8
-  myAbout_frm.lblScoreBoard.Caption = "t0 : b9" 'EWR > DFW '5/16/25 = 9     v1.9.0
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b9" 'EWR > DFW '5/16/25 = 9    v1.9.0
+  myAbout_frm.lblScoreBoard.Caption = "t0 : b10" 'DFW > EWR '5/18/25 = 10   v1.9.1
   
   myAbout_frm.Caption = "The ClearPlan Toolbar - " & cptGetVersion("cptAbout_frm")
   myAbout_frm.Show '<issue19>
@@ -1084,7 +1085,7 @@ next_lngItem:
   
   'populate branches
   Set xmlHttpDoc = CreateObject("MSXML2.XMLHTTP.6.0")
-  strURL = "https://api.github.com/repos/AronGahagan/cpt-dev/branches"
+  strURL = "https://api.github.com/repos/clearplan/cpt/branches"
   xmlHttpDoc.Open "GET", strURL, False
   xmlHttpDoc.setRequestHeader "Content-Type", "application/json"
   xmlHttpDoc.setRequestHeader "Accept", "application/json"
@@ -1352,7 +1353,7 @@ Sub cptSendMail(strCategory As String)
       strHTML = "<h3>Please Describe Your Environment:</h3><p>"
       strHTML = strHTML & "<i>Operating System</i>: [operating system]<p>"
       strHTML = strHTML & "<i>Microsoft Project Version</i>: [Standard / Professional] [Year]<p>"
-      strHTML = strHTML & "<i>Do you have unfettered internet access (try opening <a href=""https://github.com/AronGahagan/cpt-dev/blob/master/README.md"">this page</a>)?</i> [Yes/No]<p>"
+      strHTML = strHTML & "<i>Do you have unfettered internet access (try opening <a href=""https://github.com/clearplan/cpt/blob/master/README.md"">this page</a>)?</i> [Yes/No]<p>"
       strHTML = strHTML & "<h3>Please Describe the Issue:</h3><p><p>"
       strHTML = strHTML & "<i>Please be as detailed as possible: what were you trying to do, what selections did you make, describe the file you are working on, etc.</i><p>"
       strHTML = strHTML & "<h3>Please Include Screenshot(s):</h3><p>Please include any screenshot(s) of any error messages or anything else that might help us troubleshoot this issue for you.<p><p>"
@@ -2560,7 +2561,7 @@ Sub cptGetValidMap(Optional strRequiredFields As String)
     strMsg = "Please install the modules 'cptDECM_bas' and 'cptIntegration_frm' from the latest release."
     strMsg = strMsg & "Go to GitHub now?"
     If MsgBox(strMsg, vbExclamation + vbYesNo, "Missing Modules") = vbYes Then
-      Application.FollowHyperlink "https://www.GitHub.com/AronGahagan/cpt-dev/releases/latest"
+      Application.FollowHyperlink "https://www.GitHub.com/clearplan/cpt/releases/latest"
     End If
   End If
 End Sub

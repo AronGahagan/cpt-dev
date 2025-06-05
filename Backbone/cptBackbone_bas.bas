@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptBackbone_bas"
-'<cpt_version>v1.2.3</cpt_version>
+'<cpt_version>v1.2.4</cpt_version>
 Option Explicit
 
 Sub cptImportCWBSFromExcel(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCode As Long)
@@ -31,7 +31,7 @@ Sub cptImportCWBSFromExcel(ByRef myBackbone_frm As cptBackbone_frm, lngOutlineCo
     
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
     
-  If MsgBox("Epected fields/column headers, in range [A1:C1], are CODE,LEVEL,DESCRIPTION and there should be no blank rows." & vbCrLf & vbCrLf & "Proceed?", vbQuestion + vbYesNo, "Confirm CWBS Import") = vbNo Then
+  If MsgBox("Expected fields/column headers, in range [A1:C1], are CODE,LEVEL,DESCRIPTION and there should be no blank rows." & vbCrLf & vbCrLf & "Proceed?", vbQuestion + vbYesNo, "Confirm CWBS Import") = vbNo Then
     'export a sample template
     If MsgBox("Would you like an example?", vbQuestion + vbYesNo, "A little help") = vbYes Then Call cptExportTemplate
   Else
