@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} cptIMSCobraExport_frm 
-   Caption         =   "IMS Export Utility v3.4.6"
+   Caption         =   "IMS Export Utility v3.4.7"
    ClientHeight    =   9060.001
    ClientLeft      =   120
    ClientTop       =   468
@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v3.4.6</cpt_version>
+'<cpt_version>v3.4.7</cpt_version>
 Private Sub AsgnPcntBox_Change() 'v3.3.1
     
     If isIMSfield(AsgnPcntBox.Value) = False And AsgnPcntBox.Value <> "" And AsgnPcntBox.Value <> "<None>" Then
