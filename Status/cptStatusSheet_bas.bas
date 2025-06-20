@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.6.0</cpt_version>
+'<cpt_version>v1.6.1</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -846,14 +846,18 @@ Sub cptCreateStatusSheet(ByRef myStatusSheet_frm As cptStatusSheet_frm)
       .lblStatus.Caption = "Saving Workbook..."
       Application.StatusBar = .lblStatus.Caption
       strFileName = cptSaveStatusSheet(myStatusSheet_frm, oWorkbook)
-      .lblStatus.Caption = "Saving Workbook...done."
+      If Len(strFileName) = 0 Then
+        .lblStatus.Caption = "Saving Workbook...error!"
+      Else
+        .lblStatus.Caption = "Saving Workbook...done."
+      End If
       Application.StatusBar = .lblStatus.Caption
       DoEvents
       
       oExcel.Calculation = xlCalculationAutomatic
       oExcel.ScreenUpdating = True
       
-      If blnEmail Then 'send workbook
+      If blnEmail And Len(strFileName) > 0 Then 'send workbook
         .lblStatus.Caption = "Creating Email..."
         Application.StatusBar = .lblStatus.Caption
         DoEvents
@@ -968,14 +972,18 @@ next_worksheet:
       .lblStatus.Caption = "Saving Workbook..."
       Application.StatusBar = .lblStatus.Caption
       strFileName = cptSaveStatusSheet(myStatusSheet_frm, oWorkbook)
-      .lblStatus.Caption = "Saving Workbook...done."
+      If Len(strFileName) = 0 Then
+        .lblStatus.Caption = "Saving Workbook...error!"
+      Else
+        .lblStatus.Caption = "Saving Workbook...done."
+      End If
       Application.StatusBar = .lblStatus.Caption
       DoEvents
       
       oExcel.Calculation = xlCalculationAutomatic
       oExcel.ScreenUpdating = True
       
-      If blnEmail Then 'send workbook
+      If blnEmail And Len(strFileName) > 0 Then 'send workbook
         .lblStatus.Caption = "Creating Email..."
         Application.StatusBar = .lblStatus.Caption
         DoEvents
@@ -1077,14 +1085,18 @@ next_worksheet:
           .lblStatus.Caption = "Saving Workbook for " & strItem & "..."
           Application.StatusBar = .lblStatus.Caption
           strFileName = cptSaveStatusSheet(myStatusSheet_frm, oWorkbook, strItem)
-          .lblStatus.Caption = "Saving Workbook for " & strItem & "...done."
+          If Len(strFileName) = 0 Then
+            .lblStatus.Caption = "Saving Workbook for " & strItem & "...error!"
+          Else
+            .lblStatus.Caption = "Saving Workbook for " & strItem & "...done."
+          End If
           Application.StatusBar = .lblStatus.Caption
           DoEvents
           
           oExcel.Calculation = xlCalculationAutomatic
           'oExcel.ScreenUpdating = True 'not yet
           
-          If blnEmail Then 'send workbook
+          If blnEmail And Len(strFileName) > 0 Then 'send workbook
             .lblStatus.Caption = "Creating Email for " & strItem & "..."
             Application.StatusBar = .lblStatus.Caption
             DoEvents
@@ -1914,7 +1926,7 @@ next_task:
     
   End If
   
-  If blnConditionalFormats Then
+  If blnConditionalFormats And Not oNSRange Is Nothing Then
     
     'entry required cells:
     'green by nature or green as last condition
@@ -1962,7 +1974,7 @@ next_task:
     oEVTRange.FormatConditions.Delete
     Set oDict.Item("ETC") = oETCRange
     oETCRange.FormatConditions.Delete
-    If blnAssignments Then
+    If blnAssignments And Not oAssignmentRange Is Nothing Then
       Set oAssignmentETCRange = oWorksheet.Application.Intersect(oAssignmentRange, oWorksheet.Columns(lngETCCol))
       Set oDict.Item("AssignmentETC") = oAssignmentETCRange
       oAssignmentETCRange.FormatConditions.Delete
@@ -2100,7 +2112,7 @@ next_task:
     'ETC:AND(ETC=0,AS=0) -> BAD
     oRecordset.AddNew Array(0, 1, 2), Array("ETC", "=AND(" & strETC & "=0," & strNS & "=0)", "BAD")
     
-    If blnAssignments Then
+    If blnAssignments And Not oETCValidationRange Is Nothing Then
       'need to reset certain variables for Assignment ranges
       oETCValidationRange.Select
       Set oFirstCell = oWorksheet.Application.ActiveCell
@@ -2590,12 +2602,15 @@ Function cptSaveStatusSheet(ByRef myStatusSheet_frm As cptStatusSheet_frm, ByRef
       strFileName = Replace(strFileName, "[item]", strItem)
     End If
     strFileName = cptRemoveIllegalCharacters(strFileName, "-")
-    strValidPath = cptValidPath(strDir & "\" & strFileName)
+    If Right(strDir, 1) <> "\" Then strDir = strDir & "\"
+    strValidPath = cptValidPath(strDir & strFileName)
     If CBool(Split(strValidPath, ":")(0)) = False Then
       If InStr(strValidPath, "exceeds") > 0 Then
         strDir = cptGetShortPath(strDir)
       Else
         MsgBox "There was an error saving this workbook:" & Replace(strValidPath, "0:", ""), vbExclamation + vbOKOnly, "Path/Filename error"
+        cptSaveStatusSheet = ""
+        GoTo exit_here
       End If
     End If
     On Error Resume Next
