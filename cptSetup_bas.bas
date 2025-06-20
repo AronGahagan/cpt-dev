@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.9.2</cpt_version>
+'<cpt_version>v1.9.3</cpt_version>
 Option Explicit
-Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
+Public Const strGitHub = "https://raw.githubusercontent.com/clearplan/cpt/master/"
 Private Const BLN_TRAP_ERRORS As Boolean = True 'keep this: cptErrorTrapping() lives in cptCore_bas
 #If Win64 And VBA7 Then
   Private Declare PtrSafe Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As LongPtr, _

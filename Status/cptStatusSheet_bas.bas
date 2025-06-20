@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptStatusSheet_bas"
-'<cpt_version>v1.6.0</cpt_version>
+'<cpt_version>v1.6.1</cpt_version>
 Option Explicit
 #If Win64 And VBA7 Then '<issue53>
   Declare PtrSafe Function GetTickCount Lib "kernel32" () As LongPtr '<issue53>
@@ -1914,7 +1914,7 @@ next_task:
     
   End If
   
-  If blnConditionalFormats Then
+  If blnConditionalFormats And Not oNSRange Is Nothing Then
     
     'entry required cells:
     'green by nature or green as last condition
