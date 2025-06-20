@@ -13,7 +13,7 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-'<cpt_version>v1.6.0</cpt_version>
+'<cpt_version>v1.6.1</cpt_version>
 Option Explicit
 Private Const lngForeColorValid As Long = -2147483630
 Private Const lngBorderColorValid As Long = 8421504 '-2147483642
@@ -116,7 +116,7 @@ Private Sub cboCreate_Change()
     Case 1 'A worksheet for each
       Me.lboItems.ForeColor = lngForeColorValid
       Me.chkSendEmails.Caption = "Create Email"
-      'Me.chkLocked.Caption = "Protect Workheets"
+      'Me.chkLocked.Caption = "Protect Worksheets"
       'Me.lblForEach.Visible = True
       Me.cboEach.Enabled = True
       Me.lboItems.Enabled = True

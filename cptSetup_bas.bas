@@ -1,7 +1,7 @@
 Attribute VB_Name = "cptSetup_bas"
-'<cpt_version>v1.9.2</cpt_version>
+'<cpt_version>v1.9.3</cpt_version>
 Option Explicit
-Public Const strGitHub = "https://raw.githubusercontent.com/ClearPlan/cpt/master/"
+Public Const strGitHub = "https://raw.githubusercontent.com/clearplan/cpt/master/"
 Private Const BLN_TRAP_ERRORS As Boolean = True 'keep this: cptErrorTrapping() lives in cptCore_bas
 #If Win64 And VBA7 Then
   Private Declare PtrSafe Function InternetGetConnectedStateEx Lib "wininet.dll" (ByRef lpdwFlags As LongPtr, _
@@ -986,7 +986,7 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
   strMsg = strMsg & "-> CATEGORY: ClearPlan Toolbar CPT" & vbCrLf
   strMsg = strMsg & "-> CPT Issue Type: (select one: installation; use; other)" & vbCrLf
   strMsg = strMsg & "-> SUBJECT: " & strModule & "-" & strInstalled & IIf(blnBeta, " (beta)", "") & " (Error: " & strErrNumber & ")" & vbCrLf
-  strMsg = strMsg & "-> MESSAGE: (COPY & PASTE EVERYTHING BETWEEN THIS LINE AND THE ONE BELOW; SEE FINAL STEPS AT BOTTOM)" & vbCrLf
+  strMsg = strMsg & "-> MESSAGE: (COPY & PASTE EVERYTHING BETWEEN THE TWO LONG DOTTED LINES; SEE FINAL STEPS AT BOTTOM)" & vbCrLf
   strMsg = strMsg & String(80, "-") & vbCrLf
   strMsg = strMsg & "[Please REPLACE THIS LINE with any notes or comments you'd like to add.]" & vbCrLf
   strMsg = strMsg & "EXAMPLE: I'm trying to run Status Sheets and I keep getting this error..." & vbCrLf
