@@ -986,7 +986,7 @@ Sub cptHandleErr(strModule As String, strProcedure As String, objErr As ErrObjec
   strMsg = strMsg & "-> CATEGORY: ClearPlan Toolbar CPT" & vbCrLf
   strMsg = strMsg & "-> CPT Issue Type: (select one: installation; use; other)" & vbCrLf
   strMsg = strMsg & "-> SUBJECT: " & strModule & "-" & strInstalled & IIf(blnBeta, " (beta)", "") & " (Error: " & strErrNumber & ")" & vbCrLf
-  strMsg = strMsg & "-> MESSAGE: (COPY & PASTE EVERYTHING BETWEEN THIS LINE AND THE ONE BELOW; SEE FINAL STEPS AT BOTTOM)" & vbCrLf
+  strMsg = strMsg & "-> MESSAGE: (COPY & PASTE EVERYTHING BETWEEN THE TWO LONG DOTTED LINES; SEE FINAL STEPS AT BOTTOM)" & vbCrLf
   strMsg = strMsg & String(80, "-") & vbCrLf
   strMsg = strMsg & "[Please REPLACE THIS LINE with any notes or comments you'd like to add.]" & vbCrLf
   strMsg = strMsg & "EXAMPLE: I'm trying to run Status Sheets and I keep getting this error..." & vbCrLf
