@@ -1,5 +1,5 @@
 Attribute VB_Name = "cptCore_bas"
-'<cpt_version>v1.14.1</cpt_version>
+'<cpt_version>v1.14.2</cpt_version>
 Option Explicit
 Private oMSPEvents As cptEvents_cls
 #If Win64 And VBA7 Then
@@ -28,7 +28,7 @@ End Sub
 Function cptGetUserForm(strModuleName As String) As MSForms.UserForm
   'NOTE: this only works if the form is loaded
   'objects
-  Dim UserForm As Object
+  Dim oUserForm As Object
   'strings
   'longs
   'integers
@@ -39,16 +39,16 @@ Function cptGetUserForm(strModuleName As String) As MSForms.UserForm
 
   If cptErrorTrapping Then On Error GoTo err_here Else On Error GoTo 0
 
-  For Each UserForm In VBA.UserForms
-    If UserForm.Name = strModuleName Then
-      Set cptGetUserForm = UserForm
+  For Each oUserForm In VBA.UserForms
+    If oUserForm.Name = strModuleName Then
+      Set cptGetUserForm = oUserForm
       Exit For
     End If
   Next
 
 exit_here:
   On Error Resume Next
-  Set UserForm = Nothing
+  Set oUserForm = Nothing
 
   Exit Function
 err_here:
@@ -295,8 +295,8 @@ Sub cptShowAbout_frm()
   'myAbout_frm.lblScoreBoard.Caption = "t0 : b6" 'NAS > EWR '2/20/20 = 6
   'myAbout_frm.lblScoreBoard.Caption = "t0 : b7" 'EWR > SAV '6/3/22 = 7
   'myAbout_frm.lblScoreBoard.Caption = "t0 : b8" 'EWR > SAV '6/5/22 = 8
-  'myAbout_frm.lblScoreBoard.Caption = "t0 : b9" 'EWR > DFW '5/16/25 = 9    v1.9.0
-  myAbout_frm.lblScoreBoard.Caption = "t0 : b10" 'DFW > EWR '5/18/25 = 10   v1.9.1
+  'myAbout_frm.lblScoreBoard.Caption = "t0 : b9" 'EWR > DFW '5/16/25 = 9     v1.9.0
+  myAbout_frm.lblScoreBoard.Caption = "t0 : b10" 'DFW > EWR '5/18/25 = 10  v1.9.1
   
   myAbout_frm.Caption = "The ClearPlan Toolbar - " & cptGetVersion("cptAbout_frm")
   myAbout_frm.Show '<issue19>
@@ -2910,11 +2910,12 @@ Function cptValidPath(strFullName As String) As String
     strReason = "folder does not exist"
     GoTo exit_here
   End If
-  'ensure folder is not read-only
-  If oFolder.Attributes And ReadOnly Then
-    strReason = "folder is read-only"
-    GoTo exit_here
-  End If
+'  'ensure folder is not read-only
+  'todo: this returns false positive on some systems...(?)
+'  If (oFolder.Attributes And ReadOnly) = 1 Then
+'    strReason = "folder is read-only"
+'    GoTo exit_here
+'  End If
   'test for illegal characters in filename
   strFileName = Replace(strFullName, oFSO.GetParentFolderName(strFullName), "")
   For Each v In Split("<,>,?,[,],:,|,*", ",")
